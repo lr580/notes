@@ -12,7 +12,7 @@
 *.htm
 *.mhtml
 *.xmind
-!Python知识树.*
+Python知识树.*
 !C学习笔记.md
 !算法笔记(重制).md
 !算法练习记录(部分).md

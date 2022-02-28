@@ -972,6 +972,14 @@ replace(a,b,c)将上述操作至多替换c次
 
 center(总长) 返回居中显示的str，左右补足空白
 
+join(字符串为元素的iterable) 以原字符串为分割符，穿插插入得到结果，如
+
+```python
+'a'.join(('bc','','d','e')) == 'bcaadae'
+```
+
+
+
 #### None
 
 表示空，不等同于0，也不等同于零元素集合(数学空集)，类型也不一样：
@@ -2817,6 +2825,51 @@ def Decode(Binary): # 解密
 
 
 
+#### itertools
+
+```python
+from itertools import *
+```
+
+可以枚举排列组合等
+
+如：
+
+- 笛卡尔积
+
+  `product(iterable, repeat=1)` ，输出 $len^{repeat}$ 个元素
+
+  `product(iterable1, iterable2, ...)` 多个集合笛卡尔积
+
+- 排列 `permutaions(iterable, m = len)`
+
+- 组合 `combinations(iterable, m)` 
+
+- 带自身重复的组合(每个元素可以选无限次) `combinations_with_replacement()`
+
+例：
+
+```python
+for i in product('1234', repeat=2):
+    print(''.join(i), end=' ')
+for i in product('1234', 'abc', 'AB'):
+    print(''.join(i), end=' ')
+for i in permutations(("abc", "def", "ghi")):
+    print(i)
+for i in combinations_with_replacement("abcd", 3):
+    print(''.join(i), end=' ')
+```
+
+排列数组合数建议用算法知识计算，也可以调第三方库：(可以对 `numpy` 数组两两算组合)
+
+```python
+from scipy.special import comb, perm
+print(perm(5, 2)) # A(n, m) 返回 double
+print(comb(5, [i for i in range(6)])) # C(n, m)
+```
+
+
+
 
 
 # 库
@@ -4366,5 +4419,26 @@ for i in range(1, 8):
     print('Done ' + idx + ', find ' + str(len(result)))
 with open('titles.txt', 'w', encoding=enc) as f:
     f.write(ans)
+```
+
+
+
+# 应用举例
+
+#### 文件
+
+##### 统计 java 项目代码总行数
+
+```python
+import os
+cnt = 0
+for root, dirs, files in os.walk('.'):
+    for i in files:
+        p = os.path.join(root, i)
+        if os.path.splitext(p)[1] == '.java':
+            with open(p, 'r', encoding='utf-8') as f:
+                t = len(f.readlines())
+                cnt += t
+print(cnt)
 ```
 

@@ -12338,7 +12338,21 @@ import java.util.Date;
 - `Date()` 取现在
 - `Date(long)` 取 $1970$ 年 $1$ 月 $1$ 日起始到现在的毫秒数
 
+其他方法：
 
+- `getTime()` 获取时间戳(单位毫秒)，返回 `long`
+
+
+
+应用：
+
+1. 计算两个日期相差多少天：
+
+   ```java
+   (int) ((d1.getTime() - d2.getTime()) / (1000 * 3600 * 24))
+   ```
+
+   
 
 ##### Calendar
 
@@ -12370,6 +12384,24 @@ c.add(单位, 数量);
 c.add(Calendar.DAY_OF_YEAR, -1000);
 ```
 
+常见的值有：
+
+- `DAY_OF_WEEK` 周日是 $1$ ，周一到周六是 $[2,7]$
+
+  强转周一到周日范围为 $[0,6]$ 的方法：
+
+  ```java
+  (c.get(Calendar.DAY_OF_WEEK) + 5) % 7
+  ```
+
+- `DAY_OF_MONTH` 一个月里的第几天，从 $1$ 开始
+
+取范围最值，如获得这个日期月份有多少天：
+
+```java
+c.getActualMaximum(Calendar.DAY_OF_MONTH);
+```
+
 
 
 ##### SimpleDateFormat
@@ -12383,6 +12415,7 @@ import java.text.SimpleDateFormat;
 ```java
 SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
 SimpleDateFormat sdf = new SimpleDateFormat("yyMMdd");
+SimpleDateFormat sdf = new SimpleDateFormat("yyMM");
 ```
 
 有两个函数：
@@ -12390,6 +12423,29 @@ SimpleDateFormat sdf = new SimpleDateFormat("yyMMdd");
 ```java
 sdf.parse(String source); //转 Date ，需要 throws
 sdf.format(Date res); //转 String
+```
+
+
+
+#### Toolkit
+
+```java
+import java.awt.Toolkit;
+```
+
+##### 剪切板
+
+###### 复制到剪切板
+
+文本复制到剪切板：
+
+```java
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.StringSelection;
+public static void toClipboard(String s) {
+    Transferable res = new StringSelection(s);
+    Toolkit.getDefaultToolkit().getSystemClipboard().setContents(res, null);
+}
 ```
 
 
