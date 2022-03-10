@@ -1083,6 +1083,20 @@ Document itself
 
 
 
+# PPT
+
+## Marp
+
+参考文献：[markdown](https://sspai.com/post/55718) [http](https://sspai.com/post/40657)
+
+VSCODE + 插件 `Marp for VS Code` , `Markdown All in One`
+
+使用 YAML 语法在最开头输入：
+
+
+
+
+
 # 后记
 
 ## 附录

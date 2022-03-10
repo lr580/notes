@@ -978,6 +978,12 @@ join(字符串为元素的iterable) 以原字符串为分割符，穿插插入�
 'a'.join(('bc','','d','e')) == 'bcaadae'
 ```
 
+isalpha() 等方法判断该字符串是否每个字符都是特定范围的
+
+```python
+'αBc'.isalpha() == True
+```
+
 
 
 #### None
@@ -1426,6 +1432,38 @@ for i in ((1,2),(3,4)):#此时i是tuple
 [[j**2 for j in range(i*3,i*3+3)] for i in range(3)]#左
 #[[0, 1, 4], [9, 16, 25], [36, 49, 64]]
 ```
+
+
+
+#### else
+
+`for: ... else:` 或 `while: ... else:`
+
+循环在正常执行时会进入 else 分支，被 break 了就不会进入，如：
+
+```python
+x = int(input())
+for i in range(5):
+    if x == i:
+        break
+else:
+    print('x not in [0,4]')
+```
+
+```python
+for i in range(5):
+    for j in range(5):
+        if i == 2 and j == 2:
+            break
+        print(i, j)
+    else:  #上面break掉了，这里就不continue
+        continue
+    break  #不continue就break从而跳出多重循环
+```
+
+但是被 continue 了不会触发 else ；所以跳出多重循环可以这么做
+
+
 
 ### 错误判定
 
