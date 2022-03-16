@@ -4645,7 +4645,7 @@ js存在隐式类型转换，大致规则为：
 
 ### 流程控制
 
-if,switch,while,for等大同C语言。
+if,switch,while,for等大同C语言。短路运算符同理。
 
 #### for
 
