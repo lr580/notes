@@ -104,6 +104,18 @@ int a=1;
 
 <center>标题</center>
 
+
+
+### 分页
+
+实用 HTML 语法可以实现分页(导出 pdf 时生效)
+
+```html
+<div STYLE="page-break-after: always;"></div>
+```
+
+
+
 ## 其他设置
 
 偏好设置
@@ -127,6 +139,49 @@ int a=1;
 ## 导出为pdf
 
 文件 - 导出
+
+
+
+> 拓展：使用pandoc
+>
+> 安装：[参考](https://zhuanlan.zhihu.com/p/258912543)
+>
+> ```shell
+> pip install pandoc
+> pip install pandoc-xnos
+> ```
+
+
+
+### 目录
+
+输入 `[toc]` ，可以自动生成链接式的目录
+
+toc 即 tableofcontents
+
+暂时无法实现页码
+
+
+
+### 页眉页脚
+
+偏好设置-Export
+
+可以输入诸如： `${today}`  作为页眉，
+
+输入 `${pageNo} / ${totalPages}` 作为页脚
+
+其他支持的变量([官方信息](https://support.typora.io/Export/#header--footer))：
+
+- `${title}`
+- `${author}`
+- `${pageCount}`
+
+![image-20220324153807133](img/image-20220324153807133.png)
+
+![image-20220324153819869](img/image-20220324153819869.png)
+
+
 
 # 公式
 
@@ -484,7 +539,7 @@ $\equiv  \leq \le  \geq \ge > <$
 
 $\leqslant \geqslant$
 
-$\forall  \exists \nabla \because   \_ \therefore$
+$\forall  \exists \nabla \because   \_ \therefore$ 注：不建议打 `exist` ，建议打 `exists` ，前者对 tex 不兼容
 
 $\sim \thicksim \backsim$
 
