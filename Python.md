@@ -1981,7 +1981,7 @@ int2('100000')
 
 #### 基本
 
-无论如何饮用引用的过程会原样执行被引用代码文件(.py)的全部内容，含print等。
+无论如何引用的过程会原样执行被引用代码文件(.py)的全部内容，含print等。
 
 引用格式：
 
@@ -2907,6 +2907,30 @@ print(comb(5, [i for i in range(6)])) # C(n, m)
 ```
 
 
+
+#### decimal
+
+以例子说明：
+
+```python
+from decimal import *
+getcontext().prec = 20
+x = Decimal('1')
+y = Decimal('7.0')
+print((x / y * y * y).quantize(Decimal('0.00'), ROUND_HALF_DOWN))
+#第二个参数可以不填
+```
+
+> 精度：(官方文档)
+>
+> ROUND_CEILING (towards Infinity),
+> ROUND_DOWN (towards zero),
+> ROUND_FLOOR (towards -Infinity),
+> ROUND_HALF_DOWN (to nearest with ties going towards zero),
+> ROUND_HALF_EVEN (to nearest with ties going to nearest even integer),
+> ROUND_HALF_UP (to nearest with ties going away from zero), or
+> ROUND_UP (away from zero).
+> ROUND_05UP (away from zero if last digit after rounding towards zero would have been 0 or 5; otherwise towards zero)
 
 
 

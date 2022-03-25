@@ -2024,7 +2024,7 @@ System.out.println(x.and(new BigInteger("2")));
 
 方法：
 
-- add subtract multiply divede
+- add subtract multiply divide
 
 divide的设置方法处理小数位：
 
