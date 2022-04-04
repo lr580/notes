@@ -852,6 +852,14 @@ bool仅对于None,空字符，空数组，空数字(虚数实部虚部均0)返�
 True in [1] #返回True，会转类型后判定
 ```
 
+
+
+#### getattr
+
+`getattr(x,'y')` 等效于 `x.y` 
+
+
+
 #### 数组类
 
 ##### range
@@ -2719,6 +2727,8 @@ print(datetime.fromtimestamp(1623241613.023852))
 
 时间 datetime 可以相减，得到 `timedelta` ，支持不等号比较。
 
+有属性 days 等。可以与日期进行加法运算。
+
 
 
 ##### 日历
@@ -2904,6 +2914,29 @@ for i in combinations_with_replacement("abcd", 3):
 from scipy.special import comb, perm
 print(perm(5, 2)) # A(n, m) 返回 double
 print(comb(5, [i for i in range(6)])) # C(n, m)
+```
+
+
+
+#### collections
+
+记录数的频次可以用 Counter ，传入一个列表，输出元组列表，依次表示数字和频次，用 `.most_common()` 方法转元素列表，输入参数表示取多少个。如果想要按大小取，可以先对传入的列表排序
+
+例如：求第一个可以拆分为 12 种平方数和的数字
+
+```python
+s=list(i**2 for i in range(1,1000))
+t=[]
+for i in range(len(s)):
+    for j in range(i,len(s)):
+        t.append(s[i]+s[j])
+t.sort()
+from collections import Counter
+s2=Counter(t).most_common(80)
+for i in range(80):
+    if s2[i][1]==12:
+        print(s2[i][0])
+        break
 ```
 
 
