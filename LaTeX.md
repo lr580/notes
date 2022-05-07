@@ -4,11 +4,15 @@
 >
 > 本文档公式代码查看在typora直接看即可，所以打印成pdf会看不了部分源码qwq
 
-# 排版
+# Markdown
+
+主要适用于 Typora 下的 `.md` 编辑。不保证其他平台无误。
+
+## 排版
 
 > 其实右击和上面的格式栏可以解决大部分问题
 
-## 分级标题
+### 分级标题
 
 ctrl+x是几号标题
 
@@ -18,15 +22,15 @@ ctrl+x是几号标题
 
 在光标在侧边栏时，上滚轮可以展开对目录的搜索(鉴于typora的搜索速度，比全文搜索明显快很多)
 
-## 主要功能
+### 主要功能
 
-### 引用
+#### 引用
 
 > 右尖括号(>)+空格自动生成
 >
 > 回车+shift+tab退出引用
 
-### 无序列表
+#### 无序列表
 
 - ctrl+shift+] 生成
 
@@ -38,13 +42,13 @@ ctrl+x是几号标题
 2. 子列表同理
    1. 它的快捷键同上
 
-### 链接
+#### 链接
 
 中括号里写链接名，中括号后小括号写链接地址，这样ctrl单击后直接跳转
 
 [示范](https://search.bilibili.com/all?keyword=typora&from_source=nav_suggest_new)
 
-### 图片
+#### 图片
 
 偏好设置 - 图像 - 插入图片时 复制到指定路径 前三个打钩
 
@@ -52,19 +56,19 @@ ctrl+x是几号标题
 
 添加图片直接拖拽
 
-### 高亮
+#### 高亮
 
 偏好设置 - markdown - 高亮 打开
 
 ==高亮文字==
 
-### 加粗
+#### 加粗
 
 **ctrl+b**
 
 取消也是这个键
 
-### 划重点
+#### 划重点
 
 即(格式-代码)
 
@@ -76,7 +80,7 @@ ctrl+x是几号标题
 
 同理，格式里有很多别的
 
-### 表格
+#### 表格
 
 ctrl+t
 
@@ -86,7 +90,7 @@ ctrl+t
 | 第一个按钮调整行列数   | 后三个略         |
 |                        |                  |
 
-### 代码块
+#### 代码块
 
 三个飘号(建议直接打六个，可以选择语言)
 
@@ -94,7 +98,7 @@ ctrl+t
 int a=1;
 ``````
 
-### 居中/右
+#### 居中/右
 
 居右：
 
@@ -106,7 +110,7 @@ int a=1;
 
 
 
-### 分页
+#### 分页
 
 实用 HTML 语法可以实现分页(导出 pdf 时生效)
 
@@ -116,7 +120,7 @@ int a=1;
 
 
 
-## 其他设置
+### 其他设置
 
 偏好设置
 
@@ -128,7 +132,7 @@ int a=1;
 
 在那个状态下可以调更多东西，前提是看得懂=w=
 
-## 自己的主题
+### 自己的主题
 
 偏好设置 - 外观 - 打开主题文件夹 
 
@@ -136,7 +140,7 @@ int a=1;
 
 调试用检察元素
 
-## 导出为pdf
+### 导出为pdf
 
 文件 - 导出
 
@@ -153,7 +157,7 @@ int a=1;
 
 
 
-### 目录
+#### 目录
 
 输入 `[toc]` ，可以自动生成链接式的目录
 
@@ -163,7 +167,7 @@ toc 即 tableofcontents
 
 
 
-### 页眉页脚
+#### 页眉页脚
 
 偏好设置-Export
 
@@ -183,11 +187,11 @@ toc 即 tableofcontents
 
 
 
-# 公式
+## 公式
 
-## 行
+### 行
 
-### 单行公式
+#### 单行公式
 
 > 第一次要在typora打开markdown拓展语法内联公式，重启typora
 
@@ -209,7 +213,7 @@ $$多行公式$$ //插入公式
 
 > 外层渲染，如下划线、斜体，对数学公式内部内容不起作用。如上。
 
-### 多行公式
+#### 多行公式
 
 使用菜单那里拉出来，行外式
 $$
@@ -224,7 +228,7 @@ $$
 - 多行有类似于代码块的标识符颜色提示
 - 多行的输入式：输入两次$然后回车，类似于代码块。单行就两个美元符号输入之后移鼠标到中间即可。
 
-### 分行
+#### 分行
 
 使用两个反斜杠
 
@@ -232,7 +236,7 @@ $a\\ b \\ c$
 
 
 
-#### 多行公式
+##### 多行公式
 
 $\begin{align} a &= b+c\\ &=d+e  \end{align}$
 $$
@@ -255,9 +259,9 @@ z & v
 \end{matrix}
 $$
 
-## 一般格式
+### 一般格式
 
-### 上下标
+#### 上下标
 
 单个就直接拉^符号 $x^2$甚至不用拉公式也可以上标  
 
@@ -271,19 +275,19 @@ $$
 
 ${}_{1}^{2}x_3^4$
 
-### 上下头
+#### 上下头
 
 $\overline{abc}\quad\underline{abc}\quad\widehat{abc}\quad\widetilde{abc}\quad\overrightarrow{abc}\quad\overleftarrow{abc}\quad\overbrace{abc}\quad\underbrace{abc} $   $\bar{12}$(定长线)
 
 $\overset{abc}{def}$ $\underset{abc}{def}$
 
-### 字号大小
+#### 字号大小
 
 $\tiny1\scriptsize2\small4\normalsize5\large6\Large7\LARGE8\huge9\Huge0$
 
 > footersize在typora不可用
 
-### 字体
+#### 字体
 
 以下仅对大写有效
 $$
@@ -321,9 +325,9 @@ $$
 
 
 
-## 字符
+### 字符
 
-### 一般字符
+#### 一般字符
 
 $在内联里是可以随便输入中文，English,123的啦$
 $$
@@ -334,7 +338,7 @@ $$
 
 
 
-### 标点符号
+#### 标点符号
 
 点 $\cdots \vdots \ddots  \ldots \quad\dots$
 
@@ -354,7 +358,7 @@ $|\quad \| \quad \vert \quad \Vert$
 
 $\%$ 需要转义，否则代表单行注释，如 $1+2%难道不等于%3吗$ ；千分号可以用 html 特殊字符打， 通常时`Katex`不支持(需要加载宏包)
 
-#### 空格
+##### 空格
 
 \quad 空格 $a\quad b$
 
@@ -366,14 +370,14 @@ $\%$ 需要转义，否则代表单行注释，如 $1+2%难道不等于%3吗$ �
 
 更紧凑用多个 $a\!\!b \ c\!\!\!e \; f\!\!\!\!g$
 
-#### 箭头
+##### 箭头
 
 四方向\left/right/up/downarrow $\uparrow$
 
 左右\to \gets $\to \gets$
 
 - 大左右 $\xleftarrow[下]{1+2+3}\xrightarrow{x}$
-- 双线 $\Leftarrow$ $\Leftrightarrow$
+- 双线 $\Leftarrow$ $\Leftrightarrow$ $\iff$ 
 - 否定+n $\nRightarrow$
 - 双向 $\leftrightarrow$ $\longleftrightarrow$
 
@@ -395,7 +399,7 @@ $\%$ 需要转义，否则代表单行注释，如 $1+2%难道不等于%3吗$ �
 
 > 暂未解决给一般字符加上下文字的方法，如$\sim$。
 
-#### 括号
+##### 括号
 
 $\{x\}(y)[z]$
 
@@ -407,7 +411,7 @@ $\bigl( \Bigl( \biggl( \Biggl( \quad\bigr) \Bigr) \biggr) \Biggr) $
 
 $\langle \rangle$
 
-#### 修饰
+##### 修饰
 
 上划线$\overline a$ 下划线$\underline{abc}$
 
@@ -415,7 +419,7 @@ $\langle \rangle$
 
 
 
-### 转义
+#### 转义
 
 下列需要转义：
 $$
@@ -433,7 +437,7 @@ $$
 - ^ 上标
 - {} 填参数用的
 
-### 希腊字母
+#### 希腊字母
 
 常规(大写+小写)
 $$
@@ -497,7 +501,7 @@ $$
 
 
 
-### 特殊符号
+#### 特殊符号
 
 $\circledast\circledcirc\circleddash\divideontimes\odot\ominus\oplus\oslash\otimes\boxplus\boxdot\boxtimes\Box\square$
 
@@ -509,13 +513,13 @@ $\frown$
 
 $\LaTeX$   $\TeX$ $\S1$
 
-## 数学格式
+### 数学格式
 
-### 初等数学
+#### 初等数学
 
-#### 关系符号
+##### 关系符号
 
-##### 算术
+###### 算术
 
 正负号 $\pm$  $\mp$
 
@@ -529,7 +533,7 @@ $\LaTeX$   $\TeX$ $\S1$
 
 向上取整$\lceil x\rceil$
 
-##### 逻辑
+###### 逻辑
 
 $\ne \quad \approx \quad =$
 
@@ -549,9 +553,9 @@ $\ncong\ \nmid\ \nparallel\ \nshortmid\ \nsim\ \nleqslant\ \nleq\ \nleqq\ \nless
 
 
 
-#### 集合
+##### 集合
 
-$\emptyset\empty\O$  $\in$  $\ni$  $\notin$   $\complement$
+$\emptyset\empty\O$  $\in$  $\ni$  $\notin$   $\complement$ 空集建议： $\varnothing$ 
 
 $\bigcap_1^{n}P$  $\bigcup P$
 
@@ -565,9 +569,9 @@ $$
 $$
 
 
-#### 代数
+##### 代数
 
-##### 分式
+###### 分式
 
 $1/2$  $123/456$除法式子是直接的
 
@@ -589,7 +593,7 @@ $$
 
 
 
-##### 根式
+###### 根式
 
 \sqrt大括号啦 $2\sqrt{2}$    $\sqrt{\sqrt{3}}$
 
@@ -597,7 +601,7 @@ $$
 
 正确的写法：$\sqrt[3]{2}$
 
-##### 累加累乘
+###### 累加累乘
 
 \sum，下上标很简单的啦
 
@@ -607,7 +611,7 @@ $\sum$   $\sum{a}$  $\sum_{i=1}^{+\infty}{x^2}$
 
 \prod,同理  $\prod_{n=1}^{99}{x_n}$
 
-##### 函数
+###### 函数
 
 基本函数都有正体写法：
 
@@ -615,7 +619,7 @@ $\sin \arctan \cosh \exp \log \ln \min \max \gcd$
 
 > lcm没有正体写法
 
-#### 几何
+##### 几何
 
 度：$^\circ$ 
 
@@ -625,7 +629,7 @@ $\cong$
 
 $\overset{\LARGE{\frown}}{OA}$
 
-##### 证明
+###### 证明
 
 $相似\thicksim\\垂直\bot$
 
@@ -633,7 +637,7 @@ $任意\forall\\存在\exist$
 
 $\exist a\\\exists a$两种写法均可，基本无区别
 
-##### 矢量
+###### 矢量
 
 \vec大括号 {}   $\vec{vector}+\vec{x}$  
 
@@ -643,9 +647,9 @@ $\overleftarrow{sh}$
 
 夹角：$\hat{(\vec{a},\vec{b})}$ $\cos<\widehat{\vec a,\vec b}>$
 
-#### 初等函数
+##### 初等函数
 
-##### 三角函数
+###### 三角函数
 
 $\sin{x^2}$  $\cos{-x}=cos{x}$   $\tan{x}\cot{x}=1$
 
@@ -653,21 +657,21 @@ $sin^{2}{x}+cos^{2}{x}=1$
 
 $\sec{x}  \csc{x}  \arctan{x}$
 
-##### 对数函数
+###### 对数函数
 
 $\ln{\ln{3}}$    打法是小写L
 
 $log_28$   $\lg^210$
 
-### 高等数学
+#### 高等数学
 
-##### 求导
+###### 求导
 
 $f',f'',f^{(20)}$
 
 $\frac{\partial f(x)}{\partial x}$
 
-##### 积分
+###### 积分
 
 \int{x}dx $\int{x}dx$
 
@@ -681,7 +685,7 @@ $\iint$ $\iiint$ $\iiiint$ 最多四重，
 
 闭合曲线的积分：$\oint \oiint \oiiint$，最多三重。
 
-##### 极限
+###### 极限
 
 \lim{}   $\lim{x}$
 
@@ -698,7 +702,7 @@ $\lim_{x\rightarrow+\infty}{\frac{x}{0}}$
 > \lim_{x\to\infty}\biggl(\frac{n}{n^2+1}+\frac{n}{n^2+2^2}+\dots+\frac{n}{n^2+n^2}\biggr)
 > $$
 
-##### 矩阵
+###### 矩阵
 
 $a = \left[\matrix{\alpha_1 & test1\\ \alpha_2 & test2\\ \alpha_3 & test3}\right]$
 $$
@@ -710,11 +714,11 @@ $\large{\overset{c_1+c_2\\c1+2c_3\\}{—}}$
 
 
 
-##### 数论
+###### 数论
 
 暂无
 
-### 离散数学
+#### 离散数学
 
 偏序关系 $\prec \succ \preceq \succeq$ $\nprec \npreceq \nsucc\nsucceq$ 
 
@@ -728,9 +732,9 @@ $\vdash \models$
 
 
 
-# 绘图
+## 绘图
 
-## mermaid
+### mermaid
 
 [官方文档](https://mermaid-js.github.io/mermaid/#/)
 
@@ -739,7 +743,7 @@ $\vdash \models$
 ```mermaid
 ```
 
-### 流程图
+#### 流程图
 
 graph关键字声明流程图，之后声明**方向**，如TD(top down)：
 
@@ -888,7 +892,7 @@ graph TB
 
 
 
-### 时序图
+#### 时序图
 
 sequenceDiagram，`->>`实现箭头，`-->>`虚线箭头
 
@@ -929,7 +933,7 @@ sequenceDiagram
 
 
 
-### 状态图
+#### 状态图
 
 stateDiagram，`[*]` 表示开始或者结束，如果在箭头右边则表示结束。
 
@@ -939,7 +943,7 @@ stateDiagram
     s1 --> [*]
 ```
 
-### 类图
+#### 类图
 
 classDiagram，`<|--` 表示继承，`+` 表示 `public`，`-` 表示 `private
 
@@ -967,7 +971,7 @@ classDiagram
       }
 ```
 
-### 甘特图
+#### 甘特图
 
 gantt 从上到下依次是图片标题、日期格式、项目、项目细分的任务。
 
@@ -1029,7 +1033,7 @@ gantt
 
 
 
-### 饼图
+#### 饼图
 
 pie
 
@@ -1042,7 +1046,7 @@ pie
     "Iron" :  5
 ```
 
-### 导出
+#### 导出
 
 绘制好的图片可以选择菜单/文件/导出，导出为图片或者网页格式。在网页中图片是以 SVG 格式渲染的，可以复制 SVG 内容，导入到 SVG 的图片编辑器中进一步操作。
 
@@ -1050,9 +1054,9 @@ Mermaid 官方有一个在线的工具，可以导出 SVG 和 PNG。
 
 
 
-## 标准图
+### 标准图
 
-### flow
+#### flow
 
 ````flow`，标准流程图
 
@@ -1078,7 +1082,7 @@ cond(no)->sub1(right)->op
 
 
 
-### sequence
+#### sequence
 
 标准UML时序图
 
@@ -1124,7 +1128,7 @@ Note right of C: 没人陪我玩
 
 
 
-## tikz宏包
+### tikz宏包
 
 等待更新……
 
@@ -1138,9 +1142,9 @@ Document itself
 
 
 
-# PPT
+## PPT
 
-## Marp
+### Marp
 
 参考文献：[markdown](https://sspai.com/post/55718) [http](https://sspai.com/post/40657)
 
@@ -1152,11 +1156,13 @@ VSCODE + 插件 `Marp for VS Code` , `Markdown All in One`
 
 
 
-# 后记
+## 后记
 
-## 附录
+### 附录
 
-### LaTeX数学
+规范格式书写建议： [OI-WIKI标准](https://oi-wiki.org/intro/format/)
+
+#### LaTeX数学
 
 > ~~不全，[更多参见][https://www.xmind.cn/faq/question/what-command-does-xmind-equation-support/]~~
 
@@ -1192,3 +1198,445 @@ VSCODE + 插件 `Marp for VS Code` , `Markdown All in One`
 
 
 
+# LaTeX
+
+主要参考：[这个人的专栏](https://www.zhihu.com/column/c_1198381558397345792)
+
+> LaTeX的好处就是**自动化**，脚注，交叉引用，目录，参考文献等等，每一个词语仿佛都让我们头疼，可是在LaTeX中，我们根本不需要关注这些，只用一行代码就统统搞定，因此，学会了LaTeX，可以让我们真正地专注于论文本身的内容，而不是那些繁琐的排版。
+
+## 安装和使用
+
+之前装过了。暂时略。总之要装 TEXLIVE 。
+
+检验安装成功：
+
+```shell
+tex -v
+latex -v
+```
+
+建议再装一个 texstudio ，或用 vscode 。
+
+### vscode 配置
+
+#### 配置
+
+[参考链接](https://zhuanlan.zhihu.com/p/38178015)
+
+安装插件 latex workshop 。
+
+查看-命令面板 (或 ctrl+shift+f1 或 ctrl+shift+p) 输入 setjson ，进入 `settings.json` ，插入内容：
+
+```json
+"latex-workshop.latex.tools": [
+    {
+        // 编译工具和命令
+        "name": "xelatex",
+        "command": "xelatex",
+        "args": [
+            "-synctex=1",
+            "-interaction=nonstopmode",
+            "-file-line-error",
+            "-pdf",
+            "%DOCFILE%"
+        ]
+    },
+    {
+        "name": "pdflatex",
+        "command": "pdflatex",
+        "args": [
+            "-synctex=1",
+            "-interaction=nonstopmode",
+            "-file-line-error",
+            "%DOCFILE%"
+        ]
+    },
+    {
+        "name": "bibtex",
+        "command": "bibtex",
+        "args": [
+            "%DOCFILE%"
+        ]
+    }
+],
+```
+
+LaTeX Workshop 默认的编译工具是 latexmk，根据需要修改所需的工具和命令，不需要用到 latexmk的话把其修改为中文环境常用的 xelatex，大家根据需要自行修改
+
+```json
+"latex-workshop.latex.recipes": [
+    {
+        "name": "xelatex",
+        "tools": [
+            "xelatex"
+        ],
+    },
+    {
+        "name": "pdflatex",
+        "tools": [
+            "pdflatex"
+        ]
+    },
+    {
+        "name": "xe->bib->xe->xe",
+        "tools": [
+            "xelatex",
+            "bibtex",
+            "xelatex",
+            "xelatex"
+        ]
+    },
+    {
+        "name": "pdf->bib->pdf->pdf",
+        "tools": [
+            "pdflatex",
+            "bibtex",
+            "pdflatex",
+            "pdflatex"
+        ]
+    }
+],
+```
+
+
+
+#### 使用
+
+编译时点击右上角的绿色开始图标按钮(build latex project)，或 ctrl+alt+b 即可，例如下面以一段 tex 代码为例进行编译：
+
+```tex
+\documentclass{article}
+\usepackage{lipsum}
+\begin{document}
+\lipsum[1] %乱数假文
+\[
+    a^2+b^2=c^2
+\]
+\end{document}
+```
+
+会得到 pdf 就是结果。
+
+左边栏会有一个 tex 图标的菜单。在那里可以分屏pdf显示等。
+
+
+
+## 基本语法
+
+### 基本常识
+
+#### 格式规范
+
+注释行是 `%` ，指令用转义符即 `\` 。代码块用 `\begin{环境名字} \end{环境名字}` 包围。对一条指令，通常可以用中括号写可选参数，大括号写必选参数。如 `\指令名[可选参数]{必选参数}`
+
+行内公式用 \$ 开头和结尾。多行公式可以用 \$\$ ，也可以用 `\[` 和 `\]` ，也可以用代码块。
+
+使用一个空行作为换行符，跟 markdown 一样。使用 `\\` 进行顶格换行。普通输入 `[]` 能显示，普通输入 `{}` 不能显示。
+
+LaTeX 文章分为导言区和正文区。一篇文章中只能有一个正文区，也就只能有一个document环境。导言区用于引入各种宏包。
+
+
+
+#### 文件类型
+
+源文件是 `.tex`
+
+> 文档类是 `.cls`
+
+
+
+### 导言区
+
+#### 文档类
+
+[参考](https://blog.csdn.net/qq_37786835/article/details/106602434)
+
+例如：
+
+```tex
+\documentclass{article}
+```
+
+含义：引用了名为 `article.cls` 的类文件
+
+LaTeX文档类的基础三大件是article，book和report ，都不支持汉字排版。
+
+支持汉字：
+
+```tex
+\documentclass{ctexart}
+```
+
+PPT排版：
+
+```tex
+\documentclass{beamer}
+```
+
+可以自定义文档类。后文介绍，这里从略。
+
+
+
+#### 宏包
+
+[参考](https://blog.csdn.net/qq_37556330/article/details/106190148)
+
+类似于插件。通过安装不同的宏包可以实现一些复杂排版功能，例如插入复杂的列表表格、插入公式和特殊符号、插入代码、设置文档版式等。
+
+安装新包可以用 使用MiKTeX Console 。后若有需要补充。
+
+\usepackage 可以一次性调用多个宏包，在package-name中用逗号隔开即可。不过还是推荐每个宏包调用使用一行代码。
+
+格式：
+
+```tex
+\usepackage[options]{package-name}
+```
+
+调用示例：
+
+```tex
+\usepackage{ctex}
+```
+
+
+
+##### 常用宏包
+
+###### 常用
+
+![image-20220505182833767](img/image-20220505182833767.png)
+
+###### 基本
+
+| 宏包名    | 说明                                                     |
+| --------- | -------------------------------------------------------- |
+| amsmath   | AMS 数学公式扩展                                         |
+| mathtools | 数学公式扩展宏包，提供了公式编号定制和更多的符号、矩阵等 |
+| amsfonts  | AMS 扩展符号的基础字体支持                               |
+| amssymb   | 在 amsfonts 基础上将 AMS 扩展符号定义成命令              |
+| bm        | 提供将数学符号加粗的命令 \bm                             |
+| siuntix   | 以国际单位规范排版物理量的单位                           |
+| mhchem    | 排版化学式和方程式                                       |
+| tipa      | 排版国际音标                                             |
+
+###### 字体
+
+| 宏包名              | 说明                                                       |
+| ------------------- | ---------------------------------------------------------- |
+| lmodern             | Latin Modern 字体，对 Computer Modern 字体的扩展           |
+| cmbright            | 仿 Computer Modern 风格的无衬线字体                        |
+| euler               | Euler 风格数学字体，也出自于高德纳之手                     |
+| ccfonts             | Concrete 风格字体                                          |
+| txfonts             | Times 风格的字体宏包                                       |
+| pxfonts             | Palatino 风格的字体宏包                                    |
+| stix                | Times 风格的字体宏包                                       |
+| newtxtext,newtxmath | txfonts 的改进版本，分别设置文本和数学字体                 |
+| newpxtext,newpxmath | pxfonts 的改进版本，分别设置文本和数学字体                 |
+| mathptmx            | psnfss 字体宏集之一， Times 风格，较为陈旧，不推荐使用     |
+| mathpazo            | psnfss 字体宏集之一， Palatino 风格，较为陈旧，不推荐使用  |
+| fourier             | fourier 风格数学字体，配合 Utopia 正文字体                 |
+| fouriernc           | fourier 风格数学字体，配合 New Century Schoolbook 正文字体 |
+| arev                | Arev 无衬线字体宏包， Vera Sans 风格                       |
+| mathdesign          | 配合 Charter / Garamond / Utopia 正文字体的数学字体宏包    |
+| cm-unicode          | Computer Modern 风格的 Unicode 字体，支持多种西方语言      |
+| dejavu              | DejaVu 开源字体                                            |
+| droid               | vDroid 开源字体                                            |
+| inconsolata         | Inconsolata 开源等宽字体                                   |
+| libertine           | Linux Libertine / Linux Biolium 开源字体                   |
+| roboto              | Roboto 开源无衬线字体                                      |
+| sourcesanspro       | Source Sans Pro 开源无衬线字体                             |
+| sourcecodepro       | Source Code Pro 开源等宽字体                               |
+
+###### 数学
+
+| 宏包名   | 说明                                       |
+| -------- | ------------------------------------------ |
+| mathabx  | 数学符号宏包之一                           |
+| MnSymbol | 数学符号宏包之一，配合 Minion Pro 文本字体 |
+| fdsymbol | 数学符号宏包之一                           |
+| pifont   | Zapf Dingbats 符号宏包                     |
+
+###### 格式
+
+| 宏包名      | 说明                                                 |
+| ----------- | ---------------------------------------------------- |
+| geometry    | 修改页面尺寸、页边距、页眉页脚等参数                 |
+| fancyhdr    | 修改页眉页脚格式，令页眉页脚可以左对齐、居中、右对齐 |
+| titlesec    | 修改章节标题 \chapter、 \section 等的格式            |
+| titletoc    | 修改目录中各条目的格式                               |
+| tocloft     | 类似 titletoc 的修改目录条目格式的宏包               |
+| tocbibind   | 支持将目录、参考文献、索引本身写入目录项             |
+| footmisc    | 修改脚注 \footnote 的格式                            |
+| indentfirst | 令章节标题后的第一段首行缩进                         |
+
+###### 拓展
+
+booktabs	排版三线表
+array	对表格列格式的扩展
+tabularx	提供 tabularx 环境排版定宽表格，支持自动计算宽度的 X 列格式
+arydshln	支持排版虚线表格线
+colortbl	支持修改表格的行、列、单元格的颜色
+multirow	支持合并多行单元格
+makecell	支持在单元格里排版多行内容（嵌套一个单列的小表格）
+diagbox	排版斜线表头
+longtable	提供排版跨页长表格的 longtable 环境
+ltxtable	跨页长表格可使用 tabularx 的 X 列格式
+tabu	提供排版复杂格式表格的 tabu 环境,与 longtable 一同调用时，提供排版复杂格式跨页长表格的 longtabu 环境
+graphicx	支持插图
+bmpsize	latex + dvipdfmx 命令下支持 BMP/JPG/PNG 等格式的位图
+epstopdf	pdflatex 命令下支持 EPS 格式的矢量图
+wrapfig	支持简单的文字在图片周围的绕排
+subfig	提供子图表和子标题的排版。类似宏包有 subfigure 和 subcaption 等
+caption	控制浮动体标题的格式
+bicaption	生成双语浮动体标题
+float	为浮动体提供不浮动的 H 模式；提供自定义浮动体结构的功能
+
+ulem	提供排版可断行下划线的命令 \uline 以及其它装饰文字的命令
+endnote	排版尾注
+marginnote	改善的边注排版功能
+multicol	提供将内容自由分栏的 multicols 环境
+multitoc	生成多栏排版的目录
+minitoc	为章节生成独立的小目录
+glossaries	生成词汇表
+verbatim	对原始的 verbatim 环境的改善。提供了命令 \verbatiminput 调用源文件
+fancyvrb	提供了代码排版环境 Verbatim 以及对版式的自定义
+listings	提供了排版关键字高亮的代码环境 lstlisting 以及对版式的自定义。类似宏包有minted
+algorithmic	一个简单的实现算法排版的宏包。如果要生成浮动体的话，需要搭配 algorithm 宏包使用
+algorithm2e	较为复杂的、可定制的算法排版宏包。类似宏包有 algorithmicx 等
+ntheorem	定制定理环境。类似宏包包括 theorem、 thmtools、 amsthm 等
+mdframed	排版可自动断页的带边框文字段落，提供边框样式的定制功能
+tcolorbox	以 TikZ 为基础提供排版样式丰富的彩色盒子的功能
+
+
+
+### 正文区
+
+主要以 document 为例。
+
+该区的开始结尾 (vscode 可以 tab 来快写)如下：
+
+```tex
+\begin{document}
+\end{document}
+```
+
+之后所有内容都在这个代码块里边。
+
+
+
+#### 基本内容
+
+```tex
+\begin{document}
+	\title{标题，不用引号}
+	\author{作者}
+	\date{\today}
+	\maketitle
+\end{document}
+```
+
+> 也可以放到导言区，即代码块前，这样这些东西将作为封面。
+
+摘要：
+
+```tex
+\begin{abstract}
+	文字
+\end{abstract}
+```
+
+分页符：
+
+```tex
+\newpage
+```
+
+
+
+标题和子标题：(会自动标号)
+
+```tex
+\section{标题}
+	\subsection{一级子标题}
+	\subsetction{一杠一} %显示上同级
+```
+
+
+
+目录：(完全同步的，根据写的正文的变化而变化，有页码)
+
+```tex
+\tableofcontents
+```
+
+如果一次编译目录没有出来，那就再编译一次，一般来说，**正确生成目录项需要编译两次源代码**
+
+
+
+正文就直接写上去即可。
+
+
+
+> 使用示例：
+>
+> ```tex
+> \documentclass{ctexart}
+> \usepackage{amsmath}
+> \begin{document}
+> 
+> \title{我的第一篇文章}
+> \author{lr580}
+> \date{\today}
+> \maketitle
+> \begin{abstract}
+>     本当に全然大丈夫ですか？
+>     
+>     怎么换行呀[]{}\\还好'"?.,+
+> \end{abstract}
+> \newpage
+> 
+> \tableofcontents
+> \newpage
+> 
+> \section{第一章}
+> abcDEF
+> 
+> 一二三
+> \subsection{第一节}
+> 子曰：换一页
+> \newpage
+> \subsection{第二节}
+> \LaTeX is good
+> \section{第二章}
+> QwQ
+> \subsection{二级标题}
+> 再见
+> 
+> \end{document}
+> ```
+
+
+
+#### 参考文献
+
+##### 直接引用
+
+使用thebibliography环境即可编写，利用知网等论文网站导出文献，复制粘贴即可。这种写法的特点是**一次编写**，**一次使用**。会自动编号。
+
+```tex
+\begin{thebibliography}{99} %表示编号宽度，99是两位数字
+	\bibitem{ascii名字}文字
+	%...
+\end{thebibliography}
+```
+
+需要引用文献时，用 `\cite{ascii名字}` 。那么此处会出现 `[编号]`。可以带一个可选参数，表示引用编号。如 `参见\cite[page 13]{article1}的表述` 。
+
+
+
+##### 文件调用
+
+
+
+#### 页眉页脚

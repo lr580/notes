@@ -4589,3 +4589,19 @@ for root, dirs, files in os.walk('.'):
 print(cnt)
 ```
 
+
+
+##### 将 markdown 标题全部降一级
+
+```python
+with open('LaTeX.md', 'r', encoding='utf8') as f:
+    r = f.readlines()
+t = ''
+for i in r:
+    if len(i) and i[0] == '#' and i.count('#') <= 6:
+        i = '#' + i
+    t += i #不要再加'\n'了
+with open('LaTeX2.md', 'w', encoding='utf8') as f:
+    f.write(t)
+```
+
