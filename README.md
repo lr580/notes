@@ -58,7 +58,7 @@
 
 - 后端
 
-  介绍：PHP、MySQL、Docker、Yii 学习笔记
+  介绍：PHP(含ThinkPHP框架)、MySQL、Docker、Yii 学习笔记
 
 - LaTeX
 
@@ -71,6 +71,10 @@
 - linux
 
   介绍：Linux (以 Ubuntu 20.08 为例)学习笔记 (以Linux使用-指令一部分为主要内容)
+  
+- 移动端
+
+  介绍：目前主要是Android开发学习笔记
   
 - 21暑假集训补题
 
