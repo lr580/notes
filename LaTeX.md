@@ -531,7 +531,9 @@ $\LaTeX$   $\TeX$ $\S1$
 
 向下取整$\lfloor x\rfloor$
 
-向上取整$\lceil x\rceil$
+向上取整$\lceil x\rceil$ 
+
+组合数学建议用 $\dbinom nm$ ，不建议用 ${n\choose m},\binom nm$ 
 
 ###### 逻辑
 
