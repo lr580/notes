@@ -687,6 +687,8 @@ $\iint$ $\iiint$ $\iiiint$ 最多四重，
 
 闭合曲线的积分：$\oint \oiint \oiiint$，最多三重。
 
+$\var$ 
+
 ###### 极限
 
 \lim{}   $\lim{x}$

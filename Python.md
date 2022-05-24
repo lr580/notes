@@ -3904,7 +3904,7 @@ np.set_printoptions(suppress=True)
 通常如此加载：
 
 ```python
-from matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 ```
 
 #### 绘图
@@ -3988,6 +3988,12 @@ plt.tick_params(axis='both',labelsize=14) #或x或y，坐标上数字大小
 plt.axis([-12,12,-5,5]) 
 ```
 
+设置坐标轴坐标尺(每隔多少显示一次数字)：(y同理)
+
+```python
+plt.gca().xaxis.set_major_locator(plt.MultipleLocator(1))
+```
+
 隐藏坐标轴：(与上面不会冲突)(该命令会引发warning)
 
 ```python
@@ -4006,11 +4012,40 @@ plt.show()
 
 loc控制图例的方位，具体为：$\left[\matrix{2&3\\1&4}\right]$
 
+添加网格：
+
+```python
+plt.grid()
+```
+
 保存图表：
 
 ```python
 plt.savefig('pic.png',bbox_inches='tight') #必须在show之前
 ```
+
+
+
+举例：
+
+```python
+import matplotlib.pyplot as plt
+
+xv = list(range(1, 27))
+yv = [1, 2, 4, 8, 16, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 21, 22, 23, 24, 25, 26, 1, 2, 3, 4]
+plt.figure(figsize=(13, 8))
+plt.grid()
+plt.plot(xv, yv, 'o-') #点线形状
+plt.xlabel('n')
+plt.ylabel('cwnd')
+for i in zip(xv, yv): #写文本
+    plt.annotate('%s' % i[1], xy=(i[0], i[1] + 1))
+plt.show()
+```
+
+
+
+
 
 ### pygal
 
