@@ -4456,6 +4456,26 @@ test()
 alert('out',gg) //报错
 ```
 
+#### 赋值
+
+可以一般 `=` ，也可以像 python 一样搞多个变量取一个对象，如：
+
+```js
+x={a:1,b:2,c:3}
+let {a,b,c}=x
+```
+
+多层：
+
+```js
+x={a:{b:1}}
+let {a:{b}}=x
+```
+
+
+
+
+
 #### 作用域
 
 在js脚本的非函数内用var定义的变量都是全局变量，且用this(或不用，或用window)都可以调用这些变量，且在所有函数内都可调用(显然)：
@@ -4548,6 +4568,70 @@ console.log(b[1]());
 如果一个对象的方法调用了this，那么this就是这个对象的引用
 
 如果一个构造函数(即调用时new+函数)调用了this，那么this是一个全新的变量
+
+
+
+#### 常用类型
+
+##### Array
+
+常规方法：
+
+- `push` 元素放到尾部。改变自身
+
+- `concat` 加法连接。改变自身
+
+- `sort` 排序，可以传入一个函数代表排序依据，函数是二元谓词，前者小返回 -1，后者小返回 1，相等返回 0。改变自身
+
+  如：汉字排序 [参考](https://blog.csdn.net/qq_27674439/article/details/115406758)
+
+  ```js
+  var array = ['锦乐', '果冻', '白茶', '白芙', '白金'];
+  var resultArray = array.sort(
+      (param1, param2) => {
+          return param1.localeCompare(param2, "zh");
+      }
+  );
+  console.log(resultArray);
+  ```
+
+- `reverse` 转置，改变自身
+
+静态方法：
+
+- `Array.reduce((did,cur,index,arr) => {} , initVal)` [参考](https://blog.csdn.net/Victor20190424/article/details/117127243)
+  - `did`：累计器（操作后的结果）
+  - `cur`：当前值
+  - `index`：当前索引（如果有 `initVal` 索引从0开始，否则从1开始）
+  - `arr`：数组本身
+
+
+
+> 举例：
+>
+> ```js
+> //求数组元素之和
+> let arr2 = [1,2,3,4];
+> let sum2 = arr2.reduce((did,cur) => {
+>     did += cur;
+>     return did;
+> });
+> console.log(sum2);
+> ```
+
+
+
+##### Date
+
+##### String
+
+- `.localeCompare(b,type)` 不填type按字典序；填了按拼音顺序。返回 ±1或0。
+
+
+
+##### Object
+
+- `hasOwnProperty` 是否有某个键
 
 
 
@@ -4746,6 +4830,14 @@ try{
     console.log(err)
 }
 ```
+
+主动抛出：
+
+```js
+throw new Error('报错信息');
+```
+
+
 
 ### 函数
 
@@ -5307,9 +5399,9 @@ export { author };//expo.js
 
 #### export
 
-可以使用export语句加大括号集中导出
+可以使用export语句加大括号集中导出。不加就只能一个一个导。
 
-```css
+```js
 let author = 'lr580';
 
 function ts() {
@@ -5321,6 +5413,8 @@ let md = class mc {
 
 export { author, ts, md };
 ```
+
+导的时候，路径相对现在的位置。
 
 ```js
 import { author, lr, md, ts } from '../js/expo.js';
@@ -5350,7 +5444,15 @@ import { eb as ec } from '/js/expo.js'; //若写ea,eb会报错
 console.log(ec);
 ```
 
-可以直接加关键字代表这个内容可以被导出：
+全部导入使用：
+
+```js
+import * as 模块名 from '路径';
+```
+
+那么之后引用时就需要 `模块名.导入的内容` 了。
+
+可以直接加关键字代表这个内容可以被导出，函数也行，也就不用再后文专门声明一次 export 了：
 
 ```js
 export var lr = 580;
@@ -5457,6 +5559,29 @@ const p = new Promise(function (resolve, reject) {
 ```
 
 大多数浏览器中不能终止的 Promise 链里的 rejection，建议后面都跟上 .catch(error => console.log(error));
+
+##### all
+
+[参考](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise/all)
+
+传入一个可迭代变量(如数组)，然后对所有非promise直接返回，对所有promise并发地同时开始执行它们，待到所有promise都调用了resolve或其中一个调用了reject，那么就返回所有调用后的结果，注意这个返回值本身也是异步的，即这是一个包装若干个promise的promise。
+
+```js
+let onLoad = async function () {
+    const prom1 = new Promise((res) => {
+        setTimeout(res, 400, '等待400ms完成的异步返回的数据');
+    });
+    const prom2 = new Promise((res) => {
+        setTimeout(res, 500, '等待500ms完成的异步返回的数据');
+    });
+    const prom3 = new Promise((res) => {
+        setTimeout(res, 300, '等待300ms完成的异步返回的数据');
+    });
+    let res = await Promise.all([prom1, prom2, prom3]);
+    console.log(res);
+};
+onLoad();
+```
 
 
 
@@ -12465,11 +12590,7 @@ node x.js
 
 # 微信开发者
 
-## 使用
 
-
-
-## 注意要点
 
 ## 示例
 
