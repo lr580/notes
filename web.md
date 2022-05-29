@@ -4571,68 +4571,6 @@ console.log(b[1]());
 
 
 
-#### 常用类型
-
-##### Array
-
-常规方法：
-
-- `push` 元素放到尾部。改变自身
-
-- `concat` 加法连接。改变自身
-
-- `sort` 排序，可以传入一个函数代表排序依据，函数是二元谓词，前者小返回 -1，后者小返回 1，相等返回 0。改变自身
-
-  如：汉字排序 [参考](https://blog.csdn.net/qq_27674439/article/details/115406758)
-
-  ```js
-  var array = ['锦乐', '果冻', '白茶', '白芙', '白金'];
-  var resultArray = array.sort(
-      (param1, param2) => {
-          return param1.localeCompare(param2, "zh");
-      }
-  );
-  console.log(resultArray);
-  ```
-
-- `reverse` 转置，改变自身
-
-静态方法：
-
-- `Array.reduce((did,cur,index,arr) => {} , initVal)` [参考](https://blog.csdn.net/Victor20190424/article/details/117127243)
-  - `did`：累计器（操作后的结果）
-  - `cur`：当前值
-  - `index`：当前索引（如果有 `initVal` 索引从0开始，否则从1开始）
-  - `arr`：数组本身
-
-
-
-> 举例：
->
-> ```js
-> //求数组元素之和
-> let arr2 = [1,2,3,4];
-> let sum2 = arr2.reduce((did,cur) => {
->     did += cur;
->     return did;
-> });
-> console.log(sum2);
-> ```
-
-
-
-##### Date
-
-##### String
-
-- `.localeCompare(b,type)` 不填type按字典序；填了按拼音顺序。返回 ±1或0。
-
-
-
-##### Object
-
-- `hasOwnProperty` 是否有某个键
-
 
 
 ### 运算
@@ -6422,6 +6360,22 @@ y.sort()
 z.sort(cmp)
 ```
 
+可以传入一个函数代表排序依据，函数是二元谓词，前者小返回 -1，后者小返回 1，相等返回 0。
+
+如：汉字排序 [参考](https://blog.csdn.net/qq_27674439/article/details/115406758)
+
+```js
+var array = ['锦乐', '果冻', '白茶', '白芙', '白金'];
+var resultArray = array.sort(
+    (param1, param2) => {
+        return param1.localeCompare(param2, "zh");
+    }
+);
+console.log(resultArray);
+```
+
+
+
 
 
 ##### map
@@ -6437,6 +6391,38 @@ console.log(a, b);
 ```
 
 
+
+##### reduce
+
+- `Array.reduce((did,cur,index,arr) => {} , initVal)` [参考](https://blog.csdn.net/Victor20190424/article/details/117127243)
+  - `did`：累计器（操作后的结果）
+  - `cur`：当前值
+  - `index`：当前索引（如果有 `initVal` 索引从0开始，否则从1开始）
+  - `arr`：数组本身
+
+
+
+> 举例：
+>
+> ```js
+> //求数组元素之和
+> let arr2 = [1,2,3,4];
+> let sum2 = arr2.reduce((did,cur) => {
+>     did += cur;
+>     return did;
+> });
+> console.log(sum2);
+> ```
+
+
+
+##### filter
+
+过滤，不能传箭头函数。符合条件的保留。
+
+```js
+['','123','45',''].filter(function(x){return x.length;})
+```
 
 
 
@@ -6728,6 +6714,12 @@ sf.substring(2,1)==='4'
 ```js
 String.fromCharCode(65)==='A'
 ```
+
+
+
+##### localeCompare
+
+`.localeCompare(b,type)` 不填type按字典序；填了`zh`按拼音顺序。返回 ±1或0。
 
 
 
@@ -7156,6 +7148,10 @@ while (null != (res = xb.exec(nr))) {
 ##### replaceAll
 
 与replace完全相同，但传入的regexp必须有g修饰符。
+
+##### split
+
+字符串split，可以正则表达式。
 
 
 

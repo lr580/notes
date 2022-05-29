@@ -939,13 +939,94 @@ sequenceDiagram
 
 #### 状态图
 
+[参考](https://blog.csdn.net/qq_36749906/article/details/107462149)
+
 stateDiagram，`[*]` 表示开始或者结束，如果在箭头右边则表示结束。
+
+有新版本：首行后缀 `-v2` 。转换条件用 `: 转换名字` 。
+
+有组合状态，用 `state 状态名 {}` 。
+
+有分支和合并，见下面例子。
+
+可以做注释，也可以做并发。
 
 ```mermaid
 stateDiagram
     [*] --> s1
     s1 --> [*]
 ```
+
+```mermaid
+stateDiagram-v2
+	[*] --> 播放
+	播放 --> 暂停 : 点击暂停
+	暂停 --> 播放 : 点击继续
+	播放 --> [*] : 播放完毕 / 点击上/下一个
+```
+
+```mermaid
+stateDiagram-v2
+	[*] --> 播放中 : 从列表点击一项开始播放
+    播放中--> [*] : 播放完毕 / 点击上/下一个
+state 播放中 {
+	播放
+	播放 --> 暂停 : 点击暂停
+	暂停 --> 播放 : 点击继续
+	播放
+}
+```
+
+```mermaid
+stateDiagram-v2
+state fork_state <<fork>>
+  [*] --> fork_state
+  fork_state --> State2
+  fork_state --> State3
+
+  state join_state <<join>>
+  State2 --> join_state
+  State3 --> join_state
+  join_state --> State4
+  State4 --> [*]
+```
+
+```mermaid
+stateDiagram-v2
+    State1: The state with a note
+    note right of State1
+        标记重要信息
+        notes.
+    end note
+    State1 --> State2
+    note left of State2 : 在状态左边标记
+```
+
+
+
+```mermaid
+stateDiagram
+	[*] --> 播放中 : 从列表点击一项开始播放
+    播放中--> [*] : 播放完毕 / 点击上/下一个
+state 播放中 {
+	[*] --> 播放
+	暂停 --> 播放 : 点击继续
+	播放 --> 暂停 : 点击暂停
+	--
+	[*] --> 图片显示
+	文字显示 --> 图片显示 : 点击"声音"
+	图片显示 --> 文字显示 : 点击"文字"
+	--
+	[*] --> 未下载
+	未下载 --> 下载中 : 未下载过/点击下载
+	下载中 --> 下载完毕 : 已下载
+	未下载 --> 下载完毕 : 已下载过
+}
+```
+
+
+
+
 
 #### 类图
 
