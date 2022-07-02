@@ -31,6 +31,17 @@ Sun ONE(Open Net Environment)体系，按应用范围划分的3个Java版本：J
 
 > API application programming interface  官网可以找到说明书
 
+使用`/** */`注释，使得鼠标放到这个类/方法前面时能够弹出对应的提示，其中@提示项名 信息都会被一一渲染。如：
+
+```java
+/**
+ * @说明 单例程 饱汉模式
+ * @author lr580
+ */
+```
+
+> 过时的方法能用，因为IDK底层本来就是用这些的；不建议用的原因是有包装
+
 
 
 #### 语法糖
@@ -179,6 +190,12 @@ tab用四个空格而不是\t：首先 window-general-editor-text editor-勾选 
 如果报错，说诸如版本过低无法编译1.7,1.5语法之类的，在build path-configure build path - java compiler - 看到 Compiler compliance level，修改为对应版本即可(如11)
 
 项目重命名：右击refactor-rename即可。
+
+##### 快捷
+
+右击菜单找source，能够依据提示看到许多快速生成，如构造函数、get和set。
+
+查看源码，ctrl+单击 (也可`jdk`安装目录下src.zip查看所有`jdk`源码)
 
 
 
@@ -1356,6 +1373,10 @@ public class c2506 {
 
 同C++，无返回值。但可以不定义构造函数。定义一个 private 的构造函数可以禁止创造该对象的实例。
 
+构造方法不能被继承，所以不能被重写。通常而言，构造函数放 `public init` 为将来功能扩展重写准备。
+
+无参构造让继承不报错(默认调用父类无参构造)。
+
 > 构造函数可以设置默认参数 (实际会报错)。
 
 举例：
@@ -1447,7 +1468,7 @@ public class FsLabel extends JLabel {
 
 ##### static
 
-由static修饰的变量、常量、方法称为静态变量、常量、方法
+由static修饰的变量、常量、方法称为静态变量、常量、方法。静态方法不能被重写。
 
 意义同C++。声明了static的是静态成员。可以用类名.静态成员调用(也可以不用，但是会扔警告)
 
@@ -2198,7 +2219,7 @@ Canvas 代表屏幕上一块空白矩形区域
 
 声明了final的函数不可以被子类重写。声明了final的类不可以被继承。
 
-重写时修饰权限只能从小的范围到大的范围改变。如protected可以改为public，但不能改为private。
+重写时修饰权限只能从小的范围到大的范围改变。如protected可以改为public，但不能改为private。重写方法名、参数序列、返回值必须跟父类一致。重写抛出的异常不可以比父类更宽泛。
 
 实例化子类对象时，父类无参构造函数将会被自动调用。有参构造函数只能使用super显式调用。
 
@@ -3514,6 +3535,121 @@ public class c1605 {
 
 
 
+##### Property
+
+创建：
+
+```java
+Properties pro = new Properties();
+```
+
+读取配置文件，格式每行为 `属性键=属性值`。
+
+先使用加载器读取路径(根目录是`bin/`)，如：
+
+```java
+String mapName = "com/tedu/text/"+mapId+".map";//在包里
+ClassLoader classLoader = GameLoad.class.getClassLoader();
+InputStream maps = classLoader.getResourceAsStream(mapName);
+```
+
+读取键值对，如：
+
+```java
+//pro.clear(); //清理上次读取
+try {
+    pro.load(maps);
+    Enumeration<?> names = pro.propertyNames();
+    while(names.hasMoreElements()) {
+        String key=names.nextElement().toString();
+        String value=pro.getProperty(key);
+    }
+} catch (IOException e) {
+    e.printStackTrace();
+}
+```
+
+作用：解耦 (基于抽象的程序设计)
+
+> 使用举例：
+>
+> ```java
+> Class<?> class1 = objMap.get("play");
+> ElementObj obj=null;
+> try {
+>     @SuppressWarnings("deprecation")
+>     Object newInstance = class1.newInstance();
+>     if(newInstance instanceof ElementObj) {
+>         obj=(ElementObj)newInstance;
+>     }
+>     obj.creatElement("param");
+> } catch (InstantiationException | IllegalAccessException e) {
+>     e.printStackTrace();
+> }
+> ```
+
+
+
+
+
+#### 单例模式
+
+java单例模式是一种常见的设计模式，单例模式分三种：懒汉式单例、饿汉式单例、登记式单例三种。
+
+1、单例类只能有一个实例。
+2、单例类必须自己创建自己的唯一实例。
+3、单例类必须给所有其他对象提供这一实例。
+
+恶(饿)汉模式：一开始就创建实例 (static块)
+
+饱汉模式：需要用时才创建。如
+
+```java
+private static ElementManager EM = null;
+public static synchronized ElementManager getManager() {
+    if(EM == null) {
+        EM = new ElementManager();
+    }
+    return EM;
+}
+```
+
+
+
+
+
+#### POJO
+
+POJO（Plain Ordinary Java Object）简单的Java对象 作用是方便程序员使用数据库中的数据表
+
+PO －Persistent Object ，即＂持久化对象＂
+
+VO是指值对象或者View对象（Value Object、View Object）
+
+DTO Data Transform object就是作为数据使用的对象
+
+只要是VO类，都要为属性生成get,set
+
+
+
+#### 垃圾回收
+
+GC
+
+```java
+String str = new String("abcd");
+```
+
+上文产生了三个对象
+
+- `abcd` 字面量，在常量池
+- `new String` 在堆
+- `String str` 
+
+根据 java 的 CHM 手册(JAVA + API 官方文档中文版)，`java-lang-ref-Reference` 和 `ReferenceQueue`
+
+但内存没有任何一个引用指向时，会被GC回收。
+
 
 
 ### 异常
@@ -3703,6 +3839,8 @@ JFrame jf = new JFrame(标题字符串);
 设置宽高：`setSize(int x, int y) `  (不然为$0,0$)
 用户可以自己拖放更改宽高
 
+`setLocationRelativeTo(null)` 屏幕居中
+
 是否可以拖放更改宽高 `setResizable()` 在 `setVisible` 之前设置
 
 > 获取用 `getWidth(),  getHeight()`
@@ -3725,6 +3863,8 @@ JFrame jf = new JFrame(标题字符串);
 返回承载组件的容器：`Container ct = getContentPane()`
 
 之后每一个组件可 `ct.add(组件实例)`
+
+每一个控件
 
 如：(这是个假继承，真继承见 `JDialog` 例子)
 
@@ -6201,6 +6341,10 @@ Toolkit.getDefaultToolkit().getImage(路径)
 再在另一个普通的 `Graphics2D` 里再 `drawImage` 即可。
 
 > 当随机交换每个点及其周围一个点的 RGB 值时，可以对图像进行模糊化
+
+
+
+Image无法得到宽高，`ImageIcon`可以，用`.getImage()`；Icon可以得到`getX`等属性
 
 
 
@@ -12560,6 +12704,10 @@ public class c1703 {
 ```
 
 枚举类可以实现接口。那么每个枚举常量都加大括号，括号里定义接口的函数。常量间仍然用逗号分离。显然枚举类也可以有 main 方法。
+
+`enum`不可以公有化构造方法，可以xxx(value)格式定义枚举
+
+`enum`类名.values() 按序返回可以for : 的东西
 
 
 

@@ -3368,6 +3368,76 @@ linux默认触发挂载设备目录是`/misc/cd`，默认挂载点是`/mnt` 或 
 
 
 
+##### lscpu
+
+[参考](https://blog.csdn.net/daocaokafei/article/details/116517874)
+
+查看 CPU 信息
+
+```shell
+lscpu
+```
+
+查看核数：
+
+```shell
+cat /proc/cpuinfo |grep processor |wc -l
+```
+
+查看服务器主板：
+
+```shell
+sudo dmidecode | grep -A16 "System Information$"
+```
+
+
+
+##### 内存
+
+查看详细内存信息：
+
+```shell
+sudo dmidecode | grep -A16 "Memory Device$"
+```
+
+查看内存插槽：
+
+```shell
+sudo dmidecode -t memory
+```
+
+查看内存插槽数：
+
+```shell
+sudo dmidecode|grep  -P  -A5  "Memory\s+Device"|grep Size|grep -v Range
+```
+
+查看最大支持内存容量：
+
+```shell
+sudo dmidecode|grep -P  'Maximum\s+Capacity'
+```
+
+查看已安装的内存总量：
+
+```shell
+grep MemTotal /proc/meminfo
+```
+
+
+
+##### 网卡
+
+查看网卡设备配置
+
+```shell
+lshw -c network
+```
+
+……
+
+
+
 #### 软件包操作
 
 - rpm 软件包，拓展名`.rpm` 使用 `RedHat` 系列
