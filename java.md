@@ -191,6 +191,8 @@ tab用四个空格而不是\t：首先 window-general-editor-text editor-勾选 
 
 项目重命名：右击refactor-rename即可。
 
+右击项目，选team-share。可以点create一键造分支。在windows-show view-others-git-git staging可以打开图形化下方面板，就是一个普通的图形化git。
+
 ##### 快捷
 
 右击菜单找source，能够依据提示看到许多快速生成，如构造函数、get和set。
@@ -10276,6 +10278,8 @@ LongAdder x = new LongAdder();
 增加：`.increment()`
 
 取值：`.sum()`
+
+赋值 `.set()`
 
 
 
