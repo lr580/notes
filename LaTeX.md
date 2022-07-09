@@ -1407,6 +1407,8 @@ LaTeX Workshop 默认的编译工具是 latexmk，根据需要修改所需的工
 
 会得到 pdf 就是结果。
 
+> 编译时不要打开 pdf，不然会编译失败。
+
 左边栏会有一个 tex 图标的菜单。在那里可以分屏pdf显示等。
 
 
@@ -1424,6 +1426,8 @@ LaTeX Workshop 默认的编译工具是 latexmk，根据需要修改所需的工
 使用一个空行作为换行符，跟 markdown 一样。使用 `\\` 进行顶格换行。普通输入 `[]` 能显示，普通输入 `{}` 不能显示。
 
 LaTeX 文章分为导言区和正文区。一篇文章中只能有一个正文区，也就只能有一个document环境。导言区用于引入各种宏包。
+
+> 入门教程参考 [这个](https://www.zhihu.com/column/c_1198381558397345792)
 
 
 
@@ -1708,6 +1712,213 @@ tcolorbox	以 TikZ 为基础提供排版样式丰富的彩色盒子的功能
 
 
 
+#### 列表
+
+使用 `itemize` 无序列表代码块；`enumerate` 有序列表，每一列表项使用 `\item`。支持嵌套，最多四层，不然会报错。无序列表各层的头默认依次是 $\bullet$, \-, \*, \.。如：
+
+```tex
+\documentclass{ctexart}
+\begin{document}
+搜索
+\begin{itemize}
+    \item DFS
+    \begin{enumerate}
+        \item 折半搜索
+        \item IDA*
+    \end{enumerate}
+    \item BFS
+    \item 模拟退火
+\end{itemize}
+\end{document}
+```
+
+> 在vscode写item时，回车会下一次默认补全`\item`，不想补全的话可以 `shift+enter`。
+
+可以用 `item[格式]` 来约束列表项头是什么东西，如：
+
+```tex
+\begin{itemize}
+    \item[-] STL
+    \begin{enumerate}
+        \item[3] string
+        \item[2] vector
+        \item[1] map
+    \end{enumerate}
+    \item[+] 其他语法
+    \item[*] 注意事项 
+\end{itemize}
+```
+
+可以全局由此往下地修改编号格式，使用下列各式：
+
+```tex
+\renewcommand{\labelitemi}{*} % 修改无序列表项目编号
+\renewcommand{\theenumi}{\alpha{enumi}} % 有序列表
+```
+
+> 有序列表编号有：(大小写首字母控制字母文字的大小写)
+>
+> - `\arabic{enumi}` 阿拉伯数字
+> - `\alph{enumi}` 英文字母(`\Alph` 大写) 
+> - `\Roman{enumi}` 罗马数字
+> - `\chinese{enumi}` 汉字
+>
+> 四个层次的枚举 enumi，enumii，enumiii， enumiv  [参考](https://blog.csdn.net/weixin_35468857/article/details/111964370)。暂时查不到希腊字母怎么生成。可以自己加一般符号如 `()[].` 。
+>
+> 默认是 `\arabic.` `(\alph)` `\roman.` `\Alph.`
+
+如：
+
+```tex
+\renewcommand{\labelitemi}{$\circ$}
+\renewcommand{\theenumi}{(\chinese{enumi})}
+\begin{itemize}
+    \item 二分搜索
+    \item 二分答案
+\end{itemize}
+\begin{enumerate} % (序号).
+    \item 前言
+    \item 正文
+    \item 后记
+\end{enumerate}
+```
+
+可以用 `discription` 包和 `\item{名字}` 做名字加粗列表，如：
+
+```tex
+\begin{description}
+    \item[DFS] 深度优先搜索
+    \item[DP] 动态规划
+    \item[DDP] 动态DP
+\end{description}
+```
+
+
+
+#### 表格
+
+使用 `tabular` 代码块接 `{}`，填参数，有多少个 `|` 就有多少条竖线，有多少个，竖线之间可以填 `c,l,r` 之一表示这个列的对齐方式。
+
+表格内用 `\hline` 表示一条横线，用 `&` 表示跳到行内下一列，用 `\\` 表示跳行。如：
+
+```tex
+\begin{tabular}{|c|c|c|}
+    \hline
+    编号&姓名&成绩\\
+    \hline
+    1&白茶&96\\
+    \hline
+    2&星月&80\\
+    \hline
+\end{tabular}
+```
+
+使用 array 宏包时，可以进行整列修改，在参数里用前缀 `>{}` 和后缀 `<{}` 表示在头尾进行的修改。如 `\bfseries` 加粗：
+
+```tex
+\usepackage{array}
+% ...
+\begin{tabular}{>{\bfseries}c|>{(}c<{)}|c}
+    编号&姓名&成绩\\
+    \hline
+    1&白茶&96\\
+    \hline
+    2&星月&80\\
+\end{tabular}
+```
+
+跨多列使用 `\multicolumn{列数}{表格参数}{内容}`，如：
+
+```tex
+\begin{tabular}{|>{\bfseries}c|c|c|c|c|c|c|c|}
+    \hline
+    \multicolumn{8}{|c|}{课程表}\\
+    \hline
+    &周一&周二&周三&周四&周五&周六&周日\\
+    \hline
+    课程&语文&数学&英语&法术&易经&冥想&无
+\end{tabular}
+```
+
+跨多列要宏包 `multirow`，指令为 `\multirow{}{宽度}{}`，宽度可以用 `*`，或自定义如 `1cm`,`1in`，[参考](http://www.ctex.org/documents/packages/table/multirow.htm)。在多列的最上使用，其他地方留空，如：
+
+```tex
+\usepackage{multirow}
+% ...
+\begin{tabular}{|c|c|c|}
+    \multirow{2}{*}{QwQ}&1&2\\
+    &3&4\\
+\end{tabular}
+```
+
+
+
+#### 图片
+
+宏包 `graphicx`。与 `.tex` 同级目录放图片。可以规定图片的目录：
+
+```tex
+\graphicspath{{pic/}}
+```
+
+引用图片(支持 `pdf, png, jpg, jpeg, bmp, eps`等，英文名，可以不加拓展名)，可以用参数 `[scale=倍数]` 放缩，或 `height,width,angle`，单位可以用 cm, pt, `\linewidth` 等。
+
+> jpg 不兼容 `xetex`，疑似 gif 也不行。[单位参考](https://blog.csdn.net/jueshu/article/details/82385575)
+
+如：
+
+```tex
+\centering 锦乐的女装照\\(斯巴拉西)\\ %两行居中
+\raggedleft ——桑泽友情提供道具\\
+\raggedright 果冻拍摄。\\
+\includegraphics[scale=0.5]{a1}\\
+\begin{center}
+    \includegraphics[width=0.5\linewidth]{a3}
+\end{center}
+```
+
+进行图片编号，使用 figure 环境。用 `\caption` 表示图名。图名对齐指令是代码块 `[htbp]`。默认编号是图 `x`。
+
+若有 `\label{标签名}`，可以用 `\ref{标签名}` 引用图片，显示图片标号。疑似引用需要二次编译才有效。如：
+
+```tex
+\newpage
+\begin{figure}[htbp]
+    \centering %图片居中
+    \includegraphics[height=100pt]{a1}\quad
+    \includegraphics[height=100pt]{a3}
+    \caption{可爱的果冻}\label{kawaiiGuoDong}
+\end{figure}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[scale=0.3]{a2}
+    \caption{果冻的头像}
+\end{figure}
+
+想要了解果冻的女装照，如图\ref{kawaiiGuoDong}所示。
+```
+
+
+
+
+
+#### 字体
+
+##### 加粗
+
+`\beseries` 或简写 `\bf`，直到文末结束强制加粗。或者用代码块包起来实现部分加粗。[参考](https://wenku.baidu.com/view/2a6397dea4c30c22590102020740be1e640ecc0c.html)
+
+```tex
+\begin{bfseries}
+    哈哈哈
+\end{bfseries}
+嘻嘻嘻
+```
+
+
+
+  
+
 #### 参考文献
 
 ##### 直接引用
@@ -1730,3 +1941,41 @@ tcolorbox	以 TikZ 为基础提供排版样式丰富的彩色盒子的功能
 
 
 #### 页眉页脚
+
+
+
+#### 其他内容
+
+##### 乱数假文
+
+可以用宏包 `lipsum`，然后使用 `\lipsum[数目]`，或 `\lipsum`。例子见 `多行对齐`。
+
+##### 多行对齐
+
+`center`, `flushleft`, `flushright` 代码块。如：
+
+```tex
+\usepackage{lipsum}
+% ...
+\newpage
+\begin{center}
+    \lipsum[2]\\Hi and goodbye.
+\end{center}
+\newpage
+\begin{flushleft}
+    \lipsum[2]\\Hi and goodbye.
+\end{flushleft}
+\newpage
+\begin{flushright}
+    \lipsum[2]\\Hi and goodbye.
+\end{flushright}
+```
+
+也可以使用`\centering`,`\raggedleft`,`\raggedright`，分别表示中**右左**。如：
+
+```tex
+\centering 锦乐的女装照\\(斯巴拉西)\\ %两行居中
+\raggedleft ——桑泽友情提供道具\\
+\raggedright 果冻拍摄。
+```
+
