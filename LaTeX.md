@@ -1797,6 +1797,8 @@ tcolorbox	以 TikZ 为基础提供排版样式丰富的彩色盒子的功能
 
 #### 表格
 
+##### 基础
+
 使用 `tabular` 代码块接 `{}`，填参数，有多少个 `|` 就有多少条竖线，有多少个，竖线之间可以填 `c,l,r` 之一表示这个列的对齐方式。
 
 表格内用 `\hline` 表示一条横线，用 `&` 表示跳到行内下一列，用 `\\` 表示跳行。如：
@@ -1851,6 +1853,35 @@ tcolorbox	以 TikZ 为基础提供排版样式丰富的彩色盒子的功能
 \end{tabular}
 ```
 
+##### 拓展
+
+顶部橫线和底部橫线可以用 `\toprule,\bottomrule`，中线用 `\midrule`，形成三线表。需要使用宏包 `booktabs`。
+
+可以用 table 代码块外层嵌套一下，然后用引用(参见 `图片`)，也可以实现居中，如：
+
+```tex
+\documentclass{ctexart}
+\usepackage{booktabs}
+\begin{document}
+\begin{table}[htbp]
+    \centering
+    \begin{tabular}[t]{ccc}
+        \toprule
+        \multicolumn{3}{c}{课程表}\\
+        \midrule
+        周一&魔法&玄学\\
+        周二&占卜&祭祀\\
+        \bottomrule
+    \end{tabular}
+    \caption{云烟的课程表}\label{云烟课表}
+\end{table}
+
+这是云烟在游戏中安排的角色升级训练表，如表\ref{云烟课表}所示。
+\end{document}
+```
+
+
+
 
 
 #### 图片
@@ -1861,7 +1892,7 @@ tcolorbox	以 TikZ 为基础提供排版样式丰富的彩色盒子的功能
 \graphicspath{{pic/}}
 ```
 
-引用图片(支持 `pdf, png, jpg, jpeg, bmp, eps`等，英文名，可以不加拓展名)，可以用参数 `[scale=倍数]` 放缩，或 `height,width,angle`，单位可以用 cm, pt, `\linewidth` 等。
+引用图片(支持 `pdf, png, jpg, jpeg, bmp, eps`等，英文名，可以不加拓展名)，可以用参数 `[scale=倍数]` 放缩，或 `height,width,angle`，单位可以用 cm, pt, `\linewidth` 等，多个参数逗号隔开。
 
 > jpg 不兼容 `xetex`，疑似 gif 也不行。[单位参考](https://blog.csdn.net/jueshu/article/details/82385575)
 
@@ -1898,11 +1929,31 @@ tcolorbox	以 TikZ 为基础提供排版样式丰富的彩色盒子的功能
 想要了解果冻的女装照，如图\ref{kawaiiGuoDong}所示。
 ```
 
-
+注：这种引用不只适用于图片，也适用于其他东西。
 
 
 
 #### 字体
+
+##### 字号
+
+对后面所有文字生效，如果想局部生效，可以`{\指令}`。字号有：`tiny,scriptsize,footnotesize,small,normalsize,large,Large,LARGE,huge,Huge`。如：
+
+```tex
+{\small 稍稍吐槽。}{\Large 我觉得不行！}{\footnotesize 但是你说了算}{\tiny QwQ}
+```
+
+可以用 `\fontsize{字体尺寸}{行距}` 定义字体，使用 `\selectfont` 使用字体(记得要空格，跟后面的正文文字)。使用 `\par` 分段。如：
+
+```tex
+{\fontsize{20pt}{25pt}\selectfont 白茶的猫猫自动机\par}
+
+就是一个无聊的表情包机器人。
+```
+
+
+
+
 
 ##### 加粗
 
