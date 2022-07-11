@@ -1604,6 +1604,20 @@ tcolorbox	以 TikZ 为基础提供排版样式丰富的彩色盒子的功能
 
 
 
+##### 应用
+
+###### 页边距
+
+geometry 宏包，如：
+
+```tex
+\usepackage[a4paper,left=2.5cm,right=2.5cm,top=2cm,bottom=2cm]{geometry}
+```
+
+
+
+
+
 ### 正文区
 
 主要以 document 为例。
@@ -1655,6 +1669,8 @@ tcolorbox	以 TikZ 为基础提供排版样式丰富的彩色盒子的功能
 	\subsection{一级子标题}
 	\subsetction{一杠一} %显示上同级
 ```
+
+不想写入目录的节使用 `\section*{标题}`。想让一个节无编号地写入目录使用 `\addcontentsline{toc}{section}{名字}`。
 
 
 
@@ -1953,22 +1969,44 @@ tcolorbox	以 TikZ 为基础提供排版样式丰富的彩色盒子的功能
 
 
 
+##### 字体
 
+套大括号分组。有：(前者叫声明，后者叫字体命令；声明使用格式是 `{指令}`，命令是 `指令{}`)
 
-##### 加粗
+- `rmfamily` 衬线，或 `textrm`
+- `sffamily` 无衬线，或 `textsf`
+- `ttfamily` 等宽，或 `texttt`
+- `mdseries` 正常粗细，或 `textmd`
+- `bfseries` 加粗，或 `textbf`
+- `upshape` 直立，或 `textup`
+- `itshape` 斜体，或 `textit`
+- `slshape` 斜体，或 `textsl`
+- `scshape` 字母大写小字号，若 `textsc`
+- `\em` 强调(带斜体)，也可 `\emph`
+- `\normalfont` 默认
 
-`\beseries` 或简写 `\bf`，直到文末结束强制加粗。或者用代码块包起来实现部分加粗。[参考](https://wenku.baidu.com/view/2a6397dea4c30c22590102020740be1e640ecc0c.html)
+  `\beseries` 或简写 `\bf`，直到文末结束强制加粗。或者用代码块包起来实现部分加粗。[参考](https://wenku.baidu.com/view/2a6397dea4c30c22590102020740be1e640ecc0c.html)
 
 ```tex
 \begin{bfseries}
     哈哈哈
 \end{bfseries}
-嘻嘻嘻
+嘻嘻嘻 %等效于\bfseries{哈哈哈}
 ```
 
+```tex
+\textbf{\textit{\textsf{哈哈哈ABCabc123}}}
+```
+
+> 中文没有倾斜的字体，一般都是以字体代替，常以楷书代替斜体
 
 
-  
+
+##### 字间距
+
+手动打空格，有 `\,`, `\`+空格, `\quad`，`\qquad`。
+
+
 
 #### 参考文献
 
@@ -1983,19 +2021,80 @@ tcolorbox	以 TikZ 为基础提供排版样式丰富的彩色盒子的功能
 \end{thebibliography}
 ```
 
-需要引用文献时，用 `\cite{ascii名字}` 。那么此处会出现 `[编号]`。可以带一个可选参数，表示引用编号。如 `参见\cite[page 13]{article1}的表述` 。
+需要引用文献时，用 `\cite{ascii名字}` 。那么此处会出现 `[编号]`。可以带一个可选参数，表示引用编号。如 `参见\cite[page 13]{article1}的表述` 。这样会以 `[编号, 可选参数]` 显示内容。
 
 
 
 ##### 文件调用
 
+如果想要在多个论文使用同样的参考文献，可以用 `bibtex` 封装。新建 `.bib` 文件，存放参考文献条目。内容格式如：
+
+```tex
+@article{ID1,
+	author = {lr580},
+	title = {普通文献},
+	journal = {ACM顶刊},
+	year = {2202},
+	volumn = {10},
+	number = {3},
+	pages = {200}
+}
+@article{ID2,
+	author = {lr580},
+	title = {普通文献2},
+	journal = {ACM顶刊},
+	year = {2202},
+}
+```
+
+其中，每一行是 `key=value`，而 `author,title,journal,year` 必选，第一行的 ID 是 `\cite{ID}` 填写的东西。
+
+引用声明：
+
+```tex
+\bibliographystyle{plain}
+\bibliography{bib文件名(不含后缀)}
+```
+
+之后调用即可。
+
+默认只有引用过的会列出来。使得 `bib` 文件全部参考文献被列出的话，使用 `\nocite{*}`。
+
+在文献网站，点击导入 `BibTex` 即可出现条目，复制粘贴即可。
+
+可以用 `zotero` 管理参考文献。
+
 
 
 #### 页眉页脚
 
+去掉某一页的页码：`\thispagestyle{empty}`，即无页眉页脚。`plain` 仅页脚页码，`headings` 仅页眉包含章节标题和页码。默认 `plain`。
+
+修改页码编号：`\pagenumbering{编号形式}`，如 `Roman`, `arabic`。可选项同列表。
+
+使用 `fancyhdr` 宏包自定义页眉页脚：
+
+- `\lhead{左页眉内容}`  
+- `\chead{中页眉内容}`  
+- `\rhead{右页眉内容}`   (三者可共存)
+- 同理，有 `\lfoot,\cfoot,\rfoot`
+- `\thepage` 表示当前页码，如设置 `\cfoot{\thepage}`。
+
+默认的页眉是有横线的。使用 `\renewcommand{\headrulewidth}{0pt}` 就可以将页眉的横线去掉，实质上就是将页眉横线的宽度设置为0像素，同理，要想出现横线，将 0 改为 0.5 像素即可出现。改成 `\footrulewidth` 就是页脚横线。
+
 
 
 #### 其他内容
+
+##### 段落排版
+
+`noindent` 命令是取消段落的首行缩进
+
+`linespread{行距整数}` 调整行距，可以放导言区全局设置，也可以局部设置。
+
+`par` 是分段，而 `\\` 是强制换行。前者会使得首行缩进生效，后者不会。
+
+左缩进 `\setlength{\leftskip}{大小}` 如 `10pt`。右缩进就 `\rightskip`。首行就 `\parindent`，如 `2em`。可以使用 `\indent` 开始一个段落的缩进。默认两字符。可多个 `\indent` 叠加。
 
 ##### 乱数假文
 
@@ -2030,3 +2129,22 @@ tcolorbox	以 TikZ 为基础提供排版样式丰富的彩色盒子的功能
 \raggedright 果冻拍摄。
 ```
 
+
+
+### 数学公式
+
+#### 基本格式
+
+行内公式：`$...$`, `\(...\)`, `math` 代码块。
+
+行间公式：`$$...$$`, `\[...\]`, `displaymath` 代码块。
+
+> `$$...$$` 与 AMS-LaTeX 冲突，建议使用别的。
+
+自动编号的数学公式： `equation` 代码块。只能放无空行的一行公式。不编号可以在代码块内写 `\nonumber` 或使用 `equation*`。
+
+使用 `\label{标签名}` 和 `\eqref{标签名}` 进行引用公式。
+
+`align` 代码块可以进行对齐，使用 `&`。也会自动编号，不想的话使用 `\nonumber` 或 `\notag`。
+
+一个 align 可以有多个编号，每一行使用一次 `\label{eq:编号}`。引用就 `\eqref{eq:编号}`。
