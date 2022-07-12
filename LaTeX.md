@@ -1491,6 +1491,7 @@ PPT排版：
 
 ```tex
 \usepackage{ctex}
+\usepackage{amsmath,bm}
 ```
 
 
@@ -1898,9 +1899,27 @@ geometry 宏包，如：
 
 
 
+##### htbp
+
+htbp 详解：[参考](https://blog.csdn.net/weixin_45459911/article/details/109636545)
+
+- h 放置在当前位置。如果放不下放到下一页
+- t 页面顶部
+- b 底部
+- p 浮动页。
+
+注意：
+
+- 而 `!h` 是试图放到当前位置。
+- 加!是LaTex排版系统忽略“美学”标准，把表格和图片插入到你的代码中，是动的
+
+常用组合：`ht` 当前位置顶部， `hb` 当前位置底部。
+
 
 
 #### 图片
+
+##### 基础
 
 宏包 `graphicx`。与 `.tex` 同级目录放图片。可以规定图片的目录：
 
@@ -1946,6 +1965,14 @@ geometry 宏包，如：
 ```
 
 注：这种引用不只适用于图片，也适用于其他东西。
+
+
+
+##### 子图
+
+两张图并排排列，各有各的标题。则 `figure` 嵌套 `minipage` 环境。
+
+若并排但共享一个大标题，各有自己的子标题，在 `figure` 环境使用 `subfig` 宏包，使用 `\subfloat[子标题]{多行\label{} \includegraphics}` 命令。
 
 
 
@@ -2005,6 +2032,143 @@ geometry 宏包，如：
 ##### 字间距
 
 手动打空格，有 `\,`, `\`+空格, `\quad`，`\qquad`。
+
+
+
+#### 代码块
+
+[参考](https://blog.csdn.net/qq_43760191/article/details/121519247?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-1-121519247-blog-109391516.pc_relevant_aa2&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-1-121519247-blog-109391516.pc_relevant_aa2&utm_relevant_index=1)
+
+##### 伪代码
+
+[更多参考](https://zhuanlan.zhihu.com/p/145195565)
+
+如：
+
+```tex
+\documentclass{ctexart}
+\usepackage{algorithm,algorithmic}
+\usepackage{amsmath}
+\begin{document}
+\floatname{algorithm}{伪代码} %默认是Algorithm
+\begin{algorithm}
+    \caption{求和}
+    \label{alg:sum1}
+    \renewcommand{\algorithmicrequire}{\textbf{输入:}} %默认为 Require:
+    \renewcommand{\algorithmicensure}{\textbf{输出:}} %默认为 Ensure:
+    \begin{algorithmic}%可以[1]来标号
+        \REQUIRE 整数数组 $a$ % 输入，必有不然报错
+        \ENSURE 整数 $c$ %输出，必有不然报错
+        \STATE $n=\text{求数组} a\text{的长度}$
+        \STATE $c=0$ %一条独立的语句，前面都要state
+        \FOR{each $i\in [1,n]$}
+        \IF{$a_i\le 0$}
+        \STATE 特判
+        \ELSE
+        \STATE $c=c+a_i$
+        \ENDIF
+        \ENDFOR
+        \RETURN $c$
+        %同理有\WHILE{}和\ENDWHILE
+        %有\REPEAT \UNTIL{}
+    \end{algorithmic}
+\end{algorithm}
+
+如算法 \ref{alg:sum1} 所示，这是一个简单算法。
+\end{document}
+```
+
+
+
+##### 程序代码
+
+###### 基础
+
+宏包 `listings`。设置：使用多行大括号 `\lstset{}`，用键值对和逗号格式，可以设置：
+
+- `numbers=left` 左侧显示行号
+- `showstringspaces=false` 不显示字符串中空格
+- `frame=single` 边框
+- `firstnumber=行号` 首行编号，默认 1。
+
+使用：`lstlisting` 代码块，参数为 `language=语言`。如：
+
+```tex
+\lstset{
+    showstringspaces=false,
+    frame=single,
+    numbers=left,
+}
+\begin{lstlisting}[language=c++]
+#include <bits/stdc++.h>
+using namespace std;
+#define sc(x) scanf("%lld", &x)
+typedef long long ll;
+ll n, a[10], v, s0;
+signed main()
+{
+%不写了，篇幅有限
+    return 0;
+}
+\end{lstlisting}
+```
+
+
+
+###### 彩色
+
+宏包 `xcolor`。加设置：
+
+- `numberstyle=\color{darkgray}` 行号格式
+- `backgroundstyle=\color{whiye}` 背景颜色
+- `keywordstyle=\color{blue}` 关键字颜色
+- `commentstyle=\it\color[RGB]{0,100,0}` 注释颜色
+- `stringstyle=\sl\color{red}` 字符串格式
+
+如：
+
+```tex
+\lstset{
+    showstringspaces=false,
+    frame=single,
+    numbers=left,
+    numberstyle=\color{darkgray},
+    backgroundcolor=\color{white},
+    keywordstyle=\color{blue},
+    commentstyle=\it\color[RGB]{0,100,0},
+    stringstyle=\sl\color{red},
+}
+\begin{lstlisting}[language=c++]
+#include <bits/stdc++.h>
+using namespace std;
+#define sc(x) scanf("%lld", &x)
+typedef long long ll;
+ll n, a[10], v, s0;
+signed main() /* 注释 */
+{ // 注释
+    while (EOF != sc(v))
+    {
+        a[++n] = v;
+        s0 += v;
+    }
+    for (ll h = 0; h < (1 << n); ++h)
+    {
+        ll s = 0;
+        for (ll i = 1; i <= n; ++i)
+        {
+            s += ((h & (1 << (i - 1))) ? 1 : 0) * a[i];
+        }
+        if (s0 - s == s)
+        {
+            printf("true");
+            exit(0);
+        }
+    }
+    printf("false");
+    return 0;
+}
+\end{lstlisting}
+```
 
 
 
@@ -2131,9 +2295,37 @@ geometry 宏包，如：
 
 
 
+##### 脚注
+
+`\footnote{内容}` 实现脚注。此时在正文有上标数字，页底各个上标的内容注解。
+
+使用 `\renewcommand{\thefootnote}{计数器}` 实现更改计数，默认是阿拉伯数字。如可以改为 `\Roman{footnote}`。
+
+
+
+##### 转义
+
+单行代码使用 `\verb|内容|`，如 `\verb|\alpha|`。输出 `\alpha`。
+
+多行代码用 verbatim 代码块(注意缩进会没有掉)。
+
+
+
+##### 盒子模型
+
+`\mbox{}` 或 `\makebox{}`，大括号里写正文。可以加两个 `[]`。第一个写宽度如 `80pt`，第二个写对齐方式如 `c,l,r`。使用 `\fbox` 或 `\framebox` 高带边框的盒子。
+
+需要换行的文字可以用 `\parbox[外部对齐][高度][内部对齐]{宽度}{内容}`。外部垂直对齐有 `t,c,b` 三种；内部对齐是垂直对齐方式，加上分散对齐 `s` 四种。
+
+
+
+
+
 ### 数学公式
 
 #### 基本格式
+
+##### 常用环境
 
 行内公式：`$...$`, `\(...\)`, `math` 代码块。
 
@@ -2148,3 +2340,451 @@ geometry 宏包，如：
 `align` 代码块可以进行对齐，使用 `&`。也会自动编号，不想的话使用 `\nonumber` 或 `\notag`。
 
 一个 align 可以有多个编号，每一行使用一次 `\label{eq:编号}`。引用就 `\eqref{eq:编号}`。
+
+可以用 `multline` 换行。因为数学公式不能出现空行，所以必须用 `\\`。会将编号放在最后一行，第一行左对齐，最后一行右对齐
+
+可以在一个代码块里套子代码块为次环境，如 `split`。就是一个普通的多行环境。
+
+可以用 `gather` 环境，不对齐，只多行。
+
+用 `aligned,gathered` 次环境套在 `equation` 内，实现整一大块只有一个编号。
+
+用 `subequations` 套 `equation`，实现诸如 `1a,1b` 的多级编号。
+
+用 `array` 环境，开头格式为 `\begin{array}{tabular头}` 如 `\begin{array}{cccc}`。然后内容用 `&` 和 `\\`。
+
+有矩阵环境(不需要 tabular 格式)，包括 `pmatrix, bmatrix, Bmatrix, vmatrix, Vmatrix`，分别代表小中大括号、竖线和双竖线。
+
+分段函数用 `cases` 环境。
+
+证明用 `proof` 环境，里有文字和公式。输出格式为 `证明. 文字` 接公式。证明会另起一行表示结束符号，不想的话，在公式的最末尾加上 `\qedhere`。
+
+
+
+##### 定理
+
+`\newtheorem{自定义环境名}{自定义定理名}[编号方式(可选)]`。编号方式如 `section` 和 `subsection`。
+
+使用定理时就用一个自定义环境名的代码块包起来。然后里面再搞正文和数学公式。输出效果如 `定理名 1.1.1. 代码块里的东西`。编号自动的。
+
+
+
+
+
+#### 字体
+
+bm 宏包 `\bm{}` 对数学内容进行加粗。对数学公式里常规文本如中文，直接用 `\text{\texrbf{内容}}` 即可。
+
+多种字体：(使用格式为 `\字体{}`)
+
+- `mathnormal`
+- `mathrm`
+- `mathit`
+- `mathbf`
+- `mathsf`
+- `mathtt`
+- `matical` 仅大写字母，比较手写的样子
+- `matisrc` 花里胡哨曲里拐弯的大写字母
+- `mathfrak` 花里胡哨
+- `mathbb` 双横线
+
+尺寸：
+
+- `\displaystyle` 行间公式尺寸
+- `\textstyle` 行内公式尺寸
+- `\scriptstyle` 上下标尺寸
+- `\scriptscriptstyle` 次级上下标尺寸
+
+加边框，用 `\boxed{公示内容}`。
+
+
+
+#### 语法
+
+##### 基本
+
+上下标显然是 `^,_`。
+
+省略号有： `\ldots,\cdots,\vdots,\ddots`，前两个是横的。可以用动态判定的 `\dots`。
+
+分式有 `\frac,\dfrac,\tfrac`，前者行内行间有不同的大小，中者在行内实现行间大小，最后者在行间实现行内大小。
+
+根式的一般格式是 `\sqrt[幂]{底}`。二项式是 `\binom{上}{下}`。
+
+上下括号：`\underbrace{正文}_{下小字}` 和 `\overbrace{}^{}`。
+
+箭头：`\xleftarrow[下]{上}` 指向左的箭头。 同理 `xrightarrow`。
+
+头顶和低下横线：`\overline,\underline`，嵌套以双横线或更多。
+
+希腊字母里，`var` 开头的写法是驼峰如 `\varDelta`，需要用 `amsmath` 包。详见附录。
+
+##### 拓展
+
+`\stackrel{上标文字}{符号}`，如 $a\stackrel{\text{文字}}{\equiv}b$。自定义任意上标。
+
+巨算符在行内和行间排版不同，表现为上下标的压缩。有求和、求积、积分等。想要行内用行间排版，使用 `\limits` 取消压缩，如 $\sum\limits_{i=1}^n$。作用就是让上下标显示在符号的上下方。其反义词是 `\nolimits`。
+
+下标写多行式子，用 `\substack`，如 $\sum_{\substack{0 < i\le j\le n\\i,j\in\mathbb{N}}}i^2j^2$。
+
+表示大括号本身用 `\{\}`。需要转移的还有 `$,%`。反斜线本身用 `\backslash`。
+
+成对括号动态决定大小用 `\left,\right`。如果只有一半，用 `\left.`，如 $f\left.\right|_{x=0}=0$。
+
+双竖线 `\|`。
+
+其他括号有 `\bigl(\bigr),\Bigl(\Bigr)\biggl(\biggr)\Biggl(\Biggr)`，不需要成对出现。
+
+##### 函数
+
+可以用的 `\函数名` 有：
+
+- `sin, cos, tan, cot, sec, csc, arcsin, arccos, arctan`
+- `arg, sinh, cosh, tanh, coth`
+- `exp, log, lg, ln`
+- `dim, ker, hom, deg`
+
+可以带上下标的函数：
+
+- `lim, limsup, liminf, sup, inf, min, max, det, gcd, Pr`
+
+如 $\|T\|=\sup_{\|x\|=1}=\|Tx\|$。
+
+自定义算符 `amsmath` 宏包下用 `\DeclareMathOperator*{指令}{渲染结果}`。如 `\DeclareMathOperator{\myop}{myop}`。
+
+同余： `\bmod, \pmod{}`。前者窄和不带括号，后者带括号 `(mod ?)`。
+
+
+
+##### 附录
+
+[参见](https://zhuanlan.zhihu.com/p/104112163)
+
+###### 希腊字母
+
+![image-20220712121728314](img/image-20220712121728314.png)
+
+###### 二元关系符
+
+![image-20220712121741841](img/image-20220712121741841.png)
+
+###### 二元运算符
+
+![image-20220712121751608](img/image-20220712121751608.png)
+
+###### 重音符号
+
+![image-20220712121816548](img/image-20220712121816548.png)
+
+###### 箭头符号
+
+![image-20220712121834817](img/image-20220712121834817.png)
+
+###### 巨算符
+
+![image-20220712121933616](img/image-20220712121933616.png)
+
+###### 重音箭头
+
+![image-20220712121943530](img/image-20220712121943530.png)
+
+###### 定界符
+
+![image-20220712121951980](img/image-20220712121951980.png)
+
+###### 其他符号
+
+![image-20220712121959377](img/image-20220712121959377.png)
+
+##### amssymb宏包
+
+###### 二元关系符
+
+![image-20220712122041322](img/image-20220712122041322.png)
+
+###### 二元运算符
+
+![image-20220712122051224](img/image-20220712122051224.png)
+
+###### 箭头符号
+
+![image-20220712122110899](img/image-20220712122110899.png)
+
+###### 反义二元关系和箭头
+
+![image-20220712122133176](img/image-20220712122133176.png)
+
+###### 定界
+
+![image-20220712122143826](img/image-20220712122143826.png)
+
+###### 其他
+
+![image-20220712122153143](img/image-20220712122153143.png)
+
+
+
+### PPT
+
+使用 beamer。
+
+#### 基本格式
+
+##### 入门
+
+[参考入门教程](https://www.jianshu.com/p/711acca9dbb5)
+
+输出的内容实际上还是 pdf，并不是 ppt 文件。
+
+使用文档类为 beamer。为了支持中文，导言区加入一行：[参考](https://www.jianshu.com/p/7cfd5c763e16)
+
+```tex
+\usepackage[UTF8]{ctex}
+```
+
+每一页(slide) PPT 都在 document 内用一个 frame 环境包住。
+
+用 `frametitle` 命令写当前页的页标题。正文就自由写。
+
+用 `pause` 命令表示点击效果。实现上会导致 PPT 分页。
+
+可以用 `itemize` 代码块，内 `\item<x-y>` 其中 x,y 是数字(可以缺省)，表示这个项目再哪里可见。(没什么大用)
+
+如：
+
+```tex
+\documentclass{beamer}
+\usepackage[UTF8]{ctex}
+\begin{document}
+\begin{frame}
+    \frametitle{我的第一个PPT}
+    \begin{itemize}
+        \item<1-3> QwQ
+        \item<2> 此白茶非彼白茶
+        \item<-2> 啦啦啦
+    \end{itemize}
+
+    Hello, world!\\锦乐品白茶果冻。\pause
+    桑泽造电子白茶。\pause
+    阿门。
+\end{frame}
+\end{document}
+```
+
+
+
+##### 标题
+
+[参考](https://baijiahao.baidu.com/s?id=1688776959310607378&wfr=spider&for=pc)
+
+frame 里使用 `\titlepage` 生成标题页(不算第一页)，在 item 里。可以添加诸如 `title, subtitle, author, institute, date, titlegraphic, keywords, logo` 内容。如：
+
+```tex
+\institute{华南师范大学}
+\title{第一个PPT}
+\subtitle{求轻喷}
+\author{lr580}
+\date{2022年7月22日}
+\logo{\includegraphics[width=100pt]{a.jpg}} %右下
+\begin{frame}
+    \titlepage
+\end{frame}
+```
+
+> logo 每一页都会有。
+
+
+
+##### 目录
+
+作用是添加标签，即 pdf 的像电子书一样的点击跳转目录；并且可以生成单独的目录页。在每个 frame 前面使用 section，在一个 frame 里用 tableofcontents。
+
+如：
+
+```tex
+\documentclass{beamer}
+\usepackage[UTF8]{ctex}
+\begin{document}
+% \subsection{}
+\title{第二个PPT}
+\author{lr580}
+\date{2022年7月12日}
+\logo{\includegraphics[width=80pt]{b.png}}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+% \AtBeginSection[]{
+    \begin{frame}
+        \frametitle{目录}
+        \tableofcontents
+    \end{frame}
+% }
+
+\section{新的开始}
+\begin{frame}
+    \frametitle{第一章\ 新的开始}
+\end{frame}
+\section{主城和弥明}
+\begin{frame}
+    \frametitle{第二章\ 主城和弥明}
+\end{frame}
+\section{果冻}
+\begin{frame}
+    \frametitle{第三章\ 果冻}
+\end{frame}
+
+\end{document}
+```
+
+可以设置成在每个 section 前都重新展示一次目录，并且显示下一个是那个章节(其他低亮，该章节高亮)，修改为：[参考](https://zhuanlan.zhihu.com/p/165140693?ivk_sa=1024320u)
+
+```tex
+\AtBeginSection[]{
+    \begin{frame}
+        \frametitle{目录}
+        \tableofcontents[currentsection]
+    \end{frame}
+}
+```
+
+- currentsection，只显示当前一节的目录结构；
+- currentsubsection，只显示当前一小节的目录结构；
+- hideallsubsections，目录中隐藏所有的小结；
+- hideothersubsections，隐藏当前节之外的所有小结；
+- pausesection，使目录按节逐段显示。
+
+
+
+##### 内环境
+
+默认是英文的。可以改成中文的，自定义内环境，如：
+
+```tex
+\setbeamertemplate{theorems}[numbered]
+\newtheorem{chtheory}{定理}
+\newtheorem{chdefinition}{定义}
+\newtheorem{chproof}{证明}
+\theoremstyle{example} %往下修改格式
+\newtheorem{chexample}{示例}
+
+\section{新的开始}
+\begin{frame}
+    \frametitle{第一章\ 新的开始}
+    \begin{chtheory}
+        Minecraft 世界高度上限为 $312$。
+    \end{chtheory}
+    \begin{chdefinition}
+        白茶是一个玩家名字。
+    \end{chdefinition}
+    \begin{chproof}
+        易证。
+    \end{chproof}
+    \begin{chexample}
+        有一个人前来买瓜, 买金西瓜,$2$ 个绿宝石一块。
+    \end{chexample}
+\end{frame}
+```
+
+常用的三种文本模块：`block, exampleblock 和 alertblock`。需要有一个大括号表示标题内容。望文生义，如：
+
+```tex
+\begin{block}{弥明的成就}
+弥明获得成就\textbf{本地酿造厂}。\\
+弥明获得成就\textbf{天空即为极限}。
+\end{block}
+\begin{exampleblock}{主城的必要物品}
+主城需要有作物区、临时居住区、会议室、活动场所。
+\end{exampleblock}
+\begin{alertblock}{服务器规章制度}
+{\color{red}警告:}贝壳提示您, 熊孩子行为是禁止的, 请勿模仿白金。
+\end{alertblock}
+```
+
+表格、列表、图片、参考文献与常规类似。
+
+> 使用表格，需要设置幻灯文类相关参数选项，添加：table，xcolor=svgnames。如果表格内容过长，需采用多帧或使用帧环境的allowframebreaks选项。
+
+
+
+##### 分栏
+
+在 frame 里用 columns 大环境，其再套 column 子环境，大括号写参数为宽度，通常用 `\textwidth` 等分。
+
+> columns和column环境的位置参数，有四个相同的选项;
+>
+> - b，各栏的底行对齐；
+> - c，各栏中心对齐；
+> - t，各栏首行基线对齐；
+> - T，各栏首行顶部对齐。
+>
+> 其中columns还有两个位置参数：
+>
+> - totalwidth=宽度，设置各栏所占的总宽度；
+> - onlytextwidth，等效于totalwidth=\textwidth。
+
+如：
+
+```tex
+\begin{frame}
+    \frametitle{第三章\ 果冻}
+    \begin{columns}
+        \begin{column}{0.4\textwidth}
+            修改代码片段： %不知道为什么用不了代码块
+            \begin{block}{输入部分}
+            while (EOF != sc(v))\\
+            \{\\
+            \quad    a[++n] = v;\\
+            \quad    s0 += v;\\
+            \}
+            \end{block}
+        \end{column}
+        \begin{column}{0.6\textwidth}
+            \begin{block}{作用}
+                写起来思维难度更低。
+            \end{block}
+            \begin{exampleblock}{备注}
+                为了可以实现非 EOF 退出, 可以与一个越界判定。那么故意输入错误数据马上退出循环。
+            \end{exampleblock}
+        \end{column}
+    \end{columns}
+\end{frame}
+```
+
+
+
+##### 代码块
+
+需要用 fragile。
+
+```tex
+\begin{frame}[fragile] %必须要fragile
+    \frametitle{云烟的代码片段}
+    如下所示： %注意顶格
+    \lstset{
+        showstringspaces=false,
+        numbers=left,
+        numberstyle=\color{darkgray},
+        keywordstyle=\color{blue},
+        commentstyle=\it\color[RGB]{0,100,0},
+        stringstyle=\sl\color{red},
+    } % 删掉了背景和边框以避免覆盖背景 logo
+	\begin{lstlisting}[language=c++]
+#include <bits/stdc++.h>
+using namespace std;
+#define sc(x) scanf("%lld", &x)
+typedef long long ll;
+ll n, a[10], v, s0;
+signed main() /* 注释 */
+{ // 注释
+    return 0;
+}\end{lstlisting}
+\end{frame}
+```
+
+
+
+
+
+#### 主题
