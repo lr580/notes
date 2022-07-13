@@ -1461,6 +1461,12 @@ LaTeX文档类的基础三大件是article，book和report ，都不支持汉字
 \documentclass{ctexart}
 ```
 
+> 生僻字不支持的话，正文时对生僻字单独写 [参考](https://blog.csdn.net/FallyJ/article/details/119786761?utm_medium=distribute.pc_aggpage_search_result.none-task-blog-2~aggregatepage~first_rank_ecpm_v1~rank_v31_ecpm-3-119786761-null-null.pc_agg_new_rank&utm_term=latex%E6%98%BE%E7%A4%BA%E4%B8%AD%E6%96%87%E5%AD%97%E5%87%BA%E7%8E%B0f&spm=1000.2123.3001.4430) 如：
+>
+> ```tex
+> 善用自动格式化(vscode{\CJKfontspec{楷体} 欸}嘿嘿)。
+> ```
+
 PPT排版：
 
 ```tex
@@ -1640,7 +1646,7 @@ geometry 宏包，如：
 \begin{document}
 	\title{标题，不用引号}
 	\author{作者}
-	\date{\today}
+	\date{\today} %也可以自己写年月日
 	\maketitle
 \end{document}
 ```
@@ -1726,6 +1732,15 @@ geometry 宏包，如：
 > 
 > \end{document}
 > ```
+
+连续换行：
+
+空白行可以用 `~\\`。不能连续换行即 `\\\\` 等，会报错。如：[参考](https://blog.csdn.net/weixin_45718738/article/details/123199443?spm=1001.2101.3001.6650.1&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-1-123199443-blog-109957213.pc_relevant_multi_platform_whitelistv2&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-1-123199443-blog-109957213.pc_relevant_multi_platform_whitelistv2&utm_relevant_index=1)
+
+```tex
+(21级负责人是先修班讲课的主要人员。)\\~\\
+授课内容与时间参见 SCNUOJ 小组。
+```
 
 
 
@@ -1983,7 +1998,7 @@ htbp 详解：[参考](https://blog.csdn.net/weixin_45459911/article/details/109
 对后面所有文字生效，如果想局部生效，可以`{\指令}`。字号有：`tiny,scriptsize,footnotesize,small,normalsize,large,Large,LARGE,huge,Huge`。如：
 
 ```tex
-{\small 稍稍吐槽。}{\Large 我觉得不行！}{\footnotesize 但是你说了算}{\tiny QwQ}
+{\small 稍稍吐槽。}{\Large 我觉得不行！}{\footnotesize 但是你说了算}{\tiny QwQ} %记得加空格，不然报错
 ```
 
 可以用 `\fontsize{字体尺寸}{行距}` 定义字体，使用 `\selectfont` 使用字体(记得要空格，跟后面的正文文字)。使用 `\par` 分段。如：
@@ -2032,6 +2047,35 @@ htbp 详解：[参考](https://blog.csdn.net/weixin_45459911/article/details/109
 ##### 字间距
 
 手动打空格，有 `\,`, `\`+空格, `\quad`，`\qquad`。
+
+
+
+##### 颜色
+
+`{\color{颜色单词}}` 或 `\color[RGB]{R,G,B}`，如：
+
+```tex
+\textbf{\color{green}先修班负责人介绍}\\
+{\large{\color[RGB]{23, 130, 20}先修班负责人介绍}}
+```
+
+> RGB 范围是 $[0,255]$。而 rgb 是 $[0,1]$。[参考](https://blog.csdn.net/meiqi0538/article/details/105978246)
+
+也可以用 `\textcolor{颜色}{文字}`。[参考](https://zhuanlan.zhihu.com/p/426780029)
+
+页面颜色 `\pagecolor{颜色}`；盒子颜色 `\colorbox{颜色}{文字}`。带边框的盒子颜色 `\fcolorbox{框色}{盒色}{文字}`。
+
+自定义颜色：`\definecolor{颜色名}{RGB}{R,G,B}` 或 rgb。那么直接调用对应颜色名即可。
+
+可用的颜色单词：
+
+![image-20220713115728514](img/image-20220713115728514.png)
+
+`xcolor` 宏包的新功能：
+
+- 半色调 `{颜色!百分数}{文字}` 如 `\textcolor{purple!70}{abc}`。
+- 混合色 `{颜色1!颜色1百分数!颜色2}`。
+- 互补色 `{-颜色}`。
 
 
 
@@ -2528,6 +2572,25 @@ bm 宏包 `\bm{}` 对数学内容进行加粗。对数学公式里常规文本�
 
 使用 beamer。
 
+#### 基本概念
+
+每个 ppt 的 slide 的框架为：[参考](https://zhuanlan.zhihu.com/p/134659249) (外部元素)
+
+1. footline 页脚
+2. headline 页眉
+3. sidebar 侧边栏(左边/右边/两边，可选)
+4. frametitle 页标题
+5. Navigation Symbols 导航符号(右下角一堆按钮)(疑似有主题才能点)
+6. logo 徽标(自行安排)
+
+外部元素通过 beameroutertheme 实现。
+
+除了这些元素外， 正文内容和普通的article或者book模式没有太大区别。这些元素是内部元素，通过 `beamerinnertheme` 设置。
+
+beamer通过预定义了一些不同风格的页眉页脚和侧边栏和块。这些预定义的主题风格分别存放在beameroutertheme和beamerinnertheme中。
+
+一个完整的beamer主题包含outer，inner，font和color四部分的风格。主题大全在线预览 [在这里](https://hartwork.org/beamer-theme-matrix/)。而所有这些主题(theme)均来自内置的outertheme、innertheme、colortheme和fonttheme, 外加一些微调实现。(具体指令见 `主题` 节)
+
 #### 基本格式
 
 ##### 入门
@@ -2542,13 +2605,17 @@ bm 宏包 `\bm{}` 对数学内容进行加粗。对数学公式里常规文本�
 \usepackage[UTF8]{ctex}
 ```
 
+或 `\usepackage{xeCJK}`。
+
 每一页(slide) PPT 都在 document 内用一个 frame 环境包住。
 
 用 `frametitle` 命令写当前页的页标题。正文就自由写。
 
 用 `pause` 命令表示点击效果。实现上会导致 PPT 分页。
 
-可以用 `itemize` 代码块，内 `\item<x-y>` 其中 x,y 是数字(可以缺省)，表示这个项目再哪里可见。(没什么大用)
+可以用 `itemize` 代码块，内 `\item<x-y>` 其中 x,y 是数字(可以缺省)，表示这个项目再哪里可见。(可以认为是高级的 pause)
+
+> 想要把每个 item 自动进行一次 pause，可以设置 `\beamerdefaultoverlayspecification{<+->}`。
 
 如：
 
@@ -2655,6 +2722,10 @@ frame 里使用 `\titlepage` 生成标题页(不算第一页)，在 item 里。�
 - hideothersubsections，隐藏当前节之外的所有小结；
 - pausesection，使目录按节逐段显示。
 
+> 跟后面的主题的页眉可能会冲突，表现为每一个 section 都多了一页
+
+疑似需要两次编译才能得到正确结果。
+
 
 
 ##### 内环境
@@ -2701,6 +2772,8 @@ frame 里使用 `\titlepage` 生成标题页(不算第一页)，在 item 里。�
 {\color{red}警告:}贝壳提示您, 熊孩子行为是禁止的, 请勿模仿白金。
 \end{alertblock}
 ```
+
+> 这三种 block 会有很大的白色背景宽度，可能会覆盖掉 logo。
 
 表格、列表、图片、参考文献与常规类似。
 
@@ -2785,6 +2858,103 @@ signed main() /* 注释 */
 
 
 
-
-
 #### 主题
+
+##### 使用
+
+默认主题：
+
+```tex
+\usefonttheme{default}
+\usecolortheme{default}
+\useinnertheme{default}
+\useoutertheme{default}
+```
+
+常用的内置有：
+
+1. innertheme: default, circles, rectangles, rounded, inmargin
+2. outertheme: default, infolines, miniframes, smoothbars, sidebar, split, shadow, tree, smoothtree
+3. fonttheme: default, professionalfonts, serif, structurebold,structureitalicserif, structuresmallcapsserif
+4. colortheme: [这个预览里打横的](https://hartwork.org/beamer-theme-matrix/)
+
+或者直接用现成的，即 `\usetheme` 加上上面预览打竖的。
+
+以inner和outer中的一些为例说明这些主题的主要特点。在innertheme中，circles，rectangles，主要区别在于列表最前面的符号(bullet)的形状是圈或者是矩形，rounded主要是指block是圆角的。在outertheme中，default没有页眉页脚和侧边栏，只有sidebar这个outertheme会给主题增加侧边栏，其它outertheme主要在页眉和页脚上进行区分。
+
+对 outertheme 的使用：
+
+- smoothbars。有当前 section 显示和每个 section 多少个 frame。有 subsection。
+- miniframes。区别在于显示时多个 subsection 会分行。
+- infolines 有页脚包含主标题、作者、组织、日期、当前页数总页数，页眉包括当前节和子节。
+- split 是页脚作者和标题，页眉是小目录(当前高亮)和小子目录(当前子节高亮)。shadow 好像也差不多。
+- tree 顾名思义。只有页眉。
+
+使用示例：
+
+```tex
+\documentclass{beamer}
+\usepackage{xeCJK}
+\useinnertheme{rounded}
+\usecolortheme{seahorse}
+\useoutertheme{miniframes}
+\beamerdefaultoverlayspecification{<+->}
+\begin{document}
+\title{关于我在PPT使用主题这件事}
+\author{lr580}
+\date{\today}
+\logo{\includegraphics[width=80pt]{c.jpg}}
+\begin{frame}
+    \titlepage
+\end{frame}
+\section{自我介绍}
+\begin{frame}
+    \begin{itemize}
+        \item 你好
+        \item 我是白茶
+        \item 再见
+    \end{itemize}
+\end{frame}
+\section{比赛介绍}
+\begin{frame}
+    \begin{itemize}
+        \item ACM/ICPC, CCPC
+        \item 蓝桥杯
+        \item 天梯赛
+        \item CCF
+        \item 其他(赛氪、码加加等)
+    \end{itemize}
+\end{frame}
+\section{注意事项}
+\subsection{代码规范}
+\begin{frame}
+    \begin{block}{推荐}
+        驼峰命名法和善用自动格式化(vscode{\CJKfontspec{楷体} 欸}嘿嘿)。
+    \end{block}
+\end{frame}
+\subsection{练习方法}
+\begin{frame}
+    \begin{exampleblock}{推荐网站}
+        codeforces, 洛谷, HDU 等……
+    \end{exampleblock}
+    \pause
+    \textbf{一定要补题！一定要补题！一定要补题！}
+\end{frame}
+\begin{frame}
+    Q\&A
+\end{frame}
+\end{document}
+```
+
+
+
+
+
+> ##### 设计
+>
+> 指令：
+>
+> 1. setbeamerfont
+> 2. setbeamercolor
+> 3. setbeamertemplate
+
