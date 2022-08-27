@@ -4605,6 +4605,110 @@ with open('titles.txt', 'w', encoding=enc) as f:
 
 
 
+## 算法
+
+### networkX
+
+图论库。[官方文档](https://networkx.org/documentation/stable/tutorial.html), github 有项目
+
+```python
+import networkx as nx
+```
+
+#### 建图
+
+```python
+g = nx.Graph() #无向图，有向是DiGraph
+```
+
+点可以是任何 hashable，使用 `add_node` 方法添加单点，用 `add_nodes_from` 从 iterable 或 已知图添加点。用 `.nodes` 取所有点，可强转 list，下同
+
+边用 `add_edge` 填两参，同理可以 `add_edges_from`。会自动去重边，要重边的话要用 `MultiGraph`。可以用 `.edges` 取所有边
+
+如，构造一个圈：
+
+```python
+import networkx as nx
+
+g = nx.Graph()
+g.add_nodes_from([i for i in range(1, 11)])
+for i in range(1, 11):
+    j = i % 10 + 1
+    g.add_edge(i, j)
+
+print(g.nodes, g.edges)
+```
+
+`adj` 属性返回一个 dict 邻接表，key 是点，val 是 dict, 其 key 是点
+
+`degree` 属性返回各点的度。都可以用 `[]` 运算符询问单独一个点
+
+多个询问，用 `edges` 方法+iterable 和 `degree` 同理。结果会去重，如：
+
+```python
+print(g.adj[1], g.degree[1]) #前者可简写为g[1]
+print(g.edges([1, 2]), g.degree(1, 2)) #简写为g.edges[1,2]或g[1][2]
+```
+
+删用 `remove_node`, `remove_edge`
+
+点/边的属性(点权可用 dict 表示，key 是属性名，也可以不)，可以直接赋值，如 `g[][key]=val`，边就 `g[][][key]=val`
+
+加权边：`add_weighted_edges_from`
+
+#### 绘制
+
+```python
+import matplotlib.pyplot as plt
+```
+
+```python
+nx.draw(g, with_labels=True, font_weight='bold')
+# nx.draw_shell(g, with_labels=True, font_weight='bold')
+# plt.show() 窗口化输出
+plt.savefig("path.png")
+```
+
+
+
+#### 举例
+
+##### 判断富勒烯图
+
+```python
+#(4,5,6)-富勒烯图是3正则3连通且只有4,5,6圈的平面图
+import networkx as nx
+
+g = nx.Graph()
+n, m = [int(i) for i in input().strip().split()]
+for i in range(m):
+    u, v = [int(i) for i in input().strip().split()]
+    g.add_edge(u, v)
+
+is3Regular = nx.is_k_regular(g, 3)
+#print('3-正则:', is3Regular)
+
+is3Connected = nx.is_k_edge_connected(g, 3)
+#print('3-连通:', is3Connected)
+
+isPlanar = nx.is_planar(g)
+#print('平面图:', isPlanar)
+
+#只有4,5,6圈->不存在<=3或>=7的基圈(基圈通过边异或能组成图上所有圈)
+cycles = nx.minimum_cycle_basis(g)
+minLen = len(min(cycles, key=lambda x: len(x)))
+maxLen = len(max(cycles, key=lambda x: len(x)))
+isOnly456 = minLen >= 4 and maxLen <= 6
+#print('只有4,5,6圈:', isOnly456)
+
+isFullerene = is3Regular and is3Connected and isPlanar and isOnly456
+print(isFullerene)
+```
+
+
+
+
+
 # 应用举例
 
 #### 文件
