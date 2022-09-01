@@ -12853,3 +12853,141 @@ public class c1607 {
 
 
 
+## Web
+
+### 安装与配置
+
+#### 理论简介
+
+SSM 框架：
+
+- SpringMVC
+- Spring
+- MyBatis
+
+C/S 萎缩，B/S 盛行，早期 B/S 鼻祖是 ASP，缺点是高访问量不行。J2EE 分层体系与 EJB(Enterprise JavaBean)开启分层编程。之后出现 MVC 框架，之后出现 Spring framework。之后形成旧三大框架 SSH(Struts2+Spring+hibernate)，struts2配置繁琐，性能慢，安全漏洞一个又一个。而hibernate性能差强人意，加上一些致命的bug漏洞，故出现注解编程方式，形成新三大框架 SSM，目前是软件开发核心(2018)。
+
+三大框架只是市场的一部分，目前市场主流技术：大前端，移动端，微服务，互联网架构，大数据，人工智能等。
+大前端：VOE,node.js
+微服务：Dubbo和SpringCloud
+互联网框架：Nginx,redis,mycat, RabbitMQ,docker，kubernetes
+
+![image-20220901092233861](img/image-20220901092233861.png)
+
+![image-20220901092250682](img/image-20220901092250682.png)
+
+#### tomcat
+
+[参考](https://blog.csdn.net/m0_53336918/article/details/126224810) 若 preference 没有 server 栏，先安装：
+
+在 help 查看版本号，然后在 help-install new software-add 输入版本号和 `http://download.eclipse.org/releases/+你的eclipse的version`，如 2021-06。之后选择 web, xml…… 大类，选 jst server adapters extensions，一路 next，等待安装完毕并重启
+
+[参考](https://blog.csdn.net/MinggeQingchun/article/details/109204867?utm_medium=distribute.pc_feed_404.none-task-blog-2~default~BlogCommendFromBaidu~Rate-1-109204867-blog-null.pc_404_mixedpudn&depth_1-utm_source=distribute.pc_feed_404.none-task-blog-2~default~BlogCommendFromBaidu~Rate-1-109204867-blog-null.pc_404_mixedpud) 在上一步中，建议还需要再装多四个插件 Eclipse Java EE Developer Tools, Eclipse Java Web Developer Tools, Eclipse Web Developer Tools, Eclipse XML Editors and Tools。否则新建项目没有file-new-dynamic web project。
+
+下载 tomcat 解压(一个参考是 [提取码x9wb](https://pan.baidu.com/s/11JBPWl3tMxRfQyAkgDMNhg))，记录根目录，然后preference-server-runtime environment，选 apache tomcat，找到刚刚的目录输入，finish
+
+#### spring头自动引入
+
+下载 spring-framework 并解压到一个目录。preference-xml-xml catalog-use specified entries-add，然后点 file system 打开目录下 `schema\beans\spring-beans.xsd` 下面 key 键入 `http://www.springframework.org/schema/beans/spring-beans.xsd`(可从 `applicationContext.xml` 拷贝)
+
+新建一个 applicationContext.xml(不能打开就重启)，点下面 source 输入源码：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans></beans>
+```
+
+点回 design，右击 bean 点 edit namespaces，add，specify new namespace，browse，select xml catalog entry，找到(或搜索到)刚刚的 xsd，ok，把 `http://www.springframework.org/schema/beans/` 键入到 namespace name。此时可以看到已经导入。
+
+再次 edit namespaces-add-select from registered namespaces，勾选 xsi, ok。看到导入成功，有：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd "></beans>
+```
+
+windows-preferences-xml-xml files-editor-templates-new，键入 `spring_beans` 为 name，pattern 是上文 xml。
+
+使用：在 xml 源码里，输入 spring，按 `alt+/`，点击 `spring_beans`，自动生成。
+
+#### hello world
+
+file-new-project-dynamic web project，随便输入项目名，finish
+
+导入 jar 包：(具体而言，先复制到项目根目录如 `lib/`，然后在左侧栏框选这些 jar，右击build path-add to build path；如果要删除，点referenced libraries同理右击build path-remove from build path)
+
+```
+commons-logging-1.2.jar
+spring-beans-5.1.9.RELEASE.jar
+spring-context-5.1.9.RELEASE.jar
+spring-core-5.1.9.RELEASE.jar
+spring-expression-5.1.9.RELEASE.jar
+spring-test-5.1.9.RELEASE.jar
+spring-web-5.1.9.RELEASE.jar
+```
+
+创建接口和接口的实体类：(先在 `src/first/java` 下建包)
+
+```java
+package com.first.dao;
+
+public interface HelloSpring {
+    public void hello();
+}
+```
+
+```java
+package com.first.dao;
+
+public class HelloSpringImpl implements HelloSpring {
+    @Override
+    public void hello() {
+        System.out.println("再见! Spring!");
+    }
+}
+```
+
+配置文件的命名规则：id 是 bean 的唯一标识符，不能重复，首字母小写之后驼峰。class是类的类型，报名.类名，如：
+
+建一个 xml，如：`applicationContext.xml`，可以放 `src/`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd ">
+    <bean id="hello" class="com.first.dao.HelloSpringImpl"/>
+</beans>
+```
+
+建一个测试类：
+
+```java
+package com.first.test;
+
+import org.junit.Test;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import com.first.dao.HelloSpring;
+
+public class TestHello {
+    //@Text 对应第三行 import
+    @Test
+    public void test01() {
+        @SuppressWarnings("resource")
+        ApplicationContext context = 
+          new ClassPathXmlApplicationContext("applicationContext.xml");
+        HelloSpring helloSpring = (HelloSpring)context.getBean("hello");
+        helloSpring.hello();
+    }
+}
+```
+
+运行，选有 junit 那个，能跑出结果就对了。(输入 @Test 时报错时，点一下 add junit 4 那个)
+
+原理解释：
+
+Spring容器启动时，首先会加载Spring的核心配置文件；Spring容器逐行进行解析xml配置文件；当解析bean标签时开始创建对象，根据class属性中的值，通过反射机制创建对象；将创建好的对象存入Spring所维护的`Map<key,value>`中 key就是bean中的ID，value就是生成的对象；用户传入key，通过key来获取Map中的value（对象）；Spring容器中的对象的生命周期默认条件下与Spring容器“同生共死”
+
+默认情况下，多次获取同一个id的bean，得到的将是同个对象，即使是同一个类，如果配置多个`<bean>`标签具有不同的id，每个id都会在内置的Map有一个键值对，其中的值是这个类创建的不同对象;不允许配置多个相同ID的`<bean>`标签，如果配置，则启动异常
+
+若通过class类型获取对象 。通过class类型获取时，可能会有风险，如果出现相同的class类型会报错，如 `HelloSpring helloSpring =context.getBean(HelloSpring.class);`
