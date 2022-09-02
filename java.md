@@ -146,7 +146,7 @@ public class App {
 
 字体修改：Window-Preferences-General-Appearance，找到不同部分字体然后修改
 
-开启自动补全：Window-Preferences-Java-Editor-Content Assist，找到Auto Activation的Auto activation triggers for Java，加上26个英文小写字母
+开启自动补全：Window-Preferences-Java-Editor-Content Assist，找到Auto Activation的Auto activation triggers for Java，加上26个英文小写字母。只允许回车时键入自动补全：同页勾选 disable insertion triggers except 'Enter' [参考](https://www.pianshen.com/article/39692498050/)
 
 热键修改：Window-Preferences-Keys，如：
 
@@ -198,6 +198,8 @@ tab用四个空格而不是\t：首先 window-general-editor-text editor-勾选 
 右击菜单找source，能够依据提示看到许多快速生成，如构造函数、get和set。
 
 查看源码，ctrl+单击 (也可`jdk`安装目录下src.zip查看所有`jdk`源码)
+
+alt+shift+f 自动格式化
 
 
 
@@ -3221,7 +3223,26 @@ public String stat_sum() {
 
 功能为：以前的代码可以调用未来的代码。
 
+Class---代表字节码的类---代表类的类
+Field---代表属性的类
+Method---代表方法的类
+Constructor---代表构造方法的类
+Package---代表包的类
+Annotation---代表注解的类
+
 ##### Class
+
+Java有两种对象：实例对象和Class对象。每个类运行时的类型信息就是用Class对象表示的。它包含了与类有关的信息，实例对象就通过Class对象来创建的
+
+每一个类都有一个Class对象，编译一个新类就产生一个Class对象。Class类没有公共的构造方法，因此不能显式地声明一个Class对象。不允许手动的去new一个Class对象
+
+获取一个类的 Class 对象：
+
+- `类名.class` 如 `Class clz = String.class;`
+- 对象的 `getClass()` 方法 如 `Integer i = 9; Class clz2 = i.getClass();`
+- `Class.forName("类的全限定名")` 即路径名 如 `Class clz3 = Class.forName("java.util.List");`
+
+可以直接输出 Class 对象，显示结果如 `class java.lang.String`。
 
 可以描述一个类的基本信息。常用方法：
 
@@ -3264,6 +3285,80 @@ public String stat_sum() {
 ##### Construcor
 
 `import java.lang.reflect.Constructor`
+
+> 几种使用的例子：
+>
+> ```java
+> package refl;
+> 
+> import java.lang.reflect.Constructor;
+> import java.lang.reflect.InvocationTargetException;
+> 
+> class Person {
+>     public String name, chats;
+> 
+>     public Person() {
+>     }
+> 
+>     public Person(String name, String chats) {
+>         this.name = name;
+>         this.chats = chats;
+>     }
+> }
+> 
+> public class Try1 {
+>     @SuppressWarnings("deprecation")
+>     public static void main(String[] args) {
+>         @SuppressWarnings("rawtypes")
+>         Class cls0 = String.class;
+>         try {
+>             String s0 = (String) cls0.newInstance();
+>             System.out.println("QwQ" + s0);
+>         } catch (InstantiationException e) {
+>             e.printStackTrace();
+>         } catch (IllegalAccessException e) {
+>             e.printStackTrace();
+>         }
+> 
+>         Class<String> cls = String.class;
+>         try {
+>             String s1 = cls.newInstance();// 不能填参数
+>             System.out.println("awa" + s1);
+>         } catch (InstantiationException | IllegalAccessException e) {
+>             e.printStackTrace();
+>         }
+> 
+>         Class<Integer> inc = Integer.class;
+>         Constructor<Integer> c = null;// 否则in=那里报错
+>         try {
+>             c = inc.getConstructor(int.class);
+>         } catch (NoSuchMethodException | SecurityException e) {
+>             // TODO Auto-generated catch block
+>             e.printStackTrace();
+>         }
+>         Integer in = 0;// 同理否则syso报错
+>         try {
+>             in = c.newInstance(5);
+>         } catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+>                 | InvocationTargetException e) {
+>             // TODO Auto-generated catch block
+>             e.printStackTrace();
+>         }
+>         System.out.println(in);
+> 
+>         Class<Person> pc = Person.class;
+>         try {
+>             Constructor<Person> cst = pc.getConstructor(String.class, String.class);
+>             Person baicha = cst.newInstance("白茶", "在摸鱼");
+>             System.out.println(baicha.name + baicha.chats);
+>         } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException
+>                 | IllegalArgumentException | InvocationTargetException e) {
+>             // TODO Auto-generated catch block
+>             e.printStackTrace();
+>         }
+>     }
+> }
+> ```
 
 若要访问指定的构造方法，需要根据该构造方法的入口参数类型来访问，例如访问入口参数依次为 `String` , `int` 的，可以通过如下方法实现：
 
@@ -3432,13 +3527,168 @@ public class c1604 {
 
 ```
 
+> ```java
+> package refl;
+> 
+> import java.lang.reflect.Constructor;
+> import java.lang.reflect.Field;
+> 
+> public class Try2 {
+>     @SuppressWarnings("rawtypes")
+>     public static void main(String[] args) {
+>         Class<String> clz = String.class;
+>         Constructor[] cs = clz.getDeclaredConstructors();
+>         for (Constructor con : cs) { // 查看所有构造方法
+>             System.out.println(con);
+>         }
+>         Field f = null;
+>         try {
+>             f = clz.getDeclaredField("hash");// 获取一个属性
+>         } catch (NoSuchFieldException | SecurityException e) {
+>             e.printStackTrace();
+>         }
+> //        f.setAccessible(true);// 开权限(高版本可能会挂)
+> //        try {
+> //            f.set("abc", 45);
+> //        } catch (IllegalArgumentException | IllegalAccessException e) {
+> //            e.printStackTrace();
+> //        } // 设置值
+> //        try {
+> //            System.out.println(f.get("abc"));
+> //        } catch (IllegalArgumentException | IllegalAccessException e) {
+> //            e.printStackTrace();
+> //        }
+>         System.out.println(clz.getName());// 取路径
+>         System.out.println(clz.getSimpleName());
+>         System.out.println(clz.getSuperclass());
+>         System.out.println(clz.isArray());
+>         System.out.println(clz.isPrimitive());// 判是否基本类型
+>         System.out.println(double.class.isPrimitive());
+>         System.out.println(Double.class.isPrimitive());// false
+>     }
+> }
+> ```
+>
+> ```java
+> package cn.scnu.book;
+> public class Book extends SuperBook implements BookInterface1,BookInterface2{
+> 	private String bname;
+> 	private Integer price;
+> 	private String author;
+> 	public Book() {	}
+> 
+> 	public Book(String bname,Integer price,String author){
+> 		this.bname=bname;
+> 		this.price=price;
+> 		this.author=author;
+> 	}
+> 	
+> 	Book(String bname){
+> 		this.bname=bname;
+> 	}
+> 	@Override
+> 	public String save(String bname){
+> 		return bname+"被保存！";
+> 	}
+> 	
+> 	private void modify(String bname){
+> 		System.out.println(bname+"被修改！");
+> 		
+> 	}
+> 	@Override
+> 	public void delete(String bname){
+> 		System.out.println(bname+"删除！");
+> 	}
+> 	
+> 	@Override
+> 	public String toString() {
+> 		return "Book [bname=" + bname + ", price=" + price + ", author=" + author + "]";
+> 	}
+> 
+> 	public String getBname() {
+> 		return bname;
+> 	}
+> 
+> 	public void setBname(String bname) {
+> 		this.bname = bname;
+> 	}
+> 
+> 	public Integer getPrice() {
+> 		return price;
+> 	}
+> 
+> 	public void setPrice(Integer price) {
+> 		this.price = price;
+> 	}
+> 
+> 	public String getAuthor() {
+> 		return author;
+> 	}
+> 
+> 	public void setAuthor(String author) {
+> 		this.author = author;
+> 	}
+> }
+> ```
+>
+> ```java
+> package cn.scnu.reflect;
+> import java.lang.reflect.Constructor;
+> import java.lang.reflect.Field;
+> import cn.scnu.book.Book;
+> public class ClassDemo44 {
+> 	//告诉编译器忽略指定的警告，不用在编译完成后出现警告信息。
+> 		@SuppressWarnings("rawtypes")
+> 		public static void main(String[] args) throws Exception {
+> 			Class<Book> clz = Book.class;
+> 			// 获取String类中的所有的构造方法
+> 			Constructor[] cs = clz.getDeclaredConstructors();
+> 			for (Constructor constructor : cs) {
+> 				System.out.println(constructor);
+> 			}
+> 			
+> 			Book b=(Book)clz.newInstance();
+> 			
+> 			// 获取指定的属性对象
+> 			Field f = clz.getDeclaredField("bname");
+> 			f.setAccessible(true);			
+> 			System.out.println(f);
+> 			
+> 			// 在指定对象身上给指定的属性设置值		
+> 			f.set(b, "PHP web"); //b.setBname("PHP web");
+> 			// 从指定的对象身上获取指定的属性值
+> 			System.out.println(f.get(b));//b.getBname()
+> 						
+> 			// 获取实现的所有的接口
+> 			Class[] cls = clz.getInterfaces();
+> 			for (Class c : cls) {
+> 				System.out.println(c);
+> 			}
+> 			// 获取类的全路径名
+> 			System.out.println(clz.getName());
+> 			System.out.println(clz.getSimpleName());
+> 			
+> 
+> 			// 获取父类
+> 			System.out.println(clz.getSuperclass());
+> 			
+> 			// 判断是否是一个数组
+> 			System.out.println(clz.isArray());
+> 			// 判断是否是一个基本类型
+> 			System.out.println(clz.isPrimitive());
+> 			System.out.println(double.class.isPrimitive());
+> 			
+> 		}
+> }
+> ```
+
 
 
 ##### Method
 
 `import java.lang.reflect.Method`
 
-访问指定方法需要通过方法名和入口参数来访问，如：
+访问指定方法需要通过方法名和入口参数来访问，如：(私有；公有不需要 declared)
 
 ```java
 x.getDeclaredMethod("f", String.class, int.class);
@@ -3534,6 +3784,120 @@ public class c1605 {
 }
 
 ```
+
+> ```java
+> package refl;
+> 
+> import java.lang.reflect.Constructor;
+> import java.lang.reflect.InvocationTargetException;
+> import java.lang.reflect.Method;
+> 
+> public class Try3 {
+>     public static void main(String[] args) {
+>         Class<String> clz = String.class;
+>         String s1 = null;
+>         try {
+>             Constructor<String> c1 = clz.getConstructor(clz);
+>             s1 = c1.newInstance("baicha");
+>             System.out.println(s1);
+>         } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException
+>                 | IllegalArgumentException | InvocationTargetException e) {
+>             e.printStackTrace();
+>         }
+> //        try {
+> //            Constructor<String> c2 = clz.getDeclaredConstructor(new char[0].getClass(), boolean.class);
+> //            c2.setAccessible(true);
+> //            String s2 = c2.newInstance(new char[] { 'a', 'b', 'c' }, true);
+> //            System.out.println(s2);
+> //        } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+> //            e.printStackTrace();
+> //        }
+> 
+>         try {
+>             Method m = clz.getMethod("charAt", int.class);
+>             char ch = (char) m.invoke(s1, 1);
+>             System.out.println(ch);
+> //            Method m2 = clz.getDeclaredMethod("indexOfSupplementary", int.class, int.class);
+> //            m2.setAccessible(true);
+> //            System.out.println(m2.invoke(s1, 0, 1));
+>         } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
+>                 | InvocationTargetException e) {
+>             e.printStackTrace();
+>         }
+>     }
+> }
+> 
+> ```
+>
+> ```java
+> package cn.scnu.book;
+> public class Book{
+> 	private String bname;
+> 	private Integer price;
+> 	private String author;
+> 	public Book() {	}
+> 	public Book(String bname,Integer price,String author){
+> 		this.bname=bname;
+> 		this.price=price;
+> 		this.author=author;
+> 	}
+> 	Book(String bname){
+> 		this.bname=bname;
+> 	}
+> 	public String save(String bname){
+> 		return bname+"被保存！";
+> 	}
+> 	private void modify(String bname){
+> 		System.out.println(bname+"被修改！");
+> 	}
+> 	public void delete(String bname){
+> 		System.out.println(bname+"删除！");
+> 	}
+> 	@Override
+> 	public String toString() {
+> 		return "Book [bname=" + bname + ", price=" + price + ", author=" + author + "]";
+> 	}
+> }
+> ```
+>
+> ```java
+> package cn.scnu.reflect;
+> import java.lang.reflect.Constructor;
+> import java.lang.reflect.Method;
+> import cn.scnu.book.Book;
+> public class ClassDemo33 {
+> 	public static void main(String[] args) throws Exception {
+> 		Class<Book> clz = Book.class;
+> 		// 获取指定的公有的构造方法
+> 		Constructor<Book> ccc = clz.getConstructor(String.class, Integer.class,String.class);
+> 		Book book1 = ccc.newInstance("Java web",48,"李四");
+> 		System.out.println(book1);
+> 
+> 		// 获取指定的构造方法
+> 		Constructor<Book> c = clz.getDeclaredConstructor(String.class);
+> 		// 暴力破解,获取非公有的有参构造方法
+> 		c.setAccessible(true);
+> 		Book book2 = c.newInstance("Java从入门到精通");
+> 		System.out.println(book2);
+> 
+> 		// save(String bname)
+> 		// 获取了指定的公有的方法
+> 		Method m = clz.getMethod("save",String.class);
+> 		// 第一个参数表示方法要作用的对象
+> 		// 第二个参数表示这个方法执行所需要的参数
+> 		// 在指定对象身上执行了指定的方法
+> 		String message=(String)m.invoke(book1, "PHP web");//book1.save("PHP web")
+> 		System.out.println(message);		
+> 		//private void modify(String bname)
+> 		// 获取指定的方法 
+> 		Method m2 = clz.getDeclaredMethod("modify",String.class);
+> 		// 暴力拆除
+> 		m2.setAccessible(true);		
+> 		m2.invoke(book1, "PHP web123");//book1.modify("PHP web123")
+> 	}
+> }
+> 
+> ```
 
 
 
