@@ -115,7 +115,7 @@ ctrl+shift+p ：选择 java create java project 然后选路径和输项目名
 如果需要其他代码文件，在 `src`文件夹里创建。假设在 `src`里创建了文件夹 `c1`，里面有代码文件 `c101.java`，代码如下：
 
 ```java
-package c1;
+package c1; //包名约定英文全小写
 
 public class c101 {
     public int test(int n) {
@@ -189,9 +189,13 @@ tab用四个空格而不是\t：首先 window-general-editor-text editor-勾选 
 
 如果报错，说诸如版本过低无法编译1.7,1.5语法之类的，在build path-configure build path - java compiler - 看到 Compiler compliance level，修改为对应版本即可(如11)
 
+修改jar版本：右击项目property-java build path-libraries-jre system library-edit/remove-对应改版本即可
+
 项目重命名：右击refactor-rename即可。
 
 右击项目，选team-share。可以点create一键造分支。在windows-show view-others-git-git staging可以打开图形化下方面板，就是一个普通的图形化git。
+
+限制格式化行宽：preferences-java-code style-formatter-edit-lien wrapping-maximum line width选一个自己喜欢的如60
 
 ##### 快捷
 
@@ -200,6 +204,8 @@ tab用四个空格而不是\t：首先 window-general-editor-text editor-勾选 
 查看源码，ctrl+单击 (也可`jdk`安装目录下src.zip查看所有`jdk`源码)
 
 alt+shift+f 自动格式化
+
+alt+shift+y 自动拆行(即超过行宽自动换行，再按一次取消)
 
 
 
@@ -8291,6 +8297,8 @@ import java.util.*;
 - hasNext() 返回boolean
 - next() 返回元素并迭代器往下，返回Object
 
+重载了 `toString`，直接输出能够输出每个元素。
+
 如：
 
 ```java
@@ -11014,6 +11022,117 @@ public class c1903 extends JFrame {
 
 ```
 
+###### 多线程
+
+改进了上文例子，使得服务器可以同时处理多个访问。
+
+```java
+package ezm3;
+
+import java.io.*;
+import java.net.*;
+
+public class tcpServer {
+    public static final int PORT = 8888;
+
+    class myThread extends Thread {
+        Socket ss = null;
+
+        public myThread(Socket ss) {
+            this.ss = ss;
+        }
+
+        public void run() {
+            System.out.println("Socket accept:" + ss);
+            try {
+                // 连接成功，建立相应的I/O数据流
+                DataInputStream dis = new DataInputStream(ss.getInputStream());
+                DataOutputStream dos = new DataOutputStream(ss.getOutputStream());
+                // 在循环中，与客户机通信
+                while (true) {
+                    String str = dis.readUTF(); // 从客户机中读数据
+                    if (str.equals("end"))
+                        break; // 当读到end时，程序终止
+                    System.out.println(str);
+                    dos.writeUTF("Echoing:" + str); // 向客户机中写数据
+                }
+                dos.close();
+                dis.close();
+            } catch (Exception e) {
+            } finally {
+                try {
+                    ss.close();
+                } catch (Exception e) {
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        // 建立ServerSocket
+        new tcpServer().solve();
+    }
+
+    public void solve() throws IOException {
+        ServerSocket s = new ServerSocket(PORT);
+        System.out.println("ServerSocket:" + s);
+        try {
+            /* 程序阻塞,等待连接。即直到有一个客户请求到达,程序方能继续执行 */
+            while (true) {
+                Socket ss = s.accept();
+                myThread thread = new myThread(ss);
+                thread.start();
+            }
+        } finally {
+            s.close();
+        }
+    }
+}
+```
+
+```java
+package ezm3;
+
+import java.io.*;
+import java.net.*;
+
+public class tcpClient {
+    public static void main(String[] args) {
+
+        for (int i = 0; i < 3; ++i) {
+            new Thread(new Runnable() {
+                public void run() {
+                    try {
+                        // 建立Socket，服务器在本机的8888端口处进行“侦听”
+                        Socket ss = new Socket("127.0.0.1", 8888);
+                        System.out.println("Socket:" + ss);
+                        try {
+                            // 套接字建立成功，建立I/O流进行通信
+                            DataInputStream dis = new DataInputStream(ss.getInputStream());
+                            DataOutputStream dos = new DataOutputStream(ss.getOutputStream());
+                            for (int i = 0; i < 6; i++) {
+                                dos.writeUTF("测试:" + i); // 向服务器发数据
+                                dos.flush(); // 刷新输出缓冲区，以便立即发送
+                                System.out.println(dis.readUTF()); // 将从服务器接收的数据输出
+                                Thread.sleep(100);
+                            }
+                            dos.writeUTF("end"); // 向服务器发送终止标志
+                            dos.flush(); // 刷新输出缓冲区，以便立即发送
+                            dos.close();
+                            dis.close();
+                        } finally {
+                            ss.close();
+                        }
+                    } catch (Exception e) {
+                    } finally {
+                    }
+                }
+            }).start();
+        }
+    }
+}
+```
+
 
 
 #### UDP
@@ -11256,6 +11375,75 @@ public class Lab12_4 {
 }
 
 ```
+
+```java
+package ezm3;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import org.eclipse.jdt.annotation.Nullable;
+// import org.springframework.lang.Nullable;
+import org.junit.Test;
+
+public class TestHttp {
+    public static String get(String Url, @Nullable String param) {
+        HttpURLConnection connection = null;
+        InputStream is = null;
+        BufferedReader br = null;
+        StringBuffer result = new StringBuffer();
+        try {
+            URL url = new URL(Url);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setReadTimeout(15000);// ms
+            connection.connect();
+            if (connection.getResponseCode() == 200) {
+                is = connection.getInputStream();
+                if (null != is) {
+                    br = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+                }
+                String temp = null;
+                while (null != (temp = br.readLine())) {
+                    result.append(temp);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (null != br) {
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (null != is) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            connection.disconnect();
+        }
+        return result.toString();
+    }
+
+    @Test
+    public void test() {
+        String res = get("https://oj.socoding.cn/", "");
+        // String res = get("http://ssbylw.scnu.edu.cn/stuinfo.jsp?sid=20192005001", "");
+        System.out.println(res.length());
+        System.out.println(res);
+    }
+}
+```
+
+
 
 
 
@@ -12878,6 +13066,15 @@ import java.util.Calendar;
 Calendar c = Calendar.getInstance();
 ```
 
+获取当前日期：
+
+```java
+c.getTime();
+c.getTime().toLocaleString();
+```
+
+
+
 取一个日期：
 
 ```java
@@ -12913,6 +13110,8 @@ c.add(Calendar.DAY_OF_YEAR, -1000);
 ```java
 c.getActualMaximum(Calendar.DAY_OF_MONTH);
 ```
+
+
 
 
 
@@ -13081,6 +13280,8 @@ public class c1703 {
 
 #### Annotation
 
+##### 语法
+
 `import java.lang.annotation.*`
 
 编译指令，不影响程序运行，但是可以避免一些警告。
@@ -13217,6 +13418,17 @@ public class c1607 {
 
 
 
+##### 常用
+
+> 参数前加 `@Nullable`，代表参数可空(但是真的缺省的话也会报错)
+>
+> ```java
+> import org.eclipse.jdt.annotation.Nullable;
+> // import org.springframework.lang.Nullable;
+> ```
+
+
+
 ## Web
 
 ### 安装与配置
@@ -13239,6 +13451,14 @@ C/S 萎缩，B/S 盛行，早期 B/S 鼻祖是 ASP，缺点是高访问量不行
 ![image-20220901092233861](img/image-20220901092233861.png)
 
 ![image-20220901092250682](img/image-20220901092250682.png)
+
+#### 版本关系
+
+![image-20220913001252251](img/image-20220913001252251.png)
+
+本笔记多以 5.1.9 framework 为例，建议用 java 1.8，高版本可能会出错。
+
+> 例如用注解装配可能会遇到 `org.springframework.beans.factory.BeanDefinitionStoreException: Failed to read candidate component class`，此时应当降低版本。
 
 #### tomcat
 
@@ -13274,6 +13494,19 @@ windows-preferences-xml-xml files-editor-templates-new，键入 `spring_beans` �
 
 使用：在 xml 源码里，输入 spring，按 `alt+/`，点击 `spring_beans`，自动生成。
 
+接着，仿照类似的方法，添加一个 `spring_context`，作为配置自动引入 context 约束，以后要用。内容为：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd ">
+</beans>
+```
+
+
+
 #### hello world
 
 file-new-project-dynamic web project，随便输入项目名，finish
@@ -13290,7 +13523,9 @@ spring-test-5.1.9.RELEASE.jar
 spring-web-5.1.9.RELEASE.jar
 ```
 
-创建接口和接口的实体类：(先在 `src/first/java` 下建包)
+<!--<div href="springdao"></div>-->
+
+创建接口和接口的实体类：(先在 `src/first/java` 下建包)(不想这个路径的话可以创项目时 next 后改一下，但是改不成 `src`，必须加子目录)
 
 ```java
 package com.first.dao;
@@ -13355,3 +13590,785 @@ Spring容器启动时，首先会加载Spring的核心配置文件；Spring容�
 默认情况下，多次获取同一个id的bean，得到的将是同个对象，即使是同一个类，如果配置多个`<bean>`标签具有不同的id，每个id都会在内置的Map有一个键值对，其中的值是这个类创建的不同对象;不允许配置多个相同ID的`<bean>`标签，如果配置，则启动异常
 
 若通过class类型获取对象 。通过class类型获取时，可能会有风险，如果出现相同的class类型会报错，如 `HelloSpring helloSpring =context.getBean(HelloSpring.class);`
+
+
+
+### Spring IOC
+
+#### 概念
+
+创建对象的方式：
+
+```java
+Person p1 = new Person();  // 传统
+```
+
+```java
+// 由Spring容器创建
+Person p2 = Spring容器.getXXX()方法；  
+HelloSpring helloSpring = (HelloSpring)context.getBean("hello");
+```
+
+```mermaid
+graph LR
+	A["person"]-->|"传统方式new"|B["获取对象"]
+	A-->|"Spring容器管理对象"|C["Spring容器<br>xxx对象"]
+	B-->|"GetXXX"|C
+```
+
+IOC是控制反转，是Spring框架的核心。在Spring中，对象不再由调用者创建，而是由Spring容器来创建，这样，控制权由调用者转移到Spring容器，控制权发生了反转，这就是Spring的控制反转
+
+DI是依赖注入，Spring在创建对象过程中，可以根据配置，对对象的属性进行设置（赋值），这个过程称之为依赖注入。DI实际上是IOC的一个步骤。就是对创建的对象的属性进行设置
+
+依赖注入的类型：使用构造方法注入，使用属性的setter方法注入，如：
+
+```java
+Person p1 = new Person("果冻");
+Person p2 = new Person();
+p2.setName("白茶");
+```
+
+#### BeanFactory
+
+Spring容器是生成Bean实例的地方，并管理容器中的Bean。`Spring IoC`容器的设计主要是基于`BeanFactory`和`ApplicationContext`两大核心接口，其中`ApplicationContext`是`BeanFactory`的子接口,它们都可以当做`SpringIOC`容器
+
+`BeanFactory`是Spring容器的根接口。
+Spring IOC容器的实现从根源来讲是`BeanFactory`接口，但真正可以作为一个可以独立使用的IOC容器还是`DefaultListableBeanFactory`，因此可以这么说，`DefaultListableBeanFactory` 是整个Spring IOC的鼻祖。
+`BeanFactory`接口有多个实现类，其中`XmlBeanFactory`比较常用，`XmlBeanFactory`，继承自`DefaultListableBeanFactory`，重写了一些功能，使自己更强大,`XmlBeanFactory`根据XML配置文件中的定义来装配Bean。
+
+创建`XmlBeanFactory`实例时，需要提供XML核心配置文件的绝对路径
+
+```java
+@Test
+public void test02(){
+       XmlBeanFactory context = new XmlBeanFactory(new FileSystemResource("E:/java/E64workspace/MyFirstSpring/src/applicationContext.xml"));
+      //获取对象
+     HelloSpring helloSpring = (HelloSpring)context.getBean("hello");
+     //执行操作
+    helloSpring.hello();
+}
+```
+
+`ApplicationContext`接口是`BeanFactory`的子接口。也称为应用上下文，它能提供更多企业级的服务，例如解析配置文件的文本信息等。创建`ApplicationContext`接口实例通常有三种方法
+
+- 通过`ClassPathXmlApplicationContext`创建
+
+  `ClassPathXmlApplicationContext`将从类路径`classPath`目录（`src`根目录）寻找指定的XML配置文件
+
+  ```java
+  @Test
+  public void test01(){
+         //启动Spring容器，加载配置文件
+        ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+       //获取对象
+       HelloSpring helloSpring = (HelloSpring)context.getBean("hello");
+       //执行操作
+       helloSpring.hello();
+  }
+  ```
+
+- 通过`FileSystemXmlApplicationContext`创建
+
+  `FileSystemXmlApplicationContext`将从指定文件的**绝对路径**中寻找XML核心配置文件，找到并装载完成`ApplicationContext`的实例化工作
+
+  ```java
+  @Test
+  public void test03(){
+  //初始化Spring容器ApplicationContext，加载配置文件
+  	ApplicationContext context = 
+  	new FileSystemXmlApplicationContext("E:/java/E64workspace/MyFirstSpring/src/applicationContext.xml");
+  	HelloSpring helloSpring = (HelloSpring)context.getBean("hello");//获取对象
+  	helloSpring.hello();//执行操作
+  }
+  ```
+
+- 通过Web服务器实例化`ApplicationContext`容器 (最终目的)
+
+  一般使用基于`org.springframework.web.context.ContextLoaderListener`的实现方式（需要将`spring-web-5.0.2.RELEASE.jar`复制到`WEB-INF/lib`目录中）
+
+  定义`web.xml`，由web容器自动加载配置文件，初始化`ApplicationContext`实例。通过`web.xml`配置，web容器会自动加载`context-param`中的配置文件,初始化`ApplicationContext`实例
+
+  ```xml
+  <context-param>
+      <param-name>contextConfigLocation</param-name>
+      <param-value>classpath:applicationContext.xml</param-value>
+    </context-param>
+    <listener>
+       <listener-class>
+               org.springframework.web.context.ContextLoaderListener 
+       </listener-class>
+   </listener>
+  ```
+
+
+
+#### 依赖注入
+
+##### 构造方法注入
+
+Spring框架可以采用Java的反射机制，通过构造方法完成依赖注入。如果使用构造方法注入时，应该添加构造方法，但注意要先写无参构造
+
+步骤：
+
+先创建 `dao` 包，并创建一个接口和一个接口实现类。[见这里](#hello world) <!--[见这里](href=#springdao)-->
+
+创建`dao`的目的是在service中使用构造方法依赖注入自己创建的接口对象
+
+创建一个 service 包，创建 service 接口和实现类，注意先写无参构造。在实现类用构造方法依赖注入上文接口对象。如：
+
+```java
+package com.first.service;
+
+public interface TestDIService {
+    public void sayHello();
+}
+```
+
+```java
+package com.first.service;
+
+import com.first.dao.HelloSpring;
+
+public class TestDIServiceImpl implements TestDIService {
+    private HelloSpring testDIDao;
+
+    public TestDIServiceImpl() {
+    }
+
+    public TestDIServiceImpl(HelloSpring testDIDao) {
+        this.testDIDao = testDIDao;
+    }
+    
+    @Override
+    public void sayHello() {
+        testDIDao.hello();
+    }
+}
+```
+
+然后在 `src` 根目录创建Spring配置文件`applicationContext.xml`。在配置文件中，首先，将`dao`实现类托管给Spring，让Spring创建其对象。其次，将service实现类托管给Spring，让Spring创建其对象，同时给构造方法传递实参
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd ">
+	<bean id="myTestDIDao" class="com.first.dao.HelloSpringImpl" />
+	<bean id="testDIService"
+		class="com.first.service.TestDIServiceImpl">
+		<constructor-arg index="0" ref="myTestDIDao" />
+	</bean>
+</beans>
+```
+
+`constructor-arg` 是将 `dao` 那个 bean 注入到该类属性 `testDIDao` 上。用 index 也可以用 name，name 就参数名。前者更好维护。ref 也可以用 value，对应一般的值如整数，字符串等(当然都需要引号)。下setter同。注意到参数名必须与属性名一致，如 `setName` 的参数名应当是 `name` 其属性名是 `name`，参数名不能是 `myname`。具体见下一节 Bean。
+
+创建一个 test 包，创建测试类：
+
+```java
+package com.first.test;
+
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import com.first.service.TestDIService;
+import org.junit.Test;
+
+public class TestDI {
+    @Test
+    public void test01() {
+        ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+        TestDIService ts = (TestDIService) context.getBean("testDIService");
+        ts.sayHello();
+    }
+}
+```
+
+
+
+##### 属性setter注入
+
+setter方法注入是Spring框架中最主流的注入方式，它利用Java Bean规范所定义的setter方法来完成注入，灵活且可读性高。setter方法注入，Spring框架也是使用Java的反射机制实现的。
+setter方法注入的前提条件，为属性赋值时必须添加set方法，否则不能正确注入
+
+重写一个service实现类：
+
+```java
+package com.first.service;
+
+import com.first.dao.HelloSpring;
+
+public class TestDIServiceImpl2 implements TestDIService {
+    private HelloSpring testDIDao;
+
+    public void setTestDIDao(HelloSpring testDIDao) {
+        this.testDIDao = testDIDao;
+    }
+
+    @Override
+    public void sayHello() {
+        testDIDao.hello();
+        System.out.println("setter注入");
+    }
+}
+```
+
+增加 XML：
+
+```xml
+<bean id="testDIService2"
+      class="com.first.service.TestDIServiceImpl2">
+    <property name="testDIDao" ref="myTestDIDao" />
+</bean>
+```
+
+增加测试类一个方法：(那么运行时会先后跑所有带 `@Test` 的方法)
+
+```java
+@Test
+public void test02() {
+    @SuppressWarnings("resource")
+    ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+    TestDIService ts = (TestDIService) context.getBean("testDIService2");
+    ts.sayHello();
+}
+```
+
+
+
+### Spring Bean
+
+#### 属性
+
+Spring可以看作一个大型工厂，生产和管理Spring容器中的Bean。如何使用这个工厂生产和管理Bean，需要开发者将Bean配置在Spring的配置文件中。Spring框架支持XML和Properties两种格式的配置文件，在实际开发中，常用XML格式的配置文件。
+
+`<bean>` 的属性的配置：
+
+| 属性  | 描述                                |
+| ----- | ----------------------------------- |
+| id    | Bean在`BeanFactory`工厂中的唯一标记 |
+| class | Bean的具体实现类，使用类的全名称    |
+| scope | 制定Bean的作用域                    |
+
+| 属性                | 描述                                 |
+| ------------------- | ------------------------------------ |
+| `<constructor-arg>` | 使用构造方法注入，指定构造方法的参数 |
+| `<property>`        | 用于设置一个属性                     |
+| `<list>`            | 用于封装List或数组类型的依赖注入     |
+| `<map>`             | 用于封装Map类型的依赖注入            |
+| `<set>`             | 用于封装set类型的依赖注入            |
+| `<entry>`           | 用于设置一个键值对                   |
+
+对 `constructor-arg` 子标签，可以用从 0 开始的下标 index，属性名 name，和值 value 或 bean 引用 ref。index 和 name 可以同时用。Java不会维护形参的名称,所以使用name属性进行注入时,会发生风险,所以建议用index进行。
+
+Spring框架实例化Bean有三种方式：
+
+- 构造方法实例化(最常用，即上文方法)
+- 静态工厂实例化
+- 实例工厂实例化
+
+在Spring框架中，Spring容器可以调用Bean对应类中构造方法来实例化Bean，这种方式称为构造方法实例化。说明：使用构造方法注入，添加有参构造方法时，切记先添加无参构造
+
+注入方式的分析：如果程序员自己写代码，set注入居多，如果是软件架构使用构造注入居多
+
+如：
+
+```java
+package com.sec.pojo;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+public class User {
+    private String name;
+    private List<String> hobbyList;
+    private Map<String, String> residencyMap;
+    private Set<String> aliasSet;
+    private String[] attrs;
+
+    public User(String name, List<String> hobbyList, Map<String, String> residencyMap,
+            Set<String> aliasSet, String[] attrs) {
+        this.name = name;
+        this.hobbyList = hobbyList;
+        this.residencyMap = residencyMap;
+        this.aliasSet = aliasSet;
+        this.attrs = attrs;
+    }
+
+    @Override
+    public String toString() {
+        return "[uname=" + name + ", hobbyList=" + hobbyList + ", residencyMap=" + residencyMap
+                + ", aliasSet=" + aliasSet + ", attrs=" + Arrays.toString(attrs) + "]";
+    }
+}
+```
+
+```xml
+<bean id="user1" class="com.sec.pojo.User">
+    <constructor-arg index="0" name="name" value="弥明" />
+    <constructor-arg index="1" name="hobbyList">
+        <list>
+            <value>赚钱</value>
+            <value>卖课</value>
+            <value>科研</value>
+        </list>
+    </constructor-arg>
+    <constructor-arg index="2" name="residencyMap">
+        <map>
+            <entry key="lx" value="蓝星" />
+            <entry key="scnu" value="I栋114" />
+        </map>
+    </constructor-arg>
+    <constructor-arg index="3" name="aliasSet">
+        <set>
+            <value>阿六</value>
+            <value>小明</value>
+        </set>
+    </constructor-arg>
+    <constructor-arg index="4" name="attrs">
+        <array>
+            <value>聪明</value>
+            <value>勤劳</value>
+        </array>
+    </constructor-arg>
+</bean>
+```
+
+注：也可以把 `constructor-arg` 全改成 `property`，去掉 `index`。对 `arg` 的 `name` 对应形参名，对 `property` 对应属性名。
+
+```java
+package com.sec.test;
+
+import org.junit.Test;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import com.sec.pojo.User;
+
+public class TestUser {
+    @Test
+    public void test01() {
+        @SuppressWarnings("resource")
+        ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+        User user = (User) context.getBean("user1");
+        System.out.println(user);
+    }
+}
+```
+
+
+
+
+
+#### 静态工厂实例化
+
+抽象类和接口无构造函数，不能直接通过反射创建。静态工厂的本质是 `类名.静态方法`
+
+使用静态工厂实例化Bean时，要求开发者在工厂类中创建一个静态方法来创建Bean的实例。配置Bean时，class属性指定静态工厂类，同时还需要使用`factory-method`属性指定工厂类中的静态方法
+
+如：
+
+##### 自定义类
+
+###### 带无参构造
+
+```java
+package com.sec.instance;
+
+public class Person {
+    public String name;
+
+    public Person() {
+        name = "白茶";
+    }
+
+    public Person(String name) {
+        this.name = name;
+    }
+}
+```
+
+```java
+package com.sec.instance;
+
+public class PersonStaticFactory {
+    public PersonStaticFactory() {
+        System.out.println("这是静态工厂");
+    }
+
+    private static Person personInstance = new Person("果冻");
+
+    public static Person createInstance() {
+        return personInstance;
+    }
+}
+```
+
+```xml
+<bean id="personBaicha" class="com.sec.instance.Person" />
+<bean id="personFactory"
+      class="com.sec.instance.PersonStaticFactory"
+      factory-method="createInstance" />
+```
+
+```java
+package com.sec.test;
+
+import org.junit.Test;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import com.sec.instance.Person;
+
+public class TestPerson {
+    @SuppressWarnings("resource")
+    @Test
+    public void test01() {
+        ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+        Person baicha = (Person)context.getBean("personBaicha");
+        System.out.println(baicha.name);
+        Person guodong = (Person)context.getBean("personFactory");
+        System.out.println(guodong.name);
+    }
+}
+```
+
+###### 不带无参构造
+
+```java
+package com.sec.instance;
+
+public class Food {
+    public String name;
+
+    public Food(String name) {
+        this.name = name;
+    }
+}
+```
+
+```java
+package com.sec.instance;
+
+public class FoodFactory {
+    public static Food getFood() {
+        return new Food("莉可炸弹");
+    }
+}
+```
+
+```xml
+<bean id="food" class="com.sec.instance.FoodFactory"
+      factory-method="getFood" />
+```
+
+```java
+@Test
+public void test03() {
+    ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+    Food food = (Food)context.getBean("food");
+    System.out.println(food.name);
+}
+```
+
+
+
+##### 标准库类
+
+```java
+package com.sec.instance;
+
+import java.util.Calendar;
+
+public class CalendarFactory {
+    public static Calendar getCalendar() {
+        return Calendar.getInstance();
+    }
+}
+```
+
+```xml
+<bean id="calendar" class="com.sec.instance.CalendarFactory"
+		factory-method="getCalendar" />
+```
+
+```java
+@SuppressWarnings("deprecation")
+@Test
+public void test02() {
+    ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+    Calendar calendar = (Calendar)context.getBean("calendar");
+    System.out.println(calendar.getTime().toLocaleString());
+}
+```
+
+
+
+#### 实例工厂实例化
+
+实例工厂也可解决类无法通过无参构造创建的问题。思路和静态工厂类似。使用实例工厂实例化Bean时，要求开发者在工厂类中创建一个实例方法来创建Bean的实例。配置Bean时，需要创建实例工厂对象，然后在创建Bean对象的时候使用`factory-bean`属性指定配置的实例工厂，同时还需要使用`factory-method`属性指定实例工厂中的实例方法。
+
+如：(添加自静态工厂实例化的例子)
+
+```java
+package com.sec.instance;
+
+public class PersonInstanceFactory {
+    public PersonInstanceFactory() {
+        System.out.println("工厂开工啦");
+    } // 每次创建 context 时会调用一次
+    
+    public Person createPersonInstance() {
+        return new Person("锦乐");
+    }
+}
+```
+
+```xml
+<bean id="personFactory2"
+      class="com.sec.instance.PersonInstanceFactory" />
+<bean id="personJinle" factory-bean="personFactory2"
+      factory-method="createPersonInstance" />
+```
+
+```java
+@Test
+public void test04() {
+    ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+    System.out.println("现在开始召唤锦乐");
+    Person jinle = (Person)context.getBean("personJinle");
+    System.out.println(jinle.name);
+}
+```
+
+
+
+#### 懒加载机制
+
+Spring默认会在初始化容器的过程中，解析xml，并将单例的bean创建并保存到map中，这样的机制在bean比较少时问题不大，但一旦bean非常多时，spring启动的过程需要花费大量的时间来创建bean，并且花费大量的空间存储bean，但这些bean可能很久都用不上，这种在启动时因为创建bean而在时间和空间上导致的浪费显得非常的不值得。
+
+所以Spring提供了懒加载机制。所谓的懒加载机制就是可以规定指定的bean不在启动时立即创建，而是在后续第一次用到时才创建，从而减轻在启动过程中对时间和内存的消耗。为这样的 bean 添加属性：`lazy-init="true"`。或者，在 `beans` 标签默认加 `default-lazy-init="true"`。若 `lazt-init` 取值 default 向全局配置看齐，佛足额设 true, false。
+
+如上例可以改成：
+
+```xml
+<bean id="personFactory2"
+      class="com.sec.instance.PersonInstanceFactory" lazy-init="true" />
+<bean id="personJinle" factory-bean="personFactory2"
+      factory-method="createPersonInstance" lazy-init="true"/>
+```
+
+
+
+#### 作用域
+
+| 作用域名    | 描述                                                         |
+| ----------- | ------------------------------------------------------------ |
+| singleton   | 默认的作用域，使用singleton定义的Bean在Spring容器中只有一个Bean实例。 |
+| prototype   | Spring容器每次获取prototype定义的Bean，容器都将创建一个新的Bean实例。 |
+| request     | 在一次HTTP请求中容器将返回一个Bean实例，不同的HTTP请求返回不同的Bean实例。仅在Web Spring应用程序上下文中使用。 |
+| session     | 在一个HTTP Session中，容器将返回同一个Bean实例。仅在Web Spring应用程序上下文中使用。 |
+| application | 为每个`ServletContext`对象创建一个实例，即同一个应用共享一个Bean实例。仅在Web Spring应用程序上下文中使用。 |
+| `websocket` | 为每个`WebSocket`对象创建一个Bean实例。仅在Web Spring应用程序上下文中使用。 |
+
+使用：bean 加属性 `scope="上述域名"`。对 singleton，即无论用多少个变量 `getBean`，都是得到同一个引用。
+
+若对象是 prototype，默认懒加载，设置为 false 也会懒加载。
+
+
+
+#### 生命周期
+
+Bean的生命周期整个过程如下：
+
+1．根据Bean的配置情况，实例化一个Bean。
+2．根据Spring上下文对实例化的Bean进行依赖注入，即对Bean的属性进行初始化。
+3．如果Bean实现了`BeanNameAware`接口，将调用它实现的`setBeanName(String beanId)`方法，此处参数传递的是Spring配置文件中Bean的ID。
+4．如果Bean实现了`BeanFactoryAware`接口，将调用它实现的`setBeanFactory()`方法，此处参数传递的是当前Spring工厂实例的引用。  有唯一一个`setBeanName()`方法
+5．如果Bean实现了`ApplicationContextAware`接口，将调用它实现的`setApplicationContext(ApplicationContext)`方法，此处参数传递的是Spring上下文实例的引用。
+6．如果Bean关联了`BeanPostProcessor`接口，将调用预初始化方法`postProcessBeforeInitialization(Object obj, String s)`对Bean进行操作。
+
+
+
+#### 装配方式
+
+Bean的装配可以理解为将Bean依赖注入到Spring容器中，Bean的装配方式即Bean依赖注入的方式。Spring容器支持基于XML配置的装配、基于注解的装配以及自动装配等多种装配方式。
+
+基于 XML 可以用构造方式和属性setter方式注入。
+
+##### 基于注解的装配
+
+在Spring框架中，尽管使用XML配置文件可以装配Bean,但如果应用中有大量的Bean需要装配，会导致配置文件过于庞大，不方便升级和维护，因此更多的时候推荐开发者使用注解的方式去装配Bean。 
+
+```java
+package com.sec.anno;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+//表示交给Spring容器管理当前类
+@Component
+public class TimeSchedule {
+    @Value("混吃等死摆大烂")
+    public String item;
+}
+```
+
+用 context 的 xml 头，写一行开启包扫描，指定要扫描哪个 package：(注：会一并扫描其下的所有子包)
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd ">
+	<context:component-scan
+		base-package="com.sec.anno" />
+</beans>
+```
+
+确保导入了 `spring-aop-5.1.9.RELEASE.jar` 包(注意这点)。测试：
+
+```java
+@Test
+public void test02() {
+    @SuppressWarnings("resource")
+    ApplicationContext context = new ClassPathXmlApplicationContext("spring2.xml");
+    TimeSchedule timeSchedule = (TimeSchedule) context.getBean("timeSchedule");
+    System.out.println(timeSchedule.item);
+}
+```
+
+调用格式：原类名，但首字母小写。
+
+原理：
+
+1.当容器启动时，首先会加载spring的配置文件。
+
+2.根据包扫描指定的包路径，spring会扫描当前包下的全部子孙包。
+
+3.在扫描时如果发现类上含有@Component注解，则会根据spring的规则为其创建对象。将对象创建通过反射创建完成后，存入spring所维护的map中，key就是类名首字母小写。value就是生成的对象。
+
+4.如果类中需要进行对象注入，则在创建对象的之后，自动的根据注解的匹配规则为其注入正确的对象，如果对象正确注入。则spring返回正确的对象如果注入有误，spring则会发出报错信息。容器启动失败
+
+常用注解：
+
+1. `@Component`
+
+2. `@Repository`
+
+   该注解用于将数据访问层（DAO）的类标识为Bean，即注解数据访问层Bean，其功能与@Component()相同
+
+3. `@Service`
+
+   该注解用于标注一个业务逻辑组件类（Service层），其功能与@Component()相同
+
+4. `@Controller`
+
+   该注解用于标注一个控制器组件类（Spring MVC的Controller），其功能与@Component()相同
+
+5. `@Autowired`
+
+   该注解可以对类成员变量、方法及构造方法进行标注，完成自动装配的工作。 通过 @Autowired的使用来消除 setter 和 getter 方法.默认按照Bean的类型进行装配
+
+6. `@Resource`
+
+   该注解与@Autowired功能一样。区别在于，该注解默认是按照名称来装配注入的，只有当找不到与名称匹配的Bean才会按照类型来装配注入；而@Autowired默认按照Bean的类型进行装配，如果想按照名称来装配注入，则需要结合@Qualifier注解一起使用。
+
+   @Resource注解有两个属性：name和type。name属性指定Bean实例名称，即按照名称来装配注入；type属性指定Bean类型，即按照Bean的类型进行装配。
+
+7. `@Qualifier`
+
+   该注解与@Autowired注解配合使用。当@Autowired注解需要按照名称来装配注入，则需要结合该注解一起使用，Bean的实例名称由@Qualifier注解的参数指定。
+
+上面几个注解中，虽然@Repository、@Service和 @Controller等注解的功能与@Component()相同，但为了使标注类的用途更加清晰（层次化），在实际开发中推荐使用@Repository标注数据访问层（DAO层）、使用@Service标注业务逻辑层（Service层）以及使用@Controller标注控制器层（控制层）。
+
+如：
+
+```java
+package com.sec.anno;
+
+public interface TestDao {
+    public void save();
+}
+
+```
+
+```java
+package com.sec.anno;
+
+import org.springframework.stereotype.Repository;
+
+//命名是相当于bean的名字
+@Repository("testDao1")
+public class TestDaoImpl implements TestDao {
+    @Override
+    public void save() {
+        System.out.println("test Dao save");
+    }
+}
+```
+
+```java
+TestDao testDao = (TestDao) context.getBean("testDao1");
+testDao.save();
+```
+
+
+
+```java
+package com.sec.anno;
+
+public interface TestService {
+    public void save();
+}
+```
+
+```java
+package com.sec.anno;
+
+import javax.annotation.Resource;
+import org.springframework.stereotype.Service;
+
+@Service("testService1")
+public class TestServiceImpl implements TestService {
+    @Resource(name = "testDao1")
+    private TestDao testDao;
+    public void save() {
+        testDao.save();
+        System.out.println("test Service save");
+    }
+}
+```
+
+```java
+TestService testService = (TestService) context.getBean("testService1");
+testService.save();
+```
+
+
+
+```java
+package com.sec.anno;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+
+@Controller
+public class TestController {
+    @Autowired
+    private TestService testService;
+    public void save() {
+        testService.save();
+        System.out.println("test Controller save");
+    }
+}
+```
+
+```java
+TestController testController = (TestController) context.getBean("testController");
+testController.save();
+```
+
+
+
