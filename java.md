@@ -13505,6 +13505,25 @@ windows-preferences-xml-xml files-editor-templates-new，键入 `spring_beans` �
 </beans>
 ```
 
+再引入 aop 模板：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xmlns:context="http://www.springframework.org/schema/context" 
+xmlns:aop="http://www.springframework.org/schema/aop"
+xsi:schemaLocation="http://www.springframework.org/schema/beans 
+http://www.springframework.org/schema/beans/spring-beans.xsd 
+http://www.springframework.org/schema/context 
+http://www.springframework.org/schema/context/spring-context.xsd
+http://www.springframework.org/schema/aop
+http://www.springframework.org/schema/aop/spring-aop.xsd ">
+</beans>
+```
+
+
+
 
 
 #### hello world
@@ -14196,7 +14215,8 @@ Bean的装配可以理解为将Bean依赖注入到Spring容器中，Bean的装�
 
 基于 XML 可以用构造方式和属性setter方式注入。
 
-##### 基于注解的装配
+> ##### 基于注解的装配
+>
 
 在Spring框架中，尽管使用XML配置文件可以装配Bean,但如果应用中有大量的Bean需要装配，会导致配置文件过于庞大，不方便升级和维护，因此更多的时候推荐开发者使用注解的方式去装配Bean。 
 
@@ -14371,4 +14391,757 @@ testController.save();
 ```
 
 
+
+### Spring AOP
+
+#### 概念
+
+![image-20220922100817421](img/image-20220922100817421.png)
+
+在业务处理代码中，通常都有日志记录、性能统计、安全控制、事务处理、异常处理等操作。尽管使用OOP可以通过封装或继承的方式达到代码的重用，但仍然存在同样的代码分散到各个方法中。因此，采用OOP处理日志记录等操作，不仅增加了开发者的工作量，而且提高了升级维护的困难。
+为了解决此类问题，出现AOP面向切面的编程思想。AOP采取横向抽取机制，即将分散在各个方法中的重复代码提取出来，然后在程序编译或运行阶段，再将这些抽取出来的代码应用到需要执行的地方。这种横向抽取机制，采用传统的OOP是无法办到的，因为OOP实现的是父子关系的纵向重用。
+
+![image-20220922101932237](img/image-20220922101932237.png)
+
+切面（Aspect）是指封装横切到系统功能（如事务处理）的类。
+
+连接点（Joinpoint）是指程序运行中的一些时间点，如方法的调用或异常的抛出。
+
+切入点（Pointcut）是指那些需要处理的连接点。在Spring AOP 中，所有的方法执行都是连接点，而切入点是一个描述信息，它修饰的是连接点，通过切入点确定哪些连接点需要被处理。
+
+通知（增强处理）由切面添加到特定的连接点（满足切入点规则）的一段代码，即在定义好的切入点处所要执行的程序代码。通知是切面的具体实现。
+
+引入（Introduction）允许在现有的实现类中添加自定义的方法和属性。
+
+目标对象（Target Object）是指需要被增强处理的对象,也就是所有被通知的对象。
+
+代理（Proxy）对象是通知应用到目标对象之后，被动态创建的对象。
+
+织入（Weaving）是将切面代码插入到目标对象上，从而生成代理对象的过程。Spring AOP框架默认采用动态代理织入，而AspectJ（基于Java语言的AOP框架）采用编译器织入和类装载期织入。
+
+![image-20220922101912739](img/image-20220922101912739.png)
+
+
+
+#### 代理模式
+
+代理对象（中介）特征
+
+1. 实现和被代理者相同的接口
+2. 代替目标对象完成相应的功能。
+3. 目标方法完成之后，会完成额外的操作
+
+![image-20220922101854504](img/image-20220922101854504.png)
+
+##### 静态代理
+
+静态代理缺点：
+
+1. 一个service对应一个代理类，那么100个service对应100个代理类
+2. 代理类的每一个方法中都需要填写事务的开启和事务的提交，复用性不高
+3. 代理类不具备通用性
+
+![image-20220922102950217](img/image-20220922102950217.png)
+
+
+
+静态代理：
+
+![image-20220922102357396](img/image-20220922102357396.png)
+
+切面代码：(类是切面，方法是通知)
+
+![image-20220922102624397](img/image-20220922102624397.png)
+
+目标对象：
+
+![image-20220922103218427](img/image-20220922103218427.png)
+
+代理对象：
+
+![image-20220922103234275](img/image-20220922103234275.png)
+
+![image-20220922103259516](img/image-20220922103259516.png)
+
+
+
+##### 动态代理
+
+目前，Spring AOP中常用JDK和CGLIB两种动态代理技术
+
+![image-20220922103404400](img/image-20220922103404400.png)
+
+JDK动态代理是`java.lang.reflect.*`包提供的方式，它必须借助一个接口才能产生代理对象。因此，对于使用业务接口的类，Spring默认使用JDK动态代理实现AOP。
+
+动态代理模式优缺点：
+
+优点：
+
+1. 实现了代码的分离
+2. 实现了代码的重复利用，原来每个方法上都需要添加事务，现在只需添加一遍。
+
+缺点：
+
+1. 使用`jdk`的动态代理必须实现接口，否则不能生成代理对象。
+2. 目标类的每个方法都经过判断降低性能。
+
+###### JDK 代理
+
+实例：(无需 Spring) 
+
+```java
+package com.dyn.jdk;
+
+public interface TestDao {
+    public void save();
+    public void modify();
+    public void delete();
+}
+```
+
+```java
+package com.dyn.jdk;
+
+public class TestDaoImpl implements TestDao {
+    @Override
+    public void save() {
+        System.out.println("保存");
+    }
+    
+    @Override
+    public void modify() {
+        System.out.println("修改");
+    }
+    
+    @Override
+    public void delete() {
+        System.out.println("删除");
+    }
+}
+```
+
+```java
+package com.dyn.aspect;
+
+public class NormalAspect {
+    public void check() {
+        System.out.println("模拟权限控制");
+    }
+    
+    public void except() {
+        System.out.println("模拟异常处理");
+    }
+    
+    public void log() {
+        System.out.println("模拟日志记录");
+    }
+    
+    public void monitor() {
+        System.out.println("模拟性能检测");
+    }
+}
+```
+
+```java
+package com.dyn.jdk;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import com.dyn.aspect.NormalAspect;
+
+public class JDKDynamicProxy implements InvocationHandler {
+    private TestDao testDao;
+
+    public Object createProxy(TestDao testDao) {
+        this.testDao = testDao;
+        ClassLoader cld = JDKDynamicProxy.class.getClassLoader();
+        @SuppressWarnings("rawtypes")
+        Class[] cla = testDao.getClass().getInterfaces();
+        return Proxy.newProxyInstance(cld, cla, this);
+    }
+
+    /**
+     * @proxy 被代理对象
+     * @method 将要被执行的方法
+     * @args 执行方法时需要的参数
+     * @return 返回代理结果
+     */
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        NormalAspect aspect = new NormalAspect();
+        aspect.check();
+        aspect.except();
+        Object obj = method.invoke(testDao, args);
+        aspect.log();
+        aspect.monitor();
+        return obj;
+    }
+}
+```
+
+```java
+package com.dyn.jdk;
+
+import org.junit.Test;
+
+public class JDKDynamicTest {
+    @Test
+    public void test01() {
+        JDKDynamicProxy jdkProxy = new JDKDynamicProxy();
+        TestDao testDao = new TestDaoImpl();
+        TestDao testDaoAdvice = (TestDao)jdkProxy.createProxy(testDao);
+        testDaoAdvice.save();
+        System.out.println("--");
+        testDaoAdvice.modify();
+        System.out.println("--");
+        testDaoAdvice.delete();
+    }
+}
+```
+
+
+
+###### CGLIB代理
+
+CGLIB（Code Generation Library）是一个高性能开源的代码生成包，采用非常底层的字节码技术，对指定的目标类生成一个子类，并对子类进行增强。在Spring Core包中已经集成了CGLIB所需要的JAR包，不需要另外导入JAR包。
+优点：不需要实现接口也可以生成代理对象，并且代理对象是目标类的子类
+
+`Cglib`动态代理的原理：用Enhancer生成一个原有类的子类，并且设置好callback到proxy，则原有类的每个方法的调用都会转为调用实现了`MethodIntercept`接口的proxy的intercept()函数。
+
+`Cglib`是针对类来实现代理的，对指定的目标类生成一个子类，并覆盖其中方法实现增强，但因为采用的是继承，所以不能对final修饰的类进行代理。
+
+一般情况下，使用JDK居多，特定环境下才使用`Cglib`
+如果目标对象有接口则采用JDK动态代理，如果目标对象没有接口采用`Cglib`动态代理。
+JDK创建代理对象的速度较快。代理对象的运行速度`cgLib`快。
+
+```java
+package com.dyn.cglib;
+
+public class TestDao1 {
+    public void save() {
+        System.out.println("保存");
+    }
+
+    public void modify() {
+        System.out.println("修改");
+    }
+
+    public void delete() {
+        System.out.println("删除");
+    }
+}
+```
+
+```java
+package com.dyn.aspect;
+
+public class NormalAspect {
+    public void check() {
+        System.out.println("模拟权限控制");
+    }
+    
+    public void except() {
+        System.out.println("模拟异常处理");
+    }
+    
+    public void log() {
+        System.out.println("模拟日志记录");
+    }
+    
+    public void monitor() {
+        System.out.println("模拟性能检测");
+    }
+}
+```
+
+```java
+package com.dyn.cglib;
+
+import java.lang.reflect.Method;
+
+import org.springframework.cglib.proxy.Enhancer;
+import org.springframework.cglib.proxy.MethodInterceptor;
+import org.springframework.cglib.proxy.MethodProxy;
+import com.dyn.aspect.NormalAspect;
+
+public class CglibDynamicProxy implements MethodInterceptor {
+    private Object object;
+    public Object createProxy(Object target) {
+        this.object = target;
+        Enhancer enhancer = new Enhancer();
+        enhancer.setSuperclass(this.object.getClass());
+        enhancer.setCallback(this);
+        Object objProxy = enhancer.create();
+        return objProxy;
+    }
+    
+    @Override
+    /**
+     * @proxy CGLIB根据指定父类生成的目标对象
+     * @method 目标对象中需要加强的方法(拦截方法)
+     * @args 拦截方法参数数组
+     * @methodProxy 方法的代理对象，用于执行父类的方法
+     * @return 代理结果
+     */
+    public Object intercept(Object proxy, Method method, Object[] args, MethodProxy methodProxy)
+            throws Throwable {
+        NormalAspect aspect = new NormalAspect();
+        aspect.check();
+        aspect.except();
+        Object obj = methodProxy.invokeSuper(proxy, args);
+        aspect.log();
+        aspect.monitor();
+        return obj;
+    }
+}
+```
+
+```java
+package com.dyn.cglib;
+
+import org.junit.Test;
+
+public class Test02 {
+    @Test
+    public void test02() {
+        CglibDynamicProxy cdp = new CglibDynamicProxy();
+        TestDao1 testDao = new TestDao1();
+        TestDao1 testDaoAdvice = (TestDao1) cdp.createProxy(testDao);
+        testDaoAdvice.save();
+        System.out.println("==");
+        testDaoAdvice.modify();
+        System.out.println("==");
+        testDaoAdvice.delete();
+    }
+}
+```
+
+
+
+#### AOP实现
+
+在Spring中默认使用JDK动态代理实现AOP编程。使用`org.springframework.aop.framework.ProxyFactoryBean`创建代理是Spring AOP实现的最基本方式。
+
+Spring的通知类型。根据Spring中通知在目标类方法的连接点位置，可以分为6种如下类型：
+
+（1）环绕通知
+环绕通知（`org.aopalliance.intercept.MethodInterceptor`）是在目标方法执行前和执行后实施增强，可以应用于日志记录、事务处理等功能。
+（2）前置通知
+前置通知（`org.springframework.aop.MethodBeforeAdvice`）是在目标方法执行前实施增强，可应用于权限管理等功能。
+
+（3）后置返回通知
+   后置返回通知（`org.springframework.aop.AfterReturningAdvice`）是在目标方法成功执行后实施增强，可应用于关闭流、删除临时文件等功能
+
+（4）后置（最终）通知
+   后置通知（`org.springframework.aop.AfterAdvice`）是在目标方法执行后实施增强，与后置返回通知不同的是，不管是否发生异常都要执行该通知，可应用于释放资源。
+
+（5）异常通知
+异常通知（`org.springframework.aop.ThrowsAdvice`）是在方法抛出异常后实施增强，可以应用于处理异常、记录日志等功能。
+（6）引入通知
+引入通知（`org.springframework.aop.IntroductionInterceptor`）是在目标类中添加一些新的方法和属性，可以应用于修改目标类（增强类）。
+
+`ProxyFactoryBean`是`org.springframework.beans.factory.FactoryBean`接口的实现类，`FactoryBean`负责实例化一个Bean实例，`ProxyFactoryBean`负责为其他Bean实例创建代理实例
+
+初始化：需要 `aop` 包和下载 jar 包：[地址](https://mvnrepository.com/artifact/aopalliance/aopalliance/1.0)
+
+##### ProxyFactoryBean
+
+```java
+package com.dyn.jdk;
+
+public interface TestDao {
+    public void save();
+    public void modify();
+    public void delete();
+}
+```
+
+```java
+package com.dyn.jdk;
+
+public class TestDaoImpl implements TestDao {
+    @Override
+    public void save() {
+        System.out.println("保存");
+    }
+    
+    @Override
+    public void modify() {
+        System.out.println("修改");
+    }
+    
+    @Override
+    public void delete() {
+        System.out.println("删除");
+    }
+}
+```
+
+创建切面：
+
+```java
+package com.dyn.proxybean;
+
+import org.aopalliance.intercept.MethodInterceptor;
+import org.aopalliance.intercept.MethodInvocation;
+
+public class NorAspect implements MethodInterceptor {
+    public void check() {
+        System.out.println("模拟权限控制");
+    }
+
+    public void except() {
+        System.out.println("模拟异常处理");
+    }
+
+    public void log() {
+        System.out.println("模拟日志记录");
+    }
+
+    public void monitor() {
+        System.out.println("模拟性能检测");
+    }
+
+    @Override
+    public Object invoke(MethodInvocation method) throws Throwable {
+        check();
+        except();
+        Object obj = method.proceed();
+        log();
+        monitor();
+        return obj;
+    }
+}
+```
+
+写入 xml：
+
+```xml
+<bean id="testDao" class="com.dyn.jdk.TestDaoImpl" />
+<bean id="normalAspect" class="com.dyn.proxybean.NorAspect" />
+<bean id="testDaoProxy"
+      class="org.springframework.aop.framework.ProxyFactoryBean">
+    <property name="proxyInterfaces" value="com.dyn.jdk.TestDao" />
+    <property name="target" ref="testDao" />
+    <property name="interceptorNames" value="normalAspect" />
+    <property name="proxyTargetClass" value="true" />
+</bean>
+```
+
+测试：
+
+```java
+@SuppressWarnings("resource")
+@Test
+public void test03() {
+    ApplicationContext context = new ClassPathXmlApplicationContext("spring2.xml");
+    TestDao testDaoAdvice = (TestDao) context.getBean("testDaoProxy");
+    testDaoAdvice.save();
+    System.out.println("+++");
+    testDaoAdvice.modify();
+    System.out.println("+++");
+    testDaoAdvice.delete();
+}
+```
+
+
+
+#### AspectJ
+
+AspectJ是一个基于Java语言的AOP框架。从Spring 2.0以后引入了AspectJ的支持。目前的Spring框架，建议开发者使用AspectJ实现Spring AOP。使用AspectJ实现Spring AOP的方式有两种：一是基于XML配置开发AspectJ，二是基于注解开发AspectJ。
+基于XML配置开发AspectJ是指通过XML配置文件定义切面、切入点及通知，所有这些定义都必须在<aop:config>元素内。
+下面通过一个实例演示基于XML配置开发AspectJ的过程
+
+需要导入 `spring-aspects.jar` 和下载 [这个jar](http://mvnrepository.com/artifact/org.aspectj/aspectjweaver/1.8.13)
+
+
+
+```java
+package com.dyn.jdk;
+
+public interface TestDao {
+    public void save();
+    public void modify();
+    public void delete();
+}
+
+```
+
+```java
+package com.dyn.jdk;
+
+public class TestDaoImpl2 implements TestDao {
+    @Override
+    public void save() {
+        int n = 100 / 0;
+        System.out.println(n);
+    }
+
+    @Override
+    public void modify() {
+        System.out.println("修改");
+    }
+
+    @Override
+    public void delete() {
+        System.out.println("删除");
+    }
+}
+```
+
+切面类：
+
+```java
+package com.dyn.aspect;
+
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.ProceedingJoinPoint;
+
+public class GeneralAspect {
+    public void before(JoinPoint jp) {
+        System.out.print("前置通知:模拟权限控制");
+        System.out.println(",目标类对象:" + jp.getTarget() + ",被增强处理的方法:" + jp.getSignature().getName());
+    }
+
+    public void afterReturning(JoinPoint jp) {
+        System.out.print("后置通知:模拟删除临时文件");
+        System.out.println(",被增强方法:" + jp.getSignature().getName());
+    }
+
+    public Object around(ProceedingJoinPoint pjp) throws Throwable {
+        System.out.println("环绕开始,模拟开启事务:");
+        Object obj = pjp.proceed();
+        System.out.println("环绕开始,模拟关闭事务:");
+        return obj;
+    }
+
+    public void except(Throwable e) {
+        System.out.println("异常通知:程序执行异常" + e.getMessage());
+    }
+
+    public void after() {
+        System.out.println("最终通知:模拟释放资源");
+    }
+}
+```
+
+xml：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+http://www.springframework.org/schema/beans/spring-beans.xsd 
+http://www.springframework.org/schema/context 
+http://www.springframework.org/schema/context/spring-context.xsd
+http://www.springframework.org/schema/aop
+http://www.springframework.org/schema/aop/spring-aop.xsd ">
+	<bean id="testDao" class="com.dyn.jdk.TestDaoImpl2" />
+	<bean id="generalAspect" class="com.dyn.aspect.GeneralAspect" />
+	<aop:config>
+		<aop:aspect ref="generalAspect">
+			<aop:pointcut expression="execution(* dyn.jdk.*.*(..))"
+				id="jdkPointCut" />
+			<aop:before method="before" pointcut-ref="jdkPointCut" />
+			<aop:after-returning method="afterReturning"
+				pointcut-ref="jdkPointCut" />
+			<aop:around method="around" pointcut-ref="jdkPointCut" />
+			<aop:after-throwing method="except"
+				pointcut-ref="jdkPointCut" throwing="e" />
+			<aop:after method="after" pointcut-ref="jdkPointCut" />
+		</aop:aspect>
+	</aop:config>
+</beans>
+```
+
+测试用例：
+
+```java
+@SuppressWarnings("resource")
+@Test
+public void test032() {
+    ApplicationContext context = new ClassPathXmlApplicationContext("aspectj.xml");
+    TestDao testDaoAdvice = (TestDao) context.getBean("testDao");
+    testDaoAdvice.delete();
+    System.out.println("===");
+    testDaoAdvice.save();
+}
+```
+
+
+
+#### 基于注解
+
+| 注解名称        | 描述                                                         |
+| --------------- | ------------------------------------------------------------ |
+| @Aspect         | 用于定义一个切面，注解在切面类上                             |
+| @Pointcut       | 用于定义切入点表达式。在使用时，需要定义一个切入点方法。该方法是一个返回值void，且方法体为空的普通方法 |
+| @Before         | 用于定义前置通知。在使用时，通常为其指定value属性值，该值可以是已有的切入点，也可以直接定义切入点表达式 |
+| @AfterReturning | 用于定义后置返回通知。在使用时，通常为其指定value属性值，该值可以是已有的切入点，也可以直接定义切入点表达式 |
+| **@**Around     | 用于定义环绕通知。在使用时，通常为其指定value属性值，该值可以是已有的切入点，也可以直接定义切入点表达式 |
+| @AfterThrowing  | 用于定义异常通知。在使用时，通常为其指定value属性值，该值可以是已有的切入点，也可以直接定义切入点表达式。另外，还有一个throwing属性用于访问目标方法抛出的异常，该属性值与异常通知方法中同名的形参一致 |
+| @After          | 用于定义后置（最终）通知。在使用时，通常为其指定value属性值，该值可以是已有的切入点，也可以直接定义切入点表达式 |
+
+
+
+```java
+package com.dyn.jdk;
+
+public interface TestDao {
+    public void save();
+    public void modify();
+    public void delete();
+}
+```
+
+```java
+package com.dyn.jdk;
+
+import org.springframework.stereotype.Repository;
+
+@Repository("testDao3")
+public class TestDaoImpl3 implements TestDao {
+    @Override
+    public void save() {
+        int n = 100 / 0;
+        System.out.println(n);
+    }
+
+    @Override
+    public void modify() {
+        System.out.println("修改");
+    }
+
+    @Override
+    public void delete() {
+        System.out.println("删除");
+    }
+}
+```
+
+```java
+package com.dyn.aspect;
+
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.*;
+import org.springframework.stereotype.Component;
+
+@Aspect
+@Component
+public class GeneralAspect2 {
+    @Pointcut("execution(* com.dyn.jdk.*.*(..))")
+    private void defaultPointCut() {
+    }
+
+    @Before("defaultPointCut()")
+    public void before(JoinPoint jp) {
+        System.out.print("前置通知:模拟权限控制");
+        System.out.println(",目标类对象:" + jp.getTarget() + ",被增强处理的方法:" + jp.getSignature().getName());
+    }
+
+    @AfterReturning("defaultPointCut()")
+    public void afterReturning(JoinPoint jp) {
+        System.out.print("后置通知:模拟删除临时文件");
+        System.out.println(",被增强方法:" + jp.getSignature().getName());
+    }
+
+    @Around("defaultPointCut()")
+    public Object around(ProceedingJoinPoint pjp) throws Throwable {
+        System.out.println("环绕开始,模拟开启事务:");
+        Object obj = pjp.proceed();
+        System.out.println("环绕开始,模拟关闭事务:");
+        return obj;
+    }
+
+    @AfterThrowing(value = "defaultPointCut()", throwing = "e")
+    public void except(Throwable e) {
+        System.out.println("异常通知:程序执行异常" + e.getMessage());
+    }
+
+    @After("defaultPointCut()")
+    public void after() {
+        System.out.println("最终通知:模拟释放资源");
+    }
+}
+```
+
+```xml
+<context:component-scan base-package="com.dyn" />
+<aop:aspectj-autoproxy />
+```
+
+```java
+@SuppressWarnings("resource")
+@Test
+public void test033() {
+    ApplicationContext context = new ClassPathXmlApplicationContext("aspectj2.xml");
+    TestDao testDaoAdvice = (TestDao) context.getBean("testDao3");
+    testDaoAdvice.delete();
+    System.out.println("***");
+    testDaoAdvice.save();
+}
+```
+
+
+
+#### 切入点表达式
+
+```java
+Execution(返回值类型 包名.类名.方法名(参数列表))
+```
+
+如返回值为 `int`  包名类名 `service.UserServiceImpl`   方法为add()的匹配规则
+
+```xml
+<aop:pointcut expression=
+"execution(int service.UserServiceImpl.add())" id="txPointcut"/>
+```
+
+
+
+返回值值任意， 包名service下子类的add(),只能包含一层，子孙类不行
+
+```xml
+<aop:pointcut expression="execution(* service.*.add())" id="txPointcut"/>
+```
+
+
+
+方法返回值任意， service包下的所有子孙类的add()
+
+```xml
+<aop:pointcut
+expression="execution(* service..*.add())" id="txPointcut"/>
+```
+
+
+
+返回值的类型任意   service子孙包下的add方法参数类型为`int`,String
+
+```xml
+<aop:pointcut expression=
+"execution(*  service..*.add(int,String))" id="txPointcut"/>
+```
+
+
+
+返回值类型任意   service下的所有子孙类.add方法() (参数任意)
+
+```xml
+<aop:pointcut expression="execution(* service..*.add(..))"  id="txPointcut"/>
+```
+
+
+
+要求返回值为任意的，service包下的全部类的全部方法的任意参数
+
+```xml
+execution(* service..*.*(..))
+execution(* service..*(..))
+```
 
