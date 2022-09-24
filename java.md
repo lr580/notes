@@ -14396,10 +14396,14 @@ testController.save();
 
 #### 概念
 
+AOP Aspect Oriented Programming 即面向切面编程
+
 ![image-20220922100817421](img/image-20220922100817421.png)
 
 在业务处理代码中，通常都有日志记录、性能统计、安全控制、事务处理、异常处理等操作。尽管使用OOP可以通过封装或继承的方式达到代码的重用，但仍然存在同样的代码分散到各个方法中。因此，采用OOP处理日志记录等操作，不仅增加了开发者的工作量，而且提高了升级维护的困难。
 为了解决此类问题，出现AOP面向切面的编程思想。AOP采取横向抽取机制，即将分散在各个方法中的重复代码提取出来，然后在程序编译或运行阶段，再将这些抽取出来的代码应用到需要执行的地方。这种横向抽取机制，采用传统的OOP是无法办到的，因为OOP实现的是父子关系的纵向重用。
+
+AOP把软件系统分为两个部分：核心关注点和横切关注点。业务处理的主要流程是核心关注点，与之关系不大的部分是横切关注点。横切关注点的一个特点是他们经常发生在多处核心关注点上，而各处基本相似，比如权限认证、日志记录、事物处理等。AOP的作用在于将核心关注点和横切关注点分离开来。
 
 ![image-20220922101932237](img/image-20220922101932237.png)
 
@@ -14420,6 +14424,10 @@ testController.save();
 织入（Weaving）是将切面代码插入到目标对象上，从而生成代理对象的过程。Spring AOP框架默认采用动态代理织入，而AspectJ（基于Java语言的AOP框架）采用编译器织入和类装载期织入。
 
 ![image-20220922101912739](img/image-20220922101912739.png)
+
+1\)   关注点concern是业务处理的主要流程。关注点可以被定义为：我们想实现以解决特定业务问题的方法。
+
+2\)  横切关注点cross-cutting贯穿在整个应用程序的关注点中，像安全控制、日志记录、事务处理等，他们经常发生在多处核心关注点上，而各处的处理基本相似。
 
 
 
@@ -14472,6 +14480,16 @@ testController.save();
 ![image-20220922103404400](img/image-20220922103404400.png)
 
 JDK动态代理是`java.lang.reflect.*`包提供的方式，它必须借助一个接口才能产生代理对象。因此，对于使用业务接口的类，Spring默认使用JDK动态代理实现AOP。
+
+`jdk`动态代理是由java内部的反射机制来实现的，`cglib`动态代理是通过继承来实现的。`jdk`代理对象实质上是目标对象接口的实现类，`Cglib`代理对象实质上是目标对象的子类。
+
+一般情况下，使用JDK居多，特定环境下才使用`Cglib`。
+
+如果目标对象有接口则采用JDK动态代理，如果目标对象没有接口采用`Cglib`动态代理，`Cglib`是备用方案。
+
+JDK反射机制在创建代理对象的速度较快。`Cglib`在生成类之后的相关执行过程中比较高效。
+
+对接口创建代理优于对类创建代理，因为更加松耦合，所以spring默认是使用JDK动态代理。
 
 动态代理模式优缺点：
 
@@ -14847,7 +14865,7 @@ public void test03() {
 
 
 
-#### AspectJ
+AspectJ
 
 AspectJ是一个基于Java语言的AOP框架。从Spring 2.0以后引入了AspectJ的支持。目前的Spring框架，建议开发者使用AspectJ实现Spring AOP。使用AspectJ实现Spring AOP的方式有两种：一是基于XML配置开发AspectJ，二是基于注解开发AspectJ。
 基于XML配置开发AspectJ是指通过XML配置文件定义切面、切入点及通知，所有这些定义都必须在<aop:config>元素内。
@@ -14912,7 +14930,7 @@ public class GeneralAspect {
     public Object around(ProceedingJoinPoint pjp) throws Throwable {
         System.out.println("环绕开始,模拟开启事务:");
         Object obj = pjp.proceed();
-        System.out.println("环绕开始,模拟关闭事务:");
+        System.out.println("环绕结束,模拟关闭事务:");
         return obj;
     }
 
@@ -14974,7 +14992,7 @@ public void test032() {
 
 
 
-#### 基于注解
+##### 基于注解
 
 | 注解名称        | 描述                                                         |
 | --------------- | ------------------------------------------------------------ |
@@ -15054,7 +15072,7 @@ public class GeneralAspect2 {
     public Object around(ProceedingJoinPoint pjp) throws Throwable {
         System.out.println("环绕开始,模拟开启事务:");
         Object obj = pjp.proceed();
-        System.out.println("环绕开始,模拟关闭事务:");
+        System.out.println("环绕结束,模拟关闭事务:");
         return obj;
     }
 
