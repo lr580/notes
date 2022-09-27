@@ -490,6 +490,8 @@ d001(2)
 
 `pascal(n)`
 
+`true()` 全1 `false()` 全0
+
 
 
 ##### 运算
@@ -509,6 +511,8 @@ d001(2)
 `(v)` 表示先列后行数的第 v 个元素(从 1 开始数)
 
 进行赋值时，如果下标越界，会扩大矩阵，扩大的其他部分填 0
+
+`ndims(a)` 数组维度输出(标量是 1x1)
 
 ###### 变换
 
@@ -534,7 +538,11 @@ c(:) = a(:)
 
 `flipdim`指定方向翻转
 
-`a'`直接进行转置运算 或`transpose`
+`a'`直接进行转置运算 或`transpose`。如：
+
+```matlab
+[1 3 5 7 9].'  % 或 [1 3 5]'
+```
 
 `ctranspose` 矩阵的共轭转秩
 
@@ -2371,6 +2379,198 @@ exist x %此前的运行建立过就1，否则0
 ##### iskeyword
 
 列出系统关键字
+
+
+
+
+
+## 应用
+
+### 数字图像处理
+
+#### 基本操作
+
+##### 读写显示
+
+读入图片 `imread(文件名)`。读写支持的格式有：
+
+![image-20220926140948205](img/image-20220926140948205.png)
+
+输出读取的图像行列： `[rows, columns] = size(f)`。
+
+显示数组附加信息：`whos f`。
+
+显示图像：`imshow(f,g)`。g 是灰度级数，默认 256
+
+若 `imshow(f,[low,high])` 将所有灰度小于等于 low 显示灰色，大于等于 high 为白色。
+
+若 `imshow(f,[])` 将 low 为数组最小值，high 为数组最大值。(不需要填参数)(可以自己跑来对比)
+
+用不同窗口输出多个图像：`figure` 函数(否则下一张图片会上一张)。如：
+
+```matlab
+img_grey = imread('res\Fig0228(a).tif');
+size(img_grey)
+imshow(img_grey);
+figure;
+
+img_colorful = imread('res\Fig0620(a).tif');
+size(img_colorful)
+imshow(img_colorful);
+```
+
+保存图像：`imwrite(f,文件名)`。
+
+特别地，JPEG可以 `imwrite(f,文件名,'quality',q)`, q是整数，取值为0到100，表示压缩(越小压缩越大)
+
+了解图像信息：`imfinfo 文件名`，如：(也可以加括号)
+
+```matlab
+imfinfo 'res\Fig0228(a).tif'
+```
+
+> 信息描述：file size 以字节为单位，计算它除以 width \* height \* bitdepth / 8 得到压缩比
+
+可以存到一个变量里，那么用对象的方式访问，如：计算压缩比
+
+```matlab
+k = imfinfo('res\Fig0228(a).tif');
+image_byte = k.Width * k.Height * k.BitDepth / 8;
+image_byte / k.FileSize
+```
+
+特别地 TIF 有：`imwrite(f, 文件名, 'compression', 压缩类型, 'resolution', [col_res row_res])`。压缩类型为 `'none'` 无压缩，`'packbits'` 比特包压缩(非二值默认)，`'ccitt'`(二值默认)，两个 `res` 是分辨率，默认 72 72。
+
+另一种输出风格：`print -f编号 -d文件类型 -r分辨率 输出文件名` 将生成的第几个figure以指定格式输出到指定文件名(不含后缀)
+
+
+
+> `pixval` 交互地显示单个像素亮度值。
+
+
+
+##### 子图绘制
+
+[参考](https://blog.csdn.net/onlyfanlala/article/details/121706740)
+
+基本：`subplot(m,n,p)` 划分为 m\*n 网格，按行编号，绘制当前第 p 个位置。之后用 plot 等即可。如：
+
+```matlab
+img = imread('res/Fig0617(a).tif');
+subplot(2,2,1);
+imshow(img);
+ 
+subplot(2,2,2);
+fr=img;
+fr(:,:,1)=img(:,:,1);
+fr(:,:,2)=0;
+fr(:,:,3)=0;
+imshow(fr);
+ 
+subplot(2,2,3);
+fg=img;
+fg(:,:,1)=0;
+fg(:,:,2)=img(:,:,2);
+fg(:,:,3)=0;
+imshow(fg);
+ 
+subplot(2,2,4);
+fb=img;
+fb(:,:,1)=0;
+fb(:,:,2)=0;
+fb(:,:,3)=img(:,:,3);
+imshow(fb);
+```
+
+
+
+##### 灰度直方图
+
+```matlab
+histogram(img,255);
+```
+
+手写实现：
+
+```matlab
+imGRAY=[2,6,220,220,120,160,220,160;
+4,100,200,160,30,50,120,2;
+30,50,120,4,200,160,30,4;
+200,160,30,2,6,30,50,120;
+100,120,100,160,220,200,160,30;
+200,160,200,160,30,100,200,160];
+
+subplot(1,2,1);
+bin = zeros(1,256,'int8');
+[r,c] = size(imGRAY);
+for i = 1:r
+    for j = 1:c
+        v = imGRAY(i,j);
+        bin(v) = bin(v) + 1;
+    end
+end
+bar(bin);
+
+subplot(1,2,2);
+histogram(imGRAY,255);
+```
+
+归一化：
+
+```matlab
+img = imread('res\Fig0804(a).tif');
+subplot(2,2,1);
+histogram(img,255);
+
+subplot(2,2,2);
+img2=histeq(img,256);
+histogram(img2,255);
+
+subplot(2,2,3);
+imshow(img);
+subplot(2,2,4);
+imshow(img2);
+```
+
+亮度修改：(上述修改)
+
+```matlab
+img2=min(50+img,255);
+```
+
+
+
+##### 数据与图像类
+
+像素值的类型：
+
+![image-20220926144604251](img/image-20220926144604251.png)
+
+
+
+![image-20220926144617676](img/image-20220926144617676.png)
+
+
+
+若 double 则表示归一化，范围为 $[0,1]$。二值图像是只有 logical，创建： `b=logical(a)`，判定：`islogical(a)`。
+
+数据类型装换： `b=数据类型名(a)` 如 `b=uint8(a)`。
+
+图像类型转换：`g=im2unit8(f)`。将小于0设0，大于1设255
+
+![image-20220926144824909](img/image-20220926144824909.png)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

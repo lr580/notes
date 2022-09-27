@@ -3948,6 +3948,14 @@ plt.scatter(1,2,s=50)
 marker='x'; marker='o'
 ```
 
+保存到文件：(重名覆盖)
+
+```python
+plt.savefig(输出文件名含后缀)
+```
+
+
+
 #### 属性
 
 图表预设定：(必须放在绘图，如scatter之前)
@@ -4001,6 +4009,12 @@ plt.axes().get_xaxis().set_visible(False)
 plt.axes().get_yaxis().set_visible(False)
 ```
 
+不显示坐标轴：
+
+```python
+plt.axis('off')
+```
+
 图例使用：
 
 ```python
@@ -4041,6 +4055,74 @@ plt.ylabel('cwnd')
 for i in zip(xv, yv): #写文本
     plt.annotate('%s' % i[1], xy=(i[0], i[1] + 1))
 plt.show()
+```
+
+
+
+#### 图片
+
+##### 常规
+
+```python
+import matplotlib.image as mpimg
+```
+
+```python
+img = mpimg.imread('img/keepOut.jpg')
+plt.imshow(img)
+plt.show()
+```
+
+> 如：
+>
+> ```python
+> import matplotlib.pyplot as plt
+> import matplotlib.image as mpimg
+> def keepOut(src, desc):
+>     img = mpimg.imread('img/keepOut.jpg')
+>     # img2 = mpimg.imread(src)
+>     plt.figure(figsize=(10, 10), dpi=60)  # 600*600
+>     plt.axis('off')
+>     plt.imshow(img)
+> 
+>     # img2 = mpimg.imread(src)
+> 
+>     # w, h = [int(i) for i in img2.shape[:2]]
+>     # plt.imshow(img2)
+>     # plt.show()
+>     plt.savefig(desc)
+> keepOut('cf.png', 'out.jpg')
+> ```
+
+
+
+##### 缩放叠加
+
+手写即可，记得 copy 解除只读，如：
+
+```python
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+
+
+def keepOut(src, desc, limx=150, limy=150):
+    img = mpimg.imread('img/keepOut.jpg')
+    plt.figure(figsize=(10, 10), dpi=60)  # 600*600
+    plt.axis('off')
+
+    img1 = img.copy()
+    img2 = mpimg.imread(src)
+    ox, oy = 225, 40
+    rows, cols = img2.shape[:2]
+    rx = min(rows, limx)
+    ry = min(cols, limy)
+    for i in range(rx):
+        for j in range(ry):
+            x, y = int(i/rx*rows), int(j/ry*cols)
+            img1[i+ox][j+oy] = img2[x][y][:3]
+
+    plt.imshow(img1)
+    plt.savefig(desc)
 ```
 
 
@@ -4178,6 +4260,29 @@ wb.save('99mul.xlsx')
 > ```
 
 > 更多内容：如字体、边框填充、超链接、excel公式、合并单元格，暂时用不上，这里不做笔记，需要用时见[这里](https://blog.csdn.net/liyuanjinglyj/article/details/87895700)
+
+
+
+## 图像处理
+
+### cv2
+
+```shell
+pip install opencv-python
+```
+
+#### 读写显示
+
+```python
+import cv2
+src = cv2.imread('img/keepOut.jpg')
+cv2.imshow('src', src)  # 窗口名
+cv2.waitKey(0)
+```
+
+
+
+
 
 
 
