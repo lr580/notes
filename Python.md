@@ -309,6 +309,12 @@ ipynb使用十分简单，事实上就是一堆代码框，然后可以分块运
 
 
 
+### 其他
+
+`.pyc` 文件可以删除。
+
+
+
 ## 输入和输出
 
 ### 标准I/O
@@ -1592,6 +1598,20 @@ def 函数名(参数): #参数无需写类型，可以有0到多个
     return 值 #可以返回数组等东西，也是传值
 ```
 
+
+
+函数允许重定义，如：
+
+```python
+def f():
+    print('f')
+def f():
+    print('g')
+f() #输出g
+```
+
+
+
 ### 参数
 
 **位置参数**就是一般的参数，与C等语言一样，从略。
@@ -2034,6 +2054,104 @@ def f():
 f()
 ```
 
+
+
+#### 注意
+
+1. 反复多次执行一个 import 时，只有第一次会生效
+2. 引用了一个模块，会引用该模块所引用的其他模块
+
+如：`testimport.py`
+
+```python
+from tii import *
+g()
+f()
+from tii import *
+f()
+```
+
+`tii.py`
+
+```python
+from tib import *
+a = []
+print('hey tii')
+def f():
+    a.append(1)
+    print(a)
+```
+
+`tib.py`
+
+```python
+print('hey tib')
+def g():
+    print('G')
+```
+
+输出：
+
+```text
+hey tib
+hey tii
+G
+[1]
+[1, 1]
+```
+
+
+
+上述 `testimport.py` 也可以改成：
+
+```python
+import tii
+tii.g()
+tii.f()
+import tii
+tii.f()
+```
+
+如果把 `tii.py` 修改为：
+
+```python
+import tib
+```
+
+则需要 `testimport.py` 修改为：
+
+```python
+tii.tib.g();
+```
+
+
+
+根据单次引用规则，若有 `ta.py`：
+
+```python
+import tb
+print('ta')
+```
+
+和 `tb.py`：
+
+```python
+import ta
+print('tb')
+```
+
+调用 `ta.py`，会输出：
+
+```python
+ta
+tb
+ta
+```
+
+如果 `ta.py` 添加一些定义语句，如定义函数，不会爆重定义错误
+
+
+
 #### 路径
 
 同文件夹下直接写文件名，如上例(impa.py)
@@ -2083,6 +2201,94 @@ sys.path.append('../../') #等价的相对路径
 ```
 
 常用/来表示相对路径，\来表示绝对路径
+
+
+
+#### \_\_all\_\_
+
+表示该模块里允许被 `from xx import *` 的 `*` 所包含的内容。是字符串或列表，表示变量名/函数名。
+
+ 如：`ima.py`
+
+```python
+__all__ = ['a', 'f']
+a = 1
+b = 2
+c = 3
+def f():
+    print(b)
+def g():
+    print(c)
+class h(object):
+    def __init__(self, x):
+        self.x = x
+```
+
+`imh.py`
+
+```python
+from ima import *
+print(a)
+f()
+from ima import h
+v=h('g')
+print(v.x)
+import ima
+print(ima.b)
+ima.g()
+```
+
+
+
+#### \_\_init\_\_.py
+
+有该 `.py` 的文件夹被视为一个模块，文件夹名可以当做模块名被 `import`。当引入该模块时，首先会执行 `__init__.py`。模块的 `__all__` 可以包含一系列该模块下文件名(不含后缀的相对名字)。
+
+那么当执行时 `from import *`，其 `__all__` 下所有包含的会被一并 `import`。且这些文件被视作一个对象般去使用。
+
+如：有 `\impall` 文件夹，下有 `__init__.py`：
+
+```python
+print('impall')
+from os.path import dirname, basename, isfile
+import glob
+modules = glob.glob(dirname(__file__)+"/*.py")
+__all__ = [basename(f)[:-3] for f in modules if isfile(f)]
+```
+
+下有 `fia.py`：
+
+```python
+print('fia')
+def ffa():
+    print("ffa")
+```
+
+下有 `fib.py`：
+
+```python
+print('fib')
+def ffb():
+    print("ffb")
+def ffc():
+    print("ffc")
+```
+
+有 `\imim.py`，可以执行：
+
+```python
+import impall.fia #import impall不能调用impall.fia.ffa()
+impall.fia.ffa()
+# import impall #如无上两行，只触发impall
+from impall import fia
+fia.ffa()
+from impall import *
+fib.ffc() #warning
+```
+
+
+
+
 
 ### 常用标准库
 
@@ -2199,7 +2405,13 @@ os.path.join(路径， ...)
 os.path.join('/Users/michael', 'testdir') #'/Users/michael/testdir'
 ```
 
-拆分路径：(讲最后一部分(最后级别的目录或文件名(含后缀))分开)
+返回不带目录的带后缀的文件名：
+
+```python
+os.path.basename(路径)
+```
+
+拆分路径：(将最后一部分(最后级别的目录或文件名(含后缀))分开)
 
 ```python
 os.path.split(路径)
@@ -2227,6 +2439,12 @@ os.mkdir(路径)
 
 ```python
 os.rmdir(路径)
+```
+
+路径是否存在
+
+```python
+os.path.exists(路径)
 ```
 
 ##### 文件
@@ -2964,6 +3182,57 @@ print((x / y * y * y).quantize(Decimal('0.00'), ROUND_HALF_DOWN))
 > ROUND_HALF_UP (to nearest with ties going away from zero), or
 > ROUND_UP (away from zero).
 > ROUND_05UP (away from zero if last digit after rounding towards zero would have been 0 or 5; otherwise towards zero)
+
+
+
+#### glob
+
+文件通配符。提供了函数用于从目录通配符搜索中生成文件列表。
+
+语法：(类比 Linux)
+
+-  `*` 表示零到任意多个字符。
+- `**` 表示所有文件、目录、子目录和子目录的文件
+- `?` 单个字符
+- `[]` 范围内字符，如 `[0-9]`
+
+函数：`glob` 列出当前目录下符合条件的文件名：
+
+```python
+import glob
+print(glob.glob('*.py'))  # 当前目录下所有.py
+```
+
+```PYTHON
+print(glob.glob('**', recursive=True))  # 所有目录下
+print(glob.glob('**/*.py', recursive=True))  # 所有目录下的.py
+```
+
+glob函数默认不搜索以· 点号开头的文件和路径，如果要求的话需要单独特判
+
+```python
+print(glob.glob('.gitignore'))
+print(glob.glob('.vscode/*'))
+```
+
+
+
+`iglob` 每次返回可迭代对象，如：
+
+```python
+f = glob.iglob('*.py')
+print(f)
+for py in f:
+    print(py)
+```
+
+
+
+`escape` 将特殊符号一般化处理(转义化)：
+
+```python
+print(glob.escape('?[]*.py'))
+```
 
 
 
@@ -3899,7 +4168,7 @@ np.set_printoptions(suppress=True)
 
 ### matplotlib
 
-是第三方库，需要手动安装。
+是第三方库，需要手动安装。[官方文档](https://matplotlib.org/3.6.0/gallery/index.html)
 
 通常如此加载：
 
@@ -4071,6 +4340,8 @@ import matplotlib.image as mpimg
 img = mpimg.imread('img/keepOut.jpg')
 plt.imshow(img)
 plt.show()
+plt.savefig() #与上一行不兼容，建议加 bbox_inches='tight' 去白边框
+mpimg.imsave(des, img2) #同理保存
 ```
 
 > 如：
@@ -4090,7 +4361,7 @@ plt.show()
 >     # w, h = [int(i) for i in img2.shape[:2]]
 >     # plt.imshow(img2)
 >     # plt.show()
->     plt.savefig(desc)
+>     plt.savefig(desc, bbox_inches='tight')
 > keepOut('cf.png', 'out.jpg')
 > ```
 
@@ -4122,7 +4393,29 @@ def keepOut(src, desc, limx=150, limy=150):
             img1[i+ox][j+oy] = img2[x][y][:3]
 
     plt.imshow(img1)
-    plt.savefig(desc)
+    plt.savefig(desc, bbox_inches='tight')
+```
+
+
+
+##### 灰度拉伸
+
+手写实现 matlab 的 `imshow(,[])`，如：
+
+```python
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import numpy as np
+
+img = mpimg.imread('img2.tif')
+rows, cols = img.shape[:2]
+plt.figure(figsize=(rows // 10, cols // 10), dpi=10)
+plt.axis('off')
+img2 = img.copy()
+img2 = ( (img - np.min(img) ) / (np.max(img) - np.min(img)))*255
+img2 = img2.astype(int)
+plt.imshow(img2,cmap="Greys_r") #不加参数是彩色图
+plt.savefig('img20.tif', bbox_inches='tight')
 ```
 
 

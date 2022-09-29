@@ -13429,7 +13429,7 @@ public class c1607 {
 
 
 
-## Web
+## Spring
 
 ### 安装与配置
 
@@ -13522,6 +13522,20 @@ http://www.springframework.org/schema/aop/spring-aop.xsd ">
 </beans>
 ```
 
+再引入` tx`：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context" xmlns:aop="http://www.springframework.org/schema/aop" 
+xmlns:tx="http://www.springframework.org/schema/tx" 
+xsi:schemaLocation="http://www.springframework.org/schema/beans 
+http://www.springframework.org/schema/beans/spring-beans.xsd 
+http://www.springframework.org/schema/context 
+http://www.springframework.org/schema/context/spring-context.xsd
+http://www.springframework.org/schema/aop
+http://www.springframework.org/schema/aop/spring-aop.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd ">
+```
+
 
 
 
@@ -13609,6 +13623,8 @@ Spring容器启动时，首先会加载Spring的核心配置文件；Spring容�
 默认情况下，多次获取同一个id的bean，得到的将是同个对象，即使是同一个类，如果配置多个`<bean>`标签具有不同的id，每个id都会在内置的Map有一个键值对，其中的值是这个类创建的不同对象;不允许配置多个相同ID的`<bean>`标签，如果配置，则启动异常
 
 若通过class类型获取对象 。通过class类型获取时，可能会有风险，如果出现相同的class类型会报错，如 `HelloSpring helloSpring =context.getBean(HelloSpring.class);`
+
+> 若 test 跑不通报错 class not found，可以preferences改java-compiler-building-build path problems-abort build when 打勾，incomplete 和 circular 两项改 warning
 
 
 
@@ -14209,7 +14225,7 @@ Bean的生命周期整个过程如下：
 
 
 
-#### 装配方式
+#### 注解装配
 
 Bean的装配可以理解为将Bean依赖注入到Spring容器中，Bean的装配方式即Bean依赖注入的方式。Spring容器支持基于XML配置的装配、基于注解的装配以及自动装配等多种装配方式。
 
@@ -15163,3 +15179,615 @@ execution(* service..*.*(..))
 execution(* service..*(..))
 ```
 
+
+
+### Spring 数据库
+
+Spring框架为开发者提供了JDBC模板模式，即`jdbcTemplate`，它可以简化许多代码，但在实际应用中`jdbcTemplate`并不常用。工作更多的时候，用的是`Hibernate`框架和`MyBatis`框架进行数据库编程。
+
+#### JDBC
+
+##### 语法
+
+本节Spring数据库编程主要使用Spring JDBC模块的core和`dataSource`包。core包包括常用的`JdbcTemplate`类；`dataSource`包是访问数据源的工具类包。使用Spring JDBC操作数据库，需要对其进行配置。
+
+如：
+
+```xml
+<!-- 配置数据源 -->
+<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+    <!-- MySQL数据库驱动 -->
+    <property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+    <!-- 连接数据库的URL -->
+    <property name="url" value="jdbc:mysql://localhost:3306/springtest?characterEncoding=utf8"/>
+    <!-- 连接数据库的用户名 -->
+    <property name="username" value="root"/>
+    <!-- 连接数据库的密码 -->
+    <property name="password" value="12345678"/>
+</bean>
+<!-- 配置JDBC模板 -->
+<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+    <property name="dataSource"  ref="dataSource"/>
+</bean>
+```
+
+也可以进行分离，如 `src` 目录下：
+
+```xml
+<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+    <property name="driverClass" value="${jdbc.driver}" />
+    <property name="jdbcUrl" value="${jdbc.url}" />
+    <property name="user" value="${jdbc.user}" />
+    <property name="password" value="${jdbc.password}" />
+</bean>
+```
+
+创建 `jdbc.properties`：
+
+```properties
+jdbc.driver=com.mysql.jdbc.Driver
+jdbc.url=jdbc:mysql://localhost:3306/spring
+jdbc.user=root
+jdbc.password=87654321
+```
+
+上述示例代码中，配置JDBC模板时，需要将`dataSource`注入到`jdbcTemplate`，而在数据访问层（Dao类）需要使用`jdbcTemplate`时，也需要将`jdbcTemplate`注入到对应的Bean中。代码示例如下：(注意 xml 开启包扫描 `<context:component-scan base-package="com.db.*"/>`)
+
+```java
+@Repository("testDao")
+public class TestDaoImpl implements TestDao{
+	@Autowired  //使用配置文件中的JDBC模板
+	private JdbcTemplate jdbcTemplate;
+}
+```
+
+增删改示例：`public int update(String sql,Object args[])`
+
+```java
+String sql = "insert into user values(null,?,?)";
+Object param1[] = {"chenheng1", "男"};
+jdbcTemplate.update(sql, param1);
+jdbcTemplate.update(sql,"chenheng1", "男");
+```
+
+```java
+String sql = "delete from MyUser where id = ?";
+jdbcTemplate.update(sql,3);
+```
+
+查询示例：`public List<T> query (String sql, RowMapper<T> rowMapper, Object args[])`
+
+```java
+String sql ="select * from MyUser";
+RowMapper<MyUser> rowMapper=new BeanPropertyRowMapper<MyUser>(MyUser.class);
+List<MyUser> list = jdbcTemplate.query(sql, rowMapper, null);
+List<MyUser> list = jdbcTemplate.query(sql, rowMapper);
+```
+
+`RowMapper`将结果集映射到用户自定义的类中，类中的属性必须与数据表的字段对应
+
+`public <T> queryForObject (String sql, RowMapper<T> rowMapper, Object args)`
+
+```java
+String sql ="select * from MyUser where id=?";
+RowMapper<MyUser> rowMapper=new BeanPropertyRowMapper<MyUser>(MyUser.class);
+MyUser = jdbcTemplate.queryForObject(sql, rowMapper, 123);
+```
+
+##### 示例
+
+导入包 `spring-jdbc`，`mysql-connector-java`，`spring-tx`。
+
+创建数据库：
+
+```mysql
+create database springtest;
+use springtest;
+create table MyUser(
+uid int(11) not null auto_increment primary key,
+uname varchar(20) default null,
+usex varchar(10) default null
+)ENGINE=InnoDB DEFAULT CHARSET=utf8;
+insert into MyUser values(null,'张三','男');
+insert into MyUser values(null,'李四','女');
+insert into MyUser values(null,'王五','男');
+select * from MyUser;
+```
+
+根据上文内容写 xml。如：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+http://www.springframework.org/schema/beans/spring-beans.xsd 
+http://www.springframework.org/schema/context 
+http://www.springframework.org/schema/context/spring-context.xsd
+http://www.springframework.org/schema/aop
+http://www.springframework.org/schema/aop/spring-aop.xsd ">
+	<context:component-scan base-package="com.db.*" />
+	<!-- 配置数据源 -->
+	<bean id="dataSource"
+		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<!-- mysql8 新的包名 -->
+		<property name="driverClassName"
+			value="com.mysql.cj.jdbc.Driver" />
+		<property name="url"
+			value="jdbc:mysql://localhost:3306/springtest?serverTimezone=UTC" />
+		<property name="username" value="root" />
+		<property name="password" value="233" />
+	</bean>
+	<!-- 配置JDBC模板 -->
+	<bean id="jdbcTemplate"
+		class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+</beans>
+```
+
+创建类：
+
+```java
+package com.db.pojo;
+
+public class MyUser {
+    private Integer uid;
+    private String uname;
+    private String usex;
+
+    public Integer getUid() {
+        return uid;
+    }
+
+    public void setUid(Integer uid) {
+        this.uid = uid;
+    }
+
+    public String getUname() {
+        return uname;
+    }
+
+    public void setUname(String uname) {
+        this.uname = uname;
+    }
+
+    public String getUsex() {
+        return usex;
+    }
+
+    public void setUsex(String usex) {
+        this.usex = usex;
+    }
+
+    @Override
+    public String toString() {
+        return "uid=" + uid + ",uname=" + uname + ",usex=" + usex;
+    }
+}
+```
+
+```java
+package com.db.dao;
+
+import java.util.List;
+import com.db.pojo.MyUser;
+
+public interface UserDao {
+    public int update(String sql, Object[] param);
+
+    public List<MyUser> query(String sql, Object[] param);
+}
+```
+
+```java
+package com.db.dao;
+
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
+import com.db.pojo.MyUser;
+
+@Repository("userDao")
+public class UserDaoImpl implements UserDao {
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Override
+    public int update(String sql, Object[] param) {
+        return jdbcTemplate.update(sql, param);
+    }
+
+    @Override
+    public List<MyUser> query(String sql, Object[] param) {
+        RowMapper<MyUser> rowMapper = new BeanPropertyRowMapper<MyUser>(MyUser.class);
+        return jdbcTemplate.query(sql, rowMapper, param);
+    }
+}
+```
+
+
+
+#### 编程式事务管理
+
+在代码中显式调用`beginTransaction()`、`commit()`、`rollback()`等事务处理相关的方法，这就是编程式事务管理。当只有少数事务操作时，编程式事务管理才比较合适
+
+基于底层API的编程式事务管理，就是根据`PlatformTransactionManager`、`TransactionDefinition` 和 `TransactionStatus` 三个核心接口，通过编程的方式来进行事务处理
+
+添加：
+
+```xml
+<!—为数据源添加事务管理器 -->
+<bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">   
+    <property name="dataSource" ref="dataSource" />
+</bean>
+<!-- 为事务管理器txManager创建transactionTemplate -->
+<bean id="transactionTemplate" class="org.springframework.transaction.support.TransactionTemplate">
+    <property name="transactionManager" ref="txManager"/>
+</bean>
+```
+
+创建类：
+
+```java
+package com.ch5.dao;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+//该类实际上是Dao
+@Repository("codeTransaction")
+public class CodeTransaction {
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
+	@Autowired
+	private DataSourceTransactionManager txManager;	
+	public String test(){
+		//默认事务定义，例如隔离级别，传播行为，事务的超时时间，事务是否只读 等。
+		TransactionDefinition tf=new DefaultTransactionDefinition();
+		//开启事务ts
+		TransactionStatus ts = txManager.getTransaction(tf);
+		String message="执行成功，没有事务回滚！";
+		try {
+			String sql="select * from MyUser";
+			String sql1="insert into MyUser values(?,?,?)";
+			Object param[] = {1,"aa","nan"};
+			jdbcTemplate.update(sql);
+			jdbcTemplate.update(sql1,param);
+			jdbcTemplate.update(sql1,param);
+			txManager.commit(ts);
+		} catch (Exception e) {
+			txManager.rollback(ts);
+			message="主键重复，事务回滚！";
+			e.printStackTrace();
+		}
+		return message;
+	}
+}
+```
+
+测试：
+
+```java
+package com.test;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import com.ch5.dao.CodeTransaction;
+
+public class TestCodeTransaction {
+	public static void main(String[] args) {
+		ApplicationContext context = 
+				new ClassPathXmlApplicationContext("applicationContext.xml");
+		CodeTransaction ct=(CodeTransaction)context.getBean("codeTransaction");
+		String test=ct.test();
+		System.out.println(test);
+	}
+}
+```
+
+事务处理的代码散落在业务逻辑代码中，破坏了原有代码的条理性，并且每一个业务方法都包含了类似的启动事务、提交以及回滚事务的样板代码。
+`TransactionTemplate`的execute()方法有一个`TransactionCallback`接口类型的参数，该接口中定义了一个`doInTransaction()`方法，通常以匿名内部类的方式实现`TransactionCallback` 接口，并在其`doInTransaction()`方法中书写业务逻辑代码。这里可以使用默认的事务提交和回滚规则，在业务代码中不需要显式调用任何事务处理的API。`doInTransaction()`方法有一个`TransactionStatus`类型的参数，可以在方法的任何位置调用该参数的`setRollbackOnly()`方法将事务标识为回滚，以执行事务回滚。
+根据默认规则，如果在执行回调方法的过程中抛出了未检查异常，或者显式调用了`setRollbackOnly()`方法，则回滚事务；如果事务执行完成或者抛出了checked类型的异常，则提交事务。
+
+基于`TransactionTemplate`的编程式事务管理的步骤如下：
+
+- 为事务管理器添加事务模板
+- 创建数据访问类
+
+
+
+#### 声明式事务管理
+
+Spring的声明式事务管理，是通过AOP技术实现的事务管理，其本质是对方法前后进行拦截，然后在目标方法开始之前创建或者加入一个事务，在执行完目标方法之后根据执行情况提交或者回滚事务。
+声明式事务管理最大的优点是不需要通过编程的方式管理事务，因而不需要在业务逻辑代码中掺杂事务处理的代码，只需相关的事务规则声明，便可以将事务规则应用到业务逻辑中。通常情况下，在开发中使用声明式事务处理，不仅因为其简单，更主要是因为这样使得纯业务代码不被污染，极大方便后期的代码维护。
+
+Spring的声明式事务管理可以通过两种方式来实现，一是基于XML的方式，一是基于@Transactional注解的方式。
+使用声明式事务处理，从此程序员，无需关注事务控制。
+
+##### 基于XML
+
+新修一个 beans 头，追加：
+
+```xml
+xmlns:tx="http://www.springframework.org/schema/tx" xsi:schemaLocation="http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+```
+
+基于XML方式的声明式事务管理是通过在配置文件中配置事务规则的相关声明来实现的。Spring框架提供了tx命名空间来配置事务，`<tx:advice>`元素来配置事务的通知。配置`<tx:advice>`元素时，一般需要指定id和transaction-manager属性，其中id属性是配置文件中的唯一标识，transaction-manager属性指定事务管理器。另外，还需要`<tx:attributes>`子元素，该子元素可配置多个`<tx:method>`子元素指定执行事务的细节。
+
+```xml
+<!-- 配置事务管理器-->
+<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+    <!-- 需要引入的数据源 -->
+    <property name="dataSource" ref="dataSource"/>
+</bean>
+<!-- 定义事务通知  -->
+<tx:advice id="txAdvice" transaction-manager="transactionManager">
+    ……
+</tx:advice>
+```
+
+如：
+
+```xml
+<tx:advice id="txAdvice" transaction-manager="transactionManager">
+    <tx:attributes>
+        <tx:method name="add*" propagation="REQUIRED" rollback-for="java.sql.SQLException"/>
+        <tx:method name="del*" propagation="REQUIRED"/>
+        <tx:method name="update*" propagation="REQUIRED"/>
+        <tx:method name="find*" propagation="SUPPORTS"/><!--查询不需要事务-->
+        <tx:method name="*" read-only="true" />
+    </tx:attributes>
+</tx:advice>
+```
+
+方法以add开头的方法，都会添加事务 propagation="REQUIRED" 
+
+当前方法必须添加事务操作 propagation="SUPPERS"  事务支持的，
+
+如果原来有事务则共用一个事务，如果原来没有事务，不添加事务	 	
+
+`rollback-for="java.sql.SQLException" `指定类型回滚
+
+`no-rollback-for="java.lang.RuntimeException" `指定类型不回滚
+
+当`<tx:advice>`元素配置了事务的增强处理后，就可以通过编写AOP配置，让Spring自动对目标对象生成代理。
+
+```xml
+<!-- 配置事务切面 -->
+ <aop:config>
+	<aop:pointcut expression="execution(* com.sta.service..*.*(..))" id="pc"/>
+	<aop:advisor advice-ref="txAdvice" pointcut-ref="pc"/>
+</aop:config>
+```
+
+> 完整 xml 示例：
+>
+> ```xml
+> <?xml version="1.0" encoding="UTF-8"?>
+> <beans xmlns="http://www.springframework.org/schema/beans"
+> 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+> 	xmlns:context="http://www.springframework.org/schema/context"
+> 	xmlns:aop="http://www.springframework.org/schema/aop"
+> 	xmlns:tx="http://www.springframework.org/schema/tx" 
+> 	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+> http://www.springframework.org/schema/beans/spring-beans.xsd 
+> http://www.springframework.org/schema/context 
+> http://www.springframework.org/schema/context/spring-context.xsd
+> http://www.springframework.org/schema/aop
+> http://www.springframework.org/schema/aop/spring-aop.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd ">
+> 	<context:component-scan base-package="com.stt.*" />
+> 	<!-- 配置数据源 -->
+> 	<bean id="dataSource"
+> 		class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+> 		<!-- mysql8 新的包名 -->
+> 		<property name="driverClassName"
+> 			value="com.mysql.cj.jdbc.Driver" />
+> 		<property name="url"
+> 			value="jdbc:mysql://localhost:3306/springtest?serverTimezone=UTC" />
+> 		<property name="username" value="root" />
+> 		<property name="password" value="11" />
+> 	</bean>
+> 	<!-- 配置JDBC模板 -->
+> 	<bean id="jdbcTemplate"
+> 		class="org.springframework.jdbc.core.JdbcTemplate">
+> 		<property name="dataSource" ref="dataSource" />
+> 	</bean>
+> 
+> 	<!-- 配置事务管理器 -->
+> 	<bean id="transactionManager"
+> 		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+> 		<!-- 需要引入的数据源 -->
+> 		<property name="dataSource" ref="dataSource" />
+> 	</bean>
+> 	<!-- 定义事务通知 -->
+> 	<tx:advice id="txAdvice"
+> 		transaction-manager="transactionManager">
+> 		<tx:attributes>
+> 			<tx:method name="add*" propagation="REQUIRED"
+> 				rollback-for="java.sql.SQLException" />
+> 			<tx:method name="del*" propagation="REQUIRED" />
+> 			<tx:method name="update*" propagation="REQUIRED" />
+> 			<tx:method name="find*" propagation="SUPPORTS" /><!--查询不需要事务 -->
+> 			<tx:method name="*" read-only="true" />
+> 		</tx:attributes>
+> 	</tx:advice>
+> 	<!-- 配置事务切面 -->
+> 	<aop:config>
+> 		<aop:pointcut
+> 			expression="execution(* com.stt.service..*.*(..))" id="pc" />
+> 		<aop:advisor advice-ref="txAdvice" pointcut-ref="pc" />
+> 	</aop:config>
+> </beans>
+> ```
+
+如：
+
+```java
+package com.stt.dao;
+
+public interface UserDao {
+    public int save(String sql, Object param[]);
+
+    public int delete(String sql, Object param[]);
+}
+```
+
+```java
+package com.stt.dao;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+@Repository("userDao")
+public class UserDaoImpl implements UserDao {
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Override
+    public int save(String sql, Object[] param) {
+        return jdbcTemplate.update(sql, param);
+    }
+
+    @Override
+    public int delete(String sql, Object[] param) {
+        return jdbcTemplate.update(sql, param);
+    }
+}
+```
+
+```Java
+package com.stt.service;
+
+public interface UserService {
+    public int save(String sql, Object param[]);
+
+    public int delete(String sql, Object param[]);
+}
+```
+
+```java
+package com.stt.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.stt.dao.UserDao;
+
+@Service("userService")
+public class UserServiceImpl implements UserService {
+    @Autowired
+    private UserDao userDao;
+
+    @Override
+    public int save(String sql, Object[] param) {
+        return userDao.save(sql, param);
+    }
+
+    @Override
+    public int delete(String sql, Object[] param) {
+        return userDao.delete(sql, param);
+    }
+}
+```
+
+```mysql
+package com.stt.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import com.stt.service.UserService;
+
+@Controller("statementController")
+public class StatementController {
+    @Autowired
+    private UserService userService;
+
+    public String test() {
+        String message = "执行成功!";
+        String delsql = "delete from MyUser";
+        String insertsql = "insert into MyUser values(?,?,?)";
+        Object param[] = { 1, "一二三", "女" };
+        try {
+            userService.delete(delsql, null);
+            userService.save(insertsql, param);
+            userService.save(insertsql, param);
+        } catch (Exception e) {
+            message = "主键重复，事件回滚!";
+            e.printStackTrace();
+        }
+        return message;
+    }
+}
+```
+
+测试：
+
+```java
+package com.stt.test;
+
+import org.junit.Test;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import com.stt.controller.StatementController;
+
+public class XMLTest {
+    @Test
+    public void test01() {
+        @SuppressWarnings("resource")
+        ApplicationContext context = new ClassPathXmlApplicationContext("springjdbc.xml");
+        StatementController statementController = (StatementController) context
+                .getBean("statementController");
+        System.out.println(statementController.test());
+    }
+}
+```
+
+
+
+##### 基于注解
+
+@Transactional注解可以作用于接口、接口方法、类以及类方法上。当作用于类上时，该类的所有public方法将都具有该类型的事务属性，同时，也可以在方法级别使用该注解来覆盖类级别的定义。
+虽然@Transactional注解可以作用于接口、接口方法、类以及类方法上，但是Spring小组建议不要在接口或者接口方法上使用该注解，因为这只有在使用基于接口的代理时它才会生效。
+
+Spring的事务管理默认只对unchecked未检查异常(`java.lang.RuntimeException`及其子类)进行回滚，如果一个方法抛出Checked异常，Spring事务管理默认不进行回滚。
+如果想改变默认规则：
+让checked异常也回滚：在方法前加上` @Transactional(rollbackFor=Exception.class)`
+让unchecked异常不回滚：`@Transactional(notRollbackFor=RunTimeException.class)`
+
+在上例基础上删掉 `<tx:> ` 的 xml。添加：
+
+```xml
+<tx:annotation-driven transaction-manager="txManager" />
+```
+
+> 即：
+>
+> ```xml
+> <bean id="txManager"
+>       class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+>     <property name="dataSource" ref="dataSource" />
+> </bean>
+> <tx:annotation-driven
+>                       transaction-manager="txManager" />
+> ```
+
+
+
+在 `UserServiceImpl` 类定义前添加：
+
+```java
+import org.springframework.transaction.annotation.Transactional;
+@Transactional
+```
+
+测试不变。
