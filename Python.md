@@ -4420,6 +4420,60 @@ plt.savefig('img20.tif', bbox_inches='tight')
 
 
 
+##### 任意位置插入
+
+[figimage](https://matplotlib.org/3.6.0/api/_as_gen/matplotlib.pyplot.figimage.html#matplotlib.pyplot.figimage)
+
+注意坐标轴以左下角为原点，x 从左到右，y 从上到下
+
+
+
+#### 文字
+
+先搞一张画布：
+
+```python
+plt.figure(figsize=(620//20, 700//20), dpi=20, facecolor='grey')
+```
+
+> 大概是y中心上角原点，x最左原点
+
+```python
+# 设置显示中文字体
+plt.rcParams['font.family'] = ['sans-serif']
+plt.rcParams['font.sans-serif'] = ['SimHei']
+```
+
+重新设置坐标范围(不然范围是 $[0,1]$)，并关闭坐标轴显示
+
+```python
+plt.axis('off')
+plt.xlim([0, 620])
+plt.ylim([0, 700])
+```
+
+绘制文字：
+
+```python
+plt.text(20, 30, text4, fontsize=100)
+```
+
+dpi 越高，字体辨认越好，建议 100
+
+
+
+#### 形状
+
+矩形示例：
+
+```python
+rect = mpatches.Rectangle(
+    (10, 80), 650, 200, fill=True, color="silver", alpha=0.5, zorder=1)
+plt.gca().add_patch(rect)
+```
+
+[颜色参考](https://matplotlib.org/3.6.0/gallery/color/named_colors.html#sphx-glr-gallery-color-named-colors-py)
+
 
 
 ### pygal
@@ -4574,6 +4628,27 @@ cv2.waitKey(0)
 ```
 
 
+
+### PIL
+
+#### 基本
+
+```python
+from PIL import Image
+```
+
+```python
+img = Image.open(src)
+rows, cols = img.size
+```
+
+可以用 `matplotlib` 显示和绘图。
+
+大小缩放：
+
+```python
+img = img.resize((rows, cols), Image.ANTIALIAS)
+```
 
 
 
