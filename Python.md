@@ -4629,7 +4629,9 @@ cv2.waitKey(0)
 
 
 
-### PIL
+### pillow
+
+PIL python image library [文档](https://pillow.readthedocs.io/en/stable/)
 
 #### 基本
 
@@ -4648,6 +4650,12 @@ rows, cols = img.size
 
 ```python
 img = img.resize((rows, cols), Image.ANTIALIAS)
+```
+
+保存：
+
+```python
+img.save(文件名)
 ```
 
 

@@ -11859,8 +11859,8 @@ public class Lab13_2 {
             sql.executeUpdate("create database if not exists test character set UTF8MB4;");
             conn.close();
 
-            String cmd1 = "mysqladmin -h 127.0.0.1 -u root -p1437581 create test";
-            String cmd2 = "cmd /c mysql -h 127.0.0.1 -u root -p1437581 test < tb_thu.sql";
+            String cmd1 = "mysqladmin -h 127.0.0.1 -u root -p1 create test";
+            String cmd2 = "cmd /c mysql -h 127.0.0.1 -u root -p1 test < tb_thu.sql";
             try {
                 Runtime.getRuntime().exec(cmd1);
             }catch(Exception e){
@@ -15791,3 +15791,1465 @@ import org.springframework.transaction.annotation.Transactional;
 ```
 
 测试不变。
+
+
+
+### MyBatis
+
+#### 基本
+
+MyBatis本是apache的一个开源项目iBatis，2010年这个项目由apache software foundation迁移到了google code，并且改名为MyBatis。
+MyBatis 是一个基于Java的持久层框架。MyBatis 使用简单的 XML或注解用于配置和原始映射，将接口和Java的 POJOs（Plain Old Java Objects，普通的Java对象）映射成数据库中的记录。
+常见的持久层框架有Hibernate和Mybatis，Mybatis是半自动映射的，需要手动配置POJO、SQL和映射关系，Hibernate是全表映射的。
+
+[下载地址](https://github.com/mybatis/mybatis-3/releases)，建议 3.5.3。其 jar 是核心包，lib 文件夹是依赖包，使用时都要引入。
+
+工作原理：
+
+![image-20221008094346654](img/image-20221008094346654.png)
+
+
+
+#### 入门例子
+
+首先导入对应 jar 包，然后创建配置日志文件，在 `classpath` 路径即 `src/` 下：`log4j.properties` (可以从MyBatis使用手册中Logging小节复制，然后进行简单修改。)
+
+```properties
+# Global logging configuration
+log4j.rootLogger=ERROR, stdout
+# MyBatis logging configuration...
+# 表示包 com.mybatis 下所有(含子孙)开启 debug, 则每次 CRUD 有输出详细内容
+log4j.logger.com.mybatis=DEBUG
+# Console output...
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=%5p [%t] - %m%n
+```
+
+创建类，其类名、属性与某个数据库表子段一致：
+
+```java
+package com.mybatis.pojo;
+
+public class MyUser {
+    private Integer uid;
+    private String uname;
+    private String usex;
+
+    public Integer getUid() {
+        return uid;
+    }
+
+    public void setUid(Integer uid) {
+        this.uid = uid;
+    }
+
+    public String getUname() {
+        return uname;
+    }
+
+    public void setUname(String uname) {
+        this.uname = uname;
+    }
+
+    public String getUsex() {
+        return usex;
+    }
+
+    public void setUsex(String usex) {
+        this.usex = usex;
+    }
+
+    @Override
+    public String toString() {
+        return "uid=" + uid + ",uname=" + uname + ",usex=" + usex;
+    }
+}
+```
+
+在 `src\` 下，创建 `mybatis-config.xml` 配置数据库环境和映射文件位置：
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<!-- 配置环境 -->
+	<environments default="development">
+		<environment id="development">
+			<!-- 使用JDBC的事务管理 -->
+			<transactionManager type="JDBC"/>
+			<dataSource type="POOLED"><!-- 数据库连接池 -->
+				<!-- MySQL数据库驱动 -->
+                <!-- 若 mysql5 则 com.mysql.jdbc.Driver -->
+				<property name="driver" value="com.mysql.cj.jdbc.Driver"/>
+				<!-- 连接数据库的URL -->
+				<property name="url" value="jdbc:mysql://localhost:3306/springtest?serverTimezone=UTC"/>
+				<property name="username" value="root"/>
+				<property name="password" value="12345678"/>
+			</dataSource>
+		</environment>
+	</environments>
+	
+<mappers>
+<!-- 映射文件的位置 -->
+	<mapper resource="com/mybatis/mapper/UserMapper.xml"/>
+</mappers>
+</configuration>
+```
+
+创建一个 `com.mybatis.mapper` 包，目录下创建 `UserMapper.xml` 映射文件。根元素是 mapper，包含属性 namespace，设置为 `包名+SQL映射文件名`。子元素 select, insert, update, delete 是执行 CRUD 的操作配置。以 `#{}` 表示占位符 `?`，以 `#{uid}` 表示接受的参数为 `uid`。大括号一定要填东西。像基本数据类型填啥都行
+
+如：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.mybatis.mapper.UserMapper">
+	<select id="selectUserById" parameterType="Integer"
+		resultType="com.mybatis.pojo.MyUser">
+		select * from myuser where uid = #{id}
+	</select>
+
+	<select id="selectAllUser" resultType="com.mybatis.pojo.MyUser">
+		select * from myuser
+	</select>
+	
+	<!-- 添加一个用户，#{uname}为com.mybatis.pojo.MyUser的属性值 -->
+	<insert id="addUser" parameterType="com.mybatis.pojo.MyUser">
+		insert into myuser(uname,usex) values(#{uname},#{usex})
+	</insert>
+
+	<!-- 修改一个用户 -->
+	<update id="updateUser" parameterType="com.mybatis.pojo.MyUser">
+		update myuser set uname=#{uname},usex=#{usex} where uid=#{uid}
+	</update>
+
+	<!-- 删除一个用户 -->
+	<delete id="deleteUser" parameterType="Integer">
+		delete from MyUser where uid=#{uid}
+	</delete>
+	
+</mapper>
+```
+
+开一个测试类，分别调用 CRUD：
+
+```java
+package com.mybatis.test;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import com.mybatis.pojo.MyUser;
+
+public class MyBatisTest {
+    public static void main(String[] args) {
+        try {
+            // 读取配置文件mybatis-config.xml
+            InputStream config = Resources.getResourceAsStream("mybatis-config.xml");
+            // 根据配置文件构建SqlSessionFactory
+            SqlSessionFactory ssf = new SqlSessionFactoryBuilder().build(config);
+            // 通过SqlSessionFactory创建SqlSession
+            SqlSession ss = ssf.openSession();
+            // SqlSession执行映射文件中定义的SQL，并返回映射结果
+
+            // 查询一个用户
+            MyUser mu = ss.selectOne("com.mybatis.mapper.UserMapper.selectUserById", 1);
+            System.out.println("查询id=1的用户：");
+            System.out.println(mu);
+            System.out.println();
+
+            System.out.println("查询所有用户：");
+            // 查询所有用户
+            findAll(ss);
+
+            // 添加一个用户
+            System.out.println("添加一个用户:rerete,男");
+            MyUser addmu = new MyUser();
+            addmu.setUname("rerete");
+            addmu.setUsex("男");
+            ss.insert("com.mybatis.mapper.UserMapper.addUser", addmu);
+
+            // 修改一个用户
+            System.out.println("修改一个用户:将 id=1的姓名和性别，改为：‘雯雯，女’");
+            MyUser updatemu = new MyUser();
+            updatemu.setUid(1);
+            updatemu.setUname("雯雯");
+            updatemu.setUsex("女");
+            ss.update("com.mybatis.mapper.UserMapper.updateUser", updatemu);
+
+            // 查询一个用户
+            System.out.println("查询id=1的用户：");
+            mu = ss.selectOne("com.mybatis.mapper.UserMapper.selectUserById", 1);
+            System.out.println(mu);
+
+            // 删除一个用户
+            System.out.println();
+            System.out.println("删除id=2的用户");
+            ss.delete("com.mybatis.mapper.UserMapper.deleteUser", 2);
+
+            // 查询所有用户
+            System.out.println("再次查询所有用户：");
+            findAll(ss);
+            // 提交事务
+            ss.commit();
+            // 关闭SqlSession
+            ss.close();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
+    public static void findAll(SqlSession ss) {
+        // com.mybatis.mapper.UserMapper.selectAllUser为UserMapper.xml中的命名空间+select的id
+
+        List<MyUser> listMu = ss.selectList("com.mybatis.mapper.UserMapper.selectAllUser");
+        for (MyUser myUser : listMu) {
+            System.out.println(myUser);
+        }
+    }
+}
+```
+
+
+
+#### MyBatis工厂
+
+以入门例子为基础，
+
+下载并导入 mybatis 与 spring 整合的中间 jar 包(2.0.3) [地址](http://mvnrepository.com/artifact/org.mybatis/mybatis-spring/)
+
+数据库驱动包，以及数据源所需 jar 包需要下载。数据源有 [commons-dbcp2-2.7.0](http://commons.apache.org/proper/commons-dbcp/download_dbcp.cgi) 和 [commons-pool2-2.7.0](http://commons.apache.org/proper/commons-pool/download_pool.cgi)
+
+搞一个 bean：如 `springmybatis.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?><?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+http://www.springframework.org/schema/beans/spring-beans.xsd 
+http://www.springframework.org/schema/context 
+http://www.springframework.org/schema/context/spring-context.xsd
+http://www.springframework.org/schema/aop
+http://www.springframework.org/schema/aop/spring-aop.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd ">
+	<context:component-scan
+		base-package="com.mybatis" />
+	<bean id="dataSource"
+		class="org.apache.commons.dbcp2.BasicDataSource">
+		<property name="driverClassName"
+			value="com.mysql.cj.jdbc.Driver" />
+		<property name="url"
+			value="jdbc:mysql://localhost:3306/springtest?serverTimezone=UTC" />
+		<property name="username" value="root" />
+		<property name="password" value="1" />
+		<!-- 最大连接数 -->
+		<property name="maxTotal" value="30" />
+		<!-- 最大空闲连接数 -->
+		<property name="maxIdle" value="10" />
+		<!-- 初始化连接数 -->
+		<property name="initialSize" value="5" />
+	</bean>
+	<bean id="txManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+	<tx:annotation-driven
+		transaction-manager="txManager" />
+	<!-- 配置MyBatis工厂，同时指定数据源，并与MyBatis整合 -->
+	<bean id="sqlSessionFactory"
+		class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<!-- configLocation的属性值为MyBatis的核心配置文件 -->
+		<property name="configLocation"
+			value="classpath:com/mybatis/mybatis-config.xml" />
+	</bean>
+	<!--Mapper代理开发，使用Spring自动扫描MyBatis的接口并装配 -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<!-- mybatis-spring组件的扫描器 -->
+		<!-- （Spring将指定包中所有被@Mapper注解标注的接口自动装配为MyBatis的映射接口） -->
+		<property name="basePackage" value="com.mybatis.dao" />
+		<property name="sqlSessionFactoryBeanName"
+			value="sqlSessionFactory" />
+	</bean>
+</beans>
+```
+
+对应的 `mybatis-config.xml` 在对应目录创建：
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<!-- 告诉 MyBatis到哪里去找映射文件 -->
+	<mappers>
+		<mapper resource="com/mybatis/UserMapper.xml" />
+	</mappers>
+</configuration>
+```
+
+重建一个在 `com.pojo` 的与上文一样的 `MyUser` 类。
+
+创建在 `com.mybatis` 的 `UserMapper.xml`，与上文类似，改一下 type  所在 `myuser` 路径和 namespace 为 `com.mybatis.dao.UserDao`。其他不变。
+
+创建 dao，方法与 SQL 映射文件 xml 一致：
+
+```java
+package com.mybatis.dao;
+
+import java.util.List;
+import org.apache.ibatis.annotations.Mapper;
+import org.springframework.stereotype.Repository;
+import com.pojo.MyUser;
+
+@Repository("userDao")
+@Mapper
+public interface UserDao {
+    public MyUser selectUserById(Integer uid);
+
+    public List<MyUser> selectAllUser();
+
+    public int addUser(MyUser user);
+
+    public int updateUser(MyUser user);
+
+    public int deleteUser(Integer uid);
+}
+```
+
+把这个类所在包的 log4j 日志增加 
+
+创建 controller：
+
+```java
+package com.mybatis.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+
+import com.mybatis.dao.UserDao;
+import com.pojo.MyUser;
+
+@Controller("userController")
+public class UserController {
+
+    @Autowired
+    private UserDao userDao;
+
+    public void test() {
+        // 查询一个用户
+        MyUser auser = userDao.selectUserById(1);
+        System.out.println(auser);
+        System.out.println("================");
+        // 添加一个用户
+        MyUser addmu = new MyUser();
+        addmu.setUname("陈恒");
+        addmu.setUsex("男");
+        int add = userDao.addUser(addmu);
+        System.out.println("添加了" + add + "条记录");
+        System.out.println("================");
+        // 修改一个用户
+        MyUser updatemu = new MyUser();
+        updatemu.setUid(1);
+        updatemu.setUname("张三");
+        updatemu.setUsex("女");
+        int up = userDao.updateUser(updatemu);
+        System.out.println("修改了" + up + "条记录");
+        System.out.println("================");
+        // 删除一个用户
+        int dl = userDao.deleteUser(3);
+        System.out.println("删除了" + dl + "条记录");
+        System.out.println("================");
+        // 查询所有用户
+        List<MyUser> list = userDao.selectAllUser();
+        for (MyUser myUser : list) {
+            System.out.println(myUser);
+        }
+    }
+}
+```
+
+创建测试类：
+
+```java
+package com.mybatis.controller;
+
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+public class TestController {
+    public static void main(String[] args) {
+        @SuppressWarnings("resource")
+        ApplicationContext appCon = new ClassPathXmlApplicationContext("applicationContext.xml");
+        UserController uc = (UserController) appCon.getBean("userController");
+        uc.test();
+    }
+}
+```
+
+
+
+#### generator插件
+
+使用MyBatis Generator插件自动生成MyBatis所需要的DAO接口、实体模型类、Mapping映射文件，将生成的代码复制到项目工程中即可，把更多精力放在业务逻辑上。MyBatis Generator有三种常用方法自动生成代码：命令行、Eclipse插件和Maven插件。本节使用比较简单的方法（命令行）自动生成相关代码。
+
+[jar包下载](http://mvnrepository.com/artifact/org.mybatis.generator/mybatis-generator-core/1.3.7)
+
+将 jar 包和 `mysql-connector-java-8.0.16.jar` 放在同一目录，且在该目录下创建 `src\`。
+
+同目录创建 `generator.xml`：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN" "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+
+<generatorConfiguration>
+    <!--数据库驱动包位置-->
+    <classPathEntry location="D:\_lr580\program\java\genxrs\mysql-connector-java-8.0.16.jar" />
+    <context id="mysqlTables" targetRuntime="MyBatis3">
+        <commentGenerator>
+            <property name="suppressAllComments" value="true" />
+        </commentGenerator>
+        <!--数据库链接地址账号密码-->
+        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver" connectionURL="jdbc:mysql://localhost:3306/springtest?serverTimezone=UTC" userId="root" password="1" />
+
+        <!--生成Model类存放位置-->
+        <javaModelGenerator targetPackage="com.pojo" targetProject="D:\_lr580\program\java\genxrs\src">
+            <property name="enableSubPackages" value="true" />
+            <property name="trimStrings" value="true" />
+        </javaModelGenerator>
+
+        <!--生成映射文件存放位置-->
+        <sqlMapGenerator targetPackage="mybatis" targetProject="D:\_lr580\program\java\genxrs\src">
+            <property name="enableSubPackages" value="true" />
+        </sqlMapGenerator>
+        <!--生成Dao类存放位置-->
+        <javaClientGenerator targetPackage="com.mybatis.dao" targetProject="D:\_lr580\program\java\genxrs\src" type="XMLMAPPER">
+            <property name="enableSubPackages" value="true" />
+        </javaClientGenerator>
+        <table tableName="myuser" domainObjectName="MyUser" enableCountByExample="false" enableUpdateByExample="false" enableDeleteByExample="false" enableSelectByExample="false" selectByExampleQueryId="false" />
+    </context>
+</generatorConfiguration>
+```
+
+执行 jar：
+
+```shell
+java -jar mybatis-generator-core-1.3.7.jar -configfile generator.xml -overwrite
+```
+
+自动生成了 dao 接口，实体模型类 pojo 和 mapping 映射文件。
+
+> 下面展示自动生成的所有文件：
+>
+> ```java
+> package com.mybatis.dao;
+> 
+> import com.pojo.MyUser;
+> 
+> public interface MyUserMapper {
+>     int deleteByPrimaryKey(Integer uid);
+> 
+>     int insert(MyUser record);
+> 
+>     int insertSelective(MyUser record);
+> 
+>     MyUser selectByPrimaryKey(Integer uid);
+> 
+>     int updateByPrimaryKeySelective(MyUser record);
+> 
+>     int updateByPrimaryKey(MyUser record);
+> }
+> ```
+>
+> ```java
+> package com.pojo;
+> 
+> public class MyUser {
+>     private Integer uid;
+> 
+>     private String uname;
+> 
+>     private String usex;
+> 
+>     public Integer getUid() {
+>         return uid;
+>     }
+> 
+>     public void setUid(Integer uid) {
+>         this.uid = uid;
+>     }
+> 
+>     public String getUname() {
+>         return uname;
+>     }
+> 
+>     public void setUname(String uname) {
+>         this.uname = uname == null ? null : uname.trim();
+>     }
+> 
+>     public String getUsex() {
+>         return usex;
+>     }
+> 
+>     public void setUsex(String usex) {
+>         this.usex = usex == null ? null : usex.trim();
+>     }
+> }
+> ```
+>
+> ```xml
+> <?xml version="1.0" encoding="UTF-8"?>
+> <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+> <mapper namespace="com.mybatis.dao.MyUserMapper">
+>   <resultMap id="BaseResultMap" type="com.pojo.MyUser">
+>     <id column="uid" jdbcType="INTEGER" property="uid" />
+>     <result column="uname" jdbcType="VARCHAR" property="uname" />
+>     <result column="usex" jdbcType="VARCHAR" property="usex" />
+>   </resultMap>
+>   <sql id="Base_Column_List">
+>     uid, uname, usex
+>   </sql>
+>   <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+>     select 
+>     <include refid="Base_Column_List" />
+>     from myuser
+>     where uid = #{uid,jdbcType=INTEGER}
+>   </select>
+>   <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+>     delete from myuser
+>     where uid = #{uid,jdbcType=INTEGER}
+>   </delete>
+>   <insert id="insert" parameterType="com.pojo.MyUser">
+>     insert into myuser (uid, uname, usex
+>       )
+>     values (#{uid,jdbcType=INTEGER}, #{uname,jdbcType=VARCHAR}, #{usex,jdbcType=VARCHAR}
+>       )
+>   </insert>
+>   <insert id="insertSelective" parameterType="com.pojo.MyUser">
+>     insert into myuser
+>     <trim prefix="(" suffix=")" suffixOverrides=",">
+>       <if test="uid != null">
+>         uid,
+>       </if>
+>       <if test="uname != null">
+>         uname,
+>       </if>
+>       <if test="usex != null">
+>         usex,
+>       </if>
+>     </trim>
+>     <trim prefix="values (" suffix=")" suffixOverrides=",">
+>       <if test="uid != null">
+>         #{uid,jdbcType=INTEGER},
+>       </if>
+>       <if test="uname != null">
+>         #{uname,jdbcType=VARCHAR},
+>       </if>
+>       <if test="usex != null">
+>         #{usex,jdbcType=VARCHAR},
+>       </if>
+>     </trim>
+>   </insert>
+>   <update id="updateByPrimaryKeySelective" parameterType="com.pojo.MyUser">
+>     update myuser
+>     <set>
+>       <if test="uname != null">
+>         uname = #{uname,jdbcType=VARCHAR},
+>       </if>
+>       <if test="usex != null">
+>         usex = #{usex,jdbcType=VARCHAR},
+>       </if>
+>     </set>
+>     where uid = #{uid,jdbcType=INTEGER}
+>   </update>
+>   <update id="updateByPrimaryKey" parameterType="com.pojo.MyUser">
+>     update myuser
+>     set uname = #{uname,jdbcType=VARCHAR},
+>       usex = #{usex,jdbcType=VARCHAR}
+>     where uid = #{uid,jdbcType=INTEGER}
+>   </update>
+> </mapper>
+> ```
+
+
+
+#### 映射文件
+
+##### 概述
+
+MyBatis的核心配置文件配置了很多影响MyBatis行为的信息，这些信息通常只会配置在一个文件中，并且不会轻易改动。
+另外，与Spring框架整合后，MyBatis的核心配置文件信息将配置到Spring的配置文件中。因此，在实际开发中需要编写或修改MyBatis的核心配置文件的情况不多。
+
+`mybatis-config.xml` 配置文件元素节点有先后顺序
+
+![image-20221008111900661](img/image-20221008111900661.png)
+
+映射器：
+
+![image-20221008112016874](img/image-20221008112016874.png)
+
+标签属性的 id 值是唯一标识符，`parameterType` 是传入参数类型，`resultType` 是返回值类型。标签内容是 SQL 语句。其 `#{值}` 的值填数据表的列名
+
+##### select
+
+select 元素属性：
+
+![image-20221008112341096](img/image-20221008112341096.png)
+
+参数如果不是单一类，可以用 map，如：
+
+```xml
+<select id="selectUserByMap"  resultType="com.po.MyUser" parameterType="map">
+    select * from user 
+    where uname like concat('%',#{u_name},'%')
+    and usex = #{u_sex}
+</select>
+```
+
+```java
+Map<String,Object> map=new HashMap<>();
+map.put("u_name","陈");
+map.put("u_sex","男");
+List<MyUser> list = userDao.selectUserByMap(map);
+for (MyUser myUser : list) {
+    System.out.println(myUser);
+}
+```
+
+也可以用 bean，造一个 POJO 类：
+
+```java
+public class SelectUserParam {
+	private String u_name;
+	private String u_sex;
+}
+```
+
+修改 Dao 接口 param：
+
+```java
+public List<MyUser> selectUserByBean(SelectUserParam param);
+```
+
+对应改 XML：
+
+```xml
+<select id="selectUserByBean"  resultType="com.po.MyUser" parameterType="com.pojo.SelectUserParam">
+```
+
+调用：(这里即上述入门例子写法)
+
+```java
+SelectUserParam userParam=new SelectUserParam();
+userParam.setU_name("陈");
+userParam.setU_sex("男");		
+List<MyUser> listParam = userDao.selectUserByBean(userParam);
+for (MyUser myUser : listParam) {
+	System.out.println(myUser);
+}
+```
+
+
+
+##### insert
+
+`<insert>`元素用于映射插入语句，MyBatis执行完一条插入语句后，将返回一个整数表示其影响的行数。它的属性与`<select>`元素的属性大部分相同，在本节讲解它的几个特有属性。具体如下：
+keyProperty：该属性的作用是将插入或更新操作时的返回值赋值给POJO类的某个属性，通常会设置为主键对应的属性。如果是联合主键，可以在多个值之间用逗号隔开。
+keyColumn：该属性用于设置第几列是主键，当主键列不是表中的第一列时需要设置。如果是联合主键时，可以在多个值之间用逗号隔开。
+useGeneratedKeys：该属性将使MyBatis使用JDBC的getGeneratedKeys()方法获取由数据库内部生产的主键，如MySQL、SQL Server等自动递增的字段，其默认值为false。
+
+```xml
+<insert id="addUserKey" parameterType="com.pojo.MyUser" 
+        keyProperty="uid"  useGeneratedKeys="true">
+    insert into myuser(uname,usex) values(#{uname},#{usex})
+</insert>
+```
+
+```java
+public int addUserKey(MyUser user);
+```
+
+```java
+MyUser addus = new MyUser();
+addus.setUname("陈小茜");
+addus.setUsex("女");
+int a = userDao.addUserKey(addus);
+System.out.println("添加了" + a + "条记录，其主键为："+addus.getUid());
+```
+
+如果数据库不支持(Oracle)/取消主键自动递增，可以：(if 是 SQL 函数)
+
+```xml
+<insert id="insertUserSelectKey" parameterType="com.po.MyUser">
+    <!-- 先使用selectKey元素定义主键，然后再定义SQL语句 -->
+    <selectKey keyProperty="uid" resultType="Integer" order="BEFORE">
+        select if(max(uid) is null, 1 , max(uid)+1) as newUid from user
+    </selectKey>
+    insert into user (uid,uname,usex) values(#{uid},#{uname},#{usex})
+</insert>
+```
+
+
+
+##### update/delete
+
+```xml
+<update id="updateUser" parameterType="com.po.MyUser">
+    update user set uname = #{uname},usex = #{usex} where uid = #{uid}
+</update>
+<delete id="deleteUser" parameterType="Integer"> 
+    delete from user where uid = #{uid}
+</delete>
+```
+
+
+
+##### sql
+
+`<sql>`元素的作用在于可以定义SQL语句的一部分（代码片段），方便后面的SQL语句引用它，比如反复使用的列名。
+
+```xml
+<sql id="comColumns">uid,uname,usex</sql>
+<select id="selectUser" resultType="com.po.MyUser">
+    select <include refid="comColumns"/> from user
+</select>
+```
+
+
+
+##### resultMap
+
+`<resultMap>`元素表示结果映射集，是MyBatis中最重要也是最强大的元素。主要用来定义映射规则、级联的更新以及定义类型转化器等。
+
+```xml
+<resultMap type="" id="">
+    <constructor><!-- 类在实例化时，用来注入结果到构造方法 -->
+        <idArg/><!-- ID参数，结果为ID -->
+        <arg/><!-- 注入到构造方法的一个普通结果 -->
+    </constructor>
+    <id/><!-- 用于表示哪个列是主键 -->
+    <result/><!-- 注入到字段或JavaBean属性的普通结果 -->
+    <association property=""/><!-- 用于一对一关联 -->
+    <collection property=""/><!-- 用于一对多、多对多关联 -->
+    <discriminator javaType=""><!-- 使用结果值来决定使用哪个结果映射 -->
+        <case value=""/>	<!-- 基于某些值的结果映射 -->
+    </discriminator>
+</resultMap>
+```
+
+`<resultMap>`元素的type属性表示需要的POJO，id属性是resultMap的唯一标识。
+子元素`<constructor>`用于配置构造方法（当POJO未定义无参数的构造方法时使用）。
+子元素`<id>`用于表示哪个列是主键。
+子元素`<result>`用于表示POJO和数据表普通列的映射关系。
+子元素`<association>` 、`<collection>` 和`<discriminator>`是用在级联的情况下
+
+任何select语句可以使用Map存储结果，示例代码如下：
+
+```xml
+<select id="selectAllUserMap"  resultType="map">
+    select * from user 
+</select>
+```
+
+转化为：
+
+```java
+public class MapUser { //POJO
+     private Integer m_uid;
+     private String m_uname;
+     private String m_usex;
+}
+```
+
+```xml
+<!-- 使用自定义结果集类型 -->
+<resultMap type="com.pojo.MapUser" id="myResult">
+    <!-- property是com.pojo.MapUser类中的属性-->
+    <!-- column是查询结果的列名，可以来自不同的表 -->
+    <id property="m_uid" column="uid"/>
+    <result property="m_uname" column="uname"/>
+    <result property="m_usex" column="usex"/>
+</resultMap>
+<!-- 使用自定义结果集类型查询所有用户 -->
+<select id="selectResultMap" resultMap="myResult">
+    select * from user
+</select>
+```
+
+```java
+public List<MapUser> selectResultMap();
+```
+
+```java
+List<MapUser> listResultMap = userDao.selectResultMap();
+for (MapUser myUser : listResultMap) {
+	System.out.println(myUser);
+}
+```
+
+
+
+##### 级联关系
+
+级联：如果表A中有一个外键引用了表B的主键，A表就是子表，B表就是父表。当查询表A的数据时，通过表A的外键，也将表B的相关记录返回，这就是级联查询。例如，查询一个人的信息时，同时根据外键（身份证号）也将他的身份证信息返回。
+
+三种级联方式：一对一、一对多、多对多。
+
+###### 一对一
+
+在MyBatis中，通过`<resultMap>`元素的子元素`<association>`处理这种一对一级联关系。在`<association>`元素中，通常使用以下属性。
+property：指定映射到实体类的对象属性。
+column：指定表中对应的字段（即查询返回的列名）。
+javaType：指定映射到实体对象属性的类型。
+     select：指定引入嵌套查询的子SQL语句，该属性用于关联映射中的嵌套查询。
+
+如有数据库：
+
+```mysql
+use springtest;
+DROP TABLE IF EXISTS idcard;
+CREATE TABLE idcard (
+    id tinyint(2) NOT NULL AUTO_INCREMENT,
+    code varchar(18) COLLATE utf8_unicode_ci  DEFAULT NULL,
+    PRIMARY KEY (id)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+INSERT INTO idcard VALUES ('1', '123456789123456789');
+select * from idcard;
+
+DROP TABLE IF EXISTS person;
+CREATE TABLE person (
+    id tinyint(2) NOT NULL,
+    name varchar(20) COLLATE utf8_unicode_ci DEFAULT NULL,
+    age int(11) DEFAULT NULL,
+    idcard_id  tinyint(2) DEFAULT NULL,
+    PRIMARY KEY (id),
+    KEY idcard_id (idcard_id),
+    CONSTRAINT idcard_id FOREIGN KEY (idcard_id) REFERENCES idcard(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+INSERT INTO person VALUES ('1', '陈恒', '88', '1');
+select * from person;
+```
+
+创建 POJO 对应的两个。注意创建时使用组合关系：
+
+```java
+package com.po;
+public class Idcard {
+	private Integer id;
+	private String code;
+}
+```
+
+```java
+package com.po;
+public class Person {
+	private Integer id;
+	private String name;
+	private Integer age;
+	private Idcard card;
+}
+```
+
+XML mybatis\-config.xml 开启懒加载：(提高查询效率)
+
+```xml
+<settings>
+    <!-- 打开懒加载的开关 -->
+    <setting name="lazyLoadingEnabled" value="true"/>
+    <!-- 将积极加载改为按需加载 -->
+    <setting name="aggressiveLazyLoading" value="false"/>
+</settings>
+```
+
+添加包含文件：
+
+```xml
+<mapper resource="com/mybatis/IdCardMapper.xml"/>
+<mapper resource="com/mybatis/PersonMapper.xml"/>
+```
+
+创建两个对应的 xml：
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dao.IdCardDao">
+    <select id="selectCodeById" parameterType="Integer"
+            resultType="com.po.Idcard">
+        select * from idcard where id=#{id}
+    </select>
+</mapper>
+<!-- idcard mapper-->
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dao.PersonDao">
+    <!-- 一对一 根据id查询个人信息：第一种方法（嵌套查询） -->
+    <resultMap type="com.po.Person" id="cardAndPerson1">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="age" column="age"/>
+        <!-- 一对一关联查询   
+  property:指定映射到实体类的对象属性
+  column：指定表中对应的字段（即查询返回的列名）
+  javaType：指定映射到实体对象属性的类型
+  select：指定引入嵌套查询的子SQL语句，
+  该属性用于关联映射中的嵌套查询
+  -->
+        <association property="card" column="idcard_id" 
+                     javaType="com.po.Idcard"
+                     select="com.dao.IdCardDao.selectCodeById"/>
+    </resultMap>
+    <select id="selectPersonById1" 
+            parameterType="Integer" resultMap="cardAndPerson1">
+        select * from person where id=#{id}
+    </select>
+
+    <!-- 一对一 根据id查询个人信息：第二种方法（嵌套结果） -->
+    <resultMap type="com.po.Person" id="cardAndPerson2">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="age" column="age"/>
+        <!-- 一对一关联查询 -->
+        <association property="card" javaType="com.po.Idcard">
+            <id property="id" column="idcard_id"/>
+            <result property="code" column="code"/>
+        </association>
+    </resultMap>
+    <select id="selectPersonById2" parameterType="Integer" 
+            resultMap="cardAndPerson2">
+        select p.*,ic.code 
+        from person p, idcard ic 
+        where p.idcard_id = ic.id and p.id=#{id}
+    </select>
+
+
+    <!-- 一对一 根据id查询个人信息：第三种方法（使用POJO存储结果） -->
+    <select id="selectPersonById3" parameterType="Integer" resultType="com.pojo.SelectPersonById">
+        select p.*,ic.code 
+        from person p, idcard ic 
+        where p.idcard_id = ic.id and p.id=#{id}
+    </select>
+</mapper>
+```
+
+创建一个 POJO(第三种方法)：
+
+```java
+package com.pojo;
+public class SelectPersonById {
+	private Integer id;
+	private String name;
+	private Integer age;
+	private String code;
+//自动生成set、get方法和toString方法
+}
+```
+
+创建 DAO：(第一种 person 查询会用到)
+
+```java
+package com.dao;
+import com.po.Idcard;
+@Repository("idCardDao")
+@Mapper
+public interface IdCardDao {
+	public Idcard selectCodeById(Integer i);
+}
+```
+
+```java
+package com.dao;
+import com.po.Person;
+import com.pojo.SelectPersonById;
+@Repository("personDao")
+@Mapper
+public interface PersonDao {
+	public Person selectPersonById1(Integer id);
+	public Person selectPersonById2(Integer id);
+	public SelectPersonById selectPersonById3(Integer id);
+}
+```
+
+创建控制器类：
+
+```java
+@Controller("oneToOneController")
+public class OneToOneController {
+    @Autowired
+    private PersonDao personDao;
+    public void test() {
+        Person p1 = personDao.selectPersonById1(1);
+        System.out.println(p1);
+       
+        Person p2 = personDao.selectPersonById2(1);
+        System.out.println(p2);
+       
+        SelectPersonById p3 = personDao.selectPersonById3(1);
+        System.out.println(p3);
+    }
+}
+```
+
+然后用 `applicationcontext` 运行 `test()` 方法。
+
+
+
+###### 一对多
+
+如：
+
+```mysql
+use springtest;
+DROP TABLE IF EXISTS orders;
+CREATE TABLE orders (
+    id tinyint(2) NOT NULL AUTO_INCREMENT,
+    ordersn varchar(10) COLLATE utf8_unicode_ci DEFAULT NULL,
+    user_id tinyint(2) DEFAULT NULL,
+    PRIMARY KEY (id),
+    KEY user_id (user_id),
+    CONSTRAINT user_id FOREIGN KEY (user_id) REFERENCES user (uid)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+INSERT INTO orders VALUES ('1', '999999', '1');
+INSERT INTO orders VALUES ('2', '88888', '1');
+INSERT INTO orders VALUES ('3', '7777777', '31');
+INSERT INTO orders VALUES ('4', '666666666', '31');
+select * from orders;
+```
+
+创建 POJO：
+
+```java
+package com.po;
+public class Orders {
+	private Integer id;
+	private String ordersn;
+}
+```
+
+```java
+package com.po;
+import java.util.List;
+public class MyUser {
+    private Integer uid;
+    private String uname;
+    private String usex;
+    private List<Orders> ordersList;
+}
+```
+
+来一个 include：
+
+```xml
+<mapper resource="com/mybatis/OrdersMapper.xml"/>
+```
+
+来个 xml：
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dao.OrdersDao">
+    <select id="selectOrdersById" parameterType="Integer" resultType="com.po.Orders">
+        select * from orders where user_id=#{id}
+    </select>
+</mapper>
+```
+
+user 增加 xml：
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dao.UserDao">
+
+    <!-- 一对多 根据uid查询用户及其关联的订单信息：第一种方法（嵌套查询） -->
+    <resultMap type="com.po.MyUser" id="userAndOrders1">
+        <id property="uid" column="uid"/>
+        <result property="uname" column="uname"/>
+        <result property="usex" column="usex"/>
+        <!-- 一对多关联查询，ofType表示集合中的元素类型，将uid传递给selectOrdersById-->
+        <collection property="ordersList" ofType="com.po.Orders" column="uid" 
+                    select="com.dao.OrdersDao.selectOrdersById"/>
+    </resultMap>
+    <select id="selectUserOrdersById1" parameterType="Integer" resultMap="userAndOrders1">
+        select * from myuser where uid = #{id}
+    </select>
+
+    <!-- 一对多 根据uid查询用户及其关联的订单信息：第二种方法（嵌套结果） -->
+    <resultMap type="com.po.MyUser" id="userAndOrders2">
+        <id property="uid" column="uid"/>
+        <result property="uname" column="uname"/>
+        <result property="usex" column="usex"/>
+        <!-- 一对多关联查询，ofType表示集合中的元素类型 -->
+        <collection property="ordersList" ofType="com.po.Orders" >
+            <id property="id" column="id"/>
+            <result property="ordersn" column="ordersn"/>
+        </collection>
+    </resultMap>
+    <select id="selectUserOrdersById2" parameterType="Integer" resultMap="userAndOrders2">
+        select u.*,o.id,o.ordersn from myuser u, orders o where u.uid = o.user_id and u.uid=#{id}
+    </select>
+
+
+    <!-- 一对多 根据uid查询用户及其关联的订单信息：第三种方法（使用POJO存储结果） -->
+    <select id="selectUserOrdersById3" parameterType="Integer" resultType="com.pojo.SelectUserOrdersById">
+        select u.*,o.id,o.ordersn from myuser u, orders o where u.uid = o.user_id and u.uid=#{id}
+    </select>
+</mapper>
+```
+
+第三种 POJO 为：
+
+```java
+package com.pojo;
+public class SelectUserOrdersById {
+	private Integer uid;
+	private String uname;
+	private String usex;
+	private Integer id;
+	private String ordersn;
+}
+```
+
+DAO：
+
+```java
+package com.dao;
+import java.util.List;
+import org.apache.ibatis.annotations.Mapper;
+import org.springframework.stereotype.Repository;
+import com.po.Orders;
+@Repository("ordersDao")
+@Mapper
+public interface OrdersDao {
+	//根据用户uid查询订单信息
+	public List<Orders> selectOrdersById(Integer uid);
+}
+```
+
+```java
+public MyUser selectUserOrdersById1(Integer uid);
+public MyUser selectUserOrdersById2(Integer uid);
+public List<SelectUserOrdersById> selectUserOrdersById3(Integer uid);
+```
+
+
+
+###### 多对多
+
+多对多级联可以通过两个一对多级联进行替换。例如，一个订单可以有多种商品，一种商品可以对应多个订单，订单与商品就是多对多的级联关系。使用一个中间表订单记录表，就可以将多对多级联转换成两个一对多的关系。
+
+如：
+
+```mysql
+use springtest;
+DROP TABLE IF EXISTS orders_detail;
+CREATE TABLE orders_detail (
+    id tinyint(2) NOT NULL AUTO_INCREMENT,
+    orders_id tinyint(2) DEFAULT NULL,
+    product_id tinyint(2) DEFAULT NULL,
+    PRIMARY KEY (id),
+    KEY orders_id (orders_id),
+    KEY product_id (product_id),
+    CONSTRAINT orders_id FOREIGN KEY (orders_id) REFERENCES orders (id),
+    CONSTRAINT product_id FOREIGN KEY (product_id) REFERENCES product (id)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+INSERT INTO orders_detail VALUES ('1', '1', '1');
+INSERT INTO orders_detail VALUES ('2', '1', '2');
+INSERT INTO orders_detail VALUES ('3', '2', '1');
+INSERT INTO orders_detail VALUES ('4', '2', '2');
+INSERT INTO orders_detail VALUES ('5', '3', '1');
+select * from orders_detail;
+```
+
+创两个一对多的 POJO：
+
+```java
+package com.po;
+import java.util.List;
+public class Product {
+	private Integer id;
+	private String name;
+	private Double price;
+	private List<Orders> orders;
+}
+```
+
+```java
+package com.po;
+import java.util.List;
+public class Orders {
+	private Integer id;
+	private  String ordersn;
+	private List<Product> products;
+}
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dao.OrdersDao">
+    <!-- 根据用户uid查询订单信息 -->
+    <select id="selectOrdersById" parameterType="Integer"
+            resultType="com.po.Orders">
+        select * from orders where user_id=#{id}
+    </select>
+
+    <!-- 多对多关联 查询所有订单以及每个订单对应的商品信息（嵌套结果） -->
+    <resultMap type="com.po.Orders" id="allOrdersAndProducts">
+        <id property="id" column="id" />
+        <result property="ordersn" column="ordersn" />
+        <!-- 多对多关联 -->
+        <collection property="products" ofType="com.po.Product">
+            <id property="id" column="pid" />
+            <result property="name" column="name" />
+            <result property="price" column="price" />
+        </collection>
+    </resultMap>
+    <select id="selectallOrdersAndProducts" resultMap="allOrdersAndProducts">
+        select
+        o.*,p.id as pid,p.name,p.price
+        from orders o,orders_detail od,product p
+        where od.orders_id = o.id
+        and od.product_id = p.id
+    </select>
+</mapper>
+```
+
+```java
+public List<Orders> selectallOrdersAndProducts();
+```
+
+```java
+@Controller("moreToMoreController")
+public class MoreToMoreController {
+    @Autowired
+    private OrdersDao ordersDao;
+    public void test() {
+        List<Orders> os = ordersDao.selectallOrdersAndProducts();
+        for (Orders orders : os) {
+            System.out.println(orders);
+        }
+    }
+}
+```
+
+
+
+#### 动态SQL
+
+动态SQL通常要做的事情是有条件地包含where子句的一部分
+
+##### if
+
+所以在MyBatis中，`<if>`元素是最常用的元素。它类似于Java中的 if 语句。
+
+如：
+
+```xml
+<select id="selectUserByIf"  resultType="com.po.MyUser" 
+        parameterType="com.po.MyUser">
+    select * from user where 1=1
+    <if test="uname !=null and uname!=''">
+        and uname like concat('%',#{uname},'%')
+    </if>
+    <if test="usex !=null and usex!=''">
+        and usex = #{usex}
+    </if>
+</select>
+```
+
+意思是这个查询，有时候无条件，有时候只要姓名，有时候只要求性别，有时候都要求，那么写这个一个查询就可以满足所有分类。
+
+
+
+##### choose
+
+类似于switch+break(不用自己写break)。
+
+```xml
+<select id="selectUserByChoose"  resultType="com.po.MyUser" parameterType="com.po.MyUser">
+    select * from user where 1=1
+    <choose>
+        <when test="uname !=null and uname!=''">
+            and uname like concat('%',#{uname},'%')
+        </when>
+        <when test="usex !=null and usex!=''">
+            and usex = #{usex}
+        </when>
+        <otherwise>
+            and uid > 10
+        </otherwise>
+    </choose>
+</select>
+```
+
+只能执行所有 when 的其一或 otherwise。
+
+
+
+##### trim
+
+`<trim>`元素的主要功能是可以在自己包含的内容前加上某些前缀，也可以在其后加上某些后缀，与之对应的属性是prefix和suffix；可以把包含内容的首部的某些内容覆盖，即忽略，也可以把尾部的某些内容覆盖，对应的属性是prefixOverrides和suffixOverrides；正因为`<trim>`元素有这样的功能，所以也可以非常简单地利用`<trim>`来代替`<where>`元素的功能。
+
+```xml
+<!-- 使用trim元素，根据条件动态查询用户信息 -->
+<select id="selectUserByTrim"  resultType="com.po.MyUser" parameterType="com.po.MyUser">
+    select * from user 
+    <trim prefix="where" prefixOverrides="and |or"> 
+        <if test="uname !=null and uname!=''">  
+            and uname like concat('%',#{uname},'%')
+        </if>  
+        <if test="usex !=null and usex!=''">  
+            and usex = #{usex} 
+        </if>    
+    </trim>  
+</select>
+```
+
+即把上文的 `where 1=1` 略掉了。
+
+
+
+##### where
+
+`<where>`元素的作用是会在写入`<where>`元素的地方输出一个where语句，另外一个好处是不需要考虑`<where>`元素里面的条件输出是什么样子的，MyBatis将智能处理。如果所有的条件都不满足，那么MyBatis就会查出所有的记录，如果输出后是and 开头的，MyBatis会把第一个and忽略，当然如果是or开头的，MyBatis也会把它忽略；此外，在`<where>`元素中不需要考虑空格的问题，MyBatis将智能加上。
+
+```xml
+<!-- 使用where元素，根据条件动态查询用户信息 -->
+<select id="selectUserByWhere"  resultType="com.po.MyUser" parameterType="com.po.MyUser">
+    select * from user 
+    <where>
+        <if test="uname !=null and uname!=''">
+            and uname like concat('%',#{uname},'%')
+        </if>
+        <if test="usex !=null and usex!=''">
+            and usex = #{usex}
+        </if>
+    </where>
+</select>
+```
+
+跟 trim 差不多
+
+
+
+##### set
+
+更新列
+
+```xml
+<!-- 使用set元素，动态修改一个用户 -->
+<update id="updateUserBySet" parameterType="com.po.MyUser">
+    update user 
+    <set>
+        <if test="uname != null">uname=#{uname},</if>
+        <if test="usex != null">usex=#{usex}</if>
+    </set>
+    where uid = #{uid}
+</update>
+```
+
+如果只有一个 if 满足，那个多余的逗号不会在最后生成的表达式出现
+
+
+
+##### foreach
+
+`<foreach>`元素主要用在构建in条件中，它可以在SQL语句中进行迭代一个集合。foreach元素的属性主要有item，index，collection，open，separator，close。
+
+item表示集合中每一个元素进行迭代时的别名，index指定一个名字，用于表示在迭代过程中，每次迭代到的位置，
+
+open表示该语句以什么开始，
+
+separator表示在每次进行迭代之间以什么符号作为分隔符，
+
+close表示以什么结束。
+
+在使用`<foreach>`时，最关键的也是最容易出错的是collection属性，该属性是必选的，但在不同情况下，该属性的值是不一样的，主要有以下3种情况：
+    如果传入的是单参数且参数类型是一个List的时候，collection属性值为list。
+    如果传入的是单参数且参数类型是一个array数组的时候，collection的属性值为array。
+    如果传入的参数是多个时，需要把它们封装成一个Map，当然单参数也可以封装成Map。Map的key是参数名，collection属性值是传入的List或array对象在自己封装的Map中的key。
+
+如：
+
+```xml
+<!-- 使用foreach元素，查询用户信息 -->
+<select id="selectUserByForeach" resultType="com.po.MyUser"  parameterType="List">
+    select * from user where uid in
+    <foreach item="item" index="index" collection="list" open="(" separator="," close=")">
+        #{item}
+    </foreach>
+</select>
+```
+
+调用：
+
+```java
+public List<MyUser> selectUserByForeach(List<Integer> listId);
+```
+
+
+
+```java
+List<Integer> listIds = new ArrayList<Integer>();
+listIds.add(31);
+listIds.add(32);
+List<MyUser> listForeach = userDao.selectUserByForeach(listIds);
+System.out.println("Foreach元素================");
+for (MyUser myUser : listForeach) {
+	System.out.println(myUser);
+}
+```
+
+
+
+##### bind
+
+在模糊查询时，如果使用“${}”拼接字符串，则无法防止SQL注入问题。如果使用字符串拼接函数或连接符号，但不同数据库的拼接函数或连接符号不同，如MySQL的concat函数、Oracle的连接符号“||”。这样，SQL映射文件就需要根据不同的数据库提供不同的实现，显然是比较麻烦，且不利于代码的移植
+
+即实现字符串连接操作，如：
+
+```xml
+<!-- 使用bind元素进行模糊查询 -->
+<select id="selectUserByBind" resultType="com.po.MyUser"  parameterType="com.po.MyUser">
+    <!-- bind中uname是com.po.MyUser的属性名 -->
+    <bind name="param_uname" value="'%' + uname + '%'"/>
+    select * from user where uname like #{param_uname}
+</select>
+```
+
+
+
