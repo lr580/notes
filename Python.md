@@ -4649,13 +4649,28 @@ rows, cols = img.size
 大小缩放：
 
 ```python
-img = img.resize((rows, cols), Image.ANTIALIAS)
+img = img.resize((rows, cols), Image.Resampling.BICUBIC)
 ```
 
 保存：
 
 ```python
 img.save(文件名)
+```
+
+
+
+#### 图片旋转
+
+```python
+from PIL import Image
+import matplotlib.pyplot as plt
+path = input("请输入图片相对或绝对路径:")
+img = Image.open(path)
+ang = float(input("请输入逆时针旋转角(任意角度):"))
+img1 = img.rotate(ang, expand=True)
+plt.imshow(img1)
+plt.show()
 ```
 
 
