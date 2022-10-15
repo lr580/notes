@@ -17068,6 +17068,39 @@ public class MoreToMoreController {
 
 
 
+> 例子2：一个用户多个订单，一个订单多个商品，给定用户名，查询它的每个订单以及每个商品(以订单列表+(每个订单内嵌商品列表)输出)
+>
+> ```xml
+> <?xml version="1.0" encoding="UTF-8" ?>
+> <!DOCTYPE mapper
+> PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+> "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+> <mapper namespace="work7.dao.OrderDao">
+> 	<resultMap type="work7.pojo.Order" id="OrderRM">
+> 		<id property="id" column="order_id" />
+> 		<result property="money" column="order_money" />
+> 		<result property="receiverinfo" column="order_receiverinfo" />
+> 		<result property="timestamp" column="order_time" />
+> 		<result property="userid" column="user_id" />
+> 		<collection property="orderItems" javaType="List"
+> 			ofType="work7.pojo.OrderItem" column="order_id"
+> 			select="queryOrderItems" />
+> 	</resultMap>
+> 	<select id="queryOrder" parameterType="String"
+> 		resultMap="OrderRM">
+> 		select * from t_order where user_id=#{uid}
+> 	</select>
+> 	<select id="queryOrderItems" parameterType="String"
+> 		resultType="work7.pojo.OrderItem">
+> 		select * from t_order_item where order_id=#{oid}
+> 	</select>
+> </mapper>
+> ```
+>
+> 解析：先查到一个 list，代表所有 order，然后通过 collection，对每个 order 再调一次 select，查到 items，将 items 存入 orders 的属性里。且本例里 order 的属性名与数据库不一致，但 order item 一致。
+
+
+
 #### 动态SQL
 
 动态SQL通常要做的事情是有条件地包含where子句的一部分
@@ -17252,4 +17285,187 @@ for (MyUser myUser : listForeach) {
 ```
 
 
+
+#### 其他
+
+##### 数据库与POJO属性不一致
+
+###### as
+
+可以用 as 来重定义，如：
+
+```mysql
+use easydb;
+DROP TABLE IF EXISTS t_order;
+CREATE TABLE t_order (
+  order_id char(36) NOT NULL DEFAULT '',
+  order_money double DEFAULT '0',
+  order_receiverinfo varchar(255) DEFAULT '',
+  order_paystate int(11) DEFAULT '0',
+  order_time timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  user_id char(36) DEFAULT NULL,
+  PRIMARY KEY (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+```
+
+```java
+package work7.pojo;
+
+import java.sql.Timestamp;
+
+public class Order {
+    private String id;
+    private double money;
+    private String receiverinfo;
+    private int paystate;
+    private Timestamp timestamp;
+    private String userid;
+    //adder and setter, tostring via source
+```
+
+```xml
+<mapper namespace="work7.dao.OrderDao">
+	<select id="findAll" resultType="work7.pojo.Order">
+		select
+		order_id as id,
+		order_money as money,
+		order_receiverinfo as receiverinfo,
+		order_paystate as paystate,
+		order_time as timestamp,
+		user_id as userid
+		from t_order;
+	</select>
+    <!-- select结尾有无分号无所谓 -->
+</mapper>
+```
+
+```java
+@Test
+public void test01() {
+    @SuppressWarnings("resource")
+    ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+    OrderDao orderDao = (OrderDao) context.getBean("orderDao");
+    List<Order> orders = orderDao.findAll();
+    for (Order order : orders) {
+        System.out.println(order);
+    }
+    System.out.println("Done");
+}
+```
+
+
+
+###### resultMap
+
+在上例，修改：
+
+```xml
+<resultMap type="work7.pojo.Order" id="OrderRM">
+    <id property="id" column="order_id" />
+    <result property="money" column="order_money" />
+    <result property="receiverinfo" column="order_receiverinfo" />
+    <result property="timestamp" column="order_time" />
+    <result property="userid" column="user_id" />
+    <result property="未知列名" column="未出现的列" />
+    <!-- 上一行代码表明了无关多余列不会引起报错,即看成不必全用的map即可 -->
+</resultMap>
+<select id="findAll" resultMap="OrderRM">
+    select * from t_order;
+</select>
+```
+
+
+
+##### @Param
+
+对 `#{}` 的一般数据类型进行约定定义，可以在 DAO 定义参数那里加上 `@Param("名字")`，如：
+
+```java
+import org.apache.ibatis.annotations.Param;
+public List<Order> queryOrder(@Param("uid") String userid);
+```
+
+```xml
+<select id="queryOrder" parameterType="String"
+        resultMap="OrderRM">
+    select * from t_order where user_id=#{uid}
+</select>
+```
+
+
+
+##### public
+
+如果 POJO 用了 public 属性，可以不用 getter 和 setter
+
+```java
+package work7.pojo;
+
+public class OrderItem {
+    public String product_id;
+    public String product_name;
+    public double product_price;
+    public String product_category;
+    public String product_imgurl;
+    public int product_num;
+    public String product_description;
+
+    @Override
+    public String toString() {
+        return "OrderItem [product_id=" + product_id + ", product_name=" + product_name
+                + ", product_price=" + product_price + ", product_category=" + product_category
+                + ", product_imgurl=" + product_imgurl + ", product_num=" + product_num
+                + ", product_description=" + product_description + "]";
+    }
+}
+```
+
+```mysql
+DROP TABLE IF EXISTS t_order_item;
+CREATE TABLE t_order_item (
+  id bigint(20) NOT NULL AUTO_INCREMENT,
+  order_id char(100) DEFAULT NULL,
+  product_id char(36) DEFAULT NULL,
+  num int(11) DEFAULT '0',
+  product_image varchar(500) DEFAULT NULL,
+  product_name varchar(100) DEFAULT NULL,
+  product_price double DEFAULT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB AUTO_INCREMENT=138 DEFAULT CHARSET=utf8;
+```
+
+```xml
+<select id="queryOrderItems" parameterType="String"
+    resultType="work7.pojo.OrderItem">
+    select * from t_order_item where order_id=#{oid}
+</select>
+```
+
+```java
+public List<OrderItem> queryOrderItems(String orderid);
+```
+
+
+
+### Spring MVC
+
+#### 概念
+
+![image-20221013105245724](img/image-20221013105245724.png)
+
+原理：
+
+![image-20221013110012531](img/image-20221013110012531.png)
+
+包含4个Spring MVC接口：DispatcherServlet、HandlerMapping、Controller和ViewResoler。
+
+Spring MVC所有的请求都经过DispatcherServlet来统一分发。DispatcherServlet将请求分发给Controller之前，需要借助于Spring MVC提供的HandlerMapping定位到具体的Controller。
+
+HandlerMapping接口负责完成客户请求到Controller映射。
+
+Controller接口将处理用户请求，这和Java Servlet扮演的角色是一致的。一旦Controller处理完用户请求，则返回ModelAndView对象给DispatcherServlet前端控制器，ModelAndView中包含了模型（Model）和视图（View）。
+
+从宏观角度考虑，DispatcherServlet是整个Web应用的控制器；从微观考虑，Controller是单个Http请求处理过程中的控制器，而ModelAndView是Http请求过程中返回的模型（Model）和视图（View）。
+
+ViewResolver接口（视图解析器）在Web应用中负责查找View对象，从而将相应结果渲染给客户。
 
