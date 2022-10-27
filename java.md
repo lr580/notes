@@ -191,6 +191,8 @@ tab用四个空格而不是\t：首先 window-general-editor-text editor-勾选 
 
 修改jar版本：右击项目property-java build path-libraries-jre system library-edit/remove-对应改版本即可
 
+修改默认jar版本：preference-java-install jres-add-找到本地java根目录确认
+
 项目重命名：右击refactor-rename即可。
 
 右击项目，选team-share。可以点create一键造分支。在windows-show view-others-git-git staging可以打开图形化下方面板，就是一个普通的图形化git。
@@ -206,6 +208,14 @@ tab用四个空格而不是\t：首先 window-general-editor-text editor-勾选 
 alt+shift+f 自动格式化
 
 alt+shift+y 自动拆行(即超过行宽自动换行，再按一次取消)
+
+##### 插件
+
+源：windows-preference-install/update-available software sites 或 help-install new software-add
+
+安装:help-install new software / eclipse marketplace
+
+离线安装：下载 jar，拖到 `eclipse/plugins`，重启软件
 
 
 
@@ -17469,3 +17479,1448 @@ Controller接口将处理用户请求，这和Java Servlet扮演的角色是一�
 
 ViewResolver接口（视图解析器）在Web应用中负责查找View对象，从而将相应结果渲染给客户。
 
+
+
+#### 程序例子
+
+##### hello world
+
+安装 tomcat，需要访问 [官网](https://tomcat.apache.org/download-90.cgi)，右方菜单栏点 tomcat9，下载 core 的 zip。然后解压，把 tomcat 解压目录的 bin 添加到全局目录。然后打开 bin 里面的 `setclasspath.bat`，添加代码：`set JAVA_HOME=D:\Program Files (x86)\java`，其中那个路径修改为自己的 java 根目录。需要保证 java 真的是 1.8 版本的。验证：shell 输入 `java -version`，如果不是就删一下全局路径等，然后重开 shell，直到可以为止。
+
+在 [这里](https://sourceforge.net/projects/tomcatplugin/) 下载插件，解压，打开 plugins，选择与当前环境匹配的如 `9.1.2`，拉到 `eclipse/plugins`，重启 plugins。检验成功：preference 能看到 tomcat 项。
+
+确保本地 eclipse **默认** java 版本是 1.8，否则会报错 `找不到或无法加载主类 org.apache.catalina.startup.Bootstrap`。
+
+导入包，包括 `commons-logging` 和 `spring` 全家桶即 `aop,beans,context,core,expression,web,webmvc`。
+
+右击项目，点property-deployment assembly-add-java build path entries-全选确认
+
+如果跑动了，但 404，且断定无路径错误，出现 `The origin server did not find a current representation for the target...`，尝试看到栏目下方的 servers，右击close,clear, add and remove 净空，然后开到双击出来的页面，可以尝试把 server locations 调成 use tomcat installation。(不调好像也行)
+
+找到 `webapp/WEB-INF/`(或 `?/WEB-INF/`)，部署 `web.xml` 和 `xxx-servlet.xml` 文件分别为：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xmlns="http://xmlns.jcp.org/xml/ns/javaee" 
+xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd" 
+id="WebApp_ID" version="4.0">
+<!--注意自己开的项目dynamic web project 的版本号，要对应上-->
+<!--部署DispatcherServlet-->
+<servlet>
+    <servlet-name>xxx</servlet-name>
+    <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+    <!-- 表示容器在启动时立即加载servlet -->
+    <load-on-startup>1</load-on-startup>
+</servlet> 
+<servlet-mapping>
+	<servlet-name>xxx</servlet-name>
+	<!-- 处理所有URL-->
+    <url-pattern>/</url-pattern>
+</servlet-mapping>
+</web-app>
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="
+    	   http://www.springframework.org/schema/beans 
+    	   http://www.springframework.org/schema/beans/spring-beans.xsd">                 
+  <!--LoginController控制器类，映射到“/login”  -->  
+  <bean name="/login" class="d1.controller.LoginController"/>
+  <!--RegisterController控制器类，映射到“/register”  --> 
+  <bean name="/register" class="d1.controller.RegisterController"/>
+  <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver"
+              id="internalResourceViewResolver">
+       <!-- 前缀 -->
+       <property name="prefix" value="/WEB-INF/jsp/" />
+       <!-- 后缀 -->
+       <property name="suffix" value=".jsp" />
+  </bean>
+    <!--根目录就是webapp-->
+</beans>
+```
+
+如果路径不放这个地方，需要 `web.xml` 指定路径，如：
+
+```xml
+<init-params>
+    <param-name>contextConfigLocation</param-name>
+    <param-value>/WEN-INF/spring-config/springmvc-servlet.xml</param-value>  
+</init-params>    
+```
+
+同目录创建 `jsp` 文件夹，在内创建两个文件 `login.jsp`, `register.jsp`，如：
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+	登录页面。
+</body>
+</html>
+```
+
+在 `webapp/` 创建 `index.jsp`，即· `WEB-INF` 父目录。如：
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=utf-8"
+    pageEncoding="utf-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Insert title here</title>
+</head>
+<body>
+没注册的用户，请<a href="${pageContext.request.contextPath }/register">注册</a>！</br>
+已注册的用户，去<a href="${pageContext.request.contextPath }/login">登录</a>！
+</body>
+
+</html>
+```
+
+创建两个对应 `xml` 的类：
+
+```java
+package d1.controller;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.mvc.Controller;
+
+public class LoginController implements Controller {
+    @Override
+    public ModelAndView handleRequest(HttpServletRequest arg0, HttpServletResponse arg1)
+            throws Exception {
+        return new ModelAndView("login");
+    }
+}
+```
+
+这里 `login` 是根据上文 `xml` 自动补全了路径前后缀的。
+
+运行：run as-run on server。
+
+假设项目名是 `chn`，则打开：`http://localhost:8080/chn`
+
+
+
+##### 登录
+
+先连接一个数据库(见上文 `mybatis`)，如：
+
+```mysql
+USE easymall;
+DROP TABLE IF EXISTS user;
+CREATE TABLE user (
+  id int(11) NOT NULL auto_increment,
+  username varchar(20) default NULL,
+  password varchar(40) default NULL,
+  nickname varchar(100) default NULL,
+  email varchar(60) default NULL,
+  PRIMARY KEY  (id)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8;
+```
+
+将 `easymall.po.User` 对应设置上这个数据表的 POJO，然后装配好 `easymall.mybatis `，包括 `easymall.dao.UserDao`，然后写一个 Service 实现类：
+
+```java
+package easymall.service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import easymall.dao.UserDao;
+import easymall.po.User;
+@Service("userService")
+public class UserServiceImpl implements UserService {
+    @Autowired
+    private UserDao userDao;
+    @Override
+    public boolean login(User user) {
+        return userDao.login(user) != null;
+    }
+}
+```
+
+然后到 `webapp` 根目录下，显然放一个 `index.jsp`，如：
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> 
+    <title>Ch10.2</title>
+  </head>
+  <body>
+    没注册的用户，滚去<a href="${pageContext.request.contextPath }/index/register">注册</a>！<br>
+    已注册的用户，滚去<a href="${pageContext.request.contextPath }/index/login">登录</a>！
+  </body>
+</html>
+```
+
+去到 `WEB-INF`，放 `web.xml`：
+
+```xml
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xmlns="http://xmlns.jcp.org/xml/ns/javaee" 
+xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee 
+http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd" version="4.0">
+  <display-name>springmvc</display-name>
+  <welcome-file-list>
+    <welcome-file>index.html</welcome-file>   
+    <welcome-file>index.jsp</welcome-file>
+  </welcome-file-list>
+  <!-- 实例化application容器 -->
+  <context-param>
+  	<param-name>contextConfigLocation</param-name>
+  	<param-value>classpath:applicationContext.xml</param-value>
+  </context-param>
+  <!-- 指定一ContextLoaderListener方式启动Spring容器 -->
+  
+  <listener>
+  	<listener-class>
+  		org.springframework.web.context.ContextLoaderListener
+  	</listener-class>
+  </listener>
+  
+  <!-- 配置 DispatcherServlet-->
+  <servlet>
+    <servlet-name>springmvc</servlet-name>
+    <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>springmvc</servlet-name>
+    <url-pattern>/</url-pattern>
+  </servlet-mapping>
+  
+<!-- 避免中文乱码 -->
+<filter>
+    	<filter-name>characterEncodingFilter</filter-name>
+    	<filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+    	<init-param>
+      		<param-name>encoding</param-name>
+      		<param-value>UTF-8</param-value>
+    	</init-param>
+    	<init-param>
+     		 <param-name>forceEncoding</param-name>
+      		<param-value>true</param-value>
+    	</init-param>
+  </filter>
+  <filter-mapping>
+    <filter-name>characterEncodingFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+</filter-mapping>   
+
+</web-app>
+```
+
+放 `springmvc-servlet.xml`：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xmlns:context="http://www.springframework.org/schema/context" 
+xmlns:mvc="http://www.springframework.org/schema/mvc" 
+xsi:schemaLocation="http://www.springframework.org/schema/beans 
+http://www.springframework.org/schema/beans/spring-beans.xsd 
+http://www.springframework.org/schema/context 
+http://www.springframework.org/schema/context/spring-context.xsd 
+http://www.springframework.org/schema/mvc 
+http://www.springframework.org/schema/mvc/spring-mvc.xsd ">
+
+
+<!-- 使用扫描机制，扫描控制器类 -->
+<context:component-scan base-package="easymall.controller"/>     
+ 
+    
+<mvc:annotation-driven />
+  <!-- annotation-driven用于简化开发的配置，
+    注解DefaultAnnotationHandlerMapping和AnnotationMethodHandlerAdapter -->
+    <!-- 使用resources过滤掉不需要dispatcher servlet的资源。
+    使用resources时，必须使用annotation-driven，不然resources元素会阻止任意控制器被调用。
+    如果不使用resources，则annotation-driven可以没有。 -->  
+    
+    <!-- 允许css目录下所有文件可见 -->
+    <mvc:resources location="/WEB-INF/css/" mapping="/css/**"></mvc:resources> 
+    <!-- 允许html目录下所有文件可见 -->
+    <mvc:resources location="/WEB-INF/html/" mapping="/html/**"></mvc:resources> 
+     <!--允许images目录下所有文件可见 -->
+    <mvc:resources location="/WEB-INF/images/" mapping="/images/**"></mvc:resources> 
+                  	
+ <!-- 配置视图解析器 -->
+  	<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver"
+            id="internalResourceViewResolver">
+       <!-- 前缀 -->
+       <property name="prefix" value="/WEB-INF/jsp/" />
+       <!-- 后缀 -->
+       <property name="suffix" value=".jsp" />
+  </bean>
+</beans>
+```
+
+加子目录 `css/common.css` 如：
+
+```css
+* {
+	margin: 0px;
+	padding: 0px;
+}
+body {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	margin: 0px auto;
+	background-image: url(../images/bb.jpg)
+}
+a {
+	color: #000000;
+	text-decoration: none; 
+}
+a:hover {
+	background-color: #006633; 
+	color: #FFFFFF;
+}
+```
+
+加子目录 `images/,html/`，加点图片。
+
+加关键字目录 `jsp/`，里面有 `register.jsp`：
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<style type="text/css">
+	.textSize{
+		width: 100pt;
+		height: 15pt
+	}
+</style>
+<title>注册画面</title>
+<script type="text/javascript">
+	//注册时检查输入项
+	function allIsNull(){
+		var name=document.registForm.username.value;
+		var pwd=document.registForm.password.value;
+		var repwd=document.registForm.repassword.value;
+		if(name==""){
+			alert("请输入姓名！");
+			document.registForm.username.focus();
+			return false;
+		}
+		if(pwd==""){
+			alert("请输入密码！");
+			document.registForm.password.focus();
+			return false;
+		}
+		if(repwd==""){
+			alert("请输入确认密码！");
+			document.registForm.repassword.focus();
+			return false;
+		}
+		if(pwd!=repwd){
+			alert("2次密码不一致，请重新输入！");
+			document.registForm.password.value="";
+			document.registForm.repassword.value="";
+			document.registForm.password.focus();
+			return false;
+		}
+		document.registForm.submit();
+		return true;
+	}
+</script>
+</head>
+<body>
+<h1 align="center">请注册</h1>
+	<form action="${pageContext.request.contextPath }/user/register" method="post" name="registForm">
+		<table 
+		border=1 
+		bgcolor="lightblue" 
+		align="center">
+			<tr>
+				<td>姓名：</td>
+				<td>
+					<input class="textSize" type="text" name="username" value="${user.username }"/>
+				</td>
+			</tr>
+			
+			<tr>
+				<td>密码：</td>
+				<td><input class="textSize" type="password" maxlength="20" name="password"/></td>
+			</tr>
+			
+			<tr>
+				<td>确认密码：</td>
+				<td><input class="textSize" type="password" maxlength="20" name="repassword"/></td>
+			</tr>
+			
+			<tr>
+				<td colspan="2" align="center"><input type="button" value="注册" onclick="allIsNull()"/></td>
+			</tr>
+
+		</table>
+		<h2 align="center">${user.username}</h2>
+	</form>
+</body>
+</html>
+```
+
+ `login.jsp`：
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+  <head>  
+   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>后台登录</title>
+	<style type="text/css">
+	table{
+		text-align: center;
+	}
+	.textSize{
+		width: 120px;
+		height: 25px;
+	}
+	* {
+		margin: 0px;
+		padding: 0px;
+	}
+	body {
+		font-family: Arial, Helvetica, sans-serif;
+		font-size: 12px;
+		margin: 10px 10px auto;
+		background-image: url(${pageContext.request.contextPath }/images/bb.jpg);
+	}
+	</style>
+	<script type="text/javascript">
+	//确定按钮
+	function gogo(){
+		document.forms[0].submit();
+	}
+	//取消按钮
+	function cancel(){
+		document.forms[0].action = "";
+	}
+	</script>
+  </head>
+  <body>
+  	<form action="${pageContext.request.contextPath }/user/login" method="post">
+	<table>
+		<tr>
+			<td colspan="2"><img src="${pageContext.request.contextPath }/images/login.gif"></td>
+		</tr>
+		<tr>
+			<td>姓名：</td>
+			<td><input type="text" name="username"  class="textSize"></td>
+		</tr>
+		<tr>
+			<td>密码：</td>
+			<td><input type="password" name="password" class="textSize"></td>
+		</tr>
+		<tr>
+			<td colspan="2">
+				<input type="image" src="${pageContext.request.contextPath }/images/ok.gif" onclick="gogo()" >
+				<input type="image" src="${pageContext.request.contextPath }/images/cancel.gif" onclick="cancel()" >
+			</td>
+		</tr>
+	</table>
+	${messageError }
+	</form>
+  </body>
+</html>
+```
+
+`main.jsp`：
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>主页面</title>
+</head>
+<body>
+	欢迎${sessionScope.user.username }访问该系统。
+</body>
+</html>
+```
+
+然后做两个控制器：
+
+```java
+package easymall.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+@Controller
+@RequestMapping("/index")
+public class IndexController {
+    @RequestMapping("/login")
+    private String login() {
+        return "login";
+    }
+
+    @RequestMapping("/register")
+    private String register() {
+        return "register";
+    }
+}
+```
+
+```java
+package easymall.controller;
+
+import javax.servlet.http.HttpSession;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+import easymall.po.User;
+import easymall.service.UserService;
+
+@Controller
+@RequestMapping("/user")
+public class UserController {
+    @Autowired
+    private UserService userService;
+
+    @RequestMapping("/login")
+    private String login(String username, String password, HttpSession session, Model model) {
+//        System.out.println(username + ", " + password);
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(password);
+        if (userService.login(user)) {
+            session.setAttribute("user", user);
+            return "main";
+        } else {
+            model.addAttribute("messageError", "用户名或密码错误");
+            return "login";
+        }
+    }
+
+    //暂时没用到
+    @RequestMapping("/dologin")
+    private String Login(User user, HttpSession session, Model model) {
+        if (userService.login(user)) {
+            session.setAttribute("user", user);
+            return "main";
+        } else {
+            model.addAttribute("messageError", "用户名或密码错误");
+            return "login";
+        }
+    }
+}
+```
+
+
+
+#### 控制器
+
+##### 注解装配
+
+###### 一般
+
+上文例子里设了两个控制器。
+
+使用基于注解的控制器，具有如下两个优点：
+1．在基于注解的控制器类中，可以编写多个处理方法，进而可以处理多个请求（动作）。这就允许将相关的操作编写在同一个控制器类中，从而减少控制器类的数量，方便以后的维护。
+2．基于注解的控制器不需要在配置文件中部署映射，仅需要使用`RequestMapping`注释类型注解一个方法进行请求处理。
+
+在Spring MVC中，使用`org.springframework.stereotype.Controller`注解类型声明某类的实例是一个控制器
+
+```java
+package controller;
+import org.springframework.stereotype.Controller;
+/** “@Controller”表示IndexController的实例是一个控制器
+ * @Controller相当于@Controller("indexController")
+ * 或@Controller(value = "indexController")
+ */
+@Controller
+public class IndexController {
+	//处理请求的方法
+}
+```
+
+显然可以在上文 `-servlet.xml` 开启包扫描如：
+
+```xml
+<context:component-scan base-package="controller"/>
+```
+
+在基于注解的控制器类中，可以为每个请求编写对应的处理方法，用 `org.springframework.web.bind.annotation.RequestMapping`
+
+方法级：
+
+```jsp
+<body>
+没注册的用户，请
+<a href="${pageContext.request.contextPath }/index/register">注册</a>！
+<br>
+已注册的用户，去
+<a href="${pageContext.request.contextPath }/index/login">登录</a>！
+</body>
+```
+
+```java
+@Controller
+public class IndexController {
+	@RequestMapping(value = "/index/login")
+	public String login() {
+	/**login代表逻辑视图名称，需要根据Spring MVC配置
+	 * 文件中internalResourceViewResolver的前缀和后缀找到对应的物理视图 */
+		return "login";    //      "/WEB-INF/jsp/login.jsp"
+	}
+	@RequestMapping(value = "/index/register")
+	public String register() {
+		return "register";    //      "/WEB-INF/jsp/register.jsp"
+	}
+}
+```
+
+类级别注解：
+
+```java
+@Controller
+@RequestMapping("/index")
+public class IndexController {
+	@RequestMapping("/login")
+	public String login() {
+		return "login";
+	}
+	@RequestMapping("/register")
+	public String register() {
+		return "register";
+	}
+}
+```
+
+即进行路径拼接。
+
+
+
+###### @Autowired
+
+在Spring MVC中，为了能被作为依赖注入，类必须使用`org.springframework.stereotype.Service`注解类型注明为@Service（一个服务）。另外，还需要在配置文件中使用`<context:component-scan base-package="基本包"/>`元素来扫描依赖基本包。
+
+
+
+##### 传入参数
+
+###### 实体bean
+
+例如上面一直使用的例子。
+
+可以加 get/post 表单，如：
+
+```java
+public class UserForm {
+	private String uname;//与请求参数名称相同
+	private String upass;
+	private String reupass;
+}
+```
+
+```jsp
+<td><input type="text" name="uname" class="textSize"></td>
+<td><input type="password" name="upass" class="textSize"></td>
+<td><input type="password" name="reupass" class="textSize"></td>
+```
+
+如 `register.jsp`：
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<style type="text/css">
+	.textSize{
+		width: 100pt;
+		height: 15pt
+	}
+</style>
+<title>注册画面</title>
+<script type="text/javascript">
+	//注册时检查输入项
+	function allIsNull(){
+		var name=document.registForm.uname.value;
+		var pwd=document.registForm.upass.value;
+		var repwd=document.registForm.reupass.value;
+		if(name==""){
+			alert("请输入姓名！");
+			document.registForm.uname.focus();
+			return false;
+		}
+		if(pwd==""){
+			alert("请输入密码！");
+			document.registForm.upass.focus();
+			return false;
+		}
+		if(repwd==""){
+			alert("请输入确认密码！");
+			document.registForm.reupass.focus();
+			return false;
+		}
+		if(pwd!=repwd){
+			alert("2次密码不一致，请重新输入！");
+			document.registForm.upass.value="";
+			document.registForm.reupass.value="";
+			document.registForm.upass.focus();
+			return false;
+		}
+		document.registForm.submit();
+		return true;
+	}
+</script>
+</head>
+<body>
+<h1 align="center">请注册</h1>
+	<form action="${pageContext.request.contextPath }/user/register" method="post" name="registForm">
+		<table 
+		border=1 
+		bgcolor="lightblue" 
+		align="center">
+			<tr>
+				<td>姓名：</td>
+				<td>
+					<input class="textSize" type="text" name="uname" value="${user.uname }"/>
+				</td>
+			</tr>
+			
+			<tr>
+				<td>密码：</td>
+				<td><input class="textSize" type="password" maxlength="20" name="upass"/></td>
+			</tr>
+			
+			<tr>
+				<td>确认密码：</td>
+				<td><input class="textSize" type="password" maxlength="20" name="reupass"/></td>
+			</tr>
+			
+			<tr>
+				<td colspan="2" align="center"><input type="button" value="注册" onclick="allIsNull()"/></td>
+			</tr>
+
+		</table>
+		<h2 align="center">${user.uname}</h2>
+	</form>
+</body>
+</html>
+```
+
+`login.jsp`：
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+  <head>  
+   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>后台登录</title>
+	<style type="text/css">
+	table{
+		text-align: center;
+	}
+	.textSize{
+		width: 120px;
+		height: 25px;
+	}
+	* {
+		margin: 0px;
+		padding: 0px;
+	}
+	body {
+		font-family: Arial, Helvetica, sans-serif;
+		font-size: 12px;
+		margin: 10px 10px auto;
+		background-image: url(${pageContext.request.contextPath }/images/bb.jpg);
+	}
+	</style>
+	<script type="text/javascript">
+	//确定按钮
+	function gogo(){
+		document.forms[0].submit();
+	}
+	//取消按钮
+	function cancel(){
+		document.forms[0].action = "";
+	}
+	</script>
+  </head>
+  <body>
+  	<form action="${pageContext.request.contextPath }/user/login" method="post">
+	<table>
+		<tr>
+			<td colspan="2"><img src="${pageContext.request.contextPath }/images/login.gif"></td>
+		</tr>
+		<tr>
+			<td>姓名：</td>
+			<td><input type="text" name="uname"  class="textSize"></td>
+		</tr>
+		<tr>
+			<td>密码：</td>
+			<td><input type="password" name="upass" class="textSize"></td>
+		</tr>
+		<tr>
+			<td colspan="2">
+				<input type="image" src="${pageContext.request.contextPath }/images/ok.gif" onclick="gogo()" >
+				<input type="image" src="${pageContext.request.contextPath }/images/cancel.gif" onclick="cancel()" >
+			</td>
+		</tr>
+	</table>
+	${messageError }
+	</form>
+  </body>
+</html>
+```
+
+在 `-servlet.xml` 可以添加：
+
+```xml
+<mvc:annotation-driven />
+<!-- annotation-driven用于简化开发的配置，
+    注解DefaultAnnotationHandlerMapping和AnnotationMethodHandlerAdapter -->
+<!-- 使用resources过滤掉不需要dispatcher servlet的资源。
+    使用resources时，必须使用annotation-driven，不然resources元素会阻止任意控制器被调用。
+    如果不使用resources，则annotation-driven可以没有。 -->  
+
+<!-- 允许css目录下所有文件可见 -->
+<mvc:resources location="/css/" mapping="/css/**"></mvc:resources> 
+<!-- 允许html目录下所有文件可见 -->
+<mvc:resources location="/html/" mapping="/html/**"></mvc:resources> 
+<!--允许images目录下所有文件可见 -->
+<mvc:resources location="/images/" mapping="/images/**"></mvc:resources> 
+```
+
+
+
+###### 处理方法形参
+
+对表单提交的信息，以参数形式在控制器列出：
+
+```java
+@RequestMapping("/register")
+public String register(String uname,String upass,Model model){
+    if("lisi".equals(uname) && "123456".equals(upass)){
+        logger.info("成功");
+        return "register";//返回register.jsp
+    }else {
+        logger.info("失败");
+        model.addAttribute("uname", uname);
+        return "register";//返回register.jsp
+    }
+}
+```
+
+还可以传入 `HttpSession session`。有 `session.getAttribute("属性名").toString()`。
+
+可以 `model.addAttribute("属性","字符串")`。将值渲染到 `jsp` 的 `{}`。
+
+
+
+###### get/post
+
+通过`HttpServletRequest`接收请求参数，适用于get和post提交请求方式
+
+```java
+public String register(HttpServletRequest request, Model model) {
+	String uname = request.getParameter("uname");
+	String upass = request.getParameter("upass");
+    if("chenxiao".equals(uname) 
+       && "123456".equals(upass)){
+        logger.info("成功");
+        return "register";//返回register.jsp
+    }else {
+        logger.info("失败");
+        model.addAttribute("uname", uname);
+        return "register";//返回register.jsp
+    }
+}
+```
+
+
+
+###### URL
+
+```java
+@RequestMapping(value="/register/{uname}/{upass}", method=RequestMethod.GET)
+public String register(@PathVariable String uname,@PathVariable String upass, Model model) {
+	if("zhangsan".equals(uname) 
+			&& "123456".equals(upass)){
+		logger.info("成功");
+		return "login";//返回register.jsp
+	}else {
+		logger.info("失败");
+		model.addAttribute("uname", uname);
+		return "register";//返回register.jsp
+	}
+}       //http://localhost:8080/Ch10.2.1/user/register/zhangsan/123456
+```
+
+对 POST，需要 `HttpServletRequest` 对象，`HttpServletResponse` 对象，后者有 `getWriter().print()` 方法。
+
+
+
+###### @RequestParam
+
+通过`@RequestParam`接收请求参数，适用于get和post提交请求方式。当请求参数与接收参数名不一致时，“通过处理方法的形参接收请求参数”不会报404错误，而“通过`@RequestParam`接收请求参数”会400错误
+
+```java
+@RequestMapping("/register")
+public String register(@RequestParam String uname,@RequestParam String upass, Model model) {
+    if("zhangsan".equals(uname) 
+       && "123456".equals(upass)){
+        logger.info("成功");
+        return "login";//返回register.jsp
+    }else {
+        logger.info("失败");
+        model.addAttribute("uname", uname);
+        return "register";//返回register.jsp
+    }
+}
+```
+
+
+
+###### @ModelAttribute
+
+`@ModelAttribute`注解放在处理方法的形参上时，用于将多个请求参数封装到一个实体对象，从而简化数据绑定流程，而且自动暴露为模型数据用于视图页面展示时使用。而10.2.1节中只是将多个请求参数封装到一个实体对象，并不能暴露为模型数据（需要使用`model.addAttribute`语句才能暴露为模型数据，数据绑定与模型数据展示，可参考第12章的内容）。
+通过`@ModelAttribute`注解接收请求参数，适用于get和post提交请求方式
+
+```java
+@RequestMapping("/register")
+public String register(@ModelAttribute("user") UserForm user) {
+	if("zhangsan".equals(user.getUname()) && "123456".equals(user.getUpass())){
+		logger.info("成功");
+		return "login";//注册成功，跳转到login.jsp
+	}else{
+		logger.info("失败");
+//使用@ModelAttribute("user")与  model.addAttribute("user", user)功能相同
+ //在register.jsp页面上可以使用EL表达式${user.uname}取  出ModelAttribute的uname值
+		return "register";//返回register.jsp
+	}
+}
+```
+
+上述代码中“`@ModelAttribute("user") UserForm user`”语句的功能有两个，
+    一是将请求参数的输入封装到user对象中；
+    一是创建`UserForm`实例，以“user”为键值存储在Model对象中，与“`model.addAttribute("user", user)`”语句功能一样。如果没有指定键值，即“`@ModelAttribute UserForm user`”，那么创建`UserForm`实例时，以“`userForm`”为键值存储在Model对象中，与“`model.addAttribute("userForm", user)`”语句功能一样。
+
+被`@ModelAttribute`注解的方法，将在每次调用该控制器类的请求处理方法前被调用。这种特性可以用来控制登录权限，当然控制登录权限的方法很多，例如拦截器、过滤器等。
+
+注解一个非请求处理方法
+
+```java
+package controller;
+import javax.servlet.http.HttpSession;
+import org.springframework.web.bind.annotation.ModelAttribute;
+public class BaseController {
+	@ModelAttribute
+	public void isLogin(HttpSession session) throws Exception{
+		if(session.getAttribute("user")==null){
+			throw new Exception("没有权限");
+		}
+	}
+}
+
+```
+
+```java
+package controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+public class ModelAttributeController extends BaseController{
+	@RequestMapping("/add")
+	public String add(){
+		return "addSuccess";
+	}
+	@RequestMapping("/update")
+	public String update(){
+		return "updateSuccess";
+	}	
+	@RequestMapping("/delete")
+	public String delete(){
+		return "deleteSuccess";
+	}
+}
+```
+
+`ModelAttributeController`类中的add、update、delete请求处理方法执行时，先执行父类`BaseController`中的`isLogin`方法判断登录权限。
+
+
+
+> 代码汇总：
+>
+> ```java
+> package controller;
+> import javax.servlet.http.HttpServletRequest;
+> import javax.servlet.http.HttpSession;
+> import org.apache.commons.logging.Log;
+> import org.apache.commons.logging.LogFactory;
+> import org.springframework.stereotype.Controller;
+> import org.springframework.ui.Model;
+> import org.springframework.web.bind.annotation.ModelAttribute;
+> import org.springframework.web.bind.annotation.PathVariable;
+> import org.springframework.web.bind.annotation.RequestMapping;
+> import org.springframework.web.bind.annotation.RequestMethod;
+> import org.springframework.web.bind.annotation.RequestParam;
+> 
+> import pojo.UserForm;
+> @Controller
+> @RequestMapping("/user")
+> public class UserController {
+> 	//得到一个用来记录日志的对象，这样打印信息的时候能够标记打印的是那个类的信息
+> 	private static final Log logger = LogFactory.getLog(UserController.class);
+> 	//处理登录
+> 	@RequestMapping("/login")
+> 	public String login(UserForm user, HttpSession session, Model model) {
+> 		if("zhangsan".equals(user.getUname()) 
+> 				&& "123456".equals(user.getUpass())){
+> 			
+> 			session.setAttribute("u", user);
+> 			logger.info("成功");
+> 			return "main";//登录成功，跳转到main.jsp
+> 		}else{
+> 			logger.info("失败");
+> 			model.addAttribute("messageError", "用户名或密码错误");
+> 			return "login";
+> 		}	
+> 	}
+> /*
+> 	//处理注册
+> 	@RequestMapping("/register")
+> 	public String register(UserForm user,Model model) {
+> 		if("zhangsan".equals(user.getUname()) 
+> 				&& "123456".equals(user.getUpass())){
+> 			logger.info("成功");
+> 			model.addAttribute("message", "注册成功，注册的用户名是："+user.getUname());
+> 			//在register.jsp页面上可以使用EL表达式${message}取出
+> 			return "register";//注册成功，跳转到register.jsp
+> 		}else{
+> 			logger.info("失败");
+> 			return "register";//返回register.jsp
+> 		}
+> 	}
+> 
+> 	
+> 	@RequestMapping("/register")
+> 	public String register(String uname,String upass,Model model){
+> 		if("lisi".equals(uname) && "123456".equals(upass)){
+> 			logger.info("成功");
+> 			
+> 			model.addAttribute("message", "注册成功，注册的用户名是："+uname);
+> 			return "register";//返回register.jsp
+> 		}else {
+> 			logger.info("失败");
+> 			model.addAttribute("uname", uname);
+> 			return "register";//返回register.jsp
+> 		}
+> 	}
+> 
+> 
+> 	@RequestMapping("/register")
+> 	public String register(HttpServletRequest request, Model model) {
+> 		String uname = request.getParameter("uname");
+> 		String upass = request.getParameter("upass");
+> 		if("chenxiao".equals(uname) 
+> 				&& "123456".equals(upass)){
+> 			logger.info("成功");
+> 			model.addAttribute("message", "注册成功，注册的用户名是："+uname);
+> 			return "register";//返回register.jsp
+> 		}else {
+> 			logger.info("失败");
+> 			model.addAttribute("uname", uname);
+> 			return "register";//返回register.jsp
+> 		}
+> 	}
+> 
+> 	@RequestMapping(value="/register/{uname}/{upass}", method=RequestMethod.GET)
+> 	public String register(@PathVariable String uname,@PathVariable String upass, Model model) {
+> 		if("zhangsan".equals(uname) 
+> 				&& "123456".equals(upass)){
+> 			logger.info("成功");
+> 			model.addAttribute("message", "注册成功，注册的用户名是："+uname);
+> 			return "register";//返回register.jsp
+> 		}else {
+> 			logger.info("失败");
+> 			model.addAttribute("uname", uname);
+> 			return "register";//返回register.jsp
+> 		}
+> 	}
+> 	
+> 
+> 	@RequestMapping("/register")
+> 	public String register(@RequestParam String uname,@RequestParam String upass, Model model) {
+> 		if("zs".equals(uname) 
+> 				&& "123".equals(upass)){
+> 			logger.info("成功");
+> 
+> 			model.addAttribute("message", "注册成功，注册的用户名是："+uname);
+> 			return "register";//返回register.jsp
+> 		}else {
+> 			logger.info("失败");
+> 			model.addAttribute("uname", uname);
+> 			return "register";//返回register.jsp
+> 		}
+> 	}
+> */
+> 
+> @RequestMapping("/register")
+> public String register(@ModelAttribute("user") UserForm user) {
+> 	if("zs1".equals(user.getUname()) && "123".equals(user.getUpass())){
+> 		logger.info("成功");
+> 		return "register";//注册成功，跳转到login.jsp
+> 	}else{
+> 		logger.info("失败");
+> //使用@ModelAttribute("user")与  model.addAttribute("user", user)功能相同
+>  //在register.jsp页面上可以使用EL表达式${user.uname}取  出ModelAttribute的uname值
+> 		return "register";//返回register.jsp
+> 	}
+> }
+> }
+> ```
+
+
+
+
+
+#### 重定向和转发
+
+在Spring MVC框架中，控制器类中处理方法的return语句默认就是转发实现，只不过实现的是转发到视图。
+
+```java
+//转发到一个请求方法（同一个控制器类里，可省略/index/）
+return "forward:/index/isLogin";
+//重定向到一个请求方法
+return "redirect:/index/isRegister";
+//转发到一个视图
+return "register";
+```
+
+
+
+#### EL与JSTL
+
+Expression Language EL 表达是语言
+
+JSTL（Java server pages standarded tag library，即JSP标准标签库）
+
+##### 表达式语言
+
+EL 基本语法 `${表达式}`，类似 JSP 的 `<%=表达式>`，EL语句中的表达式值会被直接送到浏览器显示。
+
+1. `[]`, `.` 运算符，获取 JavaBean 的属性，获取数组中的元素以及获取对象中的元素，如：
+
+   JSP `<%=user.getAge ()%>` 对应 EL `${user.age}`, `${user["age"]}`
+
+   Servlet: `String dogs[] = {"lili","huahua","guoguo"};model.addAttribute("dogs", dogs);` 则 EL `${dogs[0]}`
+
+   Servlet:
+
+   ```java
+   ArrayList<UserBean> users = new ArrayList<UserBean>();
+   UserBean ub1 = new UserBean("zhang",20);
+   UserBean ub2 = new UserBean("zhao",50);
+   users.add(ub1);
+   users.add(ub2);
+   model.addAttribute("users", users);
+   ```
+
+   EL: `${users[0].name}`
+
+2. 算术运算符 `+-*/%`，可以 `div mod`。除不是整除
+
+   `${13/2}或${13 div 2}` 得到 `6.5`
+
+3. 关系运算符 `== != < <= > >=`，或 `eq ne lt gt le ge`，得到 `true/false`。
+
+4. 逻辑运算符 `&& || ! and or not`。得到同上。
+
+5. `empty` 运算符检测是否为 `null`，返回布尔值
+
+6. `${A ? B : C}` 三目条件运算符
+
+##### EL隐含对象
+
+共 11 个。
+
+与作用范围有关的EL隐含对象有：`pageScope`、`requestScope`、`sessionScope`和`applicationScope`，分别可以获取JSP隐含对象`pageContext`、request、session和application中的数据。如果在EL中没有使用隐含对象指定作用范围，则会依次从page、request、session、application范围查找，找到就直接返回，不再继续找下去，如果所有范围都没有找到，就返回空字符串。获取数据的格式如下：
+
+`${EL隐含对象.关键字对象.属性}或${EL隐含对象.关键字对象}`
+
+如：
+
+```c++
+ArrayList<User> users=new ArrayList<User>();
+User user1=new User("zs",20);
+User user2=new User("ls",20);
+users.add(user1);
+users.add(user2);
+request.setAttribute("users", users );
+```
+
+则 EL 为 `${requestScope.array[0].name}`。
+
+与请求参数相关的EL隐含对象有`param`和`paramValues`。获取数据的格式：`${EL隐含对象.参数名}`
+
+设有 `post` 表单里 `name='habit'` 的三个 `input` 标签的 `checkbox`，和输入框 `name='username'`。可以 `${param.username}, ${paramValue.habit[0]}`。
+
+
+
+##### 例子
+
+导包，除了 `commons-logging` 和 spring 全家桶 `aop,beans,context,core,expression,web,webmvc` 还有 `taglibs-standard-impl` 和 `taglibs-standard-spec`。初始化项目(不需要 `applicationContext.xml`)。要 `web.xml` 和 `-servlet.xml` 后者如
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+http://www.springframework.org/schema/beans/spring-beans.xsd 
+http://www.springframework.org/schema/context 
+http://www.springframework.org/schema/context/spring-context.xsd 
+http://www.springframework.org/schema/mvc 
+http://www.springframework.org/schema/mvc/spring-mvc.xsd ">
+	<!-- 使用扫描机制，扫描控制器类 -->
+	<context:component-scan
+		base-package="d2.controller" />
+	<!--LoginController控制器类，映射到“/login” -->
+	<bean
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver"
+		id="internalResourceViewResolver">
+		<!-- 前缀 -->
+		<property name="prefix" value="/WEB-INF/jsp/" />
+		<!-- 后缀 -->
+		<property name="suffix" value=".jsp" />
+	</bean>
+	<!--根目录就是webapp -->
+</beans>
+```
+
+建两个 `input.jsp`, `show.jsp` 分别为：
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Insert title here</title>
+</head>
+<body>一个页面！
+</body>
+</html>
+```
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+	${requestScope.name[0]}
+	<br>${address[0]}
+</body>
+</html>
+```
+
+创建一个类：
+
+```java
+package d2.controller;
+
+import javax.servlet.http.HttpServletRequest;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+@Controller
+public class InputController {
+    @RequestMapping("/input")
+    public String input(HttpServletRequest request, Model model) {
+        String names[] = { "白茶", "禾枫", "弥明", "果冻" };
+        request.setAttribute("name", names);
+        String address[] = { "A区", "B区" };
+        model.addAttribute("address", address);
+        return "show";
+    }
+}
+```
+
+
+
+##### JSTL标签库
+
+JSTL标准标签库由5个不同功能的标签库组成，包括Core、I18N、XML、SQL以及Functions
+
+库：`taglibs-standard-impl-1.2.5.jar,taglibs-standard-spec-1.2.5.jar` 
+
+如果使用Core标签库，首先需要在JSP页面中使用 `taglib` 标记定义前缀与`uri`引用，代码：`<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>`
+
+​    如果使用Functions标签库，首先需要在JSP页面中使用 `taglib` 标记定义前缀与 `uri` 引用，代码：`<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>`
+
+###### out
+
+`<c:out>`用来显示数据的内容，与 `<%= 表达式 %>` 或 `${表达式}` 类似。格式：`<c:out value="输出的内容" [default="defaultValue"]/>`或
+
+```jsp
+<c:out value="输出的内容">
+    defaultValue
+</c:out>
+```
+
+其中，value值可以是一个EL表达式，也可以是一个字符串；default可有可无，当value值不存在时，就输出`defaultValue`。也可以是属性如 `default="" />`。
+
+###### set
+
+设置作用域变量
+可以使用 `<c:set>` 在page、request、session、application等范围内设置一个变量。格式：`<c:set value="value" var="varName" [scope="page|request|session|application"]/>`
+
+如：`<c:set value="zhang" var="userName" scope="session"/>`
+
+相当于：
+`<% session.setAttribute("userName","zhang");%>`
+
+使用 `<c:set>` 设置JavaBean的属性时，必须使用target属性进行设置。格式：`<c:set value="value" target="target"  property="propertyName"/>`
+
+该代码将value值付给target对象(JavaBean对象)的`propertyName`属性。如果target为null或没有set方法则抛出异常。
+
+###### remove
+
+如果要删除某个变量，则可以使用`<c:remove>`标签。例如：
+	`<c:remove var="userName" scope="session"/>`相当于：
+`<%session.removeAttribute("userName") %>`
+
+###### if
+
+```jsp
+<c:if test="条件表达式">
+    主体内容
+</c:if>
+```
+
+其中，条件表达式可以是EL表达式，也可以是JSP表达式。如果表达式的值为true，则会执行`<c:if>`的主体内容，但是没有相对应的`<c:else>`标签。如果想在条件成立时执行一块内容，不成立时执行另一块内容，则可以使用`<c:choose>`、`<c:when>`及`<c:otherwise>`标签。
+
+```jsp
+<c:choose>
+    <c:when test="条件表达式1">
+        主体内容1
+    </c:when>
+    <c:when test="条件表达式2">
+        主体内容2
+    </c:when>
+    <c:otherwise>
+        表达式都不正确时，执行的主体内容
+    </c:otherwise>
+</c:choose>
+```
+
+###### for
+
+```jsp
+<c:forEach var="变量名" items="数组或Collection对象">
+    循环体
+</c:forEach>
+```
+
+其中，items属性可以是数组或Collection对象，每次循环读取对象中的一个元素，并赋值给`var`属性指定的变量，之后就可以在循环体使用`var`指定的变量获取对象的元素。
+
+```jsp
+<c:forEach var="x" varStatus="status" begin="0" end="10">
+    <tr>
+        <td>${x }</td><td>${x * x }</td>
+        <td>${status.index}</td>
+    </tr>
+</c:forEach>
+```
+
+`<c:forTokens>`用于迭代字符串中由分隔符分隔的各成员，它是通过`java.util.StringTokenizer`实例来完成字符串的分隔，属性items和`delims`作为构造`StringTokenizer`实例的参数。语法格式如下：
+
+```jsp
+<c:forTokens var="变量名" items="要迭代的String对象" delims="指定分隔字符串的分隔符">
+    循环体
+</c:forTokens>
+```
+
+例如：
+
+```jsp
+<c:forTokens items="a1:a2:a3" delims=":"  var="name">
+    ${name}<br/>
+</c:forTokens>
+```
+
+###### contains
+
+判断一个字符串中是否包含指定的子字符串。如果包含，则返回true，否则返回false。其定义如下：`contains(string, substring)` 如 `${fn:contains("I am studying", "am") }`
+
+不区分大小写的话：`containsIgnoreCase(string, substring)`
+
+###### endsWith
+
+该函数功能是判断一个字符串是否以指定的后缀结尾。其定义：`endsWith(string, suffix)`
+
+###### indexOf
+
+该函数功能是返回指定子字符串在某个字符串中第一次出现时的索引，找不到时，将返回-1。其定义 `indexOf(string, substring)`
+
+###### join
+
+该函数功能是将一个String数组中的所有元素合并成一个字符串，并用指定的分隔符分开。其定义如下：`join(array, separator)`
+
+###### length
+
+该函数功能是返回集合中元素的个数，或者字符串中的字符个数。其定义如下
+
+###### replace
+
+该函数功能是将字符串中出现的所有`beforestring`用`afterstring`替换，并返回替换后的结果 `replace(string, beforestring, afterstring)`
+
+###### split
+
+将一个字符串，使用指定的分隔符separator分离成一个子字符串数组 `split(string, separator)`
+
+###### startsWith
+
+判断一个字符串是否以指定的前缀开头。`startsWith(string, prefix)`
+
+###### substring
+
+返回一个字符串的子字符串，下标从 0 开始，范围是 $[begin,end)$
+
+`substring(string, begin, end)`
+
+###### toLowerCase
+
+同理 Upper。
+
+###### trim
+
+将一个字符串开头和结尾的空白去掉

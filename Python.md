@@ -315,7 +315,9 @@ dir(__builtins__)
 
 ### 编辑器
 
-#### ipynb
+#### jupyter
+
+##### ipynb
 
 一种支持python的笔记本格式，可以使用vscode打开，需要安装插件(其中pip的pywin32安装较慢，特别是清华镜像源，建议官网或别的地方找正确的版本自己下载whl安装，看正确的版本只需要在pip install pywin32自动安装失败时看看它用的文件名叫啥就好了)
 
@@ -324,6 +326,28 @@ ipynb使用十分简单，事实上就是一堆代码框，然后可以分块运
 这个工具的使用本身十分简单……本处不赘述
 
 这个工具跟自带IDLE相比，可以有vscode插件加成，有输入提示
+
+##### 安装
+
+```shell
+pip install jupyter
+```
+
+
+
+#### vscode
+
+常见问题：
+
+report missing import 警告：[可以直接忽略警告](https://blog.csdn.net/qq_39287793/article/details/121263322)，也可以手动设置路径。
+
+ctrl+shift+p 打开 `settings.json` (一般可能在用户文件夹的 `AppData\Roaming\Code\User\settings.json`)，追加： 
+
+```json
+"python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "none"
+},
+```
 
 
 
@@ -963,6 +987,8 @@ print(-float('-inf')/9-9) #是inf
 字符串
 
 字符串有加法连接和乘法重复。
+
+`r''` 代表里面的转义符一律当普通字符。
 
 ##### 函数
 
@@ -1889,6 +1915,10 @@ min(-1,1,key=abs) #-1
 min(1,-1,key=abs) #1
 ```
 
+##### hash
+
+返回 object 的十进制数字散列值。
+
 #### 数组函数
 
 > len、强转、range等详见数据类型-相关函数，本处主要介绍高阶函数。
@@ -1990,6 +2020,34 @@ while True:
 ###### exec
 
 执行一行到多行代码，可以是任意代码。同样有上述参数。没有返回值。
+
+#### 元/反射
+
+##### vars
+
+查看当前已定义的所有变量名(key)及其取值，以 dict 形式输出。变量包括函数变量和常规变量，即 def 的东西也会在。如：`print(vars())`。如果传入的参数是一个 object，返回该参数的所有属性及其取值。如：
+
+```python
+class obj:
+    a = 1
+print(vars(obj))
+```
+
+##### locals
+
+与不传参数的 `vars` 功能一致。返回当前位置局部变量。
+
+##### globals
+
+返回全局变量。与 `vars` 格式类似。
+
+#### 对象函数
+
+`setattr, hasattr, delattr` 等。
+
+##### getattr
+
+返回一个对象指定的属性，第一个参数是对象变量，第二个参数 str 是属性名
 
 ### 其他函数
 
@@ -2306,6 +2364,18 @@ fib.ffc() #warning
 
 
 
+#### \_\_import\_\_()
+
+内置函数。动态加载类和函数。
+
+```python
+__import__('a')
+```
+
+导入 `a.py`。
+
+有待深入研究。
+
 
 
 ### 常用标准库
@@ -2582,6 +2652,7 @@ $ 行结尾
 \S [^\t\n\r\f]
 \t 制表符
 \f 换页符
+\b 单词边界
 [^\x20-\x7f] 汉字
 [\u0800-\u4e00] 日文(不含汉字字符)
 [\u0800-\u4e00]{1,}|[^\x20-\x7f]{1,} 日文(含汉字字符)
@@ -2766,6 +2837,16 @@ re.sub(pattern, repl, string, count=0, flags=0)
 sub('\d+',lambda x:str(int(x.group(0))*2),'g6h99')
 #'g12h198'
 ```
+
+也可以返回字符串，如将 `ji` 替换为 `zhi yin`，反之相反的代码：
+
+```python
+s = re.sub(r'\bji\b', '#', s)
+s = re.sub(r'\bzhi yin\b', 'ji', s)
+s = re.sub('#', 'zhi yin', s)
+```
+
+
 
 
 
@@ -4027,8 +4108,10 @@ import numpy as np
 建立Numpy的数组
 
 ```python
-arr=np.array(数组)
+arr=np.array(数组, dtype=数据类型)
 ```
+
+> 如用 `asarray`，非必要不 copy。而 array 必须 copy
 
 查看维度：(一个tuple)
 
@@ -4046,6 +4129,16 @@ arr.reshape(tuple 维度)
 
 ```python
 np.zeros(维度)#单一维度可以用int，否则用tuple
+```
+
+> ```python
+> bins = np.zeros(256, np.float32)
+> ```
+
+建立未初始化的数组：
+
+```python
+np.empty(img1.shape, img1.dtype)
 ```
 
 建立一数组同理，用ones
@@ -4094,9 +4187,41 @@ h=np.insert(np.eye(5),1,values=np.ones(5),axis=0)  #values形状会随axis不同
 - rival 返回值是原数组的引用(原数组不被扁平化，修改返回值数组也会修改原数组)
 - flatten 返回值是原数组的副本，互不干扰
 
+
+
+##### 形变
+
+形状重组 `reshape(h,w)`，如：
+
+```python
+np.linspace(1,25,25).reshape(5,5)
+```
+
+类型转换方法 `astype`：
+
+```python
+np.linspace(1,25,25).reshape(5,5).astype(np.int8)
+```
+
+也可以用 `np.数据类型()`，如：
+
+```python
+output = np.uint8(output * 255)
+```
+
+维度增加：`np.newaxis`，如：
+
+```python
+np.array([1, 2, 3, 4])[:,np.newaxis]
+```
+
+
+
 ##### 运算
 
-运算：*是直接的，@是外积，如：
+`.shape` 属性看各维度大小，`.size` 看元素数
+
+运算：*是直接的，@是外积(`np.dot`)，如：
 
 ```python
 x=np.array([1,2,3,4,5])
@@ -4122,9 +4247,44 @@ np.concatenate((np.array([4,3,2]),np.array([0,-1])))
 np.sort(arr)
 ```
 
+逻辑运算，对每个元素操作，返回真值矩阵，如：
+
+```python
+np.random.uniform(low=0.0, high=1.0, size=(5,5))>0.5
+```
+
+
+
+##### 遍历
+
+以二维为例
+
+```python
+rows, cols = img0.shape[:2]
+for x0 in range(rows):
+    for y0 in range(cols):
+        img[x0, y0] = 255
+```
+
+```python
+rows, cols = img1.shape
+    img = np.empty((rows, cols*2), img1.dtype)
+    for i, v in np.ndenumerate(img1):
+        img[i] = img1[i]
+        img[(i[0], i[1]+cols)] = img2[i]
+```
+
+
+
+
+
 #### 常规运算
 
 ##### 普通运算
+
+点乘：`a*b`
+
+矩阵乘法：`np.dot(a,b)`
 
 $e^k$
 
@@ -4152,6 +4312,20 @@ np.random.randint(a,b)
 np.random.choice(a,k)
 ```
 
+高斯分布，如：
+
+```python
+np.random.normal(mean, sigma, image.shape).astype(dtype=np.float32
+```
+
+均匀分布：
+
+```python
+np.random.uniform(low=0.0, high=1.0, size=(5,5))
+```
+
+
+
 ##### 数组运算
 
 均值：
@@ -4172,6 +4346,16 @@ np.std(arr)
 np.linalg.inv(arr)
 ```
 
+限定范围(将高于低于边界的设为边界值)：
+
+```python
+np.clip(arr, minv, maxv)
+```
+
+
+
+
+
 #### 输出配置
 
 小数不需要以科学计数法的形式输出：
@@ -4183,6 +4367,43 @@ np.set_printoptions(suppress=True)
 - precision：控制输出的小数点个数，默认是8
 - threshold：控制输出的值的个数，其余以…代替；
   当设置打印显示方式`threshold=np.nan`，意思是输出数组的时候`完全输出，不需要省略号将中间数据省略`
+
+
+
+#### 应用举例
+
+##### 图片加噪手写
+
+```python
+def gaussian_noise(img, mean=0.1, sigma=0.1):
+    image = np.array(img / 255, dtype=np.float32)
+    noise = np.random.normal(mean, sigma, img.shape).astype(dtype=np.float32)
+    output = image + noise
+    output = np.clip(output, 0, 1)
+    output = np.uint8(output * 255)
+    return output
+
+
+def salt_pepper_noise(img, prob=0.02):
+
+    def add_uniform_noise(img, prob, val):
+        h, w = img.shape[:2]
+        noise = np.random.uniform(low=0.0, high=1.0, size=(h, w))
+        noise = noise.astype(dtype=np.float32)
+        mask = np.zeros(shape=(h, w), dtype=np.uint8) + val
+        idx = noise > prob
+        mask = mask * (~idx)
+        output = img * idx[:, :] + mask[:, :]
+        output = np.clip(output, 0, 255)
+        output = np.uint8(output)
+        return output
+
+    img = add_uniform_noise(img, prob, 255)
+    img = add_uniform_noise(img, prob, 0)
+    return img
+```
+
+
 
 ### matplotlib
 
@@ -4518,7 +4739,7 @@ grap.render_to_file('dice.svg') #生成可用浏览器打开的图表文件
 
 ### openpyxl
 
-###### 基础操作
+#### 基础操作
 
 安装：(window cmd命令)
 
@@ -4645,6 +4866,28 @@ cv2.imshow('src', src)  # 窗口名
 cv2.waitKey(0)
 ```
 
+#### 图像增强
+
+##### 直方图均衡化
+
+[原理](https://blog.csdn.net/qq_15971883/article/details/88699218)
+
+```python
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+import numpy as np
+import cv2 as cv
+img = mpimg.imread(r'res\Fig0203(a).tif')
+plt.subplot(1, 2, 1)
+plt.imshow(img, cmap="Greys_r")
+plt.subplot(1, 2, 2)
+img2 = cv.equalizeHist(img)
+plt.imshow(img2, cmap="Greys_r")
+plt.show()
+```
+
+
+
 
 
 ### pillow
@@ -4690,6 +4933,10 @@ img1 = img.rotate(ang, expand=True)
 plt.imshow(img1)
 plt.show()
 ```
+
+
+
+### scikit-image
 
 
 
