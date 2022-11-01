@@ -217,6 +217,10 @@ alt+shift+y 自动拆行(即超过行宽自动换行，再按一次取消)
 
 离线安装：下载 jar，拖到 `eclipse/plugins`，重启软件
 
+##### 视图
+
+恢复默认 window-perspective-reset perspective
+
 
 
 ### vscode
@@ -16481,7 +16485,7 @@ for (MyUser myUser : listParam) {
 
 ##### insert
 
-`<insert>`元素用于映射插入语句，MyBatis执行完一条插入语句后，将返回一个整数表示其影响的行数。它的属性与`<select>`元素的属性大部分相同，在本节讲解它的几个特有属性。具体如下：
+`<insert>`元素用于映射插入语句，MyBatis执行完一条插入语句后，将返回一个整数表示其影响的行数(成功插入数目)。它的属性与`<select>`元素的属性大部分相同，在本节讲解它的几个特有属性。具体如下：
 keyProperty：该属性的作用是将插入或更新操作时的返回值赋值给POJO类的某个属性，通常会设置为主键对应的属性。如果是联合主键，可以在多个值之间用逗号隔开。
 keyColumn：该属性用于设置第几列是主键，当主键列不是表中的第一列时需要设置。如果是联合主键时，可以在多个值之间用逗号隔开。
 useGeneratedKeys：该属性将使MyBatis使用JDBC的getGeneratedKeys()方法获取由数据库内部生产的主键，如MySQL、SQL Server等自动递增的字段，其默认值为false。
@@ -17496,6 +17500,8 @@ ViewResolver接口（视图解析器）在Web应用中负责查找View对象，�
 右击项目，点property-deployment assembly-add-java build path entries-全选确认
 
 如果跑动了，但 404，且断定无路径错误，出现 `The origin server did not find a current representation for the target...`，尝试看到栏目下方的 servers，右击close,clear, add and remove 净空，然后开到双击出来的页面，可以尝试把 server locations 调成 use tomcat installation。(不调好像也行)
+
+跑动后，每次修改网页代码不需要重启，过几秒钟会自己更新的，但是有些代码(如 bean 这边的)需要重启。
 
 找到 `webapp/WEB-INF/`(或 `?/WEB-INF/`)，部署 `web.xml` 和 `xxx-servlet.xml` 文件分别为：
 
@@ -18924,3 +18930,217 @@ JSTL标准标签库由5个不同功能的标签库组成，包括Core、I18N、X
 ###### trim
 
 将一个字符串开头和结尾的空白去掉
+
+
+
+#### 常用对象
+
+##### POJO
+
+参数可以按顺序填入对象，作为对象使用，如下面等效：
+
+```java
+private String login(String username, String password, HttpSession session, Model model) {
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(password);
+    ...
+```
+
+```java
+private String login(User user, HttpSession session, Model model) {
+```
+
+
+
+##### session
+
+```java
+import javax.servlet.http.HttpSession;
+```
+
+
+
+参数：`HttpSession session`
+
+常用方法：
+
+```java
+session.setAttribute("键", 对象);
+session.removeAttribute("键");
+session.getAttribute("键");
+session.invalidate();
+```
+
+##### HttpServletResponse
+
+```java
+import javax.servlet.http.HttpServletResponse;
+```
+
+注意别打成 request。
+
+
+
+参数：`HttpServletResponse response`
+
+常用方法：
+
+```java
+response.getWriter().print("恭喜您，用户名可以使用！");
+```
+
+示例：
+
+```js
+var url="${ pageContext.request.contextPath }/user/checkUser";
+var username=$("input[name='username']").val();
+$.post(url,{"username":username},
+    function(data){
+    	$("#username_msg").html(data);
+	}
+);
+```
+
+
+
+#### 其他例子
+
+##### 验证码
+
+主要知识是图片的 I/O 交互，如何输出出去
+
+```java
+package easymall.controller;
+
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Random;
+
+import javax.imageio.ImageIO;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+/**
+ * 验证码
+ */
+@Controller
+public class ValiImage {
+    // {"宋体", "华文楷体", "黑体", "华文新魏", "华文隶书", "微软雅黑", "楷体_GB2312"}
+    private static String[] fontNames = { "宋体", "华文楷体", "黑体", "微软雅黑", "楷体_GB2312" };
+    // 可选字符
+    // "23456789abcdefghjkmnopqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ";
+    private static String codes = "23456789abcdefghjkmnopqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ";
+    // 背景色
+    private Color bgColor = new Color(255, 255, 255);
+    // 基数(一个文字所占的空间大小)
+    private int base = 30;
+    // 图像宽度
+    private int width = base * 4;
+    // 图像高度
+    private int height = base;
+    // 文字个数
+    private int len = 4;
+    // 设置字体大小
+    private int fontSize = 22;
+
+    private BufferedImage img = null;
+    private Graphics2D g2 = null;
+
+    @RequestMapping("/index/valiImage")
+    public void validateCode(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        // TODO Auto-generated method stub
+        // 设置响应报头信息
+        response.setHeader("Pragma", "No-cache");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setDateHeader("Expires", 0);
+        // 设置响应的MIME类型
+        response.setContentType("image/jpeg");
+
+        // 1.创建图片缓冲区对象, 并设置宽高和图像类型
+        img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        // 2.得到绘制环境
+        g2 = (Graphics2D) img.getGraphics();
+        // 3.开始画图
+        // 设置背景色
+        g2.setColor(bgColor);
+        g2.fillRect(0, 0, width, height);
+
+        StringBuffer sb = new StringBuffer();// 用来装载验证码上的文本
+
+        for (int i = 0; i < len; i++) {
+            // 设置画笔颜色 -- 随机
+            // g2.setColor(new Color(255, 0, 0));
+            g2.setColor(new Color(getRandom(0, 150), getRandom(0, 150), getRandom(0, 150)));
+
+            // 设置字体
+            g2.setFont(new Font(fontNames[getRandom(0, fontNames.length)], Font.BOLD, fontSize));
+
+            // 旋转文字(-45~+45)
+            int theta = getRandom(-45, 45);
+            g2.rotate(theta * Math.PI / 180, 7 + i * base, height - 8);
+
+            // 写字
+            String code = codes.charAt(getRandom(0, codes.length())) + "";
+            g2.drawString(code, 7 + i * base, height - 8);
+            sb.append(code);
+            g2.rotate(-theta * Math.PI / 180, 7 + i * base, height - 8);
+        }
+
+        // 画干扰线
+        for (int i = 0; i < len + 2; i++) {
+            // 设置画笔颜色 -- 随机
+            // g2.setColor(new Color(255, 0, 0));
+            g2.setColor(new Color(getRandom(0, 150), getRandom(0, 150), getRandom(0, 150)));
+            g2.drawLine(getRandom(0, 120), getRandom(0, 30), getRandom(0, 120), getRandom(0, 30));
+        }
+        g2.setColor(Color.gray);
+        g2.drawRect(0, 0, width - 1, height - 1);
+
+        HttpSession se = request.getSession();
+        se.setAttribute("code", null);
+        se.setAttribute("code", sb.toString());
+
+        // 释放图形资源
+        g2.dispose();
+        try {
+            OutputStream os = response.getOutputStream();
+            // 输出图像到页面
+            ImageIO.write(img, "JPEG", os);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /*
+     * 生成随机数的方法
+     */
+    private static int getRandom(int start, int end) {
+        Random random = new Random();
+        return random.nextInt(end - start) + start;
+    }
+}
+```
+
+```jsp
+<img id="img"  src="${ pageContext.request.contextPath }/index/valiImage"/>
+```
+
+点击切换：
+
+> ```js
+> $("#img").click(function(){
+>     $(this).attr("src","${ pageContext.request.contextPath }/index/valiImage?time="+new Date().getTime());
+> });
+> ```
+

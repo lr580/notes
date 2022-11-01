@@ -749,6 +749,20 @@ git pull origin master:brantest
 
 
 
+只获取单一文件：先 `git fetch URL.git`，再 `git checkout 文件名`，如：
+
+```shell
+git init
+git fetch git@github.com:rushcheyo/AHOI-2021-junior.git
+git checkout solution.pdf
+```
+
+
+
+
+
+
+
 #### 克隆
 
 点fork，在自己的账号下克隆了一个仓库，之后使用：
