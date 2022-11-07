@@ -4141,6 +4141,12 @@ np.zeros(维度)#单一维度可以用int，否则用tuple
 np.empty(img1.shape, img1.dtype)
 ```
 
+```python
+np.empty_like(img, dtype=float) #复制形状
+```
+
+
+
 建立一数组同理，用ones
 
 建立python range：
@@ -4405,6 +4411,142 @@ def salt_pepper_noise(img, prob=0.02):
 
 
 
+##### 图片FFT
+
+```python
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+import numpy as np
+
+img = mpimg.imread(r'res\Fig0804(a).tif')
+f = np.fft.fft2(img)
+f = np.fft.fftshift(f)
+fimg = np.log(np.abs(f))
+f2 = np.fft.ifftshift(f)
+f2 = np.fft.ifft2(f2)
+f2img = np.abs(f2)
+
+plt.subplot(131)
+plt.imshow(img, 'gray')
+plt.subplot(132)
+plt.imshow(fimg, 'gray')
+plt.subplot(133)
+plt.imshow(f2img, 'gray')
+plt.show()
+```
+
+低通滤波：
+
+```python
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+import numpy as np
+
+img = mpimg.imread(r'res\Fig0804(a).tif')
+f = np.fft.fft2(img)
+f = np.fft.fftshift(f)
+
+
+def ILPF(img, d0, N=1):
+    h = np.empty_like(img, dtype=float)
+    m, n = img.shape
+    midx, midy = n // 2, m // 2
+    for x in range(n):
+        for y in range(m):
+            dis = ((x - midx)**2 + (y - midy)**2)**0.5
+            if dis <= d0:
+                h[y, x] = 1**N
+            else:
+                h[y, x] = 0**N
+    return h
+
+
+def BLPF(img, d0, N=2):
+    h = np.empty_like(img, dtype=float)
+    m, n = img.shape
+    midx, midy = n // 2, m // 2
+    for x in range(n):
+        for y in range(m):
+            dis = ((x - midx)**2 + (y - midy)**2)**0.5
+            h[y, x] = 1 / (1 + (dis / d0)**N)
+    return h
+
+
+def GLPF(img, d0, N=2):
+    h = np.empty_like(img, dtype=float)
+    m, n = img.shape
+    midx, midy = n // 2, m // 2
+    for x in range(n):
+        for y in range(m):
+            dis = ((x - midx)**2 + (y - midy)**2)**0.5
+            h[y, x] = np.exp(-dis**N / (2 * d0**N))
+    return h
+
+
+def ifft(f):
+    f2 = np.fft.ifftshift(f)
+    f2 = np.fft.ifft2(f2)
+    return np.abs(f2)
+
+
+img2 = ifft(ILPF(f, 15) * f)
+img3 = ifft(BLPF(f, 15) * f)
+img4 = ifft(GLPF(f, 15) * f)
+plt.subplot(221)
+plt.imshow(img, 'gray')
+plt.subplot(222)
+plt.imshow(img2, 'gray')
+plt.subplot(223)
+plt.imshow(img3, 'gray')
+plt.subplot(224)
+plt.imshow(img4, 'gray')
+plt.show()
+```
+
+高通滤波：
+
+```python
+def ILPF(img, d0, N=1):
+    h = np.empty_like(img, dtype=float)
+    m, n = img.shape
+    midx, midy = n // 2, m // 2
+    for x in range(n):
+        for y in range(m):
+            dis = ((x - midx)**2 + (y - midy)**2)**0.5
+            if dis <= d0:
+                h[y, x] = 0**N
+            else:
+                h[y, x] = 1**N
+    return h
+
+
+def BLPF(img, d0, N=2):
+    h = np.empty_like(img, dtype=float)
+    m, n = img.shape
+    midx, midy = n // 2, m // 2
+    for x in range(n):
+        for y in range(m):
+            dis = ((x - midx)**2 + (y - midy)**2)**0.5
+            if dis == 0:
+                h[y, x] = 0
+            else:
+                h[y, x] = 1 / (1 + (d0 / dis)**N)
+    return h
+
+
+def GLPF(img, d0, N=2):
+    h = np.empty_like(img, dtype=float)
+    m, n = img.shape
+    midx, midy = n // 2, m // 2
+    for x in range(n):
+        for y in range(m):
+            dis = ((x - midx)**2 + (y - midy)**2)**0.5
+            h[y, x] = 1 - np.exp(-dis**N / (2 * d0**N))
+    return h
+```
+
+
+
 ### matplotlib
 
 是第三方库，需要手动安装。[官方文档](https://matplotlib.org/3.6.0/gallery/index.html)
@@ -4576,7 +4718,7 @@ import matplotlib.image as mpimg
 ```
 
 ```python
-img = mpimg.imread('img/keepOut.jpg')
+img = mpimg.imread('img/keepOut.jpg') #类型是numpy.ndarray
 plt.imshow(img)
 plt.show()
 plt.savefig() #与上一行不兼容，建议加 bbox_inches='tight' 去白边框
@@ -4899,6 +5041,8 @@ PIL python image library [文档](https://pillow.readthedocs.io/en/stable/)
 ```python
 from PIL import Image
 ```
+
+其读入结果不为 `numpy.ndarray`
 
 ```python
 img = Image.open(src)
