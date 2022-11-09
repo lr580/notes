@@ -970,6 +970,8 @@ list(zip(*[((1, 1), False, 'd'), ((2, 2), True, 'e'), ((1, 3), False, 'f')]))
 
 可以用前导0x,0o和0b表示整数
 
+可以用下划线在中间，如 `10_000_000` 表示 `10000000`。
+
 #### float
 
 最大值是inf，即float('inf')可以这样获取到这个值。负也可以float('-inf')
@@ -1632,6 +1634,14 @@ if not a:
     raise ValueError('a为0')
 ```
 
+
+
+### 文件读写
+
+with ... as ... 可以在读写错误时自动关闭文件。
+
+
+
 ## 函数
 
 又称子程序。支持递归。
@@ -1771,6 +1781,30 @@ f(0,0,d=-3) #c=3,d=-3
 f(0,0,0,0) #c=0,d=0
 f(0,0,d=1,c=2)
 ```
+
+注意默认参数的初始化问题，如：
+
+```python
+def f(x, lt=[]):
+    lt.append(x)
+    print(lt)
+f(114) #[114]
+f(514) #[114,514]
+```
+
+建议：
+
+```python
+def f(x, lt=None):
+    if lt is None:
+        lt = []
+    lt.append(x)
+    print(lt)
+```
+
+
+
+
 
 #### 可变参数
 
@@ -1918,6 +1952,24 @@ min(1,-1,key=abs) #1
 ##### hash
 
 返回 object 的十进制数字散列值。
+
+#### 判断函数
+
+##### isinstance
+
+子类也算，想不算的话用 type，如：
+
+```python
+from collections import namedtuple
+lt = namedtuple('lt', ['a', 'b'])
+l = lt(1, 5)
+print(type(l) == tuple)  #子类不算
+print(isinstance(l, tuple))  #子类算
+```
+
+
+
+
 
 #### 数组函数
 
@@ -3071,7 +3123,7 @@ time.sleep(秒数a)
 
 （3）计算运行时间
 
-> time.clock() 返回一个浮点数 旧版本(3.3)
+> time.clock() 返回一个浮点数 旧版本(3.3) (3.8被移除)
 
 从第一次执行该函数开始计时，第一次运行时返回一个接近于0的数字；以后每次运行都返回运行时的时间与第一次运行时时间的差距（float）。通过作差可以用于计算程序运行用时
 
@@ -3090,6 +3142,18 @@ x=time.perf_counter()
 y=time.perf_counter()
 print(y-x)
 ```
+
+更准确的计时：
+
+```python
+import time
+t1 = time.perf_counter()
+time.sleep(0.5)
+t2 = time.perf_counter()
+print(t2 - t1)
+```
+
+
 
 
 

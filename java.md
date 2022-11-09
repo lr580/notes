@@ -44,6 +44,8 @@ Sun ONE(Open Net Environment)体系，按应用范围划分的3个Java版本：J
 
 
 
+
+
 #### 语法糖
 
 Syntactic sugar ，糖衣语法。指对语言功能无影响，但更方便程序员使用的语法。使得程序更加简洁和可读性更高
@@ -59,6 +61,8 @@ Syntactic sugar ，糖衣语法。指对语言功能无影响，但更方便程�
 官网找JDK8 (或其他稳定版)安装 然后参考[这里](https://www.zhihu.com/question/278838022/answer/1709832515) 配置vscode环境(ctrl+shift+p找那个插件配置)(搜索java home可以找到配置，然后此时上方会有setting.json可以找)
 
 版本号里$x$与$1.x$相同，如JDK8就是JDK1.8，是目前最主流版本。前者是Oracle收购Sun前版本号，后者是收购后。
+
+JDK 包括 JRE。需要安装 JDK 而不是 JRE。如果安装后 shell 不能运行 javac 就是 JRE。检测：`java -version`, `javac -version`。
 
 注意不要跟C语言项目setting冲突(F5冲突)，建议单开一个新的项目跑java代码。
 
@@ -97,6 +101,8 @@ public class s1 {
 >  }
 > }
 > ```
+
+> 查看 java 路径：`where java`
 
 ### 项目建立
 
@@ -17576,7 +17582,7 @@ id="WebApp_ID" version="4.0">
 </html>
 ```
 
-在 `webapp/` 创建 `index.jsp`，即· `WEB-INF` 父目录。如：
+在 `webapp/` 创建 `index.jsp`，即· `WEB-INF` 父目录。如：(注意没有第一行的话中文会乱码)
 
 ```jsp
 <%@ page language="java" contentType="text/html; charset=utf-8"
@@ -19144,3 +19150,1308 @@ public class ValiImage {
 > });
 > ```
 
+
+
+### Maven
+
+#### 基本
+
+##### 概念
+
+项目管理工具，Maven 项目对象模型 POM，通过描述信息管理项目的构建，报告和文档的项目管理工具软件。
+
+库：在maven运行过程中，所有的命令执行都是基于插件完成的，引入依赖等内容，这些都称为maven的资源，资源的来源是maven社区中央库，在使用过程中可以通过远程库代理，获取资源并存储在本地库。
+
+中央库：maven社区（community）中心服务器，所有的maven资源都存储在这个服务器中。
+
+远程库(私服)：除了中央库之外，中国有很多代理的远程库（镜像连接），例如：网易，阿里；每个公司还可以自己搭建自己的远程库，供公司人员使用。
+
+本地库：所有经过代理，经过中央库使用的资源都会下载到本地库中。
+
+![image-20221108141226158](img/image-20221108141226158.png)
+
+定位坐标：对于库中资源的使用，使用到中央信息片段定位的，主要用到3个内容 
+
+`<groupId>` 一般是域名倒写，代表大型项目，`org.springframework`
+
+`<artifactId>`表示项目中不同模块，`spring-beans,spring-aop,springexpression`等 
+
+`<version>`表示模块、项目的版本号，`4.3.7.RELEASE 4.3.9.RELEASE`等
+
+这些坐标可以在本地库寻找
+
+```xml
+<groupId>org.springframework</groupId> 
+<artifactId>spring-beans</artifactId> 
+<version>4.3.7.RLELEASE</version>
+```
+
+本地库对应定位资源：
+
+`groupId`对应一个文件夹结构：`\org\springframework `
+`artifactId`对应本地库一个文件夹名称：`\org\springframework\spring-beans `
+`version`对应一个文件夹名称：`\org\springframework\spring-beans\4.3.7.RELEASE`
+
+资源的内容：
+
+![image-20221108142057270](img/image-20221108142057270.png)
+
+##### 安装/配置
+
+[官网](https://maven.apache.org/download.cgi) 下载并解压 maven 3.6 到无中文和空格的路径
+
+配置 windows 环境变量，首先确保 cmd 输入 `java -version` 是 `1.8.0`，然后配置全局 `MAVEN_HOME` 为刚刚解压的根目录如 `D:\Temps\maven3.6`，且增加 PATH 变量加 bin 如 `D:\Temps\maven3.6\bin`，测试配置完毕，cmd 输入 `mvn -v`。
+
+新建本地库文件夹如 `D:\Temps\mavenrepo`，在 maven 根目录的 `conf\settings.xml` 修改：(`\` 要转义， `/` 不用)
+
+```xml
+<localRepository>d:\\Temps\\mavenrepo</localRepository>
+```
+
+镜像配置，再次修改上文配置文件：
+
+```xml
+<mirrors>
+    <mirror>
+        <id>nexus-aliyun</id>
+        <mirrorOf>central</mirrorOf>
+        <name>Nexus aliyun</name>
+ <url>http://maven.aliyun.com/nexus/content/groups/public</url>
+    </mirror>
+</mirrors>
+```
+
+> 对 eclipse，windows-preferences-java-installed jres，如果自己的 java 版本有更新
+
+然后 window-preferences-maven -installations-add-用自己的,apply。绑定 settings.xml，找到 user-settings，也改成自己的。
+
+
+
+##### 项目创建
+
+new project-maven project(没有的话other找找)，第一页默认，第二页找到webapp，第三页自己填。
+
+右击 new - source folder 时会发现输入不了 `src/main/java`，则右击 build path- configure build path，发现已经有了，但 missing。那么看到默认引入的是 JRE 1.5，改成 1.8 就行了。此时发现有三个 source folder。
+
+修改 eclipse 校验报错，preferences-validation-disable all。
+
+添加下文的两个编译插件(main和source)。
+
+```xml
+<build>
+	<plugins>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-compiler-plugin</artifactId>
+			<configuration>
+				<source>1.8</source>
+				<target>1.8</target>
+				<encoding>UTF-8</encoding>
+			</configuration>
+		</plugin>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-source-plugin</artifactId>
+			<configuration>
+				<attach>true</attach>
+			</configuration>
+			<executions>
+				<execution>
+					<phase>compile</phase>
+					<goals>
+						<goal>jar</goal>
+					</goals>
+				</execution>
+			</executions>
+		</plugin>
+	</plugins>
+</build>
+```
+
+添加 tomcat 插件：
+
+```xml
+<plugin>
+    <groupId>org.apache.tomcat.maven</groupId>
+    <artifactId>tomcat7-maven-plugin</artifactId>
+    <version>2.2</version>
+    <!-- tomcat启动的配置 -->
+    <configuration>
+        <!-- 端口号访问路径默认8080端口 -->
+        <port>8080</port>
+        <!-- 应用程序的访问路径 -->
+        <path>/</path>
+        <!-- 接收数据编解码格式utf-8 -->
+        <uriEncoding>utf-8</uriEncoding>
+        <useBodyEncodingForURI>utf-8</useBodyEncodingForURI>
+    </configuration>
+</plugin>
+```
+
+右击项目，maven-update project
+
+下方栏 overview 能看到项目视图。
+
+在 `pom` 添加一个 dependency
+
+```xml
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-beans</artifactId>
+    <version>5.1.9.RELEASE</version>
+</dependency>
+```
+
+也可以引用 spring-jdbc，那么因为依赖传递，会把 beans, aop, context 都引入进来。
+
+
+
+右击项目有 run as- maven xxx 一系列指令。其中 `mvn install`,`mvn test` 不完全等于 shell 的。其底层运行其他命令的封装,例如对依赖包的管理，生成报告文件以外的一些操作也封装了。
+
+执行 run as - maven build..., goals 填 `tomcat7:run` 或， user settings 填自己的路径，如 `D:\Temps\maven3.6\conf\settings.xml`。然后访问 `http://localhost:8080/` 就能看到 hello world 了。之后运行maven build就可以用历史参数来跑了。
+
+
+
+##### 完整项目
+
+在上文项目创建的基础上
+
+###### 包依赖
+
+一般而言，需要引入 mybatis 等一系列东西，如：
+
+```xml
+<dependency>
+    <groupId>org.mybatis</groupId>
+    <artifactId>mybatis</artifactId>
+    <version>3.5.3</version><!--3.4.5-->
+</dependency>
+
+<dependency>
+    <groupId>org.mybatis</groupId>
+    <artifactId>mybatis-spring</artifactId>
+    <version>1.3.1</version>
+</dependency>
+
+<!-- mysql5 用 5.0.8 -->
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <version>5.1.47</version>
+</dependency>
+
+<!-- datasource pool c3p0-->
+<dependency>
+    <groupId>com.mchange</groupId>
+    <artifactId>c3p0</artifactId>
+    <version>0.9.5.2</version>
+</dependency>
+
+<!-- datasource pool druid-->
+<dependency>
+    <groupId>com.alibaba</groupId>
+    <artifactId>druid</artifactId>
+    <version>1.0.14</version>
+</dependency>
+
+<!-- 事务处理 -->       	
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-tx</artifactId>
+    <version>5.1.9.RELEASE</version>
+</dependency>
+
+<dependency>
+    <groupId>junit</groupId>
+    <artifactId>junit</artifactId>
+    <version>4.12</version>
+    <scope>test</scope>
+</dependency>
+```
+
+web 相关依赖：
+
+```xml
+<!-- SPRING MVC 相关依赖 / 4.3.7 -->
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-web</artifactId>
+    <version>5.1.9.RELEASE</version>
+</dependency>
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-webmvc</artifactId>
+    <version>5.1.9.RELEASE</version>
+</dependency>
+
+<!-- spring messageconvert jackson  -->
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-core</artifactId>
+    <version>2.8.8</version>
+</dependency>
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.8.8</version>
+</dependency>  
+
+<!-- 添加javax.servlet-api -->  
+<dependency>
+    <groupId>javax.servlet</groupId>
+    <artifactId>javax.servlet-api</artifactId>
+    <version>3.0.1</version>
+    <scope>provided</scope>
+</dependency>
+
+<!-- jstl表达式依赖 -->   
+<dependency>
+    <groupId>javax.servlet.jsp.jstl</groupId>
+    <artifactId>jstl</artifactId>
+    <version>1.2</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.taglibs</groupId>
+    <artifactId>taglibs-standard-impl</artifactId>
+    <version>1.2.5</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.taglibs</groupId>
+    <artifactId>taglibs-standard-spec</artifactId>
+    <version>1.2.5</version>
+</dependency>
+
+<!-- 文件上传 -->
+<dependency>
+    <groupId>commons-fileupload</groupId>
+    <artifactId>commons-fileupload</artifactId>
+    <version>1.3.1</version>
+</dependency>
+<dependency>  
+    <groupId>org.hibernate</groupId>  
+    <artifactId>hibernate-validator</artifactId>  
+    <version>5.2.4.Final</version>  
+</dependency>  
+```
+
+###### pom.xml
+
+懒人版：
+
+```xml
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>cn.edu.scnu</groupId>
+	<artifactId>EasyMall-Maven</artifactId>
+	<packaging>war</packaging>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>EasyMall-Maven Maven Webapp</name>
+	<url>http://maven.apache.org</url>
+	<dependencies>
+
+		<!-- spring框架的基础依赖spring-context -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-jdbc</artifactId>
+			<version>4.3.7.RELEASE</version>
+		</dependency>
+
+
+		<!-- MYBATIS MYBATIS-SPRING -->
+		<dependency>
+			<groupId>org.mybatis</groupId>
+			<artifactId>mybatis</artifactId>
+			<version>3.4.5</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.mybatis</groupId>
+			<artifactId>mybatis-spring</artifactId>
+			<version>1.3.1</version>
+		</dependency>
+
+		<!-- mysql -->
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>5.1.47</version>
+		</dependency>
+
+		<!-- datasource pool c3p0 -->
+		<dependency>
+			<groupId>com.mchange</groupId>
+			<artifactId>c3p0</artifactId>
+			<version>0.9.5.2</version>
+		</dependency>
+
+		<!-- datasource pool druid -->
+		<dependency>
+			<groupId>com.alibaba</groupId>
+			<artifactId>druid</artifactId>
+			<version>1.0.14</version>
+		</dependency>
+
+		<!-- 事务处理 -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-tx</artifactId>
+			<version>4.3.7.RELEASE</version>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>3.8.1</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- SPRING MVC 相关依赖 -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-web</artifactId>
+			<version>4.3.7.RELEASE</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-webmvc</artifactId>
+			<version>4.3.7.RELEASE</version>
+		</dependency>
+
+		<!-- spring messageconvert jackson -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+			<version>2.8.8</version>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.8.8</version>
+		</dependency>
+
+		<!-- 添加javax.servlet-api -->
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<version>3.0.1</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- jstl表达式依赖 -->
+		<dependency>
+			<groupId>javax.servlet.jsp.jstl</groupId>
+			<artifactId>jstl</artifactId>
+			<version>1.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.taglibs</groupId>
+			<artifactId>taglibs-standard-impl</artifactId>
+			<version>1.2.5</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.taglibs</groupId>
+			<artifactId>taglibs-standard-spec</artifactId>
+			<version>1.2.5</version>
+		</dependency>
+
+		<!-- 文件上传 -->
+		<dependency>
+			<groupId>commons-fileupload</groupId>
+			<artifactId>commons-fileupload</artifactId>
+			<version>1.3.1</version>
+		</dependency>
+
+
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-validator</artifactId>
+			<version>5.2.4.Final</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<finalName>EasyMall-Maven</finalName>
+		<plugins>
+			<!-- 添加编译插件 -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+					<encoding>UTF-8</encoding>
+				</configuration>
+			</plugin>
+			<!-- 添加source生成插件 -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<configuration>
+					<attach>true</attach>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>compile</phase>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- tomcat插件 -->
+			<plugin>
+				<groupId>org.apache.tomcat.maven</groupId>
+				<artifactId>tomcat7-maven-plugin</artifactId>
+				<version>2.2</version>
+				<!-- tomcat启动的配置 -->
+				<configuration>
+					<!-- 端口号访问路径默认80端口 -->
+					<port>8080</port>
+					<!-- 应用程序的访问路径 -->
+					<path>/</path>
+					<!-- 接收数据编解码格式utf-8 -->
+					<uriEncoding>utf-8</uriEncoding>
+					<useBodyEncodingForURI>utf-8</useBodyEncodingForURI>
+				</configuration>
+			</plugin>
+
+		</plugins>
+	</build>
+</project>
+```
+
+
+
+###### web.xml
+
+找到 `WEB-INF/web.xml`，修改为：(或 4.0)
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://java.sun.com/xml/ns/javaee"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
+                      http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+	version="3.0">
+
+</web-app>
+```
+
+完整版本为：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
+                             http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+         version="3.0">
+    <!-- 实例化application容器 -->
+    <context-param>
+        <param-name>contextConfigLocation</param-name>
+        <param-value>classpath:applicationContext.xml</param-value>
+    </context-param>
+    <!-- 指定一ContextLoaderListener方式启动Spring容器 -->
+
+    <listener>
+        <listener-class>
+            org.springframework.web.context.ContextLoaderListener
+        </listener-class>
+    </listener> 
+
+
+    <!-- 配置 DispatcherServlet-->
+    <servlet>
+        <servlet-name>springmvc</servlet-name>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+        <init-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>classpath:springmvc-servlet.xml</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>springmvc</servlet-name>
+        <url-pattern>/</url-pattern>
+    </servlet-mapping>
+
+
+    <!-- 避免中文乱码 -->
+    <filter>
+        <filter-name>characterEncodingFilter</filter-name>
+        <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+        <init-param>
+            <param-name>encoding</param-name>
+            <param-value>UTF-8</param-value>
+        </init-param>
+        <init-param>
+            <param-name>forceEncoding</param-name>
+            <param-value>true</param-value>
+        </init-param>
+    </filter>
+    <filter-mapping>
+        <filter-name>characterEncodingFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+</web-app>
+```
+
+###### applicationContext.xml
+
+在 `src/main/resources` 配置 `applicationContext.xml`：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="
+                           http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/aop 
+                           http://www.springframework.org/schema/aop/spring-aop.xsd
+                           http://www.springframework.org/schema/tx 
+                           http://www.springframework.org/schema/tx/spring-tx.xsd
+                           http://www.springframework.org/schema/util 
+                           http://www.springframework.org/schema/util/spring-util.xsd
+                           http://www.springframework.org/schema/context
+                           http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/mvc
+                           http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+	<!-- 开启包扫描 -->
+	<context:component-scan
+		base-package="easymall.service" />
+	<!-- datasource -->
+	<!-- alibaba -->
+	<bean id="dataSource"
+		class="com.alibaba.druid.pool.DruidDataSource">
+		<!-- 4个属性,driver,url,username,password mysql8也不需.cj.jdbc -->
+		<property name="driverClassName"
+			value="com.mysql.jdbc.Driver" />
+		<property name="url"
+			value="jdbc:mysql:///easymall?characterEncoding=utf8" />
+        <!-- jdbc:mysql://localhost:3306/easymall?serverTimezone=UTC -->
+		<property name="username" value="root" />
+		<property name="password" value="12345678" />
+	</bean>
+
+	<!-- 添加事务支持 -->
+	<bean id="txManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<!-- 为事务管理器注册注解驱动器 -->
+	<tx:annotation-driven
+		transaction-manager="txManager" />
+
+
+	<!-- 配置sqlSession,动态代理实现持久层接口抽象方法实现的对象 -->
+	<bean id="sqlSessionFactory"
+		class="org.mybatis.spring.SqlSessionFactoryBean">
+		<!-- 绑定数据源 -->
+		<property name="dataSource" ref="dataSource" />
+		<!-- 如果有mybatis的独立配置文件,可以加载 -->
+		<property name="configLocation"
+			value="classpath:mybatis-config.xml" />
+		<!-- 扫描一下映射文件 resources/mapper文件夹 -->
+		<property name="mapperLocations"
+			value="classpath:mapper/*.xml"></property>
+	</bean>
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<!-- mybatis-spring组件的扫描器 -->
+		<property name="basePackage" value="easymall.dao" />
+		<property name="sqlSessionFactoryBeanName"
+			value="sqlSessionFactory" />
+	</bean>
+</beans>
+```
+
+###### springmvc-servlet.xml
+
+`src/main/resources` 
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/aop 
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/tx 
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/util 
+        http://www.springframework.org/schema/util/spring-util.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+	<!-- 使用扫描机制，扫描控制器类 -->
+	<context:component-scan
+		base-package="easymall.controller" />
+
+	<!-- springmvc开启所有注解功能 -->
+	<mvc:annotation-driven />
+
+	<!-- 静态资源html js css访问 -->
+	<!-- 允许css目录下所有文件可见 -->
+	<mvc:resources location="/css/" mapping="/css/**"></mvc:resources>
+	<!--允许img目录下所有文件可见 -->
+	<mvc:resources location="/img/" mapping="/img/**"></mvc:resources>
+	<!--允许js目录下所有文件可见 -->
+	<mvc:resources location="/js/" mapping="/js/**"></mvc:resources>
+	<!--允许upload目录下所有文件可见 -->
+	<mvc:resources location="/WEB-INF/upload/"
+		mapping="/upload/**" />
+
+	<!-- 配置视图解析器 -->
+	<bean
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver"
+		id="internalResourceViewResolver">
+		<!-- 前缀 -->
+		<property name="prefix" value="/WEB-INF/jsp/" />
+		<!-- 后缀 -->
+		<property name="suffix" value=".jsp" />
+	</bean>
+
+	<!-- 托管MyExceptionHandler -->
+	<bean class="easymall.exception.MyExceptionHandler" />
+
+	<!-- 文件上传 -->
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver"
+		p:defaultEncoding="UTF-8" p:maxUploadSize="5400000"
+		p:uploadTempDir="fileUpload/temp">
+	</bean>
+</beans>
+```
+
+###### mybatis-config.xml
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<!--添加缓存 引入第三方二级缓存 -->
+</configuration>
+```
+
+由于我们在`applicationContext.xml`中已经配置了mapper映射文件的位置，所以`mybatis-config.xml`只需要头信息的空配置
+
+###### mapper/*.xml
+
+根据在`applicationContext.xml`中配置了mapper映射文件的位置，在对应路径创建映射文件，这里如：`mapper/`，下放如：
+
+`UserMapper.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="easymall.dao.UserDao">
+
+	<!-- 用户登录功能，返回User类对象 -->
+	<select id="login" parameterType="String"
+		resultType="easymall.po.User">
+		select * from user where username = #{username}
+	</select>
+
+	<insert id="regist" parameterType="easymall.po.User"
+		keyProperty="id" useGeneratedKeys="true">
+		insert into user(username,password,nickname,email)
+		values(#{username},#{password},#{nickname},#{email})
+	</insert>
+
+</mapper>
+```
+
+`ProductsMapper.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="easymall.dao.ProductsDao">
+	<select id="allcategories" resultType="String">
+		select name from category
+	</select>
+
+	<select id="prodlist" resultType="easymall.po.Products"
+		parameterType="map">
+		select * from products where status=1 and (price between #{minPrice}
+		and #{maxPrice})
+		<if test="name!=null and name!=''">
+			and name like concat('%',#{name},'%')
+		</if>
+		<if test="category!=null and category!=''">
+			and category=#{category}
+		</if>
+	</select>
+
+	<select id="prodInfo" resultType="easymall.po.Products"
+		parameterType="String">
+		select *from products where id = #{pid}
+	</select>
+
+	<select id="prodclass" resultType="easymall.po.Products"
+		parameterType="String">
+		select *from products where status=1 and category=#{category}
+	</select>
+
+	<select id="oneProduct" resultType="easymall.po.Products"
+		parameterType="String">
+		select *from products where id=#{product_id}
+	</select>
+
+	<insert id="save" parameterType="easymall.po.Products">
+		insert into products(id,name,price,category,pnum,imgurl,description)
+		values(#{id},#{name},#{price},#{category},#{pnum},#{imgurl},#{description});
+	</insert>
+
+	<select id="findByImgurl" parameterType="String"
+		resultType="easymall.po.Products">
+		select * from products where imgurl=#{imgurl}
+	</select>
+
+	<select id="allprods" resultType="easymall.po.Products">
+		select * from products
+	</select>
+	<update id="updateSaleStauts" parameterType="map">
+		update products set status=#{status} where id=#{id}
+	</update>
+	<update id="updateSoldNum" parameterType="map">
+		update products set soldNum=soldNum+#{buynum},pnum=pnum-#{buynum}
+		where id=#{pid}
+	</update>
+</mapper>
+```
+
+`OrderMapper.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="easymall.dao.OrderDao">
+
+	<insert id="addOrder" parameterType="easymall.po.Orders">
+		insert into Orders(id,money,receiverinfo,paystate,ordertime,user_id)
+		values(#{id},#{money},#{receiverinfo},#{paystate},#{ordertime},#{user_id})
+	</insert>
+	<select id="findOrderByUserId" parameterType="Integer"
+		resultType="easymall.po.Orders">
+		select * from orders where user_id=#{user_Id}
+	</select>
+	<delete id="delorder" parameterType="String">
+		delete from orders where id=#{id}
+	</delete>
+	<update id="payorder" parameterType="String">
+		update orders set paystate=1 where id=#{id}
+	</update>
+</mapper>
+```
+
+`OrderItemMapper.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="easymall.dao.OrderItemDao">
+
+	<insert id="addOrderItem" parameterType="easymall.po.OrderItem">
+		insert into OrderItem(order_id,product_id,buynum)
+		values(#{order_id},#{product_id},#{buynum})
+	</insert>
+
+	<select id="orderitem" parameterType="String"
+		resultType="easymall.po.OrderItem">
+		select * from orderitem where order_id=#{order_id}
+	</select>
+	<delete id="delorderitem" parameterType="String">
+		delete from orderitem where order_id=#{id}
+	</delete>
+</mapper>
+```
+
+`CartMapper.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="easymall.dao.CartDao">
+
+	<select id="findCart" parameterType="easymall.po.Cart"
+		resultType="easymall.po.Cart">
+		select * from cart where user_id=#{user_id} and pid=#{pid}
+	</select>
+
+	<insert id="addCart" parameterType="easymall.po.Cart">
+		insert into cart(user_id,pid,num) values(#{user_id},#{pid},#{num})
+	</insert>
+
+	<update id="updateCart" parameterType="easymall.po.Cart">
+		update cart set num=num+#{num} where cartID=#{cartID}
+	</update>
+
+	<select id="showcart" parameterType="Integer"
+		resultType="easymall.pojo.MyCart">
+		select cartID,pid,num,name,price,imgurl from cart,products
+		where user_id=#{user_id} and cart.pid=products.id
+	</select>
+
+	<update id="updateBuyNum" parameterType="easymall.po.Cart">
+		update cart set num=#{num} where cartID=#{cartID}
+	</update>
+
+	<delete id="delCart" parameterType="Integer">
+		delete from cart where cartID=#{cartID}
+	</delete>
+	<select id="findByCartID" parameterType="Integer"
+		resultType="easymall.pojo.MyCart">
+		select cartID,pid,num,name,price,imgurl from cart,products
+		where cartID=#{cartID} and cart.pid=products.id
+	</select>
+</mapper>
+```
+
+###### 其他
+
+自己准备好 `css/,img/,js/,index.jsp` 放到 `src/main/webapp`，把网页 `jsp/`,`upload/` 放到 `src/main/webapp/WEB-INF`。
+
+自己写好 `easymall` 包下的子包 `po,pojo,dao,controller,service,admin,exception` 和下的各 java 文件，放到 `src/main/java`。
+
+
+
+#### 命令
+
+maven项目生命周期从项目创建到项目最终使用（发布到服务器运行，运行jar/war包)过程，需要使用一系列的maven命令。
+
+新建一个空文件夹，作为 workspace。cd 到里面去执行命令：
+
+##### 项目创建
+
+```shell
+mvn archetype:generate
+```
+
+> 执行选择：
+>
+> 1.archetype：maven工程的骨架；maven作为项目管理工具可以创建不同语言，不同的结构的项目，maven准备了为创建不同结构项目生成的资源骨架；在互联网阶段常用的2种骨架资源：webapp（web应用骨架，维护一个webapps文件夹就是tomcat中webapps里的各种web资源文件夹），quickstart（java简单工程骨架） 
+> 2.groupId：cn.edu.scnu 
+> 3.artifactId:maven-test01 
+> 4.version:默认值1.0-SNAPSHOT 
+> 5.package：工程中存在的默认包名称，根据创建的groupId自动生成一个默认的包 
+> 6.同意以上配置
+
+第一次需要输入时直接按回车，然后依次输入 `groupId` 如 `com.baicha`，`artifactId` 如 `maven-test01`，`version` 和 `package` 直接回车，然后输入 `y`。
+
+接着发现自动生成了一个 java 项目，结构为：
+
+1.src/main/java：管理源码编写的文件夹，下一级是包路径+**.java文件 
+
+2.src/test/java：管理测试代码的文件夹 
+
+3.src/main/resources：管理项目的所有配置文件，spring.xml,mapper.xml,mybatis.xml等 
+
+4.src/test/resources：测试代码可能加载的配置文件。
+
+
+
+##### 清空
+
+对于maven的生命周期管理过程会不断根据项目的变动去执行各种mvn命令，会产生各种文件，为了解决由于前后执行命令而产生的文件冲突问题，一般在执行其他任何命令之前都会先执行clean的清空命令
+
+cd 到项目文件夹里执行：
+
+```shell
+cd maven-test01
+mvn clean
+```
+
+清空的是target文件夹中的内容（编译，打包，安装所有执行过程都会在target文件夹中生成对应文件）
+
+
+
+##### 编译
+
+项目文件夹里：
+
+```shell
+mvn compile
+```
+
+> 遇到报错：`[ERROR] No compiler is provided in this environment. Perhaps you are running on a JRE rather than a JDK?`
+>
+> 开报错模式看看：`mvn compile -e`。考虑自己的真的是 JRE 而不是 JDK，则考虑重装 java8，下载 JDK。验证：`shell` 输入 `javac` 有反应。
+
+会将当前工程的所有源码和配置文件，编译输出到项目根目录target/classes中，test包中所有内容在编译，打包，安装过程都不参加，但是会运行测试
+
+
+
+##### 测试
+
+> 在 `test` 写一个测试类如：
+>
+> ```java
+> package com.baicha;
+> 
+> import org.junit.*;
+> 
+> public class MavenTest {
+> 
+>   @Test
+>   public void test01() {
+>     System.out.println("Hell world!");
+>   }
+> }
+> ```
+
+修改 `pom.xml` 把 `junit` version 改为 `4.12`。
+
+执行测试：`mvn test`，将会依次执行 `test` 里的每个类的 `@Test` 方法，并输出结果。
+
+编写项目过程，需要不断的执行测试内容，可以利用mvn test测试命令完成所有测试代码的执行。 
+
+执行命令后，会形成测试报告，测试报告会打印到target文件夹中，生成报告文件。在 `surefire-reports` 能看到。
+
+
+
+##### 打包
+
+将当前项目的所有运行资源包装成一个java工程的包，打成jar还是war包，根据核心管理配置文件pom.xml的定义。在 `packaging` 里定义。
+
+项目打包之前，需要先clean,因为package命令包含了之前的所有生命周期过程，包括编译、测试，为了避免冲突，先clean清空。
+
+```shell
+mvn clean package
+```
+
+打包后的结果在 `target` 文件夹能看到 `jar` 包。
+
+
+
+##### 安装
+
+maven项目作为maven管理的资源，不仅仅表示一个运行的工程，还可以作为别人使用的资源。但必须经过maven的安装过程，生成maven库可以使用的资源文件。
+
+安装后，可以在 `repo` 看到自己的 `jar` 包，那么这个包就可以给其他项目用了。根据包 `package` 路径在本地库文件夹能找到自己的 `jar` 包。
+
+```shell
+mvn clean install
+```
+
+
+
+##### 发布
+
+一般是发布到私服，用 `mvn deploy`。
+
+
+
+#### 插件
+
+maven在pom文件中可以管理当前项目的基本信息，引入当前项目使用的所有资源，其中包含插件资源；
+
+例如，打包时，可以利用插件指定main方法所在的类路径，这样jar包就可以运行； 
+
+需要在pom文件中的`<build><plugins></plugins></build>`
+
+##### main方法插件
+
+在打包、安装时生成的jar文件中，指定配置文件指向可以运行的入口类
+
+例如指定默认生成的 `hello world`：将下面代码放到 `project` 标签里
+
+```xml
+<build>
+	<plugins>
+		<plugin>
+		<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-jar-plugin</artifactId>
+			<configuration>
+				<archive>
+					<manifest>
+<addClasspath>true</addClasspath>
+<mainClass>com.baicha.App</mainClass> <!-- 主入口-->
+					</manifest>
+				</archive>
+			</configuration>
+		</plugin>
+	</plugins>
+</build>
+```
+
+再次打包：
+
+```shell
+mvn clean package
+```
+
+这时候就可以运行自己的 jar 了，如：
+
+```shell
+java -jar target\maven-test01-1.0-SNAPSHOT.jar
+```
+
+
+
+##### 源码包插件
+
+将项目在build构建过程时，除了生成jar包的class文件之外，还绑定生成source源码.jar 
+
+在上文结构上，添加：
+
+```xml
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-source-plugin</artifactId>
+    <configuration>
+        <attach>true</attach>
+    </configuration>
+    <executions>
+        <execution>
+            <phase>compile</phase>
+            <goals>
+                <goal>jar</goal>
+            </goals>
+        </execution>
+    </executions>
+</plugin>
+```
+
+那么会在生成一般 jar 包的同时，顺便生成一个源码 jar 包。以压缩文件方式打开，可以看到其里面只有 java 文件，没有 class 文件。
+
+
+
+##### tomcat插件
+
+```xml
+<plugin>
+    <groupId>org.apache.tomcat.maven</groupId>
+    <artifactId>tomcat7-maven-plugin</artifactId>
+    <version>2.2</version>
+    <!-- tomcat启动的配置 -->
+    <configuration>
+        <!-- 端口号访问路径默认8080端口 -->
+        <port>8080</port>
+        <!-- 应用程序的访问路径 -->
+        <path>/</path>
+        <!-- 接收数据编解码格式utf-8 -->
+        <uriEncoding>utf-8</uriEncoding>
+        <useBodyEncodingForURI>utf-8</useBodyEncodingForURI>
+    </configuration>
+</plugin>
+```
+
+
+
+### Nginx
+
+#### 基本
+
+##### 概念
+
+系统:就是用户可以访问web应用系统(淘宝,京东,美团)
+单体系统:一个系统的所有功能(用户相关功能,商品展示,购物车,订单),全都启动加载到一个web应用中
+
+单体系统无法应对高并发场景，并发瓶颈集中在tomcat上(tomcat的瞬间并发200-500,性能较高的cpu支持2000左右)
+
+![image-20221109142212373](img/image-20221109142212373.png)
+
+单体系统每次都要启动静态页面
+
+单独启动一个tomcat维护静态页面(浪费tomcat动态数据处理的性能)。
+
+可以使用nginx实现动静分离
+
+
+
+Nginx:早期由俄国团队开发的可以处理动静分离,处理负载均衡的HTTP反向代理服务器
+
+**反向代理:**反向代理服务器位于用户与目标服务器之间，但是对于用户而言，反向代理服务器就相当于目标服务器，即用户直接访问反向代理服务器就可以获得目标服务器的资源。同时，用户不需要知道目标服务器的地址，也无须在用户端作任何设定
+
+Nginx作用:动静分离,动态资源访问tomcat,静态资源.html,.js,.css等可以存储在nginx中
+
+负载均衡:通过nginx决定访问的后端服务器
+
+
+
+##### 安装
+
+[官网](http://nginx.org/en/download.html) 下载 nginx。如 1.9.9。解压到无中文和空格的路径。配置文件在 `conf/nginx.conf`。
+
+双击start启动:启动任务管理器中,查看nginx进程数2个,如果没有发现nginx进程(nginx.exe),打开logs中error.log，会有错误提示，具体到第几行。
+
+双击 stop 关闭。查看进程是否消失,确定消失之后再运行start,否则会出现多个nginx的进程相互冲突.也可以在任务管理器中停止进程。
+
+
+
+##### 域名跳转
+
+先准备一个上文跑得动的 maven 项目。然后修改器 `http` 内的内容：
+
+```nginx
+server {
+    listen 80;
+    server_name www.baicha.cn;
+    location /{
+        proxy_pass http://127.0.0.1:8888;
+    }
+    #www.baicha.cn 转发到 127.0.0.1:8888
+}
+server {
+    listen 80;
+    server_name www.guodong.cn;
+    location /{
+        proxy_pass http://127.0.0.1:8889;
+    }
+}
+```
+
+修改自己 C 盘 `C:\Windows\System32\drivers\etc\hosts`，追加：
+
+```hosts
+127.0.0.1 www.baicha.cn
+127.0.0.1 www.guodong.cn
+```
+
+启动 nginx，启动 maven 项目，测试：输入 `www.baicha.cn`，发现跳转到了自己的项目(注意如果不输入 `www.` 真的会跳转到别人的 `baicha.cn`)
+
+注意到 maven 可以同时启动多个项目，我们再任意启动一个项目，然后输入 `www.guodong.cn`，发现跳转到了这个项目去。
+
+基本原理：先通过 hosts 让 `www.baicha.cn` 指向 `127.0.0.1:80`，然后再通过 nginx 将 `127.0.0.1:80` 分到 `127.0.0.1:8888`。
+
+解释配置文件：`location /` 的 `/` 表示 `/` 后面加任意内容都符合匹配逻辑，只要符合逻辑，就将它转发到这个地址去。
+
+![image-20221109150651514](img/image-20221109150651514.png)
+
+
+
+##### 负载均衡
+
+负载:服务器承受的访问量压力;
+均衡: 物理均衡(平均分配访问压力),逻辑均衡(根据服务器的性能决定访问的占比,性能越低占比越低,反之亦然);
+
+开三个 web 应用，设置：
+
+```nginx
+upstream mytomcluster {
+    ip_hash;
+    server 127.0.0.1:8888;
+    server 127.0.0.1:8889;
+    server 127.0.0.1:8899;
+}
+server {
+    listen 80;
+    server_name www.baicha.cn;
+    location /{
+        proxy_pass http://mytomcluster;
+    }
+}
+```
+
+也可以设加权如(占比，或永不访问)：
+
+```nginx
+upstream mytomcluster {
+    server 127.0.0.1:8888 weight=2;
+    server 127.0.0.1:8889 weight=1;
+    server 127.0.0.1:8899 down;
+}
+```
+
+重启 nginx。此时，可以发现，每次刷新后以固定两次 8888 一次 8889 的周期得到不同的结果。
+
+![image-20221109152455730](img/image-20221109152455730.png)
+
+`ip_hash` 对用户的 IP 地址做 hash 计算，只要 ip 地址不变，访问的就是同一个 tomcat。这种不变性使得用户不用重新登陆，因为 session 不变。
+
+
+
+##### 动静分离
+
+动静分离:主要指的是前后端分离,前端的静态页面文件,交给独立运行服务器处理,后端的tomcat只处理请求的动态数据;
+
+nginx作为http服务器,不能处理jsp,但是可以处理所有静态文件访问;可以将所有静态文件存放到nginx保存,提供访问的响应,如果有动态的路径需要服务器处理,再转发交给后端服务器tomcat
+
+静态网页部署的例子：
+
+例：任意创建一个 `D:\Temps\html\index.html`，然后配置：
+
+```nginx
+server {
+	listen 80;
+	server_name www.hefeng.cn; #到hosts配一下
+	location /{
+		root D://Temps//html;
+        index index.html;
+	}
+}
+```
+
+如果不用绝对路径，那么 `root` 后接以 `nginx` 根目录为根的相对路径。
+
+![image-20221109153450432](img/image-20221109153450432.png)
+
+具体例子：
+
+```nginx
+server {
+    listen 80;
+    server_name www.osstatic.com;
+    location /user {
+        proxy_pass http://127.0.0.1:8090/user;
+    }
+    location /order {
+        proxy_pass http://127.0.0.1:8090/order;
+    }
+    location /{
+        root D://Temps//html//orderuser;
+        index index.html;
+    }
+}
+```
+
+然后跑一个 web 项目即可。
+
+
+
+### Spring Boot
+
+#### 基本
+
+##### 概念
+
+功能的强耦合：因为需求的变动,一个系统的功能变得越来越复杂;所以一旦某些功能在系统中存在强耦合.会造成开发人员必须精通了解多个业务逻辑.多个领域之间的知识,也不利于项目的扩展;
+
+只需要将不同的功能和业务进行拆分;order-user系统为例,我某一个模块只关心订单的业务逻辑,不关心用户业务逻辑.某一个模块只关心用户业务逻辑.不关心订单---功能的纵向拆分
