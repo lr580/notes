@@ -20455,3 +20455,799 @@ server {
 功能的强耦合：因为需求的变动,一个系统的功能变得越来越复杂;所以一旦某些功能在系统中存在强耦合.会造成开发人员必须精通了解多个业务逻辑.多个领域之间的知识,也不利于项目的扩展;
 
 只需要将不同的功能和业务进行拆分;order-user系统为例,我某一个模块只关心订单的业务逻辑,不关心用户业务逻辑.某一个模块只关心用户业务逻辑.不关心订单---功能的纵向拆分
+
+横向拆分：根据项目的三个结构层次，控制层依赖业务层依赖持久层,进行分模块的开发(多个人,有的开发控制层,有的开发业务层,有的开发持久层)
+
+![image-20221110084544401](img/image-20221110084544401.png)
+
+纵向拆分:可以解决功能强耦合的问题
+
+单体系统所有的功能都在一个系统中，所有的数据都在一个数据库中，数据库很容易达到瓶颈，例如双十一，订单数据很容易就达到上亿条数据，而用户也许就几十万条数据，因为它们在同一个数据库中，就会出现由于订单数据达到瓶颈而导致用户数据不能使用。
+
+纵向拆分就是根据业务功能将系统的不同部分切分成独立运行的系统,相互间有数据调用则根据接口定义进行访问，定义好之间传递数据的接口类型接口文件，根据定义，把数据传递给下一个功能。
+
+例如订单和用户，纵向拆分为两个独立的系统，订单系统和用户系统，不仅代码拆开，数据库也拆开。
+
+![image-20221110084651578](img/image-20221110084651578.png)
+
+当所有的功能就集中到一个系统中完成最终发布启动,很多功能都会由于一个功能瓶颈导致不可用(比如出现数据库瓶颈),比如双十一，淘宝购买商品时，有时候会出现订单无法提交，说明订单系统已经崩了，但是依然可以浏览商品、注册登录、添加订单。
+
+Nginx虽然解决了并发问题,但是没有解决并发集中,功能强耦合问题。为了解决这些问题，还需要对功能进行纵向拆分,不同功能搭建不同的系统。
+
+纵向拆分搭建的项目越来越多,而搭建项目的步骤中存在非常多个重复操作(spring.xml,spring-mvc.xml配置等);在这种情况下,一种方便的工具框架应运而生--springboot
+
+springboot:一种基于spring框架,能独立运行,自动配置的一种工具框架
+
+针对web应用的特点：
+
+- 独立运行的 spring 项目
+
+  springboot封装了spring所有的启动过程,可以通过简单的方法实现启动一个具备所有spring框架功能的进程.如果不做web应用,不需要tomcat这种外部容器来加载spring配置文件从而生成spring容器;Spring4.x之后，几乎将所有的配置内容都转换为注解，只要通过代码加载注解，就不需要配置文件了
+
+- 创建的 web 应用内嵌了 servlet
+
+  不用配置任何tomcat插件.不用将项目发布到任何外部tomcat容器运行;直接在依赖中完成了默认的servlet容器整合.一旦启动了spring的独立运行的机制,可以加载内嵌的servlet实现web应用的独立运行
+
+- 提供简化依赖
+
+  根据开发人员依赖的不同内容,早就封装了简化依赖,实现依赖的传递性,例如,当开发一个web应用时,不考虑持久层,只需要依赖spring-boot-starter-web，就会给你传递过来tomcat-embed,jackson,log4j,其他非常多的jar包;
+
+- springboot 自动配置
+
+  默认自动的扫描范围:启动springboot工程,所有在扫描范围内的
+
+  @Controller,@Service,@Autowired都会加载到内存中
+
+  根据依赖完成相关自动配置
+
+  springboot可以根据在项目中完成的依赖资源引入,自动配置相关内容(根本看不到xml文件了);例如:引入了spring-boot-starter-web,springboot的自动配置就会判断是需要开发一个web应用,完成tomcat的自动加载,自动启动默认端口8080,例如:引入了spring-boot-starter-jdbc,mybatis等,springboot自动配置数据源(提供必要的条件 driverClass,url,username,password等)
+
+
+
+##### 项目创建
+
+eclipse windows-perspective-customize perspective-shortcuts-java，多选class,interface,java project, java working set, package (作用是右击new文件时能看到这些勾选的内容)。然后 new 一个 java working set，随便命名。
+
+创建一个新的 maven，且选择 quickstart maven 骨架。创建时第一步将其拉入 working set。(如果不记得拉入了那么windows-perspective-open perspective-other-java,然后项目右击assgin working set)然后在 pom 里写入：(父标签是 project)
+
+```xml
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>1.5.9.RELEASE</version>
+</parent>
+```
+
+引入依赖：
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+```
+
+引入插件：
+
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+        </plugin>
+    </plugins>
+</build>
+```
+
+
+
+properties 加上：
+
+```xml
+<java.version>1.8</java.version>
+```
+
+开点 java 代码：
+
+```java
+package cn.edu.scnu;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class StarterXu {
+    public static void main(String[] args) {
+        SpringApplication.run(StarterXu.class, args);
+    }
+}
+```
+
+```java
+package cn.edu.scnu.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import cn.edu.scnu.service.HelloService;
+
+//spring 3.x 组合注解，若 controller所有方法都无序添加 responsebody 注解，这里用 @RestController 来简写
+@Controller
+public class HelloController {
+    @Autowired
+    private HelloService helloService;
+
+    @RequestMapping("hello")
+    @ResponseBody
+    // @responseBody注解的作用是将controller中的方法返回的对象通过适当的转换器转换为
+    // 指定的格式之后，写入到response对象的body区，
+    // 通常用来返回JSON数据或者是XML数据，需要注意的是，在使用此注解之后不会再走视图处理器，
+    // 而是直接将数据写入到输入流中
+    public String sayHello(String name) {
+        return helloService.sayHello(name);
+    }
+}
+```
+
+```java
+package cn.edu.scnu.service;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class HelloService {
+    public String sayHello(String name) {
+        return "hallo " + name + ",您滚啊";
+    }
+}
+```
+
+然后直接跑 main (run as-java application / 跟一般java文件跑main方法一样)就行。然后键入：`http://localhost:8080/hello?name=baicha`，发现能跑。
+
+
+
+#### 项目继承
+
+Maven继承
+
+##### 概念
+
+项目进行纵向拆分和横向拆分，搭建的项目越来越多，由于很可能多个项目是为同一个系统提供服务，他们之间的资源管理就成了问题
+
+![image-20221110094327420](img/image-20221110094327420.png)
+
+##### 例子
+
+创建一个新 maven 项目作为父项目，还是选 quickstart，groupID 与之前相同，且配置 pom 的 `packaging` 标签为 `pom，`artifact ID 如 `maven-parent`：
+
+```xml
+<packaging>pom</packaging>
+```
+
+然后对于子项目，
+
+- groupId:可以使用父工程,也可以覆盖
+- versionId:继承父工程,也可以覆盖(一般要统一版本，所以不覆盖)，父项目
+- properties中定义的变量名称和值可以被子工程继承;
+- dependency可以直接继承,一旦父工程依赖了一些资源,子工程在继承之后直接传递过来;
+- dependencyManagement:声明式的依赖继承,子工程中只要不做依赖的指的话，groupId artifactId就不会继承给子工程,一旦子工程继承，会把父工程定义的版本一并继承,版本号可以覆盖，但为了同意版本，一般不覆盖。有需要的话套在 dependencies 标签外边
+- build中的所有插件可以继承:例如父工程定义了所有子工程打包打源码包
+- organization:组织者,也可以继承
+
+创建一个 maven 子项目。pom 改成这个样子：
+
+```xml
+<artifactId>maven-child01</artifactId>
+<packaging>jar</packaging>
+
+<parent>
+    <groupId>cn.edu.scnu</groupId>
+    <artifactId>maven-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+</parent>
+```
+
+在父工程的 properties 标签里定义变量标签：
+
+```xml
+<spring.version>5.1.9.RELEASE</spring.version>
+```
+
+那么在子工程里可以：
+
+```xml
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-beans</artifactId>
+    <version>${spring.version}</version>
+</dependency>
+```
+
+保存后项目点开 maven dependencies 能看到引入了 beans 等包的对应版本。且可以看到因为父项目有 junit 依赖，所以即使子项目 pom 里删掉了这个依赖，还是能传过来
+
+父项目可以添加：
+
+```xml
+<dependencyManagement>
+    <dependencies>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.8.8</version>
+		</dependency>
+	</dependencies>
+</dependencyManagement>
+```
+
+发现保存后子项目不会添加上这个依赖，但是如果把 dependency 拉到外边的 dependencies 一保存子项目马上添加了这些依赖(当然删掉后马上又删掉了)
+
+
+
+#### 注解
+
+- @ComponentScan
+
+  前提是程序能扫描加载这个注解,可以代替xml中`<context:component-scan base-package="cn.edu.scnu">`标签, 这个注解所在的类所在包就是base-package的值
+
+- @Configuration
+
+  前提是程序能扫描加载这个注解，将一个spring的xml配置文件的内容转化成代码内容完成的配置类注解;代替一个独立的xml,在xml中所需要配置的所有`<bean>`,可以在这个类以@Bean表示
+
+  > 如：
+  >
+  > ```java
+  > package cn.edu.scnu.bean.test;
+  > public class BeanTest01 {
+  >     public BeanTest01(){
+  >         System.out.println("beanTest01被记加载了");
+  >     }
+  > }
+  > ```
+  >
+  > ```java
+  > package cn.edu.scnu.config;
+  > import org.springframework.context.annotation.Bean;
+  > import org.springframework.context.annotation.Configuration;
+  > import cn.edu.scnu.bean.test.BeanTest01;
+  > /**
+  >  * 对应生成spring容器中需要加载的一个xml配置文件 spring.xml
+  >  */
+  > @Configuration
+  > public class BeanConfig {
+  >     // 想办法创建一个BeanTest01的IOC控制反转对象
+  >     @Bean // 一般配合configuration注解的
+  >     // 方法的返回对象,就是需要创建的bean对象,由容器维护管理
+  >     // id值默认是方法名称
+  >     public BeanTest01 intiBeanTest01() {
+  >         // 各种属性赋值
+  >         return new BeanTest01();
+  >     }
+  > }//跑一下能发现日志里输出了syso那行
+  > ```
+
+- @ConfigurationProperties
+
+  前提是被容器扫描加载到,可以根据这个注解的配置读取properties文件中的key=value的数据内容;一般配合Component注解实现加载
+
+  > 在 `src/main/resources` 写 `application.properties`：
+  >
+  > ```properties
+  > cn.edu.scnu.username=baicha
+  > cn.edu.scnu.password=1235813
+  > ```
+  >
+  > 然后写一个类：
+  >
+  > ```java
+  > package cn.edu.scnu.bean.test;
+  > 
+  > import org.springframework.boot.context.properties.ConfigurationProperties;
+  > import org.springframework.stereotype.Component;
+  > 
+  > @Component // 容器一旦扫描,对象创建
+  > @ConfigurationProperties(prefix = "cn.edu.scnu") // 读取内存中所有properties
+  > //文件加载过来的key=value值,对属性进行set赋值
+  > public class ConfigProperties {
+  >     public ConfigProperties() {
+  >         System.out.println("configProperties加载了"); // 此行加断点
+  >     }
+  > 
+  >     private String username;
+  >     private String password;
+  > 
+  >     public String getUsername() {
+  >         return username;
+  >     }
+  > 
+  >     public void setUsername(String username) {
+  >         this.username = username;
+  >     }
+  > 
+  >     public String getPassword() {
+  >         return password;
+  >     }
+  > 
+  >     public void setPassword(String password) {
+  >         this.password = password;
+  >     }
+  > 
+  >     @Override
+  >     public String toString() {
+  >         return "ConfigProperties [username=" + username + ", password=" + password + "]";
+  >     }
+  > }
+  > ```
+  >
+  > 修改controller：
+  >
+  > ```java
+  > package cn.edu.scnu.controller;
+  > 
+  > import org.springframework.beans.factory.annotation.Autowired;
+  > import org.springframework.stereotype.Controller;
+  > import org.springframework.web.bind.annotation.RequestMapping;
+  > import org.springframework.web.bind.annotation.ResponseBody;
+  > 
+  > import cn.edu.scnu.bean.test.ConfigProperties;
+  > import cn.edu.scnu.service.HelloService;
+  > 
+  > @Controller
+  > public class HelloController {
+  >     @Autowired
+  >     private ConfigProperties configProperties;
+  >     @Autowired
+  >     private HelloService helloService;
+  > 
+  >     @RequestMapping("hello")
+  >     @ResponseBody
+  >     // @responseBody注解的作用是将controller中的方法返回的对象通过适当的转换器转换为
+  >     // 指定的格式之后，写入到response对象的body区，
+  >     // 通常用来返回JSON数据或者是XML数据，需要注意的是，在使用此注解之后不会再走视图处理器，
+  >     // 而是直接将数据写入到输入流中
+  >     public String sayHello(String name) {
+  >         return helloService.sayHello(name) + configProperties;
+  >     }
+  > }
+  > ```
+  >
+  > 再次访问网页，能发现确实能看到输出 `baicha` 等。
+  >
+  > 进一步地，假设该类有一个 `public static class ConfigProperties02` 且有属性 `String level` 及其 getter, setter，且有该静态内部类自己的 getter, setter，然后有一个内部类变量 `configPro02`，则用：
+  >
+  > ```properties
+  > cn.edu.scnu.configPro02.level=1
+  > ```
+
+- @ConditionalOnClass({A.class,B.class})
+
+  spring4.x出现的一个重要的自动配置的衍生注解,条件注解,前提扫描到条件注解时,根据加载的A.class,B.class判断当前配·置是否生效,配合@Configuration完成
+
+  测试案例:根据当前环境中存在的不同条件类,创建不同的bean对象
+
+  > ```java
+  > package cn.edu.scnu.bean.test;
+  > public class ConditionCreateBeanA {
+  >     public ConditionCreateBeanA() {
+  >         System.out.println("A 的条件bean创建了");
+  >     }
+  > }
+  > ```
+  >
+  > ```java
+  > package cn.edu.scnu.bean.test;
+  > public class ConditionalA {}
+  > ```
+  >
+  > ```java
+  > package cn.edu.scnu.config;
+  > import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+  > import org.springframework.context.annotation.Bean;
+  > import org.springframework.context.annotation.Configuration;
+  > import cn.edu.scnu.bean.test.ConditionalA;
+  > import cn.edu.scnu.bean.test.ConditionCreateBeanA;
+  > //一旦加入一个条件注解,当前配置类是否配置,
+  > //需要根据条件注解的条件判断,条件中指定的类
+  > //如果存在于当前环境中(包路径可以扫描),才加载
+  > //反之不加载
+  > @Configuration
+  > @ConditionalOnClass({ConditionalA.class})
+  > public class ConditionConfig {
+  >     @Bean
+  >     public ConditionCreateBeanA initA(){
+  >         return new ConditionCreateBeanA();
+  >     }
+  > }
+  > ```
+
+
+
+#### 配置
+
+##### 文件格式
+
+###### properties
+
+即 `application.properties`
+
+springboot 工程全局配置文件,所有可以使用的key-value值都可以在这个文件中配置,扫描路径classpath的根目录,maven工程src/main/resources
+
+例如修改默认加载的端口号和默认访问的路径：
+
+```properties
+server.port=8081
+server.contextPath=/hello
+```
+
+鉴于根目录改了，那么上文的访问路径会变成 `http://localhost:8081/hello/hello?name=baicha`
+
+
+
+###### yml
+
+> yml 可能是语法不熟悉，有神奇问题，不建议使用
+
+即 `application.yml`
+
+和application.properties的唯一区别就是数据的格式不同,使用方式,意义完全一样的(有yml不能有properties,反之亦然);读取数据的底层都是key-value;yml格式面向数据结构的;例如将测试中用到的(注意 yml 格式，用空格，不能用 tab，注意对齐)
+
+```yaml
+cn:
+ edu:
+  scnu:
+   username: baicha
+   password: 1235813
+server:
+ port: 8081
+```
+
+注：插件安装-help-eclipse marketplace，搜索 yaml，安装 yaml editor，成功重启发现可以编辑 yml 了。
+
+
+
+##### 配置项
+
+###### 数据库
+
+```properties
+#datasource config
+spring.datasource.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.url=jdbc:mysql:///microtest?useSSL=false
+spring.datasource.username=root
+spring.datasource.password=1
+```
+
+```yaml
+spring:
+ datasource:
+  driver-class-name: com.mysql.jdbc.Driver
+  url: jdbc:mysql://localhost:3306/easymall?userSSL=false
+  username: root
+  password: 1
+```
+
+###### 持久层
+
+```properties
+mybatis.typeAliasesPackage=cn.edu.scnu.pojo
+mybatis.mapperLocations=classpath:mapper/*.xml
+mybatis.configuration.mapUnderscoreToCamelCase=true
+```
+
+```yaml
+mabatis:
+ type-aliases-package: cn.edu.scnu.pojo
+ mapper-locations: classpath:mapper/*.xml
+ configuration:
+  map-underscore-to-camel-case: true
+```
+
+###### jsp前后缀
+
+```properties
+spring.mvc.view.prefix=/WEB-INF/
+spring.mvc.view.suffix=.jsp
+```
+
+
+
+
+
+##### banner.txt
+
+横幅,作为企业,公司,项目启动的标识;可以在classpath下配置banner.txt的文本,文本中的内容,会自动成为项目启动的横幅字符串,如果没有,就按照默认的横幅启动
+
+效果：运行时会在控制台最先输出 banner.txt 中的内容。
+
+
+
+##### 注解导入xml
+
+springboot准备了非常丰富自动配置环境,应对多样性的开发场景;但是不能100%满足所有的需求,所以有的时候开发人员还是需要通过配置xml文件来解决spring容器中需要加载的一些特殊内容;只能通过手动导入xml配置文件完成xml的读取;需要自定义配置一个导入xml文件的配置类
+
+案例实现需求:将一个在扫描范围之外的bean对象创建到xml的bean标签
+
+```java
+package org.child.application;
+public class ChildInfoBean {
+    public ChildInfoBean(){
+        System.out.println("ChildInfoBean 被加载了！");
+    }
+}
+```
+
+```java
+package cn.edu.scnu.config;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.ImportResource;
+import cn.edu.scnu.bean.test.BeanTest01;
+/**
+ * 对应生成spring容器中需要加载的一个xml配置文件 spring.xml
+ */
+@Configuration
+@ImportResource(value={"classpath:spring.xml"})
+public class BeanConfig {
+    // 想办法创建一个BeanTest01的IOC控制反转对象
+    @Bean // 一般配合configuration注解的
+    // 方法的返回对象,就是需要创建的bean对象,由容器维护管理
+    // id值默认是方法名称
+    public BeanTest01 intiBeanTest01() {
+        // 各种属性赋值
+        return new BeanTest01();
+    }
+}
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:util="http://www.springframework.org/schema/util" 
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="
+                           http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/aop 
+                           http://www.springframework.org/schema/aop/spring-aop.xsd
+                           http://www.springframework.org/schema/tx 
+                           http://www.springframework.org/schema/tx/spring-tx.xsd
+                           http://www.springframework.org/schema/util 
+                           http://www.springframework.org/schema/util/spring-util.xsd
+                           http://www.springframework.org/schema/context
+                           http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/mvc
+                           http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+    <bean class="org.child.application.ChildInfoBean"></bean>
+</beans>
+```
+
+
+
+#### 持久层整合
+
+##### 案例
+
+依赖：
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-jdbc</artifactId>
+</dependency>
+<!-- mysql -->
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+</dependency>
+<!-- 整合mybatis需要的依赖资源 -->
+<dependency>
+    <groupId>org.mybatis.spring.boot</groupId>
+    <artifactId>mybatis-spring-boot-starter</artifactId>
+    <version>1.3.0</version>
+</dependency>
+```
+
+数据库配置参见上文，如
+
+```properties
+spring.datasource.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.url=jdbc:mysql:///test
+spring.datasource.username=root
+spring.datasource.password=root
+```
+
+mybatis 配置：
+
+```properties
+mybatis.typeAliasesPackage=cn.edu.scnu.pojo
+mybatis.mapperLocations=classpath:mapper/*.xml
+mybatis.configuration.mapUnderscoreToCamelCase=true
+```
+
+写一个 POJO：
+
+```java
+package cn.edu.scnu.pojo;
+public class User {
+	//驼峰命名的封装规则
+	private String userId;
+	private String userPassword;
+	private String userName;
+	private Integer lev;
+	private Integer points;
+//setter&getter
+}
+```
+
+```java
+package cn.edu.scnu.mapper;
+import cn.edu.scnu.pojo.User;
+public interface UserMapper {
+    User queryUser(String userId);
+}
+```
+
+在 `resources/mapper/UserMapper.xml` 添加：
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.edu.scnu.mapper.UserMapper">
+    <select id="queryUser" parameterType="string" resultType="cn.edu.scnu.pojo.User">
+        select * from t_user where user_id=#{userId} 
+    </select>
+</mapper>
+```
+
+设置 UserController, UserService：
+
+```java
+package cn.edu.scnu.service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import cn.edu.scnu.pojo.User;
+import cn.edu.scnu.mapper.UserMapper;
+@Service
+public class UserService {
+    @Autowired
+    private UserMapper userMapper;
+    public User queryUser(String userId) {
+        // 调用持久层mapper,访问数据库返回user查询对象
+        return userMapper.queryUser(userId);
+    }
+}
+```
+
+```java
+package cn.edu.scnu.controller;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+import cn.edu.scnu.pojo.User;
+import cn.edu.scnu.service.UserService;
+@RestController
+public class UserController {
+    @Autowired
+    private UserService userService;
+    //用户查询
+    @RequestMapping("/user/query")
+    @ResponseBody
+    public User queryUser(String userId){
+        return userService.queryUser(userId);
+    }
+}
+```
+
+修改 main 函数：
+
+```java
+package cn.edu.scnu;
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+@SpringBootApplication //springboot启动的核心注解
+@MapperScan("cn.edu.scnu.mapper")
+public class StarterXu {
+    public static void main(String[] args) {
+        SpringApplication.run(StarterXu.class, args);
+    }
+}
+```
+
+测试访问：`localhost:8081/user/query?userId=1`
+
+> 如果跑不动试试换一个 xml 的：
+>
+> ```xml
+> cn.edu.scnu.username=xsn
+> cn.edu.scnu.password=123456
+> cn.edu.scnu.configPro02.level=1
+> 
+> #tom port contextPath
+> server.port=8081
+> server.context-path=/
+> 
+> #datasource config
+> spring.datasource.driverClassName=com.mysql.jdbc.Driver
+> spring.datasource.url=jdbc:mysql:///microtest?useSSL=false
+> spring.datasource.username=root
+> spring.datasource.password=14
+> 
+> #mybatis config
+> mybatis.typeAliasesPackage=cn.edu.scnu.pojo
+> mybatis.mapperLocations=classpath:mapper/*.xml
+> mybatis.configuration.mapUnderscoreToCamelCase=true
+> ```
+
+
+
+#### jsp解析
+
+jsp本质是需要tomcat容器翻译成.java文件的servlet代码的,而 springboot内嵌的tomcat无法直接解析jsp文件,需要添加一些支持jsp的依赖资源,解决这个不能直接对接的问题
+
+添加依赖：
+
+```xml
+<dependency>
+    <groupId>javax.servlet</groupId>
+    <artifactId>jstl</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.apache.tomcat.embed</groupId>
+    <artifactId>tomcat-embed-jasper</artifactId>
+    <version>8.5.11</version>
+</dependency> 
+```
+
+添加配置：
+
+```properties
+spring.mvc.view.prefix=/WEB-INF/
+spring.mvc.view.suffix=.jsp
+```
+
+测试：在新建 `src/main/webapp/WEB-INF/index.jsp` 键入：
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<h1>这是一个网页</h1>	
+```
+
+随便哪个 Controller 加一个方法：
+
+```java
+@RequestMapping("hi")
+public String sayHi() {
+    return "index";
+}
+```
+
+测试浏览：`http://localhost:8081/hi`
+
+
+
+#### 发布
+
+springboot由于独立运行的spring容器,可以直接在jdk环境调用java命令运行,打成jar包,在jdk调用java -jar **.jar就可以直接运行
+
+添加插件：(当然按理来说上文已经添加过了)
+
+```xml
+<plugin>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-maven-plugin</artifactId>
+</plugin>
+```
+
+直接 `mvn clean package`，然后直接用 `java -jar ...` 跑即可。
+
