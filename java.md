@@ -20444,6 +20444,31 @@ server {
 
 然后跑一个 web 项目即可。
 
+自动加头如：
+
+```nginx
+server {
+    listen 80;
+    server_name www.osstatic.com;
+    location /user {
+        proxy_pass http://127.0.0.1:8090/user;
+        add_header 'Access-Control-Allow-Origin' '*'; 
+        add_header 'Access-Control-Allow-Credentials' 'true'; 
+    }
+    location /order {
+        proxy_pass http://127.0.0.1:8090/order;
+        add_header 'Access-Control-Allow-Origin' '*'; 
+        add_header 'Access-Control-Allow-Credentials' 'true'; 
+    }
+    location /{
+        root D://Temps//html//orderuser;
+        index index.html;
+    }
+}
+```
+
+
+
 
 
 ### Spring Boot
@@ -21251,3 +21276,84 @@ springboot由于独立运行的spring容器,可以直接在jdk环境调用java�
 
 直接 `mvn clean package`，然后直接用 `java -jar ...` 跑即可。
 
+
+
+#### 纵向拆分
+
+根据系统功能，将系统拆成若干个独立运行的系统。
+
+##### RestTemplace
+
+RestTemplate 是从 Spring3.0 开始支持的一个 HTTP 请求工具，它提供了常见的REST请求方案的模版，例如 GET 请求、POST 请求
+
+该对象是`springmvc`底层实现的一个支持http协议的,封装了多个http协议方法的对象;
+
+```java
+package cn.edu.scnu.test;
+import org.junit.Test;
+import org.springframework.web.client.RestTemplate;
+public class TestRestTemplate {
+	@Test
+	public void test01() {
+		RestTemplate client = new RestTemplate();
+		// 访问京东,get请求
+		String bodyStr = client.getForObject("https://www.jd.com", String.class);
+		System.out.println(bodyStr);
+	}
+}
+```
+
+如上得到一个网页的 HTML 文本
+
+常用方法 API：
+
+```java
+getForObject(uri,responseType)
+postForObejct(uri,Object request,responseType)
+```
+
+uri:请求发起的目标url地址,例如`http://localhost:8092/user/updatePoint`
+
+responseType:接收的响应体的数据类型,如果返回的是String,就是String.class,如果返回的是User的json字符串可以使用String直接接收字符串,也可以使用RestTemplate直接对字符串解析User来接收。
+
+request类型Object;
+普通类型,例如user,product,order,将会以对象的全部数据拼接到请求体中,作为请求体的参数发送;
+HttpEntity,表示一个可以使用restTemplate发送的整个request对象.除了可以封装请求体的body数据,还关心发送请求时headers等内容
+
+```java
+package cn.edu.scnu.service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import cn.edu.scnu.entity.Order;
+import cn.edu.scnu.mapper.OrderMapper;
+@Service
+public class OrderService {
+	@Autowired
+	private OrderMapper orderMapper;
+	public void orderPay(String orderId) {
+		// 打印支付金额,打印支付订单id,先得查询订单信息
+		Order order = orderMapper.queryOrder(orderId);
+		System.out.println("订单:" + orderId + ".已支付:" + order.getOrderMoney());		
+		// 支付查询出来的订单金额已经完成
+		//将数据传递给user做积分逻辑
+		RestTemplate client = new RestTemplate();
+		try {
+			Integer success = client.getForObject(
+					"http://localhost:8091/user/updatePoint?orderMoney="+ order.getOrderMoney()+"&userId="+order.getUserId(), Integer.class);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+}
+```
+
+
+
+##### 基本原理
+
+同时运行多个 springboot 项目，这些项目维护的子功能加起来刚好是整个系统的功能。如将用户与订单分离为两个项目。然后用 mybatis 静态页面分离做前端，后端提供且仅提供接口，不实现任何页面显示相关的代码，这些接口通过 controller 暴露，且其业务功能主要通过 service 及其下面的 dao 层即 mapper 实现(因此需要 `resources/mapper/` 和 DAO 接口)，以及 POJO 对象(entity 包)及其 getter, setter。整个 java 端只提供接口功能。配置文件里，只需要 `application.properties` 和 `mapper/`。分别配置端口号、数据库等，和数据库具体查询语句。
+
+多个子系统需要交互，如购买订单时需要修改用户金额信息。这时，可以通过上文的 `RestTemplace` ，仿照前端调用的方法，直接 get/post 另一个子系统暴露的端口，即可实现交互。
+
+部署时，同时运行这几个子系统在不同的端口(eclipse 直接 run 即可，console 里有个可以下拉的按钮可以看到不同的 running 并可以随时结束任意一个子系统)，然后配 hosts 和 nginx 即可。
