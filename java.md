@@ -19010,6 +19010,791 @@ $.post(url,{"username":username},
 
 
 
+#### 数据绑定
+
+在Spring MVC框架中，数据绑定有这样几层含义：绑定请求参数输入值到领域模型、模型数据到视图的绑定、模型数据到表单元素的绑定。
+
+##### 表单标签库
+
+表单标签库中包含了可以用在JSP页面中渲染HTML元素的标签。JSP页面使用Spring表单标签库时，必须在JSP页面开头处声明taglib指令，指令代码如下：
+
+表单标签库中有form、input、password、hidden、textarea、checkbox、checkboxes、radiobutton、radiobuttons、select、option、options、errors。
+
+> form：渲染表单元素。
+> input：渲染<input type="text"/>元素。
+> password：渲染<input type="password"/>元素。
+> hidden：渲染<input type="hidden"/>元素。
+> textarea：渲染textarea元素。
+> checkbox：渲染一个<input type="checkbox"/>元素。
+> checkboxes：渲染多个<input type="checkbox"/>元素。
+> radiobutton：渲染一个<input type="radio"/>元素。
+> radiobuttons：渲染多个<input type="radio"/>元素。
+> select：渲染一个选择元素。
+> option：渲染一个选项元素。
+> options：渲染多个选项元素。
+> errors：在span元素中渲染字段错误。
+
+###### 表单
+
+```jsp
+<form:form modelAttribute="xxx" method="post" action="xxx">
+</form:form>
+```
+
+modelAttribute：暴露form backing object的模型属性名称，属性值绑定一个JavaBean对象。假设，控制器类UserController的方法inputUser，是返回userAdd.jsp的请求处理方法。如：
+
+```java
+@RequestMapping(value = "/input")
+public String inputUser(Model model) {
+	model.addAttribute("user", new User());
+	return "userAdd";
+}
+```
+
+```jsp
+<form:form modelAttribute="user"  method="post" action="user/save"></form:form>
+```
+
+注意：在inputUser方法中，如果没有Model属性user，userAdd.jsp页面就会抛出异常，因为表单标签无法找到在其modelAttribute属性中指定的form backing object。
+
+
+
+###### input
+
+```jsp
+<form:form modelAttribute="user"  method="post" action="user/save">
+    <form:input path="userName"/>
+</form:form>
+```
+
+上述代码，将输入值绑定到user对象的userName属性。
+
+password、hidden、textarea标签的用法与input标签基本一致。
+
+
+
+###### checkbox
+
+```jsp
+<form:checkbox path="friends" value="张三"/>张三
+<form:checkbox path="friends" value="李四"/>李四
+```
+
+上述示例代码中复选框的值绑定到一个字符串数组属性`friends（String[] friends)`
+
+checkboxes标签渲染多个复选框，是一个选项组，等价于多个path相同的checkbox标签
+
+- items：用于生成input元素的Collection、Map或Array。
+- itemLabel：items属性中指定的集合对象的属性，为每个input元素提供label。
+- itemValue：items属性中指定的集合对象的属性，为每个input元素提供value
+
+如：
+
+```jsp
+<form:checkboxes items="${hobbys}"  path="hobby" />
+```
+
+上述示例代码，是将model属性hobbys的内容（集合元素）渲染为复选框。itemLabel和itemValue缺省情况下，如果集合是数组，复选框的label和value相同；如果是Map集合，复选框的Label是Map的值（value），复选框的value是Map的关键字（key）。
+
+
+
+###### radiobutton
+
+```jsp
+<form:radiobutton path="xxx" value="xxx"/>
+```
+
+多个path相同的radiobutton标签，它们是一个选项组，只允许单选。
+
+同理有 radiobuttons。
+
+
+
+###### select
+
+select标签的选项可能来自其属性items指定的集合，或者来自一个嵌套的option标签或options标签。语法格式如下：
+
+```jsp
+<form:select path="xxx" items="xxx" />
+<form:select path="xxx" items="xxx" >
+    <option value="xxx">xxx</option>
+</form:select>
+<form:select path="xxx">
+    <form:options items="xxx"/>
+</form:select>
+```
+
+```jsp
+<label>职业:</label>
+<form:select path="carrer"> 
+    <option/>请选择职业
+    <form:options items="${carrers }"/>
+</form:select>
+```
+
+该标签的itemLabel和itemValue属性与checkboxes标签的itemLabel和itemValue属性完全一样。
+
+options标签生成一个select标签的选项列表，需要和select标签一同使用。
+
+
+
+###### errors
+
+errors标签渲染一个或者多个span元素，每个span元素包含一个错误消息。它可以用于显示一个特定的错误消息，也可以显示所有错误消息。语法如下：
+
+```jsp
+<form:errors path="*"/>
+<form:errors path="xxx"/>
+```
+
+其中，“*”表示显示所有错误消息；“xxx”表示显示由“xxx”指定的特定错误消息。
+
+
+
+##### JSON数据交互
+
+JSON（JavaScript Object Notation，JS对象标记）是一种轻量级的数据交换格式。与XML一样，JSON也是基于纯文本的数据格式。它有两种数据结构。
+
+对象结构以“{”开始，以“}”结束。中间部分由0个或多个以英文“,”分隔的key/value对构成，key和value之间以英文“:”分隔。对象结构的语法结构如下。其中，key必须为String类型，value可以是String、Number、Object、Array等数据类型。
+
+```json
+{
+	key1:value1,
+	key2:value2,
+	…
+}
+```
+
+数组结构以“[”开始，以“]”结束。中间部分由0个或多个以英文“,”分隔的值的列表组成。数组结构的语法结构如下：
+
+```json
+[
+	value1,
+	value2,
+	…
+]
+```
+
+如：
+
+```json
+{
+    "sno":"201802228888",
+    "sname":"陈恒",
+    "hobby":["篮球","足球"],
+    "college":{
+        "cname":"清华大学",
+        "city":"北京"
+    }
+}
+```
+
+为实现浏览器与控制器类之间的JSON数据交互，Spring MVC提供了MappingJackson2HttpMessageConverter实现类默认处理JSON格式请求响应。该实现类利用Jackson开源包读写JSON数据，将Java对象转换为JSON对象和XML文档，同时也可以   将JSON对象和XML文档转换为Java对象。
+
+- jackson-annotations-2.10.1.jar：JSON转换注解包。
+- jackson-core-2.10.1.jar：JSON转换核心包。
+- jackson-databind-2.10.1.jar：JSON转换的数据绑定包。
+
+[下载地址](http://mvnrepository.com/artifact/com.fasterxml.jackson.core)
+
+@RequestBody：用于将请求体中的数据绑定到方法的形参中，该注解应用在方法的形参上。
+@ResponseBody：用于直接返回return对象，该注解应用在方法上
+
+
+
+##### 举例
+
+###### 用户注册和显示用户列表
+
+```java
+public class User {
+	private String userName;
+	private String[] hobby;//兴趣爱好
+	private String[] friends;//朋友
+	private String carrer;
+	private String houseRegister;
+	private String remark;
+	//省略setter和getter方法
+}
+```
+
+```java
+@Service
+public class UserServiceImpl implements UserService{	
+	//使用静态集合变量users模拟数据库
+	private static ArrayList<User> users = new ArrayList<User>();
+	@Override
+	public boolean addUser(User u) {
+		if(!"IT民工".equals(u.getCarrer())){//不允许添加IT民工
+			users.add(u);
+			return true;
+		}
+		return false;
+	}
+	@Override
+	public ArrayList<User> getUsers() {
+		return users;
+	}
+}
+```
+
+```java
+@Controller
+@RequestMapping("/user")
+public class UserController {
+	// 得到一个用来记录日志的对象，这样打印信息的时候能够标记打印的是那个类的信息
+	private static final Log logger = LogFactory.getLog(UserController.class);
+	@Autowired
+	private UserService userService;
+	@RequestMapping(value = "/input")
+	public String inputUser(Model model) {
+		HashMap<String, String> hobbys = new HashMap<String, String>();
+		hobbys.put("篮球", "篮球");
+		hobbys.put("乒乓球", "乒乓球");
+		hobbys.put("电玩", "电玩");
+		hobbys.put("游泳", "游泳");
+	    // 如果model中没有user属性，userAdd.jsp会抛出异常，因为表单标签无法找到
+		// modelAttribute属性指定的form backing object
+		model.addAttribute("user", new User());
+		model.addAttribute("hobbys", hobbys);
+		model.addAttribute("carrers", new String[] { "教师", "学生", "coding搬运工", "IT民工", "其它" });
+		model.addAttribute("houseRegisters", new String[] { "北京", "上海", "广州", "深圳", "其它" });
+		return "userAdd";
+	}
+	@RequestMapping(value = "/save")
+	public String addUser(@ModelAttribute User user, Model model) {
+		if (userService.addUser(user)) {
+			logger.info("成功");
+			return "redirect:/user/list";
+		} else {
+			logger.info("失败");
+			HashMap<String, String> hobbys = new HashMap<String, String>();
+			hobbys.put("篮球", "篮球");
+			hobbys.put("乒乓球", "乒乓球");
+			hobbys.put("电玩", "电玩");
+			hobbys.put("游泳", "游泳");
+			// 这里不需要model.addAttribute("user", new
+			// User())，因为@ModelAttribute指定form backing object
+			model.addAttribute("hobbys", hobbys);
+			model.addAttribute("carrers", new String[] { "教师", "学生", "coding搬运工", "IT民工", "其它" });
+			model.addAttribute("houseRegisters", new String[] { "北京", "上海", "广州", "深圳", "其它" });
+			return "userAdd";
+		}
+	}
+	@RequestMapping(value = "/list")
+	public String listUsers(Model model) {
+		List<User> users = userService.getUsers();
+		model.addAttribute("users", users);
+		return "userList";
+	}
+}
+```
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><!--userAdd-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+<form:form modelAttribute="user"  method="post" action=" ${pageContext.request.contextPath }/user/save">
+    <fieldset>
+        <legend>添加一个用户</legend>
+        <p>
+            <label>用户名:</label>
+            <form:input path="userName"/>
+        </p>
+        <p>
+            <label>爱好:</label>
+            <form:checkboxes items="${hobbys}"  path="hobby" />
+        </p>
+        <p>
+            <label>朋友:</label>
+            <form:checkbox path="friends" value="张三"/>张三
+            <form:checkbox path="friends" value="李四"/>李四
+            <form:checkbox path="friends" value="王五"/>王五
+            <form:checkbox path="friends" value="赵六"/>赵六
+        </p>
+        <p>
+            <label>职业:</label>
+            <form:select path="carrer"> 
+                <option/>请选择职业
+                <form:options items="${carrers }"/>
+            </form:select>
+        </p>
+        <p>
+            <label>户籍:</label>
+            <form:select path="houseRegister">
+                <option/>请选择户籍
+                <form:options items="${houseRegisters }"/>
+            </form:select>
+        </p>
+        <p>
+            <label>个人描述:</label>
+            <form:textarea path="remark" rows="5"/>
+        </p>
+        <p id="buttons">
+            <input id="reset" type="reset">
+            <input id="submit" type="submit" value="添加">
+        </p>
+    </fieldset>
+</form:form>
+</body>
+</html>
+```
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><!--userList-->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+    <h1>用户列表</h1>
+    <a href="<c:url value="${pageContext.request.contextPath }/user/input"/>">继续添加</a>
+    <table>
+        <tr>
+            <th>用户名</th>
+            <th>兴趣爱好</th>
+            <th>朋友</th>
+            <th>职业</th>
+            <th>户籍</th>
+            <th>个人描述</th>
+        </tr>
+        <!-- JSTL标签，请参考本书的相关内容 -->
+        <c:forEach items="${users}" var="user">
+            <tr>
+                <td>${user.userName }</td>
+                <td>
+                	<c:forEach items="${user.hobby }" var="hobby">
+                		${hobby }&nbsp;
+                	</c:forEach>
+                </td>
+                <td>
+                	<c:forEach items="${user.friends }" var="friend">
+                		${friend }&nbsp;
+                	</c:forEach>
+                </td>
+                <td>${user.carrer }</td>
+                <td>${user.houseRegister }</td>
+                <td>${user.remark }</td>
+            </tr>
+        </c:forEach>
+    </table>
+</body>
+</html>
+```
+
+同时表单的method方法需指定为post来避免中文乱码问题。
+
+
+
+###### JSON
+
+```xml
+<!-- 使用扫描机制，扫描控制器类 -->
+<context:component-scan base-package="controller"/>  
+<mvc:annotation-driven />
+<!-- 配置静态资源，允许js目录下所有文件可见 -->
+<mvc:resources location="/js/" mapping="/js/**"></mvc:resources>             	
+<!-- 配置视图解析器 -->
+<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver"
+      id="internalResourceViewResolver">
+    <!-- 前缀 -->
+    <property name="prefix" value="/WEB-INF/jsp/" />
+    <!-- 后缀 -->
+    <property name="suffix" value=".jsp" />
+</bean>
+```
+
+```java
+package pojo;
+public class Person {
+	private String pname;
+	private String password;
+	private Integer page;
+	//省略setter和getter方法
+}
+```
+
+```java
+@Controller
+public class TestController {
+	/**
+	 * 接收页面请求的JSON数据，并返回JSON格式结果
+	 */
+	@RequestMapping("/testJson")
+	@ResponseBody
+	public Person testJson(@RequestBody Person user) {
+		//打印接收的JSON格式数据
+		System.out.println("pname=" + user.getPname() +
+				", password=" + user.getPassword() + ",page=" + user.getPage());
+		//返回JSON格式的响应
+		return user;
+	}
+}
+```
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Insert title here</title>
+<script type="text/javascript" src="${pageContext.request.contextPath }/js/jquery-3.2.1.min.js"></script>
+<script type="text/javascript">
+	function testJson() {
+		//获取输入的值pname为id
+		var pname = $("#pname").val();
+		var password = $("#password").val();
+		var page = $("#page").val();
+		$.ajax({
+			//请求路径
+			url : "${pageContext.request.contextPath }/testJson",
+			//请求类型
+			type : "post",
+			//data表示发送的数据
+			data : JSON.stringify({pname:pname,password:password,page:page}),
+			//定义发送请求的数据格式为JSON字符串
+			contentType : "application/json;charset=utf-8",
+			//定义回调响应的数据格式为JSON字符串，该属性可以省略
+			dataType : "json",
+			//成功响应的结果
+			success : function(data){
+				if(data != null){
+					alert("输入的用户名:" + data.pname + "，密码：" + data.password + "，年龄：" +  data.page);
+				}
+			}
+
+		});
+	}
+</script>
+</head>
+<body>
+	<form action="">
+		用户名：<input type="text" name="pname" id="pname"/><br>
+		密码：<input type="password" name="password" id="password"/><br>
+		年龄：<input type="text" name="page" id="page"/><br>
+		<input type="button" value="测试" onclick="testJson()"/>
+	</form>
+</body>
+</html>
+```
+
+
+
+#### 文件上传下载
+
+Spring MVC框架文件上传是基于commons-fileupload组件的文件上传。只不过在原有的基础上做了进一步的封装，简化了文件上传的代码实现，取消不同上传组件上的编程差异。
+
+依赖：commons-fileupload-1.4.jar和commons-io-2.6.jar
+下载地址 [fileupload](http://commons.apache.org/proper/commons-fileupload/
+), [io](http://commons.apache.org/proper/commons-io/)
+
+##### 基于表单
+
+基于表单的文件上传，用enctype属性，并将它的值设置为multipart/form-data。表单的提交方式设置为post
+
+表单的enctype属性指定的是表单数据的编码方式，该属性有如下三个值：
+    application/x-www-form-urlencoded：这是默认的编码方式，它只处理表单域里的value属性值。
+    multipart/form-data：该编码方式以二进制流的方式来处理表单数据，并将文件域指定文件的内容封装到请求参数里。
+    text/plain：该编码方式当表单的action属性为mailto:URL的形式时才使用，主要适用于直接通过表单发送邮件的方式。
+
+在Spring MVC框架中，上传文件时，将文件相关信息及操作封装到MultipartFile对象中。因此，开发者只需要使用MultipartFile类型声明模型类的一个属性，即可以对被上传文件进行操作。该接口具有如下方法：
+    byte[] getBytes()：以字节数组的形式返回文件的内容。
+    String getContentType()：返回文件的内容类型。
+    InputStream getInputStream()：返回一个InputStream，从中读取文件的内容。
+    String getName()：返回请求参数的名称。
+    String getOriginalFilename()：返回客户端提交的原始文件名称。
+    long getSize()：返回文件的大小，单位为字节。
+    boolean isEmpty()：判断被上传文件是否为空。
+    void transferTo(File destination)：将上传文件保存到目标目录下。
+    上传文件时，需要在配置文件中使用Spring的org.springframework.web.multipart.commons.CommonsMultipartResolver类配置MultipartResolver 用于文件上传。
+
+为了防止中文乱码，需要在web.xml文件中添加字节编码过滤器
+
+
+
+##### 单文件上传
+
+单文件上传例子：
+
+```jsp
+<form action="${pageContext.request.contextPath }/onefile" method="post" enctype="multipart/form-data">  
+    选择文件:<input type="file" name="myfile">  <br>
+    文件描述:<input type="text" name="description"> <br>
+ <input type="submit" value="提交">   
+</form> 
+```
+
+```java
+package pojo;
+import org.springframework.web.multipart.MultipartFile;
+public class FileDomain {
+	private String description;
+	private MultipartFile myfile;
+	//省略setter和getter方法
+}
+```
+
+```java
+@Controller
+public class FileUploadController {
+    private static final Log logger = LogFactory.getLog(FileUploadController.class);
+    @RequestMapping("/onefile")
+    public String oneFileUpload(@ModelAttribute FileDomain fileDomain, HttpServletRequest request){
+        String realpath = request.getServletContext().getRealPath("uploadfiles");
+        String fileName = fileDomain.getMyfile().getOriginalFilename(); 
+        File targetFile = new File(realpath, fileName); 
+        if(!targetFile.exists()){  
+            targetFile.mkdirs();  
+        } 
+        try {   //上传 
+            fileDomain.getMyfile().transferTo(targetFile);
+            logger.info("成功");
+        } catch (Exception e) {    		 
+            e.printStackTrace();      
+        }
+        return "showOne";
+    }
+}
+```
+
+配置文件：
+
+```xml
+<!--使用Spring的CommosMultipartResolver，配置MultipartResolver 用于文件上传 -->  
+<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver"  
+      p:defaultEncoding="UTF-8"  
+      p:maxUploadSize="5400000"  
+      p:uploadTempDir="fileUpload/temp" 
+      > 
+    <!--E:\java workspace\.metadata\.plugins\org.eclipse.wst.server.core\tmp0\wtpwebapps\fileUpload  -->  
+</bean> 
+<!-- defaultEncoding="UTF-8" 是请求的编码格式，默认为iso-8859-1
+maxUploadSize="5400000" 是允许上传文件的最大值，单位为字节
+uploadTempDir="fileUpload/temp" 为上传文件的临时路径 --> 
+```
+
+```jsp
+<body>
+    ${fileDomain.description }<br>
+    <!-- fileDomain.getMyfile().getOriginalFilename() -->
+    ${fileDomain.myfile.originalFilename }
+</body>
+```
+
+
+
+##### 多文件上传
+
+```jsp
+<form action="${pageContext.request.contextPath }/multifile" method="post" enctype="multipart/form-data">  
+    选择文件1:<input type="file" name="myfile">  <br>
+    文件描述1:<input type="text" name="description"> <br>
+    选择文件2:<input type="file" name="myfile">  <br>
+    文件描述2:<input type="text" name="description"> <br>
+    选择文件3:<input type="file" name="myfile">  <br>
+    文件描述3:<input type="text" name="description"> <br>
+    <input type="submit" value="提交">   
+</form> 
+```
+
+```java
+package pojo;
+import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
+public class MultiFileDomain {
+	private List<String> description;
+	private List<MultipartFile> myfile;
+	//省略setter和getter方法
+}
+```
+
+```java
+@RequestMapping("/multifile")
+public String multiFileUpload(@ModelAttribute MultiFileDomain multiFileDomain, 
+                              HttpServletRequest request){
+    String realpath = request.getServletContext().getRealPath("uploadfiles");
+    //String realpath = "D:/spring mvc workspace/ch7/WebContent/uploadfiles";  
+    File targetDir = new File(realpath); 
+    if(!targetDir.exists()){  
+        targetDir.mkdirs();     } 
+    List<MultipartFile> files = multiFileDomain.getMyfile();
+    for (int i = 0; i < files.size(); i++) {
+        MultipartFile file = files.get(i);
+        String fileName = file.getOriginalFilename();
+        File targetFile = new File(realpath,fileName); 
+        try { //上传 
+            file.transferTo(targetFile);  
+        } catch (Exception e) {   e.printStackTrace();    }  
+    }
+    logger.info("成功");
+    return "showMulti";
+}
+```
+
+```jsp
+<body>
+    <table>
+        <tr><td>详情</td><td>文件名</td></tr>
+        <!-- 同时取两个数组的元素 -->
+        <c:forEach items="${multiFileDomain.description}" var="description" varStatus="loop">
+            <tr>
+                <td>${description}</td>
+                <td>${multiFileDomain.myfile[loop.count-1].originalFilename}</td>
+            </tr>
+        </c:forEach>
+        <!-- fileDomain.getMyfile().getOriginalFilename() -->
+    </table>
+</body>
+```
+
+
+
+##### 文件下载
+
+利用程序实现下载需要设置两个报头：
+ 1．Web服务器需要告诉浏览器其所输出内容的类型不是普通文本文件或HTML文件，而是一个要保存到本地的下载文件。设置Content-Type 的值为：application/x-msdownload。
+ 2．Web服务器希望浏览器不直接处理相应的实体内容，而是由用户选择将相应的实体内容保存到一个文件中，这需要设置Content-Disposition报头。该报头指定了接收程序处理数据内容的方式，在HTTP应用中只有attachment是标准方式，attachment表示要求用户干预。在attachment后面还可以指定filename参数，该参数是服务器建议浏览器将实体内容保存到文件中的文件名称。
+
+```java
+response.setHeader("Content-Type", "application/x-msdownload" );
+response.setHeader("Content-Disposition", "attachment; filename=" + filename);
+```
+
+如从 `workspace\.metadata\.plugins\org.eclipse.wst.server.core\tmp0\wtpwebapps\ch7\uploadfiles` 下载文件。
+
+```java
+@Controller
+public class FileDownController {
+	// 得到一个用来记录日志的对象，这样打印信息的时候能够标记打印的是那个类的信息
+	private static final Log logger = LogFactory.getLog(FileDownController.class);
+	/**
+	 * 显示要下载的文件
+	 */
+	@RequestMapping("showDownFiles")
+	public String show(HttpServletRequest request, Model model){
+		//从workspace\.metadata\.plugins\org.eclipse.wst.server.core\tmp0\wtpwebapps\ch7\下载
+		String realpath = request.getServletContext().getRealPath("uploadfiles");
+		File dir = new File(realpath);
+		File files[] = dir.listFiles();
+		//获取该目录下的所有文件名
+		ArrayList<String> fileName = new ArrayList<String>();
+		for (int i = 0; i < files.length; i++) {
+			fileName.add(files[i].getName());
+		}
+		model.addAttribute("files", fileName);
+		return "showDownFiles";
+	}
+	/**
+	 * 执行下载
+	 */
+	@RequestMapping("down")
+	public String down(@RequestParam String filename, HttpServletRequest request, HttpServletResponse response){
+		String aFilePath = null; //要下载的文件路径
+		FileInputStream in = null; //输入流
+		ServletOutputStream out = null; //输出流
+		try {
+			//从workspace\.metadata\.plugins\org.eclipse.wst.server.core\tmp0\wtpwebapps下载
+			aFilePath = request.getServletContext().getRealPath("uploadfiles");
+			//设置下载文件使用的报头
+			response.setHeader("Content-Type", "application/x-msdownload" );
+			response.setHeader("Content-Disposition", "attachment; filename="
+					+ toUTF8String(filename));
+			// 读入文件
+			in = new FileInputStream(aFilePath + "\\"+ filename); 
+			//得到响应对象的输出流，用于向客户端输出二进制数据
+			out = response.getOutputStream();
+			out.flush();
+			int aRead = 0;
+			byte b[] = new byte[1024];
+			while ((aRead = in.read(b)) != -1 & in != null) {
+				out.write(b,0,aRead);
+			}
+			out.flush();
+			in.close();
+			out.close();
+		} catch (Throwable e) {
+			e.printStackTrace();
+		} 
+		logger.info("下载成功");
+		return null;
+	}
+	/**
+	 * 下载保存时中文文件名字符编码转换方法
+	 */
+	public  String toUTF8String(String str){
+		StringBuffer sb = new StringBuffer();
+		int len = str.length();
+		for(int i = 0; i < len; i++){
+			//取出字符中的每个字符
+			char c = str.charAt(i);
+			//Unicode码值在0-255之间，不作处理
+			if(c >= 0 && c <= 255){
+				sb.append(c);
+			}else{//转换UTF-8编码
+				byte b[];
+				try {
+					b = Character.toString(c).getBytes("UTF-8");
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+					b = null;
+				}
+				//转换为%HH的字符串形式
+				for(int j = 0; j < b.length; j ++){
+					int k = b[j];
+					if(k < 0){
+						k &= 255;
+					}
+					sb.append("%" + Integer.toHexString(k).toUpperCase());
+				}
+			}
+		}
+		return sb.toString();
+	}
+}
+```
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Insert title here</title>
+</head>
+<body> 
+	<table>
+		<tr>
+			<td>被下载的文件名</td>
+		</tr>
+		<!-- 遍历model中的files -->
+		<c:forEach items="${files}" var="filename">
+			<tr>
+				<td><a href="${pageContext.request.contextPath }/down?filename=${filename}">${filename}</a></td>
+			</tr>
+		</c:forEach>
+	</table>
+</body>
+</html>
+```
+
+
+
+
+
+
+
 #### 其他例子
 
 ##### 验证码

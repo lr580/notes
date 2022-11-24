@@ -4192,11 +4192,12 @@ arr.reshape(tuple 维度)
 建立零数组：
 
 ```python
-np.zeros(维度)#单一维度可以用int，否则用tuple
+np.zeros(维度)#单一维度可以用int，否则用tuple，类型默认float
 ```
 
 > ```python
 > bins = np.zeros(256, np.float32)
+> np.zeros(a.shape)
 > ```
 
 建立未初始化的数组：
@@ -4322,6 +4323,14 @@ np.sort(arr)
 ```python
 np.random.uniform(low=0.0, high=1.0, size=(5,5))>0.5
 ```
+
+转置：
+
+```python
+arr.transpose()
+```
+
+
 
 
 
@@ -5065,9 +5074,11 @@ pip install opencv-python
 
 #### 读写显示
 
+可能读彩色图有点问题，这样的话建议用 mpimg 读
+
 ```python
 import cv2
-src = cv2.imread('img/keepOut.jpg')
+src = cv2.imread('img/keepOut.jpg') #<class 'numpy.ndarray'>
 cv2.imshow('src', src)  # 窗口名
 cv2.waitKey(0)
 ```
@@ -5093,6 +5104,43 @@ plt.show()
 ```
 
 
+
+##### 单阈值分割
+
+人工指定阈值：
+
+```python
+import cv2
+import matplotlib.pyplot as plt
+
+img = cv2.imread("res/Fig0517(a).tif")
+img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+#<120 -> 0 otherwise -> 1
+th, img2 = cv2.threshold(img, 120, 255, cv2.THRESH_BINARY)
+plt.subplot(121)
+plt.imshow(img, 'gray')
+plt.subplot(122)
+plt.imshow(img2, 'gray')
+plt.show()
+```
+
+自适应：
+
+```python
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+
+img = cv2.imread("res/Fig0517(a).tif")
+img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+th, img2 = cv2.threshold(img, 0, 256, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+plt.subplot(121)
+plt.imshow(img, 'gray')
+plt.subplot(122)
+plt.imshow(img2, 'gray')
+plt.show()
+```
 
 
 
@@ -5125,6 +5173,41 @@ img = img.resize((rows, cols), Image.Resampling.BICUBIC)
 
 ```python
 img.save(文件名)
+```
+
+
+
+#### 转黑白
+
+直接取平均值：
+
+```python
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+from PIL import Image
+
+img = Image.open('b.jpg')
+img = img.convert('L')
+plt.imshow(img, 'gray')
+plt.show()
+```
+
+可以手写：
+
+```python
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import numpy as np
+
+img = mpimg.imread('b.jpg')
+arr = [[0.299, 0.587, 0.114] for i in range(3)]
+trans = np.array(arr).transpose()  #矩阵转置
+img2 = np.dot(img, trans).astype(np.uint8)
+plt.subplot(121)
+plt.imshow(img)
+plt.subplot(122)
+plt.imshow(img2, 'gray')
+plt.show()
 ```
 
 
