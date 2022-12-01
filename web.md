@@ -7777,6 +7777,12 @@ bool，指定属性是否存在
 
 设置或替换某个属性
 
+
+
+#### 例子
+
+##### 表格求和
+
 下面举了一个例子，用于求和一个表格项：
 
 ```html
@@ -7835,6 +7841,64 @@ function fuck() {
 }
 setTimeout(fuck, 0)
 ```
+
+
+
+##### 增删子节点和属性
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第二题</title>
+    <script>
+        window.onload = function() {
+            let obj = document.getElementsByTagName('books')[0];
+            let sons = obj.children;
+            for (let i = 0; i < sons.length; ++i) {
+                let ele = document.createElement('author');
+                ele.innerHTML = '张' + ['三', '四', '五'][i];
+                sons[i].appendChild(ele);
+            }
+            for (let i = 0; i < sons.length; ++i) {
+                ch = sons[i].children;
+                for (let j = 0; j < ch.length; ++j) {
+                    if (ch[j].tagName == 'TITLE') {
+                        ch[j].innerHTML += '(电子工业出版社)';
+                    }
+                }
+            }
+            obj.removeChild(sons[2]);
+            for (let i = 0; i < sons.length; ++i) {
+                sons[i].setAttribute('category', 'computer');
+            }
+            console.log(obj.innerHTML);
+        };
+    </script>
+</head>
+
+<body>
+    <books>
+        <book>
+            <title>Java面向对象编程</title>
+        </book>
+        <book>
+            <title>JSP动态网页编程技术</title>
+        </book>
+        <book>
+            <title>精通Hibernate</title>
+        </book>
+    </books>
+</body>
+
+</html>
+```
+
+
 
 
 

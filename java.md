@@ -8311,6 +8311,7 @@ import java.util.*;
 - clear()
 - removeIf(一元操作符)
 - toArray()
+- forEach(一元函数) 以每个元素执行该函数
 
 迭代器为 `Iterator<模板类名>`，常用方法：
 
@@ -8421,7 +8422,22 @@ public class c1609 {
 
 ```
 
+```java
+package exam1;
 
+import java.util.ArrayList;
+import java.util.List;
+
+public class foreach {
+    public static void main(String[] args) {
+        List<String> list = new ArrayList<>();
+        list.add("a");
+        list.add("b");
+        list.forEach(System.out::println);
+        list.forEach(v -> System.out.println(v));//lambda
+    }
+}
+```
 
 
 
@@ -13556,6 +13572,38 @@ http://www.springframework.org/schema/aop
 http://www.springframework.org/schema/aop/spring-aop.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd ">
 ```
 
+上传文件支持：
+
+```xml
+xmlns:p="http://www.springframework.org/schema/p"
+```
+
+比较完整：
+
+```xml
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xsi:schemaLocation="
+                           http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/aop 
+                           http://www.springframework.org/schema/aop/spring-aop.xsd
+                           http://www.springframework.org/schema/tx 
+                           http://www.springframework.org/schema/tx/spring-tx.xsd
+                           http://www.springframework.org/schema/util 
+                           http://www.springframework.org/schema/util/spring-util.xsd
+                           http://www.springframework.org/schema/context
+                           http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/mvc
+                           http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+```
+
 
 
 
@@ -14283,6 +14331,13 @@ public class TimeSchedule {
 </beans>
 ```
 
+多个包，如：
+
+```xml
+<context:component-scan
+		base-package="easymall.service,easymall.controller,easymall.controller.admin" />
+```
+
 确保导入了 `spring-aop-5.1.9.RELEASE.jar` 包(注意这点)。测试：
 
 ```java
@@ -14336,6 +14391,31 @@ public void test02() {
 7. `@Qualifier`
 
    该注解与@Autowired注解配合使用。当@Autowired注解需要按照名称来装配注入，则需要结合该注解一起使用，Bean的实例名称由@Qualifier注解的参数指定。
+
+其他注解：
+
+- `@NotBlank`
+
+  ```java
+  @NotBlank(message = "商品名称不能为空")
+  private String name; //POJO
+  ```
+
+  参数添加 `@Valid` 注解：
+
+  ```java
+  @RestController
+  @RequestMapping("/test")
+  public class TestController {
+      @PostMapping(path = "/addTestDemo")
+      public AjaxResult addTestDemo(@Valid @RequestBody TestDemo testDemo) {
+          System.out.println("拿到的testDemo为："+testDemo);
+          return AjaxResult.success();
+      }
+  }
+  ```
+
+  
 
 上面几个注解中，虽然@Repository、@Service和 @Controller等注解的功能与@Component()相同，但为了使标注类的用途更加清晰（层次化），在实际开发中推荐使用@Repository标注数据访问层（DAO层）、使用@Service标注业务逻辑层（Service层）以及使用@Controller标注控制器层（控制层）。
 
@@ -15140,6 +15220,57 @@ public void test033() {
     testDaoAdvice.save();
 }
 ```
+
+
+
+##### @Transactional
+
+声明式事务
+
+放接口实现类/接口实现方法，而不是接口类
+
+访问权限：`public 的方法才起作用`。`@Transactional 注解应该只被应用到 public 方法上`，这是由 Spring [AOP](https://so.csdn.net/so/search?q=AOP&spm=1001.2101.3001.7020) 的本质决定的。
+
+@Transactional注解只能在抛出RuntimeException或者Error时才会触发事务的回滚，常见的非RuntimeException是不会触发事务的回滚的。但是我们平时做业务处理时，需要捕获异常，所以可以手动抛出RuntimeException异常或者添加rollbackFor = Exception.class(也可以指定相应异常)
+
+使用@Transactional的相比传统的我们需要手动开启事务
+
+[参考](https://blog.csdn.net/jiangyu1013/article/details/84397366) [参考2](https://blog.csdn.net/qq_40813329/article/details/123254855)
+
+```java
+/*
+ * 捕获异常时，要想使事务生效，需要手动抛出RuntimeException异常或者添加rollbackFor = Exception.class
+*/
+@Override
+@Transactional
+public Long addBook(Book book) {
+    Long result = null;
+    try {
+        result = bookDao.addBook(book);
+        int i = 1/0;
+    } catch (Exception e) {
+        e.printStackTrace();
+        throw new RuntimeException();
+    }
+    return result;
+}
+
+@Override
+@Transactional(rollbackFor = Exception.class)
+public Long addBook(Book book) {
+    Long result = null;
+    try {
+        result = bookDao.addBook(book);
+        int i = 1/0;
+    } catch (Exception e) {
+        e.printStackTrace();
+        throw e;
+    }
+    return result;
+}
+```
+
+
 
 
 
@@ -17303,6 +17434,549 @@ for (MyUser myUser : listForeach) {
     select * from user where uname like #{param_uname}
 </select>
 ```
+
+
+
+#### MyBatis-Plus
+
+##### 概念
+
+MyBatis-Plus（简称 MP）是一个 MyBatis 的增强工具，在 Mybatis 的基础上只做增强不做改变，为简化开发、提高效率而生。已经封装好了一些crud方法，不需要再写xml了，直接调用这些方法就行
+
+优点：
+
+1. 无侵入：Mybatis-Plus 在 Mybatis 的基础上进行扩展，只做增强不做改变，引入 Mybatis-Plus 不会对您现有的 Mybatis 构架产生任何影响，而且 MP 支持所有 Mybatis 原生的特性
+2. 依赖少：仅仅需要添加MyBatisPlus启动依赖,和添加mysql-connector-java依赖。
+3. 损耗小：启动即会自动注入基本CRUD，性能基本无损耗，直接面向对象操作
+4. 通用CRUD操作：内置通用 Mapper、通用 Service，仅仅通过少量配置即可实现单表大部分 CRUD 操作，更有强大的条件构造器，满足各类使用需求
+5. 多种主键策略：支持多达4种主键策略（内含分布式唯一ID生成器），可自由配置，完美解决主键问题
+6. 支持ActiveRecord：支持 ActiveRecord 形式调用，实体类只需继承 Model 类即可实现基本 CRUD 操作。
+7. 支持代码生成：采用代码或者 Maven 插件可快速生成 Mapper 、 Model 、 Service 、 Controller 层代码，支持模板引擎。比 Mybatis 官方的 Generator 更加强大
+8. 支持自定义全局通用操作：支持全局通用方法注入
+9. 内置分页插件：基于Mybatis物理分页，开发者无需关心具体操作，配置好插件之后，写分页等同于写基本List查询。
+10. 内置性能分析插件：可输出Sql语句以及其执行时间，建议开发测试时启用该功能，能有效解决慢查询
+11. 内置全局拦截插件：提供全表 delete 、 update 操作智能分析阻断，预防误操作。
+
+
+
+##### 案例
+
+准备随便一个数据库：
+
+```sql
+drop database mybatisplus;
+create database mybatisplus;
+use mybatisplus;
+DROP TABLE IF EXISTS user;
+CREATE TABLE user  (
+  id int UNSIGNED NOT NULL AUTO_INCREMENT,
+  name varchar(10) CHARACTER SET utf8 COLLATE utf8_bin NULL DEFAULT NULL,
+  sex char(6) CHARACTER SET utf8 COLLATE utf8_bin NULL DEFAULT NULL,
+  pwd varchar(20) CHARACTER SET utf8 COLLATE utf8_bin NULL DEFAULT NULL,
+  email varchar(20) CHARACTER SET utf8 COLLATE utf8_bin NULL DEFAULT NULL,
+  PRIMARY KEY (id) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 28 CHARACTER SET = utf8 COLLATE = utf8_bin ROW_FORMAT = Dynamic;
+
+INSERT INTO user VALUES (null, '张三', '男', '123', '1230@qq.com');
+INSERT INTO user VALUES (null ,'李丽', '女', '123', '1231@qq.com');
+INSERT INTO user VALUES (null, '李四', '男', '123', '1232@qq.com');
+INSERT INTO user VALUES (null, '陈梓诺', '男', '123', '1233@qq.com');
+INSERT INTO user VALUES (null, '方德海', '男', '123', '1234@qq.com');
+INSERT INTO user VALUES (null, '苏舒', '男', '123', '1235@qq.com');
+INSERT INTO user VALUES (null, '苏红梅', '女', '123', '1236@qq.com');
+INSERT INTO user VALUES (null, '苏筱雯', '女', '123', '1237@qq.com');
+INSERT INTO user VALUES (null, 'test01', '女', '123', '1238@qq.com');
+INSERT INTO user VALUES (null, 'test02', '女', '123', '1239@qq.com');
+INSERT INTO user VALUES (null, 'test03', '女', '123', '12310@qq.com');
+INSERT INTO user VALUES (null, 'test04', '女', '123', '12311@qq.com');
+select * from user;
+```
+
+创建 maven quick start 工程，pom project 下添加：
+
+```xml
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>1.5.9.RELEASE</version>
+</parent>
+```
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+```
+
+```xml
+<dependency>
+	<groupId>com.baomidou</groupId>
+	<artifactId>mybatis-plus-boot-starter</artifactId>
+	<version>3.4.3.1</version>
+</dependency>
+```
+
+以下是mybatis-plus代码生成器和mybatisPlus Freemarker 模版引擎，需要自动生成代码时引入，不需要的话，可以不引入。
+
+```xml
+<!-- mybatis-plus代码生成器 -->
+<dependency>
+	<groupId>com.baomidou</groupId>
+	<artifactId>mybatis-plus-generator</artifactId>
+	<version>3.5.1</version>
+</dependency>
+<!-- mybatisPlus Freemarker 模版引擎 -->
+<dependency>
+    <groupId>org.freemarker</groupId>
+   	<artifactId>freemarker</artifactId>
+</dependency>
+```
+
+集成mybatis-plus时要把mybatis、mybatis-spring去掉，避免冲突，加入这些：
+
+```xml
+<dependency>
+	<groupId>mysql</groupId>
+	<artifactId>mysql-connector-java</artifactId>
+</dependency>
+
+<!--简化代码的工具包 -->
+<dependency>
+	<groupId>org.projectlombok</groupId>
+	<artifactId>lombok</artifactId>
+	<version>1.18.22</version>
+	<scope>provided</scope>
+</dependency>
+<dependency>
+	<groupId>org.projectlombok</groupId>
+	<artifactId>lombok</artifactId>
+	<optional>true</optional>
+</dependency>
+```
+
+创建配置文件：
+
+```properties
+mybatis-plus.configuration.logImpl=org.apache.ibatis.logging.stdout.StdOutImpl
+mybatis-plus.configuration.mapUnderscoreToCamelCase=true 
+spring.datasource.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.url=jdbc:mysql:///mybatisplus?useUnicode=true&useSSL=false&characterEncoding=UTF-8
+spring.datasource.username=root
+spring.datasource.password=12345678
+```
+
+启动类：
+
+```java
+package cn.edu.scnu;
+
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+@MapperScan("cn.edu.scnu.mapper")
+public class StarterMyBatisPlus {
+    public static void main(String[] args) {
+        SpringApplication.run(StarterMyBatisPlus.class, args);
+    }
+}
+```
+
+POJO：
+
+```java
+package cn.edu.scnu.pojo;
+
+import java.io.Serializable;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Builder;
+import lombok.Data;
+
+@Data
+@Builder
+@TableName(value = "User")
+public class User implements Serializable {
+    private static final long serialVersionUID = -5644799954031156649L;
+    @TableId(value = "id", type = IdType.AUTO)
+    private Integer id;
+    private String name;
+    private String sex;
+    private String pwd;
+    private String email;
+}//驼峰命名，即如数据库是user_id,这里是userId
+```
+
+mapper：
+
+```java
+package cn.edu.scnu.mapper;
+
+import org.apache.ibatis.annotations.Mapper;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import cn.edu.scnu.pojo.User;
+
+@Mapper
+public interface UserMapper extends BaseMapper<User> {
+}
+```
+
+service:
+
+```java
+package cn.edu.scnu.service;
+
+import java.util.List;
+import cn.edu.scnu.pojo.User;
+
+public interface UserService {
+    public List<User> queryAll();
+}
+```
+
+```java
+package cn.edu.scnu.service;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import cn.edu.scnu.mapper.UserMapper;
+import cn.edu.scnu.pojo.User;
+
+@Service
+public class UserServiceImpl  extends ServiceImpl<UserMapper, User> implements UserService {
+    @Autowired
+    UserMapper userMapper;
+    @Override
+    public List<User> queryAll() {
+        return userMapper.selectList(null);
+    }
+}
+```
+
+controller:
+
+```java
+package cn.edu.scnu.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import cn.edu.scnu.pojo.User;
+import cn.edu.scnu.service.UserService;
+
+@RestController
+public class UserController {
+    @Autowired
+    private UserService userService;
+
+    @RequestMapping("/queryAll")
+    public List<User> queryAll() {
+        List<User> userlist = userService.queryAll();
+        userlist.forEach(System.out::println);
+        return userlist;
+    }
+}
+```
+
+运行示例：`http://localhost:8080/queryAll` 可以看到返回了json对象数组，只有一个对象。
+
+
+
+##### 数据库查询
+
+###### 精确
+
+根据姓名查询
+
+```java
+@Override
+public List<User> queryByName1(String name) {
+    QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+    userQueryWrapper.eq("name", name);//与数据库一致而不是与POJO
+    return userMapper.selectList(userQueryWrapper);
+}
+```
+
+```java
+@RequestMapping("/queryByName1")
+public List<User> queryByName1(String name) {
+    List<User> userlist=userService.queryByName1(name);
+    userlist.forEach(System.out::println);
+    return userlist;
+}
+```
+
+`127.0.0.1:8080/queryByName1?name=苏舒`，可以看到返回了json对象数组，只有一个对象。
+
+
+
+###### 模糊
+
+```java
+userQueryWrapper.like("name", name);
+```
+
+`http://127.0.0.1:8080/queryByName2?name=苏`
+
+
+
+###### ID
+
+```java
+@Override
+public User queryById(User user) {
+    return userMapper.selectById(user.getId());
+}
+```
+
+```java
+@RequestMapping("/queryId")
+public User queryById(int id) {		
+    User user = userService.queryById(User.builder().id(id).build());
+    System.out.println(user);
+    return user;
+}
+```
+
+`http://127.0.0.1:8080/queryId?id=28`
+
+批量查询：
+
+```java
+@Override
+public List<User> queryByIds() {
+    List<Integer> idList = new ArrayList<>();
+    idList.add(30);
+    idList.add(31);
+    return userMapper.selectBatchIds(idList);
+}
+```
+
+```java
+@RequestMapping("/queryIds")
+public List<User> queryById() {		
+    List<User> users = userService.queryByIds();
+    users.forEach(System.out::println);
+    return users;
+}
+```
+
+`http://127.0.0.1:8080/queryIds`
+
+
+
+###### 自定义字段
+
+```java
+@Override
+public List<User> queryByNameMap(String column, Object value) {
+    Map<String, Object> map = new HashMap<>();
+    map.put(column, value);
+    return userMapper.selectByMap(map);
+}
+```
+
+```java
+@RequestMapping("/queryMap")
+public List<User> queryMap(String column,String value){
+    List<User> users = userService.queryByNameMap(column,(Object)value);
+    users.forEach(System.out::println);
+    return users;
+}
+```
+
+`http://127.0.0.1:8080/queryMap?column=name&value=苏舒`
+
+
+
+###### 多条件
+
+```java
+@Override
+public List<User> queryBy(Map<String, Object> map) {
+    return userMapper.selectByMap(map);
+}
+```
+
+```java
+@RequestMapping("/queryBy")
+public List<User> queryBy(String column1,String value1,String column2,String value2){
+    Map<String,Object> map=new HashMap<>();
+    map.put(column1,(Object)value1);
+    map.put(column2,(Object)value2);
+    List<User> userlist=userService.queryBy(map);
+    userlist.forEach(System.out::println);
+    return userlist;
+}
+```
+
+`http://localhost:8080/queryBy?column1=name&value1=苏舒&column2=sex&value2=男`
+
+
+
+###### 记录数
+
+```java
+@Override
+public int count() {
+    QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+    return userMapper.selectCount(userQueryWrapper);
+}
+```
+
+```java
+@RequestMapping("/count")
+public int count(){
+    return userService.count();
+}
+```
+
+`http://localhost:8080/count`
+
+
+
+##### 数据库更新
+
+###### 添加
+
+一条：
+
+```java
+@Override
+public int add(User user) {
+    return userMapper.insert(user);
+}
+```
+
+```java
+@RequestMapping("/add")
+public String add() {
+    User user=User.builder().id(102).name("李世民").sex("男").pwd("123").email("12388@qq.com").build();
+    userService.add(user);//id已经存在会报错,故可不指定id
+    return "添加了一条记录";
+}
+```
+
+多条：直接 for-add。
+
+
+
+###### 修改
+
+```java
+@Override
+public void changeUserById(User user) {
+    int num = userMapper.updateById(user);
+    System.out.println("影响行数：" + num);
+}
+```
+
+```java
+@RequestMapping("/changeById")
+public void changeById(int id) {
+    User user = userService.queryById(User.builder().id(id).build());
+    user.setName("靳国立");
+    userService.changeUserById(user);
+}
+```
+
+查询-修改：
+
+```java
+@Override
+public void changeBy(User user, String column, Object val) {
+    QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+    userQueryWrapper.eq(column, val);
+    int num = userMapper.update(user, userQueryWrapper);
+    System.out.println("影响行数：" + num);   
+}
+```
+
+```java
+@RequestMapping("/change")
+public void change() {
+    User user1 = User.builder().sex("男").build();//将性别修改为男
+    userService.changeBy(user1, "name", "test01");//条件是：name=test01
+    user1 = User.builder().name("xsn").build();//将姓名修改为xsn
+    userService.changeBy(user1, "name", "test01");//条件是姓名等于test01
+}
+```
+
+
+
+###### 删除
+
+通过 ID：
+
+```java
+@Override
+public int deleteById(User user) {
+    return userMapper.deleteById(user.getId());
+}
+```
+
+```java
+@RequestMapping("/deleteById")
+public String delete(int id) {
+    User user = User.builder().id(id).build();
+    int n=userService.deleteById(user);
+    return "删除了"+n+"条记录！";
+}
+```
+
+删多个：
+
+```java
+@Override
+public int deleteByIds(List<Integer> idList) {
+    int num = userMapper.deleteBatchIds(idList);
+    return num;
+} 
+```
+
+```java
+@RequestMapping("/deleteByIds")
+public String deleteByIds() {
+    List<Integer> idList = new ArrayList<>();
+    idList.add(1);
+    idList.add(2);
+    idList.add(3);//找不到跳过
+    int n=userService.deleteByIds(idList);
+    return "删除了"+n+"条记录！";
+}
+```
+
+条件删除：
+
+```java
+@Override
+public int deleteBy(String column, Object val) {
+    QueryWrapper<User> userQueryWrapper = new QueryWrapper<>();
+    userQueryWrapper.eq(column, val);
+    int num = userMapper.delete(userQueryWrapper);
+    return num;
+}
+```
+
+```java
+@RequestMapping("/deleteByColumn")
+public String deleteBy(String name,String value) {
+    Object val=(Object)value;
+    int n = userService.deleteBy(name,val);
+    return "删除了"+n+"条记录！";
+}
+```
+
+
 
 
 
@@ -19571,6 +20245,10 @@ public class FileUploadController {
 配置文件：
 
 ```xml
+xmlns:p="http://www.springframework.org/schema/p"
+```
+
+```xml
 <!--使用Spring的CommosMultipartResolver，配置MultipartResolver 用于文件上传 -->  
 <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver"  
       p:defaultEncoding="UTF-8"  
@@ -19591,6 +20269,74 @@ uploadTempDir="fileUpload/temp" 为上传文件的临时路径 -->
     ${fileDomain.myfile.originalFilename }
 </body>
 ```
+
+> 如：
+>
+> ```jsp
+> <%@ page language="java" import="java.util.*" pageEncoding="utf-8"%>
+> <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
+> <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+> <!DOCTYPE HTML>
+> <html>
+> 	<head>
+> 		<title>添加商品</title>
+> 		<meta http-equiv="Content-type" content="text/html; charset=UTF-8" />
+> 		<link href="${ pageContext.request.contextPath }/css/managestyle.css" rel="stylesheet" type="text/css">
+> 	</head>
+> 	<body>
+> 	<div class="top">
+> 		<h1>&nbsp;&nbsp;EasyMall商城管理后台</h1>
+> 	</div>	
+> 	<div class="content">
+> 		<div class="left">			
+> 			<%@ include file = "_left.jsp" %>
+> 		</div>
+> 	<div class="right">	
+> 	<div class="addprod">
+> 	<jsp:useBean id="myproducts"  class="easymall.pojo.MyProducts" scope="request" ></jsp:useBean>
+> 	<form:form modelAttribute="myproducts" onsubmit="return formobj.checkForm();" method="POST" 
+> 	  enctype="multipart/form-data" action="${ pageContext.request.contextPath }/admin/save">			
+> 		<fieldset>
+> 		<legend>添加一件商品</legend>			
+> 		<p>
+>             <label>商品名:</label>
+>             <form:input path="name"/>
+>         </p><p>
+>             <label>商品价格:</label>
+>             <form:input path="price"/>
+>         </p><p>
+>             <label>商品类别:</label>
+>             <form:select path="category">
+>             <!-- 通过循环语句将所有商品类别显示在下拉列表中 -->
+> 			<c:forEach items="${categories}" var="name">
+> 				<option value="${name}">${name}</option>
+> 			</c:forEach>
+> 			</form:select>
+>         </p><p>
+>             <label>库存:</label>
+>             <form:input path="pnum"/>
+>         </p><p>
+>             <label>图片:</label>
+>             <input type="file" name="imgurl"/>
+>         </p><p>
+>             <label>商品描述:</label>
+>             <form:input path="description"/>
+>         </p><p id="buttons">
+>             <input id="submit" type="submit" value="添加">
+>         </p>
+>     	</fieldset>
+>     	<!-- 取出所有验证错误 -->
+>     	<form:errors path="*"/>
+> 	</form:form>
+> 	</div>
+> 	</div><!-- right结束 -->
+> 	</div><!-- content束 -->		
+> 	
+> 	</body>
+> </html>
+> ```
+
+
 
 
 
@@ -22142,3 +22888,77 @@ public class OrderService {
 多个子系统需要交互，如购买订单时需要修改用户金额信息。这时，可以通过上文的 `RestTemplace` ，仿照前端调用的方法，直接 get/post 另一个子系统暴露的端口，即可实现交互。
 
 部署时，同时运行这几个子系统在不同的端口(eclipse 直接 run 即可，console 里有个可以下拉的按钮可以看到不同的 running 并可以随时结束任意一个子系统)，然后配 hosts 和 nginx 即可。
+
+
+
+### 杂项
+
+#### Lombok
+
+##### 概念与安装
+
+lombok是一个可以通过简单的注解的形式来帮助我们简化消除一些必须有但显得很臃肿的 Java 代码的工具，简单来说，比如我们新建了一个类，通常情况下我们需要自动生成getter和setter方法、构造函数等，显得代码很臃肿，lombok的作用就是为了省略这些代码，它能够在编译源码时自动帮我们生成这些方法。
+
+优点：
+
+1) 能通过注解的形式自动生成构造器、getter / setter、equals、hashcode、toString 等方法，提高了一定的开发效率，让代码变得简洁，不用过多的去关注相应的方法。
+
+2) 属性做修改时，也简化了维护为这些属性所生成的 getter / setter 方法等。
+
+缺点：
+
+1) 不支持多种参数构造器的重载。
+
+2) 虽然省去了手动创建一系列方法的麻烦，但大大降低了源代码的可读性和完整性，降低了阅读源代码的舒适度。
+
+[下载地址](https://projectlombok.org/download)，安装就 `java -jar lombok.jar`，时会自动找到自己的 eclipse 路径，直接install/update，重启IDE。事实上这个安装过程就是将lombok.jar复制到eclipse目录下，并且在 eclipse.ini 中添加配置：`-javaagent:D:\Program Files\eclipse\eclipse-cloud\lombok.jar`
+
+在 pom 添加依赖：
+
+```xml
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+    <version>1.18.22</version>
+    <scope>provided</scope>
+</dependency>
+```
+
+##### 常用注解
+
+| **注解**  | **作用**                                                     |
+| --------- | ------------------------------------------------------------ |
+| @Data     | 类注解，综合注解，包含 ：@Getter,  @Setter, @ToString , @RequiredArgsConstructor, @EqualsAndHashCode（自动实现model类的equals方法和hashcode方法）。 |
+| @Value    | 类注解，综合注解，包含：@Getter,  @ToString, @RequiredArgsConstructor, @EqualsAndHashCode。 |
+| @Builder  | 生成当前类的字段构建方法。生成  builder() 方法，并且直接根据字段名称方法进行字段赋值，最后使用  build() 方法构建出一个实体对象 |
+| @Getter   | 类注解，代替 getter 方法。                                   |
+| @Setter   | 类注解，代替 setter 方法。                                   |
+| @ToString | 类注解，生成 toString 方法。                                 |
+| @Log4j    | org.apache.log4j.Logger                                      |
+
+##### 例子
+
+```java
+package cn.edu.scnu.pojo;
+import java.io.Serializable;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Builder;
+import lombok.Data;
+@Data
+@Builder
+@TableName(value = "User")//数据库user表和 JavaBean(User类） 进行映射
+public class User implements Serializable {
+    private static final long serialVersionUID = -5644799954031156649L;
+    //value与数据库主键列名一致，若实体类属性名与表主键列名一致可省略value
+    @TableId(value = "id", type = IdType.AUTO)//指定自增策略
+    private Integer id;
+    private String name;
+    private String sex;
+    private String pwd;
+    private String email;
+}
+```
+
+这样就完成了mybatis-plus与springboot的整合。首先是把mybatis和mybatis-spring依赖换成mybatis-plus的依赖，然后把sqlsessionfactory换成mybatis-plus的，然后实体类中添加@TableName、@TableId等注解，最后mapper继承BaseMapper即可。
