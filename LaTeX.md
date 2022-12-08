@@ -1423,6 +1423,8 @@ LaTeX Workshop 默认的编译工具是 latexmk，根据需要修改所需的工
 
 注释行是 `%` ，指令用转义符即 `\` 。代码块用 `\begin{环境名字} \end{环境名字}` 包围。对一条指令，通常可以用中括号写可选参数，大括号写必选参数。如 `\指令名[可选参数]{必选参数}`
 
+> 多行注释用 `comment` 代码块，使用 `verbatim` 宏包。
+
 行内公式用 \$ 开头和结尾。多行公式可以用 \$\$ ，也可以用 `\[` 和 `\]` ，也可以用代码块。
 
 使用一个空行作为换行符，跟 markdown 一样。使用 `\\` 进行顶格换行。普通输入 `[]` 能显示，普通输入 `{}` 不能显示。
@@ -1467,6 +1469,12 @@ LaTeX文档类的基础三大件是article，book和report ，都不支持汉字
 >
 > ```tex
 > 善用自动格式化(vscode{\CJKfontspec{楷体} 欸}嘿嘿)。
+> ```
+>
+> 会有警告，如果想要弄掉，可以在 `documentclass` 前加：[参考](https://blog.csdn.net/PSpiritV/article/details/126251176)
+>
+> ```tex
+> \PassOptionsToPackage{quiet}{fontspec} 
 > ```
 
 PPT排版：
@@ -1676,10 +1684,12 @@ geometry 宏包，如：
 ```tex
 \section{标题}
 	\subsection{一级子标题}
-	\subsetction{一杠一} %显示上同级
+	\subsection{一杠一} %显示上同级
 ```
 
 不想写入目录的节使用 `\section*{标题}`。想让一个节无编号地写入目录使用 `\addcontentsline{toc}{section}{名字}`。
+
+想要更小的三级标题即 `\subsubsection`
 
 
 
@@ -1708,7 +1718,7 @@ geometry 宏包，如：
 > \author{lr580}
 > \date{\today}
 > \maketitle
-> \begin{abstract}
+> \begin{abstract} %会有摘要二字的标题
 >     本当に全然大丈夫ですか？
 >     
 >     怎么换行呀[]{}\\还好'"?.,+
@@ -1719,7 +1729,7 @@ geometry 宏包，如：
 > \newpage
 > 
 > \section{第一章}
-> abcDEF
+> abcDEF %自带缩进，不需要的话可以\noindent来顶格
 > 
 > 一二三
 > \subsection{第一节}
@@ -1983,6 +1993,32 @@ htbp 详解：[参考](https://blog.csdn.net/weixin_45459911/article/details/109
 
 注：这种引用不只适用于图片，也适用于其他东西。
 
+为了防止图片乱跑，可以：
+
+```latex
+如图所示：
+\begin{figure}[H]%让插入的图片紧跟在文字后面
+    \centering
+    \includegraphics[height=260pt]{isbn_sum}
+    \caption{ISBN图的统计特征}
+\end{figure}
+
+可以发现，ISBN图的纵坐标处
+```
+
+> chatGPT:
+>
+> - h：表示该元素应放在当前位置，如果它会导致页面水平溢出，则将其移到下一行。
+> - t：表示该元素应放在页面顶部，如果它会导致页面垂直溢出，则将其移到下一页。
+> - b：表示该元素应放在页面底部，如果它会导致页面垂直溢出，则将其移到下一页。
+> - p：表示该元素应放在下一页。
+>
+> `[htbp]` 的含义是：如果该元素能够放在当前位置，则放在当前位置，否则放在页面顶部、底部或下一页。
+>
+> `[H]` 是一个特殊的页面对齐参数，表示该元素应放在下一页，如果它会导致页面垂直溢出，则将其移到下一页。
+>
+> 因此，与 `[htbp]` 相比，`[H]` 更倾向于在下一页中放置元素，而不是尽可能放在当前位置或其他位置。但同时，由于 `[H]` 不会考虑页面水平
+
 
 
 ##### 子图
@@ -2183,7 +2219,7 @@ signed main()
     keywordstyle=\color{blue},
     commentstyle=\it\color[RGB]{0,100,0},
     stringstyle=\sl\color{red},
-}
+} %lstset 可以放导言区
 \begin{lstlisting}[language=c++]
 #include <bits/stdc++.h>
 using namespace std;
@@ -2404,6 +2440,8 @@ signed main() /* 注释 */
 分段函数用 `cases` 环境。
 
 证明用 `proof` 环境，里有文字和公式。输出格式为 `证明. 文字` 接公式。证明会另起一行表示结束符号，不想的话，在公式的最末尾加上 `\qedhere`。
+
+> 与 katex 区别：没有 `\dfrac`
 
 
 

@@ -104,6 +104,8 @@ public class s1 {
 
 > 查看 java 路径：`where java`
 
+一个虫子的按钮是debug模式启动
+
 ### 项目建立
 
 > 不需要建什么maven, spring。
@@ -19288,6 +19290,26 @@ public class ModelAttributeController extends BaseController{
 
 
 
+###### 动态地址
+
+```java
+package com.vm.controller;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+@Controller
+public class FilmController {
+    //  影片详情页
+    @GetMapping("/detail/{type}/{path}")
+    public String toDetail(@PathVariable("type")String type, @PathVariable("path")String path) {
+        return "detail/"+type+"/"+path;
+    }
+}
+
+```
+
+则输入 `localhost:8080/detail/vip/1`，`vip,1` 分别是这个函数的两个参数
+
 
 
 #### 重定向和转发
@@ -22891,9 +22913,14 @@ public class OrderService {
 
 
 
-### 杂项
 
-#### Lombok
+
+
+
+> ### 杂项
+>
+
+### Lombok
 
 ##### 概念与安装
 
@@ -22962,3 +22989,1176 @@ public class User implements Serializable {
 ```
 
 这样就完成了mybatis-plus与springboot的整合。首先是把mybatis和mybatis-spring依赖换成mybatis-plus的依赖，然后把sqlsessionfactory换成mybatis-plus的，然后实体类中添加@TableName、@TableId等注解，最后mapper继承BaseMapper即可。
+
+
+
+### Redis
+
+#### 概念
+
+找个地方 [下载](https://pan.baidu.com/s/1ug6tN060YE9EYchxgdeW0w ) redis，解压后将 `redis-x64-3.2.100.zip` 解压，而 `desktop-manager` 是可视化客户端。检验方法：双击解压后的 `redis-server` 能跑。默认端口号 6379。安装客户端。打开后点右下角 connect to redis server，选 `127.0.0.1:6379`，在没关 server 时能连上。
+
+> 提示说要更新，但是不更新也行，客户端。
+
+
+
+### Spring Security
+
+#### 概念
+
+Spring Security是一个能够为基于Spring的企业应用系统提供声明式的安全访问控制解决方案的安全框架。Spring Security的底层主要是 基于 Spring AOP 和 Servlet 过滤器 来实现安全控制，它提供了全面的安全解决方案，同时授权粒度可以在 Web请求级和方法调用级 来处理身份确认和授权。
+Spring Security是Spring家族针对项目的安全管理提供了安全框架，它是一个基于Spring生态圈的，用于提供安全访问控制的框架。
+Spring Security的安全管理有两个重要概念，分别是Authentication（认证）和Authorization（授权）
+
+Java Web 应用中安全框架使用率较高的莫过于 Spring Security 与 Apache Shiro。
+Spring Security 是 Spring家族中的一个安全管理框架。相比Shiro框架，它提供了更丰富的功能，社区资源也比Shiro丰富。
+一般来说中大型的项目都是使用SpringSecurity来做安全框架。小项目有Shiro的比较多，因为相比与SpringSecurity，Shiro的上手更加的简单。
+
+Spring Security作为安全管理的框架，一直以来都因为重量级，配置繁琐,门槛高困扰着我们的开发者，让很多的初学者望而却步。但是随着Spring Boot的出世和普及，这些问题都得到了解决。
+Spring Security 是 Spring Boot 底层安全模块默认的技术选型，可以实现强大的 web 安全控制，我们仅需要引入 spring-boot-starter-security 依赖，进行少量配置，即可实现强大的安全管理
+
+一般Web应用的需要进行认证和授权。
+认证：验证当前访问系统的是不是本系统的用户，并且要确认具体是哪个用户
+授权：经过认证后判断当前用户是否有权限进行某个操作
+而认证和授权也是SpringSecurity作为安全框架的核心功能
+
+
+
+#### 项目例子
+
+##### 初始页面
+
+创建项目。pom 如下：
+
+```xml
+<dependencies>
+    <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>3.8.1</version>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-thymeleaf</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <version>1.18.22</version>
+        <scope>provided</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <optional>true</optional>
+    </dependency>
+</dependencies>
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>1.5.9.RELEASE</version>
+</parent>
+```
+
+在 `src/main/resources/templates/detail` 放 `common,vip` 两个文件夹及其 `1.html, 2.html`，写一个支持动态链接的请求：
+
+```java
+package com.vw.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+@Controller
+public class FilmController {
+    @GetMapping("/detail/{type}/{path}")
+    public String toDetail(@PathVariable("type") String type, @PathVariable("path") String path) {
+        return "detail/" + type + "/" + path;
+    }
+    
+    @RequestMapping("/index")
+    public String toIndex() {
+        return "index";
+    }
+    
+    @RequestMapping("/")
+    public String toIndex2() {
+        return "index";
+    }
+}
+```
+
+其中 `getmapping` 是弱化版 `requetmapping`，只能处理 `get` 不能处理 `post`。
+
+> 准备对应的文件：
+>
+> `templates/index.html`
+>
+> ```html
+> <!DOCTYPE html>
+> <html xmlns="http://www.w3.org/1999/xhtml"
+> 	xmlns:th="http://www.thymeleaf.org">
+> <head>
+> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+> 
+> <title>影视直播厅</title>
+> </head>
+> <body>
+> 	<h1 align="center">欢迎进入电影网站首页</h1>
+> 	<hr />
+> 	<h3>普通电影</h3>
+> 	<ul>
+> 		<li><a th:href="@{/detail/common/1}">飞驰人生</a></li>
+> 		<li><a th:href="@{/detail/common/2}">夏洛特烦恼</a></li>
+> 	</ul>
+> 
+> 	<h3>VIP专享</h3>
+> 	<ul>
+> 		<li><a th:href="@{/detail/vip/1}">速度与激情</a></li>
+> 		<li><a th:href="@{/detail/vip/2}">猩球崛起</a></li>
+> 	</ul>
+> </body>
+> </html>
+> ```
+>
+> common 1.html
+>
+> ```html
+> <!DOCTYPE html>
+> <html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+> <head>
+> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></meta>
+> 
+> <title>影片详情</title>
+> </head>
+> <body>
+> 	<a th:href="@{/}">返回</a>
+> 	<h1>飞驰人生</h1>
+> 	<p style="width: 550px">简介：曾经在赛车界叱咤风云、如今却只能经营炒饭大排档的赛车手张驰（沈腾饰）决定重返车坛挑战年轻一代的天才。
+> 		然而没钱没车没队友，甚至驾照都得重新考，这场笑料百出不断被打脸的复出之路，还有更多哭笑不得的窘境在等待着这位过气车神……
+> 	</p>
+> </body>
+> </html>
+> ```
+>
+> common 2.html
+>
+> ```html
+> <!DOCTYPE html>
+> <html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+> <head>
+> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></meta>
+> <title>影片详情</title>
+> </head>
+> <body>
+> 	<a th:href="@{/}">返回</a>
+> 	<h1>夏洛特烦恼</h1>
+> 	<p style="width: 550px">简介：《夏洛特烦恼》是开心麻花2012年首度推出的话剧，由闫非和彭大魔联合编剧、执导。
+> 		2013、2014、2015年仍在上演。该作讲述了一个普通人在穿越重回到高中校园并实现了种种梦想的不可思议的经历……</p>
+> </body>
+> </html>
+> ```
+>
+> vip 1.html
+>
+> ```html
+> <!DOCTYPE html>
+> <html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+> <head>
+> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></meta>
+> <title>影片详情</title>
+> </head>
+> <body>
+> 	<a th:href="@{/}">返回</a>
+> 	<h1>速度与激情</h1>
+> 	<p style="width: 550px">简介：《速度与激情》是罗伯·科恩等执导，于2001年至2017年范·迪塞尔、保罗·沃克（已故）、
+> 		乔丹娜·布鲁斯特、米歇尔·罗德里格兹等主演的赛车题材的动作犯罪类电影，截至2018年，一共拍了八部。之后两部续集正式定档，
+> 		《速度与激情9》和《速度与激情10》分别于2020年4月10日和2021年4月2日上映……</p>
+> </body>
+> </html>
+> ```
+>
+> vip 2.html
+>
+> ```html
+> <!DOCTYPE html>
+> <html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+> <head>
+> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"></meta>
+> <title>影片详情</title>
+> </head>
+> <body>
+> 	<a th:href="@{/}">返回</a>
+> 	<h1>猩球崛起</h1>
+> 	<p style="width: 550px">简介：《猩球崛起》是科幻片《人猿星球》的前传，由鲁伯特·瓦耶特执导，詹姆斯·弗兰科，汤姆·费尔顿，
+> 		芙蕾达·平托，布莱恩·考克斯等主演。剧情主要讲述人猿进化为高级智慧生物、进而攻占地球之前的种种际遇，主题是带有警世性质的——人类疯狂的野心所产生的恶果。
+> 		影片获得了第39届安妮奖最佳真人电影角色动画奖等奖项，同时获得了奥斯卡最佳特效奖提名，但很遗憾，并没有获奖……</p>
+> </body>
+> </html>
+> ```
+
+随便写一个启动类：
+
+```java
+package com.vw;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class Starter {
+    public static void main(String[] args) {
+        SpringApplication.run(Starter.class, args);
+    }
+}
+```
+
+就能跑了。开进去就是 index，即默认位于 `src/main/resoureces/templates` 目录。然后根据 href 能访问到这几个子页面。controller 提供了服务。
+
+
+
+##### 访问密码
+
+开依赖：
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+```
+
+那么启动时后台会输出一个密码。访问网站时要以 `user` 为用户名登录。
+
+这种默认安全管理方式存在诸多问题，例如：只有唯一的默认登录用户user、密码随机生成且过于暴露、登录页面及错误提示页面不是我们想要的等 
+
+使用Spring Boot与Spring MVC进行Web开发时，如果项目引入spring-boot-starter-security依赖启动器，MVC Security安全管理功能就会自动生效，其默认的安全配置是在SecurityAutoConfiguration和UserDetailsServiceAutoConfiguration中实现的。其中，SecurityAutoConfiguration会导入SpringBootWebSecurityConfiguration并自动化配置，用于启动Web安全管理。UserDetailsServiceAutoConfiguration则用于配置用户身份信息。
+
+要完全关闭Security提供的Web应用默认安全配置，可以自定义WebSecurityConfigurerAdapter类型的Bean组件以及自定义UserDetailsService、AuthenticationProvider或AuthenticationManager类型的Bean组件。
+
+另外，可以通过自定义WebSecurityConfigurerAdapter类型的Bean组件来覆盖默认访问规则。
+
+WebSecurityConfigurerAdapter类的主要方法及说明：
+
+![image-20221208112051997](img/image-20221208112051997.png)
+
+
+
+#### 用户认证
+
+##### 内存身份认证
+
+内存身份认证是最简单的身份认证方式，主要用于Security安全认证体验和测试。自定义内存身份认证时，只需要重写configure(AuthenticationManagerBuilder auth)方法中定义测试用户即可。
+
+创建配置类：
+
+```java
+package com.vw.config;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+@EnableWebSecurity  // 开启MVC security安全支持
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+
+}
+
+```
+
+
+
+@EnableWebSecurity注解是一个组合注解，效果等同于@Configuration注解、@Import({WebSecurityConfiguration.class, SpringWebMvcImportSelector.class})注解和@EnableGlobalAuthentication注解的组合用法。
+
+
+
+##### 账号密码用户组
+
+在上面的类添加方法：
+
+```java
+@Override
+protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+    //  密码需要设置编码器
+    BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    // 1、使用内存用户信息，作为测试使用
+    auth.inMemoryAuthentication().passwordEncoder(encoder)
+        .withUser("shitou").password(encoder.encode("123456")).roles("common")
+        .and()
+        .withUser("李四").password(encoder.encode("123456")).roles("vip");
+}
+
+```
+
+上面重写了configure方法，并在该方法中使用内存身份认证自定义了认证用户信息，设置了两个用户，包括用户名、密码和角色的设置。
+
+1）	从 Spring5.0 开始，密码必须要加密，必须设置密码编码器用于保护密码。
+2）	Spring Security提供多种密码编码器。
+3）	自定义用户认证时，可以定义用户角色roles，也可以定义用户权限authorities。在通行赋值时，权限通常是在角色值的基础上添加”ROLE_”前缀。例如authorities(“ROLE_common”)和roles(“common”)是等效的。
+4）	自定义用户认证时，可以为某个用户一次指定多个角色和权限。
+
+测试发现可以登陆。
+
+
+
+##### JDBC身份认证
+
+导入输入库如下：
+
+```sql
+# 选择使用数据库
+DROP database IF EXISTS `springbootdata`;
+create database `springbootdata`;
+USE springbootdata;
+# 创建表t_customer并插入相关数据
+DROP TABLE IF EXISTS `t_customer`;
+CREATE TABLE `t_customer` (
+    `id` int(20) NOT NULL AUTO_INCREMENT,
+    `username` varchar(200) DEFAULT NULL,
+    `password` varchar(200) DEFAULT NULL,
+    `valid` tinyint(1) NOT NULL DEFAULT '1',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;
+INSERT INTO `t_customer` VALUES ('1', 'shitou', '$2a$10$5ooQI8dir8jv0/gCa1Six.GpzAdIPf6pMqdminZ/3ijYzivCyPlfK', '1');
+INSERT INTO `t_customer` VALUES ('2', '李四', '$2a$10$5ooQI8dir8jv0/gCa1Six.GpzAdIPf6pMqdminZ/3ijYzivCyPlfK', '1');
+# 创建表t_authority并插入相关数据
+DROP TABLE IF EXISTS `t_authority`;
+CREATE TABLE `t_authority` (
+    `id` int(20) NOT NULL AUTO_INCREMENT,
+    `authority` varchar(20) DEFAULT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+
+INSERT INTO `t_authority` VALUES ('1', 'ROLE_common');
+INSERT INTO `t_authority` VALUES ('2', 'ROLE_vip');
+# 创建表t_customer_authority并插入相关数据
+DROP TABLE IF EXISTS `t_customer_authority`;
+CREATE TABLE `t_customer_authority` (
+    `id` int(20) NOT NULL AUTO_INCREMENT,
+    `customer_id` int(20) DEFAULT NULL,
+    `authority_id` int(20) DEFAULT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8;
+INSERT INTO `t_customer_authority` VALUES ('1', '1', '1');
+INSERT INTO `t_customer_authority` VALUES ('2', '2', '2');
+
+# 记住我功能中创建持久化Token存储的数据表
+USE springbootdata;
+DROP TABLE IF EXISTS `persistent_logins`;
+create table persistent_logins 
+(username varchar(64) not null,
+ series varchar(64) primary key,
+ token varchar(64) not null,
+ last_used timestamp not null);
+```
+
+其中的`t_authority`表权限authority值必须带有`ROLE_`前缀。而且默认的用户角色值则是对应权限值去掉`ROLE_`前缀
+
+来点数据库依赖：
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-jdbc</artifactId>
+</dependency>
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <scope>runtime</scope>
+</dependency>
+```
+
+写配置文件：
+
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/springbootdata?serverTimezone=UTC&useSSL=false
+spring.datasource.username=root
+spring.datasource.password=12345678
+```
+
+修改配置类：
+
+```java
+//import javax.sql.DataSource;
+@Autowired
+private DataSource dataSource;
+@Override
+protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+    //  密码需要设置编码器
+    BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+    // 使用JDBC进行身份认证
+    String userSQL ="select username,password,valid from t_customer " +
+        "where username = ?";
+    String authoritySQL="select c.username,a.authority from t_customer c,t_authority a,"+"t_customer_authority ca where ca.customer_id=c.id " +
+        "and ca.authority_id=a.id and c.username =?";
+    auth.jdbcAuthentication().passwordEncoder(encoder).dataSource(dataSource)
+        .usersByUsernameQuery(userSQL)
+        .authoritiesByUsernameQuery(authoritySQL);
+}
+```
+
+
+
+##### UserDetailsService
+
+对于浏览大的项目来说，频繁的使用JDBC进行数据查询验证不仅麻烦，而且会降低网站的响应速度，对于一个完善的项目来说，如果某些业务已经实现了用户信息查询，就没必要使用JDBC进行身份验证了。
+下面假设当前项目中已经有用户信息查询的业务方法，这里，在已有的用户信息服务的基础上选择使用UserDetailsService进行自定义用户身份验证。
+
+安装 redis，并搞依赖：
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-jpa</artifactId>
+</dependency>
+```
+
+JPA 是Spring 在ORM框架、JPA规范的基础上整合的一套JPA框架
+
+添加配置：
+
+```properties
+spring.redis.host=127.0.0.1
+spring.redis.port=6379
+spring.redis.password=
+```
+
+搞两个 POJO 类 `Customer,Authority`，开头为：
+
+```java
+package com.vw.domain;
+import javax.persistence.*;
+@Entity(name = "t_customer")
+public class Customer {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+```
+
+创建配置类：
+
+```java
+package com.vw.config;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.springframework.data.redis.serializer.RedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
+import java.time.Duration;
+@Configuration
+public class RedisConfig {
+
+    @Bean
+    public RedisTemplate<Object, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
+        RedisTemplate<Object, Object> template = new RedisTemplate();
+        template.setConnectionFactory(redisConnectionFactory);
+        // 使用JSON格式序列化对象，对缓存数据key和value进行转换
+        Jackson2JsonRedisSerializer jacksonSeial = new Jackson2JsonRedisSerializer(Object.class);
+        // 解决查询缓存转换异常的问题
+        ObjectMapper om = new ObjectMapper();
+        // 指定要序列化的域，field,get和set,以及修饰符范围，ANY是都有包括private和public
+        om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        // 指定序列化输入的类型，类必须是非final修饰的，final修饰的类，比如String,Integer等会跑出异常
+        om.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
+        jacksonSeial.setObjectMapper(om);
+        // 设置RedisTemplate模板API的序列化方式为JSON
+        template.setDefaultSerializer(jacksonSeial);
+        return template;
+    }
+
+    @Bean
+    public RedisCacheManager cacheManager(RedisConnectionFactory redisConnectionFactory) {
+        // 分别创建String和JSON格式序列化对象，对缓存数据key和value进行转换
+        RedisSerializer<String> strSerializer = new StringRedisSerializer();
+        Jackson2JsonRedisSerializer jacksonSeial = new Jackson2JsonRedisSerializer(Object.class);
+        // 解决查询缓存转换异常的问题
+        ObjectMapper om = new ObjectMapper();
+        om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        om.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
+        jacksonSeial.setObjectMapper(om);
+        // 定制缓存数据序列化方式及时效
+        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofDays(1))   // 设置缓存有效期为1天
+                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(strSerializer))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jacksonSeial))
+                .disableCachingNullValues();   // 对空数据不进行缓存
+        RedisCacheManager cacheManager = RedisCacheManager.builder(redisConnectionFactory).cacheDefaults(config).build();
+        return cacheManager;
+    }
+}
+```
+
+> 报错导包的话，改一下 parent 版本，如：(或2.7.6)
+>
+> ```xml
+> <parent>
+>     <groupId>org.springframework.boot</groupId>
+>     <artifactId>spring-boot-starter-parent</artifactId>
+>     <version>2.6.7</version>
+> </parent>
+> ```
+
+
+
+创建持久层接口：
+
+```java
+package com.vw.repository;
+import com.vw.domain.Customer;
+import org.springframework.data.jpa.repository.JpaRepository;
+public interface CustomerRepository extends JpaRepository<Customer,Integer> {
+    Customer findByUsername(String username);
+}
+```
+
+```java
+package com.vw.repository;
+import com.vw.domain.Authority;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import java.util.List;
+public interface AuthorityRepository extends JpaRepository<Authority,Integer> {
+    @Query(value = "select a.* from t_customer c,t_authority a,t_customer_authority ca where ca.customer_id=c.id and ca.authority_id=a.id and c.username =?",nativeQuery = true)
+    public List<Authority> findAuthoritiesByUsername(String username);
+}
+```
+
+创建一个CustomerService业务处理类，用来结合Redis缓存定义了通过用户名username获取用户信息及权限信息的方法。服务层：
+
+```java
+package com.vw.service;
+import com.vw.domain.Authority;
+import com.vw.domain.Customer;
+import com.vw.repository.AuthorityRepository;
+import com.vw.repository.CustomerRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Service;
+import java.util.List;
+@Service
+public class CustomerService {
+    @Autowired
+    private CustomerRepository customerRepository;
+    @Autowired
+    private AuthorityRepository authorityRepository;
+    @Autowired
+    private RedisTemplate redisTemplate;
+    // 业务控制：使用唯一用户名查询用户信息
+    public Customer getCustomer(String username){
+        Customer customer=null;
+        Object o = redisTemplate.opsForValue().get("customer_"+username);
+        if(o!=null){
+            customer=(Customer)o;
+        }else {
+            customer = customerRepository.findByUsername(username);
+            if(customer!=null){
+                redisTemplate.opsForValue().set("customer_"+username,customer);
+            }
+        }
+        return customer;
+    }
+    // 业务控制：使用唯一用户名查询用户权限
+    public List<Authority> getCustomerAuthority(String username){
+        List<Authority> authorities=null;
+        Object o = redisTemplate.opsForValue().get("authorities_"+username);
+        if(o!=null){
+            authorities=(List<Authority>)o;
+        }else {
+            authorities=authorityRepository.findAuthoritiesByUsername(username);
+            if(authorities.size()>0){
+                redisTemplate.opsForValue().set("authorities_"+username,authorities);
+            }
+        }
+        return authorities;
+    }
+}
+```
+
+UserDetailsService是Security提供的进行认证用户信息封装的接口，该接口提供的loadUserByUsername(String s)方法用于通过用户名加载用户信息。使用UserDetailsService进行身份认证的时，自定义一个UserDetailsService接口的实现类，通过loadUserByUsername(String s)方法调用用户业务处理类中已有的方法进行用户详情封装，返回一个UserDetails封装类，来供Security认证使用。
+下面自定义一个接口实现类UserDetailsServiceImpl，进行用户认证信息UserDetailsService封装，重写了UserDetailsService接口的loadUserByUsername(String s)方法，在该方法中，使用CustomerService业务处理类获取用户的用户信息和权限信息，并通过UserDetails进行认证用户信息封装。
+
+持久层实现类：
+
+```java
+package com.vw.service;
+import com.vw.domain.Authority;
+import com.vw.domain.Customer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+import java.util.List;
+import java.util.stream.Collectors;
+@Service
+public class UserDetailsServiceImpl implements UserDetailsService {
+@Autowired
+private CustomerService customerService;
+@Override
+public UserDetails loadUserByUsername(String s) throws UsernameNotFoundException {
+        // 通过业务方法获取用户及权限信息
+    Customer customer = customerService.getCustomer(s);
+    List<Authority> authorities = customerService.getCustomerAuthority(s);
+        // 对用户权限进行封装
+        List<SimpleGrantedAuthority> list = authorities.stream().map(authority -> new SimpleGrantedAuthority(authority.getAuthority())).collect(Collectors.toList());
+        // 返回封装的UserDetails用户详情类
+    if(customer!=null){
+    	UserDetails userDetails= new User(customer.getUsername(),customer.getPassword(),list);
+      	return userDetails;
+    } else {
+            // 如果查询的用户不存在（用户名不存在），必须抛出此异常
+            throw new UsernameNotFoundException("当前用户不存在！");
+    }
+}
+}
+```
+
+需要注意的是，CustomerService业务处理类获取的User实体类时，必须对当前用户进行非空判断，这里使用throw进行异常处理。如果查询的用户为空，throw会抛出UsernameNotFoundException的异常。如果没有使用异常处理，Security将无法识别，导致程序整体报错。
+
+接下来在SecurityCongfig类的configure(AuthenticationManagerBuilder auth)方法中使用UserDetailService身份认证的方式进行自定义身份认证。
+
+```java
+package com.vw.config;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import javax.sql.DataSource;
+@EnableWebSecurity  // 开启MVC security安全支持
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
+    @Autowired
+    private DataSource dataSource;
+    @Autowired
+    private UserDetailsServiceImpl userDetailsService;
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        //  密码需要设置编码器
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        // 使用UserDetailsService进行身份认证
+        auth.userDetailsService(userDetailsService).passwordEncoder(encoder);
+    }
+}
+```
+
+
+
+使用测试：把redis开了，登录后在可视化端刷新一下，能看到redis多了一条登录记录。
+
+
+
+#### 用户授权
+
+一个系统建立后，通常需要适当作一些权限控制，使得不同用户具有不同的权限，通常一个项目都会作一些简单的登录功能，只有特定用户才能登录访问。下面我们针对Web应用场景的自定义用户授权管理进行介绍。
+
+##### 访问控制
+
+修改配置类 SecurityConfig 重写方法：
+
+```java
+protected void configure(HttpSecurity http) throws Exception {
+    http.authorizeRequests()
+        .antMatchers("/").permitAll()
+        .antMatchers("/detail/common/**").hasRole("common")
+        .antMatchers("/detail/vip/**").hasRole("vip")
+        .anyRequest().authenticated()
+        .and()
+        .formLogin();
+}
+```
+
+上述代码中，configure方法设置了用户访问权限，其中路径为“/”的请求直接放行；路径`“/detail/common/**”`的请求，只有用户角色为common(即ROLE_common权限)才允许访问；`“/detail/vip/**”`的请求，只有用户角色为vip(即ROLE_vip权限)才允许访问；其他请求则要求用户必须先进行登录认证。
+
+使用测试：主页能打开，进普通电影要登录，进vip电影403。
+
+
+
+##### 自定义登录
+
+`templates/login/login.html`
+
+```html
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>用户登录界面</title>
+    <link th:href="@{/login/css/bootstrap.min.css}" rel="stylesheet">
+    <link th:href="@{/login/css/signin.css}" rel="stylesheet">
+</head>
+<body class="text-center">
+    <form class="form-signin" th:action="@{/userLogin}" th:method="post" >
+        <img class="mb-4" th:src="@{/login/img/login.jpg}" width="72px" height="72px">
+        <h1 class="h3 mb-3 font-weight-normal">请登录</h1>
+        <!-- 用户登录错误信息提示框 -->
+        <div th:if="${param.error}" style="color: red;height: 40px;text-align: left;font-size: 1.1em">
+            <img th:src="@{/login/img/loginError.jpg}" width="20px">用户名或密码错误，请重新登录！
+        </div>
+        <input type="text" name="name" class="form-control" placeholder="用户名" required="" autofocus="">
+        <input type="password" name="pwd" class="form-control" placeholder="密码" required="">
+        <button class="btn btn-lg btn-primary btn-block" type="submit" >登录</button>
+        <p class="mt-5 mb-3 text-muted">Copyright© 2019-2020</p>
+    </form>
+</body>
+</html>
+```
+
+新建对应的 css 等：`resources/static/login` 里放 `css/` 下：(图片自己准备，那个 `bootstrap` 也自己准备)
+
+> ```css
+> html,
+> body {
+>     height: 100%;
+> }
+> 
+> body {
+>     display: -ms-flexbox;
+>     display: -webkit-box;
+>     display: flex;
+>     -ms-flex-align: center;
+>     -ms-flex-pack: center;
+>     -webkit-box-align: center;
+>     align-items: center;
+>     -webkit-box-pack: center;
+>     justify-content: center;
+>     padding-top: 40px;
+>     padding-bottom: 40px;
+>     /*background-color: #f5f5f5;*/
+> }
+> 
+> .form-signin {
+>     width: 100%;
+>     max-width: 330px;
+>     padding: 15px;
+>     margin: 0 auto;
+> }
+> .form-signin .checkbox {
+>     font-weight: 400;
+> }
+> .form-signin .form-control {
+>     position: relative;
+>     box-sizing: border-box;
+>     height: auto;
+>     padding: 10px;
+>     font-size: 16px;
+> }
+> .form-signin .form-control:focus {
+>     z-index: 2;
+> }
+> .form-signin input[type="email"] {
+>     margin-bottom: -1px;
+>     border-bottom-right-radius: 0;
+>     border-bottom-left-radius: 0;
+> }
+> .form-signin input[type="password"] {
+>     margin-bottom: 10px;
+>     border-top-left-radius: 0;
+>     border-top-right-radius: 0;
+> }
+> ```
+
+自己补一个登录控制器方法：
+
+```java
+@GetMapping("/userLogin")
+public String toLoginPage() {
+    return "login/login";
+}
+```
+
+重写方法：
+
+```java
+@Override
+protected void configure(HttpSecurity http) throws Exception {
+    http.authorizeRequests()
+        .antMatchers("/").permitAll()
+        .antMatchers("/login/**").permitAll()
+        .antMatchers("/detail/common/**").hasRole("common")
+        .antMatchers("/detail/vip/**").hasRole("vip")
+        .anyRequest().authenticated();
+    //自定义用户登录控制
+    http.formLogin()
+        .loginPage("/userLogin").permitAll()
+        .usernameParameter("name").passwordParameter("pwd")
+        .defaultSuccessUrl("/")
+        .failureUrl("/userLogin?error");
+}
+```
+
+（1）	loginPage(“/userLogin”)方法指定向自定义登录页面跳转的请求路径，也是前面toLoginPage()方法的@GetMapping注解拦截的路径。并使用pertmitAll()方法对进行登录跳转的请求进行放行。
+（2）	usernameParameter("name")和passwordParameter("pwd")方法用来接收登录时提交的用户名和密码。这里的参数name和pwd必须和login.html中的用户名、面的name属性值保持一直。如果login.html中的name属性默认是username和password，这个两个方法就可以省略
+（3）	defaultSuccessUrl("/")方法指定了用户登录成功后默认跳转到项目首页。
+（4）	failureUrl("/userLogin?error")方法用来控制用户登录认证失败后的跳转路径，该方法默认参数是“/login?error”,其中，参数中的 “/userLogin”为向登录页面跳转的映射，error是一个错误标识，作用是登录失败后再登录页面进行接收判断，在login.html中的${param.error}，就是显示error标识。
+（5）	antMatchers("/login/**").permitAll()方法的作用是对项目static文件夹下login包及其子包中的静态资源文件进行统一放行处理。如果没有对静态资源放行，未登录的用户访问项目首页时无法加载页面关联的静态资源文件。
+
+
+
+##### 退出登录
+
+`index.html` 添加：
+
+```html
+<form th:action="@{/mylogout}" method="post">
+	<input th:type="submit" th:value="注销" />
+</form>
+```
+
+Spring Boot项目中引入Spring Security框架后会自动开启CSRF防护功能，用户退出时必须使用POST请求；如果关闭了CSRF防护功能，那么可以使用任意方式的HTTP请求进行用户注销。
+
+configure 方法多一行：
+
+```java
+http.logout()
+	.logoutUrl("/mylogout")
+	.logoutSuccessUrl("/");
+```
+
+
+
+##### 获取登录信息
+
+###### HttpSession
+
+控制类新加方法。在该方法中通过获取当前HttpSession的相关方法，遍历并获取了会话中的用户信息。
+在获取认证用户信息时，使用了Authentication的getPrincipal()方法，默认返回的也是一个Object对象，其本质是封装用户信息的UserDetails封装类，其中包括有用户名、密码、权限、是否过期等。
+
+```java
+@GetMapping("/getuserBySession")
+@ResponseBody
+public String getUser(HttpSession session) {
+    // 从当前HttpSession获取绑定到此会话的所有对象的名称
+    Enumeration<String> names = session.getAttributeNames();
+    String str="";
+    while (names.hasMoreElements()){
+        // 获取HttpSession中会话名称
+        String element = names.nextElement();
+        // 获取HttpSession中的应用上下文
+        SecurityContextImpl attribute = (SecurityContextImpl) session.getAttribute(element);
+        System.out.println("element: "+element);
+        System.out.println("attribute: "+attribute);
+        // 获取用户相关信息
+        Authentication authentication = attribute.getAuthentication();
+        UserDetails principal = (UserDetails)authentication.getPrincipal();
+        System.out.println(principal);
+        System.out.println("username: "+principal.getUsername());
+        str = str+"element: "+element+"---"+"username: "+principal.getUsername();
+    }
+    return str;
+}
+
+```
+
+以上代码中，getUser(HttpSession session)方法通过获取当前HttpSession的相关的所有对象名称，通过遍历获取会话中的用户名称。其中getAttribute(element)获取会话对象时，返回的是一个Object对象，其本质是一个SecurityContextImpl类，为了方便获取对象数据，将其强转为SecurityContextImpl；
+在获取用户信息时，使用Authentication的getPrincipal()方法，默认返回一个Object对象，其本质是封装用户信息的UserDetails类，包含用户名、密码、权限、是否过期等。
+以Debug模式重启项目(直接跑也行)，浏览器访问`http://localhost:8080/`随意查看一个影片详情进行用户登录。登录成功后，在保证当前浏览器未关闭的情况下，使用同一浏览器执行`http://localhost:8080/getuserBySession`来获取用户详情。在控制台查看输出的信息。
+
+
+
+###### SecutiryContextHolder
+
+Spring Security针对拦截的登录用户专门提供一个SecurityContextHolder类，来获取Spring Security的应用上下文SecurityContext，进而获取封装的用户信息。下面我们通过SecurityContextHolder来获取用户信息。
+在FilmController类中新增一个获取当前会话用户信息的getUser2()方法。
+
+```java
+@GetMapping("/getuserByContext")
+@ResponseBody
+public String getUser2() {
+    SecurityContext context = SecurityContextHolder.getContext();
+    System.out.println("userDetails: "+context);
+    Authentication authentication = context.getAuthentication();
+    UserDetails principal = (UserDetails)authentication.getPrincipal();
+    System.out.println(principal);
+    System.out.println("username: "+principal.getUsername());
+    return "userDetails: "+context+"----------username: "+principal.getUsername();
+}
+```
+
+上述代码中，通过Security提供的SecurityContextHolder类先获取应用上下文对象SecurityContext，并通过相关方法获取当前用户的登录信息。通过与HttpSession方法获取用户信息的实例对比可以发现，这两种方法的区别就是获取SecurityContext的方法不同，其他后续方法一致。
+
+上面介绍了Spring Boot整合Spring Security拦截获取登录用户信息的两种方法，第一种方法需要引入HttpSession对象，第二种方法Security提供的SecurityContextHolder则相对简单，也是Security项目比较推荐的使用方法。
+
+
+
+##### 自动登录
+
+在实际开发中项目为了用户登录方便还会提供记住我功能。如果用户登录是勾选了记住我选项，那么在一段有效的时间内，会默认自动登录，并允许访问相关的页面，这就免去了重复登录操作的麻烦。
+
+​    Spring Security提供了用户登录控制的同时。也提供了对应记住我的功能，HttpSecurity类的rememberMe()方法就是用来处理记住我功能的。
+
+​    Spring Security针对记住我功能提供了两种实现：一种是简单使用加密来保证基于Cookie中Token的安全；另外一种是通过数据库或其他持久化机制来保存生成的Token
+
+###### 简单加密Token
+
+改 
+
+```html
+<label>
+	<input type="checkbox" name="rememberme"> 记住我
+</label>
+```
+
+记住我的勾选框的name的属性值为rememberme，而Security提供的记住我功能额name属性值默认为remember-me
+
+打开SecurityConfig类，重写configure(HttpSecurity http)方法进行记住我功能配置
+
+```java
+http.rememberMe().rememberMeParameter("rememberme").tokenValiditySeconds(200);
+```
+
+上述代码在configure(HttpSecurity http)方法中使用rememberMe()及相关方法实现了记住我的功能。其中rememberMeParameter("rememberme")方法指定了记住我勾选框的name属性值，如果页面中勾选框的name属性值使用默认的“remember-me”则该方法可以省略；tokenValiditySeconds(200)方法设置了记住我功能中的Token有效期为200s
+
+测试登录后200s内重启浏览器可以免登录
+
+###### 持久化Token
+
+持久化Token方式和简单加密Token方式在实现【记住我】功能上大体相同。都是在用户勾上【记住我】并成功登录后，将生成的Token存入Cookie中并发送到客户端浏览器，在下次用户通过同个客户端访问系统时，系统将直接从客户端Cookie中读取Token进行认证。
+	两者的区别在于：基于简单加密的Token方式生成的Token将在客户端保存一段时间，如果用户不退出登录，或者不修改密码，那么Cookie失效之前，任何人都可以无限制地使用该Token进行自动登录；而基于持久化Token的方式如下的实现逻辑
+
+（1）	用户选择【记住我】成功登录后，Security会把username、随机产生的序列号、生成的Token进行持久化存储（例如存在一个数据表中），同时将它们的组合生成一个Cookie发送到客户端浏览器
+（2）	当用户再次访问系统时，首先检查客户端携带的Cookie,如果对应Cookie中包含的username、序列号和Token与数据库中保存的一致，则通过验证并自动登录，同时系统将重新生成一个新的Token替换数据库旧的Token，并将新的Cookie再次发送给客户端。
+（3）	如果Cookie中的Token不匹配，则很可能是用户的Cookie被盗用了。由于盗用者使用初次生成的Token进行登录时会生成一个新的Tokon，当用户在不知情时再次登录就会出现Token不匹配的情况，这时就需要重新登录。并生成新的Token和Cookie，同时Spring Security就可以发现Cookie可能被盗用的情况，他将删除数据库中与当前用户相关的所有Token记录。这样盗用者使用原有的Cookie就不能再次登录了
+（4）	如果用户访问系统没有携带Cookie，或者包含的username和序列号与数据库中保存的不一致，那么将会引导用户到登录页面。
+
+从以上实现逻辑可以看出，持久化Token的方式比简单加密Token的方式更加安全，使用简单加密Token的方式，一旦用户的Cookie被盗用，在Token的有效期内，盗用者可以无需安装地自动登录进行恶意操作，直到用户本人发现并修改密码才会避免这种问题；而使用持久化Token的方式相对较安全，用户每次登录都会生成新的Token和Cookie,但还是给盗用者留下在用户第二次登录前进行而已操作的机会，只有在用户进行第2次登录并更新Token和Cookie时，才会避免这种问题。因此，总体来讲，对安全要求很高的应用，不推荐使用【记住我】功能。
+
+使用上文的数据表：
+
+```mysql
+create table persistent_logins (
+	username varchar(64) not null,
+	series varchar(64) primary key,
+	token varchar(64) not null,
+	last_used timestamp not null);
+```
+
+重写记住我功能：
+
+```java
+http.rememberMe()
+	.rememberMeParameter("rememberme")
+	.tokenValiditySeconds(200)
+	.tokenRepository(tokenRepository());
+```
+
+同类添加方法：
+
+```java
+@Bean
+public JdbcTokenRepositoryImpl tokenRepository(){
+	JdbcTokenRepositoryImpl jr=new JdbcTokenRepositoryImpl();
+	jr.setDataSource(dataSource);
+	return jr;
+}
+```
+
+述代码中，与基于简单加密的Token方式相比，在持久化Token方式的rememberMe()中加入了tokenRepository(tokenRepository())对Cookie信息进行持久化管理。其中的参数会返回一个设置dataSource数据源的JdbcTokenRepositoryImpl实现类对象，该对象包含操作Token的各种方法。
+
+登录后查数据库能看到记录，点注销后记录也会清除。
+
+
+
+#### CSRF防护功能
+
+##### 基本介绍
+
+CSRF称为跨站请求伪造(Cross-site request forgery),也称为了一键攻击（One Click Attack）或者会话控制（Session Riding），通常缩写为CSRF或者XSRF，是一种对网站的恶意利用。与传统的XSS攻击也叫跨站脚本攻击（Cross-site Scripting）相比，CSRF攻击更加难以防范，被认为比XSS更具危险性。CSRF攻击可以在受害者毫不知情的情况下以受害者的名义伪造请求发送给攻击页面，从而在用户未授权的情况下执行在权限保护之下的操作。
+例如，用户小明登录银行站点服务器准备进行转账操作，在此用户信息有效期内，小明被诱导查看了一个黑客恶意网站，该网站就会获取到小明登录后的浏览器与银行网站之间尚未过期的session信息，而小明浏览器的Cookie中含有小明银行账户的认证信息，此时黑客就会伪装小明认证后的合法身份在小明毫不知情的情况下对银行账户进行非法操作。
+在讨论如何抵御CSRF攻击之前，要先明确CSRF攻击的对象，也就是要保护的对象。从上面的例子可知，CSRF攻击是黑客借助受害者的Cookie骗取服务器的信任，但是黑客并不能获取Cookie,也看不到Cookie的具体内容。另外，对于服务器返回的结果，由于浏览器同源策略的限制，黑客无法进行解析。黑客所能做的就是伪造正常身份给服务器发送请求，以执行请求中所描述的命令，在服务器端直接改变数据的值，而非窃取服务器中的数据。因此，针对CSRF攻击要保护的对象是那些可以直接产生数据变化的服务，而对于读取数据的服务，可以不进行CSRF保护。例如，银行转账操作会改变账号金额，需要进行CSRF保护，而获取银行卡等级信息时读取操作，不会改变数据，可以不需要保护。
+在业界目前防御CSRF攻击主要有以下3种策略。
+
+（1）	验证HTTP Referer字段
+（2）	在请求地址中添加Token并验证
+（3）	在HTTP头中自定义属性并验证。
+
+Spring Boot 整合Spring Security默认开启了CSRF防御功能，并要求数据修改的请求方法（Patch、POST、PUT和DELETE）都需要经过Security配置的安全认证后方可正常访问，否则无法正常发送请求，这里我们为了演示Security的CSRF实际默认防护效果，编写一个页面进行演示说明。
+
+来一个控制器：
+
+```java
+package com.vw.controller;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import javax.servlet.http.HttpServletRequest;
+@Controller
+public class CSRFController {
+    // 向用户修改页跳转
+    @GetMapping("/toUpdate")
+    public String toUpdate() {
+        return "csrf/csrfTest";
+    }
+    // 用户修改提交处理
+    @ResponseBody
+    @PostMapping(value = "/updateUser")
+    public String updateUser(@RequestParam String username, @RequestParam String password,HttpServletRequest request) {
+        System.out.println(username);
+        System.out.println(password);
+        String csrf_token = request.getParameter("_csrf");
+        System.out.println(csrf_token);
+        return "ok";//没有真的做修改
+    }
+}
+```
+
+浏览器请求访问`http://localhost:8080/toUpdate`,此时请求地址跟@GetMapping("/toUpdate")匹配，跳转到csrf/csrfTest页面。在csrfTest.html页面中按修改按钮，提交到 /updateUser, updateUser()只是演示了获取请求参数，并没有做真正的修改业务的实现。
+
+> 前端：`csrf/csrfTest.html`
+>
+> ```html
+> <!DOCTYPE html>
+> <html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+> 
+> <head>
+>     <meta charset="UTF-8">
+>     <title>用户修改</title>
+> </head>
+> 
+> <body>
+>     <div align="center">
+>         <form action="/updateUser" method="post">
+>             用户名： <input type="text" name="username" /> <br/> 密码： <input type="password" name="password" /> <br/>
+>             <button type="submit">修改</button>
+>         </form>
+>     </div>
+> </body>
+> 
+> </html>
+> ```
+
+可以发现无法做到修改数据。
+
+通过上述示例可以看出，在整合Spring Security安全框架后，项目默认启用了CSRF安全防护功能，项目中所有涉及数据修改方式的请求都会被拦截，如果不进行处理，对于真实用户发出修改数据的请求，也会通通被拦截，真实用户也不能去修改用户信息，针对这种情况，可以有两种处理方式，一种是直接关闭Security默认开启的CSRF防护功能；另一种方式就是配置Security需要的CSRF Token，具有CSRF Token才可以进入修改数据。
+
+如果是直接关闭Security默认开启的CSRF防护功能的话，配置起来非常简单，打开配置类SecurityConfig，再重写config(HttpSession session http)方法中进行关闭配置即可。关闭代码如下：
+
+```java
+protected void configure(HttpSecurity http) throws Exception {
+	http.csrf().disable();
+}
+```
+
+上面展示了关闭CSRF防护功能的的配置方式，非常简单，其他代码都不用变动。但是这种直接关闭CSRF防护的方式简单粗暴，不太推荐使用，因为强行关闭后，网站可能面临CSRF攻击的危险。
+
+
+
+##### CSRF Token
+
+针对Form表单类型的数据修改请求，Security支持Form表单中提供了一个携带CSRF Token信息的隐藏域，与其他修改数据一起提交，这后台就可以获取并验证该请求是否为安全的，示例代码表单里添加如下：
+
+```html
+<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+```
+
+上述代码中，Form表单中的`<input>`隐藏标签携带了Security提供的CSRF Token信息，其中`th:name="${_csrf.parameterName}" `会获取Security默认提供的CSRF Token对应的key值，`csf=rf,th:value="${_csrf.token}"/>`会获取Security会随机生成CSRF Token对应的value值。
+	在Form表单中添加上述CSRF配置后，无需其他配置就可以正常实现数据修改请求，后台配置的Security会自动获取并识别请求中的CSRF Token信息并进行用户信息验证，从而判断是否安全。
+需要说明的是，针对Thymeleaf模板页中的Form表单数据修改请求，除了可以使用上述示例方式显示配置CSRF Token信息提交数据修改请求之外，还可以使用Thymeleaf模板的`th:action`属性配置CSRF Token信息，示例代码如下：
+
+```html
+<form method="post" th:action="@{/updateUser}">
+```
+
+对于Ajax类型的数据修改请求来说，Security提供了通过添加Http header头信息的方式携带CSRF Token信息进行请求验证。
+
+```html
+<html>
+<head>
+	<meta name="_csrf" th:content="${_csrf.token}"/>
+	<meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+</head>
+```
+
+上述代码中，在`<head>`标签中添加两个`<meta>`子标签，分别用来设置CSRF Token信息的属性头和具体生成的Security Token值信息。其中，在Http header头信息中携带的CSRF请求头header参数的默认值为X-CSRF-TOKEN，而请求头CSRF header对应的CSRF Token值是随机生成的。然后在具体的Ajax请求中获取`<meta>`子标签中设置的CSRF Token信息，并绑定在http请求头中进行请求验证，示例代码如下：
+
+```js
+$(function () {
+    var token = $("meta[name='_csrf']").attr("content");
+    var header = $("meta[name='_csrf_header']").attr("content");
+    $(document).ajaxSend(function(e, xhr, options) {
+        xhr.setRequestHeader(header, token);
+    });
+});
+```
+
+上述代码首先获取`<meta>`标签中设置的CSRF Token信息，然后通过HTTP请求将CSRF Token信息给后台进行验证
+
+
+
+#### 前端管理
+
+加依赖
+
+```xml
+<dependency>
+    <groupId>org.thymeleaf.extras</groupId>
+    <artifactId>thymeleaf-extras-springsecurity5</artifactId>
+</dependency>
+```
+
+给 HTML 标签加一条属性
+
+```html
+xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+```
+
+使用sec:authorize="isAnonymous()"属性来判断用户是否已登录，未登录的用户才会显示请登录连接
+
+```xml
+<div sec:authorize="isAnonymous()">
+   <h2 align="center">游客您好，如果想查看电影<a th:href="@{/userLogin}">请登录</a></h2>
+</div>
+```
+
+使用sec:authorize="isAuthenticated()"属性来判断用户是否已登录，只有已经登录的用户才会显示登录用户信息及注销链接等。
+
+如果用户已经登录，则使用sec:authentication="name"和sec:authentication="principal.authorities"两个属性分别显示用户名和权限。
+
+```html
+<div sec:authorize="isAuthenticated()">
+   <h2 align="center"><span sec:authentication="name" style="color: #007bff"></span>
+      您好，您的用户权限为<span sec:authentication="principal.authorities" style="color:darkkhaki"></span>，您有权观看以下电影</h2>
+   <form th:action="@{/mylogout}" method="post">
+      <input th:type="submit" th:value="注销" />
+   </form>
+</div>
+```
+
+使用sec:authorize="hasRole('common')"属性定义了只有角色为common且登录的用户才会显示普通电影列表信息
+
+```html
+<div sec:authorize="hasRole('common')">
+   <h3>普通电影</h3>
+   <ul>
+      <li><a th:href="@{/detail/common/1}">飞驰人生</a></li>
+      <li><a th:href="@{/detail/common/2}">夏洛特烦恼</a></li>
+   </ul>
+</div>
+<div sec:authorize="hasAuthority('ROLE_vip')">
+   <h3>VIP专享</h3>
+   <ul>
+      <li><a th:href="@{/detail/vip/1}">速度与激情</a></li>
+      <li><a th:href="@{/detail/vip/2}">猩球崛起</a></li>
+   </ul>
+</div>
+```
+

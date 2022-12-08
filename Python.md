@@ -1666,6 +1666,29 @@ f() #输出g
 
 
 
+在函数内写一个字符串，表示函数注释，以后调用函数时悬停能看到该字符串：
+
+```python
+def toGrey(img):
+    'fuck'
+    pass
+```
+
+函数内的空行或两个`\n`算换行：
+
+```python
+def toGrey(img):
+    """这是第一行
+    789
+    
+    这是第二行\n\n第三行"""
+    pass
+```
+
+
+
+
+
 ### 参数
 
 **位置参数**就是一般的参数，与C等语言一样，从略。
@@ -4332,6 +4355,19 @@ arr.transpose()
 
 
 
+##### 下标
+
+`[第一维度,第二维度, ...]` 的方法。每个维度可以用列表生成表达式，可以表示子阵，支持修改。如 `x[1,2]`, `x[1,:,3]=3`
+
+可以用不等式表示范围内的下标，如：
+
+```python
+mu0 = np.sum(img[img < i])/n0
+img2[img2 < x] = 0
+```
+
+
+
 
 
 ##### 遍历
@@ -4431,7 +4467,14 @@ np.linalg.inv(arr)
 np.clip(arr, minv, maxv)
 ```
 
+按行/列运算，方法：[参考](https://zhuanlan.zhihu.com/p/447785621)，`.sum(axis=0/1/...)`, `.mean`，如：
 
+```python
+sumVert = ((255-img)//255).sum(axis=0)
+sumHori = ((255-img)//255).sum(axis=1)
+```
+
+排序：`np.sort`
 
 
 
@@ -4446,6 +4489,14 @@ np.set_printoptions(suppress=True)
 - precision：控制输出的小数点个数，默认是8
 - threshold：控制输出的值的个数，其余以…代替；
   当设置打印显示方式`threshold=np.nan`，意思是输出数组的时候`完全输出，不需要省略号将中间数据省略`
+
+零除警报消除：[参考](https://blog.csdn.net/baidu_41836513/article/details/118417019)
+
+```python
+np.seterr(divide='ignore',invalid='ignore')
+```
+
+
 
 
 
@@ -4647,6 +4698,15 @@ plt.plot([-1,-1,-1,-1])
 plt.show()
 ```
 
+横纵坐标旋转：`plot(ylt,xlt)`
+
+```python
+lt = list(range(img.shape[0]-1, -1, -1))
+plt.plot(sumHori, lt)
+```
+
+
+
 绘制二维散点点图：
 
 ```python
@@ -4676,6 +4736,33 @@ marker='x'; marker='o'
 ```python
 plt.savefig(输出文件名含后缀)
 ```
+
+
+
+##### 举例
+
+###### 横纵坐标转置
+
+```python
+img = cv2.imread('../../imgs/02.png')
+img = toGrey(img)
+img = toBinary(img, getThrestHold(img)) #二值图像
+sumVert = ((255-img)//255).sum(axis=0)
+sumHori = ((255-img)//255).sum(axis=1)
+
+plt.subplot(221)
+plt.imshow(img, 'gray')
+plt.subplot(222)
+# lt = list(range(img.shape[0]-1, -1, -1))
+lt = list(range(img.shape[0]))
+plt.ylim(img.shape[0], 0)  # 这个倒了lt自己也会倒
+plt.plot(sumHori, lt)
+plt.subplot(223)
+plt.plot(sumVert)
+plt.show()
+```
+
+
 
 
 
@@ -4713,7 +4800,7 @@ plt.ylabel('saw',fontsize=14)
 plt.tick_params(axis='both',labelsize=14) #或x或y，坐标上数字大小
 ```
 
-锁定坐标轴范围为$x\in[-12,12],y\in[-5,5]$
+锁定坐标轴范围为$x\in[-12,12],y\in[-5,5]$。也可以用 `xlim(a,b)`, `ylim`。可以 $a\ge b$ 则画图序列也跟着倒序。
 
 ```python
 plt.axis([-12,12,-5,5]) 
@@ -4786,16 +4873,20 @@ plt.show()
 
 ##### 常规
 
+本质是对 numpy 二维数组(np.uint8) 绘制，或者对三维数组(第三维RGB等)绘制
+
 ```python
 import matplotlib.image as mpimg
 ```
 
 ```python
 img = mpimg.imread('img/keepOut.jpg') #类型是numpy.ndarray
+#读JPG类型是uint8,读PNG类型是float32且有透明通道
 plt.imshow(img)
 plt.show()
 plt.savefig() #与上一行不兼容，建议加 bbox_inches='tight' 去白边框
 mpimg.imsave(des, img2) #同理保存
+#mpimg.imsave(dest, imgs[i], cmap='gray') 黑白保存
 ```
 
 > 如：
@@ -4869,6 +4960,7 @@ img2 = img.copy()
 img2 = ( (img - np.min(img) ) / (np.max(img) - np.min(img)))*255
 img2 = img2.astype(int)
 plt.imshow(img2,cmap="Greys_r") #不加参数是彩色图
+#第二个参数建议为'gray'与上者不同
 plt.savefig('img20.tif', bbox_inches='tight')
 ```
 
@@ -5075,6 +5167,8 @@ pip install opencv-python
 #### 读写显示
 
 可能读彩色图有点问题，这样的话建议用 mpimg 读
+
+对于读 PNG，用 `mpimg` 会有 alpha 通道从而第三维度长为 4，而 `cv2` 只有三维。用 `mpimg` 读的范围是 $[0,1]$ 实数，而 `cv2` 是 uint8。
 
 ```python
 import cv2

@@ -65,11 +65,13 @@ git config -e --global
 例如：
 
 ```gitignore
-/bin/
+/bin/*
 *.log
-/abc/
+abc/*
 !/abc/special.txt
 ```
+
+> `/bin/` 与 `abc/` 都是当前开始，一定要加 `*`
 
 
 
@@ -81,6 +83,8 @@ git add .gitignore
 git add .
 git commit -m "..."
 ```
+
+反义是 `.gitkeep`。
 
 
 
