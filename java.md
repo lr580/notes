@@ -18722,6 +18722,257 @@ public class UserController {
 
 
 
+##### 登录+maven
+
+实现了：
+
+- 基于 jsp 跳转 html 混用了 jsp,html
+
+具体部署：
+
+创建 quickstart，搞一个如下 pom：
+
+```xml
+<dependencies>
+    <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-jdbc</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>mysql</groupId>
+        <artifactId>mysql-connector-java</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.mybatis.spring.boot</groupId>
+        <artifactId>mybatis-spring-boot-starter</artifactId>
+        <version>1.3.0</version>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>javax.servlet</groupId>
+        <artifactId>jstl</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.tomcat.embed</groupId>
+        <artifactId>tomcat-embed-jasper</artifactId>
+    </dependency>
+</dependencies>
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+        </plugin>
+    </plugins>
+</build>
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>1.5.9.RELEASE</version>
+</parent>
+```
+
+配好配置：
+
+```properties
+spring.datasource.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.url=jdbc:mysql:///hw10?useSSL=false
+spring.datasource.username=root
+spring.datasource.password=1
+mybatis.typeAliasesPackage=hw10.pojo
+mybatis.mapperLocations=classpath:mapper/*.xml
+mybatis.configuration.mapUnderscoreToCamelCase=true
+spring.mvc.view.prefix=/WEB-INF/
+spring.mvc.view.suffix=.jsp
+```
+
+随便建一个数据库：
+
+```mysql
+drop database if exists hw10;
+create database if not exists hw10;
+use hw10
+create table t_user (
+    username varchar(16) not null,
+    psw varchar(16) not null
+);
+insert into t_user values ('baicha', 'bc1234');
+```
+
+写启动器：
+
+```java
+package hw10;
+
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@MapperScan("hw10/mapper")
+@SpringBootApplication
+public class Starter {
+    public static void main(String[] args) {
+        SpringApplication.run(Starter.class, args);
+    }
+}
+```
+
+写 POJO，略。
+
+写 mapper：
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="hw10.mapper.UserMapper">
+    <select id="queryUser" parameterType="string" resultType="hw10.pojo.User">
+        select * from t_user where username=#{username} 
+    </select>
+</mapper>
+```
+
+写 DAO：
+
+```java
+package hw10.mapper;
+import hw10.pojo.User;
+public interface UserMapper {
+    User queryUser(String username);
+}
+```
+
+写 Service：
+
+```java
+package hw10.service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import hw10.mapper.UserMapper;
+import hw10.pojo.User;
+@Service
+public class LoginDBO {
+    @Autowired
+    private UserMapper userMapper;
+    public boolean login(String username, String psw) {
+        User user2 = userMapper.queryUser(username);
+        if (user2 == null || !psw.equals(user2.getPsw())) {
+            return false;
+        }
+        return true;
+    }
+}
+```
+
+写 Controller：
+
+```java
+package hw10.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.ModelAndView;
+import hw10.service.LoginDBO;
+
+@Controller
+public class LoginValidate {
+    @Autowired
+    private LoginDBO loginDBO;
+
+    @RequestMapping("tologin")
+    @ResponseBody
+    public ModelAndView login(String username, String psw) {
+        boolean suc = loginDBO.login(username, psw);
+        ModelAndView mv = new ModelAndView("returnMessage");
+        if (suc) {
+            mv.addObject("state", "登录成功。你好，" + username);
+        } else {
+            mv.addObject("state", "登陆失败");
+        }
+        return mv;
+    }
+
+    @RequestMapping("/")
+    public String index() {
+        return "index";
+    }
+}
+```
+
+去 `src/main/webapp` 写一个主页 `Login.html`：
+
+```html
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+    xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta http-equiv="Content-Type" 
+content="text/html; charset=UTF-8" />
+<title>主页</title>
+</head>
+
+<body>
+    <form action="tologin" method="post">
+        用户名：<input type="text" name="username" /><br/> 密码 <input type="password" name="psw" /> <br/>
+        <input type="submit" value="登录" />
+    </form>
+</body>
+
+</html>
+```
+
+写一个跳主页的 `WEB-INF/index.jsp`：
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> 
+    <title>主页</title>
+  </head>
+  <body>
+    <div>
+        <% response.sendRedirect("Login.html"); %>
+    </div>
+  </body>
+</html>
+```
+
+同目录下写一个登陆成功反馈的 `returnMessage.jsp`：
+
+```jsp
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> 
+    <title>消息</title>
+  </head>
+  <body>
+    <div>${state}</div>
+  </body>
+</html>
+```
+
+
+
+
+
 #### 控制器
 
 ##### 注解装配

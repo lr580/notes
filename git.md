@@ -36,6 +36,17 @@ git config --global user.email "邮箱"
 
 如果去掉 `--global` 就是只对当前有效
 
+##### 代理
+
+以 v2rayN 为例，通常是 10808 端口，可以窗口在右下角看。
+
+```shell
+git config --global http.proxy sock5://127.0.0.1:10808
+git config --global https.proxy sock5://127.0.0.1:10808
+```
+
+
+
 ##### 配置
 
 ```bash

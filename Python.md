@@ -3786,13 +3786,28 @@ Label(root,text='A label.').place(x=0,y=0)
 插入图片：
 
 ```python
-图片 = PhotoImage(file=路径)
+图片 = PhotoImage(file=路径) #只支持gif
 实例.config(image=图片)
 ```
+
+> 动态改变图片，如：[参考](http://www.qb5200.com/article/374718.html) [参考](https://blog.csdn.net/m0_50000839/article/details/120078530)
+>
+> ```python
+> from PIL import ImageTk
+> imgShow = PhotoImage(file=path)
+> imgLabel.config(image=imgShow) 
+> imgLabel.image = imgShow # 防止临时变量消亡
+> ```
+>
+> 要缩放的话，构造函数直接传 Image 对象，对 Image 对象缩放
+
+
 
 ##### 按钮Button
 
 command=点击事件(一个函数名) 
+
+禁用/可用 state="disabled" / "normal"
 
 ##### 提示框
 
@@ -4011,6 +4026,12 @@ RGB是电脑储存颜色的常规方法，在这里是float形式。如果用于
 
 可选属性：color=(R,G,B)，默认选择的颜色
 
+
+
+from tkinter.messagebox import *
+
+对话框：showwarning, showinfo, askyesno, 第一个参数标题，第二个文本。问是否的返回值为真是点是。
+
 ##### 菜单Menu
 
 1.创建父菜单
@@ -4164,7 +4185,13 @@ get 得到所显示的值
 
 
 
+#### 杂项
 
+##### 剪切板
+
+复制内容到剪贴板，使用 root 的方法：`clipboard_append(str)` [参考](https://vimsky.com/examples/detail/python-ex-Tkinter-Tk-clipboard_append-method.html)
+
+记得先 `clipboard_clear()`
 
 
 
@@ -5177,6 +5204,14 @@ cv2.imshow('src', src)  # 窗口名
 cv2.waitKey(0)
 ```
 
+中文路径的读取：
+
+```python
+img = cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_COLOR)
+```
+
+不能读 GIF，需要的话用 `imageio` 库
+
 #### 图像增强
 
 ##### 直方图均衡化
@@ -5251,7 +5286,7 @@ from PIL import Image
 其读入结果不为 `numpy.ndarray`
 
 ```python
-img = Image.open(src)
+img = Image.open(src) #支持中文路径
 rows, cols = img.size
 ```
 

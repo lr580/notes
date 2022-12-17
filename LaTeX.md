@@ -2119,6 +2119,10 @@ htbp 详解：[参考](https://blog.csdn.net/weixin_45459911/article/details/109
 
 #### 代码块
 
+单行代码使用 `\verb|内容|`，如 `\verb|\alpha|`。输出 `\alpha`。
+
+多行代码用 verbatim 代码块(注意缩进会没有掉)。
+
 [参考](https://blog.csdn.net/qq_43760191/article/details/121519247?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-1-121519247-blog-109391516.pc_relevant_aa2&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-1-121519247-blog-109391516.pc_relevant_aa2&utm_relevant_index=1)
 
 ##### 伪代码
@@ -2160,6 +2164,12 @@ htbp 详解：[参考](https://blog.csdn.net/weixin_45459911/article/details/109
 \end{document}
 ```
 
+> 可能会报警告字体大小问题，可以导多一个包：[参考](https://blog.csdn.net/weixin_46007691/article/details/122174991)
+>
+> ```tex
+> \usepackage{anyfontsize}
+> ```
+
 
 
 ##### 程序代码
@@ -2194,6 +2204,20 @@ signed main()
 }
 \end{lstlisting}
 ```
+
+自动换行，如：
+
+```tex
+\begin{lstlisting}[language=python,breaklines=true]
+```
+
+引用外部代码文件，如：
+
+```tex
+\lstinputlisting[language=python,breaklines]{../codes/main.py}
+```
+
+
 
 
 
@@ -2391,6 +2415,10 @@ signed main() /* 注释 */
 
 多行代码用 verbatim 代码块(注意缩进会没有掉)。
 
+`\` 用 `\textbackslash`
+
+`_` 用 `\underline\ ` (即给一个空格加下划线)
+
 
 
 ##### 盒子模型
@@ -2398,6 +2426,20 @@ signed main() /* 注释 */
 `\mbox{}` 或 `\makebox{}`，大括号里写正文。可以加两个 `[]`。第一个写宽度如 `80pt`，第二个写对齐方式如 `c,l,r`。使用 `\fbox` 或 `\framebox` 高带边框的盒子。
 
 需要换行的文字可以用 `\parbox[外部对齐][高度][内部对齐]{宽度}{内容}`。外部垂直对齐有 `t,c,b` 三种；内部对齐是垂直对齐方式，加上分散对齐 `s` 四种。
+
+
+
+##### 超链接
+
+`hyperref` 宏包。`\href{https://openai.com/}{OpenAI}`
+
+副作用是目录全部可以点击跳转。
+
+建议：
+
+```tex
+\usepackage[colorlinks,linkcolor=red,anchorcolor=blue,citecolor=green]{hyperref}
+```
 
 
 
@@ -2997,4 +3039,88 @@ signed main() /* 注释 */
 > 1. setbeamerfont
 > 2. setbeamercolor
 > 3. setbeamertemplate
+
+
+
+### 绘图
+
+宏包 `tikz`。导言区导绘图子包，用指令 `usetikzlibrary`，格式与 `usepackage` 类似。
+
+#### 流程图
+
+##### 例子
+
+###### 入门
+
+```tex
+\documentclass{article}
+\usepackage{tikz}
+\usetikzlibrary{positioning, shapes.geometric}
+
+\begin{document}
+\begin{tikzpicture}[node distance=10pt]
+  \node[draw, rounded corners]                        (start)   {Start};
+  \node[draw, below=of start]                         (step 1)  {Step 1};
+  \node[draw, below=of step 1]                        (step 2)  {Step 2};
+  \node[draw, diamond, aspect=2, below=of step 2]     (choice)  {Choice};%宽高比2
+  \node[draw, right=30pt of choice]                   (step x)  {Step X};
+  \node[draw, rounded corners, below=20pt of choice]  (end)     {End};
+  
+  \draw[->] (start)  -- (step 1);
+  \draw[->] (step 1) -- (step 2);
+  \draw[->] (step 2) -- (choice);
+  \draw[->] (choice) -- node[left]  {Yes} (end);
+  \draw[->] (choice) -- node[above] {No}  (step x);
+  \draw[->] (step x) -- (step x|-step 2) -> (step 2);
+\end{tikzpicture}
+\end{document}
+```
+
+`\node` 定义点，如外框形状
+
+`\arrow` 定义线和箭头
+
+`positioning` 定义相对位置关系。
+
+外框之间的（最小）距离都相同，是 `node distance` 指定的 `10pt`；在需要手动调整距离时，可以使用`right=<dimen> of <node name>`。
+
+
+
+文本换行：
+
+```tex
+\node[draw, below=of resize, text width=140pt] (cut) {裁切图片的条形码矩形区域, \linebreak 并得到正反两张子图};
+```
+
+
+
+
+
+###### 简化arrow
+
+```tex
+\documentclass{article}
+\usepackage{tikz}
+\usetikzlibrary{graphs, positioning, quotes, shapes.geometric}
+
+\begin{document}
+\begin{tikzpicture}[node distance=10pt]
+  \node[draw, rounded corners]                        (start)   {Start};
+  \node[draw, below=of start]                         (step 1)  {Step 1};
+  \node[draw, below=of step 1]                        (step 2)  {Step 2};
+  \node[draw, diamond, aspect=2, below=of step 2]     (choice)  {Choice};
+  \node[draw, right=30pt of choice]                   (step x)  {Step X};
+  \node[draw, rounded corners, below=20pt of choice]  (end)     {End};
+  
+  \graph{
+    (start) -> (step 1) -> (step 2) -> (choice) ->["Yes"left] (end);
+    (choice) ->["No"] (step x) ->[to path={|- (\tikztotarget)}] (step 2);
+  };
+\end{tikzpicture}
+\end{document}
+```
+
+library `quotes`，将 node label 的输入从 `label={[<options>]<text>}` 简化为 `"<text>"<options>`
+
+如果使用了选项 `use existing nodes=true`，输入`(start) -> (step 1) -> (step 2)` 能进一步简化为 `start -> step 1 -> step 2`。
 
