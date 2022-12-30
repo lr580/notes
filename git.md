@@ -45,6 +45,15 @@ git config --global http.proxy sock5://127.0.0.1:10808
 git config --global https.proxy sock5://127.0.0.1:10808
 ```
 
+取消：
+
+```shell
+git config --global --unset http.proxy
+git config --global --unset https.proxy
+```
+
+
+
 
 
 ##### 配置
@@ -706,6 +715,29 @@ git push 远程主机名 本地分支名:远程分支名
 > git push origin :hotfixes/BJVEP933 # 删除远程仓库的hotfixes/BJVEP933分支
 > git push --tags # 把所有tag推送到远程仓库
 > ```
+
+
+
+> time out 无法 push，可以 ping 通的一种解决办法 [参考](https://blog.csdn.net/hdm314/article/details/119947761)
+>
+> 找到C判用户文件夹 `.ssh/config`，追加：
+>
+> ```config
+> Host github.com
+>     User YourEmail（你的邮箱）
+>     Hostname ssh.github.com
+>     PreferredAuthentications publickey
+>     IdentityFile ~/.ssh/id_rsa
+>     Port 443
+> ```
+>
+> 测试并输入yes：
+>
+> ```shell
+> ssh -T git@github.com
+> ```
+>
+> 即可。
 
 
 

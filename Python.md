@@ -4205,6 +4205,23 @@ get 得到所显示的值
 
 `fetchall()` 得到输出(tuple的tuple，第一个维度是行，第二个是列)
 
+> 如：
+>
+> ```python
+> import pymysql as sql
+> oj = sql.connect(host=hosturl, user=username, password=password,
+>             database='scnuoj', charset='UTF8')
+> cur = oj.cursor()
+> cid = input('输入比赛ID:')
+> cmd_getProblem = 'select problem_id,title from problem, contest_problem where problem_id=problem.id and contest_id='+cid
+> lens = cur.execute(cmd_getProblem)
+> print(lens, cur.fetchall())
+> ```
+
+注：
+
+- 读入的日期会以 `datetime` 格式保存。
+
 
 
 ### numpy
@@ -5135,6 +5152,10 @@ sheet0['A1'].coordinate
 sheet.iter_rows() #用于for，元素是行，再for之得每个单元格
 sheet.iter_cols() #同理
 ```
+
+行数，列数即 `sheet.max_row` , `.max_column`。
+
+
 
 举例：
 

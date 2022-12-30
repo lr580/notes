@@ -5311,7 +5311,24 @@ console.log(y.show());
 
 ### 模块
 
-ES6
+一个 js 文件就是一个模块，作用域私有，内部变量和函数只有当前文件可用。
+
+> 意思是，js 文件自身要调用其他 js 变量/函数必须 import。但 HTML 本身可以调用多个 js
+
+别人要用模块，以对象形式用 `exports` 或 `module.exports` 导出；别人引入时用 `require` 来引入。
+
+模块定义规范：
+
+- AMD 规范。require.js
+- CMD 规范。 Sea.js
+- CommonJS 的 Modules 规范：NodeJS
+- ES6 模块化规范 import \.\.\. from \.\.\.
+
+
+
+> #### ES6规范
+
+ES6 规范
 
 在一个js文件里使用export命令导出变量、函数、类；之后在另一个js文件里通过import导入。实现了跨文件调用。使用了导入的，需要在src里标注`type=module`。
 
@@ -5334,8 +5351,6 @@ export { author };//expo.js
 ```
 
 
-
-#### export
 
 可以使用export语句加大括号集中导出。不加就只能一个一个导。
 

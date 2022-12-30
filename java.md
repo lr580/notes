@@ -17719,6 +17719,8 @@ public List<User> queryByName1(String name) {
 
 `127.0.0.1:8080/queryByName1?name=苏舒`，可以看到返回了json对象数组，只有一个对象。
 
+同理有 `selectOne`，找不到返回 null。
+
 
 
 ###### 模糊
@@ -20808,7 +20810,25 @@ public class FileDownController {
 </html>
 ```
 
-
+> 前端的一种下载方式(chatGPT,验证可用)
+>
+> ```js
+> fetch("/download")
+>   .then(response => response.blob())
+>   .then(blob => {
+>     const url = window.URL.createObjectURL(blob);
+>     const a = document.createElement("a");
+>     a.style.display = "none";
+>     a.href = url;
+>     a.download = "file.txt";
+>     document.body.appendChild(a);
+>     a.click();
+>     window.URL.revokeObjectURL(url);
+>   })
+>   .catch(error => console.error(error));
+> ```
+>
+> 
 
 
 
@@ -22271,7 +22291,7 @@ server {
 }
 ```
 
-
+如果修改页面后刷新没变化，可能是浏览器缓存使用 ctrl+f5 强制刷新。
 
 
 
@@ -22856,6 +22876,101 @@ public class BeanConfig {
     <bean class="org.child.application.ChildInfoBean"></bean>
 </beans>
 ```
+
+
+
+##### 配置类
+
+参考：
+
+```java
+package cn.edu.scnu.config;
+import javax.sql.DataSource;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import com.alibaba.druid.pool.DruidDataSource;
+@Configuration
+@ConfigurationProperties("spring.datasource")
+public class DataSourceInitConfig {
+	private String driverClassName;
+	private String url;
+	private String username;
+	private String password;
+	private Integer maxActive; //最大连接数
+	private Integer maxIdle;   //最大空闲连接数
+	private Integer initialSize; //初始化连接数量
+	private Integer minIdle;   //最大空闲数
+	//自定义创建的DruidDatasource对象返回给框架使用
+	@Bean
+	@Primary//当容器中存在多个同类对象时,以Primary所在的优先级最高
+	public DataSource initDruidDataSource(){
+		DruidDataSource datasource=new DruidDataSource();
+		datasource.setDriverClassName(driverClassName);
+		datasource.setUrl(url);
+		datasource.setUsername(username);
+		datasource.setPassword(password);
+		//连接池初始化参数
+		datasource.setInitialSize(initialSize);//5
+		datasource.setMaxActive(maxActive);//200
+		datasource.setMaxIdle(maxIdle);//8
+		datasource.setMinIdle(minIdle);//3
+		return datasource;
+	}
+	public String getDriverClassName() {
+		return driverClassName;
+	}
+	public void setDriverClassName(String driverClassName) {
+		this.driverClassName = driverClassName;
+	}
+	public String getUrl() {
+		return url;
+	}
+	public void setUrl(String url) {
+		this.url = url;
+	}
+	public String getUsername() {
+		return username;
+	}
+	public void setUsername(String username) {
+		this.username = username;
+	}
+	public String getPassword() {
+		return password;
+	}
+	public void setPassword(String password) {
+		this.password = password;
+	}
+	public Integer getMaxActive() {
+		return maxActive;
+	}
+	public void setMaxActive(Integer maxActive) {
+		this.maxActive = maxActive;
+	}
+	public Integer getMaxIdle() {
+		return maxIdle;
+	}
+	public void setMaxIdle(Integer maxIdle) {
+		this.maxIdle = maxIdle;
+	}
+	public Integer getInitialSize() {
+		return initialSize;
+	}
+	public void setInitialSize(Integer initialSize) {
+		this.initialSize = initialSize;
+	}
+	public Integer getMinIdle() {
+		return minIdle;
+	}
+	public void setMinIdle(Integer minIdle) {
+		this.minIdle = minIdle;
+	}
+	
+}
+```
+
+
 
 
 
@@ -24411,5 +24526,119 @@ xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
       <li><a th:href="@{/detail/vip/2}">猩球崛起</a></li>
    </ul>
 </div>
+```
+
+
+
+### POI
+
+#### 基本
+
+##### 概念
+
+Apache POI是Apache软件基金会的开源项目，POI提供API给Java程序对Microsoft Office格式档案读和写的功能。[参考](https://zhuanlan.zhihu.com/p/365814275)
+
+HSSF提供读写Microsoft Excel XLS格式档案的功能。
+
+**XSSF**提供读写Microsoft Excel OOXML XLSX格式档案的功能。
+
+HWPF提供读写Microsoft Word DOC格式档案的功能。
+
+HSLF提供读写Microsoft PowerPoint格式档案的功能。
+
+HDGF提供读Microsoft Visio格式档案的功能。
+
+HPBF提供读Microsoft Publisher格式档案的功能。
+
+HSMF提供读Microsoft Outlook格式档案的功能。
+
+##### 导包
+
+```xml
+<dependency>
+    <groupId>org.apache.poi</groupId>
+    <artifactId>poi</artifactId>
+    <version>4.0.1</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.poi</groupId>
+    <artifactId>poi-ooxml</artifactId>
+    <version>4.0.1</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.poi</groupId>
+    <artifactId>poi-ooxml-schemas</artifactId>
+    <version>4.0.1</version>
+</dependency>
+```
+
+
+
+#### Excel
+
+##### 基本
+
+注意导包都选带 `ss` 的包
+
+```java
+//1.创建工作薄Workbook
+Workbook wb = new XSSFWorkbook();
+//2.创建表单Sheet
+Sheet sheet = wb.createSheet("港港的工作空间");
+//创建行对象，从0开始
+Row row = sheet.createRow(1);
+row.createCell(1).setCellValue(false);// 设置单元格内容,重载
+row.createCell(2).setCellValue(new Date());// 设置单元格内容,重载
+row.createCell(3).setCellValue(12.345);// 设置单元格内容,重载
+//创建单元格对象，从0开始
+Cell cell = row.createCell(0);//修改就ge而不是create
+//单元格写入数据
+cell.setCellValue("港港");
+//3.创建文件流
+FileOutputStream fos =
+    new FileOutputStream("D:\\a\\demo02.xlsx");
+//4.写出文件
+wb.write(fos);
+//5.关闭流
+fos.close();
+```
+
+然后将这个文件用文件下载的办法搞起来就好了
+
+默认居左，数值居右
+
+
+
+##### 排版
+
+如加粗居中：(chatGPT)
+
+```java
+CellStyle aligncenter = wb.createCellStyle();
+aligncenter.setAlignment(HorizontalAlignment.CENTER);
+Font bold = wb.createFont();//不要用java.awt包的
+bold.setBold(true);
+aligncenter.setFont(bold);
+for (int i = 0; i < 5; ++i) {
+    header.getCell(i).setCellStyle(aligncenter);
+}
+```
+
+
+
+
+
+##### 列宽
+
+自动调整，需要高级表格。[参考](https://blog.csdn.net/zh555888/article/details/125389802)
+
+```java
+SXSSFWorkbook wb = new SXSSFWorkbook();
+SXSSFSheet sheet = wb.createSheet("sheet1");
+for (int i = 0; i < 5; i++) { //总列数 
+    sheet.trackAllColumnsForAutoSizing();
+    sheet.autoSizeColumn(i);
+    sheet.setColumnWidth(i, sheet.getColumnWidth(i) * 17 / 10);
+}
 ```
 
