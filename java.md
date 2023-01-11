@@ -1,6 +1,6 @@
 # 语法
 
-## 初始化
+## 理论与使用
 
 ### 前置知识
 
@@ -12,7 +12,7 @@
 
 - 编写一次代码，在不同环境(机器)运行
 - 语法更简洁，可靠，安全
-- 既是编译型又是解释型 代码$\to$字节码$\overset{JVM}{\to}$解释运行
+- 既是编译型又是解释型 代码$\to$字节码（`.class`）$\overset{JVM}{\to}$解释运行
 - 用接口取代多重继承
 - 取消指针
 - 垃圾自动收集
@@ -260,7 +260,17 @@ vscode暂时未知如何设置启用assert，可以尝试在setting.json里加�
 
 
 
-### 反编译
+### 理论
+
+#### JVM
+
+JVM是用C/C++开发的软件，不同平台下需要安装不同版本的JVM
+
+
+
+### 其他
+
+#### 反编译
 
 JDK 自带 javap 工具。
 
@@ -312,7 +322,7 @@ main方法必须声明为 `public static void`
 
 分为byte(8位)、short(16)、int(32)、long(64)  数据范围同C，即byte等于C的char($[-128,127]$)
 
-将超出int范围的字面量赋值给long，需要加后缀 `l`或 `L`
+将超出int范围的字面量赋值给long，需要加后缀 `l`或 `L`。默认值依次是 `0,0,0,0L`
 
 如：
 
@@ -329,11 +339,11 @@ System.out.println(x << 1);
 
 64位的double($[4.9\times10^{-324},1.7976931348623157\times10^{308}]$)  (精度16位)
 
-float后缀为 `F`/`f`    double为 `D`/`d`   声明float时建议加后缀 (默认小数为double)
+float后缀为 `F`/`f`    double为 `D`/`d`   声明float时建议加后缀 (默认小数为double)。默认值 `0.0F` 和 `0.0`
 
 ##### 字符类型
 
-char存单个字符，占16位(65536个字符)，所以可以处理单个中文等字符转int可输出看ascii码。字符类型采用的是Unicode编码方案
+char存单个字符，占16位(65536个字符)，所以可以处理单个中文等字符转int可输出看ascii码。字符类型采用的是Unicode编码方案。默认值 `\u0000`
 
 ```java
 char a = '萨', b = '日', c = '朗';
@@ -356,7 +366,9 @@ if (a >= '\u4e00' && a <= '\u9fa5') {
 
 ##### 布尔类型
 
-boolean 值为 `true`/`false`
+boolean 值为 `true`/`false`。默认 false
+
+Java规范没有明确的规定占内存多少字节，不同的JVM有不同的实现机制
 
 ##### 类型转换
 
@@ -388,6 +400,12 @@ System.out.println((long) x + (int) y);
 声明语法同C。
 
 > 系统内存分为系统(OS)区、程序区和数据区。运行时代码暂存程序区，数据暂存数据区。但定义在方法体的变量暂存在程序区。
+
+局部变量(方法里定义的变量)没有初始值，未赋值只声明就输出会报错。存储在栈内存，作用范围结束自动释放变量空间。
+
+成员变量都有初始值。其中类变量存在方法区生命周期与当前类相同。实例变量存在对象所在堆内存，生命周期与对象相同。
+
+java 没有真正的全局变量。
 
 ##### 常量
 
@@ -666,7 +684,7 @@ System.out.println(String.format("%15.0f", 2.0 / 3));// 输入整数报错
 - %tH 2位24时制小时(含前导0) ($[0,23]$)
 - %tI 2位12时制小时(含前导0)  (t+大写i)  ($[1,12]$)
 - %tk 2位24时制小时(不含前导0)
-- %tl 2位12时制小时(补含前导0)  (t+小写L)
+- %tl 2位12时制小时(不含前导0)  (t+小写L)
 - %tM 2位数字分钟(含前导0) ($[0,59]$)
 - %tS 2位数字秒钟(含前导0) ($[0,60]$)
 - %tL 3位数字毫秒(含前导0) ($[0,999]$)
@@ -1325,7 +1343,7 @@ loop1: for (int i = 1; i < 10; ++i) {
 
 对象是类的实例，类是对象的抽象。类是同一事物的统称。类是组成java程序的最小的单位
 
-有类成员：类成员方法和类成员变量。
+有类成员：类成员方法和类成员变量。成员变量有默认初始值。
 
 类成员方法不支持默认参数和可变参数。
 
@@ -1500,7 +1518,7 @@ public class FsLabel extends JLabel {
 
 ##### static
 
-由static修饰的变量、常量、方法称为静态变量、常量、方法。静态方法不能被重写。
+由static修饰的变量、常量、方法称为静态变量、常量、方法。静态方法不能被重写。又称类变量，与实例变量区分。
 
 意义同C++。声明了static的是静态成员。可以用类名.静态成员调用(也可以不用，但是会扔警告)
 
@@ -1649,6 +1667,8 @@ Object类(对象类)是所有类的基类
 
 将基本类型(非对象)封装成类。其中Integer类、Long类、Short类是Number的子类。
 
+JDK1.5 后，提供：自动装箱(基本数据类型直接赋值给对应包装类)、自动拆箱(反过来)
+
 ##### Integer
 
 ###### 基本
@@ -1662,7 +1682,7 @@ Integer x = 3, y = 4;
 System.out.println(x + y + v + w);
 ```
 
-> 若String参数不是整数数值，报错NumberFormatException
+> 若String参数不是整数数值，报错 `NumberFormatException`。因为装箱不可以隐式类型装换。
 
 ###### 常用方法
 
@@ -1703,6 +1723,8 @@ System.out.println(Integer.toString(v));
 > 2. 两个都是非new出来的Integer，如果数在$[-128,127]$，则是true,否则为false。
 > 3. 两个都是new出来的,则为false。
 > 4. int和integer(new或非new)比较，都为true，因为会把Integer自动拆箱为int，其实就是相当于两个int类型比较。
+>
+> 具体而言，对 Object ，所有 `==` 比较的是两个对象地址是否相等。因为采用了缓存，所以所有 `[-128,127]` 的值的地址都是相等的，而在这之外的值没有缓存，会新建，故地址不一样。
 >
 > 如：
 >
@@ -2112,6 +2134,99 @@ Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
 ```
 
 返回一个 `long`，单位是字节。
+
+
+
+###### 外存
+
+```java
+package test2;
+
+import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
+import java.lang.reflect.Method;
+import java.util.Date;
+
+public class sysInfo {
+    private final static int gbunit = 1024 * 1024 * 1024;
+
+    private void getDiskInfo() {
+        System.out.println("硬盘使用状态：");
+        File[] disks = File.listRoots();
+        for (File disk : disks) {
+            double free = 1.0 * disk.getFreeSpace() / gbunit;
+            double total = 1.0 * disk.getTotalSpace() / gbunit;
+            double used = total - free;
+            System.out.print(disk.getPath() + " ");// 如C:\
+            System.out.print("未使用" + String.format("%.2f", free) + "GB ");
+            System.out.print("已使用" + String.format("%.2f", used) + "GB ");
+            System.out.println("总容量" + String.format("%.2f", total) + "GB");
+        }
+    }
+
+    private void getMemInfo() {
+        System.out.println("分配给服务器的内存信息：");
+        System.out.print("空闲内存大小:"
+                + String.format("%.2f", 1.0 * Runtime.getRuntime().freeMemory() / gbunit) + "GB ");
+        System.out.println("总内存大小:"
+                + String.format("%.2f", 1.0 * Runtime.getRuntime().totalMemory() / gbunit) + "GB");
+    }
+
+    private void getSysMemInfo() {
+        System.out.println("服务器总内存信息：");
+        boolean ibmVendor = System.getProperty("java.vendor").contains("IBM");
+        int totalMb = 0;
+        int freeMb = 0;
+        Class<?> beanClass;
+        OperatingSystemMXBean bean = ManagementFactory.getOperatingSystemMXBean();
+        try {
+
+            if (ibmVendor) {
+                beanClass = Class.forName("com.ibm.lang.management.OperatingSystemMXBean");
+            } else {
+                beanClass = Class.forName("com.sun.management.OperatingSystemMXBean");
+            }
+            Method getTotalPhysicalMemorySize = beanClass
+                    .getDeclaredMethod("getTotalPhysicalMemorySize");
+            Method getFreePhysicalMemorySize = beanClass
+                    .getDeclaredMethod("getFreePhysicalMemorySize");
+            totalMb = (int) (Long.valueOf(getTotalPhysicalMemorySize.invoke(bean).toString()) / 1024
+                    / 1024);
+            freeMb = (int) (Long.valueOf(getFreePhysicalMemorySize.invoke(bean).toString()) / 1024
+                    / 1024);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.print(String.format("总内存：%dMB ", totalMb));
+        System.out.print(String.format("剩余内存：%dMB ", freeMb));
+
+        int cores = Runtime.getRuntime().availableProcessors();
+        System.out.println(String.format("总核数：%d", cores));
+    }
+
+    public void printNow() {
+        Date now = new Date();
+        System.out.println(
+                String.format("现在时间是: %tY年%tm月%td日 %tH:%tM:%tS", now, now, now, now, now, now));
+    }
+
+    public void printSysInfo() {
+
+        System.out.println("服务器运行状态：");
+        getDiskInfo();
+        getMemInfo();
+        getSysMemInfo();
+    }
+
+    public static void main(String[] args) {
+        sysInfo ths = new sysInfo();
+        ths.printSysInfo();
+    }
+}
+```
+
+
 
 
 
@@ -12496,6 +12611,8 @@ public class Base64Plugin {// Java8 做法；java8之前用sun.misc.BASE64Decode
     }
 }// 测试用例见Entrypt.java的main方法
 ```
+
+显然，String 用 getBytes 转 byte 数组，然后用 toString 转回来。故可实现 String 间的参数加解密。
 
 
 
@@ -24530,6 +24647,360 @@ xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
 
 
 
+#### JWT
+
+##### 概念
+
+JWT（json web token），它并不是一个具体的技术实现，而更像是一种标准。
+
+JWT规定了数据传输的结构，一串完整的JWT由三段落组成，每个段落用英文句号连接（.）连接，他们分别是：Header、Payload、Signature，所以，常规的JWT内容格式是这样的：`AAA.BBB.CCC` (token)
+
+并且，这一串内容会base64加密。一个在线的加解密参考：[网址](https://jwt.io/)，而且通常内容本身也会经过加密。
+
+头部的作用是声明，例如token的类型，加密算法名字。如原文：(不确定换行和空格)
+
+```json
+{'typ': 'JWT','alg': 'HS256'}
+```
+
+载荷的作用是 JWT 本体的数据信息，通常表示这是一个什么(谁)的 token，以及身份组等。一般不放置敏感信息，除非经过加密。
+
+签名的作用是保证 header, payload 未被修改，因为如果被修改以这两个为原文的一次加解密结果会不一致(即安全学字面意义的签名，而不是生活意义的标明作者的签名)。
+
+服务端给客户端发送 JWT (即 `AAA.BBB.CCC`)，客户端收到后，以后每次发送 HTTP 请求时，在 header 的 authorization 添加 `Bearer AAA.BBB.CCC`。
+
+常用于跨域的鉴权。如前后端分离。
+
+![image-20230108233711007](img/image-20230108233711007.png)
+
+- 一个Token就是一些信息的集合；
+- 在Token中包含足够多的信息，以便在后续请求中减少查询数据库的几率；
+
+
+
+##### 生成与解析例子
+
+###### 写法一
+
+```xml
+<!--引入jwt-->
+<dependency>
+  <groupId>com.auth0</groupId>
+  <artifactId>java-jwt</artifactId>
+  <version>3.4.0</version>
+</dependency>
+```
+
+写一个测试类，在线生成和解析 JWT：
+
+```java
+package ts;
+
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+
+import org.junit.Test;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
+
+public class testJWT0 {
+    @Test
+    public void test() {
+        HashMap<String, Object> map = new HashMap<>();
+        Calendar instance=Calendar.getInstance();
+        instance.add(Calendar.SECOND,200);
+        //获取token
+        String token = JWT.create().withHeader(map)  //header，默认，可以不写
+            .withClaim("userId", 23)
+            .withClaim("username", "xpp") //palyload
+            .withExpiresAt(instance.getTime())  //指定令牌的过期时间
+            .sign(Algorithm.HMAC256("xpp@ll"));//签名，指定秘钥
+        System.out.println(token);
+        
+        // 创建验证对象
+        JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256("xpp@ll")).build();
+        // 验证token
+        DecodedJWT verify = jwtVerifier.verify(token);
+        // 获取存入palyload的信息
+        Date expiresAt = verify.getExpiresAt();
+        System.out.println(expiresAt);
+        System.out.println(verify.getClaim("userId").asInt());
+    }
+}
+```
+
+那么原理上，把上述内容封装一下，后端就做完了，再给个前端 post 的例子(参见 `后端.md`)，就通了。
+
+> 常见异常：
+>
+> - `SignatureVerificationException`: 签名不一致异常
+> - `TokenExpiredException`: 令牌过期异常
+> - `AlgorithmMismatchException`: 算法不匹配异常
+> - `InvalidClaimException`: 失效的payload异常
+
+###### 写法二
+
+```xml
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-api</artifactId>
+    <version>0.11.2</version>
+</dependency>
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-impl</artifactId>
+    <version>0.11.2</version>
+    <scope>runtime</scope>
+</dependency>
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-jackson</artifactId> <!-- or jjwt-gson if Gson is preferred -->
+    <version>0.11.2</version>
+    <scope>runtime</scope>
+</dependency>
+```
+
+```js
+package ts;
+
+import java.security.Key;
+import org.junit.Test;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+
+public class testJWT1 {
+    @Test
+    public void test() {
+        Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+        String jws = Jwts.builder().setSubject("普通文本").signWith(key).compact();
+        System.out.println(jws);
+        
+        String raw = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(jws).getBody().getSubject();
+        System.out.println(raw);
+    }
+}
+```
+
+
+
+##### 项目例子
+
+> 所用 pom 如下：
+>
+> ```xml
+> <properties>
+>     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+>     <java.version>1.8</java.version>
+> </properties>
+> <parent>
+>     <groupId>org.springframework.boot</groupId>
+>     <artifactId>spring-boot-starter-parent</artifactId>
+>     <version>1.5.9.RELEASE</version>
+> </parent>
+> <dependencies>
+>     <dependency>
+>         <groupId>junit</groupId>
+>         <artifactId>junit</artifactId>
+>         <scope>test</scope>
+>     </dependency>
+>     <dependency>
+>         <groupId>org.springframework.boot</groupId>
+>         <artifactId>spring-boot-starter-web</artifactId>
+>     </dependency>
+>     <!-- 
+>     <dependency>
+>         <groupId>io.jsonwebtoken</groupId>
+>         <artifactId>jjwt-api</artifactId>
+>         <version>0.11.2</version>
+>     </dependency>
+>     <dependency>
+>         <groupId>io.jsonwebtoken</groupId>
+>         <artifactId>jjwt-impl</artifactId>
+>         <version>0.11.2</version>
+>         <scope>runtime</scope>
+>     </dependency>
+>     <dependency>
+>         <groupId>io.jsonwebtoken</groupId>
+>         <artifactId>jjwt-jackson</artifactId> 
+>         <version>0.11.2</version>
+>         <scope>runtime</scope>
+>     </dependency> -->
+>     <dependency>
+>         <groupId>com.auth0</groupId>
+>         <artifactId>java-jwt</artifactId>
+>         <version>3.4.0</version>
+>     </dependency>
+> </dependencies>
+> <build>
+>     <plugins>
+>         <plugin>
+>             <groupId>org.springframework.boot</groupId>
+>             <artifactId>spring-boot-maven-plugin</artifactId>
+>         </plugin>
+>     </plugins>
+> </build>
+> ```
+
+实现目标：服务器给用户下发 JWT token，不同用户 token 不一样且都有有效期，然后客户端用该 token 访问一个需要 token 的资源。
+
+![image-20230109002209008](img/image-20230109002209008.png)
+
+为了简单起见，忽略数据库(即用户登录验证，一般来说只有登录成功才能获取 token，这里假设无论如何都能获取)，我们先写一个 token 生成和获取的类：
+
+```java
+package ts.utils;
+
+import java.util.Calendar;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
+
+public class TokenUtils {
+    public static final Algorithm psw = Algorithm.HMAC256("baicha_1437581");
+
+    public static String encode(String raw) {
+        Calendar timelimc = Calendar.getInstance();
+        timelimc.add(Calendar.SECOND, 20);//不能static,每秒都不一样
+        return JWT.create().withClaim("userinfo", raw).withExpiresAt(timelimc.getTime()).sign(psw);
+    }
+
+    public static final JWTVerifier jwtVerifier = JWT.require(psw).build();
+
+    public static String decode(String token) {
+        DecodedJWT verify = jwtVerifier.verify(token);
+//        Date expiresAt = verify.getExpiresAt();
+        return verify.getClaim("userinfo").asString();
+    }
+
+    public static boolean check(String token) {
+        try {
+            return decode(token) != null;
+        } catch (Exception e) {//无效或过期
+//            e.printStackTrace();
+            return false;
+        }
+    }
+}
+```
+
+注：一般为了防止用户盗用，我们还需要验证 decode 出来的字符串是不是真的是本人 username。这里略去了这一步骤。
+
+然后写一个拦截逻辑：(只使用拦截前的切面)
+
+```java
+package ts.config;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.ModelAndView;
+
+import ts.utils.TokenUtils;
+
+public class TokenInterceptor implements HandlerInterceptor {
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
+            Object handler) throws Exception {
+        // 前端 axios 对于复杂请求会先发送 OPTIONS，此时没有 header
+        if ("OPTIONS".equals(request.getMethod())) {
+            return true;
+        }
+        String token = request.getHeader("Authorization");
+        token = token.substring(7);//exclude "Bearer "
+        if (!TokenUtils.check(token)) {
+            // token 已过期或不正确
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler,
+            ModelAndView modelAndView) throws Exception {   
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response,
+            Object handler, Exception ex) throws Exception {   
+    }
+}
+```
+
+将该拦截器在所有除了 `/login/` 开头外的路径生效：
+
+```java
+package ts.config;
+
+import ... //略
+
+@Configuration
+public class InterceptorConfig implements WebMvcConfigurer {
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(new TokenInterceptor()).addPathPatterns("/**")
+        .excludePathPatterns("/login/**");
+    }
+    //下面还有若干个 override 都不使用，留空
+}
+```
+
+然后写一个登录的接口，和一个普通接口：
+
+```java
+@RestController
+public class IndexController {
+	@PostMapping("/index")
+    public String index0() {
+        return "你好?";
+    }
+    
+    @PostMapping("/login/test")
+    public String login(@RequestParam("username") String username) {
+        return TokenUtils.encode(username);
+    }
+}
+```
+
+写一个测试的前端代码：
+
+```js
+function next(token,fb){
+    $.ajax({
+        url:'http://localhost:8080/index',            
+        type:'post',
+        headers:{
+            'Authorization': 'Bearer '+token,
+        },
+        success:(data)=>{
+            //如果过期，得到空的data
+            console.log(fb,data);
+        }, 
+        error:(xhr,status,error)=>{console.log("err", error);}
+    });
+}
+$.ajax({
+    url:'http://localhost:8080/login/test',            
+    type:'post',
+    data:{username:'张三'},
+    success:(data)=>{
+        let token = data;
+        console.log(token);
+        next(token,"suc:");
+    }, 
+    error:(xhr,status,error)=>{console.log("err", error);}
+});
+next('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJleHAiOjE2NzMyODMwNjcsInVzZXJpbmZvIjoi5byg5LiJIn0.VTrtx9BPsNrh-H1jIrnIxgtqdUFinTHdRKOVsQc4FVk',"expire:");//尝试用过期的token
+```
+
+运行后端，然后运行前端代码(随便套进一个 html 的 script 标签里)，我们发现，用先 post 再尝试去 index 的能成功返回消息，而使用无效 token 直接越界访问 index 的输出空的 success data。
+
+
+
 ### POI
 
 #### 基本
@@ -24641,4 +25112,356 @@ for (int i = 0; i < 5; i++) { //总列数
     sheet.setColumnWidth(i, sheet.getColumnWidth(i) * 17 / 10);
 }
 ```
+
+
+
+### Swagger
+
+#### 基本
+
+一种自动生成文档的包。[参考入门](https://www.cnblogs.com/iqiuq/p/14883839.html)
+
+在 pom 导入包：
+
+```xml
+<!-- https://mvnrepository.com/artifact/io.springfox/springfox-swagger2 -->
+<dependency>
+    <groupId>io.springfox</groupId>
+    <artifactId>springfox-swagger2</artifactId>
+    <version>2.9.2</version>
+</dependency>
+
+<!-- https://mvnrepository.com/artifact/io.springfox/springfox-swagger-ui -->
+<dependency>
+    <groupId>io.springfox</groupId>
+    <artifactId>springfox-swagger-ui</artifactId>
+    <version>2.9.2</version>
+</dependency>
+```
+
+@enableSwagger2：是springfox提供的一个注解，代表swagger2相关技术开启,会扫描当前类所在包，以及子包中所有的类型中的注解，做swagger文档的定值。通常可以在启动类添加该注释。
+
+然后启动项目并输入 `http://localhost:8080/swagger-ui.html`，可以看到自动生成的接口文档。
+
+> 如果使用的是swagger 3.0 需要使用，访问：http://localhost:8080/swagger-ui/index.html  就可以实现swagger-ui.html的访问
+
+可以写一点文档信息：(这个写法很烂建议用生成器生成 api info)
+
+```java
+package ts.config;
+
+import java.util.ArrayList;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import springfox.documentation.service.ApiInfo;
+import springfox.documentation.service.Contact;
+import springfox.documentation.spi.DocumentationType;
+import springfox.documentation.spring.web.plugins.Docket;
+
+@Configuration
+public class SwaggerConfig {
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public ApiInfo apiInfo() {
+        Contact contact = new Contact("lr580", "https://文档发布者的网站地址/", "lr580@163.com");
+        return new ApiInfo(
+             "这是一个标题","这是一个文档描述","1.0",
+             "服务组url地址", contact , "Apache 2.0", "http://www.apache.org/licenses/LICENSE-2.0",
+             new ArrayList());
+    }
+
+    @Bean
+    public Docket docket() {
+        return new Docket(DocumentationType.SWAGGER_2).apiInfo(apiInfo());
+    }
+}
+```
+
+扫描包设置：(只有一部分可以被扫描)
+
+```js
+@Bean
+    public Docket docket() {
+        return new Docket(DocumentationType.SWAGGER_2).apiInfo(apiInfo()).select().apis(RequestHandlerSelectors.basePackage("ts.controller")).paths(PathSelectors.regex("/index")).build();
+    }
+```
+
+如果加上 `.enable(false)` 浏览器不能访问。
+
+建议只写 getmapping / postmapping 而不是写 requestmapping, 否则文档一堆东西。(delete 啥的都可以)，如有一个控制类：
+
+```java
+@RestController
+public class IndexController {
+    @GetMapping("/index")
+    public String index(@RequestParam String value) {
+        return "你好" + value;
+    }
+    @GetMapping("/index2")
+    public String index2() {
+        return "你不好";
+    }
+}
+```
+
+
+
+#### 常用注解
+
+##### Api
+
+标注控制器名(显示上会标注名+类名)
+
+```java
+@Api(tags = "主控制器")
+@RestController
+public class IndexController {
+```
+
+
+
+##### ApiOperation
+
+方法说明(values是接口名，notes可选)
+
+```java
+@ApiOperation(value = "主接口", notes = "这是备注")
+@GetMapping("/index")
+public String index(@RequestParam String value) {
+    return "你好" + value;
+}
+
+@ApiOperation(value = "备用接口")
+@GetMapping("/index2")
+public String index2() {
+    return "你不好";
+}
+```
+
+
+
+##### ApiParam
+
+```java
+public String index(@RequestParam @ApiParam(name = "姓名", value = "任意字符", required=true) String value) {
+```
+
+
+
+##### ApiIgnore
+
+忽略，当前注解描述的方法或类型，不生成api文档
+
+```java
+@ApiIgnore
+@GetMapping("/index2")
+public String index2() {
+    return "你不好";
+}
+```
+
+
+
+##### ApiResponse
+
+不会去除原本有的 response (只修改和添加)
+
+```java
+@ApiResponses(value= {
+    @ApiResponse(code=200,message="ok"),
+    @ApiResponse(code=500,message="服务器错误"),
+})
+@GetMapping("/index")
+public String index(@RequestParam  String value) {
+    return "你好" + value;
+}
+```
+
+
+
+#### 导出
+
+以导出 md 文档为例。效果上本地那个更好
+
+##### 在线
+
+[参考](https://blog.csdn.net/fei12990/article/details/120857284),点击访问 [http://localhost:8080/v2/api-docs](http://localhost:8080/v2/api-docs)，将其内容保存到本地 `xx.yaml`
+
+登录 [小幺鸡](http://xiaoyaoji.cn/)，进入控制台，新增-导入-swagger，然后点进去，更多功能-导出
+
+
+
+##### 本地
+
+[参考](https://blog.csdn.net/feiying0canglang/article/details/120657699),依赖
+
+```xml
+<dependency>
+    <groupId>io.github.swagger2markup</groupId>
+    <artifactId>swagger2markup</artifactId>
+    <version>1.3.3</version>
+</dependency>
+```
+
+在运行着服务器的情况下跑 test：
+
+```java
+package ts;
+
+import org.junit.Test;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import io.github.swagger2markup.GroupBy;
+import io.github.swagger2markup.Language;
+import io.github.swagger2markup.Swagger2MarkupConfig;
+import io.github.swagger2markup.Swagger2MarkupConverter;
+import io.github.swagger2markup.builder.Swagger2MarkupConfigBuilder;
+import io.github.swagger2markup.markup.builder.MarkupLanguage;
+import java.nio.file.Paths;
+
+public class getMdDocs {
+    @Test
+    public void get() throws MalformedURLException {
+        Swagger2MarkupConfig conig = new Swagger2MarkupConfigBuilder().withMarkupLanguage(MarkupLanguage.MARKDOWN).withOutputLanguage(Language.ZH).withPathsGroupedBy(GroupBy.TAGS).withGeneratedExamples().withoutInlineSchema().build();
+        Swagger2MarkupConverter.from(new URL("http://localhost:8080/v2/api-docs")).withConfig(conig).build().toFolder(Paths.get("src/main/doc"));
+    }
+}
+
+```
+
+
+
+#### 常见问题
+
+##### springboot版本过高
+
+版本高，使用 2.9.2 的 swagger，且配置里添加：
+
+```properties
+spring.mvc.pathmatch.matching-strategy=ant_path_matcher
+```
+
+
+
+##### jwt token
+
+[参考1](https://blog.csdn.net/zhy18820612/article/details/93880769?spm=1001.2101.3001.6650.2&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-2-93880769-blog-116234417.pc_relevant_recovery_v2&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-2-93880769-blog-116234417.pc_relevant_recovery_v2&utm_relevant_index=5), [参考2](https://blog.csdn.net/qq_22256565/article/details/103747152)
+
+swagger 类写成这样：
+
+```java
+package com.example.express.config;
+
+import com.google.common.collect.Lists;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import springfox.documentation.builders.ApiInfoBuilder;
+import springfox.documentation.builders.ParameterBuilder;
+import springfox.documentation.builders.PathSelectors;
+import springfox.documentation.builders.RequestHandlerSelectors;
+import springfox.documentation.schema.ModelRef;
+import springfox.documentation.service.*;
+import springfox.documentation.spi.DocumentationType;
+import springfox.documentation.spi.service.contexts.SecurityContext;
+import springfox.documentation.spring.web.plugins.Docket;
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
+import java.util.ArrayList;
+import java.util.List;
+
+@Configuration
+@EnableSwagger2
+@EnableWebMvc
+public class SwaggerConfig implements WebMvcConfigurer {
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+
+        registry.addResourceHandler("/**").addResourceLocations(
+                "classpath:/static/");
+        registry.addResourceHandler("swagger-ui.html").addResourceLocations(
+                "classpath:/META-INF/resources/");
+        registry.addResourceHandler("/webjars/**").addResourceLocations(
+                "classpath:/META-INF/resources/webjars/");
+        WebMvcConfigurer.super.addResourceHandlers(registry);
+    }
+
+    public static final String AUTHORIZATION_HEADER = "Access-Token";
+    public static final String DEFAULT_INCLUDE_PATTERN = "/api/.*";
+    /**
+     * TODO
+     * 可以根据配置读取是否开启swagger文档，针对测试与生产环境采用不同的配置
+     */
+    private boolean isSwaggerEnable = true;
+    //是否开启swagger，正式环境一般是需要关闭的，可根据springboot的多环境配置进行设置
+    //@Value(value = "${swagger.enabled}")
+    Boolean swaggerEnabled = true;
+    @Bean
+    public Docket createRestApi() {
+        ParameterBuilder ticketPar = new ParameterBuilder();
+        List<Parameter> pars = new ArrayList<Parameter>();
+        ticketPar.name(AUTHORIZATION_HEADER).description("user ticket")//Token 以及Authorization 为自定义的参数，session保存的名字是哪个就可以写成那个
+                .modelRef(new ModelRef("string")).parameterType("header")
+                .required(false).build(); //header中的ticket参数非必填，传空也可以
+        pars.add(ticketPar.build());    //根据每个方法名也知道当前方法在设置什么参数
+        return new Docket(DocumentationType.SWAGGER_2)
+                //.groupName("group")
+                .enable(swaggerEnabled)
+                .apiInfo(apiInfo()).select()
+                // 对所有该包下的Api进行监控，如果想要监控所有的话可以改成any()
+                //.apis(RequestHandlerSelectors.basePackage("com.iscas"))
+                .apis(RequestHandlerSelectors.any())
+                // 对所有路径进行扫描
+                .paths(PathSelectors.any())
+                .build()
+                //.globalOperationParameters(pars);
+                .securityContexts(Lists.newArrayList(securityContext()))
+                .securitySchemes(Lists.newArrayList(apiKey()));
+    }
+    private ApiKey apiKey() {
+        return new ApiKey(AUTHORIZATION_HEADER , AUTHORIZATION_HEADER, "header");
+    }
+    private SecurityContext securityContext() {
+        return SecurityContext.builder()
+                .securityReferences(defaultAuth())
+                //.forPaths(PathSelectors.regex(DEFAULT_INCLUDE_PATTERN))
+                .forPaths(PathSelectors.regex("^(?!auth).*$"))
+                .build();
+    }
+    List<SecurityReference> defaultAuth() {
+        AuthorizationScope authorizationScope
+                = new AuthorizationScope("global", "accessEverything");
+        AuthorizationScope[] authorizationScopes = new AuthorizationScope[1];
+        authorizationScopes[0] = authorizationScope;
+        return Lists.newArrayList(
+                new SecurityReference(AUTHORIZATION_HEADER, authorizationScopes));
+    }
+    /**
+     * @return 生成文档说明信息
+     */
+    private ApiInfo apiInfo() {
+        return new ApiInfoBuilder()
+                .title("XXXX系统")
+                .description("描述")
+                //.termsOfServiceUrl("http://gaohanghang.github.io")
+                .license("Apache 2.0")
+                .licenseUrl("http://www.apache.org/licenses/LICENSE-2.0")
+                .version("2.0.0").build();
+    }
+}
+```
+
+且 InterceptorConfig 类的 addInterceptors 添加：
+
+```java
+  public void addInterceptors(InterceptorRegistry registry) {
+    registry.addInterceptor(new TokenInterceptor())
+      .excludePathPatterns("/fileUpdataApi/upload","/swagger-resources/**", "/webjars/**", "/v2/**", "/swagger-ui.html/**");
+  }//追加第三行
+```
+
+重新跑进 `http://localhost:8080/swagger-ui.html`，发现有接口，但查看接口详细信息需要输入 token。这个 token 根据 jwt 获取，例如可能会存储在数据库里。输入即可。
 

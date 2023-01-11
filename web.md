@@ -4386,6 +4386,8 @@ identifier。命名规则与java基本一致：
 
 #### 数据类型
 
+##### 常规
+
 原始数据类型仅有五个：布尔值、数字、字符串、null和undefined
 
 基本数据类型有：
@@ -4403,8 +4405,6 @@ identifier。命名规则与java基本一致：
 6. Number 32位整数(即C的int范围，超过了会炸)
 
    Number有NaN,Infinity,-Infinity特殊类型，不建议使用无穷进行运算，如无穷-无穷
-
-   
 
 7. Function 被存储在变量、数组或对象里，也可以作为参数传递给其他函数
 
@@ -4434,11 +4434,102 @@ typeof Math.ceil == 'function'
 typeof Math.ceil() == 'number'
 ```
 
+##### symbol
+
+ES6 新类型：Symbol (前六种类型为 undefined, null, Number, String, Boolean, Object)
+
+> 记为 u so nb (undefined, string, symbol, object, null, number, boolean)
+
+特点：
+
+- 值唯一，解决命名冲突问题
+- 不能与其它数据类型运算
+- 其定义的对象属性不能 for 遍历，但可以用 `Reflect.ownKeys` 获取所有键
+
+两种构造方式：
+
+```js
+let s = Symbol();
+let s1 = Symbol('lr'), s2 = Symbol('lr');
+console.log(s1 == s2);//f
+let s3 = Symbol.for('lr'), s4 = Symbol.for('lr');
+console.log(s1 == s3, s3 == s4);//f t
+```
+
+对象的使用：作属性时，不会被 `Object.keys()`, `Object.getOwnPropertyNames(), JSON.stringify()` 返回。(前两个函数返回一样)
+
+```js
+const age = Symbol('age');
+const showName = Symbol('showName');
+const userInfo = {
+    uname: '白茶',
+    [age]: 30, //可以简写[Symbol('age')]
+    [showName]: function () { console.log(this.uname); }
+};
+let sy = Object.getOwnPropertySymbols(userInfo);
+console.log(sy);//Symbol数组
+userInfo[sy[0]]++;//可以修改
+console.log(userInfo[sy[0]]);
+userInfo[sy[1]]();
+```
+
+内置 symbol 值魔术方法：(Symbol.xxx)
+
+![image-20221231225420794](img/image-20221231225420794.png)
+
+举例：
+
+```js
+class person {
+    static [Symbol.hasInstance](param) {
+        console.log('param:', param);
+        return false;//下面console输出啥看这个
+    }
+}
+let o = {};
+console.log(o instanceof person);
+const arr = [1, 2, 3], arr2 = [4, 5, 6];
+console.log(arr.concat(arr2));
+arr2[Symbol.isConcatSpreadable] = false;
+console.log(arr.concat(arr2));//会不一样
+//[ 1, 2, 3, [ 4, 5, 6, [Symbol(Symbol.isConcatSpreadable)]: false ] ] 
+```
+
+
+
+
+
 #### 变量定义
 
 使用var或let声明变量。在不规范的情况下，可以不声明直接使用(类似python)。
 
-也可以使用const声明，则声明的是常量，则必须初始化，否则报错。
+> var 的弊端：
+>
+> 1. 有预解析，造成逻辑混乱，可以先使用后声明
+> 2. 可以重复定义同一个变量(第二次表示修改)，造成逻辑错误
+> 3. 在 for 里造成循环污染(for 后变量还在)
+> 4. 没有块级作用域(大括号内声明的，大括号外可用)
+>
+> 相比之下，let ①没有预解析，不会有变量提升；②不能重复定义同一个变量；③不会 for 污染 ；④有块级作用域
+
+也可以使用const声明，则声明的是常量，则必须初始化，否则报错。约定俗成大写命名。对象型常量属性可以修改(不能整体修改)，数组型常量每一项数据引用可以修改(元素值)。
+
+> ```js
+> const bc = {
+>     name: '白茶',
+>     id: 143
+> }
+> bc.money = 114514;//允许新增
+> delete bc.id;//允许删除
+> bc.name = '昏睡红茶';//允许修改
+> console.log(bc);
+> 
+> const arr = [1, 2, 4];
+> arr.pop();
+> arr.push(6);
+> arr[0] = -1;
+> console.log(arr);
+> ```
 
 > 在一些浏览器版本，const仅仅视为var的同义词或出现语法错误
 
@@ -4456,6 +4547,37 @@ test()
 alert('out',gg) //报错
 ```
 
+ES6 let 的对象/数组解构：(var 也行，可以用于函数参数，等于解构后当多个参数) 
+
+```js
+const gd = {
+    name: '果冻',
+    id: 140
+};
+let { name, id } = gd; //类似C++17 auto[],只取一部分也行
+let { name: gdName, id } = gd; //重命名属性
+
+let ar = [11, 45, 14];
+let [a, b, c] = ar;
+let [a1, , c1] = ar;//跳着来
+let ar2 = [1, 91, [9, 81, 0]];
+let [x1, x2, [x3, x4, x5]] = ar2;
+```
+
+解构+默认参数举例：
+
+```js
+function f1({ uname, age } = { uname: '匿名用户', age: 18 }) {
+    console.log(uname, age);
+} // = {} 也行空对象,得到
+undefined
+f1();
+```
+
+
+
+
+
 #### 赋值
 
 可以一般 `=` ，也可以像 python 一样搞多个变量取一个对象，如：
@@ -4472,11 +4594,24 @@ x={a:{b:1}}
 let {a:{b}}=x
 ```
 
+ES6 扩展运算符，如：
+
+```js
+let ar1 = [1, 1, 4], ar2 = [5, 1, 4];
+let ar3 = [...ar1, ...ar2];//python ar1+ar2
+console.log(ar3);
+let obj1 = { uname: '星月', age: 2 };
+let obj2 = { skill: ['TP', '加速'], nya: () => { console.log("喵~") } };
+let xy = {...obj1, ...obj2};
+```
+
 
 
 
 
 #### 作用域
+
+Global Object，全局变量，浏览器通常是 window。(globalThis)
 
 在js脚本的非函数内用var定义的变量都是全局变量，且用this(或不用，或用window)都可以调用这些变量，且在所有函数内都可调用(显然)：
 
@@ -4725,6 +4860,66 @@ for(let i in xy){
 >
 > 另外，for in执行速度较慢
 
+对象遍历：
+
+```js
+const jane = { first: 'Jane', last: 'Doe' };
+for (const [key,value] of objectEntries(jane)) {
+    console.log(`${key}: ${value}`);
+}
+// first: Jane
+// last: Doe
+```
+
+
+
+##### 迭代器
+
+特殊对象。迭代器恒有 `next()` 方法和 `done` 属性。可以用 for of 语法进行遍历，或者用 `Symbol.iterator` 方法取迭代器。
+
+能迭代的：`Array, Arguments, Set, Map, String, TypeArray, NodeList`
+
+```js
+const friends = ['白茶', '锦乐', '桑泽'];
+for (let v of friends) {
+    console.log(v);
+}
+let it = friends[Symbol.iterator]();
+while (true) {
+    let { value: v, done } = it.next();
+    if (!done) {
+        console.log(v);
+    } else {
+        break;
+    }
+}
+```
+
+自定义：
+
+```js
+function mit(items) {
+    var i = 0;//类似static变量,let也行
+    return {
+        next: function () {
+            let done = i >= items.length;//value要用
+            return {
+                done: done,
+                value: !done ? items[i++] : undefined
+            }
+        }
+    }
+}
+let i = mit([11, 45, 14]);
+for (let j = 0; j < 3; ++j) {
+    console.log(i.next());
+}
+```
+
+
+
+
+
 #### with
 
 大量使用一个对象时，使用with大括号，可以在括号内默认就使用这个对象，起到简化作用。
@@ -4904,6 +5099,22 @@ eval('('+jsonvar+')');
 
 #### 自定义函数
 
+##### 参数
+
+ES6 前没有默认参数。如果想做，可以用诸如 `x=x||1;` 的形式通过 undefined false 取后者。
+
+可以加可变参数。也可以解可变。如：
+
+```js
+function f2(x, ...rest) {//可变
+    console.log(x, rest);
+}
+let x = [1, 4, 7, 8];//类似Python *x
+f2(...x);
+```
+
+
+
 ##### 命名函数
 
 由函数定义和函数调用组成。
@@ -5064,6 +5275,72 @@ var f = (参数)=>{函数体}
 > 由于js的内存机制，function的级别最高，而用箭头函数定义函数的时候，需要var(let const定义的时候更不必说)关键词，而var所定义的变量不能得到变量提升，故箭头函数一定要定义于调用之前
 
 function是可以定义构造函数的，而箭头函数是不行的
+
+其他特点：
+
+1. 形参只有一个，可以省略小括号不写
+2. 只有一个 return 语句可以省略大括号不写
+3. 只有一个语句，返回一个对象，可以用 ` => ({对象内容})` (括号保证语义无歧义大概)
+
+```js
+let gis = name => { console.log(`你好,${name}`); }; //不加大括号也可以
+gis('白茶');
+let pw = x => x * x;
+console.log(pw(580));
+let getbc = () => ({ name: '白茶', id: 581 });
+console.log(getbc());
+```
+
+箭头函数没有 this，this 指向其外层作用域。
+
+```js
+function g1() {
+    console.log(this);
+}
+g1();
+let g2 = () => this;
+console.log(g2());
+console.log(g2() == this);//true
+
+function role(name, id) {
+    this.name = name;
+    this.id = id;
+    this.gis = function () { //箭头这里也行(nodejs测试)
+        console.log(this.name, this.id);
+    }
+};
+(new role('果冻', 111)).gis();
+```
+
+> 注：DOM 也可以用箭头 this
+>
+> ```html
+> <!DOCTYPE html>
+> <html lang="en">
+>     <head>
+>         <style>
+>         .box{
+>             width: 200px;
+>             height: 200px;
+>             background-color: pink;
+>         }
+>         </style>
+>     </head>
+>     <body>
+>         <div class="box" id="box">Lorem ipsum dolor sit amet.</div>
+>         <script>
+>         let box = document.getElementById('box');
+>         box.onclick = function(){
+>             setTimeout(()=>{//不箭头this不行
+>                 this.style.width = '300px';
+>             },1000);
+>         }
+>         </script>
+>     </body>
+> </html>
+> ```
+
+
 
 
 
@@ -5276,6 +5553,15 @@ JSON.stringify({x:3})=="{\"x\":3}"
 JSON.parse("{\"x\":3}") -> {x: 3}
 ```
 
+在 ES6 里，如果上文声明过同名变量，直接拉下来即可：
+
+```js
+let name = '禾枫', id = 510;
+let hf = {
+    name, id
+};
+```
+
 
 
 #### Class方法
@@ -5302,10 +5588,33 @@ class point {
     show() {
         return '(' + this.x + ',' + this.y + ')';
     }
+    static version = 'v1.0';
+    static info() { console.log(`Point ${this.version}`); }
 }//实名类
 let y = new point(3, 4);
 console.log(y.show());
+point.info();
 ```
+
+
+
+#### 继承
+
+```js
+class valPoint extends point {
+    constructor(x, y, val) {
+        super(x, y);
+        this.val = val;
+    }
+    show() {
+        console.log(`(${this.x},${this.y})=>${this.val}`);
+    }
+}
+let z = new valPoint(2, 3, 'ksc');
+z.show();
+```
+
+
 
 
 
@@ -5314,15 +5623,6 @@ console.log(y.show());
 一个 js 文件就是一个模块，作用域私有，内部变量和函数只有当前文件可用。
 
 > 意思是，js 文件自身要调用其他 js 变量/函数必须 import。但 HTML 本身可以调用多个 js
-
-别人要用模块，以对象形式用 `exports` 或 `module.exports` 导出；别人引入时用 `require` 来引入。
-
-模块定义规范：
-
-- AMD 规范。require.js
-- CMD 规范。 Sea.js
-- CommonJS 的 Modules 规范：NodeJS
-- ES6 模块化规范 import \.\.\. from \.\.\.
 
 
 
@@ -5428,6 +5728,25 @@ import k from '/js/expo.js';
 console.log(k);
 ```
 
+> 只执行代码，不需要再用 `export` 的东西的话可以直接 `import '/js/expo.js'`。
+>
+> import 可以格式混用，如 `import m1,{num, fn as printFn, uname} from './m1.js'`
+
+export default 只能导出一次(多次取最后)，导一个对象。如：
+
+```js
+let num = 114514;
+let num2 = 1919810;
+export default { num, num2 }; //这个文件随便什么名字
+```
+
+```js
+import m3 from './m31.js';
+console.log(m3.num + m3.num2);
+```
+
+> 可以跟不 default 的混用。与不 default 区别在于不用 as 就能重命名，且不需要大括号 import
+
 
 
 ### 异步
@@ -5453,7 +5772,7 @@ Promise 对象只有：从 pending 变为 fulfilled 和从 pending 变为 reject
 
 ##### then
 
-then 方法接收两个函数作为参数，第一个参数是 Promise 执行成功时的回调，第二个参数是 Promise 执行失败时的回调，两个函数只会有一个被调用。
+then 方法接收两个函数作为参数，第一个参数是 Promise 执行成功时的回调，第二个参数是 Promise 执行失败时的回调，两个函数只会有一个被调用。第二个可以不填
 
 ```js
 const p1 = new Promise(function(resolve,reject){
@@ -5472,6 +5791,17 @@ p2.then(function(value){
 });
 ```
 
+```js
+let f = new Promise((res, rej) => { rej("QwQ"); });
+f.then((data) => { cosole.log('data:', data); },
+    (err) => { console.error('err:', err); }); //输出err: QwQ,也可以写成
+let f = new Promise((res, rej) => { rej("QwQ"); });
+f.then((data) => { console.log('data:', data); })
+    .catch((err) => { console.error('err:', err); });
+```
+
+
+
 在 JavaScript 事件队列的当前运行完成之前，回调函数永远不会被调用。
 
 ```js
@@ -5488,7 +5818,7 @@ console.log('first');
 // success
 ```
 
-可以多个回调函数：
+可以多个回调函数：(开火车开发)
 
 ```js
 const p = new Promise(function (resolve, reject) {
@@ -5538,11 +5868,42 @@ onLoad();
 
 
 
+##### race
+
+跟 all 差不多，但是谁先成功返回谁的结果，其他作废
+
+
+
 #### generator
+
+##### 基本
 
 ES6,是一个函数，通过yield关键字，挂起函数执行流
 
 generator函数在function后面有`*`，函数内部有yield表达式
+
+```js
+function* gen() { console.log(580); }
+const it = gen();
+console.log(it);//Object [Generator] {}
+console.log(it.next());//先580后value:undef,done:true
+```
+
+可以用 for-of 遍历：
+
+```js
+function* gen2() {
+    console.log(1);
+    yield 998244353;
+    console.log(81);
+    yield 1e9 + 7;
+    console.log(581);
+}
+for (let v of gen2()) {
+    console.log(v);
+    console.log('Oth func');
+}//1 998 oth 81 1007 oth 581
+```
 
 ##### next
 
@@ -5721,22 +6082,21 @@ async function name([param[, param[, ... param]]]) { statements }
 这样的函数返回一个promise对象，可以使用then方法添加回调函数
 
 ```js
-async function helloAsync(){
+async function helloAsync() {
     return "hello async";
-  }
-  
-console.log(helloAsync())  // 先输出Promise {<resolved>: "helloAsync"}
- 
-helloAsync().then(v=>{
-   console.log(v);         // 后输出hello async
-})
+}
+
+// 先输出Promise {<resolved>: "helloAsync"}
+console.log(helloAsync().then(v => {
+    console.log("v:", v);  // 后输出hello async
+}));
 ```
 
 ##### await
 
 async 函数中可能会有 await 表达式，async 函数执行时，如果遇到 await 就会先暂停执行 ，等到触发的异步操作完成后，恢复 async 函数的执行并返回解析值。
 
-await 关键字仅在 async function 中有效。如果在 async function 函数体外使用 await ，你只会得到一个语法错误。
+await 关键字仅在 async function 中有效。如果在 async function 函数体外使用 await ，只会得到一个语法错误。
 
 await针对所跟不同表达式的处理方式：
 
@@ -5897,6 +6257,51 @@ async function g() {
 }
 g()
 ```
+
+
+
+##### 生成器
+
+###### 异步消息
+
+```js
+//假设通过网络，依次收到三条信息
+//回调地狱版本:
+// setTimeout(() => {
+//     console.log('first');
+//     setTimeout(() => {
+//         console.log('sec');
+//         setTimeout(() => {
+//             console.log('final');
+//         }, 1200);
+//     }, 1100);
+// }, 1000);
+function get1() {
+    setTimeout(() => {
+        it.next('白茶来了');
+    }, 1000);
+}
+function get2() {
+    setTimeout(() => {
+        it.next('果冻来了');
+    }, 1100);
+}
+function get3() {
+    setTimeout(() => {
+        it.next('弥明来了');
+    }, 1200);
+}
+function* gen() {
+    let info = '';
+    info = yield get1(); console.log(info);
+    info = yield get2(); console.log(info);
+    info = yield get3(); console.log(info);
+}
+let it = gen();
+it.next();//会相继next(等效于地狱)
+```
+
+
 
 
 
@@ -6131,6 +6536,59 @@ Object.keys(对象) 获取对象的所有key，以Array返回
 
 
 
+##### defineProperty
+
+```js
+let bc = { name: '白茶' };
+Object.defineProperty(bc, 'id', {
+    value: 581,
+    enumerable: true,//可枚举(不可console不输出,默认false)
+    writable: false,//可修改(默认false)
+    configurable: false,//可删除(默认false)
+});
+bc.id = 6;//修改无效,不报错
+console.log(bc);
+delete bc.id;//删除无效,不报错
+console.log(bc);
+```
+
+方法二：
+
+```js
+let gd = { name: '果冻' };
+Object.defineProperty(gd, 'id', {
+    // enumerable: true, 没意义,直接console得不到113
+    get() {
+        console.log('Got');
+        return 113;//常量,所以set不动
+    },
+    set(v) {
+        console.log('set');
+        return v;
+    }
+});
+console.log(gd.id);
+gd.id++;//got set
+console.log(gd.id);//不变
+```
+
+可以实现数据代理：
+
+```js
+let o1 = { x: 10 };
+let o2 = {};
+Object.defineProperty(o2, 'x', {
+    get() { return o1.x; },
+    set(x) { o1.x = x; }
+});
+o2.x++;
+console.log(o1.x, o2.x);
+```
+
+
+
+
+
 ### Array
 
 #### 创建
@@ -6309,6 +6767,18 @@ y=x.splice(x.indexOf(7),1) //[7]
 //x=[1,3,5,1,7]
 ```
 
+可以当插入用(或替换)，在后面传入连续参数逐个插入到该位置
+
+```js
+let ar0 = ['I', 'study', 'js'];
+ar0.splice(2, 0, 'complex', 'language');//[]
+console.log(ar0);//[ 'I', 'study', 'complex', 'language', 'js' ]
+```
+
+
+
+
+
 ##### reverse
 
 将数组arr倒转，改变arr本身，返回对arr的引用。如：
@@ -6391,11 +6861,49 @@ console.log(resultArray);
 
 
 
+##### forEach
+
+与 map 类似，区别在于恒返回 undefined。(无返回值，只是字面 for)
+
+```c++
+let s = [1,2,5,6];
+s.forEach(v=>{console.log(v*v)})
+```
+
+完整版：
+
+```js
+let arr = [11, 45, 14];
+arr.forEach((v, i, a) => {
+    a.push(1);//三次,而不死循环(push的不for)
+    console.log(v, i, a);
+});//值,下标,数组本身
+```
+
+> 对比：
+>
+> ```js
+> let a = [11, 45, 14];
+> a.forEach(function (v) {
+>     if (v == 45) { console.log('FE'); return true; }
+>     console.log('fe');
+> });//feFEfe
+> a.some(function (v) {
+>     if (v == 45) { console.log('XH'); return true; }
+>     console.log('xh');
+> });//xhXH
+> b = a.filter(function (v) {
+>     if (v == 45) { console.log('FL'); return true; }
+>     console.log('fl');
+> });//flFLfl
+> console.log(a, b);//a不变,b=[45]
+> ```
+
 
 
 ##### map
 
-ES5，返回每个元素执行一个特定操作后得到的map，不影响原数组，类python::map
+ES5，返回每个元素执行一个特定操作后得到的map(即数组)，不影响原数组，类python::map
 
 如：
 
@@ -6441,6 +6949,36 @@ console.log(a, b);
 
 
 
+##### some
+
+是否存在满足条件
+
+```js
+[11,45,14].some(x=>x>40);
+```
+
+
+
+##### find
+
+```js
+let ar = [19, 1, 9, 810, 1919810];
+console.log(ar.find(x => x > 100));//810
+console.log(ar.find((v, i, a) => { v + i == 10; }))//查无undef
+```
+
+改成 findIndex 找下标：
+
+```js
+let ar = [19, 19, 810];
+console.log(ar.findIndex(x => x > 10));//0
+console.log(ar.findIndex((v, i) => { v + i == 10; }))//查无-1
+```
+
+
+
+
+
 ### String
 
 #### 创建
@@ -6477,9 +7015,18 @@ lfa.abcd===18;
 
 
 
-
-
 注意，对于转义符，在html上，`\n,\t`都是空格，其他都乱码或无效，只有`\\`还是转义成`\`，单双引号也能正常转义。
+
+
+
+模板字符串：(ES6)，以飘号开始和结束，中间插入 `${}` 表达式。
+
+```js
+let a = 580, b = 1437;
+console.log(`${a} + ${b} = ${a + b}`);//580 + 1437 = 2017
+```
+
+
 
 
 
@@ -6629,11 +7176,12 @@ console.log(a == '1|2'); //true
 - 传入的start比end小时，自动交换处理
 
 ```javascript
-let sf='123'
+let sf='lr580'
 sf.substring()===sf
 sf.substring(-1)===sf
-sf.substring(2,-1)==='34'
-sf.substring(2,1)==='4'
+sf.substring(2,4)==='58'
+sf.substring(2,-1)==='lr'
+sf.substring(2,1)==='r'
 ```
 
 
@@ -7433,6 +7981,73 @@ $\ln x$
 
 
 
+### 集合类
+
+#### Set
+
+值互异性。有 iterator。常用属性和方法：
+
+- size 属性
+- add 添加新元素，返回当前集合指针
+- delete 删除元素，返回 boolean
+- has 检测是否包含
+- clear 清空集合，返回 undef
+
+```js
+let s = new Set(['白茶', '白茶', '果冻']);
+console.log(s);
+let sp = s.add('弥明');
+console.log(sp === s);//true
+console.log(sp.delete('天江'));//false
+console.log(sp.delete('白茶'));//true
+console.log(s.has('白茶'));//false
+console.log(s.size);//2
+for (let name of s) {
+    console.log(name);
+}
+let arr = [1, 9, 1, 9, 8, 1, 0];
+let arr2 = [...new Set(arr)];//数组去重(原序排列,不保证有序)
+console.log(arr2);//1 9 8 0
+
+let ar1 = [1, 9, 1, 9, 8, 1, 0];
+let ar2 = [1, 1, 4, 5, 1, 4];
+let ar1p2 = [...new Set(ar1)].filter(v => new Set(ar2).has(v));
+console.log(ar1p2);//a∩b 交
+let ar1u2 = [...new Set([...ar1, ...ar2])];
+console.log(ar1u2);//a∪b 并
+let ar1d2 = [...new Set(ar1)].filter(v => !(new Set(ar2).has(v)));
+console.log(ar1d2);//a-b 差
+```
+
+
+
+#### Map
+
+键可以是任意内容(包括对象)
+
+属性和方法：
+
+1. size 属性
+2. set(键,值)
+3. get(键)
+4. has(键)
+5. delete
+6. clear
+
+```js
+let m = new Map();
+m.set('name', '白茶');
+m.set('name', '果冻');
+m.set({ m: 1 }, 'QwQ');
+for (let [k, v] of m) {
+    console.log(k, v);
+}
+console.log(m.has({ m: 1 }));//false
+console.log(m.has('name'));//true
+```
+
+
+
 ## BOM
 
 BOM，Browser Object Model，浏览器对象模型，描述浏览器中对象与对象之间的层次关系模型。
@@ -7514,8 +8129,6 @@ path是允许访问cookie的路径，只有这个路径下的页面才可以读�
 domain表示域，使浏览器确定哪些cookie可以提交，不指定则为cookie页面所对应的域。
 
 一般不经过编码，除非包含特殊符号，如空格，分号，逗号，使用expire内置函数进行编码。取出时使用unescape解码。
-
-> 暂未解决如何使用的问题
 
 > cookie会随着HTTP请求一起发送到服务器，重复多次可能浪费带宽。cookie传输未经加密。
 
@@ -9852,6 +10465,10 @@ open('c71.html','','left=250,width=250,left=50,top=50')
 setInterval('console.log(3)',500)
 setInterval('')
 ```
+
+如果要马上执行，就先把函数体里的东西跑一次，再 set。
+
+注意到周期计时不总是准确的，所以假设想要每秒更新一次，可以设置 `998` 而不是 `1000`，以粗略地每秒都能看到变化(假设返回值带时间参数)。
 
 ##### clearInterval
 
@@ -12655,15 +13272,2047 @@ node x.js
 
 
 
+# 框架
+
+## Vue
+
+### 基本
+
+#### 概念
+
+以 Vue3.x 为例。前端框架。可以直接用 js 缓存。如：
+
+> ```html
+> <!DOCTYPE html>
+> <html>
+>     <head>
+>         <meta charset="utf-8">
+>         <title>Vue 测试实例 - 菜鸟教程(runoob.com)</title>
+>         <script src="https://cdn.staticfile.org/vue/3.2.36/vue.global.min.js"></script>
+>     </head>
+>     <body>
+>         <div id="hello-vue" class="demo">
+>             {{ message }}
+>         </div>
+>         <script>
+>         const HelloVueApp = {
+>         data() {
+>             return {
+>             message: 'Hello Vue!!'
+>             }
+>         }
+>         }
+>         Vue.createApp(HelloVueApp).mount('#hello-vue')
+>         </script>
+>     </body>
+> </html>
+> ```
+
+
+
+#### 安装使用
+
+[源码](https://unpkg.com/vue@3.2.36/dist/vue.global.js) vue.js 不支持 IE8 及以下
+
+可以使用 3.0 以上的 npm 安装：
+
+```sh
+npm i vue@next
+npm i -g @vue/cli
+npm i -g @vue/cli-init
+```
+
+检查安装：
+
+```sh
+vue --version
+```
+
+在 vue 项目运行：
+
+```sh
+vue init webpack first-test
+```
+
+然后交互式地一路 Y 下去。结束后执行：
+
+```sh
+cd first-test
+npm run dev
+```
+
+然后输入 `http://localhost:8080`(具体看 CLI 提示什么)，即可看到结果
+
+使用图形化窗口 B/S 浏览器端，可以创建和管理项目：
+
+```sh
+vue ui
+```
+
+> Vite 是一个 web 开发构建工具，由于其原生 ES 模块导入方式，可以实现闪电般的冷服务器启动
+>
+> ```sh
+> npm init vite-app sec-test
+> cd test
+> npm i
+> npm run dev
+> ```
+>
+> 在修改了代码文件并保存后，能够不重启 npm run 而直接刷新结果
+
+打包：
+
+```sh
+npm run build
+```
+
+之后会在项目内生成 `dist/` 目录，包含 static 目录，其下包含 vue 的结果。要以 `index.html` 为根目录跑项目才能正常打开结果。
+
+> 也可以用下面方法创建：
+>
+> ```sh
+> vue create thr-test
+> cd thr-test
+> npm run serve
+> ```
+
+
+
+#### 目录结构
+
+| 目录/文件    | 说明                                                         |
+| :----------- | :----------------------------------------------------------- |
+| build        | 项目构建(webpack)相关代码                                    |
+| config       | 配置目录，包括端口号等。我们初学可以使用默认的。             |
+| node_modules | npm 加载的项目依赖模块                                       |
+| src          | 这里是我们要开发的目录，基本上要做的事情都在这个目录里。里面包含了几个目录及文件：assets: 放置一些图片，如logo等。components: 目录里面放了一个组件文件，可以不用。App.vue: 项目入口文件，我们也可以直接将组件写这里，而不使用 components 目录。main.js: 项目的核心文件。index.css: 样式文件。 |
+| static       | 静态资源目录，如图片、字体等。                               |
+| public       | 公共资源目录。                                               |
+| test         | 初始测试目录，可删除                                         |
+| .xxxx文件    | 这些是一些配置文件，包括语法配置，git配置等。                |
+| index.html   | 首页入口文件，你可以添加一些 meta 信息或统计代码啥的。       |
+| package.json | 项目配置文件。                                               |
+| README.md    | 项目的说明文档，markdown 格式                                |
+| dist         | 使用 **npm run build** 命令打包后会生成该目录。              |
+
+
+
+### 语法
+
+#### 基本
+
+对 HTML 文件来说，引入 `vue.js` 后，会有一个全局对象 `Vue`。
+
+可以用 `基本-概念` 里的代码，具体而言，创建一个 `App` 对象，其有一个 `data` 成员方法，返回一个对象，对象里的属性就是渲染到 HTML 的模板变量。
+
+然后使用 `Vue.createApp(该App对象).mount(HTML id字符串)`，将该 APP 渲染到对应的 HTML 标签中，将模板内容用 App 里的数据替换。如：
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Vue 测试实例 - 菜鸟教程(runoob.com)</title>
+<script src="https://cdn.staticfile.org/vue/3.2.36/vue.global.min.js"></script>
+</head>
+<body>
+<div id="hello-vue" class="demo">
+  {{ message }}
+</div>
+
+<script>
+const HelloVueApp = {
+  data() {
+    return {
+      message: 'Hello Vue!!'
+    }
+  }
+}
+
+Vue.createApp(HelloVueApp).mount('#hello-vue')
+</script>
+</body>
+</html>
+```
+
+`.vue` 文件可以被 js import，里面可以包含 template, script, style 标签等
+
+> ```js
+> import App from './App.vue'
+> const app = createApp(App)
+> ```
+>
+> 其 `App.vue` 如下：
+>
+> ```html
+> <template>
+>   <router-view></router-view>
+> </template>
+> 
+> <style>
+> @import './assets/css/main.css';
+> @import './assets/css/color-dark.css';
+> </style>
+> ```
+
+
+
+> mount 函数的返回值有 `$data` 成员属性，其等于 `data` 方法的对象。如：
+>
+> ```html
+> <!DOCTYPE html>
+> <html>
+> <head>
+> <meta charset="utf-8">
+> <title>Vue 测试实例 - 菜鸟教程(runoob.com)</title>
+> <script src="https://cdn.staticfile.org/vue/3.2.36/vue.global.min.js"></script>
+> </head>
+> <body>
+> <div id="app" class="demo"></div>
+> 
+> <script>
+> const app = Vue.createApp({
+>   data() {
+>     return { count: 4 }
+>   }
+> })
+> 
+> const vm = app.mount('#app')
+> 
+> document.write(vm.$data.count) // => 4
+> document.write("<br>")
+> document.write(vm.count)       // => 4
+> document.write("<br>")
+> // 修改 vm.count 的值也会更新 $data.count
+> vm.count = 5
+> document.write(vm.$data.count) // => 5
+> document.write("<br>")
+> // 反之亦然
+> vm.$data.count = 6
+> document.write(vm.count) // => 6
+> </script>
+> </body>
+> </html>
+> ```
+>
+> 还可以定义方法：
+>
+> ```js
+> const app = Vue.createApp({
+>   data() {
+>     return { count: 4 }
+>   },
+>   methods: {
+>     increment() {
+>       // `this` 指向该组件实例
+>       this.count++
+>     }
+>   }
+> })
+> 
+> const vm = app.mount('#app')
+> 
+> document.write(vm.count) // => 4
+> document.write("<br>")
+> vm.increment()
+> 
+> document.write(vm.count) // => 5
+> ```
+
+
+
+#### 模板语法
+
+##### 一般
+
+就是 App 要渲染的 HTML 标签里写的要渲染的占位符
+
+文本直接 `{{...}}`
+
+如果不想改变标签的内容，可以通过使用 **v-once** 指令执行一次性地插值，当数据改变时，插值处的内容不会更新。
+
+```html
+<div id="example1" class="demo">
+    <p>使用双大括号的文本插值: {{ rawHtml }}</p>
+    <p>使用 v-html 指令: <span v-html="rawHtml"></span></p>
+</div>
+ 
+<script>
+const RenderHtmlApp = {
+  data() {
+    return {
+      rawHtml: '<span style="color: red">这里会显示红色！</span>'
+    }
+  }
+}
+ 
+Vue.createApp(RenderHtmlApp).mount('#example1')
+</script>
+```
+
+效果上，p 那个不会渲染出 span，以纯文本输出 rawHtml，而 v-html 会渲染
+
+可以 `v-bind:` 套常规 HTML 属性。
+
+```html
+<div v-bind:id="dynamicId"></div>
+<button v-bind:disabled="isButtonDisabled">按钮</button>
+```
+
+可以用 `v-model` 绑定输入并动态更改相应的值和逻辑
+
+> 如：
+>
+> ```html
+> <!DOCTYPE html>
+> <html>
+> <head>
+> <meta charset="utf-8">
+> <title>Vue 测试实例 - 菜鸟教程(runoob.com)</title>
+> <script src="https://cdn.staticfile.org/vue/3.2.36/vue.global.min.js"></script>
+> <style>
+> .class1{
+>   background: #444;
+>   color: #eee;
+> }
+> </style>
+> </head>
+> <body>
+> <div id="app">
+>   <label for="r1">修改颜色</label><input type="checkbox" v-model="use" id="r1">
+>   <br><br>
+>   <div v-bind:class="{'class1': use}">
+>     v-bind:class 指令
+>   </div>
+> </div>
+> 
+> <script>
+> const app = {
+>   data() {
+>     return {
+>       use: false
+>     }
+>   }
+> }
+>  
+> Vue.createApp(app).mount('#app')
+> </script>
+> </body>
+> </html>
+> ```
+
+可以输入 JS 表达式：(第三个是字符串转置)
+
+```html
+<div id="app">
+    {{5+5}}<br>
+    {{ ok ? 'YES' : 'NO' }}<br>
+    {{ message.split('').reverse().join('') }}
+    <div v-bind:id="'list-' + id">菜鸟教程</div>
+</div>
+```
+
+表达式会在当前活动实例的数据作用域下作为 JavaScript 被解析。有个限制就是，每个绑定都只能包含单个表达式，所以下面的例子都不会生效:
+
+```html
+<!--  这是语句，不是表达式：-->
+{{ var a = 1 }}
+<!-- 流控制也不会生效，请使用三元表达式 -->
+{{ if (ok) { return message } }}
+```
+
+可以用 `v-if` 作条件，表示是否显示。
+
+```html
+<div id="app">
+    <p v-if="seen">现在你看到我了</p>
+</div>
+    
+<script>
+const app = {
+  data() {
+    return {
+      seen: true  /* 改为false，信息就无法显示 */
+    }
+  }
+}
+ 
+Vue.createApp(app).mount('#app')
+</script>
+```
+
+> ```html
+> <div id="app">
+>     <p><a v-bind:href="url">菜鸟教程</a></p>
+> </div>
+>     
+> <script>
+> const app = {
+>   data() {
+>     return {
+>       url: 'https://www.runoob.com'
+>     }
+>   }
+> }
+>  
+> Vue.createApp(app).mount('#app')
+> </script>
+> ```
+
+```html
+<!-- 完整语法 -->
+<a v-on:click="doSomething"> ... </a>
+
+<!-- 缩写 -->
+<a @click="doSomething"> ... </a>
+
+<!-- 动态参数的缩写 (2.6.0+) -->
+<a @[event]="doSomething"> ... </a>
+```
+
+修饰符是以半角句号 **.** 指明的特殊后缀，用于指出一个指令应该以特殊方式绑定。例如，**.prevent** 修饰符告诉 **v-on** 指令对于触发的事件调用 **event.preventDefault()**：
+
+```html
+<form v-on:submit.prevent="onSubmit"></form>
+```
+
+双向数据绑定：
+
+```html
+<div id="app">
+    <p>{{ message }}</p>
+    <input v-model="message">
+</div>
+ 
+<script>
+const app = {
+  data() {
+    return {
+      message: 'Runoob!'
+    }
+  }
+}
+ 
+Vue.createApp(app).mount('#app')
+</script>
+```
+
+**v-model** 指令用来在 input、select、textarea、checkbox、radio 等表单控件元素上创建双向数据绑定，根据表单上的值，自动更新绑定的元素的值。
+
+按钮的事件我们可以使用 v-on 监听事件，并对用户的输入进行响应。
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Vue 测试实例 - 菜鸟教程(runoob.com)</title>
+<script src="https://unpkg.com/vue@next"></script>
+</head>
+<body>
+<div id="app">
+    <p>{{ message }}</p>
+    <button v-on:click="reverseMessage">反转字符串</button>
+</div>
+    
+<script>
+const app = {
+  data() {
+    return {
+      message: 'Runoob!'
+    }
+  },
+  methods: {
+    reverseMessage() {
+      this.message = this.message
+        .split('')
+        .reverse()
+        .join('')
+    }
+  }
+}
+ 
+Vue.createApp(app).mount('#app')
+</script>
+```
+
+> ```html
+> <!-- 完整语法 -->
+> <a v-bind:href="url"></a>
+> <!-- 缩写 -->
+> <a :href="url"></a>
+> ```
+>
+> ```html
+> <!-- 完整语法 -->
+> <a v-on:click="doSomething"></a>
+> <!-- 缩写 -->
+> <a @click="doSomething"></a>
+> ```
+
+
+
+##### 条件
+
+因为 v-if 是一个指令，所以必须将它添加到一个元素上。如果是多个元素，可以包裹在 `<template>` 元素上，并在上面使用 v-if。最终的渲染结果将不包含 `<template>` 元素
+
+```html
+<div id="app">
+    <template v-if="seen">
+        <h1>网站</h1>
+        <p>Google</p>
+        <p>Runoob</p>
+        <p>Taobao</p>
+    </template>
+</div>
+```
+
+```html
+<div v-if="Math.random() > 0.5">
+    随机数大于 0.5
+</div>
+<div v-else>
+    随机数小于等于 0.5
+</div>
+```
+
+```html
+<div v-if="type === 'A'">
+    A
+</div>
+<div v-else-if="type === 'B'">
+    B
+</div>
+<div v-else-if="type === 'C'">
+    C
+</div>
+<div v-else>
+    Not A/B/C
+</div>
+```
+
+> 根据条件展示的等价子式：
+>
+> ```html
+> <h1 v-show="ok">Hello!</h1>
+> ```
+
+
+
+##### 循环
+
+```html
+<div id="app">
+  <ol>
+    <li v-for="site in sites">
+      {{ site.text }}
+    </li>
+  </ol>
+</div>
+<script>
+const app = {
+  data() {
+    return {
+      sites: [
+        { text: 'Google' },
+        { text: 'Runoob' },
+        { text: 'Taobao' }
+      ]
+    }
+  }
+}
+
+Vue.createApp(app).mount('#app')
+</script>
+```
+
+v-for 还支持一个可选的第二个参数，参数值为当前项的索引(显然下标从 0 开始)，上述改为：
+
+```html
+<li v-for="(site, index) in sites">
+    {{ index }} -{{ site.text }}
+</li>
+```
+
+```html
+<template v-for="site in sites">
+    <li>{{ site.text }}</li>
+    <li>--------------</li>
+</template>
+```
+
+可以迭代对象，遍历属性值(不遍历键)
+
+```html
+<div id="app">
+  <ul>
+    <li v-for="value in object">
+    {{ value }}
+    </li>
+  </ul>
+</div>
+ 
+<script>
+const app = {
+  data() {
+    return {
+      object: {
+        name: '菜鸟教程',
+        url: 'http://www.runoob.com',
+        slogan: '学的不仅是技术，更是梦想！'
+      }
+    }
+  }
+}
+ 
+Vue.createApp(app).mount('#app')
+</script>
+```
+
+如果要遍历键：
+
+```html
+<li v-for="(value, key) in object">
+    {{ key }} : {{ value }}
+</li>
+```
+
+甚至可以下标：
+
+```html
+<li v-for="(value, key, index) in object">
+    {{ index }}. {{ key }} : {{ value }}
+</li>
+```
+
+可以遍历整数($[1,10]$)：
+
+```html
+<li v-for="n in 10">
+    {{ n }}
+</li>
+```
+
+遍历函数调用的返回值：
+
+```html
+<div id="app">
+  <ul>
+    <li v-for="n in evenNumbers">{{ n }}</li>
+  </ul>
+</div>
+ 
+<script>
+const app = {
+    data() {
+        return {
+            numbers: [ 1, 2, 3, 4, 5 ]
+	     }
+    },
+    computed: {
+        evenNumbers() {
+            return this.numbers.filter(number => number % 2 === 0)
+        }
+    }
+}
+ 
+Vue.createApp(app).mount('#app')
+</script>
+```
+
+综合运用：
+
+```html
+<div id="app">
+   <select @change="changeVal($event)" v-model="selOption">
+      <template v-for="(site,index) in sites" :site="site" :index="index" :key="site.id">
+         <!-- 索引为 1 的设为默认值，索引值从0 开始-->
+         <option v-if = "index == 1" :value="site.name" selected>{{site.name}}</option>
+         <option v-else :value="site.name">{{site.name}}</option>
+      </template>
+   </select>
+   <div>您选中了:{{selOption}}</div>
+</div>
+ 
+<script>
+const app = {
+    data() {
+        return {
+            selOption: "Runoob",
+            sites: [
+                  {id:1,name:"Google"},
+                  {id:2,name:"Runoob"},
+                  {id:3,name:"Taobao"},
+            ]
+         }
+        
+    },
+    methods:{
+        changeVal:function(event){
+            this.selOption = event.target.value;
+            alert("你选中了"+this.selOption);
+        }
+    }
+}
+ 
+Vue.createApp(app).mount('#app')
+</script>
+```
+
+selected 的逻辑是，对下拉选项，更新当前这个框所选的内容
+
+
+
+#### 组件
+
+组件的本质是对模板语法的封装。
+
+自定义组件如：
+
+```html
+<div id="app">
+    <runoob></runoob>
+</div>
+ 
+<script>
+// 创建一个Vue 应用
+const app = Vue.createApp({})
+ 
+// 定义一个名为 runoob的新全局组件
+app.component('runoob', {
+    template: '<h1>自定义组件!</h1>'
+})
+ 
+app.mount('#app')
+</script>
+```
+
+如定义一个点击后文本自增的按钮：
+
+```html
+app.component('button-counter', {
+  data() {
+    return {
+      count: 0
+    }
+  },
+  template: `
+    <button @click="count++">
+      点了 {{ count }} 次！
+    </button>`
+})
+app.mount('#app')
+</script>
+```
+
+> template 中 **\`** 是反引号，不是单引号 **'**。即，`template:` + \`  + 具体内容 + \`
+
+每个调用的组件标签，都是独立的，即它们不共享变量。如果有多个上述按钮，分别各自自增。
+
+上述方法注册全局组件。
+
+如果想组件只在某个 app 生效则：
+
+```js
+const app = Vue.createApp({
+  components: {
+    'component-a': ComponentA,
+    'component-b': ComponentB
+  }
+})
+```
+
+组件的属性要起作用，需要通过 props 来生效。一个组件默认可以拥有任意数量的 prop，任何值都可以传递给任何 prop。
+
+```html
+<div id="app">
+  <site-name title="Google"></site-name>
+  <site-name title="Runoob"></site-name>
+  <site-name title="Taobao"></site-name>
+</div>
+ 
+<script>
+const app = Vue.createApp({})
+ 
+app.component('site-name', {
+  props: ['title'],
+  template: `<h4>{{ title }}</h4>`
+})
+ 
+app.mount('#app')
+</script>
+```
+
+> 显然是可以动态的
+>
+> ```html
+> <div id="app">
+>   <site-info
+>     v-for="site in sites"
+>     :id="site.id"
+>     :title="site.title"
+>   ></site-info>
+> </div>
+>  
+> <script>
+> const Site = {
+>   data() {
+>     return {
+>       sites: [
+>         { id: 1, title: 'Google' },
+>         { id: 2, title: 'Runoob' },
+>         { id: 3, title: 'Taobao' }
+>       ]
+>     }
+>   }
+> }
+>  
+> const app = Vue.createApp(Site)
+>  
+> app.component('site-info', {
+>   props: ['id','title'],
+>   template: `<h4>{{ id }} - {{ title }}</h4>`
+> })
+>  
+> app.mount('#app')
+> </script>
+> ```
+
+
+
+可以规定属性的合法取值：
+
+```js
+Vue.component('my-component', {
+  props: {
+    // 基础的类型检查 (`null` 和 `undefined` 会通过任何类型验证)
+    propA: Number,
+    // 多个可能的类型
+    propB: [String, Number],
+    // 必填的字符串
+    propC: {
+      type: String,
+      required: true
+    },
+    // 带有默认值的数字
+    propD: {
+      type: Number,
+      default: 100
+    },
+    // 带有默认值的对象
+    propE: {
+      type: Object,
+      // 对象或数组默认值必须从一个工厂函数获取
+      default: function () {
+        return { message: 'hello' }
+      }
+    },
+    // 自定义验证函数
+    propF: {
+      validator: function (value) {
+        // 这个值必须匹配下列字符串中的一个
+        return ['success', 'warning', 'danger'].indexOf(value) !== -1
+      }
+    }
+  }
+})
+```
+
+ 
+
+组件可以为 props 指定验证要求。
+
+```
+Vue.component('my-component', {
+  props: {
+    // 基础的类型检查 (`null` 和 `undefined` 会通过任何类型验证)
+    propA: Number,
+    // 多个可能的类型
+    propB: [String, Number],
+    // 必填的字符串
+    propC: {
+      type: String,
+      required: true
+    },
+    // 带有默认值的数字
+    propD: {
+      type: Number,
+      default: 100
+    },
+    // 带有默认值的对象
+    propE: {
+      type: Object,
+      // 对象或数组默认值必须从一个工厂函数获取
+      default: function () {
+        return { message: 'hello' }
+      }
+    },
+    // 自定义验证函数
+    propF: {
+      validator: function (value) {
+        // 这个值必须匹配下列字符串中的一个
+        return ['success', 'warning', 'danger'].indexOf(value) !== -1
+      }
+    }
+  }
+})
+```
+
+当 prop 验证失败的时候，(开发环境构建版本的) Vue 将会产生一个控制台的警告。
+
+type 可以是下面原生构造器：
+
+- `String`
+- `Number`
+- `Boolean`
+- `Array`
+- `Object`
+- `Date`
+- `Function`
+- `Symbol`
+
+type 也可以是一个自定义构造器，使用 instanceof 检测。
+
+
+
+#### 计算属性
+
+实现复杂变化的属性
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Vue 测试实例 - 菜鸟教程(runoob.com)</title>
+<script src="https://cdn.staticfile.org/vue/3.0.5/vue.global.js"></script>
+</head>
+<body>
+<div id="app">
+  <p>原始字符串: {{ message }}</p>
+  <p>计算后反转字符串: {{ reversedMessage }}</p>
+</div>
+    
+<script>
+const app = {
+  data() {
+    return {
+      message: 'RUNOOB!!'
+    }
+  },
+  computed: {
+    // 计算属性的 getter
+    reversedMessage: function () {
+      // `this` 指向 vm 实例
+      return this.message.split('').reverse().join('')
+    }
+  }
+}
+ 
+Vue.createApp(app).mount('#app')
+</script>
+</body>
+</html>
+```
+
+我们可以使用 methods 来替代 computed，效果上两个都是一样的，但是 computed 是基于它的依赖缓存，只有相关依赖发生改变时才会重新取值。而使用 methods ，在重新渲染的时候，函数总会重新调用执行。可以说使用 computed 性能会更好，但是如果你不希望缓存，你可以使用 methods 属性。
+
+> computed 属性默认只有 getter ，不过在需要时你也可以提供一个 setter ：
+>
+> ```html
+> const app = {
+>   data() {
+>     return {
+>       name: 'Google',
+>       url: 'http://www.google.com'
+>     }
+>   },
+>   computed: {
+>     site: {
+>       // getter
+>       get: function () {
+>         return this.name + ' ' + this.url
+>       },
+>       // setter
+>       set: function (newValue) {
+>         var names = newValue.split(' ')
+>         this.name = names[0]
+>         this.url = names[names.length - 1]
+>       }
+>     }
+>   }
+> }
+> vm = Vue.createApp(app).mount('#app')
+> document.write('name: ' + vm.name);
+> document.write('<br>');
+> document.write('url: ' + vm.url);
+> document.write('<br>------ 更新数据 ------<br>');
+> // 调用 setter， vm.name 和 vm.url 也会被对应更新
+> vm.site = '菜鸟教程 https://www.runoob.com';
+> document.write('name: ' + vm.name);
+> document.write('<br>');
+> document.write('url: ' + vm.url);
+> ```
+
+
+
+#### 监听属性
+
+```html
+<div id = "app">
+    <p style = "font-size:25px;">计数器: {{ counter }}</p>
+    <button @click = "counter++" style = "font-size:25px;">点我</button>
+</div>
+   
+<script>
+const app = {
+  data() {
+    return {
+      counter: 1
+    }
+  }
+}
+vm = Vue.createApp(app).mount('#app')
+vm.$watch('counter', function(nval, oval) {
+    alert('计数器值的变化 :' + oval + ' 变为 ' + nval + '!');
+});
+</script>
+```
+
+```html
+<div id = "app">
+    千米 : <input type = "text" v-model = "kilometers"  @focus="currentlyActiveField = 'kilometers'">
+    米 : <input type = "text" v-model = "meters" @focus="currentlyActiveField = 'meters'">
+</div>
+<p id="info"></p>    
+<script>
+const app = {
+  data() {
+    return {
+      kilometers : 0,
+      meters:0
+    }
+  },
+  watch : {
+    kilometers:function(newValue, oldValue) {
+      // 判断是否是当前输入框
+      if (this.currentlyActiveField === 'kilometers') {
+        this.kilometers = newValue;
+        this.meters = newValue * 1000
+      }
+    },
+    meters : function (newValue, oldValue) {
+      // 判断是否是当前输入框
+      if (this.currentlyActiveField === 'meters') {
+        this.kilometers = newValue/ 1000;
+        this.meters = newValue;
+      }
+    }
+  }
+}
+vm = Vue.createApp(app).mount('#app')
+vm.$watch('kilometers', function (newValue, oldValue) {
+  // 这个回调将在 vm.kilometers 改变后调用
+  document.getElementById ("info").innerHTML = "修改前值为: " + oldValue + "，修改后值为: " + newValue;
+})
+</script>
+```
+
+> 可以塞异步函数如：
+>
+> ```html
+> <!-- 因为 AJAX 库和通用工具的生态已经相当丰富，Vue 核心代码没有重复 -->
+> <!-- 提供这些功能以保持精简。这也可以让你自由选择自己更熟悉的工具。 -->
+> <script src="https://cdn.staticfile.org/axios/0.27.2/axios.min.js"></script>
+> <script src="https://cdn.staticfile.org/vue/3.2.37/vue.global.min.js"></script>
+> <script>
+>   const watchExampleVM = Vue.createApp({
+>     data() {
+>       return {
+>         question: '',
+>         answer: '每个问题结尾需要输入 ? 号。'
+>       }
+>     },
+>     watch: {
+>       // 每当问题改变时，此功能将运行，以 ? 号结尾，兼容中英文 ?
+>       question(newQuestion, oldQuestion) {
+>         if (newQuestion.indexOf('?') > -1 || newQuestion.indexOf('？') > -1) {
+>           this.getAnswer()
+>         }
+>       }
+>     },
+>     methods: {
+>       getAnswer() {
+>         this.answer = '加载中...'
+>         axios
+>           .get('/try/ajax/json_vuetest.php')
+>           .then(response => {
+>             this.answer = response.data.answer
+>           })
+>           .catch(error => {
+>             this.answer = '错误! 无法访问 API。 ' + error
+>           })
+>       }
+>     }
+>   }).mount('#watch-example')
+> </script>
+> ```
+
+
+
+#### 样式绑定
+
+条件为真即 true(Boolean 而不是字符串，不然 `false` 也当真) 使用该样式否则不适用
+
+```html
+<div :class="{ 'active': isActive }"></div>
+<div class="static" :class="{ 'active' : isActive, 'text-danger' : hasError }">
+</div>
+```
+
+后者可以简化为 data 里的对象：
+
+```html
+<div class="static" :class="classObject"></div>
+```
+
+也可以用计算属性。
+
+> 可以用数组：
+>
+> ```html
+> <div id="app">
+>     <div class="static" :class="[activeClass, errorClass]"></div>
+> </div>
+> 
+> <script>
+> const app = {
+>     data() {
+>         return {
+>             activeClass: 'active',
+>             errorClass: 'text-danger'
+>         }
+>     }
+> }
+> </script>
+> ```
+
+复合：
+
+```html
+<div class="static" :class="[isActive ? activeClass : '', errorClass]"></div>
+```
+
+干脆直接设置具体样式属性，当然可以丢对象：
+
+```html
+<div :style="{ color: activeColor, fontSize: fontSize + 'px' }">菜鸟教程</div>
+```
+
+可以为 style 绑定中的 property 提供一个包含多个值的数组，常用于提供多个带前缀的值，例如：
+
+```html
+<div :style="{ display: ['-webkit-box', '-ms-flexbox', 'flex'] }"></div>
+```
+
+这样写只会渲染数组中最后一个被浏览器支持的值。在本例中，如果浏览器支持不带浏览器前缀的 flexbox，那么就只会渲染 display: flex。
+
+组件上的 class 会跟调用时新加的 class 合并，同时起作用
+
+```html
+<div id="app">
+    <runoob class="classC classD"></runoob>
+</div>
+ 
+<script>
+// 创建一个Vue 应用
+const app = Vue.createApp({})
+ 
+// 定义一个名为 runoob的新全局组件
+app.component('runoob', {
+    template: '<h1 class="classA classB">I like runoob!</h1>'
+})
+ 
+app.mount('#app')
+</script>
+```
+
+
+
+#### 事件处理
+
+```html
+<div id="app">
+  <!-- `greet` 是在下面定义的方法名 -->
+  <button @click="greet">点我</button>
+</div>
+ 
+<script>
+const app = {
+  data() {
+    return {
+      name: 'Runoob'
+    }
+  },
+  methods: {
+    greet(event) {
+      // `methods` 内部的 `this` 指向当前活动实例
+      alert('Hello ' + this.name + '!')
+      // `event` 是原生 DOM event
+      if (event) {
+        alert(event.target.tagName)
+      }
+    }
+  }
+}
+ 
+Vue.createApp(app).mount('#app')
+</script>
+```
+
+```html
+<div id="app">
+  <button @click="say('hi')">Say hi</button>
+  <button @click="say('what')">Say what</button>
+</div>
+ 
+<script>
+const app = {
+  data() {
+   
+  },
+  methods: {
+    say(message) {
+      alert(message)
+    }
+  }
+}
+ 
+Vue.createApp(app).mount('#app')
+</script>
+```
+
+```html
+<div id="app">
+  <!-- 这两个 one() 和 two() 将执行按钮点击事件 -->
+  <button @click="one($event), two($event)">
+  点我
+  </button>
+</div>
+ 
+<script>
+const app = {
+  data() {
+  },
+  methods: {
+    one(event) {
+      alert("第一个事件处理器逻辑...")
+    },
+    two(event) {
+      alert("第二个事件处理器逻辑...")
+    }
+  }
+}
+ 
+Vue.createApp(app).mount('#app')
+</script>
+```
+
+Vue.js 为 v-on 提供了事件修饰符来处理 DOM 事件细节，如：event.preventDefault() 或 event.stopPropagation()。
+
+Vue.js 通过由点 **.** 表示的指令后缀来调用修饰符。
+
+- `.stop` - 阻止冒泡
+- `.prevent` - 阻止默认事件
+- `.capture` - 阻止捕获
+- `.self` - 只监听触发该元素的事件
+- `.once` - 只触发一次
+- `.left` - 左键事件
+- `.right` - 右键事件
+- `.middle` - 中间滚轮事件
+
+```html
+<!-- 阻止单击事件冒泡 -->
+<a v-on:click.stop="doThis"></a>
+<!-- 提交事件不再重载页面 -->
+<form v-on:submit.prevent="onSubmit"></form>
+<!-- 修饰符可以串联  -->
+<a v-on:click.stop.prevent="doThat"></a>
+<!-- 只有修饰符 -->
+<form v-on:submit.prevent></form>
+<!-- 添加事件侦听器时使用事件捕获模式 -->
+<div v-on:click.capture="doThis">...</div>
+<!-- 只当事件在该元素本身（而不是子元素）触发时触发回调 -->
+<div v-on:click.self="doThat">...</div>
+
+<!-- click 事件只能点击一次，2.1.4版本新增 -->
+<a v-on:click.once="doThis"></a>
+```
+
+```html
+<input v-on:keyup.enter="submit">
+<!-- 缩写语法 -->
+<input @keyup.enter="submit">
+```
+
+系统修饰键：
+
+- `.ctrl`
+- `.alt`
+- `.shift`
+- `.meta`
+
+鼠标按钮修饰符:
+
+- `.left`
+- `.right`
+- `.middle`
+
+```html
+<p><!-- Alt + C -->
+<input @keyup.alt.67="clear">
+<!-- Ctrl + Click -->
+<div @click.ctrl="doSomething">Do something</div>
+```
+
+```html
+<!-- 即使 Alt 或 Shift 被一同按下时也会触发 -->
+<button @click.ctrl="onClick">A</button>
+
+<!-- 有且只有 Ctrl 被按下的时候才触发 -->
+<button @click.ctrl.exact="onCtrlClick">A</button>
+
+<!-- 没有任何系统修饰符被按下的时候才触发 -->
+<button @click.exact="onClick">A</button>
+```
+
+
+
+#### 表单
+
+v-model 会根据控件类型自动选取正确的方法来更新元素。
+
+v-model 会忽略所有表单元素的 value、checked、selected 属性的初始值，使用的是 data 选项中声明初始值。
+
+v-model 在内部为不同的输入元素使用不同的属性并抛出不同的事件：
+
+- text 和 textarea 元素使用 `value` 属性和 `input` 事件；
+- checkbox 和 radio 使用 `checked` 属性和 `change` 事件；
+- select 字段将 `value` 作为属性并将 `change` 作为事件。
+
+```html
+<div id="app">
+  <p>input 元素：</p>
+  <input v-model="message" placeholder="编辑我……">
+  <p>input 表单消息是: {{ message }}</p>
+    
+  <p>textarea 元素：</p>
+  <textarea v-model="message2" placeholder="多行文本输入……"></textarea>
+  <p>textarea 表单消息是:</p>
+  <p style="white-space: pre">{{ message2 }}</p>
+  
+</div>
+ 
+<script>
+const app = {
+  data() {
+    return {
+      message: '',
+      message2: '菜鸟教程\r\nhttps://www.runoob.com'
+    }
+  }
+}
+ 
+Vue.createApp(app).mount('#app')
+</script>
+```
+
+```html
+<!-- 错误 -->
+<textarea>{{ text }}</textarea>
+
+<!-- 正确 -->
+<textarea v-model="text"></textarea>
+```
+
+```html
+<div id="app">
+  <p>单个复选框：</p>
+  <input type="checkbox" id="checkbox" v-model="checked">
+  <label for="checkbox">{{ checked }}</label>
+    
+  <p>多个复选框：</p>
+  <input type="checkbox" id="runoob" value="Runoob" v-model="checkedNames">
+  <label for="runoob">Runoob</label>
+  <input type="checkbox" id="google" value="Google" v-model="checkedNames">
+  <label for="google">Google</label>
+  <input type="checkbox" id="taobao" value="Taobao" v-model="checkedNames">
+  <label for="taobao">taobao</label>
+  <br>
+  <span>选择的值为: {{ checkedNames }}</span>
+</div>
+ 
+<script>
+const app = {
+  data() {
+    return {
+      checked : false,
+      checkedNames: []
+    }
+  }
+}
+ 
+Vue.createApp(app).mount('#app')
+</script>
+```
+
+```html
+<div id="app">
+  <input type="radio" id="runoob" value="Runoob" v-model="picked">
+  <label for="runoob">Runoob</label>
+  <br>
+  <input type="radio" id="google" value="Google" v-model="picked">
+  <label for="google">Google</label>
+  <br>
+  <span>选中值为: {{ picked }}</span>
+</div>
+ 
+<script>
+const app = {
+  data() {
+    return {
+      picked : 'Runoob'
+    }
+  }
+}
+ 
+Vue.createApp(app).mount('#app')
+</script>
+```
+
+```html
+<div id="app">
+  <select v-model="selected" name="site">
+    <option value="">选择一个网站</option>
+    <option value="www.runoob.com">Runoob</option>
+    <option value="www.google.com">Google</option>
+  </select>
+ 
+  <div id="output">
+      选择的网站是(完整URL): {{selected}} 
+  </div>
+</div>
+ 
+<script>
+const app = {
+  data() {
+    return {
+      selected: '' 
+    }
+  }
+}
+ 
+Vue.createApp(app).mount('#app')
+</script>
+```
+
+多选变数组：
+
+```html
+<select v-model="selected" name="fruit" multiple>
+```
+
+如果想自动将用户的输入值转为 Number 类型（如果原值的转换结果为 NaN 则返回原值），可以添加一个修饰符 number 给 v-model 来处理输入值：
+
+```html
+<input v-model.number="age" type="number">
+```
+
+如果要自动过滤用户输入的首尾空格，可以添加 trim 修饰符到 v-model 上过滤输入：
+
+```html
+<input v-model.trim="msg">
+```
+
+
+
+#### 自定义指令
+
+全局：
+
+```html
+<div id="app">
+    <p>页面载入时，input 元素自动获取焦点：</p>
+    <input v-focus>
+</div>
+ 
+<script>
+const app = Vue.createApp({})
+// 注册一个全局自定义指令 `v-focus`
+app.directive('focus', {
+  // 当被绑定的元素挂载到 DOM 中时……
+  mounted(el) {
+    // 聚焦元素
+    el.focus()
+  }
+})
+app.mount('#app')
+</script>
+```
+
+局部：
+
+```html
+<div id="app">
+    <p>页面载入时，input 元素自动获取焦点：</p>
+    <input v-focus>
+</div>
+ 
+<script>
+const app = {
+   data() {
+      return {
+      }
+   },
+   directives: {
+      focus: {
+         // 指令的定义
+         mounted(el) {
+            el.focus()
+         }
+      }
+   }
+}
+ 
+Vue.createApp(app).mount('#app')
+```
+
+指令定义函数提供了几个钩子函数（可选）：
+
+- `created `: 在绑定元素的属性或事件监听器被应用之前调用。
+- `beforeMount `: 指令第一次绑定到元素并且在挂载父组件之前调用。。
+- `mounted `: 在绑定元素的父组件被挂载后调用。。
+- `beforeUpdate`: 在更新包含组件的 VNode 之前调用。。
+- `updated`: 在包含组件的 VNode 及其子组件的 VNode 更新后调用。
+- `beforeUnmount`: 当指令与在绑定元素父组件卸载之前时，只调用一次。
+- `unmounted`: 当指令与元素解除绑定且父组件已卸载时，只调用一次。
+
+
+
+#### 路由
+
+[直接下载](https://unpkg.com/vue-router@4) 或安装
+
+```sh
+npm install vue-router@4
+```
+
+如：
+
+```html
+<script src="https://unpkg.com/vue@3"></script>
+<script src="https://unpkg.com/vue-router@4"></script>
+ 
+<div id="app">
+  <h1>Hello App!</h1>
+  <p>
+    <!--使用 router-link 组件进行导航 -->
+    <!--通过传递 `to` 来指定链接 -->
+    <!--`<router-link>` 将呈现一个带有正确 `href` 属性的 `<a>` 标签-->
+    <router-link to="/">Go to Home</router-link>
+    <router-link to="/about">Go to About</router-link>
+  </p>
+  <!-- 路由出口 -->
+  <!-- 路由匹配到的组件将渲染在这里 -->
+  <router-view></router-view>
+</div>
+```
+
+```js
+<script>
+// 1. 定义路由组件.
+// 也可以从其他文件导入
+const Home = { template: '<div>Home</div>' }
+const About = { template: '<div>About</div>' }
+ 
+// 2. 定义一些路由
+// 每个路由都需要映射到一个组件。
+// 我们后面再讨论嵌套路由。
+const routes = [
+  { path: '/', component: Home },
+  { path: '/about', component: About },
+]
+ 
+// 3. 创建路由实例并传递 `routes` 配置
+// 你可以在这里输入更多的配置，但我们在这里
+// 暂时保持简单
+const router = VueRouter.createRouter({
+  // 4. 内部提供了 history 模式的实现。为了简单起见，我们在这里使用 hash 模式。
+  history: VueRouter.createWebHashHistory(),
+  routes, // `routes: routes` 的缩写
+})
+ 
+// 5. 创建并挂载根实例
+const app = Vue.createApp({})
+//确保 _use_ 路由实例使
+//整个应用支持路由。
+app.use(router)
+ 
+app.mount('#app')
+ 
+// 现在，应用已经启动了！
+</script>
+```
+
+则点击不同的 goto 会使得下方 viewer 组件渲染不同的内容
+
+
+
+```html
+<!-- 字符串 -->
+<router-link to="home">Home</router-link>
+<!-- 渲染结果 -->
+<a href="home">Home</a>
+
+<!-- 使用 v-bind 的 JS 表达式 -->
+<router-link v-bind:to="'home'">Home</router-link>
+
+<!-- 不写 v-bind 也可以，就像绑定别的属性一样 -->
+<router-link :to="'home'">Home</router-link>
+
+<!-- 同上 -->
+<router-link :to="{ path: 'home' }">Home</router-link>
+
+<!-- 命名的路由 -->
+<router-link :to="{ name: 'user', params: { userId: 123 }}">User</router-link>
+
+<!-- 带查询参数，下面的结果为 /register?plan=private -->
+<router-link :to="{ path: 'register', query: { plan: 'private' }}">Register</router-link>
+```
+
+设置 replace 属性的话，当点击时，会调用 router.replace() 而不是 router.push()，导航后不会留下 history 记录。
+
+```html
+<router-link :to="{ path: '/abc'}" replace></router-link>
+```
+
+设置 append 属性后，则在当前 (相对) 路径前添加其路径。例如，我们从 /a 导航到一个相对路径 b，如果没有配置 append，则路径为 /b，如果配了，则为 /a/b
+
+```html
+<router-link :to="{ path: 'relative/path'}" append></router-link>
+```
+
+有时候想要 `<router-link>` 渲染成某种标签，例如 `<li>`。 于是我们使用 `tag` prop 类指定何种标签，同样它还是会监听点击，触发导航。
+
+```html
+<router-link to="/foo" tag="li">foo</router-link>
+<!-- 渲染结果 -->
+<li>foo</li>
+```
+
+设置 链接激活时使用的 CSS 类名。可以通过以下代码来替代。
+
+```html
+<style>
+   ._active{
+      background-color : red;
+   }
+</style>
+<p>
+   <router-link v-bind:to = "{ path: '/route1'}" active-class = "_active">Router Link 1</router-link>
+   <router-link v-bind:to = "{ path: '/route2'}" tag = "span">Router Link 2</router-link>
+</p>
+```
+
+配置当链接被精确匹配的时候应该激活的 class。可以通过以下代码来替代。
+
+```html
+<p>
+   <router-link v-bind:to = "{ path: '/route1'}" exact-active-class = "_active">Router Link 1</router-link>
+   <router-link v-bind:to = "{ path: '/route2'}" tag = "span">Router Link 2</router-link>
+</p>
+```
+
+声明可以用来触发导航的事件。可以是一个字符串或是一个包含字符串的数组。
+
+```html
+<router-link v-bind:to = "{ path: '/route1'}" event = "mouseover">Router Link 1</router-link>
+```
+
+以上代码设置了 event 为 mouseover ，及在鼠标移动到 Router Link 1 上时导航的 HTML 内容会发生改变。
+
+
+
+#### 混入
+
+```js
+// 定义混入对象
+const myMixin = {
+  created() {
+    this.hello()
+  },
+  methods: {
+    hello() {
+      console.log('欢迎来到混入实例-RUNOOB!')
+    }
+  }
+}
+ 
+// 定义一个应用，使用混入
+const app = Vue.createApp({
+  mixins: [myMixin]
+})
+ 
+app.mount('#app') // => "欢迎来到混入实例-RUNOOB!"
+```
+
+会合并：
+
+```js
+const myMixin = {
+  data() {
+    return {
+      message: 'hello',
+      foo: 'runoob'
+    }
+  }
+}
+ 
+const app = Vue.createApp({
+  mixins: [myMixin],
+  data() {
+    return {
+      message: 'goodbye',
+      bar: 'def'
+    }
+  },
+  created() {
+    document.write(JSON.stringify(this.$data)) 
+  }
+})
+```
+
+结果为：
+
+```js
+{"message":"goodbye","foo":"runoob","bar":"def"}
+```
+
+
+
+### 组件库
+
+#### element
+
+[官网](https://element.eleme.cn/#/zh-CN/component/icon)
+
+
+
+## 模块
+
+### echart
+
+一个前端的绘图 js 包。可以绘制各种数据统计图，如柱状图等。[官网](https://echarts.apache.org/zh/index.html)
+
+#### 举例
+
+##### Vue
+
+绘制多个基础表格，如柱状图等。具体绘制方法查文档。展示一部分核心代码如下：
+
+鉴于一个 `.vue` 疑似只能创建一个绘图对象，所以这里采用了刷新的方法(懒得建两个 `.vue` 了)，采用前后端分离。在 Spring Boot 后端写好 Controller 接口如下：(不需要关注具体逻辑，只需要知道返回值格式)
+
+```java
+package com.example.express.controller;
+
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import com.example.express.bean.ResponseBean;
+import com.example.express.entity.article.ArticleEntity;
+import com.example.express.entity.company.CompanyEntity;
+import com.example.express.mapper.article.ArticleMapper;
+import com.example.express.mapper.company.CompanyMapper;
+
+@RestController
+@RequestMapping(value = "/stat")
+public class EchartController {
+    @Autowired
+    private ArticleMapper articleMapper;
+    @Autowired
+    private CompanyMapper companyMapper;
+
+    @GetMapping(value = "/getGoodsPricesRange")
+    public ResponseBean<List<Integer>> getGoodsPricesRange() {
+        List<Integer> lt = new LinkedList<>();
+        for (int i = 0; i < 4; ++i) {
+            lt.add(0);
+        }
+        List<ArticleEntity> goods = articleMapper.selectList(null);
+        int n = goods.size();
+        for (int i = 0; i < n; ++i) {
+            ArticleEntity good = goods.get(i);
+            double price = good.getCost();
+            if (price <= 10.0) {
+                lt.set(0, lt.get(0) + 1);
+            } else if (price <= 100.0) {
+                lt.set(1, lt.get(1) + 1);
+            } else if (price <= 1000.0) {
+                lt.set(2, lt.get(2) + 1);
+            } else {
+                lt.set(3, lt.get(3) + 1);
+            }
+        }
+        return ResponseBean.success(lt);
+    }
+
+    @GetMapping(value = "/getCompaniesGeoRanges")
+    public ResponseBean<Map<String, Integer>> getCompaniesGeoRanges() {
+        Map<String, Integer> m = new HashMap<>();
+        List<CompanyEntity> companies = companyMapper.selectList(null);
+        for (int i = 0, n = companies.size(); i < n; ++i) {
+            CompanyEntity company = companies.get(i);
+            String geo = company.getAddress();
+            if (m.get(geo) == null) {
+                m.put(geo, 1);
+            } else {
+                m.put(geo, m.get(geo) + 1);
+            }
+        }
+        return ResponseBean.success(m);
+    }
+}
+```
+
+其中，`ResponseBean` 是一个自定义模板类，有属性如下及其 getter, setter 等：
+
+```java
+private T data;
+private int code;
+private String info;
+```
+
+该接口使用 RESTful 风格传回给前端一个对象 `res`，其 `res.data` 就是这三个属性组成的对象。即 `res.data.data` 下的成员属性对应 `T` 模板的属性(或直接是基本数据类型)。
+
+在前端，写好 `src/api/index.js` 追加：
+
+```js
+export const getGoodsPricesRange = () => {
+  return request({
+    url: '/stat/getGoodsPricesRange',
+    method: 'get',
+  })
+}
+
+export const getCompaniesGeoRanges = () => {
+  return request({
+    url: '/stat/getCompaniesGeoRanges',
+    method: 'get'
+  })
+}
+```
+
+> 其中， request 是导入的 `src/utils/request` 对象，如下：
+>
+> ```js
+> import axios from "axios";
+> import {BASE_URL} from "@/config";
+> import {ElMessage} from "element-plus";
+> import {refreshToken} from "@/api";
+> import {getToken, setToken} from "@/utils/token";
+> import {useRouter} from "vue-router";
+> 
+> const request = axios.create({
+>   baseURL: BASE_URL,
+> })
+> 
+> // 是否正在刷新的标记
+> let isRefreshing = false
+> // 重试队列，每一项将是一个待执行的函数形式
+> let requests = []
+> 
+> request.interceptors.request.use(
+>   config => {
+>     if (isRefreshing) {
+>       return new Response(res => {
+>         requests.push(() => {
+>           res(request(config))
+>         })
+>       })
+>     } else {
+>       console.log("url = " + config.url);
+>       if (!config.url.startsWith("/account")) {
+>         config.headers['Authorization'] = 'Bearer ' + getToken()
+>       }
+>     }
+>     return config
+>   },
+>   error => {
+>     console.error(error)
+>     ElMessage.error(error.message)
+>     return Promise.reject(error)
+>   }
+> )
+> 
+> request.interceptors.response.use(
+>   response => {
+>     const router = useRouter()
+>     const responseData = response.data
+>     if (responseData.code === 20000) {
+>       if (!isRefreshing) {
+>         isRefreshing = true
+>         // 尝试刷新 refreshToken
+>         return refreshToken().then(res => {
+>           if (res.data.code === 10000) {
+>             setToken(res.data.auth.token)
+>             requests.forEach(cb => cb())
+>             requests = []
+>             return request(response.config)
+>           } else {
+>             router.push('/login')
+>           }
+>         }, err => {
+>           router.push('/login')
+>         }).finally(() => {
+>           isRefreshing = false
+>         })
+>       }
+>     } else if (responseData.code === 20001) {
+>       // refreshToken 失效，直接跳转登录界面
+>       router.push('/login')
+>       ElMessage.warning('登录过期')
+>       return Promise.reject(new Error("登录过期"))
+>     }
+>     return response
+>   },
+>   error => {
+>     console.error(error)
+>     ElMessage.error(error.message)
+>     return Promise.reject(error)
+>   }
+> )
+> 
+> export default request
+> ```
+
+由此，可以写一个 `src/views/stat.vue` 如下：
+
+```vue
+<template>
+    <div>
+        <div class="container">
+            <div @click="loadGoodsPricesRange" class="grayFont">点击生成商品价格分布图</div>
+            <div @click="loadCompaniesGeoRanges" class="grayFont">点击生成快递公司位置分布图</div>
+            <div>当前图表：{{ nowTitle }}</div>
+            <div id="echart"></div>
+        </div>
+    </div>
+</template>
+<script scoped>
+import * as echarts from 'echarts';
+import { getGoodsPricesRange, getCompaniesGeoRanges } from '@/api';
+export default {
+    data() {
+        return {
+            nowTitle: '商品价格分布图',
+        };
+    },
+    mychart: null,
+    // 页面初始化挂载dom
+    mounted() {//this.getLoadEcharts();
+        this.myChart = echarts.init(
+            document.getElementById("echart")
+        );
+        this.loadGoodsPricesRange();
+    },
+    methods: {
+        async loadGoodsPricesRange() {
+            this.myChart.clear();
+            this.nowTitle = '商品价格分布图';
+            var option = {
+                xAxis: {
+                    data: ['1~10元', '11~100元', '101~1000元', '>=1001元']
+                },
+                yAxis: {},
+                series: [
+                    {
+                        type: 'bar',
+                        data: [0, 1, 0, 0]
+                    }
+                ]
+            };
+            var res = await getGoodsPricesRange();
+            var rowData = res.data.data;
+            option.series[0].data = rowData;
+            this.myChart.setOption(option);
+        },
+
+        async loadCompaniesGeoRanges() {
+            this.myChart.clear();
+            this.nowTitle = '快递公司位置分布图';
+            var option2 = {
+                series: [{
+                    type: 'pie',
+                    data: [] //{value: , name: }
+                }]
+            };
+            var res = await getCompaniesGeoRanges();
+            var rowData = res.data.data;
+            for (let i in rowData) {
+                option2.series[0].data.push({
+                    value: rowData[i],
+                    name: i
+                });
+            }
+            console.log(option2);
+            this.myChart.setOption(option2);
+        }
+    }
+};
+</script>
+<style scoped>
+.container {
+    width: 500px;
+    height: 400px;
+    margin-left: 30px;
+}
+
+#echart {
+    width: 100%;
+    height: 100%;
+}
+.grayFont{
+    color: grey;
+}
+</style>
+```
+
+主要关注的是，一个是 Vue 的基本格式，一个是需要实现安装 nodejs 模块：
+
+```sh
+npm i echarts
+```
+
+使用如下代码创建一个(在 vue 里疑似只能创建唯一一个，尝试两个失败了，原因未知)指定的标签去渲染结果：
+
+```js
+echarts.init(document.getElementById("echart")); //这里传入的就是 template 里的标签id
+```
+
+如果需要反复绘图，每次绘图之前要清零，用 `.clear()` 方法。
+
+然后根据官网参数描述写一个 option 对象代表数据和表格类型，将其用 `.setOption(option)` 进行绘制。
 
 
 
 
 
-
-
-
-# 微信开发者
+# 微信小程序
 
 
 
