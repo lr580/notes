@@ -370,6 +370,12 @@ boolean 值为 `true`/`false`。默认 false
 
 Java规范没有明确的规定占内存多少字节，不同的JVM有不同的实现机制
 
+##### null
+
+[参考](https://blog.csdn.net/chinus_yan/article/details/120583287)
+
+null 是关键字，不是数据类型。是引用类型的默认值。不能强转基本数据类型。
+
 ##### 类型转换
 
 ###### 隐式
@@ -444,7 +450,7 @@ System.out.println(a.a1 + "??" + a.a2);
 System.out.println(b.a1 + "??" + b.a2);
 ```
 
-方法定义为final，可防止子类修改定义和实现。且final方法效率更高。private方法自动是final的。
+方法定义为final，可防止子类修改定义和实现(即重写)。且final方法效率更高。private方法自动是final的。
 
 final类不可以被继承，且所有方法被自动设置为final(成员属性不会)。如：
 
@@ -496,6 +502,17 @@ public class Main {
 java.lang包含String类，不需要import可以直接用。
 
 字符串字面量包含在双引号内。
+
+是final类，不可继承。
+
+> final 的原因：安全、性能
+>
+> - 如果字符串可变，可以被篡改，如出现 SQL 注入、访问危险文件等
+> - 多线程里不变的对象和值是线程安全的，可以在多个线程共享变量。一个线程若修改了字符串值，会产生新字符串对象
+> - `hashCode` 属性(int hash)不会变更，保证唯一性，集合类等可以缓存。避免重复计算哈希值，提高性能。
+> - 字符串不变使得可以做字符串常量池，减少创建相同字面量字符串。否则 `String.intern()` 失效，每次创建新字符串开辟新空间
+>
+> 假设可变，为 String 子类重写方法，绕过正常途径修改字符串值
 
 ##### 创建
 
@@ -584,11 +601,13 @@ toCharArray()方法
 
 ###### 去空白字符
 
-trim()方法 ，去除首尾空白字符，类似python的strip
+trim()方法 ，去除首尾空白字符(ascii 小于等于空格)，类似python的strip
 
 ###### 替换
 
 replace(原内容,新内容)方法，参数可以是char或String，两个参数类型一致。全部替换
+
+replaceFirst, replaceAll
 
 ###### 前后缀检测
 
@@ -723,6 +742,12 @@ for (byte i : b) {
 }
 ```
 
+###### 拼接
+
+concat。见下文常量池
+
+
+
 ##### 正则表达式
 
 ###### 语法
@@ -851,9 +876,13 @@ System.out.println("tw(adf).k".matches("[a-z]+(\\([a-z]*\\))*\\.[a-z]+"));
 
 ##### 字符串生成器
 
+StringBuffer、StringBuilder都代表可变的字符串对象，它们有共同的父类 AbstractStringBuilder，并且两个类的构造方法和成员方法也基本相同。不同的是，StringBuffer是线程安全的，而StringBuilder是非线程安全的，所以StringBuilder性能略高。一般情况下，要创建一个内容可变的字符串，建议优先考虑StringBuilder类
+
 StringBuilder对象，如果频繁附加字符串，速度快于String
 
-> 新建的初始容量是16字符(多出部分用append加)
+> 这是因为 String 的属性是不可变的，每次修改本质是用新的替换
+
+> 新建的初始容量是16字符(多出部分用append加)，每次扩容加倍。如果长度可知，可以构造时传进去，避免频繁扩容
 
 方法：
 
@@ -931,6 +960,79 @@ System.out.println(sb);
 
 
 > 没有 `toCharArray` 方法
+
+
+
+###### 线程安全分析
+
+StringBuilder 不安全的例子：
+
+```java
+public static void g() throws InterruptedException {
+    // 期望：运行中途大概率会报错，且运行结束后长度偏小
+    StringBuilder s = new StringBuilder();
+    for (int i = 0; i < 10; ++i) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                for (int j = 0; j < 1000; ++j) {
+                    s.append('a');
+                }
+            }
+        }).start();
+    }
+    Thread.sleep(100);
+    System.out.println(s.toString().length());
+}
+```
+
+理由：在父类 `AbstractStringBuilder` 里，有 char value 数组和 int count。然后在 append 方法直接调用父类的 append，内含 `count += len` 这一个非原子操作，所以导致 count 与 `value.length` 实际上不一致。
+
+之所以会报错是因为，假设两个线程同时检查完了扩容后时间片完，且当前剩下的位置只有一个字符，然后下一轮时，两个线程分别向 value 数组塞值，导致其中一个越界，所以会报错。
+
+而换成 StringBuffer，结果正确，因为它的 append 函数是 synchronized 关键字的。
+
+
+
+##### 常量池
+
+[参考](https://blog.csdn.net/tianyuzui6/article/details/124417267) , intern 方法
+
+具体而言每次有一个常量时，会自动添加到常量池，下次取常量赋值时自动把地址返回。
+
+```java
+String s1 = "白茶";
+String s2 = "白茶";
+String s3 = "白" + "茶";// 编译优化
+System.out.println(s1 == s2);// true
+System.out.println(s1 == s3);// true
+final String fs1 = "白";
+final String fs2 = "茶";
+String s4 = fs1 + fs2;
+System.out.println(s1 == s4);// strue
+String s5 = new String("白茶");// 不走常量池
+System.out.println(s1 == s5);// false
+String s6 = fs1.concat(fs2);
+System.out.println(s1 == s6);// false
+```
+
+JDK6 会把首次遇到的字符串实例复制到常量池中，并返回此引用
+
+JDK7及之后 会把首次遇到的字符串实例的引用添加到常量池中，并返回此引用
+
+注意到 new 时本身也用到了一个常量传进去，这代表实际上会多创建一个对象。(String 对象的数组指向常量池)
+
+字符串拼接的四种方法：
+
+- `+`。如果左右是直接量(如上例)，可以编译优化
+
+  如果是变量编译器用 `Builder` 优化。但拼接在循环时，每次循环编译器都创建实例再拼接即 `new StringBuilder().append(str)`
+
+- `StringBuilder`
+
+- `StringBuffer`
+
+- `concat`。先创建一个足以容纳两部分的字节数组，然后先后将其拼到数组，然后转字符串。大量拼接效率低于 Builder。只拼接两个优于。
 
 
 
@@ -1224,7 +1326,9 @@ System.out.println(++a * b-- - c); //30-8=22
 
 ###### System.out
 
-`System.out.println`，简写为syso，只能传一个参数，可以不传(输出单个空行)。功能类似python的print。`ln`的意思是 `line`，所以是小写LN
+`System.out.println`，简写为syso，只能传一个参数，可以不传(输出单个空行)。功能类似python的print。`ln`的意思是 `line`，所以是小写LN。可以输出 null(显示
+
+null)。
 
 `System.out.print`，区别在于不输出换行。
 
@@ -1338,6 +1442,8 @@ loop1: for (int i = 1; i < 10; ++i) {
 ### 对象
 
 #### 基本概念
+
+> 面向对象的三个基本特征：封装、继承、多态。
 
 ##### 类成员
 
@@ -1518,7 +1624,11 @@ public class FsLabel extends JLabel {
 
 ##### static
 
-由static修饰的变量、常量、方法称为静态变量、常量、方法。静态方法不能被重写。又称类变量，与实例变量区分。
+由static修饰的变量、常量、方法称为静态变量、常量、方法。静态方法不能被重写。又称类变量，与实例变量区分。类变量可以通过类名/对象名访问。
+
+> 静态方法存在方法区，跟类信息一起。对象存堆区。
+>
+> 类变量应在声明/静态块指定初始值。
 
 意义同C++。声明了static的是静态成员。可以用类名.静态成员调用(也可以不用，但是会扔警告)
 
@@ -1663,6 +1773,8 @@ Object类(对象类)是所有类的基类
 
 > mvc   redis高可用   nginx
 
+
+
 #### 包装类
 
 将基本类型(非对象)封装成类。其中Integer类、Long类、Short类是Number的子类。
@@ -1724,7 +1836,7 @@ System.out.println(Integer.toString(v));
 > 3. 两个都是new出来的,则为false。
 > 4. int和integer(new或非new)比较，都为true，因为会把Integer自动拆箱为int，其实就是相当于两个int类型比较。
 >
-> 具体而言，对 Object ，所有 `==` 比较的是两个对象地址是否相等。因为采用了缓存，所以所有 `[-128,127]` 的值的地址都是相等的，而在这之外的值没有缓存，会新建，故地址不一样。
+> 具体而言，对 Object ，所有 `==` 比较的是两个对象地址是否相等。因为采用了缓存，所以所有 `[-128,127]` 的值的地址都是相等的，而在这之外的值没有缓存，会新建，故地址不一样。(整型字面量的值这之间，那么不会 new 新的 Integer 对象，而是直接引用常量池中的 Integer 对象)点进源码可以看 `IntegerCache` 方法。127 可以调更高。同理，Short, Byte, Long 也做了一样区间的缓存，但不可调。
 >
 > 如：
 >
@@ -1740,6 +1852,16 @@ System.out.println(Integer.toString(v));
 > System.out.println(p == q);
 > System.out.println(x == 580);
 > ```
+>
+> 特别注意，如果要比较不同的 Number 类的值， equals 是不行的，要转，如：
+>
+> ```java
+> Integer i = 100;
+> Double d = 100.0;
+> System.out.println(i.doubleValue() == d.doubleValue());
+> ```
+
+
 
 ###### 常量
 
@@ -2256,6 +2378,16 @@ try{
 
 ### 其他
 
+#### native
+
+[参考](https://blog.csdn.net/funneies/article/details/8949660?spm=1001.2101.3001.6650.1&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-1-8949660-blog-125702170.pc_relevant_3mothn_strategy_and_data_recovery&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-1-8949660-blog-125702170.pc_relevant_3mothn_strategy_and_data_recovery&utm_relevant_index=2)
+
+修饰方法的关键字，表示该方法的实现不在当前文件，而使用 C/C++ 等实现的文件。
+
+JNI 是 Java native interface，是 JDK 的一部分，允许 java 代码使用其他语言的代码。
+
+
+
 #### 二级考试
 
 杂项知识点补充：
@@ -2366,7 +2498,7 @@ Canvas 代表屏幕上一块空白矩形区域
 
 声明了final的函数不可以被子类重写。声明了final的类不可以被继承。
 
-重写时修饰权限只能从小的范围到大的范围改变。如protected可以改为public，但不能改为private。重写方法名、参数序列、返回值必须跟父类一致。重写抛出的异常不可以比父类更宽泛。
+重写时修饰权限只能从小的范围到大的范围改变。如protected可以改为public，但不能改为private。重写方法名、参数序列、返回值必须跟父类一致(或小于等于(子类))。重写抛出的异常不可以比父类更宽泛。且 private 方法无法重写(即不能加 @override, 声明出来认为是新的方法)。(区别重载，见下文)。构造方法不能重写。
 
 实例化子类对象时，父类无参构造函数将会被自动调用。有参构造函数只能使用super显式调用。
 
@@ -2430,6 +2562,8 @@ u.f();
 
 Object类的 `getClass, notify, notifyAll, wait`方法是fianl类
 
+> 还有 finalize 方法，认为是析构函数，GC 调用该方法清理该对象。对一个对象只能调用一次。何时和是否调用不确定，不推荐主动调用。
+
 ##### 常用方法
 
 ###### getClass
@@ -2453,6 +2587,8 @@ System.out.println(x.getClass().getName().getClass());
 
 ###### toString
 
+默认返回 `运行时类名@十六进制hashcode值`。如 `test3.t04_2@15db9742`，哈希值转十进制为 `366712642`
+
 标准输出时等效于先调用toString方法。可以重写该方法，tab补全可以很快获得参数，如：
 
 ```java
@@ -2475,6 +2611,8 @@ System.out.println(new obj3(114514));
 
 ###### equals
 
+没有重写时，Object默认以 == 来实现，即比较两个对象的内存地址是否相同(基本数据类型才是值)
+
 同样是常用于重写的方法，如：
 
 ```java
@@ -2486,6 +2624,18 @@ public boolean equals(obj3 rhs) {
 //...
 System.out.println((new obj3(13)).equals(new obj3(13)));
 ```
+
+###### hashCode
+
+返回 int。默认根据地址计算。一般如果重写 equals 也要重写 hashCode
+
+###### clone
+
+protected。只能被子类重写/调用。
+
+###### wait
+
+wait, notify, notifyAll 方法控制线程暂停和运行。
 
 #### 类型转换
 
@@ -2509,7 +2659,7 @@ System.out.println(v instanceof obj4); //obj4 extends obj2
 
 ##### 向上转型
 
-将子类对象看作是父类对象被称为是向上转型。
+将子类对象看作是父类对象被称为是向上转型。Java 允许把一个子类对象直接赋给一个父类引用变量，无须任何类型转换，向上转型由系统自动完成。
 
 子类可以作父类使用，在参数或别的地方。如：
 
@@ -2540,6 +2690,36 @@ public class c1003 {
     }
 }
 ```
+
+当运行时调用该引用变量的方法时，其方法行为总是表现出子类方法的行为特征，而不是父类方法的行为特征，即多态。
+
+```java
+class t04_1 {
+    public void f() {
+        System.out.println("This is t041");
+    }
+}
+
+class t04_2 extends t04_1 {
+    @Override
+    public void f() {
+        System.out.println("This is t042");
+    }
+}
+
+public class t04 {
+    public static void main(String[] args) {
+        t04_2 obj = new t04_2();
+        obj.f();
+        t04_1 objf = obj;
+        objf.f();//都输出 t042
+    }
+}
+```
+
+将参数的类型定义为父类型。在调用程序时，则可以根据实际情况，传入该父类型的某个子类型的实例，这样就实现了多态。
+
+
 
 ##### 向下转型
 
@@ -2649,6 +2829,26 @@ a.f();
 > 接口可以定义一堆常量当枚举类来用
 
 接口内方法添加 default 关键字可以定义方法。
+
+> 接口与抽象类的区别：
+>
+> - 接口体现规范，规定向外提供的服务。接口是多个模块的耦合标准，多个程序的通信标准
+>
+>   抽象类是模版式设计，实现的中间产品，未完善部分有多种实现方式
+>
+> - 接口只能有抽象、静态、默认、私有方法，不为普通方法提供方法实现。抽象类可以包含普通方法
+>
+> - 接口只能定义静态常量，不能定义普通成员变量 (默认 final)
+>
+> - 接口不包含构造器，抽象类的构造器不用于创建对象而是让子类调用
+>
+> - 接口不能包含初始化块
+>
+> - 一个类可以实现多个接口，只能实现一个抽象类
+>
+> - 抽象类和接口都不能被实例化，都可以包含抽象方法
+>
+> 接口体现的是一种规范和实现分离的设计哲学，充分利用接口可以极好地降低程序各模块之间的耦合，从而提高系统的可扩展性和可维护性。基于这种原则，很多软件架构设计理论都倡导“面向接口”编程，而不是面向实现类编程，希望通过面向接口编程来降低程序的耦合
 
 代码举例：
 
@@ -3101,11 +3301,15 @@ public class c1206 {
 
 ##### 静态内部类
 
-静态内部类可以声明static成员。非静态内部类不可以。静态内部类不可以使用外部类的非静态成员。
+静态内部类(类内部类)可以声明static成员。非静态内部类不可以。静态内部类不可以使用外部类的非静态成员。
+
+> static关键字的作用是把类的成员变成类相关，而不是实例相关，即static修饰的成员属于整个类，而不属于单个对象。外部类的上一级程序单元是包，所以不可使用static修饰
 
 如果创建静态内部类对象，不需要其外部类对象。
 
 不能从静态内部类的对象中访问非静态外部类的对象。
+
+静态内部类可以包含静态或非静态成员。
 
 ```java
 class ntmv {
@@ -3125,6 +3329,8 @@ public class c1202 {
 ```
 
 特别地，如果每个java文件都有一个main，会出现很多main的内容在编译后产生；如果不希望有或希望可以删了，可以将main放到静态内部类里，那么main的内容在 `外部public类名$内部类名`独立类里。
+
+可以被继承。
 
 ##### 继承
 
@@ -3243,7 +3449,13 @@ public class c1704 {
 
 也可以向上限制，用`<? super 类>` ，那么只接受该类或其父类。
 
-泛型类/接口可以被继承和实现。如果保留父类的泛型类型，继承的时候要指明，否则 extends 后面不加泛型符号`<>` >，且子类所有模板自动变成 Object 。
+泛型类/接口可以被继承和实现。如果保留父类的泛型类型，继承的时候要指明，否则 extends 后面不加泛型符号`<>`，且子类所有模板自动变成 Object 。
+
+> java 早期允许把 Integer 数组赋值给 Number，但是 Double 对象保存进去编译能过而运行报错。之后不再允许 `List<Integer>` 赋值给 `List<Number>`
+>
+> 若 Foo 是 Bar 子类型(子类/子接口)，则 Foo 数组仍然是 Bar 子类型，而 `G<Foo>` 不是`G<Bar>` 子类型。Foo 数组自动向上转型为 Bar 数组是型变。而 Java 集合不支持型变。
+>
+> 泛型设计原则：代码编译不警告，则运行不会遇到 `ClassCastException`
 
 如：
 
@@ -3360,7 +3572,53 @@ public String stat_sum() {
 
 
 
+##### 泛型擦除
+
+严格泛型代码，带泛型声明的类总应该带类型参数，为了与老 Java 一致，也允许不指定，此时称为原始类型 raw type，默认是声明该泛型形参时指定的第一个上限类型。
+
+将一个具有泛型信息的对象赋给没有信息的变量时，尖括号内容1扔掉，且转换后检查类型变成了上限 Object。
+
+而如果返过来，将一个没写类型的变量给泛型对象，会报警报未经检查的转换(泛型转换)。
+
+```java
+@SuppressWarnings("unchecked")
+public static void main(String[] args) {
+    List<String> x = new ArrayList<>();
+    x.add("禾枫");
+    @SuppressWarnings("rawtypes")
+    List y = x;//引用
+    y.add(1437580);
+    System.out.println(x.size());
+    //String s = x.get(1); (报错
+    Integer s = (Integer) y.get(1);
+    System.out.println(s);
+}
+```
+
+```java
+@SuppressWarnings("unchecked")
+private static void f() {
+    @SuppressWarnings("rawtypes")
+    List x = new ArrayList<>();
+    List<String> y = x;
+    y.add("弥明");
+    x.add("云烟");
+    String s = y.get(1);
+    System.out.println(s);
+}
+```
+
+
+
+
+
 #### 反射
+
+> Java 对象运行时表现为两种类型，编译时类型和运行时类型。如：`List<Integer> a = new ArrayList<>()`，则编译时类型前者，运行时类型后者。
+>
+> 程序需要调用运行时类型的方法时，若假设已知可能是什么类，可以加 `instanceof` 判断+强转。如果无法预知，则靠运行时信息发现真实信息，使用反射。先获取一个类的 Class 对象，查询类信息，然后通过反射创建任意一个类实例，并访问成员。生成类的动态代理类/对象。
+>
+> 用 JDBC 时，通过反射加载数据库驱动程序。框架的 注解/XML配置解析的类字符串利用反射机制实例化。AOP 实现是程序运行时创建目标对象代理类。
 
 主要依据为 `Class` 。
 
@@ -4099,9 +4357,9 @@ try {
 
 
 
+#### 其他
 
-
-#### 单例模式
+##### 单例模式
 
 java单例模式是一种常见的设计模式，单例模式分三种：懒汉式单例、饿汉式单例、登记式单例三种。
 
@@ -4127,7 +4385,7 @@ public static synchronized ElementManager getManager() {
 
 
 
-#### POJO
+##### POJO
 
 POJO（Plain Ordinary Java Object）简单的Java对象 作用是方便程序员使用数据库中的数据表
 
@@ -4159,6 +4417,13 @@ String str = new String("abcd");
 
 但内存没有任何一个引用指向时，会被GC回收。
 
+- 强引用。程序创建对象，赋值给引用变量。通过引用操作实际变量。对象被一个或以上引用变量引用时处于可达状态，不能被 GC。
+- 软引用。可能被 GC。足够时一般不回收。
+- 弱引用。级别比软引用更低，不管内存够不够都会 GC 运行就回收
+- 虚引用。和没有引用差不多，主要用于跟踪对象 GC 状态。不能单独使用必须和引用队列联合使用。
+
+
+
 
 
 ### 异常
@@ -4175,7 +4440,7 @@ System.out.println("b"); //不输出
 
 > 异常是java提供的用于处理程序中错误的一种机制；异常产生时，不会自动跳转到异常处理程序
 >
-> `RuntimeException` 异常是程序运行过程中产生的异常， Java 类库每个包都定义了异常类，都是 `Throwable` 类的子类。分为 `Exception` 和 `Error` 类。 `Error` 类及其子类用来描述 Java 运行系统中的内部错误以及资源耗尽的错误，比较严重(致命错误)，如 `LinkageError, IOError` 等。 `Exception` 是非致命性错误，可以通过捕捉处理使得程序继续执行，分为 `RuntimeException` 和其他异常。前者可以细分为 `ClassCastException` , `ArraySizeException` 等。有空指针，越界，算术异常，数组包含不兼容值，非法参数，安全性和负数组长度。
+> `RuntimeException` 异常是程序运行过程中产生的异常， Java 类库每个包都定义了异常类，都是 `Throwable` 类的子类。分为 `Exception` 和 `Error` 类。 `Error` 类及其子类用来描述 Java 运行系统中的内部错误以及资源耗尽的错误，比较严重(致命错误)，如 `LinkageError, IOError` 等，不应捕获。 `Exception` 是非致命性错误，可以通过捕捉处理使得程序继续执行，分为 `RuntimeException` 和其他异常。前者可以细分为 `ClassCastException` , `ArraySizeException` 等。有空指针，越界，算术异常，数组包含不兼容值，非法参数，安全性和负数组长度。
 
 #### try
 
@@ -4205,6 +4470,18 @@ try {
 
 支持嵌套。除try外出现别的异常还是会报错。
 
+> 从小到大如：
+>
+> ```java
+> try {
+>     System.out.println(1 / 0);
+> } catch (ArithmeticException e) {
+>     System.out.println("不行哦");//do
+> } catch (Exception e) {
+>     e.printStackTrace();//not do
+> }
+> ```
+
 #### throw
 
 抛出的格式为 `throw new 异常类名(异常信息参数)`。参数可以不填。
@@ -4220,7 +4497,7 @@ try {
 ```
 
 ```java
- public static void main(String[] args) throws Exception {
+public static void main(String[] args) throws Exception {
      throw new EOFException("qwq");
  }
 ```
@@ -4236,13 +4513,52 @@ public static void main(String[] args) throws Exception {
 }
 ```
 
+#### finally
+
+不管try块中的代码是否出现异常，也不管哪一个catch块被执行，甚至在try块或catch块中执行了return语句，finally块总会被执行。在通常情况下，不要在finally块中使用return、throw等导致方法终止的语句，一旦在finally块中使用了return、throw语句，将会导致try块、catch块中的return、throw语句失效。
+
+```java
+private static int f() {
+    try {
+        System.out.println(1 / 0);
+    }  catch (Exception e) {
+        System.out.println("awa");//先输出
+        return 1;//返回这个
+    }finally {
+        System.out.println("QwQ");//后输出
+        //return 2; 有的话报错
+    }
+    return 0;
+}
+```
+
+```java
+private static int f() {
+    try {
+        System.out.println(1 / 0);
+    }  catch (Exception e) {//有的话也先输出awa
+        return 1;
+    }finally {
+        System.out.println("QwQ");
+        return 2;
+    }
+    //return 0;有的话报错
+}
+```
+
+
+
+
+
 #### 异常类
 
 ##### Exception
 
-Exception是Throwable类的子类。
+Exception(异常)是Throwable类的子类。
 
-> Error是另一个Throwable子类。一般是运行系统内部错误、资源耗尽等致命错误，比Exception这类非致命错误严重。
+> Error(错误)是另一个Throwable子类。一般是运行系统内部错误、资源耗尽等致命错误，比Exception这类非致命错误严重。
+
+Exception是异常，它被分为两大类，分别是Checked异常和Runtime异常。所有的RuntimeException类及其子类的实例被称为Runtime异常；不是RuntimeException类及其子类的异常实例则被称为Checked异常。Java认为Checked异常都是可以被处理（修复）的异常，所以Java程序必须显式处理Checked异常。如果程序没有处理Checked异常，该程序在编译时就会发生错误，无法通过编译。Runtime异常则更加灵活，Runtime异常无须显式声明抛出，如果程序需要捕获Runtime异常，也可以使用try...catch块来实现。
 
 三个常用方法为：
 
@@ -8383,8 +8699,6 @@ public class Lab8_4 extends JFrame {
 
 ### 集合类
 
-> ==有待进一步完善==
-
 继承关系为：
 
 ```mermaid
@@ -8403,6 +8717,25 @@ graph TD;
 
 > 注意 Collection, List 和 Set 是接口，诸如 `ArrayList` 才是类。
 
+![img](img/74C2C3389688C6364FF2DE8AA768A039.jpeg)
+
+![img](img/E26BABF74692B006DA33C112A6FD5EEC.jpeg)
+
+> 实现箭头是泛化，虚线箭头是实现
+
+> `java.util` 下大部分是线程不安全的，而 `Collections` 工具类的 `synchronizedXxx` 方法包装可成线程安全的。`util` 下 `Vector, Hashtable` 是古老的线程安全的性能差的集合类。
+>
+> Java 5 开始，`java.util.concurrent` 包下提供支持高效并发的类：
+>
+> - 以 `Concurrent` 开头的集合类支持并发访问和写入，读不必锁定。保证不会永远锁住整个集合。
+> - 以 `CopyOnWrite` 开头的，复制底层数组来写。读时直接读集合本身无需加锁和阻塞，写对副本操作。
+>
+> 线程安全的如下：
+>
+> ![img](img/53AA859E1B3A9CD7709DF9366999B88D.jpeg)
+>
+> Collections工具类可以将一个Map转换成线程安全的实现，其实也就是通过一个包装类，然后把所有功能都委托给传入的Map，而包装类是基于synchronized关键字来保证线程安全的（Hashtable也是基于synchronized关键字），底层使用的是互斥锁，性能与吞吐量比较低
+
 #### 通用操作
 
 可以如下方便载入：
@@ -8412,6 +8745,10 @@ import java.util.*;
 ```
 
 创建一个集合类：`集合类名<模板类名> 实例名=new 集合类名<>();`
+
+> 从Java 5开始，Java引入了“参数化类型”的概念，允许程序在创建集合时指定集合元素的类型，Java的参数化类型被称为泛型（Generic）。例如 `List<String>`，表明该List只能保存字符串类型的对象。
+>
+> 有了泛型以后，程序再也不能“不小心”地把其他对象“丢进”集合中。而且程序更加简洁，集合自动记住所有集合元素的数据类型，从而无须对集合元素进行强制类型转换。
 
 模板类不能基本数据类型如 `int`，但是可以是 `Integer`。因为这是对象数组。也可以不用模板类。
 
@@ -8562,13 +8899,13 @@ public class foreach {
 
 新方法：
 
-- get(int index) 指定索引的元素(索引从0开始)
+- get(int index) 指定索引的元素(索引从0开始)，越界报错 `IndexOutOfBoundsException`
 - set(int index, Object obj) 修改该索引对象为 obj
 
 有两种实现类：
 
 - ArrayList 数组实现的，可变长，允许保存含 `null` 的元素，向指定位置插入或删除元素较慢，更常用
-- LinkedList 链表实现的，优点时集中插入删除快，但随机访问效率低
+- LinkedList 双向链表实现的，优点时集中插入删除快，但随机访问效率低，内存占用大
 
 如：
 
@@ -8655,6 +8992,29 @@ public class Lab6_4 {
 }
 ```
 
+> ArrayList的底层是用数组来实现的，默认第一次插入元素时创建大小为10的数组，超出限制时会增加50%的容量，并且数据以 System.arraycopy() 复制到新的数组，因此最好能给出数组大小的预估值
+>
+> 线程安全的 List：
+>
+> 1. Vector 较古老的API，虽然保证了线程安全，但是由于效率低一般不建议使用。
+>
+> 2. Collections.SynchronizedList
+>
+>    SynchronizedList是Collections的内部类，Collections提供了synchronizedList方法，可以将一个线程不安全的List包装成线程安全的List，即SynchronizedList。它比Vector有更好的扩展性和兼容性，但是它所有的方法都带有同步锁，也不是性能最优的List。
+>
+> 3. CopyOnWriteArrayList
+>
+>    CopyOnWriteArrayList是Java 1.5在java.util.concurrent包下增加的类，它采用复制底层数组的方式来实现写操作。当线程对此类集合执行读取操作时，线程将会直接读取集合本身，无须加锁与阻塞。当线程对此类集合执行写入操作时，集合会在底层复制一份新的数组，接下来对新的数组执行写入操作。由于对集合的写入操作都是对数组的副本执行操作，因此它是线程安全的。在所有线程安全的List中，它是性能最优的方案
+>
+>    简单来说它就是一个线程安全且读操作无锁的ArrayList。在写操作时会复制一份新的List，在新的List上完成写操作，然后再将原引用指向新的List。这样就保证了写操作的线程安全。
+>
+>    CopyOnWriteArrayList允许线程并发访问读操作，这个时候是没有加锁限制的，性能较高。写操作是上锁的。结束之后再将原容器的引用指向新容器。注意，在上锁执行写操作的过程中，如果有需要读操作，会作用在原容器上。因此上锁的写操作不会影响到并发访问的读操作。
+>
+>    - 优点：读操作性能很高，因为无需任何同步措施，比较适用于读多写少的并发场景。在遍历传统的List时，若中途有别的线程对其进行修改，则会抛出ConcurrentModificationException异常。而CopyOnWriteArrayList由于其"读写分离"的思想，遍历和修改操作分别作用在不同的List容器，所以在使用迭代器进行遍历时候，也就不会抛出ConcurrentModificationException异常了。
+>    - 缺点：一是内存占用问题，每次执行写操作都要将原容器拷贝一份，数据量大时，对内存压力较大，可能会引起频繁GC。二是无法保证实时性，Vector对于读写操作均加锁同步，可以保证读和写的强一致性。而CopyOnWriteArrayList由于其实现策略的原因，写和读分别作用在新老不同容器上，在写操作执行过程中，读不会阻塞但读取到的却是老容器的数据。
+
+
+
 #### Set
 
 set会跳过重复数据。传入数据有重复值或可变元素改变了自身状态导致 `Object.equals(Object)==true` 会出问题。
@@ -8662,7 +9022,7 @@ set会跳过重复数据。传入数据有重复值或可变元素改变了自�
 实现类有：
 
 - HashSet 由 HashMap 支持，不保证迭代顺序不变，允许使用 `null`
-- TreeSet 实现了 `java.util.SortedSet` ，按递增顺序排序
+- TreeSet 实现了 `java.util.SortedSet` ，按递增顺序排序，不能 null
 
 TreeSet 新方法：
 
@@ -8786,15 +9146,20 @@ public class c1403 {
 
 ```
 
+> HashSet是基于HashMap实现的，默认构造函数是构建一个初始容量为16，负载因子为0.75 的HashMap。它封装了一个 HashMap 对象来存储所有的集合元素，所有放入 HashSet 中的集合元素实际上由 HashMap 的 key 来保存，而 HashMap 的 value 则存储了一个 PRESENT，它是一个静态的 Object 对象
+
+
+
 #### Map
 
 不继承 Collection 。Map 接口提供了集合的常用方法，和下面方法：
 
-- put(K key, V value) 向集合中添加键值对
+- put(K key, V value) 向集合中添加键值对(已有则覆盖)
 - putAll() 是集合版的 addAll
 - containsKey(K key) 如果有key返回true
 - containsValue(V value) 若存在key的value是参数返回true
 - get(K key) 存在返回对应value，否则 `null`
+- getOrDefault(K, V) 如果有就取，没有就返回 V
 - keySet() 返回key组成的Set集合
 - values() 返回集合值组成的Collection集合
 - celingKey(K key) 返回第一个大于等于key的键
@@ -8810,7 +9175,11 @@ Map 允许值对象是 `null` 且没有个数限制。
 - HashMap 基于哈希表，允许使用 null 值或键，需要保证键唯一性
 - TreeMap 实现了 `java.util.SortedMap` ，添加删除和定位性能不如前者，不允许键是 `null`
 
-如：
+> 不需要排序优先考虑 `HashMap`, 性能最好。线程安全 `ConcurrentHashMap`，比 `Hashtable` 性能更好，put 时采用分段锁/CAS的加锁机制，后者 put/get 都做同步处理。
+>
+> 要排序，按插入顺序用 `LinkedHashMap`，按 key 排序 `TreeMap`。线程安全用 `Collections` 工具类将其包装。
+
+代码例子如：
 
 ```java
 import java.util.HashMap;
@@ -8873,6 +9242,48 @@ public class c1405 {
     }
 }
 ```
+
+> TreeMap包含几个重要的成员变量：root、size、comparator。其中root是红黑树的根节点。它是Entry类型，Entry是红黑树的节点，它包含了红黑树的6个基本组成：key、value、left、right、parent和color。Entry节点根据根据Key排序，包含的内容是value
+>
+> `HashMap` 的 put 的过程：
+>
+> ![img](img/18330EB2310CB83A25FA317E65ED60EB.png)
+>
+> 1. 若数组为空，进行第一次扩容 resize
+> 2. 若当前位置为空，直接插入；不为空且 key 已存在则覆盖；不为空且 key 不存在将其链到单向链表末端；链表长度达到 8 就转红黑树(小于又转回去)
+> 3. 如果数组中元素个数 size 超过 threshold，再次扩容。默认装填因子是 0.75，初始容量 16，每次扩容让容量翻倍
+>
+> JDK7 不会转红黑树，导致如果有 n 个冲突元素就 O(n) 暴力，转红黑树后能对数级找冲突。递增维护 Entry 数组。JDK8 维护 Node 数组。
+>
+> 具体扩容：装填因子可以构造器传入，如果大于 1 就不会扩容。检查是否转红黑树前，还判断当前数组是否达到阈值(64)，没达到先扩充数组，所以可能会出现放弃转换。
+>
+> 因为 hashCode 是 int，而对应到 map 里只需要取它的低位，每次扩容后只需要多看一位就能重新判断所在位置，所以无需重新计算哈希值。
+>
+> hashmap 的循环链表产生：在多线程的情况下，当重新调整HashMap大小的时候，就会存在条件竞争，因为如果两个线程都发现HashMap需要重新调整大小了，它们会同时试着调整大小。在调整大小的过程中，存储在链表中的元素的次序会反过来，因为移动到新的bucket位置的时候，HashMap并不会将元素放在链表的尾部，而是放在头部，这是为了避免尾部遍历。如果条件竞争发生了，那么就会产生死循环了。put 时产生链表是线程不安全的原因
+>
+> B/B+树多用于外存上时，B/B+也被成为一个磁盘友好的数据结构。如果用B/B+树的话，在数据量不是很多的情况下，数据都会“挤在”一个结点里面，这个时候遍历效率就退化成了链表。
+>
+> Hashtable不允许使用null作为key和value，它的命名甚至没有遵守Java的命名规范：每个单词的首字母都应该大写，但因大量Java程序中使用了Hashtable类，所以这个类名也就不能改为HashTable了，否则将导致大量程序需要改写
+>
+> 在 jdk 1.7 中，ConcurrentHashMap 是由 Segment 数据结构和 HashEntry 数组结构构成，采取分段锁来保证安全性。Segment 是 ReentrantLock 重入锁，在 ConcurrentHashMap 中扮演锁的角色，HashEntry 则用于存储键值对数据。一个 ConcurrentHashMap 里包含一个 Segment 数组，一个 Segment 里包含一个 HashEntry 数组，Segment 的结构和 HashMap 类似，是一个数组和链表结构。
+>
+> <img src="img/A064CF0DD49D1B3694548913C28728DB.png" alt="img" style="zoom:50%;" />
+>
+> JDK1.8 的实现已经摒弃了 Segment 的概念，而是直接用 Node 数组+链表+红黑树的数据结构来实现，并发控制使用 Synchronized 和 CAS 来操作，整个看起来就像是优化过且线程安全的 HashMap，虽然在 JDK1.8 中还能看到 Segment 的数据结构，但是已经简化了属性，只是为了兼容旧版本
+>
+> <img src="img/9C8ABF1CD3475339A49DE3B9E1696FE7.png" alt="img" style="zoom:50%;" />
+>
+> Segment的get操作实现非常简单和高效，先经过一次再散列，然后使用这个散列值通过散列运算定位到 Segment，再通过散列算法定位到元素。get操作的高效之处在于整个get过程都不需要加锁，除非读到空的值才会加锁重读。原因就是将使用的共享变量定义成 volatile 类型
+>
+> 当执行put操作时，会经历两个步骤：判断是否需要扩容；定位到添加元素的位置，将其放入 HashEntry 数组中。
+>
+> 插入过程会进行第一次 key 的 hash 来定位 Segment 的位置，如果该 Segment 还没有初始化，即通过 CAS 操作进行赋值，然后进行第二次 hash 操作，找到相应的 HashEntry 的位置，这里会利用继承过来的锁的特性，在将数据插入指定的 HashEntry 位置时（尾插法），会通过继承 ReentrantLock 的 tryLock() 方法尝试去获取锁，如果获取成功就直接插入相应的位置，如果已经有线程获取该Segment的锁，那当前线程会以自旋的方式去继续的调用 tryLock() 方法去获取锁，超过指定次数就挂起，等待唤醒。
+>
+> LinkedHashMap使用双向链表来维护key-value对的顺序（其实只需要考虑key的顺序），该链表负责维护Map的迭代顺序，迭代顺序与key-value对的插入顺序保持一致。
+>
+> LinkedHashMap可以避免对HashMap、Hashtable里的key-value对进行排序（只要插入key-value对时保持顺序即可），同时又可避免使用TreeMap所增加的成本。
+>
+> LinkedHashMap需要维护元素的插入顺序，因此性能略低于HashMap的性能。但因为它以链表来维护内部顺序，所以在迭代访问Map里的全部元素时将有较好的性能
 
 
 
@@ -8953,9 +9364,15 @@ public class c1608 {
 是接口，有方法如下：
 
 - `isEmpty()`
+
 - `peek()` 取队首
+
 - `poll()` 队首出队
+
 - `add()` 入队新元素
+
+  > 注: 返回 true 如果成功，否则报错；如果用 `offer` 方法，功能等效但如果不成功不报错而返回 false
+
 - `size()` 元素数
 
 下有 `PriorityQueue` 优先级队列，构造函数可以传一个对象，其类为 `Comparator<类名> cmp` 作参数作为比较依据来自定义，需要实现 `public int compare(对象, 对象)` ，前者大返回正数；小负数，相等 $0$
@@ -9019,7 +9436,69 @@ public static void dijkstra(int s, int type) {// 以s为源点跑最短路,type=
 }
 ```
 
+也可以传 Comparable，如：
 
+```java
+import java.util.PriorityQueue;
+
+public class t03 {
+    class node implements Comparable<node> {
+        int i, v;
+
+        node(int i, int v) {
+            this.i = i;
+            this.v = v;
+        }
+        
+        @Override
+        public int compareTo(node rhs) {
+            return this.v - rhs.v;
+        }//right hand side
+    }
+    
+    public void f() {
+        PriorityQueue<node> q = new PriorityQueue<>();
+        q.add(new node(1,10));
+        q.add(new node(2,5));
+        System.out.println(q.peek().i);
+    }
+}
+```
+
+> 为了应对不同的业务场景，BlockingQueue 提供了4 组不同的方法用于插入、移除以及对队列中的元素进行检查。如果请求的操作不能得到立即执行的话，每组方法的表现是不同的。这些方法如下：
+>
+> |      | 抛异常    | 特定值   | 阻塞   | 超时                 |
+> | ---- | --------- | -------- | ------ | -------------------- |
+> | 插入 | add(e)    | offer(e) | put(e) | offer(e, time, unit) |
+> | 移除 | remove()  | poll()   | take() | poll(time, unit)     |
+> | 检查 | element() | peek()   |        |                      |
+
+> - 抛异常：如果操作无法立即执行，则抛一个异常；
+> - 特定值：如果操作无法立即执行，则返回一个特定的值(一般是 true / false)。
+> - 阻塞：如果操作无法立即执行，则该方法调用将会发生阻塞，直到能够执行；
+> - 超时：如果操作无法立即执行，则该方法调用将会发生阻塞，直到能够执行。但等待时间不会超过给定值，并返回一个特定值以告知该操作是否成功(典型的是true / false)。
+>
+> BlockingQueue(任意时刻只有一个线程可以进行take或者put操作)是一个接口，它的实现类有ArrayBlockingQueue、DelayQueue、 LinkedBlockingQueue、PriorityBlockingQueue、SynchronousQueue等。它们的区别主要体现在存储结构上或对元素操作上的不同，但是对于put与take操作的原理是类似的。
+>
+> ArrayBlockingQueue的构造函数，它初始化了put和take函数中用到的关键成员变量，这两个变量的类型分别是ReentrantLock和Condition。ReentrantLock是AbstractQueuedSynchronizer（AQS）的子类，它的newCondition函数返回的Condition实例，是定义在AQS类内部的ConditionObject类，该类可以直接调用AQS相关的函数。
+>
+> put函数会在队列末尾添加元素，如果队列已经满了，无法添加元素的话，就一直阻塞等待到可以加入为止。函数的源码如下所示。put函数使用了wait/notify的机制。与一般生产者-消费者的实现方式不同，同步队列使用ReentrantLock和Condition相结合的机制，即先获得锁，再等待，而不是synchronized和wait的机制。
+>
+> take函数在队列为空时会被阻塞，一直到阻塞队列加入了新的元素。
+>
+> ArrayBlockingQueue并没有使用Object.wait，而是使用的Condition.await，Condition对象可以提供和Object的wait和notify一样的行为，但是后者必须先获取synchronized这个内置的monitor锁才能调用，而Condition则必须先获取ReentrantLock。这两种方式在阻塞等待时都会将相应的锁释放掉，但是Condition的等待可以中断，这是二者唯一的区别。
+>
+> await函数的流程大致如下图所示。await函数主要有三个步骤，一是调用addConditionWaiter函数，在condition wait queue队列中添加一个节点，代表当前线程在等待一个消息。然后调用fullyRelease函数，将持有的锁释放掉，调用的是AQS的函数。最后一直调用isOnSyncQueue函数判断节点是否被转移到sync queue队列上，也就是AQS中等待获取锁的队列。如果没有，则进入阻塞状态，如果已经在队列上，则调用acquireQueued函数重新获取锁。
+>
+> ![img](img/37DE256DECC211F4D5230BF7A654E128.png)
+>
+> signal函数将condition wait queue队列中队首的线程节点转移等待获取锁的sync queue队列中。这样的话，await函数中调用isOnSyncQueue函数就会返回true，导致await函数进入最后一步重新获取锁的状态。
+>
+> condition wait queue是等待消息的队列，因为阻塞队列为空而进入阻塞状态的take函数操作就是在等待阻塞队列不为空的消息。而sync queue队列则是等待获取锁的队列，take函数获得了消息，就可以运行了，但是它还必须等待获取锁之后才能真正进行运行状态。
+>
+> signal函数其实就做了一件事情，就是不断尝试调用transferForSignal函数，将condition wait queue队首的一个节点转移到sync queue队列中，直到转移成功。因为一次转移成功，就代表这个消息被成功通知到了等待消息的节点。
+>
+> ![img](img/61A52D5795794D763D6F8D37D13AFE07.png)
 
 
 
@@ -9625,6 +10104,59 @@ public class c1506 {
     }
 }
 ```
+
+
+
+#### Stream
+
+Stream提供了大量的方法进行聚集操作，这些方法既可以是“中间的”，也可以是“末端的”。
+
+- 中间方法：中间操作允许流保持打开状态，并允许直接调用后续方法。上面程序中的map()方法就是中间方法。中间方法的返回值是另外一个流。
+- 末端方法：末端方法是对流的最终操作。当对某个Stream执行末端方法后，该流将会被“消耗”且不再可用。上面程序中的sum()、count()、average()等方法都是末端方法。
+
+除此之外，关于流的方法还有如下两个特征：
+
+- 有状态的方法：这种方法会给流增加一些新的属性，比如元素的唯一性、元素的最大数量、保证元素以排序的方式被处理等。有状态的方法往往需要更大的性能开销。
+- 短路方法：短路方法可以尽早结束对流的操作，不必检查所有的元素。
+
+下面简单介绍一下Stream常用的中间方法：
+
+- filter(Predicate predicate)：过滤Stream中所有不符合predicate的元素。
+- mapToXxx(ToXxxFunction mapper)：使用ToXxxFunction对流中的元素执行一对一的转换，该方法返回的新流中包含了ToXxxFunction转换生成的所有元素。
+- peek(Consumer action)：依次对每个元素执行一些操作，该方法返回的流与原有流包含相同的元素。该方法主要用于调试。
+- distinct()：该方法用于排序流中所有重复的元素（判断元素重复的标准是使用equals()比较返回true）。这是一个有状态的方法。
+- sorted()：该方法用于保证流中的元素在后续的访问中处于有序状态。这是一个有状态的方法。
+- limit(long maxSize)：该方法用于保证对该流的后续访问中最大允许访问的元素个数。这是一个有状态的、短路方法。
+
+下面简单介绍一下Stream常用的末端方法：
+
+- forEach(Consumer action)：遍历流中所有元素，对每个元素执行action。
+- toArray()：将流中所有元素转换为一个数组。
+- reduce()：该方法有三个重载的版本，都用于通过某种操作来合并流中的元素。
+- min()：返回流中所有元素的最小值。
+- max()：返回流中所有元素的最大值。
+- count()：返回流中所有元素的数量。
+- anyMatch(Predicate predicate)：判断流中是否至少包含一个元素符合Predicate条件。
+- noneMatch(Predicate predicate)：判断流中是否所有元素都不符合Predicate条件。
+- findFirst()：返回流中的第一个元素。
+- findAny()：返回流中的任意一个元素。
+
+除此之外，Java 8允许使用流式API来操作集合，Collection接口提供了一个stream()默认方法，该方法可返回该集合对应的流，接下来即可通过流式API来操作集合元素。由于Stream可以对集合元素进行整体的聚集操作，因此Stream极大地丰富了集合的功能。
+
+Java 8新增了Stream、IntStream、LongStream、DoubleStream等流式API，这些API代表多个支持串行和并行聚集操作的元素。上面4个接口中，Stream是一个通用的流接口，而IntStream、LongStream、DoubleStream则代表元素类型为int、long、double的流。
+
+Java 8还为上面每个流式API提供了对应的Builder，例如Stream.Builder、IntStream.Builder、LongStream.Builder、DoubleStream.Builder，开发者可以通过这些Builder来创建对应的流。
+
+独立使用Stream的步骤如下：
+
+1. 使用Stream或XxxStream的builder()类方法创建该Stream对应的Builder。
+2. 重复调用Builder的add()方法向该流中添加多个元素。
+3. 调用Builder的build()方法获取对应的Stream。
+4. 调用Stream的聚集方法。
+
+在上面4个步骤中，第4步可以根据具体需求来调用不同的方法，Stream提供了大量的聚集方法供用户调用，具体可参考Stream或XxxStream的API文档。对于大部分聚集方法而言，每个Stream只能执行一次。
+
+
 
 ### 多线程
 
@@ -13581,6 +14113,8 @@ public class c1607 {
 > import org.eclipse.jdt.annotation.Nullable;
 > // import org.springframework.lang.Nullable;
 > ```
+
+
 
 
 
