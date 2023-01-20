@@ -733,6 +733,148 @@ class Solution {
 
 
 
+##### 41\. 缺失的第一个正数
+
+[题目](https://leetcode.cn/problems/first-missing-positive/) 即 mex 问题。为了节省空间，采用原地哈希的方法，直接修改原始数组。
+
+显然 $> n$ 的以及负数都不贡献答案，不放都设为 $n+1$。那么剩下需要看的就是 $[1,n]$ 内的正数。不放用正负号代表布尔值信息，绝对值代表原信息，由此可以用一个整型变量存储二元信息。遍历一次，对绝对值 $a_i$，在对应位置 $a_i-1$ 下标标上负号，代表这个正数出现过。全部标完后，顺着扫到第一个正数就是没标的，就是缺失的。标记过程不损失原始合理数据。
+
+```java
+class Solution {
+    public int firstMissingPositive(int[] nums) {
+        int n = nums.length;
+        for (int i = 0; i < n; ++i) {
+            if (nums[i] <= 0) {
+                nums[i] = n + 1;
+            }
+        }
+        for (int i = 0; i < n; ++i) {
+            int v = Math.abs(nums[i]) - 1;
+            if (v < n) {// v+1<=n
+                nums[v] = -Math.abs(nums[v]);
+            }
+        }
+        for (int i = 0; i < n; ++i) {
+            if (nums[i] > 0) {
+                return i + 1;
+            }
+        }
+        return n + 1;
+    }
+}
+```
+
+置换：另 $v=nums_i$，则如果它在 $[1,n]$ 内，它应该位于 $v-1$ 这个下标所在位置。我们把本来这个下标的数与它置换。换完后，$v$ 刷新，不断操作直到 $v$ 不需要换。特别注意相等会死循环，所以如果判断换完后不变，就不换了。每次换会让一个数归位，故复杂度为 $O(n)$
+
+```java
+class Solution {
+    public int firstMissingPositive(int[] nums) {
+        int n = nums.length;
+        for (int i = 0; i < n; ++i) {
+            while (nums[i] > 0 && nums[i] <= n && nums[nums[i] - 1] != nums[i]) {
+                int temp = nums[nums[i] - 1];
+                nums[nums[i] - 1] = nums[i];
+                nums[i] = temp;
+            }
+        }
+        for (int i = 0; i < n; ++i) {
+            if (nums[i] != i + 1) {
+                return i + 1;
+            }
+        }
+        return n + 1;
+    }
+}
+```
+
+
+
+##### 42\. 接雨水
+
+[题目](https://leetcode.cn/problems/trapping-rain-water/)
+
+显然，对第 $i$ 列，它所能装的深度为左边最大与右边最大的最小值，即：$H_i=\min(\max_{j=0}^ih_j,\max_{j=i}^{n-1}h_j)$
+
+分别用前缀 max，后缀 max 处理即可。
+
+```java
+class Solution {
+    public int trap(int[] height) {
+        int n = height.length;
+        int ans = 0;
+        int rmax[] = new int[n];// 后缀max
+        rmax[n - 1] = height[n - 1];
+        for (int i = n - 2; i >= 0; --i) {
+            rmax[i] = Math.max(rmax[i + 1], height[i]);
+        }
+        int lmax = 0;// 前缀max
+        for (int i = 0; i < n; ++i) {
+            lmax = Math.max(lmax, height[i]);
+            // h=min(max[0,i], max[i,n])
+            int h = Math.min(lmax, rmax[i]);
+            ans += h - height[i];
+        }
+        return ans;
+    }
+}
+```
+
+解法二：维护单调递减栈。每次遇到一个比栈顶更大的元素时，不断弹栈，弹后看看新栈顶的下标，与当前下标作差得水的宽度，然后取新栈顶与当前的最小高度作水的高度，往原图添加一段矩形的水。空间复杂度不变，没有本质上的优化。
+
+```java
+class Solution {
+    public int trap(int[] height) {
+        int ans = 0;
+        Deque<Integer> stack = new LinkedList<Integer>();
+        int n = height.length;
+        for (int i = 0; i < n; ++i) {
+            while (!stack.isEmpty() && height[i] > height[stack.peek()]) {
+                int top = stack.pop();
+                if (stack.isEmpty()) {
+                    break;
+                }
+                int left = stack.peek();
+                int currWidth = i - left - 1;
+                int currHeight = Math.min(height[left], height[i]) - height[top];
+                ans += currWidth * currHeight;
+            }
+            stack.push(i);
+        }
+        return ans;
+    }
+}
+```
+
+解法三：双指针。在前后缀 max 的基础上。初始设左右指针分别是最左右下标。维护指针所在的前后缀 max。
+
+- 若当前前缀高度小于后缀高度，那么实际短板即 min 一定在前缀，不用管左边界往后的后缀究竟是多少就可以凭左边界的前缀求出左边界的答案
+- 否则，可以同理求出右边界的答案
+- 无论求出哪一方，问题规模都减少。所以缩减边界，继续判断边界值即可。本质上就是把本来每次只算最左边的，换成要么算最左边的要么算最右边的
+
+```java
+class Solution {
+    public int trap(int[] height) {
+        int ans = 0;
+        int left = 0, right = height.length - 1;
+        int leftMax = 0, rightMax = 0;
+        while (left < right) {
+            leftMax = Math.max(leftMax, height[left]);
+            rightMax = Math.max(rightMax, height[right]);
+            if (leftMax < rightMax) {
+                ans += leftMax - height[left];
+                ++left;
+            } else {
+                ans += rightMax - height[right];
+                --right;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+
+
 
 
 > ### 力扣比赛
@@ -995,3 +1137,425 @@ public:
 
 
 
+#### Shell
+
+##### 193\. 有效电话号码
+
+[题目](https://leetcode.cn/problems/valid-phone-numbers/),任意一种：
+
+```shell
+grep -P '^(\d{3}-|\(\d{3}\) )\d{3}-\d{4}$' file.txt
+sed -n -r '/^([0-9]{3}-|\([0-9]{3}\) )[0-9]{3}-[0-9]{4}$/p' file.txt
+awk '/^([0-9]{3}-|\([0-9]{3}\) )[0-9]{3}-([0-9]{4})$/' file.txt
+```
+
+chatGPT:
+
+grep 是一种在文本文件中查找文本的命令行工具。它的基本语法如下：
+
+```sh
+grep 'pattern' file
+```
+
+其中，'pattern' 是要查找的文本字符串，file 是要搜索的文件。
+
+如果要在多个文件中搜索，可以将文件名列在命令行中：
+
+```sh
+grep 'pattern' file1 file2 file3
+```
+
+可以在目录中搜索文件，可以使用通配符。
+
+```sh
+grep 'pattern' /path/to/dir/*
+```
+
+还可以使用递归模式搜索整个目录：
+
+```sh
+grep -r 'pattern' /path/to/dir
+```
+
+grep 命令还有很多选项可用, 例如：
+
+- -n : 显示匹配行的行号。输出如 `\d:` 格式不带空格拼接后面内容
+- -i : 忽略大小写。
+- -v : 显示不包含匹配字符串的行。
+- -w 用于在文本文件中搜索仅完全匹配单词的文本(类似于正则的单词边界检测，即若有 `sh` 能匹配 `sh st` 不能匹配 `shst`)
+
+可以使用 man grep 查看详细信息。
+
+`grep -P` 是一个选项，它允许使用 Perl 正则表达式 (PCRE) 来搜索文本。
+
+Perl 正则表达式是一种功能强大的正则表达式语言，支持许多特殊字符和模式匹配操作。例如，可以使用 PCRE 中的捕获组来匹配多个子字符串，或者使用命名组来方便地管理匹配的子字符串。
+
+如果要使用 PCRE 来搜索文本，可以在 grep 命令中使用 -P 选项，例如：
+
+```sh
+grep -P '\d{3}-\d{2}-\d{4}' file
+```
+
+这个命令将在文件中查找所有符合美国社会安全号码格式的字符串（xxx-xx-xxxx）。
+
+请注意，使用 -P 选项需要 PCRE 库的支持。如果系统上没有安装该库，则会提示错误信息。
+
+另外, -P 是GNU grep独有的参数，在其他版本的 grep 中可能不支持。
+
+假设你有一个名为 "log.txt" 的文件，其中包含多行日志信息，你想查找所有包含 "error" 的行。
+
+可以使用以下命令来实现：
+
+```sh
+grep 'error' log.txt
+```
+
+这个命令将在 "log.txt" 中查找所有含有 "error" 的行，并将这些行的文本打印到屏幕上。
+
+
+
+##### 195\. 第十行
+
+[题目](https://leetcode.cn/problems/tenth-line/)。
+
+`cut` 是一个命令行工具，用于从文本文件中删除或提取特定字段。它通常用于处理以某种字符（通常是制表符或空格）分隔的文本文件。
+
+`cut` 的基本语法如下：
+
+```sh
+cut -f field_number -d delimiter file
+```
+
+其中，-f 指定要提取的字段，-d 指定字段之间的分隔符，file 是要处理的文件。
+
+例如，假设你有一个文件 "data.txt"，其中包含以逗号分隔的数据，如下所示：
+
+```
+Copy codeName,Age,Gender
+John,30,Male
+Sara,25,Female
+```
+
+你可以使用以下命令提取第一列（Name）：
+
+```sh
+cut -f 1 -d ',' data.txt
+```
+
+输出
+
+```
+Name
+John
+Sara
+```
+
+也可以提取多列，例如提取第一列和第二列
+
+```sh
+cut -f 1,2 -d ',' data.txt
+```
+
+输出
+
+```
+Name,Age
+John,30
+Sara,25
+```
+
+第二种格式：
+
+`cut -d: -f2` 是一个 `cut` 命令的例子。
+
+`-d:` 指定字段之间的分隔符为冒号 (:)。
+
+`-f2` 指定要提取的字段是第二个字段。
+
+例如，假设你有一个文件 "data.txt"，其中包含以冒号分隔的数据，如下所示：
+
+```
+Name:Age:Gender
+John:30:Male
+Sara:25:Female
+```
+
+你可以使用 `cut -d: -f2` 来提取第二列（Age）:
+
+```sh
+cut -d: -f2 data.txt
+```
+
+输出
+
+```
+30
+25
+```
+
+这个命令将会在文件中查找所有冒号分隔的字段，并输出第二个字段。
+
+由此，引出第一种解法：
+
+```sh
+grep -n "" file.txt | grep -w '10' | cut -d : -f 2
+```
+
+
+
+`sed` 是一个流编辑器，用于在文本文件中执行替换、删除、插入和其他编辑操作。它在命令行中运行，可以对文本文件进行非常强大的编辑。
+
+`sed` 的基本语法如下：
+
+```sh
+sed 's/old/new/g' file
+```
+
+其中 `s/old/new/g` 是一个替换命令，它会替换文件中所有的 "old" 为 "new"。
+
+```sh
+sed -n '10p' file.txt
+```
+
+`-n` 选项表示禁止默认输出，只有在符合特定条件时才会输出
+
+`10p` 指令是打印第10行。
+
+
+
+```sh
+awk '{if(NR==10){print $0}}' file.txt
+```
+
+`awk` 是一种用于文本处理的命令行工具，可以轻松地对文本文件进行模式匹配、替换、计算和其他操作。
+
+在这个命令中，`NR==10` 是一个条件，它指明 awk 只对第10行执行操作。
+
+`{print $0}` 指令是打印整行。
+
+
+
+加小于十行判定：
+
+```sh
+row_num=$(cat file.txt | wc -l)
+echo $row_num
+if [ $row_num -lt 10 ];then
+    echo "The number of row is less than 10"
+else
+    awk '{if(NR==10){print $0}}' file.txt
+fi
+```
+
+输出总行数的办法：
+
+```sh
+awk '{print NR}' file.txt | tail -n1
+awk 'END{print NR}' file.txt 
+grep -nc "" file.txt 
+grep -c "" file.txt 
+grep -vc "^$" file.txt 
+grep -n "" file.txt|awk -F: '{print '}|tail -n1 | cut -d: -f1
+grep -nc "" file.txt
+sed -n "$=" file.txt 
+wc -l file.txt 
+cat file.txt | wc -l
+wc -l file.txt | cut -d' ' -f1
+```
+
+
+
+##### 194\. 转置字符
+
+[题目](https://leetcode.cn/problems/transpose-file/)
+
+```sh
+columns=$(cat file.txt | head -n 1 | wc -w)
+for i in $(seq 1 $columns)
+do
+awk '{print $'''$i'''}' file.txt | xargs
+done
+```
+
+1. 使用 `cat` 命令读取文件 file.txt 的第一行
+2. 使用 `head -n 1` 命令取出第一行
+3. 使用 `wc -w` 命令统计第一行的单词数，并将结果存储在变量 `columns` 中
+4. 使用 `seq 1 $columns` 命令生成从 1 到 $columns 的数字序列
+5. 对于序列中的每一个数字，使用 `awk '{print $i}' file.txt` 命令取出文件中第i列的值
+6. 将第i列的值使用 `xargs` 命令打印到屏幕上. xargs 可将多个参数用空格隔开，如 `cat` 管道到 `xargs` 会以空格代替换行
+
+`xargs` 是一个命令行工具，它可以将输入转换为命令行参数并执行命令。通常与其他命令结合使用，如 find, grep 等等。
+
+`xargs` 的基本语法如下：
+
+```sh
+command | xargs [options] [command [options]]
+```
+
+其中，`command` 是输入的命令，`xargs` 将其输出作为参数传递给后面的命令。
+
+例如，假设你有一个文件夹 /tmp 中有很多文件，你想删除所有以 .txt 结尾的文件。
+
+```sh
+\find /tmp -name '*.txt' | xargs rm
+```
+
+这个命令将使用 find 命令在 /tmp 目录中查找所有以 .txt 结尾的文件，并将这些文件名传递给 xargs 命令。xargs 命令将这些文件名作为参数传递给后面的 rm 命令，从而删除这些文件
+
+上文莫名其妙的一堆单引号，可以改为双引号解析内部变量：
+
+```sh
+awk '{print $'"$i"'}' file.txt | xargs
+```
+
+或：(因为多余的可以认为是空串`''`，做的字符串拼接)
+
+```sh
+awk '{print $'$i'}' file.txt | xargs
+```
+
+
+
+`$()` 是 shell 中的一种特殊格式，称为命令替换。它允许将命令的输出作为参数传递给其他命令。
+
+它的语法如下：
+
+```sh
+$(command)
+```
+
+其中，command 是要执行的命令，$() 将命令的输出作为参数传递给其他命令
+
+
+
+##### 192\. 统计词频
+
+[题目](https://leetcode.cn/problems/word-frequency/)
+
+```sh
+cat words.txt | tr -s ' ' '\n' | sort | uniq -c | sort -nr | awk '{ print $2, $1 }'
+```
+
+`cat` 读文件并返回每行内容
+
+`tr` 命令用于转换或删除文件中的字符 -s：缩减连续重复的字符成指定的单个字符。在这里将任意多空格转为单个换行
+
+`sort` 按字典序排序每一行
+
+`uniq` 命令用于检查及删除文本文件中重复出现的行列，一般与 sort 命令结合使用。-c：在每列开头显示该行重复出现的次数，格式是 `\d` 加一个空格与原内容隔开。
+
+再次排序，使其倒序。注意，当单词的出现次数大于10时，sort 需要考虑按数字排序，而非默认的按 ascii 码排序
+
+然后逐行按指定格式输出，[awk参考](https://mp.weixin.qq.com/s/rIvOa5yvXFCAWiidxFz_ug)
+
+
+
+#### 数据库
+
+##### 175\. 组合两个表
+
+[题目](https://leetcode.cn/problems/combine-two-tables/)
+
+```mysql
+select a.firstName, a.lastName, b.city, b.state
+from Person as a left join Address as b
+on a.personId = b.personId;
+```
+
+> 更优雅：
+>
+> ```mysql
+> select FirstName, LastName, City, State
+> from Person left join Address
+> on Person.PersonId = Address.PersonId;
+> ```
+
+
+
+##### 176\. 第二高的薪水
+
+[题目](https://leetcode.cn/problems/second-highest-salary/)，注意去重后的第二高
+
+对只有一行一列的数据，可以用再次 select 的方法输出，如果查不到数据，这样输出会返回 NULL，并且可以用 as 方法重命名列名
+
+```mysql
+select 1 as colname;
+```
+
+将查询结果套到这个 select 里，即可查空输出 NULL，个人解法：先嵌套子查询找最值，然后取小于最值的最大值
+
+```mysql
+select (
+    select salary from Employee
+    where salary < (select max(salary) from Employee)
+    order by salary desc
+    limit 1
+) as SecondHighestSalary
+```
+
+更优解：直接排序时加 offset
+
+```mysql
+SELECT
+    (SELECT DISTINCT
+            Salary
+        FROM
+            Employee
+        ORDER BY Salary DESC
+        LIMIT 1 OFFSET 1) AS SecondHighestSalary;
+```
+
+也可以套 ifnull 函数：
+
+```mysql
+SELECT
+    IFNULL(
+      (SELECT DISTINCT Salary
+       FROM Employee
+       ORDER BY Salary DESC
+        LIMIT 1 OFFSET 1),
+    NULL) AS SecondHighestSalary
+```
+
+
+
+##### 177\. 第N高的薪水
+
+[题目](https://leetcode.cn/problems/nth-highest-salary/)
+
+offset 不能是表达式只能是变量/常量不然会炸，所以先设变量
+
+```mysql
+CREATE FUNCTION getNthHighestSalary(N INT) RETURNS INT
+BEGIN
+  declare x int;
+  set x = n-1;
+  RETURN (
+      # Write your MySQL query statement below.
+      select (
+          select distinct salary from Employee
+          order by salary desc limit 1 offset x
+      ) 
+  );
+END
+```
+
+可以把赋值塞到初始化，两行合一行：
+
+```mysql
+declare x int default N-1;
+```
+
+也可以不设变量，直接修改传入的参数：
+
+```mysql
+set N = N-1; # 或 :=
+```
+
+> chatGPT:
+>
+> `set n = 1` 是在 MySQL 的 SQL 查询中设置变量的语法，在这种情况下， n 将会被视为一个普通的变量。
+>
+> 而 `set n := 1` 是在 MySQL 的存储过程中设置变量的语法，在这种情况下，n 将会被视为一个局部变量。
+
+[更多其他解法](https://leetcode.cn/problems/nth-highest-salary/solution/mysql-zi-ding-yi-bian-liang-by-luanz/)
