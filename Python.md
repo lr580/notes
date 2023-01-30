@@ -5381,6 +5381,77 @@ plt.show()
 
 
 
+## 数学处理
+
+### scipy
+
+[官网](https://scipy.org/)
+
+#### 线性规划
+
+例求解：
+$$
+\min z=2x_1+3x_2+x_3\\
+s.t.\begin{cases}
+x_1+4x_2+2x_3&\ge 8\\
+3x_1+4x_2&\ge6\\
+x_1,x_2,x_3&\ge0
+\end{cases}
+$$
+
+```python
+import numpy as np
+from scipy.optimize import linprog
+
+f = np.array([2, 3, 1])
+a = np.array([[-1, -4, -2], [-3, -2, 0]])  #等式左边系数矩阵取反
+b = np.array([-8, -6])  #右边系数
+r = linprog(f, A_ub=a, b_ub=b, bounds=((0, None), (0, None), (0, None)))
+print(r.x)
+```
+
+取负是因为，这些等式约束都是大于等于的，而参数要的是小于等于的
+
+
+
+#### 非线性规划
+
+例求解：[文档](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html#scipy.optimize.minimize)
+$$
+\min f(x)=x^2_1+x^2_2+x^3_3+8\\
+s.t.\begin{cases}
+x^2_1-x_2+x^2_3&\ge0\\
+x_1+x^2_2+x^2_3&\le20\\
+-x_1-x_2^2+2&=0\\
+x_2+2x^2_3&=3\\
+x_1,x_2,x_3&\ge0
+\end{cases}
+$$
+
+```python
+from scipy import optimize as opt
+import numpy as np
+
+b = (0, None)
+bnds = (b, b, b)  #边界约束三变量 >=0
+con1 = {'type': 'ineq', 'fun': lambda x: x[0]**2 - x[1] + x[2]**2}  #不等式默认>=0
+con2 = {'type': 'ineq', 'fun': lambda x: -(x[0] + x[1]**2 + x[2]**2 - 20)}
+con3 = {'type': 'eq', 'fun': lambda x: -x[0] - x[1]**2 + 2}  #等式右边=0
+con4 = {'type': 'eq', 'fun': lambda x: x[1] + 2 * x[2]**2 - 3}
+cons = ([con1, con2, con3, con4])
+f = lambda x: x[0]**2 + x[1]**2 + x[2]**2 + 8
+x0 = np.array([0, 0, 0])
+sol = opt.minimize(f, x0, method='SLSQP', bounds=bnds, constraints=cons)
+x = sol.x
+print('min f=%f' % f(x))
+print('x=', x)
+```
+
+其中：
+
+- `bound` 是 `min, max` 二元组。
+- [返回值](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.OptimizeResult.html#scipy.optimize.OptimizeResult)的 x 是取得最值的参数(np array)，还有布尔值 success 和对应字符串 message
+
 
 
 ## 网络

@@ -118,7 +118,7 @@ public:
 
 如果一致，有两种选择，一个是进行匹配，一个是不进行匹配。如果进行匹配，消耗掉 $i$，但因为任意多个，所以 $j$ 没有消耗，与 $dp_{i-1,j}$ 一致，否则，与 $dp_{i,j-2}$ 一致。
 
-可以滚动一下优化空间常数。则时间复杂度 $O(|s|\cdot |p|)$，空间复杂度 $O(|p|)$。
+可以滚动一下优化空间常数。则时间复杂度 $O(|s|\cdot |p|)$，空间复杂度 $O(|p|)$。d
 
 ```c++
 class Solution
@@ -875,6 +875,844 @@ class Solution {
 
 
 
+##### 44\. 通配符匹配
+
+[题目](https://leetcode.cn/problems/wildcard-matching/)，注意这不是正则表达式，`*` 是通杀，不需要看前面的。
+
+```java
+class Solution {
+    final static char anysg = '?';
+    final static char any = '*';
+
+    boolean match(char x, char y) {
+        return x == y || y == anysg;
+    }
+
+    public boolean isMatch(String s, String p) {
+        int n = s.length(), m = p.length();
+        boolean dp[][] = new boolean[2][m + 1];
+        dp[0][0] = true;
+        for (int i = 1; i <= m; ++i) {
+            if (p.charAt(i - 1) == any) {
+                dp[0][i] = true;
+            } else {
+                break;
+            }
+        }
+        for (int i = 1, pre = 0, now = 1; i <= n; ++i, pre ^= 1, now ^= 1) {
+            char si = s.charAt(i - 1);
+            dp[now][0] = false;
+            for (int j = 1; j <= m; ++j) {
+                dp[now][j] = false;
+                char pj = p.charAt(j - 1);
+                if (pj == any) {
+                    dp[now][j] = dp[now][j - 1] | dp[pre][j];
+                } else if (match(si, pj)) {
+                    dp[now][j] = dp[pre][j - 1];
+                }
+            }
+        }
+        return dp[n & 1][m];
+    }
+}
+```
+
+贪心：设 $u$ 是字符串(可空)，若 $p=* u_1*u_2*\cdots*u_k*$，则只要 $s$ 依次出现了 $u$ 作为子串，即可匹配成功。
+
+如果不以 `*` 结尾，则倒序特判结尾的 $s,p$ 直到可以消解为上式或判无解为止。开头同理。
+
+开头还可以另一种方法：
+
+```java
+class Solution {
+    public boolean isMatch(String s, String p) {
+        int sRight = s.length(), pRight = p.length();
+        while (sRight > 0 && pRight > 0 && p.charAt(pRight - 1) != '*') {
+            if (charMatch(s.charAt(sRight - 1), p.charAt(pRight - 1))) {
+                --sRight;
+                --pRight;
+            } else {
+                return false;
+            }
+        }
+
+        if (pRight == 0) {
+            return sRight == 0;
+        }
+
+        int sIndex = 0, pIndex = 0;
+        int sRecord = -1, pRecord = -1;
+        
+        while (sIndex < sRight && pIndex < pRight) {
+            if (p.charAt(pIndex) == '*') { //标记可以反悔的节点且不优先使用
+                ++pIndex;
+                sRecord = sIndex;
+                pRecord = pIndex;
+            } else if (charMatch(s.charAt(sIndex), p.charAt(pIndex))) {
+                //优先尝试匹配非通配符
+                ++sIndex;
+                ++pIndex;
+            } else if (sRecord != -1 && sRecord + 1 < sRight) {
+                //如果不能匹配这个p子串，就倒回去匹配上一个通配符
+                ++sRecord;
+                sIndex = sRecord;
+                pIndex = pRecord;
+            } else {//开头没有通配符
+                return false;
+            }
+        }
+
+        return allStars(p, pIndex, pRight);//匹配完后p必须只剩下*
+    }
+
+    public boolean allStars(String str, int left, int right) {
+        for (int i = left; i < right; ++i) {
+            if (str.charAt(i) != '*') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean charMatch(char u, char v) {
+        return u == v || v == '?';
+    }
+}
+```
+
+还有 AC 自动机解法：[参考](http://t.zoukankan.com/ambition-p-Wildcard.html)
+
+
+
+##### 51\. N皇后
+
+[题目](https://leetcode.cn/problems/n-queens/)，没啥好说的签到题。52 是双倍经验题，这里略，稍微改改即可。
+
+```java
+class Solution {
+    private char[][] c;
+    private boolean[] col, dia, dja;
+    private int n, cnt;
+    private List<List<String>> ans;
+
+    private void dfs(int i) {
+        if (cnt == n) {
+            List<String> res = new ArrayList<>();
+            for (int j = 0; j < n; ++j) {
+                res.add(String.copyValueOf(c[j]));
+            }
+            ans.add(res);
+            return;
+        }
+        for (int j = 0; j < n; ++j) {
+            int y = i + j;
+            int z = i - j + n;
+            if (!col[j] && !dia[y] && !dja[z]) {
+                col[j] = dia[y] = dja[z] = true;
+                c[i][j] = 'Q';
+                ++cnt;
+                dfs(i + 1);
+                --cnt;
+                c[i][j] = '.';
+                col[j] = dia[y] = dja[z] = false;
+            }
+        }
+    }
+
+    public List<List<String>> solveNQueens(int n) {
+        this.n = n;
+        c = new char[n][n];
+        col = new boolean[n];
+        dia = new boolean[n * 2];
+        dja = new boolean[n * 2];
+        ans = new ArrayList<>();
+        cnt = 0;
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                c[i][j] = '.';
+            }
+        }
+        dfs(0);
+        return ans;
+    }
+}
+```
+
+
+
+##### 60\. 排列序列
+
+[题目](https://leetcode.cn/problems/permutation-sequence/)，即逆康托展开裸题。
+
+> 显然可以暴力 DFS 枚举所有排列，然后取第 k 个(++cnt)，但是这样太弱智了，所以考虑优化。
+
+暴力：设一开始每个数都可用。当前位置 $i$ (从 $1$ 开始)如果选择剩下的数里第 $x$ 小的，则贡献 $(x-1)(n-i)!$。
+
+当前第 $k$ 大需要比 $k-1$ 个大。对 $k$，除以当前阶乘 $(n-i)!$ 下取整，得到 $v$ 代表当前这位数需要选择可用里第 $v+1$ 个。暴力遍历可用数即可。复杂度 $O(n^2)$。
+
+```java
+class Solution {
+    private boolean used[];
+    private int n;
+
+    private int findKthUnused(int k) {
+//        System.out.println(k);
+        for (int j = 1, cnt = 0; j <= n; ++j) {
+            if (!used[j]) {
+                ++cnt;
+            }
+            if (cnt == k) {
+                used[j] = true;
+                return j;
+            }
+        }
+        return 0;// throw new Exception("Not reachable");
+    }
+
+    public String getPermutation(int n, int k) {
+        this.n = n;
+        StringBuilder res = new StringBuilder();
+        used = new boolean[n + 1];
+        k--;
+        int fact = 1;
+        for (int i = 2; i < n; ++i) {
+            fact *= i;
+        }
+        for (int i = n - 1; i >= 1 && k > 0; fact /= i, --i) {
+            int num = k / fact;
+            k -= num * fact;
+            res.append(findKthUnused(num + 1));
+        }
+        while (res.length() < n) {
+//            System.out.println("qwq");
+            res.append(findKthUnused(1));
+        }
+        return res.toString();
+    }
+}
+```
+
+线段树优化：(参考题目 [UVA11525](https://www.luogu.com.cn/problem/UVA11525)，考虑 $n\le 10^5$，且 $k$ 很大(如用阶乘多项式精确表示，以可以 $O(1)$ 计算高精度)，这题的模板代码可以参考我的 [算法模板集](https://github.com/lr580/algorithm_template))
+
+上文求 $num$ 在阶乘多项式意义下可以直接由输入获得，也就是只需要把暴力的 `findKthUnused` 进行优化即可。需要支持单点修改和全长查询，考虑线段树分治。
+
+设线段树每个叶子节点表示当前节点是否可用，非叶子节点表示它维护的区间里有多少个节点可用。从根节点出发，看看左子的可用数与当前需求数对比，如果大于等于就走左，否则走右。时空复杂度 $O(n\log n)$。
+
+可以用 zkw 等小常数线段树继续优化，这里直接上普通线段树了。树状数组没能想到实现方法，我认为不可行。
+
+```java
+class Solution {
+    private boolean used[];
+    private int n;
+    private int t[];// 线段树节点,1e5的话要开至少short
+
+    private void build(int p, int l, int r) {
+        if (l == r) {
+            t[p] = 1;
+            return;
+        }
+        int c = (l + r) >> 1;
+        build(p << 1, l, c);
+        build(p << 1 | 1, c + 1, r);
+        t[p] = t[p << 1] + t[p << 1 | 1];
+    }
+
+    private int modify(int p, int l, int r, int cnt) {
+        if (l == r) {
+            t[p] = 0;
+            return l;
+        }
+        int res = 0, c = (l + r) >> 1;
+        if (t[p << 1] >= cnt) {
+            res = modify(p << 1, l, c, cnt);
+        } else {
+            res = modify(p << 1 | 1, c + 1, r, cnt - t[p << 1]);
+        }
+        t[p] = t[p << 1] + t[p << 1 | 1];
+        return res;
+    }
+
+    private int findKthUnused(int k) {
+        return modify(1, 1, n, k);
+    }
+
+    public String getPermutation(int n, int k) {
+        this.n = n;
+        t = new int[n * 4];
+        build(1, 1, n);
+        StringBuilder res = new StringBuilder();
+        k--;
+        int fact = 1;
+        for (int i = 2; i < n; ++i) {
+            fact *= i;
+        }
+        for (int i = n - 1; i >= 1 && k > 0; fact /= i, --i) {
+            int num = k / fact;
+            k -= num * fact;
+            res.append(findKthUnused(num + 1));
+        }
+        while (res.length() < n) {
+            res.append(findKthUnused(1));
+        }
+        return res.toString();
+    }
+}
+```
+
+
+
+##### 65\. 有效数字
+
+[题目](https://leetcode.cn/problems/valid-number/)
+
+手搓了个正则表达式：
+
+```java
+class Solution {
+    public boolean isNumber(String s) {
+        String regex = "[\\+\\-]?(\\d+|\\d*\\.\\d+|\\d+\\.\\d*)([eE][\\+\\-]?\\d+)?";
+        return s.matches(regex);
+    }
+}
+```
+
+> 另一种写法：`"[+-]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[Ee][+-]?\\d+)?"` (也就是说注意 `[]` 里不用转义正负)
+
+手写思路：写一个有限状态自动机。则复杂度是 $O(n)$ 和空间 $O(1)$
+
+![fig1](img/1.png)
+
+```java
+class Solution {
+    public boolean isNumber(String s) {
+        Map<State, Map<CharType, State>> transfer = new HashMap<State, Map<CharType, State>>();
+        Map<CharType, State> initialMap = new HashMap<CharType, State>() {{
+            put(CharType.CHAR_NUMBER, State.STATE_INTEGER);
+            put(CharType.CHAR_POINT, State.STATE_POINT_WITHOUT_INT);
+            put(CharType.CHAR_SIGN, State.STATE_INT_SIGN);
+        }};
+        transfer.put(State.STATE_INITIAL, initialMap);
+        Map<CharType, State> intSignMap = new HashMap<CharType, State>() {{
+            put(CharType.CHAR_NUMBER, State.STATE_INTEGER);
+            put(CharType.CHAR_POINT, State.STATE_POINT_WITHOUT_INT);
+        }};
+        transfer.put(State.STATE_INT_SIGN, intSignMap);
+        Map<CharType, State> integerMap = new HashMap<CharType, State>() {{
+            put(CharType.CHAR_NUMBER, State.STATE_INTEGER);
+            put(CharType.CHAR_EXP, State.STATE_EXP);
+            put(CharType.CHAR_POINT, State.STATE_POINT);
+        }};
+        transfer.put(State.STATE_INTEGER, integerMap);
+        Map<CharType, State> pointMap = new HashMap<CharType, State>() {{
+            put(CharType.CHAR_NUMBER, State.STATE_FRACTION);
+            put(CharType.CHAR_EXP, State.STATE_EXP);
+        }};
+        transfer.put(State.STATE_POINT, pointMap);
+        Map<CharType, State> pointWithoutIntMap = new HashMap<CharType, State>() {{
+            put(CharType.CHAR_NUMBER, State.STATE_FRACTION);
+        }};
+        transfer.put(State.STATE_POINT_WITHOUT_INT, pointWithoutIntMap);
+        Map<CharType, State> fractionMap = new HashMap<CharType, State>() {{
+            put(CharType.CHAR_NUMBER, State.STATE_FRACTION);
+            put(CharType.CHAR_EXP, State.STATE_EXP);
+        }};
+        transfer.put(State.STATE_FRACTION, fractionMap);
+        Map<CharType, State> expMap = new HashMap<CharType, State>() {{
+            put(CharType.CHAR_NUMBER, State.STATE_EXP_NUMBER);
+            put(CharType.CHAR_SIGN, State.STATE_EXP_SIGN);
+        }};
+        transfer.put(State.STATE_EXP, expMap);
+        Map<CharType, State> expSignMap = new HashMap<CharType, State>() {{
+            put(CharType.CHAR_NUMBER, State.STATE_EXP_NUMBER);
+        }};
+        transfer.put(State.STATE_EXP_SIGN, expSignMap);
+        Map<CharType, State> expNumberMap = new HashMap<CharType, State>() {{
+            put(CharType.CHAR_NUMBER, State.STATE_EXP_NUMBER);
+        }};
+        transfer.put(State.STATE_EXP_NUMBER, expNumberMap);
+
+        int length = s.length();
+        State state = State.STATE_INITIAL;
+
+        for (int i = 0; i < length; i++) {
+            CharType type = toCharType(s.charAt(i));
+            if (!transfer.get(state).containsKey(type)) {
+                return false;
+            } else {
+                state = transfer.get(state).get(type);
+            }
+        }
+        return state == State.STATE_INTEGER || state == State.STATE_POINT || state == State.STATE_FRACTION || state == State.STATE_EXP_NUMBER || state == State.STATE_END;
+    }
+
+    public CharType toCharType(char ch) {
+        if (ch >= '0' && ch <= '9') {
+            return CharType.CHAR_NUMBER;
+        } else if (ch == 'e' || ch == 'E') {
+            return CharType.CHAR_EXP;
+        } else if (ch == '.') {
+            return CharType.CHAR_POINT;
+        } else if (ch == '+' || ch == '-') {
+            return CharType.CHAR_SIGN;
+        } else {
+            return CharType.CHAR_ILLEGAL;
+        }
+    }
+
+    enum State {
+        STATE_INITIAL,
+        STATE_INT_SIGN,
+        STATE_INTEGER,
+        STATE_POINT,
+        STATE_POINT_WITHOUT_INT,
+        STATE_FRACTION,
+        STATE_EXP,
+        STATE_EXP_SIGN,
+        STATE_EXP_NUMBER,
+        STATE_END
+    }
+
+    enum CharType {
+        CHAR_NUMBER,
+        CHAR_EXP,
+        CHAR_POINT,
+        CHAR_SIGN,
+        CHAR_ILLEGAL
+    }
+}
+```
+
+
+
+##### 68\. 文本左右对齐
+
+[题目](https://leetcode.cn/problems/text-justification/)，模拟题
+
+```java
+class Solution {
+    public List<String> fullJustify(String[] words, int maxWidth) {
+        ArrayList<String> ans = new ArrayList<>();
+        ArrayList<String> line = new ArrayList<>();
+        int n = words.length;
+        int cur = 0, raw = 0;
+        for (int i = 0; i < n; ++i) {
+            int m = words[i].length();
+            if (line.size() > 0) {
+                ++m;
+            }
+            if (cur + m > maxWidth) {
+                int rem = maxWidth - raw;
+                int cnt = line.size() - 1;
+                int avg = rem / Math.max(1, cnt);
+                int red = rem - avg * cnt;
+//                System.out.println(String.format("s=%s rem=%d cnt=%d avg=%d red=%d", words[i], rem,
+//                        cnt, avg, red));
+                StringBuilder sb = new StringBuilder();
+                sb.append(line.get(0));
+                String spc0 = "", spc1;
+                for (int j = 0; j < avg; ++j) {
+                    spc0 += ' ';
+                }
+                spc1 = spc0 + ' ';
+                for (int j = 1, je = line.size(); j < je; ++j) {
+                    if (red > 0) {
+                        --red;
+                        sb.append(spc1);
+                    } else {
+                        sb.append(spc0);
+                    }
+                    sb.append(line.get(j));
+                }
+                raw = cur = 0;
+                line.clear();
+                while (sb.length() < maxWidth) {
+                    sb.append(' ');
+                }
+                ans.add(sb.toString());
+            }
+            cur += words[i].length() + (line.size() > 0 ? 1 : 0);
+            raw += words[i].length();
+            line.add(words[i]);
+//            System.out.println(
+//                    String.format("%s cur=%d cnt=%d raw=%d", words[i], cur, line.size(), raw));
+        }
+        if (line.size() > 0) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(line.get(0));
+            for (int j = 1, je = line.size(); j < je; ++j) {
+                sb.append(' ');
+                sb.append(line.get(j));
+            }
+            while (sb.length() < maxWidth) {
+                sb.append(' ');
+            }
+            ans.add(sb.toString());
+        }
+        return ans;
+    }
+}
+```
+
+
+
+##### 72\.编辑距离
+
+[题目](https://leetcode.cn/problems/edit-distance/)
+
+DP模板题。设 $dp_{i,j}$ 为 $word1$ 长为 $i$ 的前缀与 $word2$ 变为 $j$ 的前缀的最少操作次数。初始值为：
+
+$dp_{0,0}=0$ 因为空串等于空串。而 $dp_{0,i}=dp_{i,0}=i$ 这意味着从空串到一个串或反过来只能插入那个串。
+
+对一般情况，有：
+
+1. 替换。如果本来尾部就一样就不用换，否则要，即：$dp_{i,j}=dp_{i-1,j-1}+[word1_i=word2_j]$
+
+2. 插入。考虑空位置视为 `\0` 字符，那么跟替换是本质相同的。
+
+   可以把 $word1_i$ 换成 $word2_j$ 或相反，代价加一，即在上述基础上：
+   $$
+   dp_{i,j}=\min(dp_{i,j},dp_{i-1,j}+1,dp_{i,j-1}+1)
+   $$
+
+3. 删除。对一个串删除一个字符等价于对另一个串插入一个字符。那么上文的相反即等于删除操作了。
+
+压一下数组，可以做到 $O(\min(|word1,word2|))$ 的复杂度(把更短的视为 $word2$ 即可，这里懒得这么做了) 
+
+```java
+class Solution {
+    public int minDistance(String word1, String word2) {
+        int n = word1.length(), m = word2.length();
+        int dp[][] = new int[2][m + 1];
+        for (int i = 1; i <= m; ++i) {
+            dp[0][i] = i;
+        }
+        for (int i = 1, now = 1, prv = 0; i <= n; ++i, now ^= 1, prv ^= 1) {
+            dp[now][0] = i;
+            for (int j = 1; j <= m; ++j) {
+                int res = Math.min(dp[now][j - 1], dp[prv][j]) + 1;
+                if (word1.charAt(i - 1) == word2.charAt(j - 1)) {
+                    res = Math.min(res, dp[prv][j - 1]);
+                } else {
+                    res = Math.min(res, dp[prv][j - 1] + 1);
+                }
+                dp[now][j] = res;
+            }
+        }
+        return dp[n & 1][m];
+    }
+}
+```
+
+
+
+##### 76\.最小覆盖子串
+
+[题目](https://leetcode.cn/problems/minimum-window-substring/submissions/)，滑窗简单题。
+
+```java
+class Solution {
+    private int sat, cnt[], req[], tot;
+
+    private void add(int i) {
+        if (req[i] > 0 && cnt[i] < req[i]) {
+            ++sat;
+        }
+        ++cnt[i];
+    }
+
+    private void del(int i) {
+        if (req[i] > 0 && cnt[i] <= req[i]) {
+            --sat;
+        }
+        --cnt[i];
+    }
+
+    public String minWindow(String s, String t) {
+        int n = s.length();
+        sat = 0;
+        cnt = new int[257];
+        req = new int[257];
+        tot = t.length();
+        for (int i = 0; i < tot; ++i) {
+            ++req[t.charAt(i)];
+        }
+        int min = 114514, lf = 0, mlf = 0;
+        for (int i = 0; i < n; ++i) {// i=rf
+            add(s.charAt(i));
+            while (sat == tot) {
+                int len = i - lf + 1;
+                if (len < min) {
+                    min = len;
+                    mlf = lf;
+                }
+                del(s.charAt(lf));
+                lf++;
+            }
+        }
+        if (min == 114514) {
+            return "";
+        }
+        return s.substring(mlf, mlf + min);
+    }
+}
+```
+
+
+
+##### 84\.柱状图中的最大矩形
+
+[题目](https://leetcode.cn/problems/largest-rectangle-in-histogram/)
+
+> 一时没想出正解，感觉可能是滑窗但不太会滑。所以直接上了个竞赛套路。
+
+对 heights 数组叠 ST 表维护静态区间最小值，然后枚举每个高度 $h=heights_i$，然后以 $i$ 为中心，二分地左右找出最远边界 $l,r$，分别满足 $\min_{j=l}^iheights_j,\min_{j=i}^rheights_j$，然后更新答案即可。时空复杂度都是 $O(n\log n)$。
+
+> 如果用线段树/树状数组代替 ST 表，空间复杂度降为 $O(n)$，但时间复杂度变为 $O(n\log^2 n)$
+
+```java
+class SparseTable {
+    private int st[][];
+    public static int lg2[];
+
+    public SparseTable(int[] a) {
+        int n = a.length;
+        lg2 = new int[n + 1];
+        for (int i = 2; i <= n; ++i) {
+            lg2[i] = lg2[i / 2] + 1;
+        }
+        int top = lg2[n] + 1;
+        st = new int[n][top];
+        for (int i = 0; i < n; ++i) {
+            st[i][0] = a[i];
+        }
+        for (int j = 1; j < top; ++j) {
+            for (int i = 0; i + (1 << j) - 1 < n; ++i) {
+                st[i][j] = Math.min(st[i][j - 1], st[i + (1 << (j - 1))][j - 1]);
+            }
+        }
+    }
+
+    public int query(int l, int r) {
+        int p = lg2[r - l + 1];
+        return Math.min(st[l][p], st[r - (1 << p) + 1][p]);
+    }
+}
+
+class Solution {
+    public int largestRectangleArea(int[] heights) {
+        SparseTable st = new SparseTable(heights);
+        int ans = 0, n = heights.length;
+        for (int i = 0; i < n; ++i) {
+            int h = heights[i];
+            int lf = 0, rf = i, l = i, r = i, cf;
+            while (lf <= rf) {
+                cf = (lf + rf) >> 1;
+                if (st.query(cf, i) >= h) {
+                    l = cf;
+                    rf = cf - 1;
+                } else {
+                    lf = cf + 1;
+                }
+            }
+            lf = i;
+            rf = n - 1;
+            while (lf <= rf) {
+                cf = (lf + rf) >> 1;
+                if (st.query(i, cf) >= h) {
+                    r = cf;
+                    lf = cf + 1;
+                } else {
+                    rf = cf - 1;
+                }
+            }
+            ans = Math.max(ans, (r - l + 1) * h);
+        }
+        return ans;
+    }
+}
+```
+
+AC 了然后看了一眼答案标题，单调栈，瞬间知道正解怎么做了。
+
+上述要每个 $i$ 对应的最远 $l,r$ 可以用单调栈维护。维护单调递增栈，每个元素被退栈之时得到它的右边界。然后再继续来一遍，得到左边界。之后同理操作即可。
+
+```java
+class Solution {
+    public int largestRectangleArea(int[] heights) {
+        int n = heights.length, ans = 0;
+        int l[] = new int[n], r[] = new int[n];
+        Arrays.fill(r, n - 1);
+        ArrayDeque<Integer> s = new ArrayDeque<>();
+        for (int i = 0; i < n; ++i) {
+            int h = heights[i];
+            while (s.size() > 0 && heights[s.peekFirst()] > h) {
+                r[s.peekFirst()] = i - 1;
+                s.pop();// popFirst
+            }
+            s.push(i);// addFirst
+        }
+        s.clear();
+        for (int i = n - 1; i >= 0; --i) {
+            int h = heights[i];
+            while (s.size() > 0 && heights[s.peekFirst()] > h) {
+                l[s.peekFirst()] = i + 1;
+                s.pop();
+            }
+            s.push(i);
+        }
+        for (int i = 0; i < n; ++i) {
+            ans = Math.max(ans, (r[i] - l[i] + 1) * heights[i]);
+        }
+        return ans;
+    }
+}
+```
+
+
+
+##### 85\.最大矩形
+
+[题目](https://leetcode.cn/problems/maximal-rectangle/)
+
+悬线法。其实有点像 DP 的思路。枚举每个 `1` 的位置作为矩形的最高点，然后找到以该点向上最上的前提下，向左向右最远能扩展多远。设 $l_{i,j},r_{i,j},u_{i,j}$ 分别表示点 $(i,j)$ 向左右上的最远距离。
+
+初始值为 $l_{i,j}=r_{i,j}=j$ 对每个 `1` 有 $u_{i,j}=1$。对每一行顺序预处理，若 $(i,j)$ 左边也是 `1`，则 $l_{i,j}=l_{i,j-1}$；同理，逆序预处理 $r$。得到在只有一个高度时，同行的最远扩展。
+
+接下来，如果 $(i,j)$ 上边也是 `1`，则将其与上边拓展，$u_{i,j}=u_{i-1,j}+1$，且这一行的左右要同时满足上面一行需要满足的条件，DP 地转移过来即  $l_{i,j}=\max(l_{i,j},l_{i-1,j}),r_{i,j}=\max(r_{i,j},r_{i-1,j})$
+
+压缩一下 DP，可以做到 $O(nm)$ 时间复杂度和 $O(m)$ 空间复杂度
+
+```java
+class Solution {
+    static final char req = '1';
+
+    public int maximalRectangle(char[][] matrix) {
+        int n = matrix.length, m = matrix[0].length;
+        // (i,j)能到达的左右最远的点纵坐标l,r
+        int l[][] = new int[2][m];
+        int r[][] = new int[2][m];
+        int u[][] = new int[2][m];// 向上
+        int ans = 0;
+        for (int i = 0, now = 0, pre = 1; i < n; ++i, now ^= 1, pre ^= 1) {
+            for (int j = 0; j < m; ++j) {
+                l[now][j] = r[now][j] = j;
+                u[now][j] = 1;
+            }
+            for (int j = 1; j < m; ++j) {
+                if (matrix[i][j] == req && matrix[i][j - 1] == req) {
+                    l[now][j] = l[now][j - 1];
+                }
+            }
+            for (int j = m - 2; j > 0; --j) {
+                if (matrix[i][j] == req && matrix[i][j + 1] == req) {
+                    r[now][j] = r[now][j + 1];
+                }
+            }
+            for (int j = 0; j < m; ++j) {
+                if (i > 0 && matrix[i][j] == req && matrix[i - 1][j] == req) {// 同时满足多行
+                    r[now][j] = Math.min(r[now][j], r[pre][j]);
+                    l[now][j] = Math.max(l[now][j], l[pre][j]);
+                    u[now][j] = u[pre][j] + 1;
+                }
+                if (matrix[i][j] == req) {
+                    ans = Math.max(ans, (r[now][j] - l[now][j] + 1) * u[now][j]);
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+单调栈解法：类比上一题，可以把只有前 $i$ 行的图看成柱状图，用 $n$ 次单调栈即可求解，复杂度相同。从略。
+
+
+
+##### 87\.扰乱字符串
+
+[题目](https://leetcode.cn/problems/scramble-string/)
+
+设 $dp_{i,j,k}$ 表示子串 $s1_{i..i+k},s2_{j..j+k}$ 是否满足扰乱。定义 $f(s1,s2)$ 判断两个字符串是否各字符个数一致。则如果 $(i,j,k)$ 状态本身 $f$ 假，则必假。否则，如果满足下面其一，该状态为真：
+
+1. $(i,j,k)$ 两子串相等(终态)
+2. 将 $k$ 拆分为 $l,k-l$， $(i,j,l),(i+l,j+l,k-l)$ 分别为真(选择不交换)
+3. 将 $k$ 拆分为 $l,k-l$，$(i,j+k-l,l),(i+l,j,k-l)$ 分别为真(选择交换)
+
+如果都不满足就为假。可以看到对一个状态，需要判断 $O(k)$ 次。所以用记忆化搜索 DFS，可以用 $O(n^4)$ 的时间复杂度和 $O(n^3)$ 的空间复杂度实现。
+
+```java
+class Solution {
+    private String s1, s2;
+    private final static int suc = 1, fail = 2;
+    private int dp[][][];
+    private static int bin1[] = new int[130];
+    private static int bin2[] = new int[130];
+
+    public boolean check(int l1, int l2, int len) {
+        boolean same = true;
+        for (int i = l1, ie = l1 + len; i < ie; ++i) {
+            ++bin1[s1.charAt(i)];
+        }
+        for (int i = l2, ie = l2 + len; i < ie; ++i) {
+            ++bin2[s2.charAt(i)];
+        }
+        for (int i1 = l1, ie = l1 + len; i1 < ie; ++i1) {
+//            System.out.println(String.format("%c %c %d %d",
+//                    s1.charAt(i1),s2.charAt(i2),bin1[s1.charAt(i1)],bin2[s2.charAt(i2)]));
+            same &= bin1[s1.charAt(i1)] == bin2[s1.charAt(i1)];
+        }
+        for (int i = l1, ie = l1 + len; i < ie; ++i) {
+            --bin1[s1.charAt(i)];
+        }
+        for (int i = l2, ie = l2 + len; i < ie; ++i) {
+            --bin2[s2.charAt(i)];
+        }
+//        System.out.println(String.format("%s %s %d", s1.substring(l1, l1 + len),
+//                s2.substring(l2, l2 + len), same ? 1 : 0));
+        return same;
+    }
+
+    private boolean dfs(int l1, int l2, int len) {
+//        System.out.println(String.format("%d %d %d mhere", l1, l2, len));
+        if (dp[l1][l2][len] != 0) {
+            return dp[l1][l2][len] == suc;
+        }
+        if (s1.substring(l1, l1 + len).equals(s2.substring(l2, l2 + len))) {//==判断会死
+//            System.out.println(String.format("%d %d %d mtrue", l1, l2, len));
+            dp[l1][l2][len] = suc;
+            return true;
+        }
+        if (!check(l1, l2, len)) {
+            dp[l1][l2][len] = fail;
+            return false;
+        }
+        for (int i = 1; i < len; ++i) {
+            if (dfs(l1, l2, i) && dfs(l1 + i, l2 + i, len - i)) {
+                dp[l1][l2][len] = suc;
+                return true;
+            }
+            if (dfs(l1, l2 + len - i, i) && dfs(l1 + i, l2, len - i)) {
+                dp[l1][l2][len] = suc;
+                return true;
+            }
+        }
+        dp[l1][l2][len] = fail;
+        return false;
+    }
+
+    public boolean isScramble(String s1, String s2) {
+        this.s1 = s1;
+        this.s2 = s2;
+        assert s1.length() == s2.length();
+        int n = s1.length();
+        dp = new int[n][n][n + 1];
+        return dfs(0, 0, n);
+    }
+}
+```
+
+
+
 
 
 > ### 力扣比赛
@@ -1559,3 +2397,521 @@ set N = N-1; # 或 :=
 > 而 `set n := 1` 是在 MySQL 的存储过程中设置变量的语法，在这种情况下，n 将会被视为一个局部变量。
 
 [更多其他解法](https://leetcode.cn/problems/nth-highest-salary/solution/mysql-zi-ding-yi-bian-liang-by-luanz/)
+
+
+
+##### 178\. 分数排名
+
+[题目](https://leetcode.cn/problems/rank-scores/)
+
+```mysql
+select score,
+dense_rank() over (order by score desc) as `rank` 
+from Scores
+```
+
+
+
+##### 180\. 连续出现的数字
+
+[题目](https://leetcode.cn/problems/consecutive-numbers/)
+
+```mysql
+select distinct a.Num as ConsecutiveNums
+from Logs as a, Logs as b, Logs as c
+where a.Id = b.Id - 1 and b.Id = c.Id - 1 and a.Num = b.Num and b.Num = c.Num
+```
+
+
+
+##### 181\. 超过经理收入的员工
+
+[题目](https://leetcode.cn/problems/employees-earning-more-than-their-managers/) 注意读题，题意应当是每个人只有零个或一个上级经理，找到收入大于他直接上级的人
+
+个人版用时很高的的代码(800ms+)：
+
+```mysql
+select a.name as `Employee`
+from Employee as a
+where a.salary > (
+    select b.salary from Employee as b
+    where b.id=a.managerId and a.salary>b.salary)
+```
+
+快很多(360ms)的两个相似代码：
+
+```mysql
+SELECT
+    a.Name AS 'Employee'
+FROM
+    Employee AS a,
+    Employee AS b
+WHERE
+    a.ManagerId = b.Id
+    AND a.Salary > b.Salary
+```
+
+```mysql
+SELECT
+     a.NAME AS Employee
+FROM Employee AS a JOIN Employee AS b
+     ON a.ManagerId = b.Id
+     AND a.Salary > b.Salary
+```
+
+
+
+##### 184\. 部门工资最高的员工
+
+[题目](https://leetcode.cn/problems/department-highest-salary/)
+
+个人效率很低的代码：(1080ms)
+
+```mysql
+select b.name as `Department`, a.name as `Employee`, a.salary as `Salary`
+from Employee as a, Department as b
+where a.departmentId = b.id and a.salary >= (
+    select max(salary) from Employee as c
+    where c.departmentId = b.id 
+)
+```
+
+优化代码：(664ms)
+
+```mysql
+SELECT
+    Department.name AS 'Department',
+    Employee.name AS 'Employee',
+    Salary
+FROM
+    Employee
+        JOIN
+    Department ON Employee.DepartmentId = Department.Id
+WHERE
+    (Employee.DepartmentId , Salary) IN
+    (   SELECT
+            DepartmentId, MAX(Salary)
+        FROM
+            Employee
+        GROUP BY DepartmentId
+	)
+```
+
+
+
+##### 185\. 部门工资前三高的所有员工
+
+[题目](https://leetcode.cn/problems/department-top-three-salaries/)
+
+> 注意到子查询不能带 limit(`This version of MySQL doesn't yet support 'LIMIT & IN/ALL/ANY/SOME subquery'`) 所以下面语句不能用：
+>
+> ```mysql
+> select b.name as `Department`, a.name as `Employee`, Salary
+> from Employee as a, Department as b
+> where a.departmentId = b.id and
+> Salary > any(
+>     select c.salary from Employee as c
+>     where a.departmentId = c.departmentId
+>     order by salary desc limit 3
+> )
+> ```
+
+修改上一题的思路，考虑：前三大，即在去重后的子查询里，最多只有两个(即 `<3`)人工资比他大，count 一下即可
+
+```mysql
+select b.name as `Department`, a.name as `Employee`, Salary
+from Employee as a join Department as b
+on a.departmentId = b.id
+where 3 > (
+    select count(distinct c.salary) from Employee as c
+    where c.salary > a.salary
+    and a.departmentId = c.departmentId
+)
+```
+
+
+
+##### 182\. 查找重复的电子邮箱
+
+[题目](https://leetcode.cn/problems/duplicate-emails/)
+
+自己的弱智代码：(多余地增加了外层 select)
+
+```mysql
+select distinct a.Email from Person as a
+where a.Email in (
+    select b.Email from Person as b 
+    group by b.Email having count(*)>1)
+```
+
+官解：
+
+```mysql
+select Email from Person group by Email having count(Email) > 1
+```
+
+
+
+##### 262\. 行程和用户
+
+[题目](https://leetcode.cn/problems/trips-and-users/)
+
+注意：
+
+- 枚举类型的操作跟字符串差不多
+- 联表要点(不能or合并连一次，必须连两次)
+- round, sum, if 来实现计算
+
+```mysql
+select a.request_at as Day,
+    round(sum(if(a.status='completed',0,1))/count(a.status),2) as `Cancellation Rate`
+from Trips as a
+join Users as b on a.client_id=b.users_id and b.banned='no'
+join Users as c on a.driver_id=c.users_id and c.banned='no'
+where a.request_at between '2013-10-01' and '2013-10-03'
+group by a.request_at
+```
+
+效率高一点：
+
+```mysql
+SELECT T.request_at AS `Day`, 
+	ROUND(
+			SUM(
+				IF(T.STATUS = 'completed',0,1)
+			)
+			/ 
+			COUNT(T.STATUS),
+			2
+	) AS `Cancellation Rate`
+FROM trips AS T
+WHERE 
+T.Client_Id NOT IN (
+	SELECT users_id
+	FROM users
+	WHERE banned = 'Yes'
+)
+AND
+T.Driver_Id NOT IN (
+	SELECT users_id
+	FROM users
+	WHERE banned = 'Yes'
+)
+AND T.request_at BETWEEN '2013-10-01' AND '2013-10-03'
+GROUP BY T.request_at
+```
+
+
+
+##### 196\.删除重复的电子邮箱
+
+[题目](https://leetcode.cn/problems/delete-duplicate-emails/)
+
+> 不能用下面语句，会报错为 `You can't specify target table 'Person' for update in FROM clause`
+>
+> ```mysql
+> delete from Person
+> where id not in (
+>     select b.id from Person as b 
+>     where b.id <= all (
+>         select c.id from Person as c
+>         where c.email = b.email
+>     )
+> )
+> ```
+
+```mysql
+delete a from Person a, Person b
+where a.email=b.email and a.id>b.id
+```
+
+其他方法：
+
+```mysql
+DELETE 
+FROM
+	Person 
+WHERE
+	id NOT IN 
+	(SELECT t.id from (SELECT MIN(id) /*每个email分组中最小id*/as id FROM Person GROUP BY Email/*依据Email进行分组*/) t)
+```
+
+
+
+##### 601\.体育馆的流量
+
+[题目](https://leetcode.cn/problems/human-traffic-of-stadium/)
+
+个人不看题解的AC代码(340ms)：
+
+```mysql
+select distinct a.* from Stadium as a, Stadium as b, Stadium as c
+where a.people>=100 and b.people>=100  and c.people>=100 and(
+    (a.id=b.id-1 and b.id=c.id-1) or
+    (a.id=b.id+1 and a.id=c.id-1) or
+    (a.id=b.id+1 and b.id=c.id+1)
+)
+order by visit_date asc
+```
+
+372ms 的窗口函数解法，好处是适用于任意连续(上述连续几个要join几下)：
+
+```mysql
+with t1 as(
+    select *,id - row_number() over(order by id) as rk
+    from stadium
+    where people >= 100
+)
+
+select id,visit_date,people
+from t1
+where rk in(
+    select rk
+    from t1
+    group by rk
+    having count(rk) >= 3
+)
+```
+
+原理：如果要筛去 `<100` 的，则每次删除时会造成一个不连续，致使前后的 `id-row_number` (即未删时row number减既删时row number)的差值加至少1。所以每个连续段的差值是一致的，只要这个连续段长够3即可纳入
+
+
+
+##### 197\.上升的温度
+
+[题目](https://leetcode.cn/problems/rising-temperature/)
+
+日期比较，使用 `datediff`，(472ms)
+
+```mysql
+select a.id from Weather as a, Weather as b
+where datediff(a.recordDate,b.recordDate)=1 and a.Temperature>b.Temperature
+```
+
+窗口函数更快(348ms)
+
+```mysql
+select id
+from
+    (select 
+        id,
+        temperature,
+        recordDate,
+        lag(recordDate,1) over(order by recordDate) as last_date,
+        lag(temperature,1) over(order by recordDate) as last_temperature
+    from Weather) a
+where temperature > last_temperature and datediff(recordDate, last_date) = 1
+```
+
+其他函数：
+
+```mysql
+select w1.Id
+from Weather as w1, Weather as w2
+where TIMESTAMPDIFF(DAY, w2.RecordDate, w1.RecordDate) = 1 
+AND w1.Temperature > w2.Temperature
+```
+
+```mysql
+select a.id 
+    from weather a join weather b 
+    on (a.recorddate = adddate(b.recorddate,INTERVAL 1 day))
+where a.temperature > b.temperature
+```
+
+```mysql
+select 
+    w.Id
+from Weather w
+join (
+    select 
+        RecordDate,Temperature
+    from 
+        Weather
+) t1
+on w.RecordDate = DATE_ADD(t1.RecordDate,INTERVAL 1 day)
+where w.Temperature > t1.Temperature;
+```
+
+
+
+##### 608\.树节点
+
+[题目](https://leetcode.cn/problems/tree-node/)
+
+个人代码：
+
+
+
+```mysql
+select id,
+    case when (id in (select id from tree where isnull(p_id))) then 'Root'
+    when (id in (select distinct p_id from tree)) then 'Inner'
+    else 'Leaf' end as `Type`
+from tree -- 或 is null 关键字而不是用函数
+```
+
+可以等价于：
+
+```mysql
+SELECT
+    atree.id,
+    IF(ISNULL(atree.p_id),
+        'Root',
+        IF(atree.id IN (SELECT p_id FROM tree), 'Inner','Leaf')) Type
+FROM tree atree
+```
+
+
+
+##### 511\.游戏玩法分析I
+
+[题目](https://leetcode.cn/problems/game-play-analysis-i/)
+
+group by 裸题：
+
+```mysql
+select player_id, min(event_date) as first_login
+from Activity group by player_id
+```
+
+
+
+##### 626\.换座位
+
+[题目](https://leetcode.cn/problems/exchange-seats/)
+
+if-else 题：
+
+```mysql
+select id,
+    case when id%2=1 and isnull(lead(student,1) over (order by id asc))=0
+        then lead(student,1) over (order by id asc)
+    when id%2=0 then lag(Seat.student,1) over (order by id asc)
+    else student end as `student`
+from Seat
+```
+
+注意不能直接搞 min, max, count 等聚类函数，否则只会查一列。
+
+要搞可以这么搞：
+
+```mysql
+SELECT
+    (CASE
+        WHEN MOD(id, 2) != 0 AND counts != id THEN id + 1
+        WHEN MOD(id, 2) != 0 AND counts = id THEN id
+        ELSE id - 1
+    END) AS id,
+    student
+FROM
+    seat,
+    (SELECT
+        COUNT(*) AS counts
+    FROM
+        seat) AS seat_counts
+ORDER BY id ASC;
+```
+
+
+
+##### 584\.寻找用户推荐人
+
+[题目](https://leetcode.cn/problems/find-customer-referee/)
+
+注意 mysql 是三值比较，即有 true, false, unknown，所以要特判 null
+
+```mysql
+select name from customer where referee_id!=2 or isnull(referee_id)
+```
+
+安全等于：当两个操作数均为 NULL 时，其返回值为 1 而不为 NULL； 而当一个操作数为 NULL 时，其返回值为 0 而不为 NULL。 [ref](https://leetcode.cn/link/?target=http://c.biancheng.net/view/7191.html)
+
+```mysql
+SELECT name FROM customer WHERE NOT referee_id <=> 2;
+```
+
+
+
+##### 1393\.股票的资本损益
+
+[题目](https://leetcode.cn/problems/capital-gainloss/)
+
+```mysql
+select stock_name,
+    sum(case when operation='Buy' then -price else price end) as `capital_gain_loss`
+from Stocks
+group by stock_name
+```
+
+题解其他写法解法：
+
+```mysql
+select 
+    stock_name, 
+    sum(if(operation='Buy',-price, price)) capital_gain_loss 
+from Stocks
+group by stock_name
+```
+
+
+
+##### 586\.订单最多的客户
+
+[题目](https://leetcode.cn/problems/customer-placing-the-largest-number-of-orders/)
+
+我的实现：(一定要有 as c 不然报错，临时表必须命名)
+
+```mysql
+select c.customer_number from (
+    select customer_number, count(*)
+    from Orders
+    group by customer_number 
+    order by count(*) desc
+    limit 1
+) as c
+```
+
+更优雅的做法是：
+
+```mysql
+SELECT
+    customer_number
+FROM
+    orders
+GROUP BY customer_number
+ORDER BY COUNT(*) DESC
+LIMIT 1
+```
+
+
+
+##### 158\.市场分析I
+
+[题目](https://leetcode.cn/problems/market-analysis-i/)
+
+究极低效个人代码：
+
+```mysql
+select user_id as `buyer_id`, join_date, if(isnull(tmp),0,tmp) as `orders_in_2019`
+from Users left join (
+    select buyer_id, count(*) as tmp from Orders
+    where extract(year from order_date)='2019'
+    group by buyer_id
+) as c on user_id=buyer_id
+```
+
+快 300ms：
+
+```mysql
+select Users.user_id as buyer_id, join_date, ifnull(UserBuy.cnt, 0) as orders_in_2019
+from Users
+left join (
+    select buyer_id, count(order_id) cnt 
+    from Orders
+    where order_date between '2019-01-01' and '2019-12-31'
+    group by buyer_id
+) UserBuy
+on Users.user_id = UserBuy.buyer_id
+```
+

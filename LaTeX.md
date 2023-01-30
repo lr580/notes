@@ -3044,7 +3044,219 @@ signed main() /* 注释 */
 
 ### 绘图
 
+[参考](https://zhuanlan.zhihu.com/p/127155579)
+
 宏包 `tikz`。导言区导绘图子包，用指令 `usetikzlibrary`，格式与 `usepackage` 类似。
+
+要绘图时，具体绘图指令放 `\tikz` 后边或 `tikzpicture` 代码块里
+
+#### 基本图形对象
+
+如果要绘制直线，直接连接坐标即可。如下面是一条折线(√的形状)：
+
+```tex
+\begin{tikzpicture}
+    \draw (1,3)--(2,2)--(4,5);
+\end{tikzpicture}
+```
+
+圆角折线：
+
+```tex
+\draw[rounded corners] (1,3)--(2,2)--(4,5);
+```
+
+首尾相连的话：(才能让封闭图形每个角都圆角化)
+
+```tex
+\draw (1,3)--(2,2)--(4,5)--cycle;
+```
+
+矩形绘制，给定两对角线的坐标：(也可跟上文一样加圆角)
+
+```tex
+\draw (0,0) rectangle (4,2);
+```
+
+圆，给定中心点和半径：
+
+```tex
+\draw (1,1) circle (1);
+```
+
+椭圆，依次给定宽半轴和高半轴：
+
+```tex
+\draw (1,1) ellipse (2 and 1);
+```
+
+圆弧/椭圆弧：(逆时针从0到270度，半径)
+
+```tex
+\draw (1 ,1) arc (0:270:1);
+\draw (6 ,1) arc (0:270:2 and 1);
+```
+
+分别指定抛物线起点、顶(拐)点、终点，作抛物线：
+
+```tex
+\draw (5,1) parabola bend (6,0) (7.414 ,2);
+```
+
+上述都是画空心，如果要画实心用 `\filldraw` 如给上述抛物线加顶点可以画实心圆：
+
+```tex
+\draw (5,1) parabola bend (6,0) (7.414 ,2);
+\filldraw (5,1) circle (.1)
+(6,0) circle (.1)
+(7.414 ,2) circle (.1);
+```
+
+网格缺省步长为 1cm，下面画两个网格，后者 help lines 指示 0.2pt 的线宽，且 20pt 指定网格边长 (注意到坐标 0 是边界，不会扩展，其他方向会小扩展)
+
+```tex
+\draw [step=20pt] (0,0) grid (3,2);
+\draw [help lines ,step=20pt] (4,0) grid (7,2);
+```
+
+#### 图形控制
+
+箭头：
+
+```tex
+\draw [->] (0,0)--(9,0);
+\draw [<-] (0,1)--(9,1);
+\draw [<->] (0,2)--(9,2);
+\draw [>->>] (0,3)--(9,3);
+\draw [|<->|] (0,4)--(9,4);
+```
+
+PGF 中线条的缺省宽度是0.4pt，线型是实线。下例给出了改变线型和线宽的方法：
+
+```tex
+\draw [line width =2pt] (0,0)--(9,0); %加粗实线
+\draw [dotted] (0,1)--(9,1); %点状虚线
+\draw [densely dotted] (0,2)--(9,2); %较密的点状虚线
+\draw [loosely dotted] (0,3)--(9,3); %较疏的点状虚线
+\draw [dashed] (0,4)--(9,4); %线状虚线
+\draw [densely dashed] (0,5)--(9,5); %较密的线状虚线
+\draw [loosely dashed] (0,6)--(9,6); %较疏的线状虚线
+```
+
+可以在导言区定义一个样式，然后将来我们可以直接在文本区调用它。比如：
+
+```tex
+\tikzset{
+dline/.style ={color = blue, line width =2pt}
+}
+\begin{document}
+
+\begin{tikzpicture}
+\draw[dline] (0,0) --(9,0);
+\end{tikzpicture}
+```
+
+方法二：
+
+```tex
+\begin{tikzpicture}[dline /. style ={line width =2pt}]
+\draw[dline] (0,0) --(9,0);
+\end{tikzpicture}
+```
+
+平移变换：
+
+```tex
+\draw (0,0) rectangle (2,2);
+\draw[shift ={(3 ,0)}] (0,0) rectangle (2,2);
+\draw[xshift =100pt] (0,0) rectangle (2,2);
+```
+
+缩放(+平移)：比例数字大于1放大，小于1缩小
+
+```tex
+\draw[xshift =70pt ,xscale =1.5] (0,0) rectangle (2,2);
+\draw[shift ={(3,0)},scale =1.5] (0,0) rectangle (2,2);
+```
+
+旋转：(正逆负顺，默认以原点为中心，角度制)
+
+```tex
+\draw[xshift =125pt ,rotate =45] (0,0) rectangle (2,2);
+\draw[xshift =175pt ,rotate around ={45:(2 ,2)}] (0,0) rectangle (2,2);
+```
+
+倾斜：
+
+```tex
+\draw[xshift =70pt ,xslant =1] (0,0) rectangle (2,2);
+\draw[yshift =70pt ,yslant =1] (0,0) rectangle (2,2);
+```
+
+颜色(填充的话要封闭路径)
+
+```tex
+\draw[red] (0,0) --(9,0);
+\draw[green] (0,1) --(9,1);
+\draw[blue] (0,2) --(9,2);
+\filldraw[draw=blue!80,fill=blue!20] (14 ,1) circle (1);
+```
+
+
+
+#### 节点
+
+先设置一个属性：
+
+```tex
+\tikzset{
+box/.style ={
+rectangle, %矩形节点
+rounded corners =5pt, %圆角
+minimum width =50pt, %最小宽度
+minimum height =20pt, %最小高度
+inner sep=5pt, %文字和边框的距离
+draw=blue %边框颜色}
+}
+```
+
+下面建立了五个顶点(有两个无边框)，并连接了一部分：
+
+```tex
+\node[box] (1) at(0,0) {1}; %分别节点名和显示值,显示值可以套 $数学公式$
+\node[box] (2) at(4,0) {2};
+\node[box] (3) at(8,0) {3};
+\draw[->] (1)--(2);
+\draw[->] (2)--(3);
+\node at(2,1) {a};
+\node at(6,1) {b};
+```
+
+从上往下的树：
+
+```tex
+\node[box] {1}
+    child {node[box] {2}}
+    child {node[box] {3}
+        child {node[box] {4}}
+        child {node[box] {5}}
+        child {node[box] {6}}
+    };
+```
+
+> 也可以使用圆形节点，将 `box\.style` 中的rectangle 换成circle 并删除rounded corners选项，并将minimum width 的值和minimum height 的值设为同一个值，比如这里都设置为20pt，再添加 `fill = blue!20`
+
+函数图绘制：其中**domain** 设置了我们想要绘制的范围，起始点和终止点之间用 **:** 隔开。plot 是绘制操作，node后面[]中填写我们文本的位置
+
+```tex
+\draw[->] (-0.2,0) --(6,0) node[right] {$x$};
+\draw[->] (0,-0.2) --(0,6) node[above] {$f(x)$};
+\draw[domain =0:4] plot (\x ,{0.1* exp(\x)}) node[right] {$f(x)=\frac{1}{10}e^x$};
+```
+
+
+
+
 
 #### 流程图
 

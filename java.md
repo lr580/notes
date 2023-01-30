@@ -5191,6 +5191,10 @@ public class c1204 {
 
 ```
 
+#### assert
+
+可以直接用，跟 py 差不多
+
 ### Swing
 
 java基础类AWT(Abstract Window Toolkit)，抽象窗口工具包的一种，即窗口化，是AWT的增强，支持不同平台统一显示(AWT的GUI不支持)。
