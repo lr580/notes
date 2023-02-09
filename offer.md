@@ -1713,6 +1713,873 @@ class Solution {
 
 
 
+##### 115\.不同的子序列
+
+[题目](https://leetcode.cn/problems/distinct-subsequences/)
+
+设 $dp_{i,j}$ 表示从下标 $i$ 开始的 $s$ 后缀里下标 $j$ 开始的 $t$ 后缀出现的个数。初始值是 $dp_{i,m}=1$
+
+如果 $s_i=t_j$，当前字符选与不选都可以，即 $dp_{i,j}=dp_{i+1,j+1}+dp_{i+1,j}$。否则只能不选，即 $dp_{i,j}=dp_{i+1,j}$。输出 $dp_{0,0}$ 即可
+
+```java
+class Solution {
+    public int numDistinct(String s, String t) {
+        int n = s.length(), m = t.length();
+        int dp[][] = new int[n + 1][m + 1];
+        for (int i = 0; i < n; ++i) {
+            dp[i][m] = 1;
+        }
+        for (int i = n - 1; i >= 0; --i) {
+            char sc = s.charAt(i);
+            for (int j = m - 1; j >= 0; --j) {
+                dp[i][j] = dp[i + 1][j];
+                if (sc == t.charAt(j)) {
+                    dp[i][j] += dp[i + 1][j + 1];
+                }
+            }
+        }
+        return dp[0][0];
+    }
+}
+```
+
+
+
+##### 123\.买卖股票的最佳时机III
+
+[题目](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-iii/)
+
+如果只做一笔交易，即求 $\max a_j-a_i,i < j$，直接枚举 $j$ 然后整前缀 min 即可。
+
+做两笔交易，即求 $\max a_j-a_i+a_l-a_k, i < j < k < l$。
+
+跟一笔交易一样，先处理 $i,j$，然后对 $(j,n]$ 部分，反过来，即逆序枚举 $k$，寻找最大的 $a_l$。根据两次枚举 $j,k$ 可以分别求出前缀 max 答案 $lans$ 和后缀答案 $rans$，故答案为：$ans=\max_{i=1}^{n-1}lans_i+rans_{i+1}$。
+
+```java
+class Solution {
+    public int maxProfit(int[] prices) {
+        int ans = 0, n = prices.length;
+        int lmin[] = new int[n]; //其实lmin,rmax不用数组也行
+        Arrays.fill(lmin, Integer.MAX_VALUE);
+        int lans[] = new int[n];
+        lmin[0] = prices[0];
+        for (int i = 1; i < n; ++i) {
+            int v = prices[i] - lmin[i - 1];
+            lans[i] = Math.max(v, lans[i - 1]);
+            ans = Math.max(v, ans);// 只交易一次
+            lmin[i] = Math.min(prices[i], lmin[i - 1]);// min[0,i]
+        }
+        // 枚举边界[i,n),求这个区间的 max a_j-a_i
+        int rmax[] = new int[n];
+        rmax[n - 1] = prices[n - 1];
+        for (int i = n - 2; i >= 0; --i) {
+            int rans = rmax[i + 1] - prices[i];
+            int res = (i > 0 ? lans[i - 1] : 0) + rans;
+            ans = Math.max(res, ans);
+            rmax[i] = Math.max(rmax[i + 1], prices[i]);
+        }
+        return ans;
+    }
+}
+```
+
+答案解法：DP
+
+```java
+ class Solution {
+     public int maxProfit(int[] prices) {
+         int n = prices.length;
+         int buy1 = prices[0], sell1 = 0;
+         int buy2 = prices[0], sell2 = 0;
+         for (int i = 1; i < n; ++i) {
+             buy1 = Math.min(buy1, prices[i]);
+             sell1 = Math.max(sell1, prices[i] - buy1);
+             buy2 = Math.min(buy2, prices[i] - sell1);
+             sell2 = Math.max(sell2, prices[i] - buy2);
+         }
+         return sell2;
+     }
+ }
+/* buy1是前缀min[0,i]
+故sell1=max a_j-a_i,即我解法的lans[i]
+buy2是在已经操作一次下，min( a_k - (max a_j-a_i) )
+上一次卖的越多,max越大,min越小,所以会取到卖的最多的一次
+*/
+```
+
+
+
+##### 124\.二叉树中的最大路径和
+
+[题目](https://leetcode.cn/problems/binary-tree-maximum-path-sum/)，弱智签到题。
+
+```java
+class Solution {
+    private int ans;
+
+    // 返回当前子树从根出发的最大路径长
+    private int dfs(TreeNode u) {
+        if (u == null) {
+            return 0;
+        }
+        int lv = 0, rv = 0;
+        if (u.left != null) {
+            lv = Math.max(0, dfs(u.left));
+        }
+        if (u.right != null) {
+            rv = Math.max(0, dfs(u.right));
+        }
+        ans = Math.max(ans, u.val + lv + rv);
+        return Math.max(lv, rv) + u.val;
+    }
+
+    public int maxPathSum(TreeNode root) {
+        ans = Integer.MIN_VALUE;
+        dfs(root);
+        return ans;
+    }
+}
+```
+
+
+
+##### 126\.单词接龙II
+
+[https://leetcode.cn/problems/word-ladder-ii/](https://leetcode.cn/problems/word-ladder-ii/)
+
+垃圾题目，复杂度指数。抽象为在一个图输出所有最短路，非多项式复杂度。
+
+```java
+class Solution {
+    public List<List<String>> findLadders(String beginWord, String endWord, List<String> wordList) {
+        List<List<String>> res = new ArrayList<>();
+        // 因为需要快速判断扩展出的单词是否在 wordList 里，因此需要将 wordList 存入哈希表，这里命名为「字典」
+        Set<String> dict = new HashSet<>(wordList);
+        // 特殊用例判断
+        if (!dict.contains(endWord)) {
+            return res;
+        }
+
+        dict.remove(beginWord);
+
+        // 第 1 步：广度优先搜索建图
+        // 记录扩展出的单词是在第几次扩展的时候得到的，key：单词，value：在广度优先搜索的第几层
+        Map<String, Integer> steps = new HashMap<String, Integer>();
+        steps.put(beginWord, 0);
+        // 记录了单词是从哪些单词扩展而来，key：单词，value：单词列表，这些单词可以变换到 key ，它们是一对多关系
+        Map<String, List<String>> from = new HashMap<String, List<String>>();
+        int step = 1;
+        boolean found = false;
+        int wordLen = beginWord.length();
+        Queue<String> queue = new ArrayDeque<String>();
+        queue.offer(beginWord);
+        while (!queue.isEmpty()) {
+            int size = queue.size();
+            for (int i = 0; i < size; i++) {
+                String currWord = queue.poll();
+                char[] charArray = currWord.toCharArray();
+                // 将每一位替换成 26 个小写英文字母
+                for (int j = 0; j < wordLen; j++) {
+                    char origin = charArray[j];
+                    for (char c = 'a'; c <= 'z'; c++) {
+                        charArray[j] = c;
+                        String nextWord = String.valueOf(charArray);
+                        if (steps.containsKey(nextWord) && step == steps.get(nextWord)) {
+                            from.get(nextWord).add(currWord);
+                        }
+                        if (!dict.contains(nextWord)) {
+                            continue;
+                        }
+                        // 如果从一个单词扩展出来的单词以前遍历过，距离一定更远，为了避免搜索到已经遍历到，且距离更远的单词，需要将它从 dict 中删除
+                        dict.remove(nextWord);
+                        // 这一层扩展出的单词进入队列
+                        queue.offer(nextWord);
+
+                        // 记录 nextWord 从 currWord 而来
+                        from.putIfAbsent(nextWord, new ArrayList<>());
+                        from.get(nextWord).add(currWord);
+                        // 记录 nextWord 的 step
+                        steps.put(nextWord, step);
+                        if (nextWord.equals(endWord)) {
+                            found = true;
+                        }
+                    }
+                    charArray[j] = origin;
+                }
+            }
+            step++;
+            if (found) {
+                break;
+            }
+        }
+
+        // 第 2 步：回溯找到所有解，从 endWord 恢复到 beginWord ，所以每次尝试操作 path 列表的头部
+        if (found) {
+            Deque<String> path = new ArrayDeque<>();
+            path.add(endWord);
+            backtrack(from, path, beginWord, endWord, res);
+        }
+        return res;
+    }
+
+    public void backtrack(Map<String, List<String>> from, Deque<String> path, String beginWord, String cur, List<List<String>> res) {
+        if (cur.equals(beginWord)) {
+            res.add(new ArrayList<>(path));
+            return;
+        }
+        for (String precursor : from.get(cur)) {
+            path.addFirst(precursor);
+            backtrack(from, path, beginWord, precursor, res);
+            path.removeFirst();
+        }
+    }
+}
+```
+
+> 双向 BFS：(这个不能过题)
+
+> ```java
+> public List<List<String>> findLadders(String beginWord, String endWord, List<String> wordList) {
+>     List<List<String>> ans = new ArrayList<>();
+>     if (!wordList.contains(endWord)) {
+>         return ans;
+>     }
+>     // 利用 BFS 得到所有的邻居节点
+>     HashMap<String, ArrayList<String>> map = new HashMap<>();
+>     bfs(beginWord, endWord, wordList, map);
+>     ArrayList<String> temp = new ArrayList<String>();
+>     // temp 用来保存当前的路径
+>     temp.add(beginWord);
+>     findLaddersHelper(beginWord, endWord, map, temp, ans);
+>     return ans;
+> }
+> 
+> private void findLaddersHelper(String beginWord, String endWord, HashMap<String, ArrayList<String>> map,
+>                                ArrayList<String> temp, List<List<String>> ans) {
+>     if (beginWord.equals(endWord)) {
+>         ans.add(new ArrayList<String>(temp));
+>         return;
+>     }
+>     // 得到所有的下一个的节点
+>     ArrayList<String> neighbors = map.getOrDefault(beginWord, new ArrayList<String>());
+>     for (String neighbor : neighbors) {
+>         temp.add(neighbor);
+>         findLaddersHelper(neighbor, endWord, map, temp, ans);
+>         temp.remove(temp.size() - 1);
+>     }
+> }
+> 
+> //利用递归实现了双向搜索
+> private void bfs(String beginWord, String endWord, List<String> wordList, HashMap<String, ArrayList<String>> map) {
+>     Set<String> set1 = new HashSet<String>();
+>     set1.add(beginWord);
+>     Set<String> set2 = new HashSet<String>();
+>     set2.add(endWord);
+>     Set<String> wordSet = new HashSet<String>(wordList);
+>     bfsHelper(set1, set2, wordSet, true, map);
+> }
+> 
+> // direction 为 true 代表向下扩展，false 代表向上扩展
+> private boolean bfsHelper(Set<String> set1, Set<String> set2, Set<String> wordSet, boolean direction,
+>                           HashMap<String, ArrayList<String>> map) {
+>     //set1 为空了，就直接结束
+>     //比如下边的例子就会造成 set1 为空
+>     /*	"hot"
+> 		"dog"
+> 		["hot","dog"]*/
+>     if(set1.isEmpty()){
+>         return false;
+>     }
+>     // set1 的数量多，就反向扩展
+>     if (set1.size() > set2.size()) {
+>         return bfsHelper(set2, set1, wordSet, !direction, map);
+>     }
+>     // 将已经访问过单词删除
+>     wordSet.removeAll(set1);
+>     wordSet.removeAll(set2);
+> 
+>     boolean done = false;
+> 
+>     // 保存新扩展得到的节点
+>     Set<String> set = new HashSet<String>();
+> 
+>     for (String str : set1) {
+>         //遍历每一位
+>         for (int i = 0; i < str.length(); i++) {
+>             char[] chars = str.toCharArray();
+> 
+>             // 尝试所有字母
+>             for (char ch = 'a'; ch <= 'z'; ch++) {
+>                 if(chars[i] == ch){
+>                     continue;
+>                 }
+>                 chars[i] = ch;
+> 
+>                 String word = new String(chars);
+> 
+>                 // 根据方向得到 map 的 key 和 val
+>                 String key = direction ? str : word;
+>                 String val = direction ? word : str;
+> 
+>                 ArrayList<String> list = map.containsKey(key) ? map.get(key) : new ArrayList<String>();
+>                 
+>                 //如果相遇了就保存结果
+>                 if (set2.contains(word)) {
+>                     done = true;
+>                     list.add(val);
+>                     map.put(key, list);
+>                 }
+> 
+>                 //如果还没有相遇，并且新的单词在 word 中，那么就加到 set 中
+>                 if (!done && wordSet.contains(word)) {
+>                     set.add(word);
+>                     list.add(val);
+>                     map.put(key, list);
+>                 }
+>             }
+>         }
+>     }
+> 
+>     //一般情况下新扩展的元素会多一些，所以我们下次反方向扩展  set2
+>     return done || bfsHelper(set2, set, wordSet, !direction, map);
+> 
+> }
+> ```
+
+
+
+##### 127\.单词接龙
+
+[题目](https://leetcode.cn/problems/word-ladder/)
+
+上题的代码改改就行。
+
+```java
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+
+class Solution {
+    private HashMap<String, Integer> h;
+    private ArrayList<Integer> e[];
+    private int n, m;
+
+    private int id(String s) {
+        if (!h.containsKey(s)) {
+            h.put(s, n++);
+        }
+        return h.get(s);
+    }
+
+    @SuppressWarnings("unchecked")
+    public int ladderLength(String beginWord, String endWord, List<String> wordList) {
+        h = new HashMap<>();
+        n = 0;
+        wordList.add(beginWord);
+        m = wordList.size();
+        e = new ArrayList[m + 2];
+        for (int i = 0; i < m; ++i) {
+            e[i] = new ArrayList<>();
+        }
+        for (int i = 0; i < m; ++i) {
+            String s = wordList.get(i);
+            id(s);
+            for (int j = i + 1; j < m; ++j) {
+                String t = wordList.get(j);
+                int dif = 0;
+                for (int k = 0, ke = s.length(); k < ke; ++k) {
+                    dif += s.charAt(k) != t.charAt(k) ? 1 : 0;
+                }
+                if (dif == 1) {
+                    e[i].add(j);
+                    e[j].add(i);
+                }
+            }
+        }
+        if (h.get(endWord) == null) {
+            return 0;
+        }
+        int s = id(beginWord), t = id(endWord);
+        int vis[] = new int[m];
+        Deque<Integer> q = new LinkedList<>();
+        q.push(s);
+        vis[s] = 1;
+        while (!q.isEmpty()) {
+            Integer u = q.poll();
+            if (u == t) {
+                return vis[t];
+            }
+            for (int i = 0, ie = e[u].size(); i < ie; ++i) {
+                int v = e[u].get(i);
+                if (vis[v] == 0) {
+                    vis[v] = vis[u] + 1;
+                    q.addLast(v);
+                }
+            }
+
+        }
+        return 0;
+    }
+}
+```
+
+
+
+##### 132\.分割回文串II
+
+[题目](https://leetcode.cn/problems/palindrome-partitioning-ii/)
+
+设 $isPara_{i,j}$ 表示子串 $s_{l..r}$ 是否是回文串。初始值是 $s_{i..i}=1$。当我们要判断 $s_{l..r}$ 是否为回文串时，令 $k=\lfloor\dfrac{r-l+1}2\rfloor$，只需要判断 $s_{l..l+k}$ 与 $s'_{r-k..r}$ 是否一致即可，其中 $s'$ 是 $s$ 的转置。可以预处理字符串哈希来 $O(1)$ 进行判断。如果一致 $isPara_{l..r}$ 就为真。
+
+设 $dp_i$ 表示长以 $i$ 下标结尾的前缀的最少分割次数。初始设 $dp_i=i$，若 $isPara_{0,i}$ 则 $dp_i=0$，否则 $dp_i=\min_{j=0}^{i-1} dp_{j}+1$ 其中 $j$ 必须满足 $isPara_{j+1..i}$ 为真。
+
+时空复杂度均为 $O(n^2)$，但常数比题解差(多了字符串哈希的 $O(n)$)。
+
+```java
+class StringHash {
+    private static final int p0 = 131;
+    private int h[], n, p[];
+
+    public StringHash(String s) {
+        n = s.length();
+        p = new int[n + 1];
+        h = new int[n + 1];
+        p[0] = 1;
+        for (int i = 1; i <= n; ++i) {
+            p[i] = p[i - 1] * p0;
+        }
+        for (int i = 1; i <= n; ++i) {
+            h[i] = h[i - 1] * p0 + s.charAt(i - 1);
+        }
+    }
+
+    public int hash(int l, int r) {// 下标从0算
+        return h[r + 1] - h[l] * p[r - l + 1];
+    }
+}
+
+class Solution {
+    public int minCut(String s) {
+        int n = s.length();
+        boolean isPara[][] = new boolean[n][n];
+        int dp[] = new int[n];
+        StringHash s0 = new StringHash(s);
+        StringBuilder sr = new StringBuilder();
+        for (int i = n - 1; i >= 0; --i) {
+            sr.append(s.charAt(i));
+        }
+        StringHash s1 = new StringHash(sr.toString());
+        for (int i = 0; i < n; ++i) {
+            isPara[i][i] = true;
+        }
+        for (int len = 2; len <= n; ++len) { //其实for i,j 即可
+            int k = len / 2;
+            for (int l = 0, r = len - 1; r < n; ++l, ++r) {
+                if (s0.hash(l, l + k) == s1.hash(n - 1 - r, n - 1 - r + k)) {
+                    isPara[l][r] = true;
+                }
+            }
+        }
+        for (int i = 0; i < n; ++i) {
+            dp[i] = isPara[0][i] ? 0 : i;
+            for (int j = 0; j < i; ++j) {
+                if (isPara[j + 1][i]) {
+                    dp[i] = Math.min(dp[i], dp[j] + 1);
+                }
+            }
+        }
+        return dp[n - 1];
+    }
+}
+```
+
+> 没想出是否有 `manacher/回文自动机` 的解法，如果有佬有类似解法欢迎分享。
+
+题解即不需使用字符串哈希，利用 $isPara$ 自身来推导 $isPara$，若 $isPara_{i..j}=1$ 且 $s_{i-1}=s_{j+1}$ 则 $isPara_{i-1..j+1}=1$。
+
+```java
+class Solution {
+    public int minCut(String s) {
+        int n = s.length();
+        boolean[][] g = new boolean[n][n];
+        for (int i = 0; i < n; ++i) {
+            Arrays.fill(g[i], true);
+        }
+
+        for (int i = n - 1; i >= 0; --i) {
+            for (int j = i + 1; j < n; ++j) {
+                g[i][j] = s.charAt(i) == s.charAt(j) && g[i + 1][j - 1];
+            }
+        }
+
+        int[] f = new int[n];
+        Arrays.fill(f, Integer.MAX_VALUE);
+        for (int i = 0; i < n; ++i) {
+            if (g[0][i]) {
+                f[i] = 0;
+            } else {
+                for (int j = 0; j < i; ++j) {
+                    if (g[j + 1][i]) {
+                        f[i] = Math.min(f[i], f[j] + 1);
+                    }
+                }
+            }
+        }
+
+        return f[n - 1];
+    }
+}
+```
+
+ 
+
+##### 140\.单词拆分II
+
+[题目](https://leetcode.cn/problems/word-break-ii/)
+
+无聊的搜索题，做了不少常数优化(具体而言，字符串哈希+建图缓存)，0ms 100%了：
+
+```java
+class Pair { //其实有v就行,p+v.length=nx
+    public int nx;
+    public String v;
+
+    Pair(int nx, String v) {
+        this.nx = nx;
+        this.v = v;
+    }
+}
+
+class Solution {
+    private int n;
+    private List<Pair> e[];
+    private final static int p0 = 131;
+    private String log[];
+    private List<String> ans;
+
+    private void dfs(int p, int cnt) {
+        if (p == n) {
+            StringBuilder res = new StringBuilder();
+            res.append(log[0]);
+            for (int i = 1; i < cnt; ++i) {
+                res.append(' ');
+                res.append(log[i]);
+            }
+            ans.add(res.toString());
+            return;
+        }
+        for (int i = 0, ie = e[p].size(); i < ie; ++i) {
+            Pair pr = e[p].get(i);
+            log[cnt] = pr.v;
+            dfs(pr.nx, cnt + 1);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> wordBreak(String s, List<String> wordDict) {
+        n = s.length();
+        e = new ArrayList[n + 1];
+        for (int i = 0; i <= n; ++i) {
+            e[i] = new ArrayList<>();
+        }
+        int m = wordDict.size();
+        int hw[] = new int[m];
+        int hl[] = new int[m];
+        int pw[] = new int[Math.max(m, n) + 1];
+        pw[0] = 1;
+        for (int i = 1, ie = pw.length; i < ie; ++i) {
+            pw[i] = pw[i - 1] * p0;
+        }
+        int h[] = new int[n + 1];
+        for (int i = 1; i <= n; ++i) {
+            h[i] = h[i - 1] * p0 + s.charAt(i - 1);
+        }
+        for (int i = 0; i < m; ++i) {
+            int hr = 0;
+            String t = wordDict.get(i);
+            for (int j = 0, je = t.length(); j < je; ++j) {
+                hr = hr * p0 + t.charAt(j);
+            }
+            hw[i] = hr;
+            hl[i] = t.length();
+        }
+        for (int r = 1; r <= n; ++r) {
+            for (int i = 0; i < m; ++i) {
+                int l = r - hl[i];
+                if (l >= 0) {
+                    int hs = h[r] - h[l] * pw[r - l];
+                    if (hs == hw[i]) {
+                        e[l].add(new Pair(r, wordDict.get(i)));
+                    }
+                }
+            }
+        }
+        log = new String[n];
+        ans = new ArrayList<>();
+        dfs(0, 0);
+        return ans;
+    }
+}
+```
+
+> 对以下极端样例运行效果良好：
+>
+> ```java
+> "aaaaaaaaaaaaaaaaaaaa"
+> ["a","aa","aaa","aaaa","aaaaa","aaaaaa","aaaaaaa","aaaaaaaa","aaaaaaaaa","aaaaaaaaaa"]
+> ```
+
+
+
+##### 149\.直线上最多的点数
+
+[题目](https://leetcode.cn/problems/max-points-on-a-line/)
+
+> 正解是枚举两点组合求所有斜率，统计最大出现频率的斜率即可。
+
+随机化。任意枚举 $m$ 次不同两点 $x,y$，然后枚举所有其他点 $z$，统计有多少个点满足 $\vec{xz}\times\vec{xy}=0$，则有多少个除 $x,y$ 的点与直线 $xy$ 共线。
+
+最差情况是答案为 $3$，即只有 $x,y,z$ 三点共线，其他点均不满足三点共线(显然恒满足任两点共线)。设共有 $n$ 点，则枚举一次能枚举到 $x,y,z$ 其二的概率为 $\dfrac{3}{n}$，枚举一次没能找到答案的概率为 $1-\dfrac3n$。枚举 $m$ 次都没找到答案的概率为 $(1-\dfrac3n)^m$，即如果只枚举 $m$ 次，能求出正解的概率至少是 $p=1-(1-\dfrac3n)^m$。
+
+计算得，对 $n=300$，若 $m=100$ 则 $p\approx 0.63$，若 $m=10^3$ 则 $p\approx0.99995$。考虑到需要同时满足 $t$ 个测试点，不妨设 $t=50$，则 $p^t\approx 0.998$ (实际效果疑似不佳，当 $m=2000$ 时较准)
+
+复杂度为 $O(nm)$。考虑到 $m$ 较大，实际上不如答案优。
+
+```java
+class Solution {
+    private int[][] p;
+
+    private int[] sub(int a, int b) {
+        int[] r = new int[] { p[b][0] - p[a][0], p[b][1] - p[a][1] };
+        return r;
+    }
+
+    private int cross(int[] i, int[] j) {
+        return Math.abs(i[1] * j[0] - i[0] * j[1]);
+    }
+
+    public int maxPoints(int[][] points) {
+        Random ran = new Random();
+        p = points;
+        int n = points.length;
+        if (n == 1) {
+            return 1;
+        }
+        int ans = 2;
+        for (int h = 0; h < 1000; ++h) {
+            int x = 0, y = 0;
+            while (x == y) {
+                x = ran.nextInt(n);
+                y = ran.nextInt(n);
+            }
+            int cnt = 2;
+            for (int i = 0; i < n; ++i) {
+                int k = cross(sub(x, y), sub(x, i));
+                if (i != x && i != y && k == 0) {
+                    ++cnt;
+                }
+            }
+            ans = Math.max(ans, cnt);
+        }
+        return ans;
+    }
+}
+```
+
+
+
+##### 154\.寻找旋转排序数组中的最小值II
+
+[题目](https://leetcode.cn/problems/find-minimum-in-rotated-sorted-array-ii/)
+
+```java
+class Solution {
+    public int findMin(int[] nums) {
+        int low = 0;
+        int high = nums.length - 1;
+        while (low < high) {
+            int pivot = low + (high - low) / 2;
+            if (nums[pivot] < nums[high]) {
+                high = pivot;
+            } else if (nums[pivot] > nums[high]) {
+                low = pivot + 1;
+            } else {
+                high -= 1;
+            }
+        }
+        return nums[low];
+    }
+}
+```
+
+
+
+##### 164\.最大间距
+
+[题目](https://leetcode.cn/problems/maximum-gap/)
+
+使用 $2^8$ 作为基数，方便位运算。然后使用常数较优的内层计数排序写法。期望是 $O(4n)=O(n)$ 的复杂度。
+
+> 以 java 为例，判题时间 2023/2/7 结果为 14ms(超90%) 和 54.5mb(超55%)。
+
+```java
+class Solution {
+    private int a[], b[], cnt[], n;
+
+    private void radixsort() {
+        final int mask = (1 << 8) - 1;
+        int x[] = a, y[] = b;// 指针
+        for (int i = 0; i < 32; i += 8) {
+            for (int j = 0; j < (1 << 8); ++j) {
+                cnt[j] = 0;
+            }
+            for (int j = 0; j < n; ++j) {
+                ++cnt[x[j] >> i & mask];
+            }
+            for (int sum = 0, j = 0; j < (1 << 8); ++j) {
+                sum += cnt[j];
+                cnt[j] = sum - cnt[j];
+            }
+            for (int j = 0; j < n; ++j) {
+                y[cnt[x[j] >> i & mask]++] = x[j];
+            }
+            int t[] = x; // swap
+            x = y;
+            y = t;
+        }
+    }
+
+    public int maximumGap(int[] nums) {
+        n = nums.length;
+        a = nums;
+        b = new int[n];
+        cnt = new int[1 << 8];
+        radixsort();
+        int ans = 0;
+        for (int j = 0, i = 1; i < n; ++i, ++j) {
+            ans = Math.max(ans, a[i] - a[j]);
+        }
+        return ans;
+    }
+}
+```
+
+> 桶排序：
+>
+> 基本思想：分块，最值一定在相邻块间取得。
+>
+> ```java
+> class Solution {
+>     public int maximumGap(int[] nums) {
+>         int n = nums.length;
+>         if (n < 2) {
+>             return 0;
+>         }
+>         int minVal = Arrays.stream(nums).min().getAsInt();
+>         int maxVal = Arrays.stream(nums).max().getAsInt();
+>         int d = Math.max(1, (maxVal - minVal) / (n - 1));
+>         int bucketSize = (maxVal - minVal) / d + 1;
+> 
+>         int[][] bucket = new int[bucketSize][2];
+>         for (int i = 0; i < bucketSize; ++i) {
+>             Arrays.fill(bucket[i], -1); // 存储 (桶内最小值，桶内最大值) 对， (-1, -1) 表示该桶是空的
+>         }
+>         for (int i = 0; i < n; i++) {
+>             int idx = (nums[i] - minVal) / d;
+>             if (bucket[idx][0] == -1) {
+>                 bucket[idx][0] = bucket[idx][1] = nums[i];
+>             } else {
+>                 bucket[idx][0] = Math.min(bucket[idx][0], nums[i]);
+>                 bucket[idx][1] = Math.max(bucket[idx][1], nums[i]);
+>             }
+>         }
+> 
+>         int ret = 0;
+>         int prev = -1;
+>         for (int i = 0; i < bucketSize; i++) {
+>             if (bucket[i][0] == -1) {
+>                 continue;
+>             }
+>             if (prev != -1) {
+>                 ret = Math.max(ret, bucket[i][0] - bucket[prev][1]);
+>             }
+>             prev = i;
+>         }
+>         return ret;
+>     }
+> }
+> ```
+
+
+
+##### 174\.地下城游戏
+
+[题目]()
+
+DP。逆序才没有后效性，考虑样例：
+
+```python
+[[ 1,-3, 3],
+ [ 0,-2, 0],
+ [-3,-3,-3]]
+```
+
+```java
+class Solution {
+    public int calculateMinimumHP(int[][] dungeon) {
+        int n = dungeon.length, m = dungeon[0].length;
+        int[][] dp = new int[n + 1][m + 1];
+        for (int i = 0; i <= n; ++i) {
+            Arrays.fill(dp[i], Integer.MAX_VALUE);
+        }
+        dp[n][m - 1] = dp[n - 1][m] = 1;
+        for (int i = n - 1; i >= 0; --i) {
+            for (int j = m - 1; j >= 0; --j) {
+                int minn = Math.min(dp[i + 1][j], dp[i][j + 1]);
+                dp[i][j] = Math.max(minn - dungeon[i][j], 1);
+            }
+        }
+        return dp[0][0];
+    }
+}
+```
+
+
+
+##### 188\.买卖股票的最佳时机IV
+
+[题目](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-iv/)
+
+设 $g_{i,j}$ 是对前 $j$ 天，已经买卖了前 $i-1$ 笔交易且买入了第 $i$ 笔交易下最低的总额，即 $\min a_{buy_k}+\sum_{k=1}^{i-1}a_{sell_k}-a_{buy_k},buy_k,sell_k\le j$
+
+设 $f_{i,j}$ 是对前 $j$ 天，已经买卖了前 $i$ 笔的最高利润。即 $\max\sum_{k=1}^ia_{sell_k}-a_{buy_k},,buy_k,sell_k\le j$
+
+具体推导参见 `123` 题，将其简单推广即可得到本题答案。
+
+```java
+class Solution {
+    public int maxProfit(int k, int[] prices) {
+        int n = prices.length;
+        int f[][] = new int[2][n + 1];
+        int g[][] = new int[2][n + 1];
+
+        for (int i = 1, pre = 0, now = 1; i <= k; ++i, pre ^= 1, now ^= 1) {
+            g[now][0] = 100000000;
+            for (int j = 1; j <= n; ++j) {
+                int v = prices[j - 1];
+                f[now][j] = Math.max(f[now][j - 1], v - g[now][j - 1]);
+                g[now][j] = Math.min(g[now][j - 1], v - f[pre][j - 1]);
+            }
+        }
+        return f[k & 1][n];
+    }
+}
+```
+
+[神仙题解 wqs二分](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-iv/solution/yi-chong-ji-yu-wqs-er-fen-de-you-xiu-zuo-x36r/)
+
 
 
 > ### 力扣比赛
@@ -2913,5 +3780,280 @@ left join (
     group by buyer_id
 ) UserBuy
 on Users.user_id = UserBuy.buyer_id
+```
+
+
+
+##### 595\.大的国家
+
+[题目](https://leetcode.cn/problems/big-countries/)
+
+慢：
+
+```mysql
+select name,population,`area` from World
+where `area`>=3000000 or population>=25000000
+```
+
+快：(快一点)
+
+```mysql
+SELECT
+    name, population, area
+FROM
+    world
+WHERE
+    area >= 3000000
+
+UNION
+
+SELECT
+    name, population, area
+FROM
+    world
+WHERE
+    population >= 25000000
+```
+
+
+
+##### 596\.超过5名学生的课
+
+[题目](https://leetcode.cn/problems/classes-more-than-5-students/)
+
+签。
+
+```mysql
+select class from Courses
+group by class
+having count(*)>=5
+```
+
+
+
+##### 607\.销售员
+
+[题目](https://leetcode.cn/problems/sales-person/)
+
+较高效率的个人写法：
+
+```mysql
+select a.name from SalesPerson as a
+where a.sales_id not in (
+    select b.sales_id from Orders as b
+    where b.com_id in (
+        select c.com_id from Company as c
+        where c.name like 'RED'
+    )
+)
+```
+
+
+
+##### 620\.有趣的电影
+
+[题目](https://leetcode.cn/problems/not-boring-movies/)
+
+签。
+
+```mysql
+select * from cinema
+where id%2=1 and description not like 'boring'
+order by rating desc
+```
+
+
+
+##### 627\.变更性别
+
+[题目](https://leetcode.cn/problems/swap-salary/)
+
+不快：
+
+```mysql
+update Salary set sex=(
+    case when sex='f' then 'm' else 'f' end
+)
+```
+
+比较快：
+
+```mysql
+update salary set sex = if(sex='m','f','m');
+```
+
+跟上面速度一样：
+
+```mysql
+update salary set sex = char(ascii('m') + ascii('f') - ascii(sex));
+```
+
+
+
+##### 1084\.销售分析III
+
+[题目](https://leetcode.cn/problems/sales-analysis-iii/)
+
+低效率：
+
+```mysql
+select product_id, product_name from Product
+where product_id not in (
+    select product_id from Sales
+    where sale_date not between '2019-01-01' and '2019-03-31'
+) and product_id in (
+    select distinct product_id from Sales
+)
+```
+
+一样低效率：
+
+```mysql
+select
+    product_id,
+    product_name
+from product
+where product_id in (
+    select
+        product_id
+    from sales
+    group by product_id
+    having max(sale_date) <= '2019-03-31'
+    and min(sale_date) >= '2019-01-01'
+)
+```
+
+快 200ms:
+
+```mysql
+select
+    s.product_id,
+    p.product_name
+from
+    Sales s left join Product p
+        on s.product_id = p.product_id
+group by
+    s.product_id
+having
+    min(s.sale_date) >= '2019-01-01'
+        and max(s.sale_date) <= '2019-03-31'
+```
+
+
+
+##### 1141\.查询近30天活跃用户数
+
+[题目](https://leetcode.cn/problems/user-activity-for-the-past-30-days-i/)
+
+我的写法一：
+
+```mysql
+select activity_date as `day`,
+    count(distinct user_id) as `active_users`
+from Activity
+where activity_date between '2019-06-28' and '2019-07-27'
+group by activity_date
+```
+
+写法二：(没我的写法快)
+
+```mysql
+SELECT activity_date AS day, count(distinct user_id) AS active_users
+FROM activity
+WHERE DATEDIFF('2019-07-27', activity_date) >=0
+AND DATEDIFF('2019-07-27', activity_date) < 30
+GROUP BY activity_date;
+```
+
+
+
+##### 1148\.文章浏览I
+
+[题目](https://leetcode.cn/problems/article-views-i/submissions/)
+
+```mysql
+select distinct author_id as id
+from Views
+where author_id=viewer_id
+order by author_id asc
+```
+
+
+
+##### 1179\.重新格式化部门表
+
+[题目](https://leetcode.cn/problems/reformat-department-table/)
+
+```mysql
+SELECT id, 
+SUM(CASE WHEN month='Jan' THEN revenue END) AS Jan_Revenue,
+SUM(CASE WHEN month='Feb' THEN revenue END) AS Feb_Revenue,
+SUM(CASE WHEN month='Mar' THEN revenue END) AS Mar_Revenue,
+SUM(CASE WHEN month='Apr' THEN revenue END) AS Apr_Revenue,
+SUM(CASE WHEN month='May' THEN revenue END) AS May_Revenue,
+SUM(CASE WHEN month='Jun' THEN revenue END) AS Jun_Revenue,
+SUM(CASE WHEN month='Jul' THEN revenue END) AS Jul_Revenue,
+SUM(CASE WHEN month='Aug' THEN revenue END) AS Aug_Revenue,
+SUM(CASE WHEN month='Sep' THEN revenue END) AS Sep_Revenue,
+SUM(CASE WHEN month='Oct' THEN revenue END) AS Oct_Revenue,
+SUM(CASE WHEN month='Nov' THEN revenue END) AS Nov_Revenue,
+SUM(CASE WHEN month='Dec' THEN revenue END) AS Dec_Revenue
+FROM department
+GROUP BY id
+ORDER BY id;
+```
+
+
+
+##### 1484\.按日期分组销售产品
+
+[题目](https://leetcode.cn/problems/group-sold-products-by-the-date/)
+
+```mysql
+select sell_date, count(distinct product) as `num_sold`,
+    group_concat(distinct product order by product separator ',') as `products`
+from Activities as a
+group by sell_date
+order by sell_date
+```
+
+或：
+
+```mysql
+SELECT sell_date,
+       COUNT(DISTINCT product) num_sold,
+       GROUP_CONCAT(DISTINCT product) products
+FROM Activities
+GROUP BY sell_date
+```
+
+
+
+##### 1407\.排名靠前的旅行者
+
+[题目](https://leetcode.cn/problems/top-travellers/)
+
+```mysql
+select name, if(isnull(sum(distance)),0,sum(distance)) as `travelled_distance`
+from Users left join Rides on Rides.user_id=Users.id
+group by user_id
+order by travelled_distance desc, name asc
+```
+
+效率差一点的写法：
+
+```mysql
+select
+name,ifnull(travelled_distance,0) as travelled_distance
+from Users
+left join(
+select
+user_id,sum(distance) as travelled_distance 
+from 
+Rides 
+group by user_id
+)t1
+on t1.user_id= Users.id
+order by travelled_distance desc, name asc
 ```
 

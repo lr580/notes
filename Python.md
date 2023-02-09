@@ -992,6 +992,8 @@ print(-float('-inf')/9-9) #是inf
 
 `r''` 代表里面的转义符一律当普通字符。
 
+`b''` 二进制字符串(只能有ASACII)，type 为 bytes
+
 ##### 函数
 
 ord()将长度为1的str转化为ASCII码(中文等则拓展的码),chr()将其逆向
@@ -1170,7 +1172,7 @@ y={}#空字典
 x.update({3:50,4:False}) 
 ```
 
-删除一项用pop(key)，用法同list
+删除一项用pop(key)，用法同list，也可以用 `del x[key]`，这两种用法不存在都会报错
 
 查找key用in 或in .keys()
 
@@ -1853,7 +1855,7 @@ print(f(1,2,3))
 
 #### main参数
 
-使用 `sys` 库的 `argv` 属性，第一个元素是运行输入的程序名，后面依次是输入的参数
+使用 `sys` 库的 `argv` 属性，第一个元素是运行输入的程序名，后面依次是输入的参数。即 python 后面的逐个记入 `argv`，如 `python a.py add 1 2` 有四个元素。
 
 
 
@@ -2150,9 +2152,173 @@ int2=partial(int,base=2)
 int2('100000')
 ```
 
-#### 装饰器
+### 装饰器
 
-略
+装饰器装饰的对象是函数或者方法 [参考](https://blog.csdn.net/weixin_44992737/article/details/125868592)
+
+#### 无参装饰器
+
+```python
+from time import time
+
+
+def timeCount(func):
+
+    def inner(*args, **kwargs):
+        t_start = time()
+        ret = func(*args, **kwargs)
+        t_end = time()
+        print('%s用时:%fs' % (func.__name__, t_end - t_start))
+        return ret
+
+    return inner
+
+
+@timeCount
+def add(x, y):  #故意延时
+    for i in range(1000000):
+        x += 1
+    for i in range(1000000):
+        x -= 1
+    return x + y
+
+
+print(add(1, 3))
+```
+
+多个装饰器的先后顺序：
+
+```python
+def log(func):
+
+    def inner(*args, **kwargs):
+        print(func.__name__, '执行开始')
+        ret = func(*args, **kwargs)
+        print(func.__name__, '执行结束')
+        return ret
+
+    return inner
+
+
+#先后顺序:log头-count头-add-count尾-log尾
+@log
+@timeCount
+def add(x, y):  #故意延时
+    for i in range(1000000):
+        x += 1
+    for i in range(1000000):
+        x -= 1
+    return x + y
+```
+
+#### 有参装饰器
+
+```python
+def log2(type, dest):
+
+    def decorator(func):
+
+        def infunc(*args, **kwargs):
+            print('%s %s %s start' % (type, dest, func.__name__))
+            res = func(*args, **kwargs)
+            print('%s %s %s end' % (type, dest, func.__name__))
+            return res
+
+        return infunc
+
+    return decorator
+```
+
+
+
+#### @wraps
+
+因为装饰器实质是就是一个函数，是一个被修饰过函数，他与原来未被修饰的函数是两个不同的函数对象。
+
+所以，这个装饰器丢失了原来函数对象的一些属性，比如：`__name__`，`__doc__`等属性。使用wraps语法糖可以保留这些属性
+
+```python
+from functools import wraps
+
+
+def log3(func):
+
+    @wraps(func)
+    def infunc(*args, **kwargs):
+        print(func.__doc__)  #加不加@wraps这个都能输出
+        return func(*args, **kwargs)
+
+    return infunc
+
+
+@log3
+def mul(x, y):
+    '''mul文档:这是一个函数'''
+    return x * y
+
+
+print(mul(2, 3))
+print(mul.__doc__)  #不加@wraps这个输出不了
+```
+
+
+
+#### 类装饰器
+
+把装饰器写成类
+
+```python
+from time import sleep
+
+
+class delay1:
+
+    def __init__(self, func):
+        self.func = func
+
+    def __call__(self, *args, **kwargs):
+        print('延时开始')
+        sleep(1)
+        ret = self.func(*args, **kwargs)
+        print('延时结束')
+        return ret
+
+
+@delay1
+def div(x, y):
+    return x / y
+
+
+print(div(1, 3))
+```
+
+可以给被装饰函数加参数实现装饰器的参数：
+
+```python
+class delay:
+
+    def __init__(self, func):
+        self.func = func
+
+    def __call__(self, sec, *args, **kwargs):
+        print('延时%ds开始' % sec)
+        sleep(sec)
+        ret = self.func(*args, **kwargs)
+        print('延时结束')
+        return ret
+
+
+@delay
+def div(x, y):
+    return x / y
+
+
+print(div(2, 1, 3))
+```
+
+
+
+
 
 ## 模块
 
@@ -2493,7 +2659,7 @@ randint(a，b) #返回区间[a,b]内随机整数
 ##### choice
 
 ```python
-choice(数组) #返回数组内随机一个元素,dict是value
+choice(数组) #返回数组内随机一个元素,dict要key是整数,返回value
 ```
 
 
@@ -2580,7 +2746,7 @@ os.path.basename(路径)
 os.path.split(路径)
 ```
 
-拆分文件名：(其余部分+.后缀)
+拆分文件名：(其余部分+`.后缀`(注意结果里有 `.`))
 
 ```python
 os.path.splitext(路径)
@@ -2592,16 +2758,28 @@ os.path.splitext(路径)
 os.path.realpath(相对路径)
 ```
 
-创建目录：
+是否是目录：
+
+```python
+os.path.isdir(路径)
+```
+
+创建目录：如果原目录存在，会报错
 
 ```python
 os.mkdir(路径)
 ```
 
-删除目录： #如果失败，可以先把里面文件一一删除
+删除目录： 如果失败，可以先把里面文件一一删除
 
 ```python
 os.rmdir(路径)
+```
+
+强删带内容的文件夹：
+
+```python
+shutil.rmtree(路径)
 ```
 
 路径是否存在
@@ -2654,6 +2832,8 @@ shutil.copyfile(原完整文件名,新完整文件名) #返回新完整文件名
 ```python
 for root, dirs, files in os.walk(dirx):
 ```
+
+当前根目录，当前下的子目录列表(相对)，当前的文件列表(相对)
 
 文件比较：
 
@@ -3377,8 +3557,8 @@ print((x / y * y * y).quantize(Decimal('0.00'), ROUND_HALF_DOWN))
 
 语法：(类比 Linux)
 
--  `*` 表示零到任意多个字符。
-- `**` 表示所有文件、目录、子目录和子目录的文件
+-  `*` 表示零到任意多个字符。所有本层文件和子目录
+- `**` 表示所有文件、目录、子目录和子目录的文件(与上面相比多了子目录下的)
 - `?` 单个字符
 - `[]` 范围内字符，如 `[0-9]`
 
@@ -3419,6 +3599,21 @@ for py in f:
 ```python
 print(glob.escape('?[]*.py'))
 ```
+
+
+
+#### hashlib
+
+md5 加密一个文件或二进制文本，返回32字符的十六进制字符串：
+
+```python
+hashlib.md5(b'aba').hexdigest()
+def md5(path):
+    with open(path,'rb') as f:
+        return hashlib.md5(f.read()).hexdigest()
+```
+
+
 
 
 
@@ -5441,7 +5636,7 @@ con4 = {'type': 'eq', 'fun': lambda x: x[1] + 2 * x[2]**2 - 3}
 cons = ([con1, con2, con3, con4])
 f = lambda x: x[0]**2 + x[1]**2 + x[2]**2 + 8
 x0 = np.array([0, 0, 0])
-sol = opt.minimize(f, x0, method='SLSQP', bounds=bnds, constraints=cons)
+sol = opt.minimize(f, x0, method='SLSQP', bounds=bnds, constraints=cons)#不懂算法就不选method
 x = sol.x
 print('min f=%f' % f(x))
 print('x=', x)
@@ -5451,6 +5646,71 @@ print('x=', x)
 
 - `bound` 是 `min, max` 二元组。
 - [返回值](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.OptimizeResult.html#scipy.optimize.OptimizeResult)的 x 是取得最值的参数(np array)，还有布尔值 success 和对应字符串 message
+
+
+
+### cvxpy
+
+#### 整数规划
+
+例：求整数线性规划
+$$
+\min z=40x_1+90x_2\\
+s.t.\begin{cases}
+9x_1+7x_2\le56\\
+7x_1+20x_2\ge70\\
+x_1,x_2\in N
+\end{cases}
+$$
+
+```python
+import cvxpy as cp
+import numpy as np
+
+c = np.array([40, 90])
+a = np.array([[9, 7], [-7, -20]])  #默认<=
+b = np.array([56, -70])
+x = cp.Variable(2, integer=True)
+obj = cp.Minimize(c * x)
+cons = [a * x <= b, x >= 0]
+prob = cp.Problem(obj, cons)
+prob.solve(solver='GLPK_MI')  #, verbose=True (详细输出)
+print(prob.value)  #最小值
+print(x.value)  #取得最小值的解
+# print(x.value[0])#取数组元素
+```
+
+例：01整数规划-指派问题(建房子，每栋楼由不重的一个建筑商建，给定报价数组，求方案)
+$$
+\min z=\sum_{i=1}^n\sum_{j=1}^mc_{ij}x_{ij}\\
+s.t.\begin{cases}
+\sum_{j=1}^mx_{ij}=1&,1\le i\le n\\
+\sum_{i=1}^nx_{ij}=1&,1\le j\le m\\
+x_{ij}=0\ 或\ 1&,1\le i\le n,1\le j\le m
+\end{cases}
+$$
+
+```python
+import cvxpy as cp
+import numpy as np
+c=np.array([[4, 8, 7, 15, 12],
+         	[7, 9, 17, 14, 10],
+	        [6, 9, 12, 8, 7],
+   	     	[6, 7, 14, 6, 10],
+        	[6, 9, 12, 10, 6]])
+x = cp.Variable((5,5),integer=True)
+obj = cp.Minimize(cp.sum(cp.multiply(c,x)))
+con= [0 <= x, x <= 1, cp.sum(x, axis=0, keepdims=True)==1,
+             cp.sum(x, axis=1, keepdims=True)==1]
+prob = cp.Problem(obj, con)
+prob.solve(solver='GLPK_MI')
+print("最优值为:",prob.value)
+print("最优解为：\n",x.value)
+```
+
+[更多例题参考](https://blog.csdn.net/abc1234564546/article/details/126263264)
+
+
 
 
 
