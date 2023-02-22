@@ -325,7 +325,7 @@ ipynb使用十分简单，事实上就是一堆代码框，然后可以分块运
 
 这个工具的使用本身十分简单……本处不赘述
 
-这个工具跟自带IDLE相比，可以有vscode插件加成，有输入提示
+这个工具跟自带IDLE相比，可以有vscode插件加成，有输入提示，可以用 vscode 整
 
 ##### 安装
 
@@ -1611,6 +1611,7 @@ except (ValueError,ZeroDivisionError) as e: #单一错误也行
 
 ```python
 assert 表达式
+assert 表达式, 不成立时输出什么
 ```
 
 例如：
@@ -1618,6 +1619,7 @@ assert 表达式
 ```python
 a=3
 assert a!=3 #报错
+assert 1==2, "FCKK"
 ```
 
 #### raise
@@ -2840,31 +2842,6 @@ for root, dirs, files in os.walk(dirx):
 ```python
 import filecmp
 filecmp.cmp(路径1,路径2) #返回True如果相同
-```
-
-#### chardet
-
-常用编码：utf-8,gbk,gb2312,ascii; euc-jp (日文)
-
-##### detect
-
-检查编码，传入二进制数据，返回一个字典，其中key为encoding的元素是编码方式。
-
-据此可以设计一个返回文件编码的函数：
-
-```python
-import chardet
-def check(d):#d是文件路径，返回编码方式(str)
-    with open(d,'rb') as df:
-        dt=df.read()
-    return chardet.detect(dt)['encoding']
-```
-
-随后再正式打开文件：
-
-```python
-with open(d,'r',encoding=check(d)) as f:
-    f.read()
 ```
 
 
@@ -4438,6 +4415,8 @@ arr=np.array(数组, dtype=数据类型)
 ```
 
 > 如用 `asarray`，非必要不 copy。而 array 必须 copy
+>
+> 逆运算：`tolist` 方法
 
 查看维度：(一个tuple)
 
@@ -4590,6 +4569,12 @@ np.random.uniform(low=0.0, high=1.0, size=(5,5))>0.5
 
 ```python
 arr.transpose()
+```
+
+随机选择 10 次：
+
+```python
+np.random.choice([1,2,3,4,5],size=10,p=[0.05,0.05,0.2,0.3,0.4])
 ```
 
 
@@ -4910,6 +4895,338 @@ def GLPF(img, d0, N=2):
 
 
 
+##### 熵权TOPSIS
+
+[TOPSIS理论](https://blog.csdn.net/m0_58585940/article/details/127700230) [熵权法理论](https://zhuanlan.zhihu.com/p/161372016) [熵权TOPSIS公式](https://blog.csdn.net/qq_42374697/article/details/105901229) [参考实现](https://blog.csdn.net/NIH2221/article/details/119893572)
+
+```python
+import numpy as np
+import openpyxl as xls
+
+
+def read(path):
+    '''path is .xlsx file, the first line is column name, other lines are data'''
+    wb = xls.load_workbook(path)
+    sh = wb.worksheets[0]
+    rows = sh.max_row-1
+    cols = sh.max_column
+    # one line np.array one table.col(var)
+    # each line contains all table.row data
+    res = np.zeros((cols, rows), np.float64)
+    for i in range(cols):
+        for j in range(rows):  # skip header
+            cor = '%c%d' % (chr(65+i), j+2)
+            val = sh[cor].value
+            res[i, j] = val
+    # print('read:\n', res)
+    return res
+
+
+def modify(data, desc):
+    '''desc is file descripting column type that:
+    1 denotes that the bigger the better
+    2 denotes that the smaller the better
+    3 denotes that the nearer one specific the better
+    4 denotes that the nearer one specific interval the better
+    (3, 4 is not needed in this problem)
+    where better means a bigger value of light pollution
+    desc is python list type file content like [1,2,1]'''
+    with open(desc) as f:
+        typ = eval(f.read())
+    col = data.shape[0]
+    for i in range(col):
+        # bigger -> better need not predeal
+        if typ[i] == 2:  # smaller -> better
+            data[i] = np.max(data[i])-data[i]
+
+    # standardize matrix
+    k = np.power(np.sum(pow(data, 2), axis=1), 0.5)
+    for i in range(k.size):
+        for j in range(data[i].size):
+            data[i, j] = data[i, j]/k[i]
+    # print('modify:\n', data)
+    return data
+
+
+def entropy(data):
+    '''return each w of data var'''
+    # num of var, num of table row data
+    n, m = data.shape
+    mx = np.max(data, axis=1)  # max of each var
+    mi = np.min(data, axis=1)  # min of each var
+    for i in range(n):
+        data[i] = (data[i]-mi[i])/(mx[i]-mi[i])
+    s = np.sum(data, axis=1)
+    for i in range(n):
+        data[i] = data[i]/s[i]
+    a = data * 1.0
+    a[np.where(data == 0)] = 0.0001  # avoid ln0
+    e = (-1.0 / np.log(m)) * np.sum(data*np.log(a), axis=1)
+    w = (1-e)/np.sum(1-e)
+    return w
+
+
+def topsis(data, w):
+    n, m = np.shape(data)
+    mx = np.max(data, axis=1)
+    mi = np.min(data, axis=1)
+    ans = np.zeros(m, data.dtype)
+    for i in range(m):  # each table row data
+        mxsum = misum = 0
+        for j in range(n):
+            mxsum += w[j]*np.power(data[j,i]-mx[j], 2)
+            misum += w[j]*np.power(data[j,i]-mi[j], 2)
+        mxsum = pow(mxsum, 0.5)
+        misum = pow(misum, 0.5)
+        ans[i] = misum / (misum + mxsum)
+    ans = ans / np.sum(ans)
+    # print('topsis:\n', ans)
+    return ans
+
+
+data = read('topsis_data.xlsx')
+data = modify(data, 'topsis_desc.txt')
+w = entropy(data)
+data = topsis(data, w)
+print(data)
+```
+
+数据：
+
+```
+good	great	awful
+1	1	5
+1	9	0
+4	1	3
+5	9	1
+1	8	1
+4	1	2
+```
+
+```python
+[1,1,2]
+```
+
+
+
+##### 遗传算法
+
+[题目](https://blog.csdn.net/a_hui_tai_lang/article/details/119900038)
+
+要最求最小值的二元函数：
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
+
+def fitness_func(X):
+    # 目标函数，即适应度值，X是种群的表现型
+    a = 10
+    pi = np.pi
+    x = X[:, 0]
+    y = X[:, 1]
+    return 2 * a + x ** 2 - a * np.cos(2 * pi * x) + y ** 2 - a * np.cos(2 * 3.14 * y)
+
+def decode(x, a, b):
+    """解码，即基因型到表现型"""
+    xt = 0
+    for i in range(len(x)):
+        xt = xt + x[i] * np.power(2, i)
+    return a + xt * (b - a) / (np.power(2, len(x)) - 1)
+
+def decode_X(X: np.array):
+    """对整个种群的基因解码，上面的decode是对某个染色体的某个变量进行解码"""
+    X2 = np.zeros((X.shape[0], 2))
+    for i in range(X.shape[0]):
+        xi = decode(X[i, :20], -5, 5)
+        yi = decode(X[i, 20:], -5, 5)
+        X2[i, :] = np.array([xi, yi])
+    return X2
+
+def select(X, fitness):
+    """根据轮盘赌法选择优秀个体"""
+    fitness = 1 / fitness  # fitness越小表示越优秀，被选中的概率越大，做 1/fitness 处理
+    fitness = fitness / fitness.sum()  # 归一化
+    idx = np.array(list(range(X.shape[0])))
+    X2_idx = np.random.choice(idx, size=X.shape[0], p=fitness)  # 根据概率选择
+    X2 = X[X2_idx, :]
+    return X2
+
+def crossover(X, c):
+    """按顺序选择2个个体以概率c进行交叉操作"""
+    for i in range(0, X.shape[0], 2):
+        xa = X[i, :]
+        xb = X[i + 1, :]
+        for j in range(X.shape[1]):
+            # 产生0-1区间的均匀分布随机数，判断是否需要进行交叉替换
+            if np.random.rand() <= c:
+                xa[j], xb[j] = xb[j], xa[j]
+        X[i, :] = xa
+        X[i + 1, :] = xb
+    return X
+
+def mutation(X, m):
+    """变异操作"""
+    for i in range(X.shape[0]):
+        for j in range(X.shape[1]):
+            if np.random.rand() <= m:
+                X[i, j] = (X[i, j] + 1) % 2
+    return X
+
+
+
+def ga():
+    """遗传算法主函数"""
+    c = 0.3  # 交叉概率
+    m = 0.05  # 变异概率
+    best_fitness = []  # 记录每次迭代的效果
+    best_xy = []
+    iter_num = 100  # 最大迭代次数
+    X0 = np.random.randint(0, 2, (50, 40))  # 随机初始化种群，为50*40的0-1矩阵
+    for i in range(iter_num):
+        X1 = decode_X(X0)  # 染色体解码
+        fitness = fitness_func(X1)  # 计算个体适应度
+        X2 = select(X0, fitness)  # 选择操作
+        X3 = crossover(X2, c)  # 交叉操作
+        X4 = mutation(X3, m)  # 变异操作
+        # 计算一轮迭代的效果
+        X5 = decode_X(X4)
+        fitness = fitness_func(X5)
+        best_fitness.append(fitness.min())
+        x, y = X5[fitness.argmin()]
+        best_xy.append((x, y))
+        X0 = X4
+    # 多次迭代后的最终效果
+    print("最优值是：%.5f" % best_fitness[-1])
+
+    print("最优解是：x=%.5f, y=%.5f" % best_xy[-1])
+    # 最优值是：0.00000
+    # 最优解是：x=0.00000, y=-0.00000
+    # 打印效果
+    plt.plot(best_fitness, color='r')
+    plt.show()
+
+ga()
+
+```
+
+
+
+##### 层次分析
+
+[参考0](https://blog.csdn.net/bb_sy_w/article/details/107577856) [参考](https://blog.csdn.net/Trisyp/article/details/106017533?spm=1001.2101.3001.6650.2&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-2-106017533-blog-80405807.pc_relevant_recovery_v2&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-2-106017533-blog-80405807.pc_relevant_recovery_v2&utm_relevant_index=3)
+
+```python
+import numpy as np
+import pandas as pd
+import warnings
+
+class AHP:
+    def __init__(self, criteria, samples):
+        self.RI = (0, 0, 0.58, 0.9, 1.12, 1.24, 1.32, 1.41, 1.45, 1.49)
+        self.criteria = criteria
+        self.samples = samples
+        self.num_criteria = criteria.shape[0]
+        self.num_project = samples[0].shape[0]
+
+    def calculate_weights(self, input_matrix): #废弃
+        input_matrix = np.array(input_matrix)
+        n, n1 = input_matrix.shape
+        assert n==n1, "the matrix is not orthogonal"
+        for i in range(n):
+            for j in range(n):
+                if np.abs(input_matrix[i,j]*input_matrix[j,i]-1) > 1e-7:
+                    raise ValueError("the matrix is not symmetric")
+        eigen_values, eigen_vectors = np.linalg.eig(input_matrix)
+        max_eigen = np.max(eigen_values)
+        max_index = np.argmax(eigen_values)
+        eigen = eigen_vectors[:, max_index]
+        eigen = eigen/eigen.sum()
+        if n > 9:
+            CR = None #其实就是报错，而不是警告
+            warnings.warn("can not judge the uniformity")
+        else:
+            CI = (max_eigen - n)/(n-1)
+            CR = CI / self.RI[n-1]
+        return max_eigen, CR, eigen
+
+    def calculate_mean_weights(self,input_matrix):
+        input_matrix = np.array(input_matrix)
+        n, n1 = input_matrix.shape
+        assert n == n1, "the matrix is not orthogonal"
+        A_mean = []
+        for i in range(n):
+            mean_value = input_matrix[:, i]/np.sum(input_matrix[:, i])
+            A_mean.append(mean_value)
+        eigen = []
+        A_mean = np.array(A_mean)
+        for i in range(n):
+            eigen.append(np.sum(A_mean[:, i])/n)
+        eigen = np.array(eigen)
+        matrix_sum = np.dot(input_matrix, eigen)
+        max_eigen = np.mean(matrix_sum/eigen)
+        if n > 9:
+            CR = None
+            warnings.warn("can not judge the uniformity")
+        else:
+            CI = (max_eigen - n) / (n - 1)
+            CR = CI / self.RI[n - 1]
+        return max_eigen, CR, eigen
+
+    def run(self, method="calculate_weights"):
+        weight_func = eval(f"self.{method}")
+        max_eigen, CR, criteria_eigen = weight_func(self.criteria)
+        print('准则层：最大特征值{:<5f},CR={:<5f},检验{}通过'.format(max_eigen, CR, '' if CR < 0.1 else '不'))
+        print('准则层权重={}\n'.format(criteria_eigen))
+
+        max_eigen_list, CR_list, eigen_list = [], [], []
+        for sample in self.samples:
+            max_eigen, CR, eigen = weight_func(sample)
+            max_eigen_list.append(max_eigen)
+            CR_list.append(CR)
+            eigen_list.append(eigen)
+
+        pd_print = pd.DataFrame(eigen_list, index=['准则' + str(i+1) for i in range(self.num_criteria)],
+                                columns=['方案' + str(i+1) for i in range(self.num_project)],
+                                )
+        pd_print.loc[:, '最大特征值'] = max_eigen_list
+        pd_print.loc[:, 'CR'] = CR_list
+        pd_print.loc[:, '一致性检验'] = pd_print.loc[:, 'CR'] < 0.1
+        print('方案层')
+        print(pd_print)
+
+        # 目标层
+        obj = np.dot(criteria_eigen.reshape(1, -1), np.array(eigen_list))
+        print('\n目标层', obj)
+        print('最优选择是方案{}'.format(np.argmax(obj)+1))
+        return obj
+
+
+if __name__ == '__main__':
+    # 准则重要性矩阵
+    criteria = np.array([[1, 2, 7, 5],
+                         [1 / 2, 1, 4, 3],
+                         [1 / 7, 1 / 4, 1, 1 / 2],
+                         [1 / 5, 1 / 3, 2, 1]])
+
+    # 对每个准则，方案优劣排序
+    sample1 = np.array([[1, 2, 8], [1/2, 1, 6], [1/8, 1/6, 1]])
+    sample2 = np.array([[1, 2, 5], [1 / 2, 1, 2], [1 / 5, 1 / 2, 1]])
+    sample3 = np.array([[1, 1, 3], [1, 1, 3], [1 / 3, 1 / 3, 1]])
+    sample4 = np.array([[1, 3, 4], [1 / 3, 1, 1], [1 / 4, 1, 1]])
+
+    samples = [sample1, sample2, sample3, sample4]
+    a = AHP(criteria, samples).run("calculate_mean_weights")
+```
+
+已知权重转矩阵：
+
+
+
+
+
 ### matplotlib
 
 是第三方库，需要手动安装。[官方文档](https://matplotlib.org/3.6.0/gallery/index.html)
@@ -4922,11 +5239,13 @@ import matplotlib.pyplot as plt
 
 #### 绘图
 
+##### 基础
+
 分为绘制和展示两部分：
 
 ```python
 plt.plot(数据) #折线图
-plt.show()
+plt.show() #如果plot多次，自动赋予不同颜色
 ```
 
 如：
@@ -4937,16 +5256,17 @@ plt.plot([-1,-1,-1,-1])
 plt.show()
 ```
 
-横纵坐标旋转：`plot(ylt,xlt)`
+保存到文件：(重名覆盖)
 
 ```python
-lt = list(range(img.shape[0]-1, -1, -1))
-plt.plot(sumHori, lt)
+plt.savefig(输出文件名含后缀)
 ```
 
 
 
-绘制二维散点点图：
+##### 散点
+
+绘制二维散点点图：[具体参考](https://www.runoob.com/matplotlib/matplotlib-scatter.html)
 
 ```python
 plt.scatter([1,5,10],[-3,-2,-1],s=10)
@@ -4964,17 +5284,46 @@ plt.scatter([1,5,10],[-3,-2,-1],s=100,edgecolor='none')
 plt.scatter(1,2,s=50)
 ```
 
-可以用marker属性描述点型：
+可以用marker属性描述点型：(每个点实心) [参考](https://www.runoob.com/matplotlib/matplotlib-marker.html)
 
 ```python
 marker='x'; marker='o'
 ```
 
-保存到文件：(重名覆盖)
+> - markersize，简写为 ms：定义标记的大小。
+> - markerfacecolor，简写为 mfc：定义标记内部的颜色。
+> - markeredgecolor，简写为 mec：定义标记边框的颜色。
+>
+> ```python
+> plt.plot(ypoints, marker = 'o', ms = 20, mec = 'r')
+> plt.plot(ypoints, marker = 'o', ms = 20, mec = '#4CAF50', mfc = '#4CAF50')
+> ```
+
+
+
+##### 其他
+
+[柱状图参考](https://www.runoob.com/matplotlib/matplotlib-bar.html)
+
+[饼图参考](https://www.runoob.com/matplotlib/matplotlib-pie.html)
+
+横纵坐标旋转：`plot(ylt,xlt)`
 
 ```python
-plt.savefig(输出文件名含后缀)
+lt = list(range(img.shape[0]-1, -1, -1))
+plt.plot(sumHori, lt) #x坐标点集, y坐标点集
 ```
+
+> ```python
+> # 画多条线, fmt 是颜色等, [表示可选]
+> plot([x], y, [fmt], [x2], y2, [fmt2], ..., **kwargs)
+> plot(x, y, 'bo')  # 创建 y 中数据与 x 中对应值的二维线图，使用蓝色实心圈绘制(o是空心散点而不是无点折线)
+> plot(y, 'r+')     # 使用红色 + 号
+> # fmt = '[marker][line][color]'
+> # 例如 o:r，o 表示实心圆标记，: 表示虚线，r 表示颜色为红色。
+> ```
+>
+> [具体参考](https://www.runoob.com/matplotlib/matplotlib-marker.html)
 
 
 
@@ -5014,11 +5363,31 @@ plt.figure(figsize=(10,5))
 plt.figure(figsize=(10,5),dpi=128) #改单位
 ```
 
-属性：
+属性：[参考](https://www.runoob.com/matplotlib/matplotlib-marker.html)
 
-- 线宽linewidth
+> **颜色字符：**'b' 蓝色，'m' 洋红色，'g' 绿色，'y' 黄色，'r' 红色，'k' 黑色，'w' 白色，'c' 青绿色，'#008000' RGB 颜色符串。多条曲线不指定颜色时，会自动选择不同颜色。
+>
+> **线型参数：**'‐' 实线，'‐‐' 破折线，'‐.' 点划线，':' 虚线。
+>
+> **标记字符：**'.' 点标记，',' 像素标记(极小点)，'o' 实心圈标记，'v' 倒三角标记，'^' 上三角标记，'>' 右三角标记，'<' 左三角标记...等等。
+>
+> ```python
+> plot(y, 'r+')     # 使用红色 + 号
+> ```
 
-- 颜色c，使用单词或范围为$[0,1]$的RGB三元tuple（1浅0深），一般使用单词即可，使用tuple可能会出问题
+- 线宽 linewidth / lw
+
+  ```python
+  plt.plot(ypoints, linewidth = '12.5')
+  ```
+
+- 线形状linestyle [参考](https://www.runoob.com/matplotlib/matplotlib-line.html)
+
+  ```python
+  plt.plot(ypoints, linestyle = 'dotted')
+  ```
+
+- 线色 c / color，使用单词或范围为$[0,1]$的RGB三元tuple（1浅0深），一般使用单词即可，使用tuple可能会出问题 [参考](https://www.runoob.com/html/html-colorvalues.html)
 
   颜色可以映射，如：
 
@@ -5028,7 +5397,7 @@ plt.figure(figsize=(10,5),dpi=128) #改单位
   plt.scatter(xv,yv,s=40,edgecolor='none',c=yv,cmap=plt.cm.Blues)
   ```
 
-- 图例名字label 
+- 图例名字label [带中文参考](https://www.runoob.com/matplotlib/matplotlib-label.htmls)
 
 图表基本设定：
 
@@ -5038,6 +5407,34 @@ plt.xlabel('xv',fontsize=14) #x轴名字
 plt.ylabel('saw',fontsize=14) 
 plt.tick_params(axis='both',labelsize=14) #或x或y，坐标上数字大小
 ```
+
+> ```python
+> import numpy as np
+> from matplotlib import pyplot as plt
+> import matplotlib
+>  
+> # fname 为 你下载的字体库路径，注意 SourceHanSansSC-Bold.otf 字体的路径，size 参数设置字体大小
+> zhfont1 = matplotlib.font_manager.FontProperties(fname="SourceHanSansSC-Bold.otf", size=18)
+> font1 = {'color':'blue','size':20}
+> font2 = {'color':'darkred','size':15}
+> x = np.arange(1,11)
+> y =  2  * x +  5
+> 
+> # fontdict 可以使用 css 来设置字体样式
+> plt.title("菜鸟教程 - 测试", fontproperties=zhfont1, fontdict = font1)
+>  
+> # fontproperties 设置中文显示，fontsize 设置字体大小
+> plt.xlabel("x 轴", fontproperties=zhfont1)
+> plt.ylabel("y 轴", fontproperties=zhfont1)
+> plt.plot(x,y)
+> plt.show()
+> ```
+>
+> title() 方法提供了 loc 参数来设置标题显示的位置，可以设置为: 'left', 'right', 和 'center'， 默认值为 'center'。
+>
+> xlabel() 方法提供了 loc 参数来设置 x 轴显示的位置，可以设置为: 'left', 'right', 和 'center'， 默认值为 'center'。
+>
+> ylabel() 方法提供了 loc 参数来设置 y 轴显示的位置，可以设置为: 'bottom', 'top', 和 'center'， 默认值为 'center'。
 
 锁定坐标轴范围为$x\in[-12,12],y\in[-5,5]$。也可以用 `xlim(a,b)`, `ylim`。可以 $a\ge b$ 则画图序列也跟着倒序。
 
@@ -5075,11 +5472,16 @@ plt.show()
 
 loc控制图例的方位，具体为：$\left[\matrix{2&3\\1&4}\right]$
 
-添加网格：
+添加网格：[参考](https://www.runoob.com/matplotlib/matplotlib-grid.html)
 
 ```python
 plt.grid()
 ```
+
+> - b：可选，默认为 None，可以设置布尔值，true 为显示网格线，false 为不显示，如果设置 `**kwargs` 参数，则值为 true。
+> - which：可选，可选值有 'major'、'minor' 和 'both'，默认为 'major'，表示应用更改的网格线。
+> - axis：可选，设置显示哪个方向的网格线，可以是取 'both'（默认），'x' 或 'y'，分别表示两个方向，x 轴方向或 y 轴方向。
+> - `**kwargs`：可选，设置网格样式，可以是 color='r', linestyle='-' 和 linewidth=2，分别表示网格线的颜色，样式和宽度。
 
 保存图表：
 
@@ -5105,6 +5507,59 @@ for i in zip(xv, yv): #写文本
     plt.annotate('%s' % i[1], xy=(i[0], i[1] + 1))
 plt.show()
 ```
+
+
+
+#### 子图
+
+```python
+subplot(nrows, ncols, index, **kwargs)
+subplot(pos, **kwargs)
+subplot(**kwargs)
+subplot(ax)
+```
+
+以上函数将整个绘图区域分成 nrows 行和 ncols 列，然后从左到右，从上到下的顺序对每个子区域进行编号 `1...N` ，左上的子区域的编号为 1、右下的区域编号为 N，编号可以通过参数 index 来设置。
+
+> ```python
+> import matplotlib.pyplot as plt
+> import numpy as np
+> 
+> #plot 1:
+> x = np.array([0, 6])
+> y = np.array([0, 100])
+> 
+> plt.subplot(2, 2, 1)
+> plt.plot(x,y)
+> plt.title("plot 1") #子图标题
+> 
+> #plot 2:
+> x = np.array([1, 2, 3, 4])
+> y = np.array([1, 4, 9, 16])
+> 
+> plt.subplot(2, 2, 2)
+> plt.plot(x,y)
+> plt.title("plot 2")
+> 
+> #plot 3:
+> x = np.array([1, 2, 3, 4])
+> y = np.array([3, 1, 4, 2])
+> 
+> plt.subplot(2, 2, 3)
+> plt.plot(x,y)
+> plt.title("plot 3")
+> 
+> #plot 4:
+> x = np.array([1, 2, 3, 4])
+> y = np.array([4, 3, 2, 1])
+> 
+> plt.subplot(224) #这样也行
+> plt.plot(x,y)
+> plt.title("plot 4")
+> 
+> plt.suptitle("RUNOOB subplot Test") #大标题
+> plt.show()
+> ```
 
 
 
@@ -5258,6 +5713,103 @@ plt.gca().add_patch(rect)
 ```
 
 [颜色参考](https://matplotlib.org/3.6.0/gallery/color/named_colors.html#sphx-glr-gallery-color-named-colors-py)
+
+
+
+### pandas
+
+[文档](https://pandas.pydata.org/docs/index.html)
+
+#### 基本
+
+##### 读入
+
+读 csv: (二维表，行间空行隔开，列间单半角逗号隔开，第一行是表头不算作实际数据)
+
+> [数据集出处](https://faculty.sdu.edu.cn/qiang2chen2/zh_CN/jxzy/545776/content/1793.htm#jxzy)
+
+```python
+import pandas as pd
+audiometric = pd.read_csv('audiometric.csv')
+```
+
+其 `.shape` 依次是行数(不含表头)、列数。是独有的类型。
+
+打印前五行数据：(后三行 `tail(3)`)
+
+```python
+print(audiometric.head())
+```
+
+查看行号 `.index`，列 `.columns`
+
+求列的相关系数：
+
+```python
+audiometric = pd.read_csv('audiometric.csv')
+print(round(audiometric.corr(), 2))
+```
+
+绘图展示：
+
+```python
+import seaborn as sns
+import matplotlib.pyplot as plt
+sns.heatmap(round(audiometric.corr(), 2),annot=True)
+plt.show()
+```
+
+
+
+也可以读 excel，默认第一行是表头，没有列头。如果要列头加默认参数如：[参考](https://blog.csdn.net/qq_18351157/article/details/124865696)
+
+```python
+data = pd.read_excel('pca_data.xlsx',index_col=0)
+```
+
+
+
+##### 写入
+
+[参考](https://blog.csdn.net/m0_46419189/article/details/123111493)
+
+```python
+with pd.ExcelWriter("pca_result.xlsx") as writer:
+    data.to_excel(writer, index=True) #单个表单
+```
+
+
+
+
+
+##### 基本操作
+
+创建两行数据：
+
+```python
+x=pd.DataFrame({'A': [1, 2, 3], 'C': [4, 3, 5]})
+print(x)
+```
+
+从 numpy 转回来：
+
+```python
+pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
+```
+
+取一列：`[列名str]`。取行区间`[起:止]` (切片语法同 python)
+
+取单独元素 `.at[行号, 列str]`
+
+转 numpy(丢失表头)：`.to_numpy()`
+
+简要统计 `.describe()`
+
+
+
+### seaborn
+
+
 
 
 
@@ -5711,6 +6263,117 @@ print("最优解为：\n",x.value)
 [更多例题参考](https://blog.csdn.net/abc1234564546/article/details/126263264)
 
 
+
+## 文本处理
+
+### chardet
+
+常用编码：utf-8,gbk,gb2312,ascii; euc-jp (日文)
+
+##### detect
+
+检查编码，传入二进制数据，返回一个字典，其中key为encoding的元素是编码方式。
+
+据此可以设计一个返回文件编码的函数：
+
+```python
+import chardet
+def check(d):#d是文件路径，返回编码方式(str)
+    with open(d,'rb') as df:
+        dt=df.read()
+    return chardet.detect(dt)['encoding']
+```
+
+随后再正式打开文件：
+
+```python
+with open(d,'r',encoding=check(d)) as f:
+    f.read()
+```
+
+
+
+## 机器学习
+
+### sklearn
+
+安装：
+
+```shell
+pip install scikit-learn -i https://pypi.tuna.tsinghua.edu.cn/simple/
+```
+
+#### 主成分分析
+
+[参考](https://blog.csdn.net/weixin_46277779/article/details/125533173)
+
+数据标准化：
+
+```python
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+data = pd.read_csv('audiometric.csv')
+scalar = StandardScaler()
+scalar.fit(data)
+X = scalar.transform(data) #numpy.ndarray
+```
+
+> 标准化即 $x=\dfrac{x-\mu}{s}$，其中分母是标准差即 $s=\sqrt{\dfrac{1}{n}\sum(x_i-u)^2}$。[参考](https://zhuanlan.zhihu.com/p/50751333)
+
+主成分拟合：
+
+```python
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+model = PCA()
+model.fit(X)
+# 每个主成分能解释的方差
+print(model.explained_variance_)
+# 每个主成分能解释的方差的百分比
+print(model.explained_variance_ratio_)
+# 可视化
+plt.plot(model.explained_variance_ratio_, 'o-')
+plt.xlabel('Principal Component')
+plt.ylabel('Proportion of Variance Explained')
+plt.title('PVE')
+plt.show()
+# 查看出每个主成分占的贡献百分比
+```
+
+```python
+# 百分比前缀和
+plt.plot(model.explained_variance_ratio_.cumsum(), 'o-')
+plt.xlabel('Principal Component')
+plt.ylabel('Cumulative Proportion of Variance Explained')
+plt.axhline(0.9, color='k', linestyle='--', linewidth=1) # 虚线横线
+plt.title('Cumulative PVE')
+plt.show()
+```
+
+```python
+#主成分核载矩阵
+print(model.components_)
+columns = ['PC' + str(i) for i in range(1, 9)]
+pca_loadings = pd.DataFrame(model.components_, columns=data.columns, index=columns)
+print(pca_loadings) #与上面一样，只是转成了 pd
+```
+
+绘图展示主成分的成分：
+
+```python
+fig, ax = plt.subplots(2, 2)
+plt.subplots_adjust(hspace=1, wspace=0.5)   
+for i in range(1, 5): #只要前四个
+    ax = plt.subplot(2, 2, i)
+    ax.plot(pca_loadings.T['PC' + str(i)], 'o-')
+    ax.axhline(0, color='k', linestyle='--', linewidth=1)
+    ax.set_xticks(range(8))
+    ax.set_xticklabels(audiometric.columns, rotation=30)
+    ax.set_title('PCA Loadings for PC' + str(i))
+plt.show()
+```
+
+对样本求主成分得分
 
 
 
@@ -6276,4 +6939,6 @@ for i in r:
 with open('LaTeX2.md', 'w', encoding='utf8') as f:
     f.write(t)
 ```
+
+
 

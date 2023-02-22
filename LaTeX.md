@@ -1652,6 +1652,8 @@ geometry 宏包，如：
 
 #### 基本内容
 
+##### 封面
+
 ```tex
 \begin{document}
 	\title{标题，不用引号}
@@ -1679,6 +1681,8 @@ geometry 宏包，如：
 
 
 
+##### 标题
+
 标题和子标题：(会自动标号)
 
 ```tex
@@ -1691,7 +1695,22 @@ geometry 宏包，如：
 
 想要更小的三级标题即 `\subsubsection`
 
+> 标题、子标题居左：
+>
+> ```tex
+> \CTEXsetup[format={\Large\bfseries}]{section}
+> ```
+>
+> 居中 (article 类)
+>
+> ```tex
+> \usepackage{titlesec}
+> \titleformat{\section}{\centering\Large\bfseries}{\thesection}{1em}{}
+> ```
 
+
+
+##### 目录
 
 目录：(完全同步的，根据写的正文的变化而变化，有页码)
 
@@ -1701,7 +1720,41 @@ geometry 宏包，如：
 
 如果一次编译目录没有出来，那就再编译一次，一般来说，**正确生成目录项需要编译两次源代码**
 
+> 目录行距加大
+>
+> ```tex
+> \usepackage{setspace}
+> \setstretch{1.5}
+> \tableofcontents 
+> \setstretch{1.2}
+> ```
 
+> 目录标题居中
+>
+> ```tex
+> \usepackage{tocloft}
+> \renewcommand{\cfttoctitlefont}{\hfill\Large\bfseries}
+> \renewcommand{\cftaftertoctitle}{\hfill}
+> ```
+
+目录点击跳转到对应页数
+
+```tex
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=black}
+```
+
+只包含两级目录：(在目录前输入)
+
+```tex
+\setcounter{tocdepth}{2}
+```
+
+> 这个命令还可以用来修改其他参数，如重置页号：`\setcounter{page}{1}`
+
+
+
+##### 正文
 
 正文就直接写上去即可。
 
@@ -1897,7 +1950,7 @@ geometry 宏包，如：
 \end{tabular}
 ```
 
-##### 拓展
+##### 三线表
 
 顶部橫线和底部橫线可以用 `\toprule,\bottomrule`，中线用 `\midrule`，形成三线表。需要使用宏包 `booktabs`。
 
@@ -1944,6 +1997,27 @@ htbp 详解：[参考](https://blog.csdn.net/weixin_45459911/article/details/109
 
 
 
+##### 导入
+
+csvsimple 包 [官方文档](https://mirror.mwt.me/ctan/macros/latex/contrib/csvsimple/csvsimple-l3.pdf)
+
+如：跨页表格(longtable) + 自动引入。
+
+```tex
+\csvautolongtable{data.csv}
+```
+
+> 其中：`data.csv` 放同目录
+>
+> ```csv
+> city,GDPP,PD,NBV,REI,FCR
+> Shanghai,17.36,3926,16.488,5035.18,18.49
+> Beijing,18.4,1312,8.621,4139.03,44.4
+> Nanjing,17.45,1430.6,6.8482,2719.8,31.9
+> ```
+
+
+
 #### 图片
 
 ##### 基础
@@ -1971,6 +2045,8 @@ htbp 详解：[参考](https://blog.csdn.net/weixin_45459911/article/details/109
 ```
 
 进行图片编号，使用 figure 环境。用 `\caption` 表示图名。图名对齐指令是代码块 `[htbp]`。默认编号是图 `x`。
+
+> [浮动体](https://blog.csdn.net/m0_55746113/article/details/122792082) h此处,t顶端,b底端,p本页(按书写顺序)
 
 若有 `\label{标签名}`，可以用 `\ref{标签名}` 引用图片，显示图片标号。疑似引用需要二次编译才有效。如：
 
@@ -2293,29 +2369,38 @@ signed main() /* 注释 */
 
 需要引用文献时，用 `\cite{ascii名字}` 。那么此处会出现 `[编号]`。可以带一个可选参数，表示引用编号。如 `参见\cite[page 13]{article1}的表述` 。这样会以 `[编号, 可选参数]` 显示内容。
 
+> 在 begin 那行前加以下代码将其添加到目录：
+>
+> ```tex
+> \addcontentsline{toc}{section}{Refences}
+> ```
+
 
 
 ##### 文件调用
 
+[参考](https://zhuanlan.zhihu.com/p/397026871)
+
 如果想要在多个论文使用同样的参考文献，可以用 `bibtex` 封装。新建 `.bib` 文件，存放参考文献条目。内容格式如：
 
-```tex
-@article{ID1,
-	author = {lr580},
-	title = {普通文献},
-	journal = {ACM顶刊},
-	year = {2202},
-	volumn = {10},
-	number = {3},
-	pages = {200}
-}
-@article{ID2,
-	author = {lr580},
-	title = {普通文献2},
-	journal = {ACM顶刊},
-	year = {2202},
-}
-```
+> ```tex
+> @article{ID1,
+> 	author = {lr580},
+> 	title = {普通文献},
+> 	journal = {ACM顶刊},
+> 	year = {2202},
+> 	volumn = {10},
+> 	number = {3},
+> 	pages = {200}
+> }
+> @article{ID2,
+> 	author = {lr580},
+> 	title = {普通文献2},
+> 	journal = {ACM顶刊},
+> 	year = {2202},
+> }
+> ```
+>
 
 其中，每一行是 `key=value`，而 `author,title,journal,year` 必选，第一行的 ID 是 `\cite{ID}` 填写的东西。
 
@@ -2330,15 +2415,103 @@ signed main() /* 注释 */
 
 默认只有引用过的会列出来。使得 `bib` 文件全部参考文献被列出的话，使用 `\nocite{*}`。
 
-在文献网站，点击导入 `BibTex` 即可出现条目，复制粘贴即可。
+在文献网站，点击导出 `BibTex` 即可出现条目，复制粘贴即可。
 
-可以用 `zotero` 管理参考文献。
+> 可以用 `zotero` 管理参考文献。
+
+> 举例：有 `ref.bib` 放在同根目录，有内容如下：
+>
+> ```bib
+> @article{WOS:000334906300005,
+> Author = {Olsen, Reed N. and Gallaway, Terrel and Mitchell, David},
+> Title = {Modelling US light pollution},
+> Journal = {JOURNAL OF ENVIRONMENTAL PLANNING AND MANAGEMENT},
+> Year = {2014},
+> Volume = {57},
+> Number = {6},
+> Pages = {883-903},
+> Month = {JUN 3},
+> Abstract = {This paper ...},
+> Type = {Article},
+> Affiliation = {Olsen, RN (Corresponding Author), Missouri State Univ, Dept Econ, 901 South Natl Ave, Springfield, MO 65897 USA.
+>    Olsen, Reed N.; Gallaway, Terrel; Mitchell, David, Missouri State Univ, Dept Econ, Springfield, MO 65897 USA.},
+> DOI = {10.1080/09640568.2013.774268},
+> Author-Email = {reedolsen@missouristate.edu},
+> Times-Cited = {19},
+> Unique-ID = {WOS:000334906300005},
+> DA = {2023-02-18},
+> }
+> @inproceedings{ WOS:000375708200170,
+> Author = {Hu, Xuan},
+> Editor = {Xu, M and Wang, G},
+> Title = {Research on Urban Light Pollution and Its Prevention},
+> Booktitle = {PROCEEDINGS OF THE 2015 INTERNATIONAL CONFERENCE ON APPLIED SCIENCE AND
+>    ENGINEERING INNOVATION},
+> Series = {AER-Advances in Engineering Research},
+> Year = {2015},
+> Volume = {12},
+> Pages = {865-867},
+> Note = {International Conference on Applied Science and Engineering Innovation
+>    (ASEI), Jinan, PEOPLES R CHINA, AUG 30-31, 2015},
+> Abstract = {With the ...},
+> Type = {Proceedings Paper},
+> Affiliation = {Hu, X (Corresponding Author), North China Elect Power Univ, Sch Elect Engn, Baoding 071003, Peoples R China.
+>    Hu, Xuan, North China Elect Power Univ, Sch Elect Engn, Baoding 071003, Peoples R China.},
+> Author-Email = {1211265271@qq.com},
+> Times-Cited = {1},
+> Unique-ID = {WOS:000375708200170},
+> DA = {2023-02-18},
+> }
+> ```
+>
+> 那么根据第一行内容(被引用名字，我们可以引用 `WOS:000334906300005` 和 `WOS:000375708200170`)
+>
+> 在 tex 的附录位置输入：(其中 `ref` 是同目录文件名，`unsrt` 表示按引用顺序排序)
+>
+> ```tex
+> \bibliography{ref}
+> \bibliographystyle{unsrt}
+> ```
+>
+> 在需要引用的位置输入如：
+>
+> ```tex
+> \cite{WOS:000334906300005}
+> ```
+>
+> 那么被引用位置会出现 `[编号]`，且附录位置出现出处。
+>
+> 注：用 vscode 为例，需要保证 json 设置(ctrl+shift+p open user setting json)进去找 `latex-workshop.latex.recipes` 项，保证有：
+>
+> ```json
+> "latex-workshop.latex.recipes": [
+>     // ...
+>     {
+>         "name": "xe->bib->xe->xe",
+>         "tools": [
+>             "xelatex",
+>             "bibtex",
+>             "xelatex",
+>             "xelatex"
+>         ]
+>     },
+>     //...
+> ],
+> ```
+>
+> 然后使用 ctrl+shift+p 输入 latex recipe 选择 build with recipe, 选 name 对应那一项编译
+
+
+
+
 
 
 
 #### 页眉页脚
 
-去掉某一页的页码：`\thispagestyle{empty}`，即无页眉页脚。`plain` 仅页脚页码，`headings` 仅页眉包含章节标题和页码。默认 `plain`。
+去掉某一页的页码：`\thispagestyle{empty}`，即无页眉页脚。
+
+`plain` 仅页脚页码，`headings` 仅页眉包含章节标题和页码。默认 `plain`。
 
 修改页码编号：`\pagenumbering{编号形式}`，如 `Roman`, `arabic`。可选项同列表。
 
@@ -2354,6 +2527,8 @@ signed main() /* 注释 */
 
 
 
+
+
 #### 其他内容
 
 ##### 段落排版
@@ -2365,6 +2540,8 @@ signed main() /* 注释 */
 `par` 是分段，而 `\\` 是强制换行。前者会使得首行缩进生效，后者不会。
 
 左缩进 `\setlength{\leftskip}{大小}` 如 `10pt`。右缩进就 `\rightskip`。首行就 `\parindent`，如 `2em`。可以使用 `\indent` 开始一个段落的缩进。默认两字符。可多个 `\indent` 叠加。
+
+latex 会自动给长单词跨行加 `-` 连接符。
 
 ##### 乱数假文
 
@@ -2447,6 +2624,10 @@ signed main() /* 注释 */
 
 ### 数学公式
 
+```tex
+\usepackage{amsmath} %frac,sqrt等
+```
+
 #### 基本格式
 
 ##### 常用环境
@@ -2477,7 +2658,17 @@ signed main() /* 注释 */
 
 用 `array` 环境，开头格式为 `\begin{array}{tabular头}` 如 `\begin{array}{cccc}`。然后内容用 `&` 和 `\\`。
 
-有矩阵环境(不需要 tabular 格式)，包括 `pmatrix, bmatrix, Bmatrix, vmatrix, Vmatrix`，分别代表小中大括号、竖线和双竖线。
+有矩阵环境(不需要 tabular 格式)，包括 `pmatrix, bmatrix, Bmatrix, vmatrix, Vmatrix`，分别代表小中大括号、竖线和双竖线。如：
+
+> ```tex
+> \[ A=\begin{bmatrix}
+> 1.00&0.76&1.92&1.19&2.15\\
+> 1.30&1.00&2.51&1.56&2.83\\
+> 0.52&0.40&1.00&0.62&1.12\\
+> 0.84&0.64&1.61&1.00&1.81\\
+> 0.46&0.35&0.89&0.55&1.00
+> \end{bmatrix} \]
+> ```
 
 分段函数用 `cases` 环境。
 
@@ -3335,4 +3526,67 @@ draw=blue %边框颜色}
 library `quotes`，将 node label 的输入从 `label={[<options>]<text>}` 简化为 `"<text>"<options>`
 
 如果使用了选项 `use existing nodes=true`，输入`(start) -> (step 1) -> (step 2)` 能进一步简化为 `start -> step 1 -> step 2`。
+
+
+
+###### 复杂流程图案例
+
+[参考](https://blog.csdn.net/AnInteretedName/article/details/104453770)
+
+```tex
+\documentclass[12pt]{article}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric} % 注意
+\begin{document}
+\begin{figure}[htbp]
+    \centering
+    \tikzstyle{startstop} = [rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black]
+    \tikzstyle{decision} = [diamond, draw, text width=5.5em, text badly centered, inner sep=0pt]
+    \tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black]
+    \tikzstyle{arrow} = [thick,->,>=stealth]
+    \begin{tikzpicture}[node distance = 2cm]
+        % Place nodes
+        \node (start) [startstop] {Start};
+        \node (decP) [decision, below of = start, yshift=-0.5cm] {$p = 0$};
+        \node (computeLambda) [process, left of=decP, xshift=-1.5cm, yshift=-2cm] {Compute $\lambda$};
+        \node (computeAlpha) [process, right of=decP, xshift=2cm, yshift=-2cm, align=center] {Compute $\alpha$ and update \\ $x$ by $x = x + \alpha p$};
+
+        \node (decLambda) [decision, below of = computeLambda, yshift=-0.5cm] {$\lambda > 0$};
+        \node (decAlpha) [decision, below of = computeAlpha, yshift=-0.5cm] {$\alpha = 0$};
+
+        \node (DeleteConst) [process, below of=decLambda, yshift=-0.5cm] {Delete a constraint};
+        \node (AddConst) [process, below of=decAlpha, yshift=-0.5cm] {Add a constraint};
+
+        \node (computeP) [process, below of=start, yshift=-10cm] {Compute $p$};
+        \node (end) [startstop, below of=decLambda, xshift=3.5cm, yshift=-5.5cm] {Optimal};
+
+        % Draw edges
+        \draw [arrow] (start) -- (decP);
+        \draw [arrow] (decP) -| node[near start, above] {yes} (computeLambda);
+        \draw [arrow] (decP) -| node[near start, above] {no} (computeAlpha);
+
+        \draw [arrow](computeLambda) -- (decLambda);
+        \draw [arrow](computeAlpha) -- (decAlpha);
+
+        \draw [arrow] (decLambda) -- node[anchor = east] {no} (DeleteConst);
+        \draw [arrow] (decLambda) -- +(-2.5,0) |- node[near start, left] {yes} (end);
+        \draw [arrow] (decAlpha) -- node[anchor = east] {no} (AddConst);
+        \draw [arrow] (decAlpha) -| node[near start, above] {yes} (computeP);
+
+
+        \draw [arrow](DeleteConst) |- (computeP);
+        \draw [arrow](AddConst) |- (computeP);
+        \draw [arrow](computeP) -- +(0,-1.5) -- +(7,-1.5) |- (0,-0.8);
+
+    \end{tikzpicture}
+    \caption{Flow chart of active-set mechanism}
+    \label{fig: Flow chart of fmincon AS algo}
+\end{figure}
+\end{document}
+```
+
+部分解释：
+
+- 一定记得 `usetikzlibrary`，因为自定义 style 里有 diamond
+- inner sep 表示节点内容和节点边界之间的最小距离，默认 0.3333em (new bing)
 

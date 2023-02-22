@@ -2662,6 +2662,545 @@ class Trie {
 
 
 
+##### 214\.最短回文串
+
+[题目](https://leetcode.cn/problems/shortest-palindrome/)
+
+解法一：用 manacher 求出最长回文子串，然后找出最长回文前缀(即对每个回文中心，若它的左端点是首下标(即第一个分割符))，设回文半径为 $r$，则它的长度是 $2r-1$，显然是奇数，则其原串长度为 $\lfloor\dfrac{2r-1}{2}\rfloor=r-1$。找到最大的即可。
+
+设最长回文前缀为 $s_0$，其余部分为 $s'$ 即 $s=s_0s'$，则答案为 $\overline s's_0s'$，其中 $\overline s'$ 是 $s'$ 的反串。
+
+时空复杂度 $O(n)$。
+
+```java
+class Solution {
+    public String shortestPalindrome(String s) {
+        int n0 = s.length();
+        StringBuilder sb = new StringBuilder(2 * n0 + 3);
+        sb.append("^#");
+        for (int i = 0; i < n0; ++i) {
+            sb.append(s.charAt(i));
+            sb.append('#');
+        }
+        sb.append('?');
+        String t = sb.toString();
+        int n = t.length();
+        int p[] = new int[n], r = 0, c = 0, len = 0;
+        for (int i = 1; i < n - 1; ++i) {
+            if (i <= r) {
+                p[i] = Math.min(p[c * 2 - i], r - i + 1);
+            }
+            while (t.charAt(i + p[i]) == t.charAt(i - p[i])) {
+                ++p[i];
+            }
+            if (i + p[i] > r) {
+                r = p[i] + i - 1;
+                c = i;
+            }
+            if (i - p[i] + 1 == 1) {
+                len = Math.max(len, (2 * p[i] - 1) / 2);
+            }
+        }
+        StringBuilder ans = new StringBuilder(n0);
+        for (int i = n0 - 1; i >= len; --i) {
+            ans.append(s.charAt(i));
+        }
+        ans.append(s);
+        return ans.toString();
+    }
+}
+```
+
+解法二：字符串哈希。我们只需要枚举 $O(n)$ 次前缀与其反串的等长后缀是否相等，可以不记忆化哈希数组，达到 $O(1)$ 空间复杂度和 $O(n)$ 时间复杂度。
+
+```java
+class Solution {
+    public String shortestPalindrome(String s) {
+        int n = s.length();
+        int base = 131, mod = 1000000007;
+        int left = 0, right = 0, mul = 1;
+        int best = -1;
+        for (int i = 0; i < n; ++i) {
+            left = (int) (((long) left * base + s.charAt(i)) % mod);
+            right = (int) ((right + (long) mul * s.charAt(i)) % mod);
+            if (left == right) {
+                best = i;
+            }
+            mul = (int) ((long) mul * base % mod);
+        }
+        String add = (best == n - 1 ? "" : s.substring(best + 1));
+        StringBuffer ans = new StringBuffer(add).reverse();
+        ans.append(s);
+        return ans.toString();
+    }
+}
+```
+
+解法三：设 $s$ 为模式串，$s'$ 为原串，用 KMP 在 $s'$ 里匹配出最长的 $s$ 前缀，就是最长的回文串。
+
+
+
+##### 218\.天际线问题
+
+[题目](https://leetcode.cn/problems/the-skyline-problem/)
+
+> 截止 2023/2/13，用时10ms(超94%)和内存44.5MB(超71%)。
+
+小模拟，细节有点多。将 $l,r$ 看成是时间轴。
+
+1. 维护可删(对顶)大根堆 $q$。支持对数内插入、取最大元素和删除任意元素。
+
+   对当前 building $(l,r,h)$，拆分为两个操作即在 $l$ 时刻往 $q$ 插入 $h$，然后在 $r$ 时刻删除 $h$。为此维护一个时刻的小根堆 $nx$，代表即将要删除的 $(r,h)$，按 $r$ 排序。
+
+2. 将所有插入删除操作按时间排序。具体而言，可以在每次插入 $h$ 之前，先处理 $nx$ 里所有 $\le l$ 的 $(r,h)$，即不断弹堆。每次处理后，查询 $q$ 的最高元素 $h_\max$，若上一个最高元素不是 $h_\max$，就往答案里插入 $(r,h_{\max})$。
+
+   处理完之后，再对插入 $h$ 后再取 $h_\max$ 再同上操作一次。
+
+3. 特判所有时间相等的情况，考虑 `[[1,2,1],[1,2,2],[1,2,3]]`，需要对同一时间去重。则往答案里插入前，先查看上一个插入的值的时间是否与这个相等，如果相等，直接修改上一个插入的值，而不是插入。或者直接删除上一个答案再插入。
+
+时间复杂度为 $O(n\log n)$，空间复杂度为 $O(n)$。
+
+```java
+class node implements Comparable<node> {
+    public int i, v;
+
+    public node(int i, int v) {
+        this.i = i;
+        this.v = v;
+    }
+
+    @Override
+    public int compareTo(node o) {// i<o.i
+        return this.i - o.i;
+    }
+}
+
+class heap { // 对顶堆(大根堆)
+    private PriorityQueue<Integer> a, b;
+
+    public heap() {
+        a = new PriorityQueue<>();
+        b = new PriorityQueue<>();
+    }
+
+    void insert(int x) {
+        a.add(-x);
+    }
+
+    void erase(int x) {
+        b.add(-x);
+    }
+
+    int top() {
+        while (!b.isEmpty() && a.peek().equals(b.peek())) {
+            a.poll();
+            b.poll();
+        }
+        return -a.peek();
+    }
+
+    int pop() {
+        int t = top();
+        a.poll();
+        return t;
+    }
+}
+
+class Solution {
+    private int prvh, t;
+    private List<List<Integer>> ans;
+
+    private void judge(int h, int now) {
+//        System.out.println(String.format("%d %d", now, h));
+        if (h != prvh) {
+            prvh = h;
+            List<Integer> tmp = new ArrayList<>();
+            tmp.add(now);
+            tmp.add(h);
+            if (!ans.isEmpty() && ans.get(ans.size() - 1).get(0) == now) {
+                ans.remove(ans.size() - 1);
+            }
+            ans.add(tmp);
+        }
+    }
+
+    public List<List<Integer>> getSkyline(int[][] buildings) {
+        int n = buildings.length;
+        PriorityQueue<node> nx = new PriorityQueue<>();
+        heap q = new heap();
+        q.insert(0);
+        prvh = 0;
+        t = -1;
+        ans = new ArrayList<>();
+        for (int i = 0; i < n; ++i) {
+//            System.out.println("next " + buildings[i][0]);
+            t = buildings[i][0];
+            nx.add(new node(buildings[i][1], buildings[i][2]));
+            while (!nx.isEmpty()) {
+                node nd = nx.peek();
+                int now = nd.i;
+                if (now >= t) {
+                    break;
+                }
+                nx.poll();
+                q.erase(nd.v);
+                judge(q.top(), now);
+            }
+            q.insert(buildings[i][2]);
+            int h = q.top();
+            judge(h, t);
+        }
+        while (!nx.isEmpty()) {
+            node nd = nx.poll();
+            q.erase(nd.v);
+            judge(q.top(), nd.i);
+        }
+        return ans;
+    }
+}
+```
+
+题解：
+
+```java
+class Solution {
+    public List<List<Integer>> getSkyline(int[][] buildings) {
+        PriorityQueue<int[]> pq = new PriorityQueue<int[]>((a, b) -> b[1] - a[1]);
+        List<Integer> boundaries = new ArrayList<Integer>();
+        for (int[] building : buildings) {
+            boundaries.add(building[0]);
+            boundaries.add(building[1]);
+        }
+        Collections.sort(boundaries);
+
+        List<List<Integer>> ret = new ArrayList<List<Integer>>();
+        int n = buildings.length, idx = 0;
+        for (int boundary : boundaries) {
+            while (idx < n && buildings[idx][0] <= boundary) {
+                pq.offer(new int[]{buildings[idx][1], buildings[idx][2]});
+                idx++;
+            }
+            while (!pq.isEmpty() && pq.peek()[0] <= boundary) {
+                pq.poll();
+            }
+
+            int maxn = pq.isEmpty() ? 0 : pq.peek()[1];
+            if (ret.size() == 0 || maxn != ret.get(ret.size() - 1).get(1)) {
+                ret.add(Arrays.asList(boundary, maxn));
+            }
+        }
+        return ret;
+    }
+}
+```
+
+
+
+##### 220\.存在重复元素III
+
+[题目](https://leetcode.cn/problems/contains-duplicate-iii/)
+
+维护 $\pm t$ 内的滑窗，对中心点，维护 set，然后用 bound 方法找是否存在
+
+```java
+class node implements Comparable<node> {
+    public int v, i;
+
+    public node(int v, int i) {
+        this.v = v;
+        this.i = i;
+    }
+
+    public int compareTo(node o) {
+        if (o.v != this.v) {
+            return this.v - o.v;
+        }
+        return this.i - o.i;
+    }
+
+//    @Override 没必要
+//    public boolean equals(Object obj) {
+//        node o = (node) obj;// 下文程序不会传node外
+//        return this.v == o.v && this.i == o.i;
+//    }
+
+    @Override
+    public String toString() {
+        return "(" + this.v + "," + this.i + ")";
+    }
+}
+
+class Solution {
+    public boolean containsNearbyAlmostDuplicate(int[] nums, int indexDiff, int valueDiff) {
+        TreeSet<node> s = new TreeSet<>();
+        int n = nums.length, k = indexDiff, t = valueDiff;
+        for (int i = 0, ie = Math.min(k, n); i < ie; ++i) {
+            s.add(new node(nums[i], i));
+        }
+        for (int c = 0, l = c - k, r = c + k; c < n; ++c, ++l, ++r) {
+            if (r < n) {
+                s.add(new node(nums[r], r));
+            }
+            if (l > 0) {
+                s.remove(new node(nums[l - 1], l - 1));
+            }
+            int rv = nums[c] + t + 1, lv = nums[c] - t - 1;
+            node rlim = new node(rv, 0);
+            node llim = new node(lv, n + 1);
+            node lf = s.higher(llim);
+            node rf = s.lower(rlim);
+            if (lf != null && lf.v < rv && lf.i != c && lf.i <= r) {
+//                System.out.println("lf suc " + c);
+//                System.out.println(lf);
+                return true;
+            }
+            if (rf != null && rf.v > lv && rf.i != c && rf.i >= l) {
+//                System.out.println("rf suc" + c);
+//                System.out.println(rf);
+                return true;
+            }
+        }
+        return false;
+    }
+}
+```
+
+更优雅的做法：其实只需要往左找即可，也不用存下标。
+
+```java
+class Solution {
+    public boolean containsNearbyAlmostDuplicate(int[] nums, int k, int t) {
+        int n = nums.length;
+        TreeSet<Long> set = new TreeSet<Long>();
+        for (int i = 0; i < n; i++) {
+            Long ceiling = set.ceiling((long) nums[i] - (long) t);
+            if (ceiling != null && ceiling <= (long) nums[i] + (long) t) {
+                return true;
+            }
+            set.add((long) nums[i]);
+            if (i >= k) {
+                set.remove((long) nums[i - k]);
+            }
+        }
+        return false;
+    }
+}
+```
+
+
+
+##### 224\.基本计算器
+
+[题目](https://leetcode.cn/problems/basic-calculator/)
+
+后缀表达式+递归做法：
+
+```java
+class Solution {
+    private String s;
+    private int now;
+
+    private boolean isInt(int i) {
+        if (i >= s.length()) {
+            return false;
+        }
+        char c = s.charAt(i);
+        return c >= '0' && c <= '9';
+    }
+
+    private void calc(Deque<Integer> num, Deque<Character> cmd) {
+        if (!cmd.isEmpty()) {
+            int rfs = num.pollLast();
+            int lfs = num.pollLast();
+            char ope = cmd.pollLast();
+            if (ope == '+') {
+                num.add(lfs + rfs);
+            } else {
+                num.add(lfs - rfs);
+            }
+        }
+    }
+
+    private int dfs() {
+        Deque<Integer> num = new LinkedList<>();
+        Deque<Character> cmd = new LinkedList<>();
+        int tmp = 0;
+        for (int ie = s.length(); now < ie; ++now) {
+            char c = s.charAt(now);
+            if (isInt(now)) {
+                tmp = tmp * 10 + (c - '0');
+                if (!isInt(now + 1)) {
+//                    System.out.println("add " + tmp);
+                    num.add(tmp);
+                    tmp = 0;
+                    calc(num, cmd);
+                }
+            } else if (c == '+') {
+                cmd.add('+');
+            } else if (c == '-') {
+                if (num.isEmpty()) {
+                    num.add(0);
+                }
+                cmd.add('-');
+            } else if (c == '(') {
+                ++now;
+                num.add(dfs());
+                calc(num, cmd);
+            } else if (c == ')') {
+                break;
+            }
+        }
+
+        return num.pollLast();
+    }
+
+    public int calculate(String s) {
+        this.s = s;
+        now = 0;
+        return dfs();
+    }
+}
+```
+
+更优实现：
+
+```java
+class Solution {
+    public int calculate(String s) {
+        Deque<Integer> ops = new LinkedList<Integer>();
+        ops.push(1);
+        int sign = 1;
+
+        int ret = 0;
+        int n = s.length();
+        int i = 0;
+        while (i < n) {
+            if (s.charAt(i) == ' ') {
+                i++;
+            } else if (s.charAt(i) == '+') {
+                sign = ops.peek();
+                i++;
+            } else if (s.charAt(i) == '-') {
+                sign = -ops.peek();
+                i++;
+            } else if (s.charAt(i) == '(') {
+                ops.push(sign);
+                i++;
+            } else if (s.charAt(i) == ')') {
+                ops.pop();
+                i++;
+            } else {
+                long num = 0;
+                while (i < n && Character.isDigit(s.charAt(i))) {
+                    num = num * 10 + s.charAt(i) - '0';
+                    i++;
+                }
+                ret += sign * num;
+            }
+        }
+        return ret;
+    }
+}
+```
+
+
+
+##### 233\.数字1的个数
+
+[题目](https://leetcode.cn/problems/number-of-digit-one/)
+
+个人解法：
+
+1. 设 $n=\overline{x0\cdots0}$ 是 $d$ 位数，设 $a=\overline{d0\cdots 0},b=\overline{(d-1)0\cdots 0}$，其中 $a$ 是 $d$ 位数，$b$ 是 $d-1$ 位数，则 $[1,n)$ 内共有 $a-(10-x)b$ 个 $1$。
+
+   具体而言，随着 $x$ 增大，$d$ 位数除了第二次增加($x=2$)外，增量均为 $a$，而总量为 $b$，所以不需要求出第二次增量，减法即可求出。
+
+   证明：设 $[0,\overline{10\cdots 0})$ (其中上界是 $d+1$ 位数)时答案为 $f_{d}$，显然 $f_1=1$。对 $f_2(f_{d})$ 的推导，首先包含 $f_1(f_{d-1})$(最高位为 $0$)，然后当最高位为 $1$ 时，共有 $10^{d-1}$ 个数，最高位贡献 $10^{d-1}$ 次，然后还包含 $f_{d-1}$ 次，之后最高位选 $8$ 次，包含 $f_{d-1}$ 又 $8$ 次，共 $10$ 次，即有：
+   $$
+   f_1=1,f_{d}=10f_{d-1}+10^{d-1}
+   $$
+   符合上述提到的规律。
+
+2. 对 $n=\overline{a_d\cdots a_2a_1}$，可以拆分为若干个问题：
+   $$
+   \overline{a_d0\cdots 0}+\overline{a_{d-1}0\cdots0}+\cdots+\overline{a_300}+\overline{a_20}+\overline{a_1}
+   $$
+   先按上文规律散着求出每个对应的。
+
+   然后再特判，如果 $a_i$ 是 $1$，那么首先加多一份，然后这个 $1$ 会对接下来剩余的 $\overline{a_{i-1}\cdots a_2,a_1}$ 个数都产生一次贡献，再加多这么多。
+
+   一路推下去即可。
+
+复杂度理论上可达 $O(\log n)$。
+
+```java
+class Solution {
+    private int pw(int x, int n) {// x0..0, 0num=n-1F
+        int res = x;
+        for (int i = 1; i < n; ++i) {
+            res *= 10;
+        }
+        return res;
+    }
+
+    private int cnt(int len, int x) { // [1,n), n=x00..0, 0num=len-1
+        if (x == 0) {
+            return 0;
+        }
+        int epo = pw(len - 1, len - 1);
+        if (x == 1) {
+            return epo;
+        }
+        int tot = pw(len, len);
+        return tot - (10 - x) * epo;
+    }
+
+    public int countDigitOne(int n) {
+        int ans = 0, m = 0, num = n;// digit
+        int d[] = new int[11];
+        for (; n > 0; n /= 10) {
+            d[++m] = n % 10;
+        }
+        int cnt1 = 0;
+        for (int i = m; i >= 1; --i) {
+            ans += cnt(i, d[i]);
+            num -= pw(d[i], i);
+            cnt1 += (d[i] == 1 ? 1 : 0);
+            ans += cnt1 * pw(d[i - 1], i - 1);
+            ans += (d[i] == 1 ? 1 : 0);
+        }
+        return ans;
+    }
+}
+```
+
+[数位DP参考](https://leetcode.cn/problems/number-of-digit-one/solution/by-endlesscheng-h9ua/)
+
+```java
+class Solution {
+    char s[];
+    int dp[][];
+
+    public int countDigitOne(int n) {
+        s = Integer.toString(n).toCharArray();
+        var m = s.length;
+        dp = new int[m][m];
+        for (var i = 0; i < m; i++) Arrays.fill(dp[i], -1);
+        return f(0, 0, true);
+    }
+
+    int f(int i, int cnt1, boolean isLimit) {
+        if (i == s.length) return cnt1;
+        if (!isLimit && dp[i][cnt1] >= 0) return dp[i][cnt1];
+        var res = 0;
+        for (int d = 0, up = isLimit ? s[i] - '0' : 9; d <= up; ++d) // 枚举要填入的数字 d
+            res += f(i + 1, cnt1 + (d == 1 ? 1 : 0), isLimit && d == up);
+        if (!isLimit) dp[i][cnt1] = res;
+        return res;
+    }
+}
+```
+
 
 
 > ### 力扣比赛
@@ -4137,5 +4676,103 @@ group by user_id
 )t1
 on t1.user_id= Users.id
 order by travelled_distance desc, name asc
+```
+
+
+
+##### 1795\.每个产品在不同商店的价格
+
+[题目](https://leetcode.cn/problems/rearrange-products-table/)
+
+is not null
+
+```mysql
+SELECT product_id, 'store1' store, store1 price FROM products WHERE store1 IS NOT NULL
+UNION
+SELECT product_id, 'store2' store, store2 price FROM products WHERE store2 IS NOT NULL
+UNION
+SELECT product_id, 'store3' store, store3 price FROM products WHERE store3 IS NOT NULL
+```
+
+
+
+##### 1873\.计算特殊奖金
+
+[题目](https://leetcode.cn/problems/calculate-special-bonus/)
+
+770ms:
+
+```mysql
+SELECT employee_id,
+IF(MOD(employee_id,2)!=0 AND LEFT(name,1)!='M',salary,0) bonus
+FROM Employees
+ORDER BY employee_id
+```
+
+600ms:
+
+```mysql
+select employee_id, 
+    case when name not like 'M%' and employee_id&1=1 then salary
+    else 0 end as `bonus`
+from Employees
+order by employee_id asc
+```
+
+481ms:
+
+```mysql
+SELECT employee_id ,salary AS bonus
+FROM Employees
+WHERE employee_id%2!=0 AND name NOT LIKE ('M%')
+UNION 
+SELECT employee_id ,salary*0 AS bonus
+FROM Employees
+WHERE employee_id%2=0 OR name LIKE ('M%')
+ORDER BY employee_id;
+```
+
+
+
+##### 1890\.2020年最后一次登录
+
+[题目](https://leetcode.cn/problems/the-latest-login-in-2020/)
+
+慢：
+
+```mysql
+select user_id, max(time_stamp) as `last_stamp`
+from Logins
+where extract(year from time_stamp) = '2020'
+group by user_id
+```
+
+```mysql
+SELECT user_id, max(time_stamp) last_stamp
+FROM Logins
+WHERE year(time_stamp) = 2020
+GROUP BY user_id
+```
+
+```mysql
+select user_id, max(time_stamp) last_stamp
+from Logins
+where time_stamp >= '2020-01-01 00:00:00' and time_stamp <= '2020-12-31 23:59:59'
+group by user_id
+```
+
+```mysql
+select user_id, max(time_stamp) as last_stamp
+from logins
+where datediff(time_stamp, '2020-01-01') >= 0 and datediff(time_stamp, '2021-01-01') < 0
+group by user_id
+```
+
+快：
+
+```mysql
+select user_id,max(time_stamp)last_stamp from logins
+where time_stamp like "2020%"
+group by user_id
 ```
 

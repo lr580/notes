@@ -9606,6 +9606,10 @@ TreeSet 新方法：
 - headSet(E e1) 返回从开始到 e1 前(不包括 e1 )的元素
 - subSet(E e1, E e2) 返回 $[e1,e2)$ 范围元素
 - tailSet(E e1) 返回 e2 和它之后的全部元素
+- lower(E) 返回严格大于 E 的最小元素
+- ceiling(E) 不严格大于
+- higher(E) 返回严格小于 E 的最大元素
+- floor(E) 不严格小于
 
 重复元素去重举例：
 
@@ -9949,7 +9953,7 @@ public class c1608 {
 
 - `size()` 元素数
 
-下有 `PriorityQueue` 优先级队列，构造函数可以传一个对象，其类为 `Comparator<类名> cmp` 作参数作为比较依据来自定义，需要实现 `public int compare(对象, 对象)` ，前者大返回正数；小负数，相等 $0$
+下有 `PriorityQueue` 优先级队列(小根堆)，构造函数可以传一个对象，其类为 `Comparator<类名> cmp` 作参数作为比较依据来自定义，需要实现 `public int compare(对象, 对象)` ，前者大返回正数；小负数，相等 $0$
 
 如：
 
