@@ -3203,6 +3203,178 @@ class Solution {
 
 
 
+##### 239\.滑动窗口最大值
+
+[题目](https://leetcode.cn/problems/sliding-window-maximum/)
+
+对顶堆：
+
+```java
+class heap {
+    PriorityQueue<Integer> a, b;
+
+    public heap() {
+        a = new PriorityQueue<>();
+        b = new PriorityQueue<>();
+    }
+
+    void insert(int x) {
+        a.add(-x);
+    }
+
+    void erase(int x) {
+        b.add(-x);
+    }
+
+    int top() {
+        while (!b.isEmpty() && a.peek().equals(b.peek())) {
+            a.poll();
+            b.poll();
+        }
+        return -a.peek();
+    }
+
+    int pop() {
+        int ans = top();
+        a.poll();
+        return ans;
+    }
+}
+
+class Solution {
+    public int[] maxSlidingWindow(int[] nums, int k) {
+        heap q = new heap();
+        for (int i = 0; i < k; ++i) {
+            q.insert(nums[i]);
+        }
+        int n = nums.length;
+        int ans[] = new int[n - k + 1];
+        ans[0] = q.top();
+        for (int l = 1, r = k; r < n; ++l, ++r) {
+            q.erase(nums[l - 1]);
+            q.insert(nums[r]);
+            ans[l] = q.top();
+        }
+        return ans;
+    }
+}
+```
+
+更优解：
+
+```java
+class Solution {
+    public int[] maxSlidingWindow(int[] nums, int k) {
+        int n = nums.length;
+        PriorityQueue<int[]> pq = new PriorityQueue<int[]>(new Comparator<int[]>() {
+            public int compare(int[] pair1, int[] pair2) {
+                return pair1[0] != pair2[0] ? pair2[0] - pair1[0] : pair2[1] - pair1[1];
+            }
+        });
+        for (int i = 0; i < k; ++i) {
+            pq.offer(new int[]{nums[i], i});
+        }
+        int[] ans = new int[n - k + 1];
+        ans[0] = pq.peek()[0];
+        for (int i = k; i < n; ++i) {
+            pq.offer(new int[]{nums[i], i});
+            while (pq.peek()[1] <= i - k) {
+                pq.poll();
+            }
+            ans[i - k + 1] = pq.peek()[0];
+        }
+        return ans;
+    }
+}
+```
+
+
+
+##### 273\.整数转英文表示
+
+[题目](https://leetcode.cn/problems/integer-to-english-words/)
+
+愚蠢的模拟题：
+
+```java
+class Solution {
+    private String[] sg = new String[] { "Zero", "One", "Two", "Three", "Four", "Five", "Six",
+            "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen",
+            "Sixteen", "Seventeen", "Eighteen", "Nineteen" };
+    private String[] mg = new String[] { "", "Ten", "Twenty", "Thirty", "Forty", "Fifty", "Sixty",
+            "Seventy", "Eighty", "Ninety" };
+
+    private void blank(StringBuilder s) {
+        if (s.length() > 0 && s.charAt(s.length() - 1) != ' ') {
+            s.append(' ');
+        }
+    }
+
+    private String three(int n) {
+        int h = n / 100;
+        int m = n / 10 % 10;
+        int s = n % 10;
+        int ms = n % 100;
+        StringBuilder r = new StringBuilder();
+        if (h > 0) {
+            r.append(sg[h]);
+            r.append(" Hundred");
+        }
+        if (s == 0 && m > 0) {
+            blank(r);
+            r.append(mg[m]);
+        } else if (ms < 20 && ms > 0) {
+            blank(r);
+            r.append(sg[ms]);
+        } else if (ms >= 20) {
+            blank(r);
+            r.append(mg[m]);
+            r.append(" ");
+            r.append(sg[s]);
+        }
+        return r.toString();
+    }
+
+    public String numberToWords(int num) {
+        StringBuilder s = new StringBuilder();
+        if (num == 0) {
+            s.append("Zero");
+        }
+        int n1 = num % 1000;
+        num /= 1000;
+        int n2 = num % 1000;
+        num /= 1000;
+        int n3 = num % 1000;
+        num /= 1000;
+        int n4 = num % 1000;
+//        System.out.println(String.format("%d %d %d %d", n1, n2, n3, n4));
+        if (n4 > 0) {
+            s.append(three(n4));
+            s.append(" Billion");
+        }
+        if (n3 > 0) {
+            blank(s);
+            s.append(three(n3));
+            s.append(" Million");
+        }
+        if (n2 > 0) {
+            blank(s);
+            s.append(three(n2));
+            s.append(" Thousand");
+        }
+        if (n1 > 0) {
+            blank(s);
+            s.append(three(n1));
+        }
+        return s.toString();
+    }
+}
+```
+
+
+
+
+
 > ### 力扣比赛
 >
 
@@ -4774,5 +4946,76 @@ group by user_id
 select user_id,max(time_stamp)last_stamp from logins
 where time_stamp like "2020%"
 group by user_id
+```
+
+
+
+##### 1581\.进店缺未进行过交易的顾客
+
+[题目](https://leetcode.cn/problems/customer-who-visited-but-did-not-make-any-transactions/)
+
+1546ms:
+
+```mysql
+select customer_id, count(*) as `count_no_trans`
+from Visits
+where visit_id not in (select distinct visit_id from Transactions)
+group by customer_id
+```
+
+1330ms:
+
+```mysql
+select v.customer_id,count(*) count_no_trans 
+from Visits v 
+left join Transactions t 
+on (v.visit_id = t.visit_id) 
+where amount is null 
+group by customer_id 
+```
+
+
+
+##### 1527\.患某种疾病的患者
+
+[题目](https://leetcode.cn/problems/patients-with-a-condition/)
+
+```mysql
+select * from Patients
+where conditions like 'DIAB1%' or conditions like '% DIAB1%'
+```
+
+不能 `%DIAB1%`，考虑反例 `NOTDIAB11`
+
+效率相近：
+
+```mysql
+SELECT * FROM PATIENTS
+WHERE CONDITIONS REGEXP '^DIAB1|\\sDIAB1'
+```
+
+
+
+##### 1587\.银行账户概要II
+
+[题目](https://leetcode.cn/problems/bank-account-summary-ii/)
+
+910ms:
+
+```mysql
+select name, sum(amount) as `balance`
+from Users, Transactions
+where Users.account = Transactions.account
+group by Users.account 
+having sum(amount)>10000
+```
+
+750-800ms:
+
+```mysql
+select name, sum(amount) as balance
+from users left join transactions on users.account = transactions.account
+group by users.account
+having balance > 10000
 ```
 

@@ -333,6 +333,24 @@ ipynb使用十分简单，事实上就是一堆代码框，然后可以分块运
 pip install jupyter
 ```
 
+##### 格式转换
+
+[参考](https://blog.csdn.net/u014297502/article/details/125997504)
+
+新版本下，path 有 python 的 scripts 时，直接输入：
+
+```shell
+jupyter-nbconvert.exe --to markdown .\homework1.ipynb
+```
+
+也可以转其他格式。会将内容及其运行结果导出。
+
+不要输出运行结果：
+
+```shell
+jupyter-nbconvert.exe --to markdown --TemplateExporter.exclude_output=True .\homework1.ipynb
+```
+
 
 
 #### vscode
@@ -4367,7 +4385,7 @@ get 得到所显示的值
 
 
 
-## 数据处理
+## 远程处理
 
 ### pymysql
 
@@ -4382,10 +4400,11 @@ get 得到所显示的值
 > ```python
 > import pymysql as sql
 > oj = sql.connect(host=hosturl, user=username, password=password,
->             database='scnuoj', charset='UTF8')
+>          database='scnuoj', charset='UTF8')
 > cur = oj.cursor()
 > cid = input('输入比赛ID:')
 > cmd_getProblem = 'select problem_id,title from problem, contest_problem where problem_id=problem.id and contest_id='+cid
+> #如果是修改，记得commit。参考github官方例子 oj.commit()
 > lens = cur.execute(cmd_getProblem)
 > print(lens, cur.fetchall())
 > ```
@@ -4395,6 +4414,54 @@ get 得到所显示的值
 - 读入的日期会以 `datetime` 格式保存。
 
 
+
+### paramiko
+
+[参考](https://www.cnblogs.com/erlou96/p/16878288.html) [参考2](https://zhuanlan.zhihu.com/p/456447145)
+
+#### 远程命令
+
+```python
+# import os
+# os.system('ssh root@174.136.237.70')
+# os.system('ls')
+import paramiko
+ssh = paramiko.SSHClient()
+ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+ssh.connect(
+    hostname='174.136.237.70',
+    username='root'
+) #假设已经免密登录了
+stdin,stdout,stderr = ssh.exec_command('ls')
+result = stdout.read().decode()
+print(result)
+```
+
+多条指令分号隔开，如 `ls;cd py;ls`。输出会合并。
+
+#### 文件传输
+
+```python
+#文件上传
+#从ssh.connect之后继续:
+sftp = paramiko.SFTPClient.from_transport(ssh.get_transport())
+localpath = 'combs.cpp'
+remotepath = '/root/c.cpp' #路径不能写~等,而且要完整有c.cpp不可缺省
+sftp.put(localpath,remotepath)
+```
+
+```python
+#文件下载:
+localpath = 'dest.py'
+remotepath = '/root/py/crawl.py'
+sftp.get(remotepath,localpath)
+```
+
+
+
+
+
+## 数据处理
 
 ### numpy
 
@@ -6294,6 +6361,166 @@ with open(d,'r',encoding=check(d)) as f:
 
 
 ## 机器学习
+
+### torch
+
+官网按需下载 pytorch
+
+导库：
+
+
+```python
+import torch
+print(torch.__version__)
+```
+
+#### 创建张量
+
+任意创建一个张量(多维数组)，下以一维数组 $[0,1,\cdots,11]$ 为例：
+
+
+```python
+x = torch.arange(12)
+print(x)
+```
+
+查看张量的形状和元素数：
+
+
+```python
+print(x.shape, x.numel())
+print(list(x.shape)) #一维列表
+# print(x.type()) #数据类型
+```
+
+类比 numpy，修改张量形状(可以自动计算，用 `-1` 填充)，下面几个张量完全一样：
+
+
+```python
+x1 = x.reshape(3,4)
+x2 = x.reshape(-1,4)
+x3 = x.reshape(3,-1)
+print(x1)
+print(x1.shape, x2.shape, x3.shape)
+```
+
+全 0 或 全 1 初始的张量，以三维为例：
+
+
+```python
+print(torch.zeros((2,3,4)))
+print(torch.ones((2,3,4)))
+```
+
+服从标准正态分布 $\mu=0,\sigma=1$ 的张量(注意不等价值域是 $[0,1]$)：
+
+
+```python
+print(torch.randn(2,8))
+```
+
+将列表转化为张量或反过来：
+
+
+```python
+x = torch.tensor([[1,1,4,5,1,4],[1,9,1,9,8,1]])
+print(x)
+print(x.tolist())
+```
+
+numpy 与 tensor 互转： 
+
+
+```python
+x = torch.tensor([[1,1,4,5,1,4],[1,9,1,9,8,1]])
+print(x.numpy())
+import numpy as np
+na = np.array([1,1,4,5,1,4])
+print(torch.tensor(na))
+```
+
+numpy 与标量转化：
+
+
+```python
+x = torch.arange(12)
+print(x[2].item(),type(x[2].item()))
+```
+
+#### 运算
+
+每个对应位置元素运算：
+
+
+```python
+x = torch.tensor([1., 2, 4, 8])
+y = torch.tensor([2, -1, 4, 3.1])
+print(x+y,x-y,x*y,x/y,x**y,sep='\n')
+```
+
+逻辑运算得到 01 张量：
+
+
+```python
+x = torch.tensor([1,1,4,5,1,4,0])
+y = torch.tensor([1,9,1,9,8,1,0])
+z = x==y
+print(z, z.type())
+```
+
+张量拼接操作：
+
+
+```python
+x = torch.arange(12).reshape((2,6))
+y = torch.arange(12).reshape((2,6)) * -1
+print(torch.cat((x,y),dim=0)) #上下拼接
+print(torch.cat((x,y),dim=1)) #左右
+```
+
+广播机制，行向量各列复制第一列，列向量复制第一行：
+
+
+```python
+x = torch.tensor([0, 1, 2]).reshape((3, 1))  # 列
+y = torch.tensor([0, 10]).reshape((1, 2))  # 变二维
+print(x+y)
+```
+
+类比 numpy，索引和切片机制：
+
+
+```python
+x = torch.arange(25).reshape((5,5))
+print(x)
+x[2,3]=114 #修改
+print(int(x[2,3])) #取元素
+x[1]=1 #整行修改
+print(x)
+x[:,1]=6 #整列
+print(x)
+print(x[2:4,-1])
+```
+
+id 内置函数可以鉴别两个变量是否同一个地址：
+
+
+```python
+x = [1,1,4,5,1,4]
+y, z = x, x[:]
+print(id(x),id(y),id(z))
+```
+
+
+```python
+x = torch.arange(12).reshape((2,-1))
+y = torch.arange(12).reshape((2,-1))
+print(id(x))
+x = x + y 
+print(id(x)) #发现进行运算后，原本的x地址位置被丢掉了
+x[:] = x + y #不要丢，原地操作
+print(id(x))
+```
 
 ### sklearn
 

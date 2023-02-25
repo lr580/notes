@@ -356,6 +356,14 @@ reboot
 
 
 
+#### 打开装好的虚拟机
+
+装好的虚拟机的特征为：文件夹，内有 `.vmx` 的文件，比较大(可能几百MB)。
+
+VMware-打开虚拟机，点击那个 vmx 即可。
+
+
+
 ### 装软件
 
 #### 常用软件安装流程
@@ -460,6 +468,33 @@ lon=116.41
 ```
 
 温度越高越亮。
+
+
+
+#### 开发软件
+
+##### jdk
+
+以centos7为例
+
+解压 tar.gz 包到如 `/usr/local/java`，下有包内文件夹如 `jdk1.8.0_51`
+
+在 `etc/profile` 修改 java 那三行为：
+
+```sh
+export JAVA_HOME=/usr/local/java/jdk1.8.0_51
+export JRE_HOME=${JAVA_HOME}/jre
+export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib
+export PATH=${JAVA_HOME}/bin:$PATH
+```
+
+重新编译：`source /etc/profile`
+
+删除软连接 `rm -rf /usr/bin/java`
+
+添加软连接 `ln -s /usr/local/java/jdk1.8.0_51/bin/java /usr/bin/java`
+
+检查：`java -version`
 
 
 
@@ -1615,6 +1650,15 @@ chmod u+r,g+r,o+r -R text/ -c
 -C 指定目标文件夹 (解压必须)
 ```
 
+> ```
+> -A 新增压缩文件到已存在的压缩
+> -d 记录文件的差别
+> -l 文件系统边界设置
+> -k 保留原有文件不覆盖
+> -m 保留文件不被覆盖
+> -W 确认压缩文件的正确性
+> ```
+
 有关 gzip 及 bzip2 压缩:
 
 ```
@@ -2677,7 +2721,28 @@ S列：(STAT)
 
 
 
-`ps aux |grep 进程名` 查看某进程是否启动(包括当前执行的管道命令也有一个进程)
+`ps aux |grep 进程名` 查看某进程是否启动(包括当前执行的管道命令也有一个进程)，或 PID，如
+
+```shell
+ps -aux | grep apache
+```
+
+端口查进程/进程查端口：
+
+- 查端口
+
+  ```shell
+  ps -ef | grep 进程名 #得到pid
+  netstat -nap | grep 进程pid
+  ```
+
+- 查进程
+
+  ```shell
+  netstat -nap | grep 端口号
+  ```
+
+  
 
 
 
@@ -2712,6 +2777,16 @@ PID 进程 id号，数字越小，优先级越高
 - -d 刷新秒数，默认3秒
 - -U 用户名
 
+```
+-d 指定每两次屏幕信息刷新之间的时间间隔。当然用户可以使用s交互命令来改变之。 
+-p 通过指定监控进程ID来仅仅监控某个进程的状态。 
+-q 该选项将使top没有任何延迟的进行刷新。如果调用程序有超级用户权限，那么top将以尽可能高的优先级运行。 
+-S 指定累计模式 
+-s 使top命令在安全模式中运行。这将去除交互命令所带来的潜在危险。 
+-i 使top不显示任何闲置或者僵死进程。 
+-c 显示整个命令行而不只是显示命令名 
+```
+
 按键指令：
 
 - `?` 查看帮助
@@ -2725,6 +2800,56 @@ PID 进程 id号，数字越小，优先级越高
 刷系统资源模拟 `cpuburn` ： `dd i=/dev/zero of=/dev/null`
 
 输入 k ，再输入 PID ，可以终止进程。
+
+> 1. 第一行，任务队列信息，同 uptime 命令的执行结果，具体参数说明情况如下：
+>
+>    00:12:54 — 当前系统时间
+>
+>    up ？days, 4:49 — 系统已经运行了？天4小时49分钟（在这期间系统没有重启过）
+>
+>    21users — 当前有1个用户登录系统
+>
+>    load average: 0.06, 0.02, 0.00 — load average后面的三个数分别是1分钟、5分钟、15分钟的负载情况。load average数据是每隔5秒钟检查一次活跃的进程数，然后按特定算法计算出的数值。如果这个数除以逻辑CPU的数量，结果高于5的时候就表明系统在超负荷运转了。
+>
+> 2. 第二行，Tasks — 任务（进程），具体信息说明如下：
+>
+>    系统现在共有256个进程，其中处于运行中的有1个，177个在休眠（sleep），stoped状态的有0个，zombie状态（僵尸）的有0个。
+>
+> 3. 第三行，cpu状态信息，具体属性说明如下：
+>
+>    0.2%us — 用户空间占用CPU的百分比。
+>
+>    0.2% sy — 内核空间占用CPU的百分比。
+>
+>    0.0% ni — 改变过优先级的进程占用CPU的百分比
+>
+>    99.5% id — 空闲CPU百分比
+>
+>    0.0% wa — IO等待占用CPU的百分比
+>
+>    0.0% hi — 硬中断（Hardware IRQ）占用CPU的百分比
+>
+>    0.0% si — 软中断（Software Interrupts）占用CPU的百分比
+>
+> 4. 第四行，内存状态，具体信息如下：
+>
+>    2017552 total — 物理内存总量
+>
+>    720188 used — 使用中的内存总量
+>
+>    197916 free — 空闲内存总量
+>
+>    1099448 cached — 缓存的总量
+>
+> 5. 第五行，swap交换分区信息，具体信息说明如下：
+>
+>    998396 total — 交换区总量
+>
+>    989936 free — 空闲交换区总量
+>
+>    8460 used — 使用的交换区总量
+>
+>    1044136 cached — 缓冲的交换区总量
 
 
 
@@ -2929,6 +3054,23 @@ Linux 运行级别：
 使用 `chkconfig --list 服务名` 查看每个级别对某个服务开启还是关闭；也可以 `ls /etc/rc.d/rc[0-6].d/*服务名` ，如： `chkconfig --list autofs` (自动挂载)
 
 可以禁用服务，如 `chkconfig 服务 off` 
+
+
+
+##### free
+
+查看内存使用情况 `free -m` (-m 是以 MB 为单位)
+
+```
+-h 以合适的单位显示内存使用情况，最大为三位数(每行不一样，推荐)
+-t 显示总和
+-s 数字 每数字秒刷新一次(append输出)
+-b 　以Byte为单位显示内存使用情况
+-k 　以KB为单位显示内存使用情况
+-m 　以MB为单位显示内存使用情况
+-o 　不显示缓冲区调节列
+-V 　显示版本信息
+```
 
 
 
@@ -3179,6 +3321,107 @@ wineboot #（ 重启wine）
 
 #### 文件操作
 
+##### tar
+
+见上
+
+##### gz
+
+gzip是个使用广泛的压缩程序，文件经它压缩过后，其名称后面会多出".gz"的扩展名
+
+```
+//命令格式：
+gzip [-acdfhlLnNqrtvV][-S &lt;压缩字尾字符串&gt;][-&lt;压缩效率&gt;][--best/fast][文件...] 或 gzip [-acdfhlLnNqrtvV][-S &lt;压缩字尾字符串&gt;][-&lt;压缩效率&gt;][--best/fast][目录]
+    
+//常用参数：
+-a或--ascii 　使用ASCII文字模式。
+-c或--stdout或--to-stdout 　把压缩后的文件输出到标准输出设备，不去更动原始文件。
+-d或--decompress或----uncompress 　解开压缩文件。
+-f或--force 　强行压缩文件。不理会文件名称或硬连接是否存在以及该文件是否为符号连接。
+-h或--help 　在线帮助。
+-l或--list 　列出压缩文件的相关信息。
+-L或--license 　显示版本与版权信息。
+-n或--no-name 　压缩文件时，不保存原来的文件名称及时间戳记。
+-N或--name 　压缩文件时，保存原来的文件名称及时间戳记。
+-q或--quiet 　不显示警告信息。
+-r或--recursive 　递归处理，将指定目录下的所有文件及子目录一并处理。
+-S<压缩字尾字符串>或----suffix<压缩字尾字符串> 　更改压缩字尾字符串。
+-t或--test 　测试压缩文件是否正确无误。
+-v或--verbose 　显示指令执行过程。
+-V或--version 　显示版本信息。
+-<压缩效率> 　压缩效率是一个介于1－9的数值，预设值为"6"，指定愈大的数值，压缩效率就会愈高。
+--best 　此参数的效果和指定"-9"参数相同。
+--fast 　此参数的效果和指定"-1"参数相同。
+```
+
+如：
+
+```shell
+gzip *            #压缩目录下的所有文件
+gzip -dv *        #解压文件，并列出详细信息 
+```
+
+##### bz2
+
+bzip2(选项)（参数）：用于创建和管理.bz2格式的压缩包
+
+```shell
+//命令格式：
+bzip2 源文件       //压缩不保留源文件
+bzip2 -k 源文件    //压缩保留源文件
+//注意 bzip2 命令不能解压目录
+
+//常用参数：
+-c 将压缩与解压缩的结果送到标准输出
+-d 执行解压缩
+-f 在压缩或解压缩时，若输出文件与现有文件名相同，预设不会覆盖现有文件；使用该选项，可覆盖文件
+-k 在压缩或解压缩后，会删除原是文件；若要保留原是文件，使用该选项
+-v 压缩或解压缩文件时，显示详细的信息
+-z 强制执行压缩
+```
+
+如：
+
+```shell
+#1.压缩
+bzip2 源文件       #压缩不保留源文件
+bzip2 -k 源文件    #压缩保留源文件
+    
+#2.解压文件  
+bzip2 -d 源文件   #解压缩 -k 保留压缩文件
+bunzip2  源文件   #解压缩 -k 保留压缩文件   
+```
+
+
+
+##### compress
+
+Linux compress命令是一个相当古老的 unix 档案压缩指令，压缩后的档案会加上一个 .Z 延伸档名以区别未压缩的档案，压缩后的档案可以以 uncompress 解压。若要将数个档案压成一个压缩档，必须先将档案 tar 起来再压缩。由于 gzip 可以产生更理想的压缩比例，一般人多已改用 gzip 为档案压缩工具
+
+```
+//命令格式：
+compress [-dfvcV] [-b maxbits] [file ...]
+ 
+//常用参数：    
+-c 输出结果至标准输出设备（一般指荧幕）
+-f 强迫写入档案，若目的档已经存在，则会被覆盖 (force)
+-v 将程序执行的讯息印在荧幕上 (verbose)
+-b 设定共同字串数的上限，以位元计算，可以设定的值为 9 至 16 bits 。由于值越大，能使用的共同字串就 越多，压缩比例就越大，所以一般使用预设值 16 bits (bits)
+-d 将压缩档解压缩
+-V 列出版本讯息    
+    
+//实例
+//1.压缩
+compress -f source.dat   //将 source.dat 压缩成 source.dat.Z ，若 source.dat.Z 已经存在，内容则会被压缩档覆盖。    
+    
+//2.解压文件  
+compress -d source.dat   //将 source.dat.Z 解压成 source.dat ，若档案已经存在，使用者按 y 以确定覆盖档案，若使用 -df 程序则会自动覆盖档案。 
+```
+
+
+
+
+
 ##### zip
 
 `zip 压缩包名 被压缩的文件`
@@ -3202,6 +3445,73 @@ wineboot #（ 重启wine）
 .bz2,  bzip2  bunzip2 (-d)   适用于中型文件
 
 .xz xz unxz  使用大型文件
+
+
+
+zip
+
+```
+//命令格式：
+zip [-AcdDfFghjJKlLmoqrSTuvVwXyz$][-b <工作目录>][-ll][-n <字尾字符串>][-t <日期时间>][-<压缩效率>][压缩文件][文件...][-i <范本样式>][-x <范本样式>]
+    
+//常用参数：
+-m 将文件压缩并加入压缩文件后，删除原始文件，即把文件移到压缩文件中。
+-o 以压缩文件内拥有最新更改时间的文件为准，将压缩文件的更改时间设成和该文件相同。
+-q 不显示指令执行过程。
+-r 递归处理，将指定目录下的所有文件和子目录一并处理。
+-x<范本样式> 压缩时排除符合条件的文件。
+    
+//实例：
+//将 /home/html/ 这个目录下所有文件和文件夹打包为当前目录下的 html.zip：
+zip -q -r html.zip /home/html
+    
+//如果在我们在 /home/html 目录下，可以执行以下命令：
+zip -q -r html.zip *
+    
+//从压缩文件 cp.zip 中删除文件 a.c
+zip -dv cp.zip a.c
+```
+
+unzip
+
+```
+//命令格式：
+unzip [-cflptuvz][-agCjLMnoqsVX][-P <密码>][.zip文件][文件][-d <目录>][-x <文件>] 或 unzip [-Z]
+    
+//常用参数：    
+-c 将解压缩的结果显示到屏幕上，并对字符做适当的转换。
+-f 更新现有的文件。
+-l 显示压缩文件内所包含的文件。
+-p 与-c参数类似，会将解压缩的结果显示到屏幕上，但不会执行任何的转换。
+-t 检查压缩文件是否正确。
+-u 与-f参数类似，但是除了更新现有的文件外，也会将压缩文件中的其他文件解压缩到目录中。
+-v 执行是时显示详细的信息。
+-z 仅显示压缩文件的备注文字。
+-a 对文本文件进行必要的字符转换。
+-b 不要对文本文件进行字符转换。
+-C 压缩文件中的文件名称区分大小写。
+-j 不处理压缩文件中原有的目录路径。
+-L 将压缩文件中的全部文件名改为小写。
+-M 将输出结果送到more程序处理。
+-n 解压缩时不要覆盖原有的文件。
+-o 不必先询问用户，unzip执行后覆盖原有文件。
+-P<密码> 使用zip的密码选项。
+-q 执行时不显示任何信息。
+-s 将文件名中的空白字符转换为底线字符。
+-V 保留VMS的文件版本信息。
+-X 解压缩时同时回存文件原来的UID/GID。
+[.zip文件] 指定.zip压缩文件。
+[文件] 指定要处理.zip压缩文件中的哪些文件。
+-d<目录> 指定文件解压缩后所要存储的目录。
+-x<文件> 指定不要处理.zip压缩文件中的哪些文件。
+-Z unzip -Z等于执行zipinfo指令。
+    
+//实例
+unzip text.zip   //将压缩文件text.zip在指定目录/tmp下解压缩，如果已有相同的文件存在，要求unzip命令不覆盖原先的文件。    
+unzip -n text.zip -d /tmp  //查看压缩文件目录，但不解压。
+```
+
+
 
 
 
@@ -3912,6 +4222,12 @@ ip地址有五类，局域网c类
 
 > bash 进入新的shell环境
 
+如果想永久改变主机名，可以使用hostnamectl命令
+
+```shell
+sudo hostnamectl set-hostname myDebian #myDebian为修改名
+```
+
 
 
 ##### ifconfig
@@ -4094,6 +4410,38 @@ Network Statistics
 
 pid号：进程号
 
+> centos7没有，可以 `yum install net-tools`。
+
+> ```
+> //示例
+> 查看Web服务器（Nginx Apache）的并发请求数及其TCP连接状态：
+> netstat -n | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}'
+> 
+> 解释:
+> 返回结果示例： 
+> LAST_ACK 5   (正在等待处理的请求数) 
+> SYN_RECV 30 
+> ESTABLISHED 1597 (正常数据传输状态) 
+> FIN_WAIT1 51 
+> FIN_WAIT2 504 
+> TIME_WAIT 1057 (处理完毕，等待超时结束的请求数) 
+>  
+> 状态：描述 
+> CLOSED：无连接是活动的或正在进行 
+> LISTEN：服务器在等待进入呼叫 
+> SYN_RECV：一个连接请求已经到达，等待确认 
+> SYN_SENT：应用已经开始，打开一个连接 
+> ESTABLISHED：正常数据传输状态 
+> FIN_WAIT1：应用说它已经完成 
+> FIN_WAIT2：另一边已同意释放 
+> ITMED_WAIT：等待所有分组死掉 
+> CLOSING：两边同时尝试关闭 
+> TIME_WAIT：另一边已初始化一个释放 
+> LAST_ACK：等待所有分组死掉
+> ```
+
+
+
 
 
 ##### ping
@@ -4107,6 +4455,23 @@ pid号：进程号
 按 ctrl+c 停止测试
 
 如`ping -c 4 socoding.cn`
+
+```
+-d 使用Socket的SO_DEBUG功能。
+-c<完成次数> 设置完成要求回应的次数。
+-f 极限检测。
+-i<间隔秒数> 指定收发信息的间隔时间。
+-I<网络界面> 使用指定的网络接口送出数据包。
+-l<前置载入> 设置在送出要求信息之前，先行发出的数据包。
+-n 只输出数值。
+-p<范本样式> 设置填满数据包的范本样式。
+-q 不显示指令执行过程，开头和结尾的相关信息除外。
+-r 忽略普通的Routing Table，直接将数据包送到远端主机上。
+-R 记录路由过程。
+-s<数据包大小> 设置数据包的大小。
+-t<存活数值> 设置存活数值TTL的大小。
+-v 详细显示指令的执行过程。
+```
 
 
 
@@ -4179,6 +4544,12 @@ service iptables status
 ```
 
 
+
+##### ss
+
+[参考](https://blog.csdn.net/solaraceboy/article/details/89190393)
+
+socket statistics 的缩写。ss 命令可以用来获取socket 统计信息，它可以显示与 netstat 类似的内容。但 ss 的优势在于它能够显示更多更详细的有关TCP和连接状态的信息，而且比netstat更快速更高效
 
 
 
@@ -4308,6 +4679,26 @@ DNS2=IP
 ```shell
 目标网段 via 网关 dev 网卡
 ```
+
+
+
+##### 防火墙
+
+centos 7 为例
+
+检查状态 `systemctl status firewalld.service`
+
+临时关闭 `systemctl stop firewalld.service`
+
+永久关闭 `systemctl disable firewalld.service`
+
+
+
+查看 selinux 状态：`getenforce` [参考](https://blog.csdn.net/javazhouchon/article/details/119428372)
+
+临时关闭：`setenforce 0`
+
+永久关闭：`/etc/selinux/config` 里 `SELINUX=enforcing` 改为 `SELINUX=disabled`
 
 
 
@@ -4703,6 +5094,32 @@ echo $(whoami)
 
 
 
+## 应用
+
+#### 开机自启
+
+1. **方法 #1 - 使用 cron 任务**
+
+   除了常用格式（分 / 时 / 日 / 月 / 周）外，cron 调度器还支持 @reboot 指令。这个指令后面的参数是脚本（启动时要执行的那个脚本）的绝对路径。
+
+   然而，这种方法需要注意两点：
+
+   a) cron 守护进程必须处于运行状态（通常情况下都会运行），同时
+
+   b) 脚本或 crontab 文件必须包含需要的环境变量。
+
+2. **方法 #2 - 使用 /etc/rc.d/rc.local**
+
+   这个方法对于 systemd-based 发行版 Linux 同样有效。不过，使用这个方法，需要授予 /etc/rc.d/rc.local 文件执行权限：
+
+   ```
+   # chmod +x /etc/rc.d/rc.local
+   ```
+
+   然后在这个文件底部添加脚本。
+
+
+
 ## 维护
 
 ### 清理垃圾
@@ -4794,7 +5211,23 @@ ssh-keygen -t rsa -C '你的邮箱(或别的东西，即你的id备注)'
 
 > [更多简化参考](https://blog.csdn.net/czdecsdn/article/details/112388817) 暂时不学习
 
+> [root登录](https://blog.csdn.net/qq_35760825/article/details/127337925) 疑似无效 [新建.ssh权限问题](https://blog.csdn.net/wang704987562/article/details/78904350)
 
+服务器没有 `.ssh`：
+
+如果服务器没安装 `ssh-keygen`，则先安装：
+
+```shell
+apt-get update #非root的话全sudo
+apt-get upgrade
+apt-get install -y openssh-server
+```
+
+安装了，生成：[参考](https://blog.csdn.net/m0_72167535/article/details/128348904)
+
+```shell
+ssh-keygen -t rsa -C "abc@def.com" #一路回车
+```
 
 
 
@@ -4851,6 +5284,12 @@ scp -r scnuoj@10.191.65.243:/var/www/scnuoj/next/judge/data/1577/ .
 ```bash
 scp .\DuLa-Net-master.zip root@121.37.165.73:/root
 ```
+
+
+
+### XSHELL
+
+
 
 
 
