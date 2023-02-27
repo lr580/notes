@@ -9955,6 +9955,11 @@ public class c1608 {
 
 下有 `PriorityQueue` 优先级队列(小根堆)，构造函数可以传一个对象，其类为 `Comparator<类名> cmp` 作参数作为比较依据来自定义，需要实现 `public int compare(对象, 对象)` ，前者大返回正数；小负数，相等 $0$
 
+```java
+q = new PriorityQueue<Integer>((a, b) -> (b - a)); //大根堆 (可写为<>下同)
+q = new PriorityQueue<Integer>((a, b) -> (a - b)); //小根堆
+```
+
 如：
 
 ```java

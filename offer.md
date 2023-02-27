@@ -3371,6 +3371,304 @@ class Solution {
 }
 ```
 
+更好的实现：
+
+```java
+class Solution {
+    String[] singles = {"", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"};
+    String[] teens = {"Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"};
+    String[] tens = {"", "Ten", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"};
+    String[] thousands = {"", "Thousand", "Million", "Billion"};
+
+    public String numberToWords(int num) {
+        if (num == 0) {
+            return "Zero";
+        }
+        StringBuffer sb = new StringBuffer();
+        for (int i = 3, unit = 1000000000; i >= 0; i--, unit /= 1000) {
+            int curNum = num / unit;
+            if (curNum != 0) {
+                num -= curNum * unit;
+                StringBuffer curr = new StringBuffer();
+                recursion(curr, curNum);
+                curr.append(thousands[i]).append(" ");
+                sb.append(curr);
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    public void recursion(StringBuffer curr, int num) {
+        if (num == 0) {
+            return;
+        } else if (num < 10) {
+            curr.append(singles[num]).append(" ");
+        } else if (num < 20) {
+            curr.append(teens[num - 10]).append(" ");
+        } else if (num < 100) {
+            curr.append(tens[num / 10]).append(" ");
+            recursion(curr, num % 10);
+        } else {
+            curr.append(singles[num / 100]).append(" Hundred ");
+            recursion(curr, num % 100);
+        }
+    }
+}
+```
+
+
+
+##### 282\.给表达式添加运算符
+
+[题目](https://leetcode.cn/problems/expression-add-operators/)
+
+自己的屎山，$O(n4^n)$。
+
+```java
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
+
+class Solution {
+    private int n, a[], op[], t;
+    private List<String> ans;
+    final static private int add = 0, sub = 1, mul = 2, nth = 3;
+    final static private char so[] = new char[] { '+', '-', '*' };
+
+    private long calc(long lfs, long rfs, int o) {
+//        System.out.println(String.format("%d %d %d", lfs, rfs, o));
+        if (o == add) {
+            lfs += rfs;
+        } else if (o == sub) {
+            lfs -= rfs;
+        } else if (o == mul) {
+            lfs *= rfs;
+        }
+        return lfs;
+    }
+
+    private void dfs(int k) {
+        if (k == n) {
+            long lfs = 0, rfs = a[0];
+            Deque<Long> num = new ArrayDeque<>();
+//            num.addFirst(0L);
+            Deque<Integer> ope = new ArrayDeque<>();
+//            ope.addFirst(add);
+            StringBuilder sb = new StringBuilder();
+            sb.append(rfs);
+            for (int i = 1; i < n; ++i) {
+                if (op[i] == nth) {
+                    rfs = rfs * 10 + a[i];
+                } else {
+                    num.addLast(rfs);
+                    if (!ope.isEmpty() && ope.peekLast() == mul) {
+                        Long r = num.pollLast();
+                        Long l = num.pollLast();
+                        ope.pollLast();
+                        num.addLast(l * r);
+                    }
+                    ope.addLast(op[i]);
+//                    lfs = calc(lfs, rfs, o);
+                    rfs = a[i];
+                    sb.append(so[op[i]]);
+                }
+                sb.append(a[i]);
+            }
+            num.addLast(rfs);
+            if (!ope.isEmpty() && ope.peekLast() == mul) {
+                Long r = num.pollLast();
+                Long l = num.pollLast();
+                ope.pollLast();
+                num.addLast(l * r);
+            }
+            while (!ope.isEmpty()) {
+                Long l = num.pollFirst();
+                Long r = num.pollFirst();
+                Integer op = ope.pollFirst();
+                num.addFirst(calc(l, r, op));
+            }
+            lfs = num.peekFirst();
+//            lfs = calc(lfs, rfs, o);
+//            System.out.println(String.format("%s=%d", sb.toString(), lfs));
+            if (lfs == t) {
+                String f = sb.toString();
+                int z = 0; // 0 not begin; 1 leading zero; 2 normal
+                for (int i = 0, ie = f.length(); i < ie; ++i) {
+                    char c = f.charAt(i);
+                    if (c == '+' || c == '-' || c == '*') {
+                        z = 0;
+                    } else if (c == '0') {
+                        if (z == 0) {
+                            z = 1;
+                        } else if (z == 1) {
+                            return;
+                        }
+                    } else {
+                        if (z == 1) {
+                            return;
+                        }
+                        z = 2;
+                    }
+                }
+//                System.out.println(String.format("%s=%d", sb.toString(), lfs));
+                ans.add(f);
+            }
+            return;
+        }
+        for (int i = 0; i < 4; ++i) {
+            op[k] = i;
+            dfs(k + 1);
+        }
+    }
+
+    public List<String> addOperators(String num, int target) {
+        n = num.length();
+        a = new int[n];
+        t = target;
+        for (int i = 0; i < n; ++i) {
+            a[i] = (int) (num.charAt(i) - '0');
+        }
+        op = new int[n];
+        ans = new ArrayList<>();
+        dfs(1);
+        return ans;
+    }
+}
+```
+
+答案更优写法：
+
+```java
+class Solution {
+    int n;
+    String num;
+    int target;
+    List<String> ans;
+
+    public List<String> addOperators(String num, int target) {
+        this.n = num.length();
+        this.num = num;
+        this.target = target;
+        this.ans = new ArrayList<String>();
+        StringBuffer expr = new StringBuffer();
+        backtrack(expr, 0, 0, 0);
+        return ans;
+    }
+
+    public void backtrack(StringBuffer expr, int i, long res, long mul) {
+        if (i == n) {
+            if (res == target) {
+                ans.add(expr.toString());
+            }
+            return;
+        }
+        int signIndex = expr.length();
+        if (i > 0) {
+            expr.append(0); // 占位，下面填充符号
+        }
+        long val = 0;
+        // 枚举截取的数字长度（取多少位），注意数字可以是单个 0 但不能有前导零
+        for (int j = i; j < n && (j == i || num.charAt(i) != '0'); ++j) {
+            val = val * 10 + num.charAt(j) - '0';
+            expr.append(num.charAt(j));
+            if (i == 0) { // 表达式开头不能添加符号
+                backtrack(expr, j + 1, val, val);
+            } else { // 枚举符号
+                expr.setCharAt(signIndex, '+');
+                backtrack(expr, j + 1, res + val, val);
+                expr.setCharAt(signIndex, '-');
+                backtrack(expr, j + 1, res - val, -val);
+                expr.setCharAt(signIndex, '*');
+                backtrack(expr, j + 1, res - mul + mul * val, mul * val);
+            }
+        }
+        expr.setLength(signIndex);
+    }
+}
+```
+
+
+
+##### 295\.数据流的中位数
+
+[题目](https://leetcode.cn/problems/find-median-from-data-stream/)
+
+对顶堆，个人写法：
+
+```java
+import java.util.PriorityQueue;
+
+class MedianFinder {
+    PriorityQueue<Integer> a, b;
+
+    public MedianFinder() {
+        a = new PriorityQueue<>();// 大根堆,前半部分
+        b = new PriorityQueue<>();// 小根堆,后半部分
+    }
+
+    public void addNum(int num) {
+        if (a.isEmpty() || num <= -a.peek()) {
+            a.add(-num);
+//            System.out.println("a add");
+        } else {
+            b.add(num);
+//            System.out.println("b add");
+        }
+        while (b.size() > a.size()) {// b->a
+            a.add(-b.poll());
+//            System.out.println("b to a");
+        }
+        while (a.size() > b.size() + 1) {// a->b
+            b.add(-a.poll());
+//            System.out.println("a to b");
+        }
+    }
+
+    public double findMedian() {
+        if (a.size() > b.size()) {
+            return -a.peek();
+        }
+        return (-a.peek() + b.peek()) / 2.0;
+    }
+}
+```
+
+更好的写法：
+
+```java
+class MedianFinder {
+    PriorityQueue<Integer> queMin;
+    PriorityQueue<Integer> queMax;
+
+    public MedianFinder() {
+        queMin = new PriorityQueue<Integer>((a, b) -> (b - a));
+        queMax = new PriorityQueue<Integer>((a, b) -> (a - b));
+    }
+    
+    public void addNum(int num) {
+        if (queMin.isEmpty() || num <= queMin.peek()) {
+            queMin.offer(num);
+            if (queMax.size() + 1 < queMin.size()) {
+                queMax.offer(queMin.poll());
+            }
+        } else {
+            queMax.offer(num);
+            if (queMax.size() > queMin.size()) {
+                queMin.offer(queMax.poll());
+            }
+        }
+    }
+    
+    public double findMedian() {
+        if (queMin.size() > queMax.size()) {
+            return queMin.peek();
+        }
+        return (queMin.peek() + queMax.peek()) / 2.0;
+    }
+}
+```
+
 
 
 
