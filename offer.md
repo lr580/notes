@@ -3671,6 +3671,368 @@ class MedianFinder {
 
 
 
+##### 297\.二叉树的序列化与反序列化
+
+[题目](https://leetcode.cn/problems/serialize-and-deserialize-binary-tree/)
+
+```java
+import java.util.Scanner;
+class Codec {
+    private StringBuilder sb;
+
+    private void dfs(TreeNode u) {
+        if (u == null) {
+            sb.append("1024 ");
+            return;
+        }
+        sb.append(u.val);
+        sb.append(' ');
+        dfs(u.left);
+        dfs(u.right);
+    }
+
+    private Scanner sc;
+
+    private TreeNode dfs2() {
+        int v = sc.nextInt();
+        if (v == 1024) {
+            return null;
+        }
+        TreeNode u = new TreeNode(v);
+        u.left = dfs2();
+        u.right = dfs2();
+        return u;
+    }
+
+    // Encodes a tree to a single string.
+    public String serialize(TreeNode root) {
+        sb = new StringBuilder();
+        dfs(root);
+        return sb.toString();
+    }
+
+    // Decodes your encoded data to tree.
+    public TreeNode deserialize(String data) {
+        sc = new Scanner(data);
+        TreeNode res = dfs2();
+        sc.close();
+        return res;
+    }
+}
+```
+
+
+
+##### 301\.删除无效的括号
+
+[题目]()
+
+无聊的DFS爆搜题。复杂度 $O(m2^m)$ 其中 $m=20$。
+
+```java
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+
+class Solution {
+    private String s;
+    private boolean suc;
+    private int n, m, p[], lim;
+    private boolean del[];
+    private List<String> ans;
+    private HashSet<String> tmp;
+
+    private void dfs(int prv, int cnt) {
+        if (cnt == lim) {
+            StringBuilder sb = new StringBuilder();
+            int lf = 0;
+            for (int i = 0; i < n; ++i) {
+                if (del[i]) {
+                    continue;
+                }
+                char c = s.charAt(i);
+                if (c == '(') {
+                    lf++;
+                } else if (c == ')') {
+                    if (--lf < 0) {
+                        return;
+                    }
+                }
+                sb.append(c);
+            }
+            if (lf == 0) {
+                suc = true;
+//                ans.add(sb.toString());
+                tmp.add(sb.toString());
+            }
+            return;
+        }
+        for (int i = prv + 1; i < m; ++i) {
+            del[p[i]] = true;
+            dfs(i, cnt + 1);
+            del[p[i]] = false;
+        }
+    }
+
+    public List<String> removeInvalidParentheses(String s) {
+        this.s = s;
+        suc = false;
+        n = s.length();
+        p = new int[n];
+        m = 0;
+        for (int i = 0; i < n; ++i) {
+            char c = s.charAt(i);
+            if (c == '(' || c == ')') {
+                p[m++] = i;
+            }
+        }
+        del = new boolean[n];
+        tmp = new HashSet<>();
+        ans = new ArrayList<>();
+        for (lim = 0; lim <= m && !suc; ++lim) {
+            dfs(-1, 0);
+        }
+        for (String t : tmp) {
+            ans.add(t);
+        }
+        return ans;
+    }
+}
+```
+
+题解解法一：DFS回溯，时间 $O(n2^n)$，空间 $O(n^2)$
+
+```java
+class Solution {
+    private List<String> res = new ArrayList<String>();
+
+    public List<String> removeInvalidParentheses(String s) {
+        int lremove = 0;
+        int rremove = 0;
+
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) == '(') {
+                lremove++;
+            } else if (s.charAt(i) == ')') {
+                if (lremove == 0) {
+                    rremove++;
+                } else {
+                    lremove--;
+                }
+            }
+        }
+        helper(s, 0, lremove, rremove);
+
+        return res;
+    }
+
+    private void helper(String str, int start, int lremove, int rremove) {
+        if (lremove == 0 && rremove == 0) {
+            if (isValid(str)) {
+                res.add(str);
+            }
+            return;
+        }
+
+        for (int i = start; i < str.length(); i++) {
+            if (i != start && str.charAt(i) == str.charAt(i - 1)) { //去重,因为 (() 来说删哪个左都一样，所以删掉第一个即可
+                continue;
+            }
+            // 如果剩余的字符无法满足去掉的数量要求，直接返回
+            if (lremove + rremove > str.length() - i) {
+                return;
+            }
+            // 尝试去掉一个左括号
+            if (lremove > 0 && str.charAt(i) == '(') {
+                helper(str.substring(0, i) + str.substring(i + 1), i, lremove - 1, rremove);
+            }
+            // 尝试去掉一个右括号
+            if (rremove > 0 && str.charAt(i) == ')') {
+                helper(str.substring(0, i) + str.substring(i + 1), i, lremove, rremove - 1);
+            }
+        }
+    }
+
+    private boolean isValid(String str) {
+        int cnt = 0;
+        for (int i = 0; i < str.length(); i++) {
+            if (str.charAt(i) == '(') {
+                cnt++;
+            } else if (str.charAt(i) == ')') {
+                cnt--;
+                if (cnt < 0) {
+                    return false;
+                }
+            }
+        }
+
+        return cnt == 0;
+    }
+}
+```
+
+解法二：BFS 时间 $O(n2^n)$ 空间 $O(nC_n^{\frac n2})$。
+
+```java
+class Solution {
+    public List<String> removeInvalidParentheses(String s) {
+        List<String> ans = new ArrayList<String>();
+        Set<String> currSet = new HashSet<String>();
+
+        currSet.add(s);
+        while (true) {
+            for (String str : currSet) {
+                if (isValid(str)) {
+                    ans.add(str);
+                }
+            }
+            if (ans.size() > 0) {
+                return ans;
+            }
+            Set<String> nextSet = new HashSet<String>();
+            for (String str : currSet) {
+                for (int i = 0; i < str.length(); i ++) {
+                    if (i > 0 && str.charAt(i) == str.charAt(i - 1)) {
+                        continue;
+                    }
+                    if (str.charAt(i) == '(' || str.charAt(i) == ')') {
+                        nextSet.add(str.substring(0, i) + str.substring(i + 1));
+                    }
+                }
+            }
+            currSet = nextSet;
+        }
+    }
+
+    private boolean isValid(String str) {
+        char[] ss = str.toCharArray();
+        int count = 0;
+
+        for (char c : ss) {
+            if (c == '(') {
+                count++;
+            } else if (c == ')') {
+                count--;
+                if (count < 0) {
+                    return false;
+                }
+            }
+        }
+
+        return count == 0;
+    }
+}
+```
+
+解法三：枚举子集。设非法括号数为 $m$，时间 $O(n2^n)$，空间 $O(nC_n^m)$
+
+```java
+class Solution {
+    public List<String> removeInvalidParentheses(String s) {
+        int lremove = 0;
+        int rremove = 0;
+        List<Integer> left = new ArrayList<Integer>();
+        List<Integer> right = new ArrayList<Integer>();
+        List<String> ans = new ArrayList<String>();
+        Set<String> cnt = new HashSet<String>();
+
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) == '(') {
+                left.add(i);
+                lremove++;
+            } else if (s.charAt(i) == ')') {
+                right.add(i);
+                if (lremove == 0) {
+                    rremove++;
+                } else {
+                    lremove--;
+                }
+            }
+        }
+
+        int m = left.size();
+        int n = right.size();
+        List<Integer> maskArr1 = new ArrayList<Integer>();
+        List<Integer> maskArr2 = new ArrayList<Integer>();
+        for (int i = 0; i < (1 << m); i++) {
+            if (Integer.bitCount(i) != lremove) {
+                continue;
+            }
+            maskArr1.add(i);
+        }
+        for (int i = 0; i < (1 << n); i++) {
+            if (Integer.bitCount(i) != rremove) {
+                continue;
+            }
+            maskArr2.add(i);
+        }
+        for (int mask1 : maskArr1) {
+            for (int mask2 : maskArr2) {
+                if (checkValid(s, mask1, left, mask2, right)) {
+                    cnt.add(recoverStr(s, mask1, left, mask2, right));
+                }
+            }
+        }
+        for (String v : cnt) {
+            ans.add(v);
+        }
+
+        return ans;
+    }
+
+    private boolean checkValid(String str, int lmask, List<Integer> left, int rmask, List<Integer> right) {
+        int pos1 = 0;
+        int pos2 = 0;
+        int cnt = 0;
+
+        for (int i = 0; i < str.length(); i++) {
+            if (pos1 < left.size() && i == left.get(pos1)) {
+                if ((lmask & (1 << pos1)) == 0) {
+                    cnt++;
+                }
+                pos1++;
+            } else if (pos2 < right.size() && i == right.get(pos2)) {
+                if ((rmask & (1 << pos2)) == 0) {
+                    cnt--;
+                    if (cnt < 0) {
+                        return false;
+                    }
+                }
+                pos2++;
+            }
+        }
+
+        return cnt == 0;
+    }
+
+    private String recoverStr(String str, int lmask, List<Integer> left, int rmask, List<Integer> right) {
+        StringBuilder sb = new StringBuilder();
+        int pos1 = 0;
+        int pos2 = 0;
+
+        for (int i = 0; i < str.length(); i++) {
+            if (pos1 < left.size() && i == left.get(pos1)) {
+                if ((lmask & (1 << pos1)) == 0) {
+                    sb.append(str.charAt(i));
+                }
+                pos1++;
+            } else if (pos2 < right.size() && i == right.get(pos2)) {
+                if ((rmask & (1 << pos2)) == 0) {
+                    sb.append(str.charAt(i));
+                }
+                pos2++;
+            } else {
+                sb.append(str.charAt(i));
+            }
+        }
+
+        return sb.toString();
+    }
+}
+```
+
+
+
 
 
 > ### 力扣比赛

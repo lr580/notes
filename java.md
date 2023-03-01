@@ -1904,7 +1904,7 @@ null)。
 
 `import java.util.Scanner; `
 
-创建一个新的对象用于读标准输入：
+创建一个新的对象用于读标准输入：(也可以读字符串)
 
 `Scanner sc = new Scanner(System.in);`
 
@@ -15064,6 +15064,133 @@ SimpleDateFormat sdf = new SimpleDateFormat("yyMM");
 sdf.parse(String source); //转 Date ，需要 throws
 sdf.format(Date res); //转 String
 ```
+
+
+
+#### XML
+
+##### SAX
+
+手写 bean 的实现示例：
+
+```java
+package util;
+
+import java.io.File;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+public class XMLUtil {
+    /**
+     * 
+     * @param path URL of a XML file
+     * @return the Class of the XML described
+     * @exampleXML like below
+     * <?xml version="1.0"?>
+       <config>
+           <className>lab1_2.FileLogFactory</className>
+        </config>
+     * it gets FileLogFactory
+     */
+    public static Object getBean(String path) {
+        try {
+            DocumentBuilderFactory dFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = dFactory.newDocumentBuilder();
+            Document doc = builder.parse(new File(path));
+            NodeList nl = doc.getElementsByTagName("className");
+            Node classNode = nl.item(0).getFirstChild();
+            String cName = classNode.getNodeValue();
+//            System.out.println(cName);
+            
+            @SuppressWarnings("rawtypes")
+            Class c = Class.forName(cName);
+            Object obj = c.newInstance();
+            return obj;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+}
+```
+
+测试代码如下：
+
+```java
+package lab1_2;
+//日志记录器接口：抽象产品Log
+public interface Log {
+    public void writeLog();
+}
+
+```
+
+```java
+package lab1_2;
+
+//文件日志记录器：具体产品FileLog
+public class FileLog implements Log {
+  @Override
+  public void writeLog() {
+      System.out.println("This is a file log.");
+  }
+}
+```
+
+```java
+package lab1_2;
+
+//日志记录器工厂接口：抽象工厂LogFactory
+public interface LogFactory {
+    public Log createLog();
+}
+```
+
+```java
+package lab1_2;
+
+//文件日志记录器工厂类：具体工厂FileLogFactory
+public class FileLogFactory implements LogFactory {
+    @Override
+    public Log createLog() {
+        return new FileLog();
+    }
+}
+```
+
+```java
+package lab1_2;
+
+import util.XMLUtil;
+
+//客户端测试类
+class lab1_2 {
+    public static void main(String args[]) {
+        LogFactory factory;
+        Log log;
+        System.out.println(FileLogFactory.class.toString());
+//    factory = new FileLogFactory();
+        factory = (LogFactory) XMLUtil.getBean("src/lab1_2/lab1_2.xml");
+        log = factory.createLog();
+        log.writeLog();
+    }
+}
+```
+
+上述目录下的 xml：
+
+```xml
+<?xml version="1.0"?>
+<config>
+    <className>lab1_2.DatabaseLogFactory</className>
+</config>
+```
+
+
 
 
 
