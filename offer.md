@@ -4033,6 +4033,39 @@ class Solution {
 
 
 
+##### 312\.戳气球
+
+[题目](https://leetcode.cn/problems/burst-balloons/)
+
+区间 DP。
+
+```java
+class Solution {
+    public int maxCoins(int[] nums) {
+        int n = nums.length;
+        int a[] = new int[n + 2];
+        int dp[][] = new int[n + 2][n + 2];
+        for (int i = 1; i <= n; ++i) {
+            a[i] = nums[i - 1];
+        }
+        a[0] = a[n + 1] = 1;
+        for (int len = 1; len <= n; ++len) {
+            for (int l = 1, r = l + len - 1; r <= n; ++l, ++r) {
+                int bd = a[l - 1] * a[r + 1];
+                for (int c = l; c <= r; ++c) {
+                    int v = bd * a[c];
+                    v += dp[l][c - 1] + dp[c + 1][r];
+                    dp[l][r] = Math.max(dp[l][r], v);
+                }
+            }
+        }
+        return dp[1][n];
+    }
+}
+```
+
+
+
 
 
 > ### 力扣比赛

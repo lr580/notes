@@ -1600,6 +1600,23 @@ JDK7及之后 会把首次遇到的字符串实例的引用添加到常量池中
 
 
 
+##### StringTokenizer
+
+用于将一个字符串按照指定的分隔符分割成多个子字符串。在Java中，StringTokenizer类位于java.util包中
+
+```java
+String str = "apple,banana,orange";
+StringTokenizer tokenizer = new StringTokenizer(str, ",");
+while (tokenizer.hasMoreTokens()) {
+  String token = tokenizer.nextToken();
+  System.out.println(token);
+}
+```
+
+输出三个水果。
+
+
+
 #### 数组
 
 静态数组。

@@ -2790,6 +2790,8 @@ os.path.isdir(路径)
 os.mkdir(路径)
 ```
 
+> 创建多层嵌套目录 `makedirs`。该函数可以加默认参数 `exist_ok=True`。
+
 删除目录： 如果失败，可以先把里面文件一一删除
 
 ```python
@@ -5802,6 +5804,8 @@ audiometric = pd.read_csv('audiometric.csv')
 
 其 `.shape` 依次是行数(不含表头)、列数。是独有的类型。
 
+若数据里写着 NA (不带引号)而不是数值，读进去是 not a number。
+
 打印前五行数据：(后三行 `tail(3)`)
 
 ```python
@@ -5847,8 +5851,6 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 
 
 
-
-
 ##### 基本操作
 
 创建两行数据：
@@ -5864,13 +5866,36 @@ print(x)
 pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 ```
 
-取一列：`[列名str]`。取行区间`[起:止]` (切片语法同 python)
+取一列：`[列名str]`。取行区间`[起:止]` (切片语法同 python)。用下标取就 `iloc[]`。
 
 取单独元素 `.at[行号, 列str]`
 
 转 numpy(丢失表头)：`.to_numpy()`
 
 简要统计 `.describe()`
+
+用列值进行 01 分类：`get_dummies`
+
+将 nan 用一个值替换，如：`x.fillna(x.mean())`，如：
+
+> 数据：
+>
+> ```csv
+> NumRooms,RoofType,Price
+> NA,NA,127500
+> 2,NA,106000
+> 4,Slate,178100
+> NA,NA,140000
+> ```
+>
+> ```python
+> row2 = data.iloc[:,:2]
+> row2 = pd.get_dummies(row2, dummy_na=True)
+> row2 = row2.fillna(row2.mean())
+> print(row2)
+> ```
+
+取 `.values` 可以转化为 np array。然后可以丢进 tensor。
 
 
 
@@ -6388,7 +6413,7 @@ print(x)
 
 
 ```python
-print(x.shape, x.numel())
+print(x.shape, x.numel()) #多维里len是第一维长度,numel才是元素数目
 print(list(x.shape)) #一维列表
 # print(x.type()) #数据类型
 ```
@@ -6432,7 +6457,7 @@ numpy 与 tensor 互转：
 
 
 ```python
-x = torch.tensor([[1,1,4,5,1,4],[1,9,1,9,8,1]])
+x = torch.tensor([[1,1,4,5,1,4],[1,9,1,9,8,1]]) #也可以传np array
 print(x.numpy())
 import numpy as np
 na = np.array([1,1,4,5,1,4])
@@ -6448,6 +6473,21 @@ print(x[2].item(),type(x[2].item()))
 ```
 
 #### 运算
+
+##### 常规
+
+> 直接运算：
+>
+> ```python
+> x = torch.arange(6,dtype=torch.float32).reshape(2,3)
+> y = x
+> print(id(x),id(y))
+> y[0,1]+=100
+> print(x,y,sep='\n')
+> z = x.clone()
+> z[1,0]-=100
+> print(x,z,sep='\n')
+> ```
 
 每个对应位置元素运算：
 
@@ -6521,6 +6561,84 @@ print(id(x)) #发现进行运算后，原本的x地址位置被丢掉了
 x[:] = x + y #不要丢，原地操作
 print(id(x))
 ```
+
+##### 线代
+
+转置： `.T`
+
+```python
+x = torch.arange(12).reshape(3,4)
+print(x, x.T)
+```
+
+求和：(后两个得到的 sum 都是一行的向量)
+
+```python
+x = torch.arange(6,dtype=torch.float32).reshape(2,3)
+print(x.sum(), x.sum(axis=0), x.sum(axis=1)) #按列(3,5,7);按行(3,12)
+print(x.sum(axis=[0,1])) #等效于 x.sum()
+print(x.sum(axis=1,keepdims=True)) #也就是(2,3) size 变成了 (2,1)
+```
+
+同理，求均值操作也能这么干。
+
+```python
+print(x.mean(), x.mean(axis=0), x.mean(axis=1))
+#axis=多少,就是把多少这个维度给干掉
+```
+
+求前缀和(按行一维、按列一维、二维前缀和)
+
+```python
+x = torch.arange(25).reshape(5,5)
+print(x)
+print(x.cumsum(axis=1))
+print(x.cumsum(axis=0))
+print(x.cumsum(axis=0).cumsum(axis=1))
+```
+
+只能用于一维向量的内积：
+
+```python
+x = torch.tensor([1, 2, 3])
+y = torch.tensor([1, 10, 100])
+print(torch.dot(x, y), x.dot(y))
+```
+
+对矩阵每行都内积一下：(`mv:matrix vector`)
+
+```python
+x = torch.tensor([1, 2, 3], dtype=torch.float32)
+y = torch.tensor([[1, 10, 1e2], [1e3, 1e4, 1e5]])
+print(torch.mv(y, x))  # 类型必须一致
+print(torch.mv(y, x))  # 反过来是可以的,结果一致
+print(y@x)  # 反过来是不行的
+```
+
+矩阵乘法：
+
+```python
+x = torch.tensor([[1, 2, 3], [4, 5, 6]])
+y = torch.tensor([[-1, -2], [-3, -4], [-5, -6]])
+print(x@y) #第一个元素为例,1*-1+2*-3+3*-5=-22
+print(y@x) #第一个元素-1*1+-2*4=-9
+#分别size:(2,3)*(3,2)=(2,2); (3,2)*(2,3)=(3,3)
+print(torch.mm(x,y),torch.mm(y,x), x.mm(y))
+```
+
+> 区别：`x*y` 是逐个元素对应位置乘，即类似标量运算。
+
+范数：
+
+```python
+x = torch.tensor([3, -4],dtype=torch.float32)
+print(x.norm(), torch.norm(x)) #必须要float, l_2 范数
+print(x.abs().sum(), torch.abs(x).sum()) #l_1 范数
+```
+
+
+
+
 
 ### sklearn
 
