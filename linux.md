@@ -508,6 +508,26 @@ export PATH=${JAVA_HOME}/bin:$PATH
 
 检查：`java -version`
 
+##### mysql
+
+Mysql常用路径：
+
+数据文件：/var/lib/mysql/
+
+配置文件模板：/usr/share/mysql
+
+客户端工具目录：/usr/bin
+
+日志目录：/var/log/
+
+sock文件：在/var/lib/mysql/目录下
+
+一般配置文件会放置在/etc下
+
+相关命令：/usr/bin（mysqladmin mysqldump等命令）
+
+启动脚本：/etc/rc.d/init.d/（启动脚本文件mysql的目录）
+
 
 
 ### EFI顺序更改
@@ -921,7 +941,7 @@ rm -- -f*
 
 ##### mv
 
-移动文件或修改文件名，根据第二参数类型（如目录，则移动文件；如为文件则重命令该文件）。
+移动文件或修改文件名，根据第二参数类型（如目录，则移动文件；如为文件则重命名该文件）。
 
 当第二个参数为目录时，第一个参数可以是多个以空格分隔的文件或目录，然后移动第一个参数指定的多个文件到第二个参数指定的目录中。
 
@@ -3896,6 +3916,8 @@ ubuntu安装：`sudo apt install rpm`
 
 - -e
 
+卸载时也可以加 `--nodeps`
+
 
 
 ###### 依赖关系
@@ -5171,6 +5193,23 @@ echo $(whoami)
 
 
 
+服务的开机自启：
+
+```sh
+chkconfig --add mysql
+chkconfig mysql on
+```
+
+
+
+
+
+#### path
+
+可以改 `/etc/profile`，往里面丢 path 路径。改完了 `source /etc/profile`。
+
+
+
 ## 维护
 
 ### 清理垃圾
@@ -5328,7 +5367,7 @@ ssh-copy-id 目标ID
 
 本地到服务器：两个参数互换，即`scp 本地目录 用户名@地址:目录`
 
-加 `-r` 关键字表示目录
+加 `-r` 关键字表示目录，`-q` 不显示进度。
 
 可能需要输入密码
 

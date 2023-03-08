@@ -7158,6 +7158,8 @@ import networkx as nx
 
 #### 建图
 
+##### 常规
+
 ```python
 g = nx.Graph() #无向图，有向是DiGraph
 ```
@@ -7196,6 +7198,26 @@ print(g.edges([1, 2]), g.degree(1, 2)) #简写为g.edges[1,2]或g[1][2]
 点/边的属性(点权可用 dict 表示，key 是属性名，也可以不)，可以直接赋值，如 `g[][key]=val`，边就 `g[][][key]=val`
 
 加权边：`add_weighted_edges_from`
+
+##### 预制
+
+生成随机 DAG，且点值从 $[0,n)$ 偏移到 $[1,n]$：
+
+```python
+from networkx.generators.random_graphs import gnm_random_graph
+import networkx as nx
+dag = gnm_random_graph(n, m)
+dag = nx.relabel_nodes(dag, {i: i + 1 for i in range(n)})
+print(dag.edges())
+```
+
+随机树：`nx.random_tree(n)`
+
+链：`nx.path_graph(n)`
+
+完全图：`nx.complete_graph(n)`
+
+
 
 #### 绘制
 

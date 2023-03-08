@@ -4066,6 +4066,1305 @@ class Solution {
 
 
 
+##### 315\.计算右侧小于当前元素的个数
+
+[题目](https://leetcode.cn/problems/count-of-smaller-numbers-after-self/)
+
+截止 23-03-03 18ms(击败99.85%)和 59.3MB(击败61.57%) 的 Java 代码。
+
+设权值树状数组，逆序遍历原数组，对当前值 $v$，查询树状数组里有多少个 $ < v$ 的值，然后将 $v$ 插入树状数组。
+
+因为有负数，所以对全体数偏移，将 $[-10^4,10^4]$ 偏移到 $[1,2\times 10^4+1]$。
+
+不必离散化。因为离散化的常数较大。
+
+设 $t=2\times 10^4+1$，显然时间复杂度 $O(t\log t)$，空间复杂度 $O(t)$。
+
+> 权值线段树也是可以的，但是常数更大。且四倍空间复杂度。
+
+```java
+class fenwick {
+    private static final int r = 10000, n = 2 * r + 1;// 值域[-r,r]
+    private int t[];
+
+    public fenwick() {
+        t = new int[n + 1];
+    }
+
+    public void add(int i) {
+        for (i += r + 1; i <= n; i += Integer.lowestOneBit(i)) {
+            ++t[i];
+        }
+    }
+
+    public int query(int i) {
+        int res = 0;
+        for (i += r + 1; i > 0; i -= Integer.lowestOneBit(i)) {
+            res += t[i];
+        }
+        return res;
+    }
+}
+
+class Solution {
+    public List<Integer> countSmaller(int[] nums) {
+        int n = nums.length;
+        Integer c[] = new Integer[n];
+        fenwick t = new fenwick();
+        for (int i = n - 1; i >= 0; --i) {
+            c[i] = t.query(nums[i] - 1);
+            t.add(nums[i]);
+        }
+        return Arrays.asList(c);
+    }
+}
+```
+
+解法二：归并排序。
+
+```java
+class Solution {
+    private int[] index;
+    private int[] temp;
+    private int[] tempIndex;
+    private int[] ans;
+
+    public List<Integer> countSmaller(int[] nums) {
+        this.index = new int[nums.length];
+        this.temp = new int[nums.length];
+        this.tempIndex = new int[nums.length];
+        this.ans = new int[nums.length];
+        for (int i = 0; i < nums.length; ++i) {
+            index[i] = i;
+        }
+        int l = 0, r = nums.length - 1;
+        mergeSort(nums, l, r);
+        List<Integer> list = new ArrayList<Integer>();
+        for (int num : ans) {
+            list.add(num);
+        }
+        return list;
+    }
+
+    public void mergeSort(int[] a, int l, int r) {
+        if (l >= r) {
+            return;
+        }
+        int mid = (l + r) >> 1;
+        mergeSort(a, l, mid);
+        mergeSort(a, mid + 1, r);
+        merge(a, l, mid, r);
+    }
+
+    public void merge(int[] a, int l, int mid, int r) {
+        int i = l, j = mid + 1, p = l;
+        while (i <= mid && j <= r) {
+            if (a[i] <= a[j]) {
+                temp[p] = a[i];
+                tempIndex[p] = index[i];
+                ans[index[i]] += (j - mid - 1);
+                ++i;
+                ++p;
+            } else {
+                temp[p] = a[j];
+                tempIndex[p] = index[j];
+                ++j;
+                ++p;
+            }
+        }
+        while (i <= mid)  {
+            temp[p] = a[i];
+            tempIndex[p] = index[i];
+            ans[index[i]] += (j - mid - 1);
+            ++i;
+            ++p;
+        }
+        while (j <= r) {
+            temp[p] = a[j];
+            tempIndex[p] = index[j];
+            ++j;
+            ++p;
+        }
+        for (int k = l; k <= r; ++k) {
+            index[k] = tempIndex[k];
+            a[k] = temp[k];
+        }
+    }
+}
+```
+
+解法三：tree set 二分。用平衡树维护有序数组，逆序遍历原数组并树上查询 rank。略。
+
+
+
+##### 982\.按位与为零的三元组
+
+[题目](https://leetcode.cn/problems/triples-with-bitwise-and-equal-to-zero/)
+
+**解法一：bitset 优化的暴力枚举**
+
+bitset：设 $m=16$ 个长为 $n$ 的 bitset $b$，第 $i$ 个 bitset 的第 $j$ 位代表 $a_j$ 的第 $i$ 低位是不是 $0$。 
+
+枚举 $v=a_i \& a_j$，然后枚举 $v$ 的每个为 $1$ 的位，只要这个位为 $0$ 的数就可以。同时满足所有为 $1$ 的位是 $0$，即把这些 $b$ 全部与一下，然后统计与后 $1$ 的个数。
+
+设操作系统位数为 $C=64$，则空间复杂度为 $O(\dfrac{nm}{C})$ ，时间复杂度为 $O(\dfrac{n^3m}{C})\approx 2.5\times 10^8$。
+
+竟然能过题。
+
+```java
+import java.util.BitSet;
+
+class Solution {
+    private final static int m = 16;
+
+    public int countTriplets(int[] nums) {
+        int cnt = 0, n = nums.length;
+        BitSet b[] = new BitSet[m];
+        for (int i = 0; i < m; ++i) {
+            b[i] = new BitSet(n);// b[i][j]表示第nums[j]第i位是不是0
+            for (int j = 0; j < n; ++j) {
+                if (((nums[j] >> i) & 1) == 0) {
+                    b[i].set(j);
+                }
+            }
+        }
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                int v = nums[i] & nums[j];
+                BitSet t = new BitSet(n);
+                t.set(0, n);
+                for (int k = 0; k < m; ++k) {
+                    if (((v >> k) & 1) == 1) {
+                        t.and(b[k]);
+                    }
+                }
+                cnt += t.cardinality();
+            }
+        }
+        return cnt;
+    }
+}
+```
+
+**解法二：桶**
+
+枚举 $a_i\&a_j$ 的值，计数存储在桶 $b$ 里。然后枚举 $a_k$，对每个 $a_k$ 枚举桶的所有值，若 $a_k \& i=0$，加上 $b_i$ 计数。
+
+代码略，看官方题解。时间复杂度 $O(n^2+n2^m)\approx 6.6\times 10^7$，空间复杂度 $O(2^m)$。
+
+可以进行常数优化。在枚举 $a_k \& i$ 的满足的 $i$ 时，使用如下方法：
+
+```java
+for (int x : nums) {
+    x = x ^ 0xffff; // 为1的位是还需要cnt做贡献的
+    for (int sub = x; sub != 0; sub = (sub - 1) & x) {
+        ans += cnt[sub];
+    }
+    ans += cnt[0];
+}
+```
+
+含义是，快速枚举 $x$ 的所有子集，例如 $x=(1011)_2$，能直接枚举出 $(0001)_2,(0010)_2,(0011)_2,(1000)_2,(1001)_2,(1010)_2,(1011)_2$。复杂度不变，但相当于大量剪枝。
+
+**解法三：高维前缀和**
+
+复杂度同上。对桶数组，把解法二的子集用前缀和叠上去，叠 $m$ 维。
+
+> [代码参考](https://leetcode.cn/problems/triples-with-bitwise-and-equal-to-zero/solution/liang-chong-90duo-de-fang-fa-gao-wei-qian-zhui-he-/)
+
+> ```c++
+> class Solution {
+> public:
+> 	int w = 0;
+> 	int N, B[1 << 16];
+> 
+> 	int countTriplets(vector<int>& A) {
+> 		N = A.size();
+> 		for (auto a : A)
+> 		{
+> 			B[a]++;
+> 			while ((1 << w) <= a)w++;
+> 		}
+> 
+> 		for (int i = 0; i<w; i++) {
+> 			for (int j = 0; j<(1 << w); j++) {
+> 				if (j&(1 << i)) B[j] += B[j ^ (1 << i)];
+> 			}
+> 		}
+> 
+> 		int ans = 0;
+> 		int mask = (1 << w) - 1;
+> 		for (int i = 0; i < N; i++)
+> 			for (int j = 0; j < N; j++)
+> 				ans += B[~(A[i] & A[j])&mask];
+> 		return ans;
+> 	}
+> };
+> ```
+
+**解法四：FWT**
+
+[快速沃尔什变换(FWT)](https://oi-wiki.org/math/poly/fwt/)。要求
+$$
+\sum_{i\&j\&k=0}a_ia_ja_k=\sum_{i\&p=0}a_i\sum_{j\&k=p}a_ja_k
+$$
+也就是求出新数列 $b_p=\sum_{j\&k=p}a_ja_k$，再求新数列 $c_q=\sum_{i\&p=q}a_ib_p$，最后再输出 $c$ 的首项 $c_0$
+
+即求出 $fwt(a)$，并计算 $fwt(b)=fwt(a)^3$，然后对 $fwt(b)$ 逆运算得 $b$，输出 $b_0$。
+
+复杂度 $O(m2^m)$
+
+> [代码参考](https://leetcode.cn/problems/triples-with-bitwise-and-equal-to-zero/solution/liang-chong-90duo-de-fang-fa-gao-wei-qian-zhui-he-/)
+
+> ```java
+> // FWT
+> class Solution {
+> public:
+> 	int w;
+> 	int B[1 << 16];
+> 	void FWTand(int *a, int opt)
+> 	{
+> 		int N = 1 << w;
+> 		for (int mid = 1; mid < N; mid <<= 1)
+> 			for (int R = mid << 1, j = 0; j < N; j += R)
+> 				for (int k = 0; k < mid; k++)
+> 					if (opt == 1) a[j + k] += a[j + k + mid];
+> 					else a[j + k] -= a[j + k + mid];
+> 	}
+> 	int countTriplets(vector<int>& A) {
+> 		for (auto a : A)
+> 		{
+> 			B[a]++;
+> 			while ((1 << w) <= a)w++;
+> 		}
+> 		FWTand(B, 1);
+> 		for (int i = 0; i<(1 << w); i++) B[i] *= B[i] * B[i];
+> 		FWTand(B, -1);
+> 		return B[0];
+> 	}
+> };
+> ```
+
+> ```c++
+> void fwt(int* seq, int n) {
+>     for (int i = 1;i < n;i *= 2)
+>         for (int j = 0;j < n;j += i)
+>             for (int k = j + i;j < k;++j)
+>                 seq[j] += seq[j + i];
+> }
+> 
+> class Solution {
+> public:
+>     int countTriplets(const vector<int>& nums) {
+>         const int m = *max_element(nums.begin(), nums.end());
+>         const int l = m > 0 ? 1 << (32 - __builtin_clz(m)) : 1;
+>         int cnt[l];
+>         fill_n(cnt, l, 0);
+>         for (int e : nums)
+>             ++cnt[e];
+>         fwt(cnt, l);
+>         int ans = 0;
+>         for (int i = 0;i <= m;++i)
+>             ans += (1 - 2 * __builtin_parity(i)) * cnt[i] * cnt[i] * cnt[i];
+>         return ans;
+>     }
+> };
+> ```
+>
+> ```c++
+> #include<immintrin.h>
+> 
+> __attribute__((target("avx2")))
+> void fwt(int* seq, int n) {
+>     const auto end = seq + n;
+>     for (int i = 1;i < 8 && i < n;i *= 2)
+>         for (auto j = seq;j != end;j += i)
+>             for (const auto k = j + i;j < k;++j)
+>                 *j += j[i];
+>     const int m = n / 8;
+>     const auto l = reinterpret_cast<__m256i*>(seq);
+>     const auto r = reinterpret_cast<__m256i*>(end);
+>     for (int i = 1;i < m;i *= 2)
+>         for (auto j = l;j != r;j += i)
+>             for (const auto k = j + i;j < k;++j)
+>                 *j = _mm256_add_epi32(*j, j[i]);
+> }
+> 
+> class Solution {
+> public:
+>     int countTriplets(const vector<int>& nums) {
+>         const int m = *max_element(nums.begin(), nums.end());
+>         const int l = m > 0 ? 1 << (32 - __builtin_clz(m)) : 1;
+>         alignas(32) int cnt[l];
+>         fill_n(cnt, l, 0);
+>         for (int e : nums)
+>             ++cnt[e];
+>         fwt(cnt, l);
+>         int ans = 0;
+>         for (int i = 0;i <= m;++i)
+>             ans += (1 - 2 * __builtin_parity(i)) * cnt[i] * cnt[i] * cnt[i];
+>         return ans;
+>     }
+> };
+> ```
+
+
+
+##### 321\.拼接最大数
+
+[题目](https://leetcode.cn/problems/create-maximum-number/)
+
+题意：给定长为 $n$ 的整数序列 $a$ 和长为 $m$ 的整数序列 $b$，从 $a,b$ 里分别按顺序选数，共选 $k$ 个数组成 $c$，求出字典序最大的 $c$。具体而言，任意 $c$ 里的两个数 $c_i,c_j(i <j)$ 只要满足是从同一个序列里选出来的 $a_u,a_v$，必须满足 $i,j$ 在原序列 $u < v$。对 $b$ 同理。保证 $a,b$ 的值取值范围是 $[0,9]$。
+
+**解法一：后缀数组/后缀自动机**。本解法在基于官方题解，并进行进一步优化。
+
+枚举所有 $x+y = k,0\le x \le n,0\le y\le m$，然后从前面取 $x$ 个，后面取 $y$ 个，并且取出来后 $O(x+y)$ 归并思想合并。然后对所有 $x,y$ 的答案再取最优答案。对两个串比较字典序最坏 $O(k)$(只要重复较低，数据弱的话平均 $O(1)$)。
+
+具体取 $x$ 个时，顺着扫数组，先能选就选，能反悔 $n-x$ 次，如果当前数比上一个选定的数大，并且能反悔的话，就把上一个选的数删掉，占一次反悔。如果没选满 $x$ 个就把当前数选定，否则把当前数删掉算反悔。也就是说还有反悔次数时就是单调递减栈，不能反悔了就直接有啥选啥。复杂度 $O(n)$，不需要比较字典序。
+
+因此，共需要单调栈 $O(k)$ 次，每次的复杂度是 $O(n+m)$，这里的复杂度是 $O(k(n+m))$。选出来后的长度是 $k$，进行合并的遍历次数 $O(k)$，每次都有可能触发字典序比较，比较的复杂度是 $O(k)$，故一轮合并的复杂度是 $O(k^2)$。对所有 $O(k)$ 个 $x,y$ 结果合并，仍需要字符串比较 $O(k)$ 次，复杂度是 $O(k^2)$。总复杂度是 $O(k^3+kn+km)=O(k^3+k^2)$。空间复杂度 $O(k)$。
+
+考虑将 $O(k^2)$ 的合并用后缀数组优化，可以先 $O(k\log k)$ (倍增法)或 $O(k)$ (SA-IS或DC3)预处理，之后每次比较都是 $O(1)$ 的。设采用 SA-IS 或 DC3，复杂度优化为 $O(k)$，总复杂度优化为 $O(k^2)$。具体而言，将要比较的两个序列 $a,b$ 中间用一个最小数(转化为用 $m=\min(a,b)$ 拼接每个元素增大了 $m$ 的序列 $a+m,b+m$)，求出每个后缀的排名，那么对两个下标，直接比较该下标对应的后缀的排名即可。
+
+> 用后缀自动机也行，但鉴于我不太会，故略。
+
+参考 C++ 代码(基于 SA-IS 的后缀数组)：
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+// start leetcode
+using ll = long long;
+const ll mn = 1e3 + 5;
+namespace sa // begin SA-IS
+{
+    char s[mn];
+    ll sa[mn], rk[mn]; //, lcp[mn];
+    ll str[mn * 2], ty[mn * 2], p[mn], cnt[mn], cur[mn];
+#define pushs(x) sa[cur[str[x]]--] = x
+#define pushl(x) sa[cur[str[x]]++] = x
+    void sais(ll n, ll m, ll *str, ll *ty, ll *p)
+    {
+        ll n1 = ty[n - 1] = 0, ch = rk[0] = -1, *s1 = str + n;
+        for (ll i = n - 2; ~i; --i)
+        {
+            ty[i] = str[i] == str[i + 1] ? ty[i + 1] : str[i] > str[i + 1];
+        }
+        for (ll i = 1; i < n; ++i)
+        {
+            rk[i] = ty[i - 1] && !ty[i] ? (p[n1] = i, n1++) : -1;
+        }
+
+        auto induce_sort = [&](ll *v)
+        {
+            fill_n(sa, n, -1);
+            fill_n(cnt, m, 0);
+            for (ll i = 0; i < n; ++i)
+            {
+                cnt[str[i]]++;
+            }
+            for (ll i = 1; i < m; ++i)
+            {
+                cnt[i] += cnt[i - 1];
+            }
+            for (ll i = 0; i < m; ++i)
+            {
+                cur[i] = cnt[i] - 1;
+            }
+            for (ll i = n1 - 1; ~i; --i)
+            {
+                pushs(v[i]);
+            }
+            for (ll i = 1; i < m; ++i)
+            {
+                cur[i] = cnt[i - 1];
+            }
+            for (ll i = 0; i < n; ++i)
+            {
+                if (sa[i] > 0 && ty[sa[i] - 1])
+                {
+                    pushl(sa[i] - 1);
+                }
+            }
+            for (ll i = 0; i < m; ++i)
+            {
+                cur[i] = cnt[i] - 1;
+            }
+            for (ll i = n - 1; ~i; --i)
+            {
+                if (sa[i] > 0 && !ty[sa[i] - 1])
+                {
+                    pushs(sa[i] - 1);
+                }
+            }
+        };
+        induce_sort(p);
+        for (ll i = 0, x, y; i < n; ++i)
+        {
+            if (~(x = rk[sa[i]]))
+            {
+                if (ch < 1 || p[x + 1] - p[x] != p[y + 1] - p[y])
+                {
+                    ++ch;
+                }
+                else
+                {
+                    for (ll j = p[x], k = p[y]; j <= p[x + 1]; ++j, ++k)
+                    {
+                        if ((str[j] << 1 | ty[j]) != (str[k] << 1 | ty[k]))
+                        {
+                            ++ch;
+                            break;
+                        }
+                    }
+                }
+                s1[y = x] = ch;
+            }
+        }
+        if (ch + 1 < n1)
+        {
+            sais(n1, ch + 1, s1, ty + n, p + n1);
+        }
+        else
+        {
+            for (ll i = 0; i < n1; ++i)
+            {
+                sa[s1[i]] = i;
+            }
+        }
+        for (ll i = 0; i < n1; ++i)
+        {
+            s1[i] = p[sa[i]];
+        }
+        induce_sort(s1);
+    }
+    ll cti(ll n)
+    {
+        ll m = *max_element(s, s + n);
+        fill_n(rk, m + 1, 0);
+        for (ll i = 0; i < n; ++i)
+        {
+            rk[s[i]] = 1;
+        }
+        for (ll i = 0; i < m; ++i)
+        {
+            rk[i + 1] += rk[i];
+        }
+        for (ll i = 0; i < n; ++i)
+        {
+            str[i] = rk[s[i]] - 1;
+        }
+        return rk[m];
+    }
+    void make_sa(ll n)
+    {
+        // s[n] 一定要比 s 中所有字符 ascii 值小, s[n+1] 倒无所谓
+        s[n] = '!', s[n + 1] = '\0';
+        ll m = cti(++n);
+        sais(n, m, str, ty, p);
+        for (ll i = 0; i < n; ++i)
+        {
+            rk[sa[i]] = i;
+        }
+        // for (ll i = 0, h = lcp[0] = 0; i < n - 1; ++i)
+        // {
+        //     ll j = sa[rk[i] - 1];
+        //     while (i + h < n && j + h < n && s[i + h] == s[j + h])
+        //     {
+        //         ++h;
+        //     }
+        //     lcp[rk[i] - 1] = h;
+        //     if (lcp[rk[i] - 1])
+        //     {
+        //         --h;
+        //     }
+        // }
+        s[n] = '\0';
+    }
+} // end SA-IS
+
+char a[mn], b[mn], ans[mn], res[mn], u[mn], v[mn];
+int n, m, k, x;
+
+void greedy(char *stk, char *a, int n, int k)
+{
+    int top = -1, rem = n - k;
+    for (int i = 0; i < n; ++i)
+    {
+        while (top >= 0 && stk[top] < a[i] && rem > 0)
+        {
+            --top, --rem; // 反悔
+        }
+        if (top < k - 1)
+        {
+            stk[++top] = a[i];
+        }
+        else
+        {
+            --rem;
+        }
+    }
+    // for (int i = 0; i < k; ++i)
+    //     cout << stk[i];
+    // cout << '\n';
+}
+void merge()
+{
+    int y = k - x;
+    // cout<<x<<' '<<y<<'\n';
+    if (x == 0)
+    {
+        memcpy(res, v, k);
+        return;
+    }
+    if (y == 0)
+    {
+        memcpy(res, u, k);
+        return;
+    }
+    for (int i = 0; i < x; ++i)
+    {
+        sa::s[i] = u[i];
+    }
+    sa::s[x] = '0' - 1;
+    for (int i = 0, j = x + 1; i < y; ++i, ++j)
+    {
+        sa::s[j] = v[i];
+    }
+    sa::make_sa(x + 1 + y); // k+1
+    // return if u的后缀i>v的后缀j
+    auto cmp = [&](ll i, ll j)
+    {
+        j += x + 1;
+        return sa::rk[i] > sa::rk[j];
+    };
+    int i = 0, j = 0;
+    for (int h = 0; h < k; ++h)
+    {
+        if (cmp(i, j))
+        {
+            res[h] = u[i++];
+        }
+        else
+        {
+            res[h] = v[j++];
+        }
+    }
+    // cout << "qwq: ";
+    // for (int i = 0; i < k; ++i)
+    //     cout << res[i];
+    // cout << '\n';
+}
+void solve()
+{
+    memset(ans, 0, k);
+    for (x = 0; x <= k; ++x)
+    {
+        if (x > n || k - x > m)
+        {
+            continue;
+        }
+        greedy(u, a, n, x);
+        greedy(v, b, m, k - x);
+        merge();
+        if (lexicographical_compare(ans, ans + k, res, res + k)) // res>ans
+        {
+            // cout << "less: " << res << '\n';
+            memcpy(ans, res, k);
+        }
+    }
+}
+
+class Solution
+{
+public:
+    vector<int> maxNumber(const vector<int> &nums1, const vector<int> &nums2, int k)
+    {
+        n = nums1.size(), m = nums2.size();
+        ::k = k;
+        for (int i = 0; i < n; ++i)
+        {
+            a[i] = nums1[i] + '0';
+        }
+        for (int i = 0; i < m; ++i)
+        {
+            b[i] = nums2[i] + '0';
+        }
+        solve();
+        vector<int> ret = vector<int>(k);
+        for (int i = 0; i < k; ++i)
+        {
+            ret[i] = ans[i] - '0';
+        }
+        return ret;
+    }
+};
+// end leetcode
+signed main()
+{
+    ios::sync_with_stdio(false), cin.tie(0);
+    Solution s = Solution();
+    vector<int> ans;
+    ans = s.maxNumber({3, 4, 6, 5}, {9, 1, 2, 5, 8, 3}, 5);
+    auto out = [&](vector<int> a)
+    {
+        for (auto i : a)
+        {
+            cout << i << ' ';
+        }
+        cout << '\n';
+    };
+    out(ans);
+    return 0;
+}
+```
+
+**解法二：序列自动机**。
+
+创建 $a,b$ 的序列自动机 $sa,sb$。设状态 $(u,v,w)$ 表示当前在字符串 $a,b$ 的第 $u,v$ 个位置($1$ 是第一个有效位置)，还要选 $w$ 个数。则从 $(0,0,k)$ 开始出发。对 $u$ ，从大到小枚举下一个字符 $c$，考虑最坏情况，即这次之后剩下的字符全都要选，看看跳 $c$ 后能不能全填，能的话 $c$ 一定能选。那么贪心要 $c$ 就行。对 $v$ 同理找到它对应的 $c$，然后选择最大的 $c$，进入下一个状态。考虑到 $c$ 可能相等，故每次下一状态里 $u,v$ 的取值较多，最多有 $O(\min(n,m))$ 个状态。一共需要有 $k$ 个状态，每个状态需要遍历 $O(c=10)$ 次，所以枚举的复杂度是 $O(ck(n+m))$。
+
+例如，全是 $1$ 的序列，有状态：$[(0,0)]\to[(0,1),(1,0)]\to[(0,2),(1,1),(2,0)]\to\cdots$，可见状态数不会超过 $w$。且每次状态数增加不会超过 $1$。如图所示：
+
+![image-20230306163930283](img/image-20230306163930283.png)
+
+预处理子序列自动机的空间复杂度是 $O(c(n+m))$ 。总时间复杂度是 $O(ck(n+m))$。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+const ll maxm = 12, mc = 10, npos = 0x3f, mn = 1e3;
+const char s0 = '0';
+struct sequenceam
+{
+    // nxt[i,j]:第i个字符后j首次出现的位置
+    int nxt[mn][maxm], n;
+    string s;
+    void init()
+    {
+        memset(nxt,0,sizeof nxt);
+        n = s.size();
+        for (int i = 0; i < mc; ++i)
+        {
+            nxt[n][i] = 1e9;
+        }
+        for (int i = n - 1; i >= 0; --i)
+        {
+            for (int j = 0; j < mc; ++j)
+            {
+                nxt[i][j] = nxt[i + 1][j]; // forward
+            }
+            nxt[i][s[i] - s0] = i; // 0不是首字符
+        }
+    }
+};
+char a[mn], b[mn], ans[mn];
+int n, m, k;
+sequenceam sa, sb;
+void solve()
+{
+    sa.s = a, sb.s = b;
+    sa.init(), sb.init();
+    using tup = tuple<ll, ll, ll>;
+    vector<int> re;
+    set<tup> q{{0, 0, k}}; // 起始位置u,v,还要选k个
+    while (re.size() < k)
+    {
+        set<tup> nxt[10];
+        for (auto [u, v, w] : q)
+        {
+            if (u < n)
+            {
+                for (ll c = 9; c >= 0; --c)
+                { // cnt:假设剩下全选
+                    ll cnt = n - sa.nxt[u][c] + m - v;
+                    if (cnt >= w)
+                    {
+                        nxt[c].insert({sa.nxt[u][c] + 1, v, w - 1});
+                        break;
+                    }
+                }
+            }
+            if (v < m)
+            {
+                for (ll c = 9; c >= 0; --c)
+                { // cnt:假设剩下全选
+                    ll cnt = m - sb.nxt[v][c] + n - u;
+                    if (cnt >= w)
+                    {
+                        nxt[c].insert({u, sb.nxt[v][c] + 1, w - 1});
+                        break;
+                    }
+                }
+            }
+        }
+        for (ll i = 9; i >= 0; --i)
+        {
+            if (nxt[i].size())
+            {
+                q = nxt[i];
+                re.push_back(i);
+                break;
+            }
+        }
+    }
+    for (int i = 0; i < k; ++i)
+    {
+        ans[i] = re[i] + '0';
+    }
+}
+class Solution
+{
+public:
+    vector<int> maxNumber(const vector<int> &nums1, const vector<int> &nums2, int k)
+    {
+        memset(a,0,sizeof a);
+        memset(b,0,sizeof b);
+        memset(ans,0,sizeof ans);
+        n = nums1.size(), m = nums2.size();
+        ::k = k;
+        for (int i = 0; i < n; ++i)
+        {
+            a[i] = nums1[i] + '0';
+        }
+        for (int i = 0; i < m; ++i)
+        {
+            b[i] = nums2[i] + '0';
+        }
+        solve();
+        vector<int> ret = vector<int>(k);
+        for (int i = 0; i < k; ++i)
+        {
+            ret[i] = ans[i] - '0';
+        }
+        return ret;
+    }
+};
+
+signed main()
+{
+    ios::sync_with_stdio(false), cin.tie(0);
+    Solution s = Solution();
+    vector<int> ans;
+    ans = s.maxNumber({6, 7, 5}, {4, 8, 1}, 3);
+    auto out = [&](vector<int> a)
+    {
+        for (auto i : a)
+        {
+            cout << i << ' ';
+        }
+        cout << '\n';
+    };
+    out(ans);
+    return 0;
+}
+```
+
+朴素：
+
+```java
+class Solution {
+    public int[] maxNumber(int[] nums1, int[] nums2, int k) {
+        int m = nums1.length, n = nums2.length;
+        int[] maxSubsequence = new int[k];
+        int start = Math.max(0, k - n), end = Math.min(k, m);
+        for (int i = start; i <= end; i++) {
+            int[] subsequence1 = maxSubsequence(nums1, i);
+            int[] subsequence2 = maxSubsequence(nums2, k - i);
+            int[] curMaxSubsequence = merge(subsequence1, subsequence2);
+            if (compare(curMaxSubsequence, 0, maxSubsequence, 0) > 0) {
+                System.arraycopy(curMaxSubsequence, 0, maxSubsequence, 0, k);
+            }
+        }
+        return maxSubsequence;
+    }
+
+    public int[] maxSubsequence(int[] nums, int k) {
+        int length = nums.length;
+        int[] stack = new int[k];
+        int top = -1;
+        int remain = length - k;
+        for (int i = 0; i < length; i++) {
+            int num = nums[i];
+            while (top >= 0 && stack[top] < num && remain > 0) {
+                top--;
+                remain--;
+            }
+            if (top < k - 1) {
+                stack[++top] = num;
+            } else {
+                remain--;
+            }
+        }
+        return stack;
+    }
+
+    public int[] merge(int[] subsequence1, int[] subsequence2) {
+        int x = subsequence1.length, y = subsequence2.length;
+        if (x == 0) {
+            return subsequence2;
+        }
+        if (y == 0) {
+            return subsequence1;
+        }
+        int mergeLength = x + y;
+        int[] merged = new int[mergeLength];
+        int index1 = 0, index2 = 0;
+        for (int i = 0; i < mergeLength; i++) {
+            if (compare(subsequence1, index1, subsequence2, index2) > 0) {
+                merged[i] = subsequence1[index1++];
+            } else {
+                merged[i] = subsequence2[index2++];
+            }
+        }
+        return merged;
+    }
+
+    public int compare(int[] subsequence1, int index1, int[] subsequence2, int index2) {
+        int x = subsequence1.length, y = subsequence2.length;
+        while (index1 < x && index2 < y) {
+            int difference = subsequence1[index1] - subsequence2[index2];
+            if (difference != 0) {
+                return difference;
+            }
+            index1++;
+            index2++;
+        }
+        return (x - index1) - (y - index2);
+    }
+}
+```
+
+
+
+##### 327\.区间和的个数
+
+[题目](https://leetcode.cn/problems/count-of-range-sum/)
+
+设原数组是 $a$，前缀和为 $s$。一开始先求 $s$ 所有元素即所有 $[0,i]$ 区间里有多少个区间满足，即求 $s_i\in [lower,upper]$ 的数目。之后，不断删掉 $s$ 首元素，并令 $s=s-a_{top}$，即设上一次找的是 $[top,i]$，下一次就找所有 $[top+1,i]$。为了避免对 $s$ 做整体操作，可以只删除，而 $s$ 不变，下一次令 $lower=lower+a_{top},upper=upper+a_{top}$ 即可。
+
+问题转化为对一个会删除元素的序列，多次求该序列里有多少个元素在某个区间内。想到 set / 平衡树。
+
+使用 C++ 扩展库 `pb_ds`，内置可以查询节点排名的 `set`。`order_by_key(x)` 找到第一个 $\ge x$ 的元素的下标(查无返回长度) 。为了防止去重，可以用二元组 $(v,i)$ 代替单纯的 $v$ 传入。查询 $[l,r]$ 内数目时，找到 $(l,-1)$ 的下标，再找到 $(r,n+1)$ 或 $(r+1,-1)$ 的下标，相减就为 $[l,r]$ 内的元素数。
+
+复杂度 $O(n\log n)$。
+
+```c++
+using ll = long long;
+using pr = pair<ll, int>;
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+class Solution
+{
+public:
+    int countRangeSum(const vector<int> &nums, int lower, int upper)
+    {
+        ll ss = 0, n = nums.size(), ans = 0;
+        __gnu_pbds::tree<pr, __gnu_pbds::null_type, less<pr>, __gnu_pbds::rb_tree_tag, __gnu_pbds::tree_order_statistics_node_update> tr; // set
+        vector<ll> s(n);
+        for (ll i = 0; i < n; ++i)
+        {
+            ss += nums[i];
+            s[i] = ss;
+            tr.insert({s[i], i});
+        }
+        ll lf = lower, rf = upper;
+        for (int i = 0; i < n; ++i)
+        {
+            ll li = tr.order_of_key({lf, -1});
+            ll ri = tr.order_of_key({rf, n + 1});
+            ans += ri - li;
+            tr.erase({s[i], i});
+            lf += nums[i], rf += nums[i];
+        }
+        return ans;
+    }
+};
+```
+
+考虑上述过程逆序，等效于不断插入元素，然后求某个区间内有多少元素。离散化后可以设权值树状数组/线段树来求解。为了在每个差值超过 1 的值之间可设中间值，考虑离散化时添加一些冗余值，如对需要离散化的 $(-10^9,4,5,700)$，可以转化为对 $(-10^9,-10^5,4,5,350,700)$ 离散化。此解法略。
+
+
+
+其他解法：
+
+显然原问题是求 $(i,j)$ 数目满足 $s_j-s_i\in[lower,upper]$。
+
+考虑两个升序序列，$a,b$，求 $a_j-b_i\in [lower,upper]$，显然可以归并思路滑窗，遍历 $b$ 在 $a$ 上维护双指针。
+
+![image.png](img/1604740489-tzFzdh-image.png)
+
+根据上图解释，可知排序不会影响答案。所以直接归并即可。
+
+```java
+class Solution {
+    public int countRangeSum(int[] nums, int lower, int upper) {
+        long s = 0;
+        long[] sum = new long[nums.length + 1];
+        for (int i = 0; i < nums.length; ++i) {
+            s += nums[i];
+            sum[i + 1] = s;
+        }
+        return countRangeSumRecursive(sum, lower, upper, 0, sum.length - 1);
+    }
+
+    public int countRangeSumRecursive(long[] sum, int lower, int upper, int left, int right) {
+        if (left == right) {
+            return 0;
+        } else {
+            int mid = (left + right) / 2;
+            int n1 = countRangeSumRecursive(sum, lower, upper, left, mid);
+            int n2 = countRangeSumRecursive(sum, lower, upper, mid + 1, right);
+            int ret = n1 + n2;
+
+            // 首先统计下标对的数量
+            int i = left;
+            int l = mid + 1;
+            int r = mid + 1;
+            while (i <= mid) {
+                while (l <= right && sum[l] - sum[i] < lower) {
+                    l++;
+                }
+                while (r <= right && sum[r] - sum[i] <= upper) {
+                    r++;
+                }
+                ret += r - l;
+                i++;
+            }
+
+            // 随后合并两个排序数组
+            long[] sorted = new long[right - left + 1];
+            int p1 = left, p2 = mid + 1;
+            int p = 0;
+            while (p1 <= mid || p2 <= right) {
+                if (p1 > mid) {
+                    sorted[p++] = sum[p2++];
+                } else if (p2 > right) {
+                    sorted[p++] = sum[p1++];
+                } else {
+                    if (sum[p1] < sum[p2]) {
+                        sorted[p++] = sum[p1++];
+                    } else {
+                        sorted[p++] = sum[p2++];
+                    }
+                }
+            }
+            for (int j = 0; j < sorted.length; j++) {
+                sum[left + j] = sorted[j];
+            }
+            return ret;
+        }
+    }
+}
+```
+
+一种线段树参考：(顺序枚举，即对每个$j$，枚举可能的 $i$ 满足 $low\le s_j-s_i\le high$)
+
+```java
+class Solution {
+    public int countRangeSum(int[] nums, int lower, int upper) {
+        long sum = 0;
+        long[] preSum = new long[nums.length + 1];
+        for (int i = 0; i < nums.length; ++i) {
+            sum += nums[i];
+            preSum[i + 1] = sum;
+        }
+        
+        Set<Long> allNumbers = new TreeSet<Long>();
+        for (long x : preSum) {
+            allNumbers.add(x);
+            allNumbers.add(x - lower);
+            allNumbers.add(x - upper);
+        }
+        // 利用哈希表进行离散化
+        Map<Long, Integer> values = new HashMap<Long, Integer>();
+        int idx = 0;
+        for (long x : allNumbers) {
+            values.put(x, idx);
+            idx++;
+        }
+
+        SegNode root = build(0, values.size() - 1);
+        int ret = 0;
+        for (long x : preSum) {
+            int left = values.get(x - upper), right = values.get(x - lower);
+            ret += count(root, left, right);
+            insert(root, values.get(x));
+        }
+        return ret;
+    }
+
+    public SegNode build(int left, int right) {
+        SegNode node = new SegNode(left, right);
+        if (left == right) {
+            return node;
+        }
+        int mid = (left + right) / 2;
+        node.lchild = build(left, mid);
+        node.rchild = build(mid + 1, right);
+        return node;
+    }
+
+    public int count(SegNode root, int left, int right) {
+        if (left > root.hi || right < root.lo) {
+            return 0;
+        }
+        if (left <= root.lo && root.hi <= right) {
+            return root.add;
+        }
+        return count(root.lchild, left, right) + count(root.rchild, left, right);
+    }
+
+    public void insert(SegNode root, int val) {
+        root.add++;
+        if (root.lo == root.hi) {
+            return;
+        }
+        int mid = (root.lo + root.hi) / 2;
+        if (val <= mid) {
+            insert(root.lchild, val);
+        } else {
+            insert(root.rchild, val);
+        }
+    }
+}
+
+class SegNode {
+    int lo, hi, add;
+    SegNode lchild, rchild;
+
+    public SegNode(int left, int right) {
+        lo = left;
+        hi = right;
+        add = 0;
+        lchild = null;
+        rchild = null;
+    }
+}
+```
+
+动态加点的线段树，可以不做离散化：
+
+```c++
+struct SegNode {
+    long long lo, hi;
+    int add;
+    SegNode* lchild, *rchild;
+    SegNode(long long left, long long right): lo(left), hi(right), add(0), lchild(nullptr), rchild(nullptr) {}
+};
+
+class Solution {
+public:
+    void insert(SegNode* root, long long val) {
+        root->add++;
+        if (root->lo == root->hi) {
+            return;
+        }
+        long long mid = (root->lo + root->hi) >> 1;
+        if (val <= mid) {
+            if (!root->lchild) {
+                root->lchild = new SegNode(root->lo, mid);
+            }
+            insert(root->lchild, val);
+        }
+        else {
+            if (!root->rchild) {
+                root->rchild = new SegNode(mid + 1, root->hi);
+            }
+            insert(root->rchild, val);
+        }
+    }
+
+    int count(SegNode* root, long long left, long long right) const {
+        if (!root) {
+            return 0;
+        }
+        if (left > root->hi || right < root->lo) {
+            return 0;
+        }
+        if (left <= root->lo && root->hi <= right) {
+            return root->add;
+        }
+        return count(root->lchild, left, right) + count(root->rchild, left, right);
+    }
+
+    int countRangeSum(vector<int>& nums, int lower, int upper) {
+        long long sum = 0;
+        vector<long long> preSum = {0};
+        for(int v: nums) {
+            sum += v;
+            preSum.push_back(sum);
+        }
+        
+        long long lbound = LLONG_MAX, rbound = LLONG_MIN;
+        for (long long x: preSum) {
+            lbound = min({lbound, x, x - lower, x - upper});
+            rbound = max({rbound, x, x - lower, x - upper});
+        }
+        
+        SegNode* root = new SegNode(lbound, rbound);
+        int ret = 0;
+        for (long long x: preSum) {
+            ret += count(root, x - upper, x - lower);
+            insert(root, x);
+        }
+        return ret;
+    }
+};
+```
+
+Treap 平衡树见官方题解，这里略。
+
+
+
+##### 329\.矩阵中的最长递增路径
+
+[题目](https://leetcode.cn/problems/longest-increasing-path-in-a-matrix/)
+
+按值降序 DP，每个元素走四方向 max。$O(nm\log(nm))$。
+
+```java
+import java.util.Arrays;
+
+class node implements Comparable<node> {
+    public int i, j, v;
+
+    public node(int i, int j, int v) {
+        this.i = i;
+        this.j = j;
+        this.v = v;
+    }
+
+    @Override
+    public int compareTo(node o) {
+        return o.v - v;
+    }
+}
+
+class Solution {
+    public int longestIncreasingPath(int[][] matrix) {
+        int n = matrix.length, m = matrix[0].length;
+        node q[] = new node[n * m];
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < m; ++j) {
+                q[i * m + j] = new node(i, j, matrix[i][j]);
+            }
+        }
+        Arrays.sort(q);
+        final int dx[] = new int[] { -1, 0, 1, 0 };
+        final int dy[] = new int[] { 0, -1, 0, 1 };
+        int r[][] = new int[n][m], ans = 1;
+        for (int i = 0, ie = n * m; i < ie; ++i) {
+            node p = q[i];
+            int x = p.i, y = p.j, v = p.v;
+            for (int j = 0; j < 4; ++j) {
+                int nx = x + dx[j], ny = y + dy[j];
+                if (nx < 0 || ny < 0 || nx >= n || ny >= m || v >= matrix[nx][ny]) {
+                    continue;
+                }
+                r[x][y] = Math.max(r[x][y], r[nx][ny] + 1);
+                ans = Math.max(ans, r[x][y] + 1);
+            }
+        }
+        return ans;
+    }
+}
+```
+
+也可以用记忆化 DFS/拓扑序 BFS，复杂度优化为 $O(nm)$：
+
+```java
+class Solution {
+    public int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    public int rows, columns;
+
+    public int longestIncreasingPath(int[][] matrix) {
+        if (matrix == null || matrix.length == 0 || matrix[0].length == 0) {
+            return 0;
+        }
+        rows = matrix.length;
+        columns = matrix[0].length;
+        int[][] memo = new int[rows][columns];
+        int ans = 0;
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < columns; ++j) {
+                ans = Math.max(ans, dfs(matrix, i, j, memo));
+            }
+        }
+        return ans;
+    }
+
+    public int dfs(int[][] matrix, int row, int column, int[][] memo) {
+        if (memo[row][column] != 0) {
+            return memo[row][column];
+        }
+        ++memo[row][column];
+        for (int[] dir : dirs) {
+            int newRow = row + dir[0], newColumn = column + dir[1];
+            if (newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns && matrix[newRow][newColumn] > matrix[row][column]) {
+                memo[row][column] = Math.max(memo[row][column], dfs(matrix, newRow, newColumn, memo) + 1);
+            }
+        }
+        return memo[row][column];
+    }
+}
+```
+
+```java
+class Solution {
+    public int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    public int rows, columns;
+
+    public int longestIncreasingPath(int[][] matrix) {
+        if (matrix == null || matrix.length == 0 || matrix[0].length == 0) {
+            return 0;
+        }
+        rows = matrix.length;
+        columns = matrix[0].length;
+        int[][] outdegrees = new int[rows][columns];
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < columns; ++j) {
+                for (int[] dir : dirs) {
+                    int newRow = i + dir[0], newColumn = j + dir[1];
+                    if (newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns && matrix[newRow][newColumn] > matrix[i][j]) {
+                        ++outdegrees[i][j];
+                    }
+                }
+            }
+        }
+        Queue<int[]> queue = new LinkedList<int[]>();
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < columns; ++j) {
+                if (outdegrees[i][j] == 0) {
+                    queue.offer(new int[]{i, j});
+                }
+            }
+        }
+        int ans = 0;
+        while (!queue.isEmpty()) {
+            ++ans;
+            int size = queue.size();
+            for (int i = 0; i < size; ++i) {
+                int[] cell = queue.poll();
+                int row = cell[0], column = cell[1];
+                for (int[] dir : dirs) {
+                    int newRow = row + dir[0], newColumn = column + dir[1];
+                    if (newRow >= 0 && newRow < rows && newColumn >= 0 && newColumn < columns && matrix[newRow][newColumn] < matrix[row][column]) {
+                        --outdegrees[newRow][newColumn];
+                        if (outdegrees[newRow][newColumn] == 0) {
+                            queue.offer(new int[]{newRow, newColumn});
+                        }
+                    }
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+
+
 
 
 > ### 力扣比赛
@@ -5710,5 +7009,17 @@ select name, sum(amount) as balance
 from users left join transactions on users.account = transactions.account
 group by users.account
 having balance > 10000
+```
+
+
+
+##### 1741\.查询每个员工花费的总时间
+
+[题目](https://leetcode.cn/problems/find-total-time-spent-by-each-employee/)
+
+```mysql
+select event_day as `day`, emp_id, sum(out_time-in_time) as `total_time`
+from Employees
+group by day, emp_id
 ```
 

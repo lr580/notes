@@ -9498,6 +9498,11 @@ public class foreach {
 - ArrayList 数组实现的，可变长，允许保存含 `null` 的元素，向指定位置插入或删除元素较慢，更常用
 - LinkedList 双向链表实现的，优点时集中插入删除快，但随机访问效率低，内存占用大
 
+> 数组与 list 互转：[参考](https://blog.csdn.net/bitcarmanlee/article/details/71079468)
+>
+> - 数组转 list: `Arrays.asList(数组)`。注意对基本元素必须用如 Integer 数组而不是 int 数组
+> - list 转数组：`.toArray()` 方法。默认返回Object数组，参数填 `new 类型[大小]` 以改变
+
 如：
 
 ```java
@@ -10139,6 +10144,26 @@ class Solution {
 - `isEmpty()`
 - `peek()`
 - `pop()`
+
+
+
+#### BitSet
+
+`java.util`。
+
+构造函数填位数。
+
+- `set(i)` 该位设 true
+
+  `set(i, bool)` 设特定值
+
+  `set(i, j)` [i,j) 设 true
+
+- `and(bitset)` 与一个 bitset 运算
+
+- `cardinality` 1 的个数
+
+还有别的用到再补。自行查 gpt。
 
 
 
