@@ -335,6 +335,10 @@ windows网络中心-更改适配器设置
 
 
 
+> ip获取：整体思路是外部改好 id，然后内部装好 ifconfig 等 net-tools，配置 `ifcfg`，重启网络服务。
+
+
+
 #### 克隆
 
 虚拟机-管理-克隆，创建链接克隆。
@@ -5101,6 +5105,18 @@ service vsftpd restart
 
 现在可以使用`ll`别名列出当前目录里所有文件了，包括隐藏文件。
 
+##### export
+
+export 指令用于将一个变量或函数设置为环境变量。这意味着该变量或函数将在当前 shell 会话中可用，并且也会被其他由该 shell 启动的进程和子进程继承和使用。通过 export 命令创建的环境变量可以在 shell 脚本和系统中的其他程序中使用。
+
+```sh
+export HADOOP_CONF_DIR=/home/hadoop-2.7.3/etc/hadoop
+export SPARK_CLASSPATH=$SPARK_CLASSPATH:/home/mysql-connector-java-5.1.46-bin.jar
+export HADOOP_HOME=/home/hadoop-2.7.3
+export PATH=$PATH:$HADOOP_HOME/bin
+export PATH=$PATH:$HADOOP_HOME/sbin
+```
+
 
 
 ##### chown
@@ -5369,7 +5385,7 @@ ssh-copy-id 目标ID
 
 加 `-r` 关键字表示目录，`-q` 不显示进度。
 
-可能需要输入密码
+可能需要输入密码。如果已有会覆盖，不会提醒。
 
 例如：下载一道 `OJ` 题目的数据
 

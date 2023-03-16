@@ -5365,6 +5365,706 @@ class Solution {
 
 
 
+##### 330\.按要求补齐数组
+
+[题目](https://leetcode.cn/problems/patching-array/)
+
+若 $[1,k)$ 都已经有了，那么填上 $k$，显然可以得到 $[1,2k)$。贪心每次找最小未被覆盖的 $k$，直到能覆盖 $[1,n]$ 为止。
+
+贪心正确性证明：对每个未被覆盖的最小 $k$，$k$ 是一定要被覆盖的，覆盖 $k$ 的所有方案里，直接填 $k$ 能给未来带来最大的覆盖面积。
+
+```java
+class Solution {
+    public int minPatches(int[] nums, int n) {
+        int patches = 0;
+        long x = 1;
+        int length = nums.length, index = 0;
+        while (x <= n) {
+            if (index < length && nums[index] <= x) {
+                x += nums[index];
+                index++;
+            } else {
+                x *= 2;
+                patches++;
+            }
+        }
+        return patches;
+    }
+}
+```
+
+
+
+##### 332\.重新安排行程
+
+[题目](https://leetcode.cn/problems/reconstruct-itinerary/)
+
+要么是欧拉路径(起点出度比入度+1，终点入度比出度+1，其他点出入相同)，要么是欧拉回路。但是我们并不需要显式计算出终点是什么，而且已知起点，所以可以不管度。
+
+直接从 `JFK` 作为起点出发，因为保证欧拉路存在，所以在答案里每条边都会被遍历。直接按字典序，遍历当前未访问的最小边(之后在这次遍历里有可能走回这个点)，直到遍历完。按照这个贪心顺序，一定能找到欧拉路径，不然就是无解。显然。
+
+因为要对边排序，故复杂度为 $O(m\log m)$。
+
+```java
+class Solution {
+    private HashMap<String, ArrayList<String>> g;
+    private TreeSet<String> nd;
+    private String s = "JFK", t, tops;
+    private HashMap<String, Integer> vis;// 当前遍历了它的几条边
+    private List<String> ans;
+
+    private void dfs(String u) {
+        for (int i = vis.get(u); i < g.get(u).size(); i = vis.get(u)) {
+            vis.put(u, i + 1);
+            dfs(g.get(u).get(i));
+        }
+        ans.add(u);
+    }
+
+    public List<String> findItinerary(List<List<String>> tickets) {
+        g = new HashMap<>();
+        nd = new TreeSet<>();
+        ans = new ArrayList<>();
+        vis = new HashMap<>();
+        for (List<String> e : tickets) {
+            String u = e.get(0), v = e.get(1);
+            if (g.get(u) == null) {
+                g.put(u, new ArrayList<>());
+            }
+            if (g.get(v) == null) {
+                g.put(v, new ArrayList<>());
+            }
+            g.get(u).add(v);
+            nd.add(u);
+            nd.add(v);
+        }
+        for (String u : nd) {
+            vis.put(u, 0);
+            Collections.sort(g.get(u));
+        }
+        if (t == null) {
+            t = tops;
+        }
+        dfs("JFK");
+        Collections.reverse(ans);
+        return ans;
+    }
+}
+```
+
+> 一定要后序插入答案。考虑 `J->K,J->N,N->J`，模拟遍历，DFS 序为：
+>
+> ```
+> JFK in
+>     KUL in
+>     KUL out -> [KUL]
+>     NRT in
+>         JFK in
+>         JFK out -> [JFK, KUL]
+>     NRT out -> [NRT, JFK, KUL]
+> JFK out -> [JFK, NRT, JFK, KUL]
+> ```
+>
+> 在看一个正常遍历(样例二 `J<->A, S<->A, J->S`)：
+>
+> ```
+> JFK in
+> 	ATL in
+> 		JFK in
+> 			SFO in
+> 				ATL in
+> 					SFO in
+> 					SFO out (S)
+> 				ATL out (A,S)
+> 			SFO out (S,A,S)
+> 		JFK out (J,S,A,S)
+> 	ATL out (A,J,S,A,S)
+> JFK out (J,A,J,S,A,S)
+> ```
+
+为什么后序遍历是可行的，根据上面例子，分析可知，凡是走到底的，都被拖到了最后边，所以如果走到了死路而还没达成欧拉的目标，那么这条思路就会被丢到最后边。证明了可行性。
+
+之所以是最小的，是因为一旦能走到尽头，他就会是首先输出的路，而又是按照升序遍历的，所以综合下来就是贪心最小的。
+
+实际上是 Hierholzer 的思想，vis 的作用是删边。更优实现：
+
+```java
+class Solution {
+    Map<String, PriorityQueue<String>> map = new HashMap<String, PriorityQueue<String>>();
+    List<String> itinerary = new LinkedList<String>();
+
+    public List<String> findItinerary(List<List<String>> tickets) {
+        for (List<String> ticket : tickets) {
+            String src = ticket.get(0), dst = ticket.get(1);
+            if (!map.containsKey(src)) {
+                map.put(src, new PriorityQueue<String>());
+            }
+            map.get(src).offer(dst);
+        }
+        dfs("JFK");
+        Collections.reverse(itinerary);
+        return itinerary;
+    }
+
+    public void dfs(String curr) {
+        while (map.containsKey(curr) && map.get(curr).size() > 0) {
+            String tmp = map.get(curr).poll();
+            dfs(tmp);
+        }
+        itinerary.add(curr);
+    }
+}
+```
+
+
+
+##### 335\.路径交叉
+
+[题目](https://leetcode.cn/problems/self-crossing/)
+
+官方题解讲得挺好。分类讨论题。
+
+```java
+class Solution {
+    public boolean isSelfCrossing(int[] distance) {
+        int n = distance.length;
+        for (int i = 3; i < n; ++i) {
+            // 第 1 类路径交叉的情况
+            if (distance[i] >= distance[i - 2] && distance[i - 1] <= distance[i - 3]) {
+                return true;
+            }
+
+            // 第 2 类路径交叉的情况
+            if (i == 4 && (distance[3] == distance[1]
+                && distance[4] >= distance[2] - distance[0])) {
+                return true;
+            }
+
+            // 第 3 类路径交叉的情况
+            if (i >= 5 && (distance[i - 3] - distance[i - 5] <= distance[i - 1]
+                && distance[i - 1] <= distance[i - 3]
+                && distance[i] >= distance[i - 2] - distance[i - 4]
+                && distance[i - 2] > distance[i - 4])) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+```
+
+
+
+##### 1617\.统计子树中城市之间最大距离
+
+[题目](https://leetcode.cn/problems/count-subtrees-with-max-distance-between-cities/)
+
+因为 $n=15$，所以枚举边的子集的复杂度是 $O(2^n)$。对每个子集，用并查集 $O(n)$ 判断它是否构成树，方法是判断 $fa_i=i$ 且有度的点有且仅有一个。然后两次 DFS 法 $O(n)$ 求出树的直径。总复杂度为 $O(n2^n)$。板子拼接。
+
+```java
+import java.util.ArrayList;
+import java.util.Arrays;
+
+class Solution {
+    private int ans[], n, m, fa[], e[][];
+    private boolean b[][], vis[];
+    private ArrayList<Integer> g[];
+
+    private int findfa(int u) {
+        while (fa[u] != u) {
+            u = fa[u];
+        }
+        return u;
+    }
+
+    private int r, d[];
+
+    private boolean isTree() {
+        for (int i = 1; i <= n; ++i) {
+            fa[i] = i;
+        }
+        int du[] = new int[n + 1];
+        for (int i = 0; i < m; ++i) {
+            int u = e[i][0], v = e[i][1];
+            if (b[u][v]) {
+                ++du[u];
+                ++du[v];
+                fa[findfa(u)] = findfa(v);
+            }
+        }
+        int rots = 0;
+        for (int i = 1; i <= n; ++i) {
+            if (fa[i] == i && du[i] > 0) {
+                ++rots;
+                r = i;
+            }
+        }
+        return rots == 1;
+    }
+
+    private void dfs(int u) {
+        vis[u] = true;
+        for (Integer v : g[u]) {
+            if (b[u][v] && !vis[v]) {
+                d[v] = d[u] + 1;
+                dfs(v);
+            }
+        }
+    }
+
+    private int getDistance() {
+        Arrays.fill(vis, false);
+        Arrays.fill(d, 0);
+        dfs(r);
+        int maxd = 0;
+        for (int i = 1; i <= n; ++i) {
+            if (d[i] > maxd) {
+                maxd = d[i];
+                r = i;
+            }
+        }
+        Arrays.fill(vis, false);
+        Arrays.fill(d, 0);
+        dfs(r);
+        maxd = 0;
+        for (int i = 1; i <= n; ++i) {
+            if (d[i] > maxd) {
+                maxd = d[i];
+            }
+        }
+        return maxd;
+    }
+
+    @SuppressWarnings("unchecked")
+    public int[] countSubgraphsForEachDiameter(int n, int[][] edges) {
+        this.n = n;
+        m = edges.length;
+        e = edges;
+        b = new boolean[n + 1][n + 1];
+        g = new ArrayList[n + 1];
+        fa = new int[n + 1];
+        d = new int[n + 1];
+        vis = new boolean[n + 1];
+        for (int i = 0; i <= n; ++i) {
+            g[i] = new ArrayList<>();
+        }
+        for (int i = 0; i < m; ++i) {
+            int u = edges[i][0], v = edges[i][1];
+            g[u].add(v);
+            g[v].add(u);
+        }
+        ans = new int[n - 1];
+        for (int i = 0, ie = 1 << m; i < ie; ++i) {
+            for (int j = 0; j < m; ++j) {
+                int u = edges[j][0], v = edges[j][1];
+                b[v][u] = b[u][v] = ((i >> j) & 1) == 1;
+            }
+            if (isTree()) {
+                ++ans[getDistance() - 1];
+            }
+        }
+        return ans;
+    }
+}
+```
+
+一种更优解：
+
+先用 floyd 求全源最短路 $dist$。枚举每个 $dist_{x,y}$ 求出其作直径时的子树数目。对每个 $(x,y)$，从 $x$ 开始 DFS $u$，则 $dist_{u,x} > dist_{x,y},dist_{v,y} > dist_{x,y}$ 满足其一的话，$u$ 加进去直径就会改变，所以不能加入。显然在树上 $x,y$ 路径唯一，所以不会出现第二条路径使得 $dist_{u,x}+dist_{u,y} > dist_{x,y}$。只要 $u$ 在 $x,y$ 的路径上，必然满足 $dist_{u,x}+dist_{u,y}=dist_{x,y}$，否则就 $>$，代表 $u$ 在支路，那么在支路上可选可不选，就要作乘法处理。乘上选与不选 $u$ 继续 DFS 的子树里，总可行方案数。所以只要在支路上，这条边就要 +1，也就是它当前继续走的子树有 $ret$ 个，则要么选这条边共有 $ret$ 个方案，要么不选边有一个方案，共 $ret+1$ 个方案。对 $ret$ 的累积，即把每个子树的方案乘起来即可。
+
+现在考虑一个去重问题，以菊花树为例，一个子树可能会有多条最长路径都作为直径。所以我们只能统计其中的一条，其他的都要作废。当发现一条与直径 $dist_{x,y}$ 相等的路径时，必然满足 $dist_{u,x}=dist_{x,y}$ 或 $dist_{u,y}=dist_{x,y}$。当发现取等时，我们考虑剪掉所有 $u < x$(第一个取等)或 $u < y$(第二个取等)。手玩菊花树发现这样能做到不重不漏。
+
+floyd 需要 $O(n^3)$，需要枚举 $O(n^2)$ 次直径，对每条直径进行 $O(n)$ DFS，故总复杂度为 $O(n^3)$。
+
+```java
+class Solution {
+    public int[] countSubgraphsForEachDiameter(int n, int[][] edges) {
+        List<Integer>[] adj = new List[n];
+        int[][] dist = new int[n][n];
+        for (int i = 0; i < n; i++) {
+            Arrays.fill(dist[i], Integer.MAX_VALUE);
+            dist[i][i] = 0;
+        }
+        for (int i = 0; i < n; i++) {
+            adj[i] = new ArrayList<Integer>();
+        }
+        for (int[] edge : edges) {
+            int x = edge[0] - 1;
+            int y = edge[1] - 1;
+            adj[x].add(y);
+            adj[y].add(x);
+            dist[x][y] = dist[y][x] = 1;
+        }
+        for (int i = 0; i < n; i++) { //floyd
+            for (int j = 0; j < n; j++) {
+                for (int k = 0; k < n; k++) {
+                    if (dist[j][i] != Integer.MAX_VALUE && dist[i][k] != Integer.MAX_VALUE) {
+                        dist[j][k] = Math.min(dist[j][k], dist[j][i] + dist[i][k]);
+                    }
+                }
+            }
+        }
+        int[] ans = new int[n - 1];
+        for (int i = 0; i < n - 1; i++) {
+            for (int j = i + 1; j < n; j++) {
+                ans[dist[i][j] - 1] += dfs(adj, dist, i, -1, i, j);
+            }
+        }
+        return ans;
+    }
+
+    public int dfs(List<Integer>[] adj, int[][] dist, int u, int parent, int x, int y) {
+        if (dist[u][x] > dist[x][y] || dist[u][y] > dist[x][y]) {
+            return 1;
+        }
+        if ((dist[u][y] == dist[x][y] && u < x) || (dist[u][x] == dist[x][y] && u < y)) {
+            return 1;
+        }
+        int ret = 1;
+        for (int v : adj[u]) {
+            if (v != parent) { //vis
+                ret *= dfs(adj, dist, v, u, x, y);
+            }
+        }
+        if (dist[u][x] + dist[u][y] > dist[x][y]) {
+            ret++;
+        }
+        return ret;
+    }
+}
+```
+
+
+
+##### 336\.回文对
+
+[题目](https://leetcode.cn/problems/palindrome-pairs/)
+
+计算每个串的字符串哈希 $hp_i$ 及其反串的哈希 $hn_i$，设长度为 $n_i$。对每个 $(i,j)$，拼接起来后的正串的哈希为 $hp_i \cdot n_j+hp_j$，拼接后的反串的哈希为 $hn_j\cdot n_i+hn_i$。若两者相等，即原串=反串，表明是回文串。复杂度为 $O(n^2+nm)$。其中 $m$ 为字符串长度。
+
+注意到这题数据卡哈希，所以 $p=131$ 不行，要换成 $p=233$ 或其他质数。
+
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+class Solution {
+    final static private int p = 233;
+    final static private int pw[] = new int[302];
+    private int[] hp, hn;
+
+    private List<Integer> wrap(int x, int y) {
+        List<Integer> res = new ArrayList<>(2);
+        res.add(x);
+        res.add(y);
+        return res;
+    }
+
+    public List<List<Integer>> palindromePairs(String[] words) {
+        int n = words.length;
+        hp = new int[n];
+        hn = new int[n];
+        pw[0] = 1;
+        for (int i = 1; i <= 301; ++i) {
+            pw[i] = pw[i - 1] * p;
+        }
+        for (int i = 0; i < n; ++i) {
+            int h = 0;
+            for (int j = 0, je = words[i].length(); j < je; ++j) {
+                h = h * p + words[i].charAt(j);
+            }
+            hp[i] = h;
+
+            h = 0;
+            for (int j = words[i].length() - 1; j >= 0; --j) {
+                h = h * p + words[i].charAt(j);
+            }
+            hn[i] = h;
+       }
+        List<List<Integer>> ans = new ArrayList<>();
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (i == j) {
+                    continue;
+                }
+                int ni = words[i].length(), nj = words[j].length();
+                int hp0 = hp[i] * pw[nj] + hp[j];
+                int hn0 = hn[j] * pw[ni] + hn[i];
+                if (hp0 == hn0) {
+                    ans.add(wrap(i, j));
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+还能 trie + manacher。[参考](https://leetcode.cn/problems/palindrome-pairs/solution/wa-pian-336-hui-wen-dui-java-3333-zi-dia-jca0/)。
+
+具体而言，先用反串建字典树。然后对每个串跑一次 manacher，如果该串是回文，它与空串可以配对。如果该串某个前缀是回文，那么该串剩下的不是回文的后缀，在字典树里找找有没有其反串，有的话可以拼在一起。同理，如果某个后缀是回文，那么其前缀可以找有没有可以拼的。单个 manacher 共遍历 $O(m)$ 次，每次 trie 最坏 $O(m)$，故复杂度 $O(nm^2)$。
+
+```java
+class Solution {
+	class Node {
+		Node[] cs;
+		Integer index;
+
+		public Node() {
+			cs = new Node[26];
+			index = null;
+		}
+
+		public void add(String word, int index) {
+			Node node = this;
+			for (char c : word.toCharArray()) {
+				int cur = c - 'a';
+				if (node.cs[cur] == null) {
+					node.cs[cur] = new Node();
+				}
+				node = node.cs[cur];
+			}
+			node.index = index;
+		}
+
+		public Integer find(char[] chars, int start, int len) {
+			Node node = this;
+			for (int i = len - 1; i >= start; i--) {
+				char c = chars[i];
+				if (c == '#') {
+					continue;
+				}
+				int index = c - 'a';
+				if (node.cs[index] == null) {
+					return null;
+				}
+				node = node.cs[index];
+			}
+			return node.index;
+		}
+	}
+
+	Node root;
+	Integer emptyIndex;
+
+	public List<List<Integer>> palindromePairs(String[] words) {
+		emptyIndex = null;
+		root = new Node();
+		List<List<Integer>> ans = new ArrayList<>();
+		for (int i = 0; i < words.length; i++) {
+			String word = words[i];
+			if (word.length() == 0) {
+				emptyIndex = i;
+			} else {
+				root.add(word, i);
+			}
+		}
+		for (int i = 0; i < words.length; i++) {
+			String word = words[i];
+			if (word.length() == 0) {
+				continue;
+			} else {
+				this.longestPalindrome(word, i, ans);
+			}
+		}
+		return ans;
+	}
+
+	public void longestPalindrome(String s, int index, List<List<Integer>> ans) {
+		char[] chars = this.sharp(s);
+		int[] radius = new int[chars.length];
+		int center = -1;
+		int range = -1;
+		int start = -1;
+		int end = -1;
+		int len = chars.length;
+		for (int i = 0; i < len; i++) {
+			radius[i] = range > i ? Math.min(radius[((center) << 1) - i], range - i) : 1;
+			while (i + radius[i] < len && i - radius[i] > -1 && chars[i + radius[i]] == chars[i - radius[i]]) {
+				radius[i]++;
+			}
+			if (i + radius[i] > range) {
+				range = i + radius[i];
+				center = i;
+			}
+			start = i - radius[i] + 1;
+			end = i + radius[i];// - 1
+			boolean pre = start == 0;// 前半段回文
+			boolean suf = end == len;// 后半段回文 - 1
+			if (pre && suf) {// 整体是回文
+				if (emptyIndex != null) {
+					ans.add(Arrays.asList(index, this.emptyIndex));
+					ans.add(Arrays.asList(this.emptyIndex, index));
+				}
+			}
+			if (pre && end > 1 && end != len) {// 从开头开始的前部分，不能是整体，跳过第一个#
+				Integer leftIndex = root.find(chars, end, len);
+				if (leftIndex != null) {
+					ans.add(Arrays.asList(leftIndex, index));
+				}
+			}
+			if (suf && start < len - 1 && start != 0) {
+				Integer rightIndex = root.find(chars, 1, start);
+				if (rightIndex != null) {
+					ans.add(Arrays.asList(index, rightIndex));
+				}
+			}
+
+		}
+		Integer allIndex = root.find(chars, 1, len);
+		if (allIndex != null && allIndex != index) {
+			ans.add(Arrays.asList(allIndex, index));
+		}
+	}
+
+	private char[] sharp(String s) {
+		char[] chars = new char[(s.length() << 1) | 1];
+		int p = 0;
+		for (int i = 0; i < chars.length; i++) {
+			if ((i & 1) == 0) {
+				chars[i] = '#';
+			} else {
+				chars[i] = s.charAt(p++);
+			}
+		}
+		return chars;
+	}
+}
+```
+
+
+
+##### 352\.将数据流变为多个不相交区间
+
+[题目](https://leetcode.cn/problems/data-stream-as-disjoint-intervals/)
+
+手写静态双向链表。初始设负无穷和正无穷，所有节点失效且指向无穷。负无穷下标设 $0$，故整体往右偏移一位。维护一个 treeset 表示当前所有区间左端点，初始设负无穷加入。对每个插入的 $u$，找到最大小于它的点，然后在链表里找到它的下一个点，这两个点就是新节点的链表前后点。然后连接起来。
+
+之后可能需要合并。设布尔值数组表示每个值是否出现过，如果 $u+1$ 出现过，则一定可以往后合并。如果 $u-1$ 也出现过，那么再往前合并。注意一定要先往后合并，手玩易知。
+
+维护一个整型(或 treeset 的 size)表示当前区间数，然后提前开好数组长度，并遍历链表即可。可以再每个节点维护区间长度，合并时叠加长度。
+
+设值域长度为 $m$，复杂度为 $O(\log m)$，空间复杂度为 $O(m)$。
+
+ ```java
+ import java.util.Arrays;
+ import java.util.TreeSet;
+ 
+ class SummaryRanges {
+     private static final int n = 10005;
+     private int pr[] = new int[n];
+     private int nx[] = new int[n];
+     private int cnt[] = new int[n];
+     private boolean vis[] = new boolean[n];
+     private TreeSet<Integer> t = new TreeSet<>();
+     private int m;
+ 
+     private void merge(int u, int v) {// u<-v
+ //        System.out.println("Merge " + u + " " + v);
+         m--;
+         t.remove(v);
+         nx[u] = nx[v];
+         pr[nx[v]] = u;
+         cnt[u] += cnt[v];
+     }
+ 
+     private void insert(int u) {
+         if (!vis[u]) {
+             vis[u] = true;
+             int pu = t.lower(u);
+             int nu = nx[pu];
+             nx[pu] = pr[nu] = u;
+             pr[u] = pu;
+             nx[u] = nu;
+             cnt[u] = 1;
+             ++m;
+             t.add(u);
+ 
+             if (vis[u + 1]) { //必须先右
+                 merge(u, nu);
+             }
+             if (vis[u - 1]) {
+                 merge(pu, u);
+             }
+         }
+ //        System.out.println(m);
+     }
+ 
+     public SummaryRanges() {
+         Arrays.fill(nx, n - 1);
+         t.add(0);
+     }
+ 
+     public void addNum(int value) {
+         insert(value + 1);
+     }
+ 
+     public int[][] getIntervals() {
+         int ans[][] = new int[m][2];
+         for (int i = nx[0], j = 0; i != n - 1; i = nx[i], ++j) {
+ //            System.out.println((i - 1) + "!");
+             ans[j][0] = i - 1;
+             ans[j][1] = i + cnt[i] - 1 - 1;
+         }
+         return ans;
+     }
+ }
+ ```
+
+
+
+##### 354\.俄罗斯套娃信封问题
+
+[题目](https://leetcode.cn/problems/russian-doll-envelopes/)
+
+先按 $w$ 升序排序，假设 $w$ 互不相同，则接下来只需要在 $h$ 找最长上升子序列。然而考虑 $(1,1),(1,2),(1,3),(1,4)$，是不可行的。对每个 $w$ 最多选一个信封。
+
+再第二关键字将 $h$ 降序排序，从而避免了相同下存在递增。然后直接跑 LIS 即可。这是一个经典模板，维护严格单调递增的单调栈即可，如果值大于栈顶就入栈，否则，二分单调栈，找到 $\ge$ 值的位置进行替换。
+
+java 可以用 list 实现可任意遍历的单调栈，用 `binarySearch` 函数进行二分。如果查找成功返回对应下标(有多个相等的则返回任意)，如果查找失败，返回一个负数 $i$，其 $-(i+1)$ 代表该值应该插入到的位置。
+
+复杂度是 $O(n\log n)$。参考：
+
+```java
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+
+class Solution {
+    public int maxEnvelopes(int[][] envelopes) {
+        int[][] a = envelopes;// 数组名字太长不好写
+        Arrays.sort(a, new Comparator<int[]>() {
+            @Override
+            public int compare(int[] o1, int[] o2) {
+                if (o1[0] == o2[0]) {
+                    return o2[1] - o1[1];
+                } else {
+                    return o1[0] - o2[0];
+                }
+            }
+        });
+        int n = a.length;
+        ArrayList<Integer> s = new ArrayList<>();
+        s.add(a[0][1]);
+        for (int i = 1; i < n; ++i) {
+            if (s.get(s.size() - 1) < a[i][1]) {
+                s.add(a[i][1]);
+            } else {
+                int j = Collections.binarySearch(s, a[i][1]);
+                j = j >= 0 ? j : -(j + 1);
+                s.set(j, a[i][1]);
+            }
+        }
+        return s.size();
+    }
+}
+```
+
+
+
+
+
 
 
 > ### 力扣比赛
@@ -7021,5 +7721,18 @@ having balance > 10000
 select event_day as `day`, emp_id, sum(out_time-in_time) as `total_time`
 from Employees
 group by day, emp_id
+```
+
+
+
+##### 1693\.每天的领导和合伙人
+
+[题目](https://leetcode.cn/problems/reconstruct-itinerary/)
+
+```mysql
+select date_id, make_name, count(distinct lead_id) as `unique_leads`, 
+count(distinct partner_id) as `unique_partners`
+from DailySales
+group by date_id, make_name
 ```
 

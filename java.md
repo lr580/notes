@@ -9493,6 +9493,16 @@ public class foreach {
 - get(int index) 指定索引的元素(索引从0开始)，越界报错 `IndexOutOfBoundsException`
 - set(int index, Object obj) 修改该索引对象为 obj
 
+Collections 静态操作：
+
+- sort
+
+- reverse
+
+- binarySearch(list, value)
+
+  如果查找成功返回对应下标(有多个相等的则返回任意)，如果查找失败，返回一个负数v，其 `-(v+1)` 代表该值应该插入到的位置。
+
 有两种实现类：
 
 - ArrayList 数组实现的，可变长，允许保存含 `null` 的元素，向指定位置插入或删除元素较慢，更常用
@@ -9628,9 +9638,9 @@ TreeSet 新方法：
 - headSet(E e1) 返回从开始到 e1 前(不包括 e1 )的元素
 - subSet(E e1, E e2) 返回 $[e1,e2)$ 范围元素
 - tailSet(E e1) 返回 e2 和它之后的全部元素
-- lower(E) 返回严格大于 E 的最小元素
+- higher(E) 返回严格大于 E 的最小元素
 - ceiling(E) 不严格大于
-- higher(E) 返回严格小于 E 的最大元素
+- lower(E) 返回严格小于 E 的最大元素
 - floor(E) 不严格小于
 
 重复元素去重举例：
@@ -28981,4 +28991,26 @@ public class SwaggerConfig implements WebMvcConfigurer {
 ```
 
 重新跑进 `http://localhost:8080/swagger-ui.html`，发现有接口，但查看接口详细信息需要输入 token。这个 token 根据 jwt 获取，例如可能会存储在数据库里。输入即可。
+
+
+
+### Spring Cloud
+
+#### 概念
+
+##### 微服务
+
+springboot单独存在的意义不大,独立运行,自动配置,完全是为了微服务的框架而创建的.springcloud框架必须基于springboot的工程才可以实现;
+
+当微服务特别庞大的时候,就需要从管理.监控角度出发,对整个集群做到架构级别的技术整合--这种技术就成为微服务框架
+
+常见的有spring cloud，dubbo(12年宣布停更,17年恢复更新);
+spring cloud: 一种轻量级的,组件丰富全面的微服务框架技术,核心注册发现组件Eureka(不能由别人代替),实现的http的协议传输数据;组件特别丰富，所以开发投入成本较低;
+dubbo: 组件没有springcloud丰富,注册发现组件可以使用Eureka(http协议),redis,zookeeper(rpc协议),使用rpc协议的技术,性能高;http性能虽然没有rpc高但是灵活度.
+技术选型: spring cloud 开发成本低,所有组件是现成的直接使用,更新比较及时,对应市面的各种新技术做最新的进步;
+dubbo 性能高,是dubbo重要的优点,开发成本高
+
+#### Eureka
+
+##### 概念
 
