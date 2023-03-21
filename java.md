@@ -106,6 +106,10 @@ public class s1 {
 
 一个虫子的按钮是debug模式启动
 
+> 可以通过,某个工程打包的jar在同一个服务器,不同的端口启动
+>
+> `java -jar **.jar --server.port=8091`
+
 ### 项目建立
 
 > 不需要建什么maven, spring。
@@ -1719,6 +1723,7 @@ System.out.println(c[0][0][0].length + c[0][0][1].length + d.length);
 ```java
 int x[][] = { { -1, -2 }, { 3, 4 } };
 System.out.println(x[0][1] * x[1][0]);
+x[0] = new int[]{5,-6};
 ```
 
 ##### 方法
@@ -1749,7 +1754,7 @@ System.out.println(a[4]);
 
 `Arrays.sort(数组)`升序排序一个数组(数值和字符串排序依据不一样)
 
-可以自定义排序依据。==(待补充)==
+可以自定义排序依据。
 
 如：
 
@@ -1763,6 +1768,27 @@ for (int i = 0; i < x.length; ++i) {
     System.out.println(" " + y[i]);
 }
 ```
+
+```java
+int[][] a = {{3, 2, 1}, {1, 4, 2}, {2, 3, 5}, {4, 1, 3}};
+Arrays.sort(a, new Comparator<int[]>() {
+    @Override
+    public int compare(int[] o1, int[] o2) {
+        return o1[0] - o2[0];
+    }
+});
+```
+
+java8 箭头表达式简写：
+
+```java
+Arrays.sort(rs, (a,b)->{
+    if (a[0] != b[0]) return a[0] - b[0];
+    return a[1] - b[1];
+});
+```
+
+
 
 ###### copyOf
 
@@ -23596,7 +23622,7 @@ new project-maven project(没有的话other找找)，第一页默认，第二页
 </plugin>
 ```
 
-右击项目，maven-update project
+右击项目，maven-update project (或alt+f5)
 
 下方栏 overview 能看到项目视图。
 
@@ -24486,6 +24512,16 @@ mvn clean install
 
 
 
+##### 依赖
+
+```sh
+mvn dependency:tree
+```
+
+
+
+
+
 #### 插件
 
 maven在pom文件中可以管理当前项目的基本信息，引入当前项目使用的所有资源，其中包含插件资源；
@@ -24580,6 +24616,37 @@ java -jar target\maven-test01-1.0-SNAPSHOT.jar
     </configuration>
 </plugin>
 ```
+
+#### pom
+
+##### java版本
+
+```xml
+<project>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>my-app</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>1.8</java.version>
+    </properties>
+    
+    <!-- 其他元素 -->
+</project>
+
+```
+
+
+
+##### 依赖
+
+gpt:
+
+<dependencyManagement> 元素中声明的依赖库版本号可以被子模块继承和覆盖，而 <dependencies> 元素中声明的依赖库版本号则不能被继承和覆盖，子模块需要显式地声明依赖库的版本号。后者可以放前者里边，也可以不放，可以都有。
+
+前者只是声明依赖，并不实现依赖的引入，因此，没有jar包的引入，maven项目就不会显示Maven Dependencies文件 [参考](https://blog.csdn.net/m0_67393039/article/details/123986866)
 
 
 
@@ -25832,6 +25899,23 @@ public class OrderService {
 部署时，同时运行这几个子系统在不同的端口(eclipse 直接 run 即可，console 里有个可以下拉的按钮可以看到不同的 running 并可以随时结束任意一个子系统)，然后配 hosts 和 nginx 即可。
 
 
+
+#### 杂项
+
+##### @Value
+
+读取 `application.properties`，如：
+
+```java
+@Value("${server.port}")
+private String port;
+```
+
+如文件写着：
+
+```properties
+server.port=9001
+```
 
 
 
@@ -29013,4 +29097,505 @@ dubbo 性能高,是dubbo重要的优点,开发成本高
 #### Eureka
 
 ##### 概念
+
+eureka是spring cloud 的微服务框架的核心组件(管理单位);是完成当前所有集群微服务的注册与发现的核心进程;可以动态的处理所有负载均衡访问的集群（serverList）的管理工作;
+
+服务的注册:微服务节点作为真正的服务,功能的提供者.动态注册在eureka中心。
+
+（nginx是静态的。维护serverList是一个静态文件，当服务器发生变化时，只能手动的修改静态文件，修改完后还要重新启动nginx才能完成。）
+
+<img src="img/image-20230319202055736.png" alt="image-20230319202055736" style="zoom: 80%;" /><img src="img/image-20230319202102354.png" alt="image-20230319202102354" style="zoom: 67%;" />
+
+服务的发现:客户端具备访问eureka的能力,动态的获取某个一个服务的真正提供者信息,从而发起访问调用;
+
+<img src="img/image-20230319202226511.png" alt="image-20230319202226511" style="zoom:67%;" />
+
+eureka组件中的角色:
+o	注册中心,称为eureka中的服务端角色
+o	注册在中心的微服务们,称为eureka中的客户端角色
+
+启动的每一个eureka客户端进程.都会根据配置到eureka注册中心进行注册,注册之后, eureka客户端（服务）每30秒给注册中心发送一个心跳检测(续约) ,注册中心每60秒检测一次所有的服务续约,一旦发现服务超过90秒没有发送心跳检测的话,将会把服务对应的实例节点剔除;
+
+<img src="img/image-20230320143939059.png" alt="image-20230320143939059" style="zoom:67%;" />
+
+每一个服务的提供者注册到服务端时,访问调用`localhost:8761/eureka`发送请求.并且携带一些信息,Eureka服务端将这些信息保管在一个双层map中
+
+<img src="img/image-20230320161822617.png" alt="image-20230320161822617" style="zoom:80%;" />
+
+eureka注册中心.提供一种保护微服务集群注册服务信息的机制,防止由于网络波动导致大量的注册心跳检测发送未成功,造成的误剔除,给集群,给微服务带来的巨大伤害,所出现的一种机制--保护机制
+
+当整个集群15%以上同一时间检测到超过90秒未发送心跳.将会开启保护机制,一旦开启,所有的服务注册信息,在eureka中心不会进行任何剔除;默认情况保护机制是开启的。
+
+<img src="img/image-20230320162125465.png" alt="image-20230320162125465" style="zoom:67%;" />
+
+##### 示例
+
+###### 服务端
+
+创建一个 quickstart maven 工程。
+
+加 pom，注意两个版本需要有对应关系，可以自己去查。
+
+```xml
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>1.5.9.RELEASE</version>
+</parent> 
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-dependencies</artifactId>
+            <version>Edgware.RELEASE</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+外边再再加上：
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-eureka-server</artifactId>
+</dependency>
+```
+
+> 参考完整配置文件：
+>
+> ```xml
+> <project xmlns="http://maven.apache.org/POM/4.0.0"
+> 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+> 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+> 	<modelVersion>4.0.0</modelVersion>
+> 
+> 	<groupId>cn.edu.scnu</groupId>
+> 	<artifactId>eureka-server</artifactId>
+> 	<version>0.0.1-SNAPSHOT</version>
+> 	<packaging>jar</packaging>
+> 
+> 	<name>eureka-server</name>
+> 	<url>http://maven.apache.org</url>
+> 
+> 	<properties>
+> 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+> 		<java.version>1.8</java.version>
+> 	</properties>
+> 
+> 	<parent>
+>         <groupId>org.springframework.boot</groupId>
+>         <artifactId>spring-boot-starter-parent</artifactId>
+>         <version>1.5.9.RELEASE</version>
+>     </parent>
+> 
+>     <dependencyManagement>
+>         <dependencies>
+>             <dependency>
+>                 <groupId>org.springframework.cloud</groupId>
+>                 <artifactId>spring-cloud-dependencies</artifactId>
+>                 <version>Edgware.RELEASE</version>
+>                 <type>pom</type>
+>                 <scope>import</scope>
+>             </dependency>
+>         </dependencies>
+>     </dependencyManagement>
+> 
+>     <dependencies>
+>         <dependency>
+>             <groupId>org.springframework.cloud</groupId>
+>             <artifactId>spring-cloud-starter-eureka-server</artifactId>
+>         </dependency>
+>         <dependency>
+>             <groupId>junit</groupId>
+>             <artifactId>junit</artifactId>
+>             <scope>test</scope>
+>         </dependency>
+>     </dependencies>
+> </project>
+> ```
+
+<img src="img/image-20230319203013920.png" alt="image-20230319203013920"  />
+
+设 `src/main/resources/application.properties`：
+
+```properties
+server.port=8761
+#eureka config
+eureka.instance.hostname=localhost
+eureka.client.registerWithEureka=false
+eureka.client.fetchRegistry=false
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka
+```
+
+- 如果是 localhost 则 hostmane 不加也行
+- registerWithEureka默认为true，指示该实例是否注册到eureka注册中心，设置false, 表示自己就是eureka服务中心
+- fetch-registry: 默认值为true，指示此客户端是否应该从eureka获取eureka注册表信息，设置为false，表示自己就是注册中心，不用去注册中心获取其他服务的地址
+- 对外暴露的注册地址(接口)是 default zone
+
+> 或：
+>
+> ```properties
+> server.port=8761
+> #eureka config
+> eureka.instance.hostname=localhost
+> spring.application.name=eureka-server
+> eureka.server.enable-seft-preservation=false
+> eureka.client.registerWithEureka=true
+> eureka.client.fetchRegistry=true
+> eureka.instance.preferIpAddress=true
+> eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka
+> ```
+>
+> 
+
+写一个启动类：
+
+```java
+package cn.edu.scnu;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;
+
+@SpringBootApplication
+@EnableEurekaServer
+public class StarterEurekaServer {
+    public static void main(String[] args) {
+        SpringApplication.run(StarterEurekaServer.class, args);
+    }
+}
+```
+
+测试启动：`http://localhost:8761/`
+
+###### 客户端
+
+配置三个客户端，pom 修改单独 dependecy 为：
+
+> 如果是 `eclipse` 复制粘贴项目，记得改 `.project` 项目名
+
+```xml
+<dependency>
+	<groupId>org.springframework.cloud</groupId>
+	<artifactId>spring-cloud-starter-eureka</artifactId>
+</dependency>
+```
+
+然后配置文件：
+
+```properties
+server.port=9001
+#eureka client config
+spring.application.name=service01
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/
+```
+
+- port 是启动端口，应该三个客户端都不一样。
+- application 都填同一个
+- default Zone 指向上文配置的服务器的地址。可以连多个，逗号分隔。
+
+写一个启动类，仅修改为 Client 注解：
+
+```java
+package cn.edu.scnu;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+
+@SpringBootApplication
+@EnableEurekaClient
+public class StarterEurekaClient01 {
+    public static void main(String[] args) {
+        SpringApplication.run(StarterEurekaClient01.class, args);
+    }
+}
+```
+
+尝试在客户端增加一个测试功能：
+
+```java
+package cn.edu.scnu.controller;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class HelloController {
+    @Value("${server.port}")
+    private String port;
+
+    @RequestMapping("hello")
+    public String sayHello(String name) {
+        return "hello " + name + " from " + port;
+    }
+}
+```
+
+那么输入 `localhost:9001/hello?name=白茶`
+
+
+
+#### RIBBON
+
+##### 概念
+
+实现内部服务调用另外一个服务的客户端
+
+在springcloud中,提供一个客户端组件,用来**负载均衡**的访问某个服务;
+
+Ribbon启动之后,作为eureka的客户端到eureka注册中心实现抓取服务端的服务提供者列表list(每30秒重新抓取一次),这样就可以实现动态的对服务负载均衡访问。
+
+绕过了nginx的静态文件配置.修改环境重启nginx;
+
+这个客户端的访问服务的功能，需要依赖RestTemplate，发起http请求，请求的是服务名称)
+
+<img src="img/image-20230320163534080.png" alt="image-20230320163534080" style="zoom:80%;" />
+
+ribbon启动 eureka客户端(注册,**发现**)
+
+ribbon客户端启动时,会根据eureka客户端角色到注册中心抓取所有的服务列表.将抓取的数据保存在内存的map
+
+restTemplate在发起请求之前做拦截.替换,根据请求地址中的服务名称,找到map中key,拿到提供者list,根据负载均衡逻辑(默认轮询)进行轮询的负载均衡访问
+
+<img src="img/image-20230320202540765.png" alt="image-20230320202540765" style="zoom:80%;" />
+
+在LoadBalancerBuider做拦截
+
+·    其他负载均衡irule实现类
+
+除了轮询的机制,还提供很多.比如随机.比如权重
+
+| IRULE实现类              | 功能                                                         |
+| ------------------------ | ------------------------------------------------------------ |
+| RamdomRule               | 实现拦截拼接服务提供者信息时,采用随机的选取方式              |
+| WeightedResponseTimeRule | 根据每个节点平均响应时间做动态的权重值变化,响应速度越快,权重值越高(负载访问占比越高) |
+
+当前的环境是根据生成的bean对象来加载负载均衡策略(缺省值就是RoundRobin的对象)
+
+只需要在配置类中（启动类就是配置类）.利用@Bean创建当前想使用的对象即可
+
+```java
+// 创建一个自定义负载均衡策略
+@Bean
+public IRule myRule() {
+    return new RandomRule();
+}
+```
+
+
+
+##### 示例
+
+书接上回 eureka，创建 quickstart，pom 依赖改为(即加一个)：
+
+```xml
+<dependencies>
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-eureka</artifactId>
+    </dependency>
+    <!--Ribbon相关依赖 -->
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-ribbon</artifactId>
+    </dependency>
+</dependencies>
+```
+
+配置：
+
+```properties
+server.port=9004
+#eureka client config
+spring.application.name=service02
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/
+```
+
+写一个启动类：
+
+```java
+package cn.edu.scnu;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+import org.springframework.context.annotation.Bean;
+import org.springframework.web.client.RestTemplate;
+
+@SpringBootApplication
+@EnableEurekaClient
+public class StarterRibbonClient {
+    public static void main(String[] args) {
+        SpringApplication.run(StarterRibbonClient.class, args);
+    }
+
+    @Bean
+    @LoadBalanced // 生成一个具备ribbon拦截功能的restTemplate
+    // 加了注解后，在创建RestTemplate后会对它实现监听,通过它发起请求做到一个拦截
+    // 会根据负载均衡策略对象(IRule接口的实现类)
+    // 实现访问服务的负载均衡方式 默认roundRobin轮询
+    public RestTemplate initRestTemplate() {
+        return new RestTemplate();
+    }
+}
+```
+
+写一个测试服务：
+
+```java
+package cn.edu.scnu.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
+
+@RestController
+public class HelloController {
+    @Autowired
+    private RestTemplate restTemplate;
+
+    @RequestMapping("hello")
+    public String sayHello(String name) {
+        String responseStr = restTemplate.getForObject("http://service01/hello?name=" + name,
+                String.class);
+        return "From Ribbon: " + responseStr;
+    }
+}
+```
+
+测试：`http://localhost:9004/hello?name=白茶`。期望：`from` 不断更改，为上面三个 client 之一。
+
+
+
+#### zuul
+
+##### 概念
+
+Zuul网关是整个微服务框架搭建完毕之后的集群中唯一对外界提供接口访问的角色,ribbon,eureka等等不能够将请求地址,接口地址对外暴露,一旦暴露就会出现被攻击的危险;
+
+zuul底层实现了ribbon+restTemplate的编码逻辑的,可以在路由的模式下, 在zuul内部启动ribbon启动restTemplate,当对外暴露的接口地址被访问时.转发到一个真实的服务
+
+zuul.routes.api-a.path:定义一个与访问api-a相关服务配置的path的映射地址 /api-a/**,请求的路径(url)中以/api-a开始的多级路径匹配。
+
+例如：
+
+localhost:9005/api-a/order/pay 可以匹配到
+
+localhost:9005/api-h/order/pay 匹配不到
+
+一旦当前请求和某一个路由匹配成功,将会根据zuul.routes.XX.path中的,寻找当前properties中一个zuul.routes.XX.serviceId=service01,从而找到对应的访问服务(ribbon+restTemplate访问服务获取响应)
+
+例如：
+
+localhost:9005/api-a/order/pay 
+
+寻找到：
+
+localhost:9005/service01/order/pay 
+
+2）匹配规则:? 、* 、**
+
+| 符号 | 匹配规则                                                     |
+| ---- | ------------------------------------------------------------ |
+| ?    | 匹配一个字符,例如/api-a/? 只能匹配到类似/api-a/a、/api-a/b   |
+| *    | 匹配一个一级路径字符串,/api-a/*,匹配到/api-a/a,而/api-a/a/haha,/api-a/a/b则匹配不到了 |
+| **   | 只要是起始匹配成功.后续的多级,多字符串匹配都通配/api-a/**,   |
+
+ 将nginx配置成访问网关暴露接口的匹配地址,js,页面就可以springcloud搭建的微服务集群访问高可用的分布式系统了
+
+##### 示例
+
+书接上文 ribbon。quickstart，依赖跟上面的差别是：
+
+```xml
+<dependencies>
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-eureka</artifactId>
+    </dependency>
+
+    <!--zuul相关依赖 -->
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-zuul</artifactId>
+    </dependency>
+</dependencies>
+```
+
+properties:
+
+```properties
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/
+server.port=9005
+spring.application.name=serviceZuul
+zuul.routes.api-a.path=/api-a/**
+zuul.routes.api-a.serviceId=service01
+zuul.routes.api-b.path=/api-b/**
+zuul.routes.api-b.serviceId=service02
+zuul.routes.orders.path=/orders/**
+zuul.routes.orders.serviceId=orderservice
+zuul.routes.users.path=/users/**
+zuul.routes.users.serviceId=userservice
+```
+
+启动类：
+
+```java
+package cn.scnu.edu;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.netflix.zuul.EnableZuulProxy;
+
+@SpringBootApplication
+@EnableZuulProxy
+public class StarterZuul {
+    public static void main(String[] args) {
+        SpringApplication.run(StarterZuul.class, args);
+    }
+}
+```
+
+测试：
+
+```
+localhost:9005/api-a/hello?name=haha (每次刷新不一样)
+http://localhost:9005/api-b/hello?name=haha (同理)
+# localhost:9005/orders/order/pay?orderId=a
+# localhost:9005/users/user/query/point?userId=1
+```
+
+##### 综合例子
+
+```nginx
+server {
+    listen 80;
+    server_name www.ssm.com;
+    location /{
+        #相对nginx根目录
+        root orderuser;
+        index index.html;
+    }
+    location /user {
+        proxy_pass http://127.0.0.1:9005/users/user;
+        add_header 'Access-Control-Allow-Origin' '*'; 
+        add_header 'Access-Control-Allow-Credentials' 'true'; 
+    }
+    location /order {
+        proxy_pass http://127.0.0.1:9005/orders/order;
+        add_header 'Access-Control-Allow-Origin' '*'; 
+        add_header 'Access-Control-Allow-Credentials' 'true'; 
+    }
+}   
+
+```
+
+> 搞 javaweb 的 order user nginx 例子，
 

@@ -2124,6 +2124,19 @@ while True:
 
 #### 元/反射
 
+##### dir
+
+查看某个包的所有属性：
+
+```python
+import random
+print(dir(random))
+import torch
+print(dir(torch.distributions))
+```
+
+带单下划线的一般是内部属性，双下划线的是特殊属性如重载运算符。
+
 ##### vars
 
 查看当前已定义的所有变量名(key)及其取值，以 dict 形式输出。变量包括函数变量和常规变量，即 def 的东西也会在。如：`print(vars())`。如果传入的参数是一个 object，返回该参数的所有属性及其取值。如：
@@ -2149,6 +2162,16 @@ print(vars(obj))
 ##### getattr
 
 返回一个对象指定的属性，第一个参数是对象变量，第二个参数 str 是属性名
+
+##### hasattr
+
+```python
+x=1
+hasattr(x,'__lt__')
+hasattr([],'append')
+```
+
+
 
 ### 其他函数
 
@@ -5787,6 +5810,60 @@ plt.gca().add_patch(rect)
 
 [颜色参考](https://matplotlib.org/3.6.0/gallery/color/named_colors.html#sphx-glr-gallery-color-named-colors-py)
 
+#### 举例
+
+##### 绘图集成
+
+```python
+import numpy as np
+from matplotlib_inline import backend_inline
+#from d2l import torch as d2l
+def use_svg_display():  #@save
+    backend_inline.set_matplotlib_formats('svg')
+def set_figsize(figsize=(3.5, 2.5)):  #@save
+    use_svg_display()
+    d2l.plt.rcParams['figure.figsize'] = figsize
+#@save
+def set_axes(axes, xlabel, ylabel, xlim, ylim, xscale, yscale, legend):
+    axes.set_xlabel(xlabel)
+    axes.set_ylabel(ylabel)
+    axes.set_xscale(xscale)
+    axes.set_yscale(yscale)
+    axes.set_xlim(xlim)
+    axes.set_ylim(ylim)
+    if legend:
+        axes.legend(legend)
+    axes.grid()
+#@save
+def plot(X, Y=None, xlabel=None, ylabel=None, legend=[], xlim=None,
+         ylim=None, xscale='linear', yscale='linear',
+         fmts=('-', 'm--', 'g-.', 'r:'), figsize=(3.5, 2.5), axes=None):
+    """Plot data points."""
+
+    def has_one_axis(X):  # True if X (tensor or list) has 1 axis
+        return (hasattr(X, "ndim") and X.ndim == 1 or isinstance(X, list)
+                and not hasattr(X[0], "__len__"))
+
+    if has_one_axis(X): 
+        X = [X]
+    if Y is None:
+        X, Y = [[]] * len(X), X
+    elif has_one_axis(Y):
+        Y = [Y]
+    if len(X) != len(Y):
+        X = X * len(Y)
+
+    set_figsize(figsize)
+    if axes is None:
+        axes = d2l.plt.gca()
+    axes.cla()
+    for x, y, fmt in zip(X, Y, fmts):
+        axes.plot(x,y,fmt) if len(x) else axes.plot(y,fmt)
+    set_axes(axes, xlabel, ylabel, xlim, ylim, xscale, yscale, legend)
+x = np.arange(0, 3, 0.1)
+plot(x, [f(x), 2 * x - 3], 'x', 'f(x)', legend=['f(x)', 'Tangent line (x=1)'])
+```
+
 
 
 ### pandas
@@ -6640,6 +6717,129 @@ print(x.norm(), torch.norm(x)) #必须要float, l_2 范数
 print(x.abs().sum(), torch.abs(x).sum()) #l_1 范数
 ```
 
+##### 求导
+
+反向传播的基本原理是链式求导法则。
+
+函数的梯度：
+
+$$\triangledown_{\mathbf x}f(\mathbf x)=\left[
+    \partial_{x_1}f(\mathbf x), \partial_{x_2}f(\mathbf x), \ldots, \partial_{x_n}f(\mathbf x)\right]$$
+
+对线代，有性质如下：
+
+1. $\triangledown_{\mathbf x} \mathbf{Ax}=\mathbf{A}^T$,
+   $\triangledown_{\mathbf x} \mathbf x^T\mathbf{A}=\mathbf{A}$
+2. 对方阵 $\mathbf A$，有 $\triangledown_{\mathbf x}\mathbf x^T\mathbf{Ax}=(\mathbf A+\mathbf A^T)\mathbf x$，且 $\triangledown_{\mathbf x}||\mathbf x||^2=\triangledown_{\mathbf x}\mathbf x^T\mathbf x=2\mathbf x$
+3. 对矩阵 $\mathbf X$ 有 $\triangledown_{\mathbf X}||\mathbf X||^2_F=2\mathbf X$
+
+为了优化时空，对要求导的张量，可以这么设：
+
+```python
+import torch
+x = torch.arange(4.0)
+x.requires_grad_(True)
+# x = torch.arange(4.0, requires_grad=True)
+print(x.grad) #None
+y = 2 * x.dot(x) #y=2 x^T * x, y'= 4x
+print(y) #tensor(28., grad_fn=<MulBackward0>)
+y.backward() #反向传播
+print(x.grad) #tensor([ 0.,  4.,  8., 12.])
+print(x.grad == 4*x) #tensor([True, True, True, True])
+```
+
+```python
+x.grad.zero_()
+print(x.grad)#tensor([0., 0., 0., 0.])
+y = x.sum()
+print(y)#tensor(6., grad_fn=<SumBackward0>)
+y.backward()
+print(x.grad)#tensor([1., 1., 1., 1.])
+```
+
+```python
+x.grad.zero_()
+y = x * x
+y.backward(gradient=torch.ones(len(y)))  # Faster: y.sum().backward()
+print(x.grad) 
+```
+
+```python
+x.grad.zero_()
+y = x * x
+u = y.detach() #u=y的话,x.grad=3*x*x
+z = u * x #将u看成与x无关的常量，故z'=u=x*x
+z.sum().backward()
+print(x.grad)
+print(x.grad == u)
+```
+
+```python
+x.grad.zero_()
+y.sum().backward() #不能反复运行
+print(x.grad == 2 * x)
+```
+
+可以对动态定义的函数进行梯度计算：
+
+```python
+def f(a):
+    b = a * 2
+    while b.norm() < 1000:
+        b = b * 2
+    if b.sum() > 0:
+        c = b
+    else:
+        c = 100 * b
+    return c
+a = torch.randn(size=(), requires_grad=True)
+print(a) # 标准正态分布的随机实数
+d = f(a)
+d.backward()
+print(a.grad == d / a)
+```
+
+##### 概率
+
+模拟随机抛硬币：
+
+```python
+import random
+import torch
+from torch.distributions.multinomial import Multinomial
+from d2l import torch as d2l
+num_tosses = 10000
+heads = sum([random.random() > 0.5 for _ in range(num_tosses)])
+tails = num_tosses - heads
+print("heads, tails: ", [heads, tails])
+```
+
+等效于：
+
+```python
+fair_probs = torch.tensor([0.5, 0.5])
+#迁移：fair_probs = torch.tensor([0.1, 0.2, 0.7])
+print(Multinomial(num_tosses, fair_probs).sample())#浮点xx.0
+```
+
+绘图展示：
+
+```python
+counts = Multinomial(1, fair_probs).sample((10000,))
+print(counts) #上述结果不累加，是 (0,1) / (1,0) 组成的torch
+cum_counts = counts.cumsum(dim=0)
+estimates = cum_counts / cum_counts.sum(dim=1, keepdims=True)
+estimates = estimates.numpy()
+
+d2l.set_figsize((4.5, 3.5))
+d2l.plt.plot(estimates[:, 0], label=("P(coin=heads)"))
+d2l.plt.plot(estimates[:, 1], label=("P(coin=tails)"))
+d2l.plt.axhline(y=0.5, color='black', linestyle='dashed')
+d2l.plt.gca().set_xlabel('Samples')
+d2l.plt.gca().set_ylabel('Estimated probability')
+d2l.plt.legend()
+```
+
 
 
 
@@ -6724,7 +6924,13 @@ plt.show()
 
 对样本求主成分得分
 
+### d2l
 
+```
+pip install d2l==1.0.0b0
+```
+
+`@save` 装饰器是 `d2l` 库允许讲函数、类或其他东西存到 `d2l` 里的功能。
 
 ## 网络
 

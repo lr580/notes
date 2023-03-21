@@ -1,5 +1,253 @@
 面试准备笔记。
 
+## 目录
+
+#### 力扣
+
+##### 题单
+
+- 4\. 寻找两个正序数组的中位数
+
+  **分治(二分)**
+
+- 10\. 正则表达式匹配
+
+  **DP 字符串**
+
+- 23\. 合并K个升序链表
+
+  堆
+
+- 25\. K 个一组翻转链表
+
+  模拟
+
+- 30\. 串联所有单词的子串
+
+  滑动窗口 STL
+
+- 32\. 最长有效括号
+
+  **DP / 贪心** / (前缀和 + 二分 + 树状数组)
+
+- 37\. 解数独
+
+  DFS
+
+- 41\. 缺失的第一个正数
+
+  模拟(mex)
+
+- 42\. 接雨水
+
+  前缀和 / <u>单调栈 / 双指针</u>
+
+- 44\. 通配符匹配
+
+  **DP 字符串** / **AC自动机**
+
+- 51\. N皇后
+
+  DFS
+
+- 60\. 排列序列
+
+  模拟(康托展开)
+
+- 65\. 有效数字
+
+  模拟(自动机/regex)
+
+- 68\. 文本左右对齐
+
+  模拟
+
+- 72\.编辑距离
+
+  DP 字符串
+
+- 76\.最小覆盖子串
+
+  滑动窗口
+
+- 84\.柱状图中的最大矩形
+
+  <u>单调栈</u> / ST表
+
+- 85\.最大矩形
+
+  悬线法 / <u>单调栈</u>
+
+- 87\.扰乱字符串
+
+  **记忆化DFS/DP**
+
+- 115\.不同的子序列
+
+  <u>DP</u>
+
+- 123\.买卖股票的最佳时机III
+
+  <u>DP</u> / 前缀和
+
+- 124\.二叉树中的最大路径和
+
+  DFS
+
+- 126\.单词接龙II
+
+  毒瘤卡常爆搜
+
+- 132\.分割回文串II
+
+  <u>DP</u> / DP+字符串哈希
+
+- 140\.单词拆分II
+
+  模拟DFS
+
+- 149\.直线上最多的点数
+
+  <u>枚举+STL</u> / 随机化
+
+- 154\.寻找旋转排序数组中的最小值II
+
+  **二分**
+
+- 164\.最大间距
+
+  基数排序
+
+- 174\.地下城游戏
+
+  **DP**
+
+- 188\.买卖股票的最佳时机IV
+
+  **DP** / **wqs二分**
+
+- 212\.单词搜索II
+
+  模拟DFS
+
+- 214\.最短回文串
+
+  manacher / 字符串哈希 / <u>KMP</u>
+
+- 218\.天际线问题
+
+  小模拟+(对顶堆 / <u>堆</u>)
+
+- 220\.存在重复元素III
+
+  滑动窗口+STL二分 / <u>滑动窗口+STL</u>
+
+- 224\.基本计算器
+
+  模拟(栈)
+
+- 233\.数字1的个数
+
+  思维 / <u>数位DP</u>
+
+- 239\.滑动窗口最大值
+
+  滑动窗口+(对顶堆 / <u>堆</u>)
+
+- 273\.整数转英文表示
+
+  模拟
+
+- 282\.给表达式添加运算符
+
+  模拟+DFS
+
+- 295\.数据流的中位数
+
+  对顶堆
+
+- 297\.二叉树的序列化与反序列化
+
+  DFS
+
+- 301\.删除无效的括号
+
+  DFS / <u>枚举子集</u>
+
+- 312\.戳气球
+
+  区间DP
+
+- 315\.计算右侧小于当前元素的个数
+
+  权值树状数组 / <u>归并排序</u> / <u>平衡树</u>
+
+- 982\.按位与为零的三元组
+
+  **<u>FWT</u> / <u>高维前缀和</u>** / <u>桶枚举</u> / bitset优化枚举
+
+- 321\.拼接最大数
+
+  (**单调栈+反悔贪心**(+后缀数组/后缀自动机)) / **子序列自动机**
+
+- 327\.区间和的个数
+
+  平衡树(pb\_ds) / <u>归并排序</u> / 线段树+离散化
+
+- 329\.矩阵中的最长递增路径
+
+  BFS/DFS/DP
+
+- 330\.按要求补齐数组
+
+  **贪心**
+
+- 332\.重新安排行程
+
+  欧拉图 DFS/Hierholzer
+
+- 335\.路径交叉
+
+  **思维**
+
+- 1617\.统计子树中城市之间最大距离
+
+  树直径+并查集判树+枚举子集 / <u>floyd+记忆化DFS/DP</u>
+
+- 336\.回文对
+
+  字符串哈希 / (trie+manacher)
+
+- 352\.将数据流变为多个不相交区间
+
+  模拟(链表/STL)
+
+- 354\.俄罗斯套娃信封问题
+
+  **单调栈+二分 (LIS)**
+
+- 2488\.统计中位数为k的子数组
+
+  前缀和 桶枚举
+
+- 363\.矩形区域不超过k的最大数值和
+
+  **二分优化枚举**
+  
+- 381\.O(1)时间插入、删除和获取随机元素-允许重复
+
+  数据结构 STL <u>swap优化</u>
+  
+- 391\.完美矩阵
+
+  (线段树+离散化+扫描线) / <u>扫描线</u> / <u>思维</u> / <u>格林公式</u>
+  
+- 407\.接雨水II
+
+  **BFS+堆优化**
+
+
+
 ## 算法
 
 ### 力扣
@@ -118,7 +366,7 @@ public:
 
 如果一致，有两种选择，一个是进行匹配，一个是不进行匹配。如果进行匹配，消耗掉 $i$，但因为任意多个，所以 $j$ 没有消耗，与 $dp_{i-1,j}$ 一致，否则，与 $dp_{i,j-2}$ 一致。
 
-可以滚动一下优化空间常数。则时间复杂度 $O(|s|\cdot |p|)$，空间复杂度 $O(|p|)$。d
+可以滚动一下优化空间常数。则时间复杂度 $O(|s|\cdot |p|)$，空间复杂度 $O(|p|)$。
 
 ```c++
 class Solution
@@ -6062,6 +6310,743 @@ class Solution {
 ```
 
 
+
+##### 2488\.统计中位数为k的子数组
+
+[题目](https://leetcode.cn/problems/count-subarrays-with-median-k/)
+
+根据数据范围可知有且仅有一个 $k$。所有有效区间一定包含 $k$，这些有效区间可以拆分为 $k$ 左子区间(含 $k$)与 $k$ 右子区间。设 $> k$ 贡献 $1$，$< k$ 贡献 $-1$，$k$ 贡献 $0$，则一个区间符合题意当且仅当区间贡献和是 $0$ 或 $1$。
+
+从 $k$ 开始(含 $k$)往左叠前缀和，把前缀和计数存桶。然后再往右叠前缀和 $s$，则满足的区间的前缀和是 $s+x=0/1$，解得 $x=-s/(1-s)$，所以每次查桶里有几个 $-s,1-s$，累加上去即可。
+
+时空复杂度 $O(n)$。
+
+```java
+class Solution {
+    private static int dt(int v, int k) {
+        return v > k ? 1 : -1;
+    }
+
+    public int countSubarrays(int[] nums, int k) {
+        int n = nums.length, j = 0;
+        int b[] = new int[2 * n + 3], dt = n + 1;
+        for (int i = 0; i < n; ++i) {
+            if (nums[i] == k) {
+                j = i;
+                break;
+            }
+        }
+        ++b[0 + dt];
+        for (int i = j - 1, s = 0; i >= 0; --i) {
+            s += dt(nums[i], k);
+            ++b[s + dt];
+        }
+        int ans = b[dt] + b[1 + dt];
+        for (int i = j + 1, s = 0; i < n; ++i) {
+            s += dt(nums[i], k);
+            ans += b[-s + dt] + b[1 - s + dt];
+        }
+        return ans;
+    }
+}
+```
+
+
+
+##### 363\.矩形区域不超过k的最大数值和
+
+[题目](https://leetcode.cn/problems/max-sum-of-rectangle-no-larger-than-k/)
+
+先考虑对一维问题如何快速求解。即求 $s_r-s_l \le k$ 的最大解。可以枚举 $s_r$，然后约束条件转化为 $s_l\ge k-s_r$，显然满足约束的前提下，$s_l$ 越小越好。所以将已知 $s_l$ 存 set，找到大于等于 $k-s_r$ 的最小 $s_l$。
+
+拓展到二维，枚举矩形左上角和左下角，然后对固定的高，用上述技巧枚举宽。复杂度为 $O(n^2m\log m)$。空间复杂度可以做到 $O(m)$。
+
+```java
+class Solution {
+    public int maxSumSubmatrix(int[][] matrix, int k) {
+        int n = matrix.length, m = matrix[0].length;
+        int s[] = new int[m], ans = Integer.MIN_VALUE;// not ans=0
+        TreeSet<Integer> t = new TreeSet<>();
+        for (int i = 0; i < n; ++i) {
+            Arrays.fill(s, 0);
+            for (int j = i; j < n; ++j) {
+                for (int l = 0; l < m; ++l) {
+                    s[l] += matrix[j][l];
+                } // s[l]=sum matrix[i..j][l]
+                t.clear();
+                t.add(0);// 全选
+                for (int l = 0, sr = 0; l < m; ++l) {
+                    sr += s[l];
+                    Integer sl = t.ceiling(sr - k);
+                    if (sl != null) {
+                        ans = Math.max(ans, sr - sl);
+                    }
+                    if (ans == k) {
+                        return ans;// 神奇剪枝,不用也行
+                    }
+                    t.add(sr);
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+一种卡常暴力：
+
+```java
+class Solution {
+    public int maxSumSubmatrix(int[][] matrix, int k) {
+        // 先整理出每个点到原点的矩形面积，那么，两个点之间的矩形面积就很好算了
+        int m = matrix.length;
+        int n = matrix[0].length;
+
+        int max = Integer.MIN_VALUE;
+        // 固定一列，另外一列往右移动，计算sum，二维转一维求解
+        for (int first = 0; first < n; first++) {
+            int[] sum = new int[m];
+            for (int second = first; second < n; second++) {
+                for (int row = 0; row < m; row++) {
+                    sum[row] += matrix[row][second];
+                }
+                // 求sum中最接近k的连续子数组的和
+                max = Math.max(max, nearly(sum, k));
+                if (max == k) {
+                    return k;
+                }
+            }
+        }
+
+        return max;
+    }
+
+    private int nearly(int[] sum, int k) {
+        // 1,-3,2,1,-1,-2  4
+
+        // 求连续的正数和的最大值，如果小于等于k可以直接返回
+        int max = Integer.MIN_VALUE;
+        int currentMax = Integer.MIN_VALUE;
+        for (int i = 0; i < sum.length; i++) {
+            // 如果之前连续的和小于0，则重新计数
+            currentMax = Math.max(currentMax, 0) + sum[i];
+            max = Math.max(max, currentMax);
+            if (max == k) {
+                return k;
+            }
+        }
+
+        if (max < k) {
+            return max;
+        }
+
+        // 求[i,j]连续和
+        max = Integer.MIN_VALUE;
+        for (int i = 0; i < sum.length; i++) {
+            int currSum = 0;
+            for (int j = i; j < sum.length; j++) {
+                currSum += sum[j];
+                if (currSum == k) return k;
+                if (currSum < k) max = Math.max(max, currSum);
+            }
+        }
+
+        return max;
+    }
+}
+```
+
+
+
+##### 381\.O(1)时间插入、删除和获取随机元素-允许重复
+
+[题目](https://leetcode.cn/problems/insert-delete-getrandom-o1-duplicates-allowed/)
+
+截止23/3/18，时间 27ms(击败97.18%)，空间 88.6M(击败61.70%)
+
+因为要等概率抽取，所以考虑把所有元素存到名为 bin 的 arraylist / 静态数组里。然后 rand 一个下标读取，可以实现等概率。但是需要涉及删除，如果真删的话，又需要 $O(n)$ 的代价。所以考虑做假删除，即另设一个 bool 数组 alive 表示某个位置是否被删除。对每个删除，直接标 alive false 即可。那么要随机取时，就会取空，所以要不断 rand 直到 rand 的位置不为空为止。设当前数组长度是 $n$，alive true 总数是 $m$，那么平均需要抽取 $\dfrac nm$ 次才能抽中。如果 $m$ 极小，会退化为 $O(n)$ 的随机抽取代价。
+
+考虑当 $m$ 小到一定程度时，重新整理数组，把所有 alive false 位置删掉，即强行 resize 剔除全部空位，用双指针实现，需要 $O(n)$ 的复杂度每次，在这之后，$n$ 会降到为 $m$。考虑在 $mk < n$ 时进行整理操作。如果 $k$ 过大，则随机抽取的复杂度为 $O(k)$ 会很大。如果 $k$ 过小， 则可能需要频繁整理。当 $n$ 很大时，整理的代价比较大，不妨设 $k=10$。
+
+> 假设插入、删除操作和取随机操作等概率出现，则期望每次需要抽取 $O(k)$ 次才能抽中，且等效于每次插入就会出现一个空位，那么 $O(k)$ 次之后就会刷新一次，代价是 $O(n)$，即平均复杂度是 $O(k+\dfrac nk)$，所以理论上最好是 $k=\sqrt n$。简便起见，可以设 $k=\sqrt{2\times 10^5}=443$。则理论均摊复杂度为 $O(\sqrt n)$。但是考虑阴间数据，一次性插完后删到 $mk\approx 443$，然后不断随机询问，则复杂度比较大。但是如果 $k$ 比较小，比如 $k=2$，则随机抽取 $O(2)=O(1)$，但最坏可以卡到先插入 $x-1$ 个数据，然后不断插入 $x+1$ 个删除 $x+1$ 个，均摊下来也只是相当于二倍常数而已。所以对阴间数据，$k$ 小比较保险。
+>
+> 事实上本题数据弱，即便不整理也能过。我们直接设 $k=10$，经验表明，比 $k=2$ 快，但再提高 $k$ 没有显著提升。
+
+现在考虑插入和删除。需要 $O(1)$ 查存在，考虑 hashmap $h$，合并同值的所有 bin 下标，每个元素是 arraylist 或 hashset。因此在维护上述 bin 时，要增加维护 hashset，即每次插入 $v$ 时，先取得 bin 里下标 $i$，对 $h_v$ 插入 $i$。每次删除时，取出 $h_v$ 里任意一个 $i$ 进行删除。整理时重新初始化 $h$。随机访问不变。
+
+具体代码如下：
+
+```java
+class RandomizedCollection {
+    private int n, m;// 桶长,实际面积
+    private ArrayList<Integer> bin;
+    private ArrayList<Boolean> alive;
+    private HashMap<Integer, ArrayList<Integer>> h;// 套Arraylist即可
+    private static Random rand = new Random();
+
+    private int add(int v) {
+        bin.add(v);
+        alive.add(true);
+        ++n;
+        ++m;
+        return n - 1;
+    }
+
+    private void del(int i) {
+        alive.set(i, false);
+        --m;
+//        System.out.println(n + "+" + m);
+        if (m *10 < n) {
+           shrink();
+        }
+//        System.out.println(n + "-" + m);
+    }
+
+    private void shrink() {
+        h.clear();
+        for (int i = 0, j = 0; i < n; ++i) {
+            if (alive.get(i)) {
+                bin.set(j++, bin.get(i));
+            }
+            alive.set(i, false);
+        }
+        for (int i = n - 1; i >= m; --i) {
+            bin.remove(i);
+            alive.remove(i);
+        }
+        n=m;
+        for (int i = 0; i < n; ++i) {
+            alive.set(i, true);
+            int v = bin.get(i);
+            ArrayList<Integer> lt = h.get(v);
+            if (lt == null) {
+                lt = new ArrayList<>();
+                h.put(v, lt);
+            }
+            lt.add(i);
+        }
+    }
+
+    public RandomizedCollection() {
+        h = new HashMap<>();
+        bin = new ArrayList<>();
+        alive = new ArrayList<>();
+        n = 0;
+        m = 0;
+    }
+
+    public boolean insert(int val) {
+        ArrayList<Integer> lt = h.get(val);
+        int lts = 0;
+        if (lt == null) {
+            lt = new ArrayList<>();
+            h.put(val, lt);
+        } else {
+            lts = lt.size();
+        }
+        int pos = add(val);
+        lt.add(pos);
+        return lts == 0;
+    }
+
+    public boolean remove(int val) {
+        ArrayList<Integer> lt = h.get(val);
+        if (lt == null || lt.size() == 0) {
+//            System.out.println("Fatal");
+            return false;
+        }
+//        System.out.print(lt.size() + " ");
+        int pos = lt.get(lt.size() - 1);
+        lt.remove(lt.size() - 1);
+        del(pos);
+//        System.out.println(h.get(val).size());
+        return true;
+    }
+
+    public int getRandom() {
+        int ret = 0;
+//        System.out.println(n + " " + m);
+        while (true) {
+            int i = rand.nextInt(n);
+            if (alive.get(i)) {
+                ret = bin.get(i);
+//                del(i);
+//                h.get(ret).remove(i);
+                break;
+            }
+        }
+        return ret;
+    }
+}
+```
+
+题解解法：照常开 map 套 set 和 bin。插入直接维护。对删除，直接原地把 bin 的最后一个元素挪到要删除的位置，然后更新 map。
+
+````java
+class RandomizedCollection {
+    Map<Integer, Set<Integer>> idx;
+    List<Integer> nums;
+
+    /** Initialize your data structure here. */
+    public RandomizedCollection() {
+        idx = new HashMap<Integer, Set<Integer>>();
+        nums = new ArrayList<Integer>();
+    }
+    
+    /** Inserts a value to the collection. Returns true if the collection did not already contain the specified element. */
+    public boolean insert(int val) {
+        nums.add(val);
+        Set<Integer> set = idx.getOrDefault(val, new HashSet<Integer>());
+        set.add(nums.size() - 1);
+        idx.put(val, set);
+        return set.size() == 1;
+    }
+    
+    /** Removes a value from the collection. Returns true if the collection contained the specified element. */
+    public boolean remove(int val) {
+        if (!idx.containsKey(val)) {
+            return false;
+        }
+        Iterator<Integer> it = idx.get(val).iterator();  
+        int i = it.next();
+        int lastNum = nums.get(nums.size() - 1);
+        nums.set(i, lastNum);
+        idx.get(val).remove(i);
+        idx.get(lastNum).remove(nums.size() - 1);
+        if (i < nums.size() - 1) {
+            idx.get(lastNum).add(i);
+        }
+        if (idx.get(val).size() == 0) {
+            idx.remove(val);
+        }
+        nums.remove(nums.size() - 1);
+        return true;
+    }
+    
+    /** Get a random element from the collection. */
+    public int getRandom() {
+        return nums.get((int) (Math.random() * nums.size()));
+    }
+}
+````
+
+
+
+##### 391\.完美矩阵
+
+[题目](https://leetcode.cn/problems/perfect-rectangle/)
+
+将每个矩形看成是两条竖线，建立扫描线。按照 $x$ 排序。然后每次判断同一个 $x$ 的扫描线是否覆盖全部 $y$，即离散化后所有取值范围，并且每个 $y$ 段覆盖且仅覆盖一次。
+
+考虑快速判断上述要求，不妨建立线段树，维护区间最大最小值。则根节点的最大值和最小值都为 1 即可。不可以维护区间和，因为空段可以被重复段作伪导致看起来和是均 1。然后需要支持区间加法维护，所以加懒标记。
+
+因为需要维护线段树，所以 $y$ 的跨度不建议太大，可以考虑离散化。这题不离散化也行。
+
+离散化后，总复杂度为 $O(n\log n)$，空间复杂度为 $O(4n)$。
+
+```java
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.TreeSet;
+
+class segtree {// 维护区间加法，求根节点最大最小值
+    private int mi[], mx[], n, lazy[];
+
+    public segtree(int n) {
+        this.n = n;
+        n *= 4;
+        mi = new int[n];
+        mx = new int[n];
+        lazy = new int[n];
+    }
+
+    private void pushdown(int p) {
+        int lfs = p << 1, rfs = p << 1 | 1;
+        lazy[lfs] += lazy[p];
+        lazy[rfs] += lazy[p];
+        mi[lfs] += lazy[p];
+        mx[lfs] += lazy[p];
+        mi[rfs] += lazy[p];
+        mx[rfs] += lazy[p];
+        lazy[p] = 0;
+    }
+
+    private void pushup(int p) {
+        int lfs = p << 1, rfs = p << 1 | 1;
+        mi[p] = Math.min(mi[lfs], mi[rfs]);
+        mx[p] = Math.max(mx[lfs], mx[rfs]);
+    }
+
+    private void upd(int p, int lf, int rf, int lc, int rc, int v) {
+//        System.out.println("upd " + p + " " + lf + " " + rf);
+        if (lc <= lf && rc >= rf) {
+            lazy[p] += v;
+            mi[p] += v;
+            mx[p] += v;
+            return;
+        }
+        pushdown(p);
+        int cf = (lf + rf) >> 1, lfs = p << 1, rfs = p << 1 | 1;
+        if (cf >= lc) {
+            upd(lfs, lf, cf, lc, rc, v);
+        }
+        if (cf + 1 <= rc) {
+            upd(rfs, cf + 1, rf, lc, rc, v);
+        }
+        pushup(p);
+//        System.out.println("upd " + lf + " " + rf + " " + mi[p] + " " + mx[p]);
+    }
+
+    public void add(int lc, int rc, int v) {
+//        System.out.println("add " + lc + " " + rc + " " + v);
+        upd(1, 0, n - 1, lc, rc, v);
+//        System.out.println("res " + mi[1] + " " + mx[1]);
+    }
+
+    public boolean check() {
+        return mi[1] == 1 && mx[1] == 1;
+    }
+}
+
+class Solution {
+    public boolean isRectangleCover(int[][] a) {
+        int n = a.length;
+        // 离散化
+        TreeSet<Integer> h = new TreeSet<>();
+        for (int i = 0; i < n; ++i) {
+            for (int j = 1; j < 4; j += 2) {
+                h.add(a[i][j]);
+            }
+        }
+        int ha[] = new int[h.size()];
+        Iterator<Integer> it = h.iterator();
+        for (int i = 0, ie = ha.length; i < ie; ++i) {
+            ha[i] = it.next();
+        }
+        for (int i = 0; i < n; ++i) {
+            for (int j = 1; j < 4; j += 2) {
+                a[i][j] = Arrays.binarySearch(ha, a[i][j]);
+            }
+        }
+
+        int b[][] = new int[n * 2 + 1][4];// ymin,ymax,x,in/out
+        for (int i = 0, j = 0; i < n * 2; i += 2, ++j) {
+            b[i][0] = b[i + 1][0] = a[j][1];
+            b[i][1] = b[i + 1][1] = a[j][3];
+            b[i][2] = a[j][0];
+            b[i + 1][2] = a[j][2];
+            b[i][3] = 1;
+            b[i + 1][3] = -1;
+        }
+        b[2 * n][2] = Integer.MAX_VALUE;
+        Arrays.sort(b, new Comparator<int[]>() {
+            @Override
+            public int compare(int[] o1, int[] o2) {
+                return o1[2] - o2[2];
+            }
+        });
+
+        segtree tr = new segtree(ha.length - 1);
+        for (int i = 0; i < 2 * n; ++i) {
+            int ymi = b[i][0], ymx = b[i][1], v = b[i][3];
+            tr.add(ymi, ymx - 1, v);
+            if (i + 1 < 2 * n && b[i][2] != b[i + 1][2]) {
+                if (!tr.check()) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+}
+```
+
+纯扫描线解法：两关键字排序，然后拆为 $x$ 相同的组，对每一组，合并连续线段，得到若干不连续线段。按照出入分类。最开始和最末尾，必须有且仅有一条全长线段。对其他情况，比如出入分别完全重合。即判断出入两个线段组是否完全重合，不是的话不合法。
+
+```java
+class Solution {
+    public boolean isRectangleCover(int[][] rectangles) {
+        int n = rectangles.length;
+        int[][] rs = new int[n * 2][4];
+        for (int i = 0, idx = 0; i < n; i++) {
+            int[] re = rectangles[i];
+            rs[idx++] = new int[]{re[0], re[1], re[3], 1};
+            rs[idx++] = new int[]{re[2], re[1], re[3], -1};
+        }
+        Arrays.sort(rs, (a,b)->{
+            if (a[0] != b[0]) return a[0] - b[0];
+            return a[1] - b[1];
+        });
+        n *= 2;
+        // 分别存储相同的横坐标下「左边的线段」和「右边的线段」 (y1, y2)
+        List<int[]> l1 = new ArrayList<>(), l2 = new ArrayList<>(); 
+        for (int l = 0; l < n; ) {
+            int r = l;
+            l1.clear(); l2.clear();
+            // 找到横坐标相同部分
+            while (r < n && rs[r][0] == rs[l][0]) r++;
+            for (int i = l; i < r; i++) {
+                int[] cur = new int[]{rs[i][1], rs[i][2]};
+                List<int[]> list = rs[i][3] == 1 ? l1 : l2;
+                if (list.isEmpty()) {
+                    list.add(cur);
+                } else {
+                    int[] prev = list.get(list.size() - 1);
+                    if (cur[0] < prev[1]) return false; // 存在重叠
+                    else if (cur[0] == prev[1]) prev[1] = cur[1]; // 首尾相连
+                    else list.add(cur); 
+                }
+            }
+            if (l > 0 && r < n) {
+                // 若不是完美矩形的边缘竖边，检查是否成对出现
+                if (l1.size() != l2.size()) return false;
+                for (int i = 0; i < l1.size(); i++) {
+                    if (l1.get(i)[0] == l2.get(i)[0] && l1.get(i)[1] == l2.get(i)[1]) continue;
+                    return false;
+                }
+            } else {
+                // 若是完美矩形的边缘竖边，检查是否形成完整一段
+                if (l1.size() + l2.size() != 1) return false;
+            }
+            l = r;
+        }
+        return true;
+    }
+}
+```
+
+官解：满足①大矩形面积是各矩形面积之和；②除了大矩形四个顶点外，每个点的重合度仅能是2或4。
+
+```java
+class Solution {
+    public boolean isRectangleCover(int[][] rectangles) {
+        long area = 0;
+        int minX = rectangles[0][0], minY = rectangles[0][1], maxX = rectangles[0][2], maxY = rectangles[0][3];
+        Map<Point, Integer> cnt = new HashMap<Point, Integer>();
+        for (int[] rect : rectangles) {
+            int x = rect[0], y = rect[1], a = rect[2], b = rect[3];
+            area += (long) (a - x) * (b - y);
+
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, a);
+            maxY = Math.max(maxY, b);
+
+            Point point1 = new Point(x, y);
+            Point point2 = new Point(x, b);
+            Point point3 = new Point(a, y);
+            Point point4 = new Point(a, b);
+
+            cnt.put(point1, cnt.getOrDefault(point1, 0) + 1);
+            cnt.put(point2, cnt.getOrDefault(point2, 0) + 1);
+            cnt.put(point3, cnt.getOrDefault(point3, 0) + 1);
+            cnt.put(point4, cnt.getOrDefault(point4, 0) + 1);
+        }
+
+        Point pointMinMin = new Point(minX, minY);
+        Point pointMinMax = new Point(minX, maxY);
+        Point pointMaxMin = new Point(maxX, minY);
+        Point pointMaxMax = new Point(maxX, maxY);
+        if (area != (long) (maxX - minX) * (maxY - minY) || cnt.getOrDefault(pointMinMin, 0) != 1 || cnt.getOrDefault(pointMinMax, 0) != 1 || cnt.getOrDefault(pointMaxMin, 0) != 1 || cnt.getOrDefault(pointMaxMax, 0) != 1) {
+            return false;
+        }
+
+        cnt.remove(pointMinMin);
+        cnt.remove(pointMinMax);
+        cnt.remove(pointMaxMin);
+        cnt.remove(pointMaxMax);
+
+        for (Map.Entry<Point, Integer> entry : cnt.entrySet()) {
+            int value = entry.getValue();
+            if (value != 2 && value != 4) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+class Point {
+    int x;
+    int y;
+
+    public Point(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    @Override
+    public int hashCode() {
+        return x + y;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Point) {
+            Point point2 = (Point) obj;
+            return this.x == point2.x && this.y == point2.y;
+        }
+        return false;
+    }
+}
+```
+
+格林公式：[参考](https://leetcode.cn/problems/perfect-rectangle/solution/ge-lin-gong-shi-shuang-chao-100-by-aijk-h7x6/)
+
+
+
+##### 403\.青蛙过河
+
+[题目](https://leetcode.cn/problems/frog-jump/)
+
+截止 2023/2/20，时间 98%(11ms)，空间 94%(43.8MB)
+
+记忆化搜索，每个点以 $k$ 记忆化。显然每个点最多有 $k$ 个记忆化状态，所以复杂度最坏为 $O(n^2)$。因为显然有很多状态用不上，考虑用 set 常数优化。
+
+```java
+class Solution {
+    private int n, s[];
+    private HashSet<Integer> vis[];
+    private HashMap<Integer, Integer> h;
+
+    private void dfs(int v, int k) {
+        Integer i = h.get(v);
+        if (i == null) {
+            return;
+        }
+        if (vis[i].contains(k) || vis[n - 1].size() > 0 || k < 0) {
+            return;
+        }
+        vis[i].add(k);
+        dfs(v + k, k);
+        dfs(v + k - 1, k - 1);
+        dfs(v + k + 1, k + 1);
+    }
+
+    @SuppressWarnings("unchecked")
+    public boolean canCross(int[] stones) {
+        n = stones.length;
+        s = stones;
+        vis = new HashSet[n];
+        h = new HashMap<>();
+        for (int i = 0; i < n; ++i) {
+            vis[i] = new HashSet<>();
+            h.put(s[i], i);
+        }
+        dfs(0, 0);
+        return vis[n - 1].size() > 0;
+    }
+}
+```
+
+
+
+##### 407\.接雨水II
+
+[题目](https://leetcode.cn/problems/trapping-rain-water-ii/)
+
+BFS：$O(n^2m^2)$。
+
+```java
+class Solution {
+    public int trapRainWater(int[][] heightMap) {
+        int m = heightMap.length;
+        int n = heightMap[0].length;
+        int[] dirs = {-1, 0, 1, 0, -1}; //[:4]dx [1:]dy
+        int maxHeight = 0;
+        
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                maxHeight = Math.max(maxHeight, heightMap[i][j]);
+            }
+        }
+        int[][] water = new int[m][n];
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j){
+                water[i][j] = maxHeight;      
+            }
+        }  
+        Queue<int[]> qu = new LinkedList<>();
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (i == 0 || i == m - 1 || j == 0 || j == n - 1) { //最外围一圈
+                    if (water[i][j] > heightMap[i][j]) {
+                        water[i][j] = heightMap[i][j];
+                        qu.offer(new int[]{i, j});
+                    } //这一格可以倒水进去
+                }
+            }
+        } 
+        while (!qu.isEmpty()) {
+            int[] curr = qu.poll();
+            int x = curr[0];
+            int y = curr[1];
+            for (int i = 0; i < 4; ++i) {
+                int nx = x + dirs[i], ny = y + dirs[i + 1]; //非常巧妙的方向枚举
+                if (nx < 0 || nx >= m || ny < 0 || ny >= n) {
+                    continue;
+                }
+                //如果不合理(nx,ny的水会往当前地方流失)，就流走
+                if (water[x][y] < water[nx][ny] && water[nx][ny] > heightMap[nx][ny]) {
+                    water[nx][ny] = Math.max(water[x][y], heightMap[nx][ny]);
+                    qu.offer(new int[]{nx, ny});
+                }//溯源，当前不合理可能还有其他不合理
+            }
+        }
+
+        int res = 0;
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                res += water[i][j] - heightMap[i][j];
+            }
+        }
+        return res;
+    }
+}
+```
+
+更优的实现，小根堆优化：$O(nm\log(nm))$。
+
+```java
+class Solution {
+    public int trapRainWater(int[][] heightMap) {
+        if (heightMap.length <= 2 || heightMap[0].length <= 2) {
+            return 0;
+        }
+        int m = heightMap.length;
+        int n = heightMap[0].length;
+        boolean[][] visit = new boolean[m][n];
+        PriorityQueue<int[]> pq = new PriorityQueue<>((o1, o2) -> o1[1] - o2[1]); //小根堆
+
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (i == 0 || i == m - 1 || j == 0 || j == n - 1) {
+                    pq.offer(new int[]{i * n + j, heightMap[i][j]}); //从这里开始最高能装多少水
+                    visit[i][j] = true;
+                }
+            }
+        }
+        int res = 0;
+        int[] dirs = {-1, 0, 1, 0, -1};
+        while (!pq.isEmpty()) {
+            int[] curr = pq.poll();
+            for (int k = 0; k < 4; ++k) {
+                int nx = curr[0] / n + dirs[k];
+                int ny = curr[0] % n + dirs[k + 1];
+                if (nx >= 0 && nx < m && ny >= 0 && ny < n && !visit[nx][ny]) {
+                    if (curr[1] > heightMap[nx][ny]) {
+                        res += curr[1] - heightMap[nx][ny];
+                    }
+                    pq.offer(new int[]{nx * n + ny, Math.max(heightMap[nx][ny], curr[1])}); //如果更高还能继续蓄水
+                    visit[nx][ny] = true;
+                }
+            }
+        }
+        return res;
+    }
+}
+```
 
 
 
