@@ -245,6 +245,26 @@
 - 407\.接雨水II
 
   **BFS+堆优化**
+  
+- 1626\.无矛盾的最佳球队
+
+  DP <u>+树状数组优化</u>
+  
+- 410\.分割数组的最大值
+
+  二分答案+贪心 / <u>DP</u>
+
+- 1630\.等差子数组
+
+  模拟 / <u>数学优化</u>
+
+- 420\.强密码检测器
+
+  **思维**
+  
+- 1032\.字符流
+
+  <u>AC自动机</u> / 字符串哈希
 
 
 
@@ -7047,6 +7067,677 @@ class Solution {
     }
 }
 ```
+
+
+
+##### 1626\.无矛盾的最佳球队
+
+[题目](https://leetcode.cn/problems/split-array-largest-sum/)
+
+将原数组看成结构体 $(score, age)$，然后按 $age$ 排序。排序后，转化为最大和不下降子序列问题，用 DP。之后设 $dp_i$ 表示只考虑排序后前 $i$ 个队员组队的最大分数， 则答案为 $\max dp$。转移方程是，枚举前面所有人的 $dp$，如果 score 不大于自己，就可以更新为 $dp_i=score_i+dp_j$。
+
+复杂度为 $O(n^2)$。
+
+```rust
+impl Solution {
+    pub fn best_team_score(scores: Vec<i32>, ages: Vec<i32>) -> i32 {
+        let n = scores.len();
+        let mut pr: Vec<(i32, i32)> = scores
+        .iter()
+        .zip(ages.iter())
+        .map(|(&a, &b)| (a, b))
+        .collect();
+        use std::cmp::Ordering;
+        pr.sort_by(|a, b| {
+            let cmp = a.1.cmp(&b.1);
+            if cmp == Ordering::Equal {
+                a.0.cmp(&b.0)
+            } else {
+                cmp
+            }
+        });
+        let mut dp = vec![0; n];
+        let mut ans = 0;
+        for i in 0..n {
+            let mut mx = 0;
+            for j in 0..i {
+                if pr[j].0 <= pr[i].0 {
+                    mx = mx.max(dp[j]);
+                }
+            }
+            dp[i] = mx + pr[i].0;
+            ans = ans.max(dp[i]);
+        }
+        ans
+    }
+}
+```
+
+对区间求 max，可以用树状数组优化，此处略，则 $O(n\log n)$。
+
+> 假算法：所有同 age 合并在桶里，然后类似 DP，不用排序。样例就过不去了。
+
+
+
+##### 410\.分割数组的最大值
+
+[题目](https://leetcode.cn/problems/split-array-largest-sum/)
+
+对二分答案的题解进行补充解释。
+
+注意到一个事实，设约定子数组最大值不超过 $cf$，然后贪心地取每个子数组的长度使其尽可能的长，此时能够得到最小的区间数 $m'$。如果 $m' \le m$，那么一定可以拆分其中的若干个子数组，使其满足 $m'=m$，所以只要贪心找 $m'$ 发现 $m' > m$，无论如何不满足，只需 $lf=cf+1$ 调整左边界，以调整最大值大小。否则，一定满足题意，考虑找更小的答案。
+
+注意到显然 $rf=\sum nums$，且最坏情况下每个元素成子数组，有 $lf=\max nums$。在 $m\le n$ 的情况下，一定能在最坏情况更新至少一次 $ans$。
+
+复杂度为 $O(n\log\max a)$。
+
+```rust
+impl Solution {
+    pub fn split_array(nums: Vec<i32>, k: i32) -> i32 {
+        let mut lf = *nums.iter().max().unwrap();
+        let mut rf = nums.iter().sum();
+        let mut ans = std::i32::MAX;
+        while lf <= rf {
+            let cf = lf + (rf - lf) / 2;
+            let mut cnt = 1;
+            let mut sum = 0;
+            for i in 0..nums.len() {
+                if sum + nums[i] > cf {
+                    sum = nums[i];
+                    cnt += 1;
+                } else {
+                    sum += nums[i];
+                }
+            }
+            if cnt > k {
+                lf = cf + 1;
+            } else {
+                ans = ans.min(cf);
+                rf = cf - 1;
+            }
+        }
+        ans
+    }
+}
+```
+
+DP 解法：设 $dp_{i,j}$ 表示前 $i$ 个数分成 $j$ 段得到的答案，即求 $dp_{n,m}$。递推方程为：
+$$
+dp_{i,j}=\min_{k=0}^{i-1}\max(dp_{k,j-1},\sum_{l=k+1}^ia_l)
+$$
+也就是说将 $[k+1,i]$ 分成一个子数组，然后剩余部分 $[1,k]$ 分成 $j-1$ 个子数组。用前缀和优化，复杂度为 $O(n^2m)=O(n^3)$。
+
+```java
+class Solution {
+    public int splitArray(int[] nums, int m) {
+        int n = nums.length;
+        int[][] f = new int[n + 1][m + 1];
+        for (int i = 0; i <= n; i++) {
+            Arrays.fill(f[i], Integer.MAX_VALUE);
+        }
+        int[] sub = new int[n + 1];
+        for (int i = 0; i < n; i++) {
+            sub[i + 1] = sub[i] + nums[i];
+        }
+        f[0][0] = 0;
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= Math.min(i, m); j++) {
+                for (int k = 0; k < i; k++) {
+                    f[i][j] = Math.min(f[i][j], Math.max(f[k][j - 1], sub[i] - sub[k]));
+                }
+            }
+        }
+        return f[n][m];
+    }
+}
+```
+
+
+
+##### 1630\.等差子数组
+
+[题目](https://leetcode.cn/problems/arithmetic-subarrays/)
+
+可以暴力 sort 验证：
+
+```rust
+impl Solution {
+    pub fn check_arithmetic_subarrays(nums: Vec<i32>, l: Vec<i32>, r: Vec<i32>) -> Vec<bool> {
+        let n = nums.len();
+        let m = l.len();
+        let mut ans = vec![false; m]; //not n
+        for i in 0..m {
+            let li = l[i] as usize; //强转
+            let ri = r[i] as usize;
+            let mut a = nums[li..=ri].to_vec();//切片返回迭代器转vec
+            a.sort();
+            let mut ok = true;
+            let d = a[1] - a[0];
+            for j in 2..a.len() {
+                if a[j] - a[j - 1] != d {
+                    ok = false;
+                    break; //剪
+                }
+            }
+            ans[i] = ok;
+        }
+        ans
+    }
+}
+```
+
+优化：先找到 $[l,r]$ 内最小值 $mi$、最大值 $mx$(可以 ST 表优化)，如果不能被 $r-l$ 整除，就没有公差。否则，直接求出 $d=\dfrac{mx-mi}{r-l}$，然后对每个数 $v$，判断 $v-mi$ 是否是 $d$ 的倍数，并且快速求出当前 $v$ 是第几项即 $i=\dfrac{v-mi}{d}$，必须保证项不重，例如 `1 2 2 3` 不是等差。可以用桶来实现。复杂度为 $O(r-l)=O(m)$。故总复杂度为 $O(nm)$。
+
+```java
+class Solution {
+    public List<Boolean> checkArithmeticSubarrays(int[] nums, int[] l, int[] r) {
+        int n = l.length;
+        List<Boolean> ans = new ArrayList<Boolean>();
+        for (int i = 0; i < n; ++i) {
+            int left = l[i], right = r[i];
+            int minv = nums[left], maxv = nums[left];
+            for (int j = left + 1; j <= right; ++j) {
+                minv = Math.min(minv, nums[j]);
+                maxv = Math.max(maxv, nums[j]);
+            }
+
+            if (minv == maxv) {
+                ans.add(true);
+                continue;
+            }
+            if ((maxv - minv) % (right - left) != 0) {
+                ans.add(false);
+                continue;
+            }
+
+            int d = (maxv - minv) / (right - left);
+            boolean flag = true;
+            boolean[] seen = new boolean[right - left + 1];
+            for (int j = left; j <= right; ++j) {
+                if ((nums[j] - minv) % d != 0) {
+                    flag = false;
+                    break;
+                }
+                int t = (nums[j] - minv) / d;
+                if (seen[t]) {
+                    flag = false;
+                    break;
+                }
+                seen[t] = true;
+            }
+            ans.add(flag);
+        }
+        return ans;
+    }
+}
+```
+
+
+
+##### 420\.强密码检测器
+
+[题目](https://leetcode.cn/problems/strong-password-checker/)
+
+对小于 $6$ 个字符时，易知只有添加字符有意义，设长为 $n$，种类为 $m$，最多添加 $\max(6-n,3-m)$ 个字符。
+
+对在 $[6,20]$ 个字符时，只有修改一个字符有意义，对连续 $k$ 个相同，替换掉 $\sum\lfloor\dfrac k3\rfloor$ 个。
+
+对大于 $20$ 个字符时，需要修改或删除。考虑全 `a`，显然又要删又要改。
+
+- 若 $k\bmod 3=0$，则删除一个字符后，$\lfloor\dfrac k3\rfloor$ 马上减一
+- 若 $k\bmod 3=1$，删除两个字符后才能减一
+- 若 $k\bmod 3=2$，删除三个字符后才能减一
+
+因此，要删时，优先从 $k\bmod 3=0$ 删，然后从 $=1$ 删，最后从 $=2$ 删。对 $k=1$ 考虑到删了之后可能会造成新的 $k\ge 3$，如 `aabaa` 的 `b`，所以合法时，优先删除 $k=2$。删到余 $20$ 时，再考虑修改。
+
+一天速成 rust 语言的自己的极其繁琐的实现代码：
+
+```rust
+mod lc420s {
+    fn insert(str_slice: &str, idx: usize, ch: char) -> String {
+        let mut new_str = String::with_capacity(str_slice.len() + 1);
+        new_str.push_str(&str_slice[..idx]);
+        new_str.push(ch);
+        new_str.push_str(&str_slice[idx..]);
+        new_str
+    }
+    fn get_index_ranges(input: &str) -> Vec<[usize; 2]> {
+        let mut ranges = vec![];
+        let mut start = 0;
+        let mut end = 0;
+        for (i, c) in input.char_indices() {
+            if i > 0 && c != input.chars().nth(i - 1).unwrap() {
+                ranges.push([start, end]);
+                start = i;
+            }
+            end = i;
+        }
+        ranges.push([start, end]);
+        ranges
+    }
+    fn remove(s: &str, index: usize) -> String {
+        let mut chars: Vec<char> = s.chars().collect();
+        chars.remove(index);
+        chars.iter().collect()
+    }
+    fn get_bin(v: &Vec<[usize; 2]>) -> [Vec<usize>; 6] {
+        let mut arr: [Vec<usize>; 6] = Default::default();
+        for i in 0..v.len() {
+            let len = v[i][1] - v[i][0] + 1;
+            if len <= 2 {
+                arr[len].push(i);
+            } else {
+                arr[len % 3 + 3].push(i);
+            }
+        }
+        arr
+    }
+    fn get_mid(rng: &[usize; 2]) -> usize {
+        (rng[0] + rng[1] + 1) / 2
+    }
+    fn get_len(rng: &[usize; 2]) -> usize {
+        rng[1] - rng[0] + 1
+    }
+
+    pub struct Solution {
+        has_lower: bool,
+        has_upper: bool,
+        has_digit: bool,
+        psw: String,
+        n: usize,
+        res: i32,
+    }
+    impl Solution {
+        pub fn new(password: &str) -> Self {
+            let has_lower = password.chars().any(|c| c.is_ascii_lowercase());
+            let has_upper = password.chars().any(|c| c.is_ascii_uppercase());
+            let has_digit = password.chars().any(|c| c.is_ascii_digit());
+            Solution {
+                has_lower,
+                has_upper,
+                has_digit,
+                psw: String::from(password),
+                n: password.len(),
+                res: 0,
+            }
+        }
+        fn insert_any(&mut self, idx: usize) {
+            let mut prv = '_';
+            if idx > 0 {
+                prv = self.psw.chars().nth(idx - 1).unwrap();
+            }
+            let mut nxt = '_';
+            if idx < self.psw.len() {
+                nxt = self.psw.chars().nth(idx).unwrap();
+            }
+            if !self.has_lower {
+                self.has_lower = true;
+                if prv != 'a' && nxt != 'a' {
+                    self.psw = insert(&self.psw, idx, 'a')
+                } else if prv != 'b' && nxt != 'b' {
+                    self.psw = insert(&self.psw, idx, 'b')
+                } else {
+                    self.psw = insert(&self.psw, idx, 'c')
+                }
+            } else if !self.has_upper {
+                self.has_upper = true;
+                if prv != 'A' && nxt != 'A' {
+                    self.psw = insert(&self.psw, idx, 'A')
+                } else if prv != 'B' && nxt != 'B' {
+                    self.psw = insert(&self.psw, idx, 'B')
+                } else {
+                    self.psw = insert(&self.psw, idx, 'C')
+                }
+            } else {
+                self.has_digit = true;
+                if prv != '0' && nxt != '0' {
+                    self.psw = insert(&self.psw, idx, '0')
+                } else if prv != '1' && nxt != '1' {
+                    self.psw = insert(&self.psw, idx, '1')
+                } else {
+                    self.psw = insert(&self.psw, idx, '2')
+                }
+            }
+            self.n += 1;
+            self.res += 1;
+        }
+        fn remove(&mut self, idx: usize) {
+            self.psw = remove(&self.psw, idx);
+            self.n -= 1;
+            self.res += 1;
+        }
+        fn remove_any(&mut self) {
+            let rng = get_index_ranges(&self.psw);
+            let bin = get_bin(&rng);
+            let order = vec![3, 4, 5, 2, 1];
+            for j in 0..order.len() {
+                let i = order[j];
+                if bin[i].len() > 0 {
+                    self.remove(get_mid(&rng[bin[i][0]]));
+                    break;
+                }
+            }
+            // if bin[3].len() > 0 {
+            //     self.remove(get_mid(&rng[bin[3][0]]));
+            // } else if bin[4].len() > 0 {
+            //     self.remove(get_mid(&rng[bin[4][0]]));
+            // } else if bin[5].len() > 0 {
+            //     self.remove(get_mid(&rng[bin[5][0]]));
+            // } else if bin[2].len() > 0 {
+            //     self.remove(get_mid(&rng[bin[2][0]]));
+            // } else {
+            //     self.remove(get_mid(&rng[bin[1][0]]));
+            // }
+        }
+        fn update_any(&mut self, idx: usize) {
+            self.insert_any(idx);
+            self.remove(idx + 1);
+            self.res -= 1;
+        }
+        fn update_cnt(&mut self, rng: &[usize; 2]) {
+            let mut l = rng[0] + 2;
+            let r = rng[1];
+            while l <= r {
+                self.update_any(l);
+                l += 3;
+            }
+        }
+        pub fn strong_password_checker(password: String) -> i32 {
+            let mut sol = Solution::new(&password);
+            if sol.n < 6 {
+                let rng = get_index_ranges(&sol.psw);
+                for i in 0..rng.len() {
+                    if get_len(&rng[i]) >= 3 {
+                        sol.insert_any(get_mid(&rng[i]));
+                    }
+                }
+                while sol.n < 6 {
+                    sol.insert_any(0);
+                }
+            }
+            while sol.n > 20 {
+                sol.remove_any();
+            }
+            loop {
+                let rng = get_index_ranges(&sol.psw);
+                let bin = get_bin(&rng);
+                let order = vec![3, 4, 5];
+                let mut fix = false;
+                for j in 0..order.len() {
+                    let i = order[j];
+                    for k in 0..bin[i].len() {
+                        sol.update_cnt(&rng[bin[i][k]]);
+                        fix = true;
+                    }
+                    // if bin[i].len() > 0 {
+                    // bin[i].sort_by(|&x, &y| rng[x][0].cmp(&rng[y][0]));
+                    // println!("mid {}",get_mid(&rng[bin[i][0]]));
+                    // sol.update_any(get_mid(&rng[bin[i][0]]));
+                    // }
+                }
+                if !fix {
+                    break;
+                }
+            }
+            while !sol.has_digit || !sol.has_lower || !sol.has_upper {
+                sol.insert_any(0);
+            }
+            //println!("psw = {}", sol.psw);
+            sol.res
+        }
+    }
+}
+impl Solution {
+    pub fn strong_password_checker(password: String) -> i32 {
+        lc420s::Solution::strong_password_checker(password)
+    }
+}
+```
+
+题解的优雅的实现：(不做真的修改，只统计修改次数)
+
+```java
+class Solution {
+    public int strongPasswordChecker(String password) {
+        int n = password.length();
+        int hasLower = 0, hasUpper = 0, hasDigit = 0;
+        for (int i = 0; i < n; ++i) {
+            char ch = password.charAt(i);
+            if (Character.isLowerCase(ch)) {
+                hasLower = 1;
+            } else if (Character.isUpperCase(ch)) {
+                hasUpper = 1;
+            } else if (Character.isDigit(ch)) {
+                hasDigit = 1;
+            }
+        }
+        int categories = hasLower + hasUpper + hasDigit;
+
+        if (n < 6) {
+            return Math.max(6 - n, 3 - categories);
+        } else if (n <= 20) {
+            int replace = 0;
+            int cnt = 0;
+            char cur = '#';
+
+            for (int i = 0; i < n; ++i) {
+                char ch = password.charAt(i);
+                if (ch == cur) {
+                    ++cnt;
+                } else {
+                    replace += cnt / 3;
+                    cnt = 1;
+                    cur = ch;
+                }
+            }
+            replace += cnt / 3;
+            return Math.max(replace, 3 - categories);
+        } else {
+            // 替换次数和删除次数
+            int replace = 0, remove = n - 20;
+            // k mod 3 = 1 的组数，即删除 2 个字符可以减少 1 次替换操作
+            int rm2 = 0;
+            int cnt = 0;
+            char cur = '#';
+
+            for (int i = 0; i < n; ++i) {
+                char ch = password.charAt(i);
+                if (ch == cur) {
+                    ++cnt;
+                } else {
+                    if (remove > 0 && cnt >= 3) {
+                        if (cnt % 3 == 0) {
+                            // 如果是 k % 3 = 0 的组，那么优先删除 1 个字符，减少 1 次替换操作
+                            --remove;
+                            --replace;
+                        } else if (cnt % 3 == 1) {
+                            // 如果是 k % 3 = 1 的组，那么存下来备用
+                            ++rm2;
+                        }
+                        // k % 3 = 2 的组无需显式考虑
+                    }
+                    replace += cnt / 3;
+                    cnt = 1;
+                    cur = ch;
+                }
+            }
+            if (remove > 0 && cnt >= 3) {
+                if (cnt % 3 == 0) {
+                    --remove;
+                    --replace;
+                } else if (cnt % 3 == 1) {
+                    ++rm2;
+                }
+            }
+            replace += cnt / 3;
+
+            // 使用 k % 3 = 1 的组的数量，由剩余的替换次数、组数和剩余的删除次数共同决定
+            int use2 = Math.min(Math.min(replace, rm2), remove / 2);
+            replace -= use2;
+            remove -= use2 * 2;
+            // 由于每有一次替换次数就一定有 3 个连续相同的字符（k / 3 决定），因此这里可以直接计算出使用 k % 3 = 2 的组的数量
+            int use3 = Math.min(replace, remove / 3);
+            replace -= use3;
+            remove -= use3 * 3;
+            return (n - 20) + Math.max(replace, 3 - categories);
+        }
+    }
+}
+```
+
+
+
+##### 1032\.字符流
+
+[题目](https://leetcode.cn/problems/stream-of-characters/)
+
+rust 战绩(截止2023-3-24 15:00) 160ms(击败100%) 20MB(击败100%)
+
+凭借 acm 的经验一眼 ACAM，但是我太蒟蒻了不知道怎么多次匹配。所以直接无脑哈希了：
+
+维护字符串哈希 $h$ 及幂数组 $p_i=37^i$。则可以计算任意子串哈希为 $h_r-h_{l-1}37^{r-l+1}$。枚举全体 words，得到子串是 $[n-|words_i|+1,n]$ 范围，直接计算哈希，并与 $words_i$ 预处理的哈希进行比较。设 $m$ 是 $words$ 个数，理论上每次查询的复杂度是 $O(m)$，有 $q$ 次询问则总复杂度为 $O(mq)=O(200\times 4\times 10^4)=8\times 10^6$。
+
+考虑进行阴湿的剪枝卡常，将 $words$ 按最后一个字符拆分为 $26$ 组，每次只遍历与 $letter$ 相同的那一组，如果数据随机，理论上可以优化提速 $26$ 倍。如果更阴湿一点，可以结合  trie，在 trie 上走一半然后再对 $words$ 里满足这一半后缀的全体进行遍历。这里懒没这么做了。
+
+> 不考虑只使用 trie，因为可以被卡到复杂度为 $O(q\max |words_i|)=8\times 10^7$。
+
+```rust
+const P: usize = 37;
+const DT: usize = 'a' as usize;
+fn hash(s: &str) -> usize {
+    let mut h = 0 as usize;
+    for i in 0..s.len() {
+        h = h.wrapping_mul(P);
+        h = h.wrapping_add(s.chars().nth(i).unwrap() as usize - DT);
+    }
+    h
+}
+
+struct StreamChecker {
+    s: [Vec<usize>; 26],
+    len: [Vec<usize>; 26],
+    h: Vec<usize>,
+    p: Vec<usize>,
+}
+
+impl StreamChecker {
+    fn new(words: Vec<String>) -> Self {
+        let mut s: [Vec<usize>; 26] = Default::default();
+        let mut len: [Vec<usize>; 26] = Default::default();
+        for i in 0..words.len() {
+            let ch = words[i].chars().nth(words[i].len() - 1).unwrap();
+            let lch = ch as usize - DT;
+            s[lch].push(hash(&words[i]));
+            len[lch].push(words[i].len());
+        }
+        let h: Vec<usize> = vec![0];
+        let p: Vec<usize> = vec![1];
+        StreamChecker { s, len, h, p }
+    }
+
+    fn hash(&self, l: usize, r: usize) -> usize {
+        let n = r - l + 1;
+        self.h[r].wrapping_sub(self.h[l - 1].wrapping_mul(self.p[n]))
+    }
+
+    fn query(&mut self, letter: char) -> bool {
+        let newh = self.h[self.h.len() - 1]
+            .wrapping_mul(P)
+            .wrapping_add(letter as usize - DT);
+        self.h.push(newh);
+        let newp = self.p[self.p.len() - 1].wrapping_mul(P);
+        self.p.push(newp);
+        let j = letter as usize - DT;
+        let r = self.p.len() - 1;
+        for i in 0..self.len[j].len() {
+            if self.len[j][i] > r {
+                continue;
+            }
+            let l = r - self.len[j][i] + 1;
+            if self.hash(l, r) == self.s[j][i] {
+                return true;
+            }
+        }
+        false
+    }
+}
+
+fn main() {
+    let s = vec![String::from("cd"), String::from("f"), String::from("kl")];
+    let mut sol = StreamChecker::new(s);
+    println!("{}", sol.query('d'));
+    for ch in 'a'..='l' {
+        println!("{}", sol.query(ch));
+    }
+}
+```
+
+题解：ACAM。对普通的 ACAM，做如下变动。初始每个 trie 终点节点标记。在处理 BFS 时，每次把当前节点是否是终点与它的失配指针指向的节点是否是终点或起来。然后每次匹配时不跑失配，直接继续往下走。说实话还是不太懂，暂时放弃了。
+
+```c++
+typedef struct TrieNode {
+    vector<TrieNode *> children;
+    bool isEnd;
+    TrieNode *fail;
+    TrieNode() {
+        this->children = vector<TrieNode *>(26, nullptr);
+        this->isEnd = false;
+        this->fail = nullptr;
+    }
+};
+
+class StreamChecker {
+public:
+    TrieNode *root;
+    TrieNode *temp;
+    StreamChecker(vector<string>& words) {
+        root = new TrieNode();
+        for (string &word : words) {
+            TrieNode *cur = root;
+            for (int i = 0; i < word.size(); i++) {
+                int index = word[i] - 'a';
+                if (cur->children[index] == nullptr) {
+                    cur->children[index] = new TrieNode();
+                }
+                cur = cur->children[index];
+            }
+            cur->isEnd = true;
+        }
+        root->fail = root;
+        queue<TrieNode *> q;
+        for (int i = 0; i < 26; i++) {
+            if(root->children[i] != nullptr) {
+                root->children[i]->fail = root;
+                q.emplace(root->children[i]);
+            } else {
+                root->children[i] = root;
+            }
+        }
+        while (!q.empty()) {
+            TrieNode *node = q.front();
+            q.pop();
+            node->isEnd = node->isEnd || node->fail->isEnd;//核心
+            for (int i = 0; i < 26; i++) {
+                if(node->children[i] != nullptr) {
+                    node->children[i]->fail = node->fail->children[i];
+                    q.emplace(node->children[i]);
+                } else {
+                    node->children[i] = node->fail->children[i];
+                }
+            }
+        }
+
+        temp = root;
+    }
+    
+    bool query(char letter) {
+        temp = temp->children[letter - 'a'];
+        return temp->isEnd;
+    }
+};
+```
+
+
 
 
 

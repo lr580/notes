@@ -165,6 +165,13 @@ print!(" f={}", f);
 
 > 一般推荐使用字符串储存 UTF-8 文字（非英文字符尽可能地出现在字符串中）。由于中文文字编码有两种（GBK 和 UTF-8），所以编程中使用中文字符串有可能导致乱码的出现，这是因为源程序与命令行的文字编码不一致，所以在 Rust 中字符串和字符都必须使用 UTF-8 编码，否则编译器会报错。
 
+类型转换用 as，如：
+
+```rust
+let l = 2;
+let li = l as usize; 
+```
+
 #### 复合类型
 
 元组用 `()` 包括一组类型可以不同的数据。
@@ -1432,6 +1439,17 @@ fn main() {
     }
 }
 ```
+
+> 复制和排序：
+>
+> ```rust
+> let li = l[i] as usize; //强转 vec<i32> 的某个元素
+> let ri = r[i] as usize;
+> let mut a = nums[li..=ri].to_vec();
+> a.sort();
+> ```
+>
+> 
 
 ##### map
 
@@ -2806,6 +2824,28 @@ async fn main() -> std::io::Result<()> {
 
 #### 力扣
 
+- 温度转换
+
+  vec 基本运行
+
+- 无矛盾的最佳球队
+
+  结构体排序
+
+- 等差子数组
+
+  vec切片
+
+- 强密码检测器
+
+  OOP 字符串
+
+- 字符流
+
+  字符串 取模溢出 全局常量
+
+
+
 ##### 2469\.温度转换
 
 [题目](https://leetcode.cn/problems/convert-the-temperature/)
@@ -2849,6 +2889,450 @@ impl Solution {
 impl Solution {
     pub fn convert_temperature(celsius: f64) -> Vec<f64> {
         vec![celsius + 273.15, celsius * 1.80 + 32.00]
+    }
+}
+```
+
+
+
+##### 1626\.无矛盾的最佳球队
+
+[题目](https://leetcode.cn/problems/best-team-with-no-conflicts/)
+
+```rust
+impl Solution {
+    pub fn best_team_score(scores: Vec<i32>, ages: Vec<i32>) -> i32 {
+        let n = scores.len(); //不能as i32,因为下文要开数组用
+        let mut pr: Vec<(i32, i32)> = scores
+        .iter()
+        .zip(ages.iter())
+        .map(|(&a, &b)| (a, b))//不能|&a, &b|
+        .collect();
+        use std::cmp::Ordering;
+        pr.sort_by(|a, b| {
+            let cmp = a.1.cmp(&b.1);//第二个i32为第一关键字升序
+            if cmp == Ordering::Equal {
+                a.0.cmp(&b.0)//第一个关键字升序
+            } else {
+                cmp
+            }
+        });
+        let mut dp = vec![0; n];//初始全0
+        let mut ans = 0;
+        for i in 0..n {
+            let mut mx = 0;
+            for j in 0..i {
+                if pr[j].0 <= pr[i].0 {
+                    mx = mx.max(dp[j]);
+                }
+            }
+            dp[i] = mx + pr[i].0;
+            ans = ans.max(dp[i]);
+        }
+        ans
+    }
+}
+```
+
+
+
+##### 410\.分割数组的最大值
+
+[题目](https://leetcode.cn/problems/split-array-largest-sum/)
+
+```rust
+mod lc410 {
+    pub struct Solution {}
+    impl Solution {
+        pub fn split_array(nums: Vec<i32>, k: i32) -> i32 {
+            //不unwrap的话是Option,即vec为空判断
+            let mut lf = *nums.iter().max().unwrap();
+            let mut rf = nums.iter().sum();
+            let mut ans = std::i32::MAX;//max
+            while lf <= rf {
+                let cf = lf + (rf - lf) / 2;
+                let mut cnt = 1;
+                let mut sum = 0;
+                for i in 0..nums.len() {
+                    if sum + nums[i] > cf {
+                        sum = nums[i];
+                        cnt += 1;
+                    } else {
+                        sum += nums[i];
+                    }
+                }
+                if cnt > k {
+                    lf = cf + 1;
+                } else {
+                    ans = ans.min(cf);
+                    rf = cf - 1;
+                }
+            }
+            ans
+        }
+    }
+}
+fn main() {
+    use lc410::Solution;
+    println!("{}", Solution::split_array(vec![7, 2, 5, 10, 8], 2));
+    println!("{}", Solution::split_array(vec![1, 2, 3, 4, 5], 2));
+    println!("{}", Solution::split_array(vec![1, 4, 4], 3));
+    println!("{}", Solution::split_array(vec![1, 2, 3, 4, 5], 1));
+    println!("{}", Solution::split_array(vec![2, 3, 1, 1, 1, 1, 1], 5));
+}
+```
+
+
+
+##### 1630\.等差子数组
+
+[题目](https://leetcode.cn/problems/arithmetic-subarrays/)
+
+```rust
+impl Solution {
+    pub fn check_arithmetic_subarrays(nums: Vec<i32>, l: Vec<i32>, r: Vec<i32>) -> Vec<bool> {
+        let n = nums.len();
+        let m = l.len();
+        let mut ans = vec![false; m]; //not n
+        for i in 0..m {
+            let li = l[i] as usize; //强转
+            let ri = r[i] as usize;
+            let mut a = nums[li..=ri].to_vec();//切片返回迭代器转vec
+            a.sort();
+            let mut ok = true;
+            let d = a[1] - a[0];
+            for j in 2..a.len() {
+                if a[j] - a[j - 1] != d {
+                    ok = false;
+                    break; //剪
+                }
+            }
+            ans[i] = ok;
+        }
+        ans
+    }
+}
+```
+
+
+
+##### 420\.强密码检测器
+
+[题目]()
+
+```rust
+mod lc420 {
+    fn insert(str_slice: &str, idx: usize, ch: char) -> String {
+        let mut new_str = String::with_capacity(str_slice.len() + 1);
+        new_str.push_str(&str_slice[..idx]);
+        new_str.push(ch);
+        new_str.push_str(&str_slice[idx..]);
+        new_str
+    }
+    fn get_index_ranges(input: &str) -> Vec<[usize; 2]> {
+        let mut ranges = vec![];
+        let mut start = 0;
+        let mut end = 0;
+        for (i, c) in input.char_indices() {
+            if i > 0 && c != input.chars().nth(i - 1).unwrap() {
+                ranges.push([start, end]);
+                start = i;
+            }
+            end = i;
+        }
+        ranges.push([start, end]);
+        ranges
+    }
+    fn remove(s: &str, index: usize) -> String {
+        let mut chars: Vec<char> = s.chars().collect();
+        chars.remove(index);
+        chars.iter().collect()
+    }
+    fn get_bin(v: &Vec<[usize; 2]>) -> [Vec<usize>; 6] {
+        let mut arr: [Vec<usize>; 6] = Default::default();
+        for i in 0..v.len() {
+            let len = v[i][1] - v[i][0] + 1;
+            if len <= 2 {
+                arr[len].push(i);
+            } else {
+                arr[len % 3 + 3].push(i);
+            }
+        }
+        arr
+    }
+    fn get_mid(rng: &[usize; 2]) -> usize {
+        (rng[0] + rng[1] + 1) / 2
+    }
+    fn get_len(rng: &[usize; 2]) -> usize {
+        rng[1] - rng[0] + 1
+    }
+
+    pub struct Solution {
+        has_lower: bool,
+        has_upper: bool,
+        has_digit: bool,
+        psw: String,
+        n: usize,
+        res: i32,
+    }
+    impl Solution {
+        pub fn new(password: &str) -> Self {
+            let has_lower = password.chars().any(|c| c.is_ascii_lowercase());
+            let has_upper = password.chars().any(|c| c.is_ascii_uppercase());
+            let has_digit = password.chars().any(|c| c.is_ascii_digit());
+            Solution {
+                has_lower,
+                has_upper,
+                has_digit,
+                psw: String::from(password),
+                n: password.len(),
+                res: 0,
+            }
+        }
+        fn insert_any(&mut self, idx: usize) {
+            let mut prv = '_';
+            if idx > 0 {
+                prv = self.psw.chars().nth(idx - 1).unwrap();
+            }
+            let mut nxt = '_';
+            if idx < self.psw.len() {
+                nxt = self.psw.chars().nth(idx).unwrap();
+            }
+            if !self.has_lower {
+                self.has_lower = true;
+                if prv != 'a' && nxt != 'a' {
+                    self.psw = insert(&self.psw, idx, 'a')
+                } else if prv != 'b' && nxt != 'b' {
+                    self.psw = insert(&self.psw, idx, 'b')
+                } else {
+                    self.psw = insert(&self.psw, idx, 'c')
+                }
+            } else if !self.has_upper {
+                self.has_upper = true;
+                if prv != 'A' && nxt != 'A' {
+                    self.psw = insert(&self.psw, idx, 'A')
+                } else if prv != 'B' && nxt != 'B' {
+                    self.psw = insert(&self.psw, idx, 'B')
+                } else {
+                    self.psw = insert(&self.psw, idx, 'C')
+                }
+            } else {
+                self.has_digit = true;
+                if prv != '0' && nxt != '0' {
+                    self.psw = insert(&self.psw, idx, '0')
+                } else if prv != '1' && nxt != '1' {
+                    self.psw = insert(&self.psw, idx, '1')
+                } else {
+                    self.psw = insert(&self.psw, idx, '2')
+                }
+            }
+            self.n += 1;
+            self.res += 1;
+        }
+        fn remove(&mut self, idx: usize) {
+            self.psw = remove(&self.psw, idx);
+            self.n -= 1;
+            self.res += 1;
+        }
+        fn remove_any(&mut self) {
+            let rng = get_index_ranges(&self.psw);
+            let bin = get_bin(&rng);
+            let order = vec![3, 4, 5, 2, 1];
+            for j in 0..order.len() {
+                let i = order[j];
+                if bin[i].len() > 0 {
+                    self.remove(get_mid(&rng[bin[i][0]]));
+                    break;
+                }
+            }
+            // if bin[3].len() > 0 {
+            //     self.remove(get_mid(&rng[bin[3][0]]));
+            // } else if bin[4].len() > 0 {
+            //     self.remove(get_mid(&rng[bin[4][0]]));
+            // } else if bin[5].len() > 0 {
+            //     self.remove(get_mid(&rng[bin[5][0]]));
+            // } else if bin[2].len() > 0 {
+            //     self.remove(get_mid(&rng[bin[2][0]]));
+            // } else {
+            //     self.remove(get_mid(&rng[bin[1][0]]));
+            // }
+        }
+        fn update_any(&mut self, idx: usize) {
+            self.insert_any(idx);
+            self.remove(idx + 1);
+            self.res -= 1;
+        }
+        fn update_cnt(&mut self, rng: &[usize; 2]) {
+            let mut l = rng[0] + 2;
+            let r = rng[1];
+            while l <= r {
+                self.update_any(l);
+                l += 3;
+            }
+        }
+        pub fn strong_password_checker(password: String) -> i32 {
+            let mut sol = Solution::new(&password);
+            if sol.n < 6 {
+                let rng = get_index_ranges(&sol.psw);
+                for i in 0..rng.len() {
+                    if get_len(&rng[i]) >= 3 {
+                        sol.insert_any(get_mid(&rng[i]));
+                    }
+                }
+                while sol.n < 6 {
+                    sol.insert_any(0);
+                }
+            }
+            while sol.n > 20 {
+                sol.remove_any();
+            }
+            loop {
+                let rng = get_index_ranges(&sol.psw);
+                let bin = get_bin(&rng);
+                let order = vec![3, 4, 5];
+                let mut fix = false;
+                for j in 0..order.len() {
+                    let i = order[j];
+                    for k in 0..bin[i].len() {
+                        sol.update_cnt(&rng[bin[i][k]]);
+                        fix = true;
+                    }
+                    // if bin[i].len() > 0 {
+                    // bin[i].sort_by(|&x, &y| rng[x][0].cmp(&rng[y][0]));
+                    // println!("mid {}",get_mid(&rng[bin[i][0]]));
+                    // sol.update_any(get_mid(&rng[bin[i][0]]));
+                    // }
+                }
+                if !fix {
+                    break;
+                }
+            }
+            while !sol.has_digit || !sol.has_lower || !sol.has_upper {
+                sol.insert_any(0);
+            }
+            println!("psw = {}", sol.psw);
+            sol.res
+        }
+    }
+}
+fn main() {
+    use lc420::Solution;
+    let psw = String::from("lr580");
+    println!("{}", Solution::strong_password_checker(psw));
+    let psw = String::from("lrrr");
+    println!("{}", Solution::strong_password_checker(psw));
+    let psw = String::from("rrrrr");
+    println!("{}", Solution::strong_password_checker(psw));
+    let psw = String::from("lrrrr");
+    println!("{}", Solution::strong_password_checker(psw));
+    let psw = String::from("lR580");
+    println!("{}", Solution::strong_password_checker(psw));
+    let psw = String::from("aa");
+    println!("{}", Solution::strong_password_checker(psw));
+    let psw = String::from("ab");
+    println!("{}", Solution::strong_password_checker(psw));
+    let psw = String::from("ac");
+    println!("{}", Solution::strong_password_checker(psw));
+    let psw = String::from("aaaabbaabbbbbaabbaabbaaababbbaaaabbbabbaaaaaabbbab");
+    println!("{}", Solution::strong_password_checker(psw));
+    let psw = String::from("BaaaaBaBBBBBaaBaBBBaBaBBBaaBaBaBaaBaBaBBaaaBaBaaB0");
+    println!("{}", Solution::strong_password_checker(psw));
+    let psw = String::from("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    println!("{}", Solution::strong_password_checker(psw));
+    let psw = String::from("abcdef");
+    println!("{}", Solution::strong_password_checker(psw));
+}
+//aaaabbaabbbbbaabbaabbaaababbbaaaabbbabbaaaaaabbbab 32
+//BaaaaBaBBBBBaaBaBBBaBaBBBaaBaBaBaaBaBaBBaaaBaBaaB0 30
+//aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa 36
+```
+
+交题时不能有 struct，所以封了一下，变成了：
+
+```rust
+mod lc420s {
+    //...
+}
+impl Solution {
+    pub fn strong_password_checker(password: String) -> i32 {
+        lc420s::Solution::strong_password_checker(password)
+    }
+}
+```
+
+
+
+##### 1032\.字符流
+
+[题目]()
+
+```rust
+const P: usize = 37;
+const DT: usize = 'a' as usize;
+fn hash(s: &str) -> usize {
+    let mut h = 0 as usize;
+    for i in 0..s.len() {
+        h = h.wrapping_mul(P); //自动取模溢出，否则panik
+        h = h.wrapping_add(s.chars().nth(i).unwrap() as usize - DT);
+    }
+    h
+}
+
+struct StreamChecker {
+    s: [Vec<usize>; 26],
+    len: [Vec<usize>; 26],
+    h: Vec<usize>,
+    p: Vec<usize>,
+}
+
+impl StreamChecker {
+    fn new(words: Vec<String>) -> Self {
+        let mut s: [Vec<usize>; 26] = Default::default();
+        let mut len: [Vec<usize>; 26] = Default::default();
+        for i in 0..words.len() {
+            let ch = words[i].chars().nth(words[i].len() - 1).unwrap(); //可以试试 .last()?
+            let lch = ch as usize - DT;
+            s[lch].push(hash(&words[i]));
+            len[lch].push(words[i].len());
+        }
+        let h: Vec<usize> = vec![0];
+        let p: Vec<usize> = vec![1];
+        StreamChecker { s, len, h, p }
+    }
+
+    fn hash(&self, l: usize, r: usize) -> usize {
+        let n = r - l + 1;
+        self.h[r].wrapping_sub(self.h[l - 1].wrapping_mul(self.p[n]))
+    }
+
+    fn query(&mut self, letter: char) -> bool {
+        let newh = self.h[self.h.len() - 1]
+            .wrapping_mul(P)
+            .wrapping_add(letter as usize - DT);
+        self.h.push(newh);
+        let newp = self.p[self.p.len() - 1].wrapping_mul(P);
+        self.p.push(newp);
+        let j = letter as usize - DT;
+        let r = self.p.len() - 1;
+        for i in 0..self.len[j].len() {
+            if self.len[j][i] > r {
+                continue;
+            }
+            let l = r - self.len[j][i] + 1;
+            if self.hash(l, r) == self.s[j][i] {
+                return true; //不可以不写 return
+            }
+        }
+        false
+    }
+}
+
+fn main() {
+    let s = vec![String::from("cd"), String::from("f"), String::from("kl")];
+    let mut sol = StreamChecker::new(s);
+    println!("{}", sol.query('d'));
+    for ch in 'a'..='l' { //可以枚举 str
+        println!("{}", sol.query(ch));
     }
 }
 ```

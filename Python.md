@@ -351,6 +351,17 @@ jupyter-nbconvert.exe --to markdown .\homework1.ipynb
 jupyter-nbconvert.exe --to markdown --TemplateExporter.exclude_output=True .\homework1.ipynb
 ```
 
+##### 魔法命令
+
+`%matplotlib inline` 是 Jupyter Notebook 的魔法命令，它可以在 Jupyter Notebook 中直接显示 Matplotlib 绘图，而不需要在代码中使用 `plt.show()` 来显示图像。具体来说，这个命令会启用 Matplotlib 的交互式后端，将图形嵌入到 Notebook 中的输出单元格中
+
+如：
+
+```python
+%matplotlib inline
+import random
+```
+
 
 
 #### vscode
@@ -1260,6 +1271,16 @@ a[::50] #[50,100]
 a[:21:5] #[0,5,10,15,20]
 ```
 
+有 slice 函数，`slice(start, stop[, step])`
+
+```python
+"abcde"[slice(1,None)] #bcde
+"abcde"[slice(1,None,2)] #bd
+"abcde"[slice(2)] #'ab'
+```
+
+
+
 ### 对象
 
 自定义数据类型，即类。其变量是实例，有成员属性和成员函数(方法)。
@@ -1321,6 +1342,23 @@ class chum(person):
         return super().__str__()+'(%s)'%self.hobby
 b=chum('李四',9,'鲨人') 
 print(a,b) #注意由于chum的repr未赋值，故与person同
+```
+
+可以考虑动态添加方法：
+
+```python
+def add_to_class(Class):  #这是一个装饰器
+    def wrapper(obj):
+        setattr(Class, obj.__name__, obj)
+    return wrapper
+class A:
+    def __init__(self):
+        self.b = 1
+a = A()
+@add_to_class(A)
+def do(self):
+    print('Class attribute "b" is', self.b)
+a.do()
 ```
 
 
@@ -1511,6 +1549,19 @@ for i in ((1,2),(3,4)):#此时i是tuple
 #[1, 3, 7, 13, 21, 31, 43, 57, 73, 91, 111]
 [[j**2 for j in range(i*3,i*3+3)] for i in range(3)]#左
 #[[0, 1, 4], [9, 16, 25], [36, 49, 64]]
+```
+
+dict:
+
+```python
+{i:i**i for i in range(5)}
+```
+
+对 tuple 要显式：
+
+```python
+tuple(i for i in range(5))
+(i for i in range(5)) #返回生成器，可以 next
 ```
 
 
@@ -2276,6 +2327,22 @@ def log2(type, dest):
     return decorator
 ```
 
+```python
+def add_to_class(Class):  #@save
+    """Register functions as methods in created class."""
+    def wrapper(obj):
+        setattr(Class, obj.__name__, obj)
+    return wrapper
+class A:
+    def __init__(self):
+        self.b = 1
+a = A()
+@add_to_class(A)
+def do(self):
+    print('Class attribute "b" is', self.b)
+a.do()
+```
+
 
 
 #### @wraps
@@ -2361,6 +2428,102 @@ def div(x, y):
 
 
 print(div(2, 1, 3))
+```
+
+
+
+### 生成器
+
+#### 迭代器
+
+iter 和 next 方法：[参考](https://www.baidu.com/link?url=_QbVBt50dVz8x9whAMlJYQNvkMcY7_NC2R98CNiXv3dnyu6jc5-_MmTySbhqg-8rEcuuS7LBx6LjW1r3KCfEhpCgFiVvoDmnjLPfG7jbyUa&wd=&eqid=ad0b782e0003bf5900000006641d9c52)
+
+```python
+lt = [1,4,3,7,5,8,1]
+it = iter(lt)
+print(next(it)) #1
+print(next(it)) #2
+```
+
+可迭代对象：[参考](https://blog.csdn.net/m0_63007797/article/details/125690290)
+
+```python
+class myIter(object):
+    def __init__(self, lt):
+        self.lt = lt
+        self.cnt = 0
+    def __iter__(self):  # then isinstance(class1,Iterable)
+        return self
+    def __next__(self):  # then isinstance(class1,Iterator))
+        if self.cnt < len(self.lt):
+            self.cnt += 1
+            return self.lt[self.cnt - 1]
+        raise StopIteration #否则死循环得到None
+it = myIter([6,1])
+for x in it:
+    print(x) #6, 1
+```
+
+#### yield
+
+yield 相当于手动 return，下次从 return 处继续执行，返回4，res是None [参考](https://blog.csdn.net/qq_41554005/article/details/119940983)
+
+```python
+def fun_yield():
+    print("starting fun yield")
+    while True:
+        res = yield 4
+        print("判断yield之后是否继续执行",res) #None
+
+g = fun_yield() # 调用这个函数只是会得到一个生成器
+print("函数结果是一个生成器：",g)
+print("对此生成器还是进行调用：")
+print("第一次调用")
+print("生成器的返回值",next(g)) 
+print("第二次调用")
+print("生成器的返回值",next(g))
+print("第三次调用")
+print("生成器的返回值",next(g))
+```
+
+```python
+def yy():
+    yield 1
+    yield 2
+    yield 4
+    yield 8
+for i in iter(yy()):
+    print(i)
+xx = iter(yy())
+for i in range(4):
+    print(next(xx))
+```
+
+
+
+#### send
+
+使得 res 有值：
+
+```python
+def fun_yield():
+    print("starting fun yield")
+    while True:
+        res = yield 4
+        
+        print("判断yield之后是否继续执行",res)
+
+g = fun_yield() # 调用这个函数只是会得到一个生成器
+print("函数结果是一个生成器：",g)
+
+print("对此生成器还是进行调用：")
+print("第一次调用")
+print(next(g))
+print("生成器的返回值",g.send(1))
+print("第二次调用")
+print("生成器的返回值",g.send(2))
+print("第三次调用")
+print("生成器的返回值",g.send(3))
 ```
 
 
@@ -6606,6 +6769,7 @@ print(torch.cat((x,y),dim=1)) #左右
 x = torch.tensor([0, 1, 2]).reshape((3, 1))  # 列
 y = torch.tensor([0, 10]).reshape((1, 2))  # 变二维
 print(x+y)
+
 ```
 
 类比 numpy，索引和切片机制：
@@ -6705,6 +6869,7 @@ print(x@y) #第一个元素为例,1*-1+2*-3+3*-5=-22
 print(y@x) #第一个元素-1*1+-2*4=-9
 #分别size:(2,3)*(3,2)=(2,2); (3,2)*(2,3)=(3,3)
 print(torch.mm(x,y),torch.mm(y,x), x.mm(y))
+# torch.matmul(x,y)
 ```
 
 > 区别：`x*y` 是逐个元素对应位置乘，即类似标量运算。
@@ -6931,6 +7096,190 @@ pip install d2l==1.0.0b0
 ```
 
 `@save` 装饰器是 `d2l` 库允许讲函数、类或其他东西存到 `d2l` 里的功能。
+
+#### 线性回归
+
+一些术语：
+
+- `traning set`/`training dataset` 训练集
+- `example`/`data point`/`instance`/`sample`: 训练集的一行，样本
+- `label`/`target` 要预测的内容
+- `covariates`/`features` 预测基于的变量
+- `offset`/`intercept`/`bias` $wx+b$ 的 $b$ 
+- `fitness`/`equivalently` 真实与预测的偏差
+
+$x^{(i)}_j$ 表示第 $i$ 个样本的第 $j$ 下标列
+
+线性表示预测内容可以由变量的加权和组成。
+
+仿射变换是指将一个二维平面中的点通过线性变换和平移变换的组合，映射到另一个二维平面中的点的变换
+
+单样本：$\hat y=\mathbf w^T\mathbf x+b$，所有样例：$\hat{\mathbf y}=\mathbf{Xw}+b$。
+
+均方差 square error $l^{(i)}(\mathbf w,b)=\dfrac12(\hat y^{(i)}-y^{(i)})^2$
+
+![image-20230323182249319](img/image-20230323182249319.png)
+
+对错误的数据很敏感。所以平均化：$L(\mathbf w,b)=\dfrac1n\sum_{i=1}^n\dfrac12(\mathbf w^T\mathbf x^{(i)}+b-y^{(i)})^2$
+
+训练时找到取得 $L$ 最小值的参数即 $\mathbf w^*,b^*=\arg_{\mathbf w,b}\min L(\mathbf w,b)$
+
+可以把 $b$ 视为是恒 $1$ 变量的权，进而约简上述目标为 $||\mathbf{y-Xw||^2}$，有偏导数：
+$$
+\partial_\mathbf w||\mathbf{y-Xw}||^2=2\mathbf X^T(\mathbf {Xw-y})=0\Rightarrow \mathbf X^T\mathbf y=\mathbf X^T\mathbf{Xw},\mathbf w^*=(\mathbf X^T\mathbf X)^{-1}\mathbf X^T\mathbf y
+$$
+
+> (~~因为懒不打 `\mathbf` 了，一个变量打一次人哪有不疯的)~~
+>
+> 向量内积 $<a,b>$ / $[a,b]$，且 $Tr(A)=\sum_i A_{ii}$，有 $a^Ta=Tr(aa^T)$
+>
+> 具体而言：
+> $$
+> \begin{align}
+> (y-Xw)^2&=Tr((y-Xw)(y-Xw)^T)\\
+> &=Tr((y-Xw)(y^T-w^TX^T))\\
+> &=Tr((yy^T-Xwy^T-yw^TX^T+Xww^TX^T))
+> \end{align}
+> $$
+> 求导得 $-X^Ty-X^Ty+2X^TXw=2X^T(-y+Xw)=2(y-Xw)^TX$
+>
+> 也就是说，求导法则为：(参考 matrix book 101,102)
+> $$
+> \dfrac{\partial}{\partial X}Tr(AXB)=A^TB^T,
+> \dfrac{\partial}{\partial X}Tr(AX^TB)=BA
+> $$
+> 对 $Xww^TX^T$ 应用前导后不导前不导后导可得知。后者可由 $(y-Xw)^T(y-Xw)$ 得到
+
+每次用全体样本训练是梯度下降，用随机一个样本训练一次是随机梯度下降 `stochastic gradient descent (SGD)`。但是随机取样本的内存读写慢。折中的方法每次随机拿一批样本去训练，即 `minibatch`。大小与内存、层、数据集大小等有关，建议是 $2^5,2^7$ 这样的幂。每次梯度下降乘以一个学习率 `learning rate` $\eta$，设样本是 $B_t$，大小是 $|B|$，则更新公式为
+$$
+(\mathbf w,b)\leftarrow (\mathbf w,b)-\dfrac{\eta}{|B|}\sum_{i\in B_t}\partial_{(\mathbf w,b)}l^{(i)}(\mathbf w,b)
+$$
+初始时给一个随机的 $(\mathbf w,b)$，然后不断梯度下降。定义超参数 `hyperparameters` 如 $|B|$。迭代一定次数或满足某些条件后停止，最后在验证集 `validation set` 做测试。可能陷入局部最优或几个最优之一，而且为了泛化也不保证真实数据就是最优的。
+
+写一个正态分布并作图展示：
+
+```python
+def normal(x, mu, sigma):
+    p = 1 / math.sqrt(2 * math.pi * sigma**2)
+    return p * np.exp(-0.5 * (x - mu)**2 / sigma**2)
+# Use NumPy again for visualization
+x = np.arange(-7, 7, 0.01)
+# Mean and standard deviation pairs
+params = [(0, 1), (0, 2), (3, 1)]
+d2l.plot(x, [normal(x, mu, sigma) for mu, sigma in params], xlabel='x',
+         ylabel='p(x)', figsize=(4.5, 2.5),
+         legend=[f'mean {mu}, std {sigma}' for mu, sigma in params])
+```
+
+假设干扰服从正态分布：$y=w^Tx+b+\epsilon,\epsilon\sim N(0,\sigma^2)$，则：
+$$
+P(y|x)=\dfrac1{\sqrt{2\pi\sigma^2}}\exp(-\dfrac1{2\sigma^2}(y-w^Tx-b)^2)
+$$
+根据最大似然原理：
+$$
+P(y|X)=\prod_{i=1}^np(y^{(i)}|x^{(i)})
+$$
+每组 $(y^{(i)}|x^{(i)})$ 相互独立，对数化，即只需要最小化如下目标：
+$$
+-\log P(y|X)=\sum_{i=1}^n\dfrac12\log(2\pi\sigma^2)+\dfrac1{2\sigma^2}(y^{(i)}-w^Tx^{(i)}-b)^2
+$$
+认为 $\sigma$ 是常数，所以后者发现就是均方差，所以最小化均方差就是最大化似然估计。
+
+将线性回归看成是神经网络的话，输入层是 $x_1,\cdots, x_d$，输出层只有一个神经元 $o_1$，输入层各节点连向 $o_1$。其中 $d$ 是变量维度 `feature dimensionality`。可看成是单层全连接神经网络。
+
+神奇类的子类，允许构造函数自动装填属性，并可以选择性忽略属性：
+
+```python
+#class HyperParameters: 
+#    """The base class of hyperparameters."""
+#    def save_hyperparameters(self, ignore=[]):
+#        raise NotImplemented
+# Call the fully implemented HyperParameters class saved in d2l
+class B(d2l.HyperParameters):
+    def __init__(self, a, b, c):
+        self.save_hyperparameters(ignore=['c'])
+        print('self.a =', self.a, 'self.b =', self.b)
+        print('There is no self.c =', not hasattr(self, 'c'))
+
+b = B(a=1, b=2, c=3)
+```
+
+动态绘图：
+
+```python
+class ProgressBoard(d2l.HyperParameters):  #@save
+    """The board that plots data points in animation."""
+    def __init__(self, xlabel=None, ylabel=None, xlim=None,
+                 ylim=None, xscale='linear', yscale='linear',
+                 ls=['-', '--', '-.', ':'], colors=['C0', 'C1', 'C2', 'C3'],
+                 fig=None, axes=None, figsize=(3.5, 2.5), display=True):
+        self.save_hyperparameters()
+
+    def draw(self, x, y, label, every_n=1):
+        raise NotImplemented
+board = d2l.ProgressBoard('x')
+for x in np.arange(0, 10, 0.1):
+    board.draw(x, np.sin(x), 'sin', every_n=2)
+    board.draw(x, np.cos(x), 'cos', every_n=10)
+```
+
+随机数据生成器及其使用：
+
+```python
+class SyntheticRegressionData(d2l.DataModule):  #@save
+    """Synthetic data for linear regression."""
+    def __init__(self, w, b, noise=0.01, num_train=1000, num_val=1000,
+                 batch_size=32):
+        super().__init__()
+        self.save_hyperparameters()
+        n = num_train + num_val
+        self.X = torch.randn(n, len(w))
+        noise = torch.randn(n, 1) * noise
+        self.y = torch.matmul(self.X, w.reshape((-1, 1))) + b + noise #Xw+b+noise
+data = SyntheticRegressionData(w=torch.tensor([2, -3.4]), b=4.2) #假定有二个参数
+print(data.X, data.y)
+```
+
+> 写一个随机取 batch 的生成器：
+
+> ```python
+> @d2l.add_to_class(SyntheticRegressionData)
+> def get_dataloader(self, train):
+>     if train:
+>         indices = list(range(0, self.num_train))
+>         # The examples are read in random order
+>         random.shuffle(indices)
+>     else:
+>         indices = list(range(self.num_train, self.num_train+self.num_val))
+>     for i in range(0, len(indices), self.batch_size):
+>         batch_indices = torch.tensor(indices[i: i+self.batch_size])
+>         yield self.X[batch_indices], self.y[batch_indices]
+> X, y = next(iter(data.train_dataloader()))
+> print(X.shape, y.shape)
+> ```
+
+与上面等效的，内置的，更高效的：
+
+```python
+@d2l.add_to_class(d2l.DataModule)  #@save
+def get_tensorloader(self, tensors, train, indices=slice(0, None)):
+    tensors = tuple(a[indices] for a in tensors)
+    dataset = torch.utils.data.TensorDataset(*tensors)
+    return torch.utils.data.DataLoader(dataset, self.batch_size,
+                                       shuffle=train)
+
+@d2l.add_to_class(SyntheticRegressionData)  #@save
+def get_dataloader(self, train):
+    i = slice(0, self.num_train) if train else slice(self.num_train, None)
+    return self.get_tensorloader((self.X, self.y), train, i)
+X, y = next(iter(data.train_dataloader()))
+print('X shape:', X.shape, '\ny shape:', y.shape)
+print(len(data.train_dataloader()))
+```
+
+
+
+
 
 ## 网络
 

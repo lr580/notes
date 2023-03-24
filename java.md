@@ -29132,6 +29132,8 @@ eureka注册中心.提供一种保护微服务集群注册服务信息的机制,
 
 ###### 服务端
 
+> 注：由于未知原因，如果启动后台显示不是 localhost 而是 lr580 或别的名字 UP 的，建议重启电脑，原因未知，怀疑跟梯子有关
+
 创建一个 quickstart maven 工程。
 
 加 pom，注意两个版本需要有对应关系，可以自己去查。
@@ -29234,22 +29236,6 @@ eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka
 - registerWithEureka默认为true，指示该实例是否注册到eureka注册中心，设置false, 表示自己就是eureka服务中心
 - fetch-registry: 默认值为true，指示此客户端是否应该从eureka获取eureka注册表信息，设置为false，表示自己就是注册中心，不用去注册中心获取其他服务的地址
 - 对外暴露的注册地址(接口)是 default zone
-
-> 或：
->
-> ```properties
-> server.port=8761
-> #eureka config
-> eureka.instance.hostname=localhost
-> spring.application.name=eureka-server
-> eureka.server.enable-seft-preservation=false
-> eureka.client.registerWithEureka=true
-> eureka.client.fetchRegistry=true
-> eureka.instance.preferIpAddress=true
-> eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka
-> ```
->
-> 
 
 写一个启动类：
 
@@ -29572,30 +29558,122 @@ http://localhost:9005/api-b/hello?name=haha (同理)
 # localhost:9005/users/user/query/point?userId=1
 ```
 
-##### 综合例子
+##### 高可用
+
+<img src="img/image-20230321145710069.png" alt="image-20230321145710069" style="zoom:80%;" />
+
+复制一份 server，修改两个 properties 分别为：
+
+```properties
+server.port=8761
+#eureka config
+spring.application.name=eureka-server
+eureka.instance.hostname=localhost
+eureka.client.registerWithEureka=true
+eureka.client.fetchRegistry=true
+eureka.instance.preferIpAddress=true
+eureka.client.serviceUrl.defaultZone=http://localhost:8762/eureka
+eureka.server.enable-seft-preservation=false
+```
+
+```properties
+server.port=8762
+#eureka config
+spring.application.name=eureka-server
+eureka.instance.hostname=localhost
+eureka.client.registerWithEureka=true
+eureka.client.fetchRegistry=true
+eureka.instance.preferIpAddress=true
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka
+eureka.server.enable-seft-preservation=false
+```
+
+注解：
+
+- 注册与发现开启,registry和fetch=true
+- 服务端互相注册发现必须配置 ip优先的内容 preferIpAddress
+
+两个都运行，然后进行测试：`localhost:8761`,`localhost:8762`
+
+然后把三个客户端，和 ribbon, zuul 的 `defaultZone` 改成两个都连：
+
+```properties
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/,http://localhost:8762/eureka/
+```
+
+同上进行测试。
+
+> 未知原因，9005 连上了，但 url 不行，9006 9007 都可以。
+
+搭建了Eureka高可用集群，所有访问都要先经过zuul网关，所以zuul网关也要搭建集群
+
+springboot专门为maven提供了打包springboot的所有插件简化资源
+
+zuul pom 添加：
+
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+        </plugin>
+    </plugins>
+</build>
+```
+
+右击项目，run as-maven clean,然后 maven install，看到根目录 target 有 jar 包。随便拖走 jar 到其他目录，然后运行多份：
+
+```shell
+java -jar zuul-0.0.1-SNAPSHOT.jar
+java -jar zuul-0.0.1-SNAPSHOT.jar --server.port=9006
+java -jar zuul-0.0.1-SNAPSHOT.jar --server.port=9007
+```
+
+修改 nginx：
 
 ```nginx
+upstream zuulcluster {
+    server 127.0.0.1:9005;
+    server 127.0.0.1:9006;
+    server 127.0.0.1:9007;
+}
 server {
     listen 80;
-    server_name www.ssm.com;
+    server_name www.sssm.cn;
+    location /user {
+        proxy_pass http://zuulcluster/users/user;
+    }
+    location /order {
+        proxy_pass http://zuulcluster/orders/order;
+    }
     location /{
-        #相对nginx根目录
         root orderuser;
         index index.html;
     }
-    location /user {
-        proxy_pass http://127.0.0.1:9005/users/user;
-        add_header 'Access-Control-Allow-Origin' '*'; 
-        add_header 'Access-Control-Allow-Credentials' 'true'; 
-    }
-    location /order {
-        proxy_pass http://127.0.0.1:9005/orders/order;
-        add_header 'Access-Control-Allow-Origin' '*'; 
-        add_header 'Access-Control-Allow-Credentials' 'true'; 
-    }
-}   
-
+}
 ```
 
-> 搞 javaweb 的 order user nginx 例子，
+记得 hosts 加上 `127.0.0.1 www.sssm.cn`
 
+> 对 order and user 的修改：从 javaweb 课程下一个前端页面，然后搞一个 microtest 数据库，导入。对 properties 修改如下：
+>
+> - 数据库密码
+>
+> - 自己用 mysql 8.0，所以
+>
+>   ```properties
+>   spring.datasource.driverClassName=com.mysql.cj.jdbc.Driver
+>   ```
+>
+> mysql 8.0 导致的 pom 修改，无视警告：
+>
+> ```xml
+> <dependency>
+>     <groupId>mysql</groupId>
+>     <artifactId>mysql-connector-java</artifactId>
+>     <version>8.0.26</version>
+> </dependency>
+> ```
+>
+> 
