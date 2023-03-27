@@ -545,7 +545,7 @@ $\ne \quad \approx \quad =$
 
 $\neg$  $\&$  $\|$  
 
-$\equiv  \leq \le  \geq \ge > <$ 
+$\equiv  \leq \le  \geq \ge > <$  远小于远大于 $\ll \gg$
 
 $\leqslant \geqslant$
 

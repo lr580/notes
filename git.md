@@ -45,6 +45,8 @@ git config --global http.proxy sock5://127.0.0.1:10808
 git config --global https.proxy sock5://127.0.0.1:10808
 ```
 
+> 或 socks，具体看 v2nray 等软件的提示。实测这里要两个都是 socks，也可能是 10809
+
 取消：
 
 ```shell
@@ -625,6 +627,12 @@ git remote -v
 
 ```bash
 git remote show 地址
+```
+
+测试连通性：
+
+```sh
+git ls-remote 远程仓库名
 ```
 
 

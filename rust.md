@@ -25,7 +25,7 @@ rustc -V
 rustc --version
 ```
 
-包/项目测试：
+包/项目测试：(如果文件夹已存在，cd 进去 `cargo init`)
 
 ```sh
 cargo new hellworld
@@ -57,6 +57,30 @@ cargo run
 > ```
 >
 > Cargo 具有 cargo doc 功能，开发者可以通过这个命令将工程中的说明注释转换成 HTML 格式的说明文档。
+
+挂 git 时，可以忽略一些生成的可执行文件等，可以加 `.gitignore`：(GPT)
+
+```gitignore
+# Rust/Cargo specific
+/target/
+/cargo.lock
+*.exe
+*.pdb
+
+# IDE/editor specific
+/.vscode/
+/.idea/
+/.idea_modules/
+*.iml
+*.ipr
+*.iws
+
+# Generated files
+Cargo.toml.orig
+Cargo.lock.orig
+```
+
+
 
 ### cargo
 
@@ -171,6 +195,14 @@ print!(" f={}", f);
 let l = 2;
 let li = l as usize; 
 ```
+
+类型简写：
+
+```rust
+type uz = usize;
+```
+
+
 
 #### 复合类型
 
@@ -1449,7 +1481,18 @@ fn main() {
 > a.sort();
 > ```
 >
-> 
+> 二分搜索 (lower_bound)
+>
+> ```rust
+> fn bsearch(v: &Vec<i32>, x: i32) -> usize {
+>     v.partition_point(|&y| y < x)
+> }
+> fn main() {
+>     //           0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+>     let v = vec![1, 1, 1, 2, 2, 2, 2, 3, 5, 8, 8];
+>     println!("{}", bsearch(&v, 1));
+> }
+> ```
 
 ##### map
 
@@ -1770,6 +1813,8 @@ let a = [10, 20, 30, 40, 50];
     }
 }
 ```
+
+> 逆序：`for i in (1..=10).rev() {`
 
 ##### loop
 
@@ -2816,6 +2861,208 @@ async fn main() -> std::io::Result<()> {
 
 对 get 请求，可以直接用 http 浏览器检测 `http://127.0.0.1:8080/`。对 post 请求，
 
+### 数据库
+
+#### mongodb
+
+[官方文档](https://mongodb.github.io/mongo-rust-driver/manual/installation_features.html)
+
+```properties
+[dependencies]
+futures = "0.3"
+tokio = { version = "1.16.1", features = ["full"] }
+
+[dependencies.mongodb]
+version = "2.1.0"
+default-features = false
+features = ["async-std-runtime"]
+
+[source.crates-io]
+replace-with = 'sjtu'
+[source.sjtu]
+registry = "https://mirrors.sjtug.sjtu.edu.cn/git/crates.io-index.git"
+```
+
+一个简单的增删查例子：
+
+```rust
+mod mongo; //main.rs
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    mongo::echo();
+    mongo::test().await?;
+    Ok(())
+}
+```
+
+```rust
+//rust.rs
+pub fn echo() {
+    println!("模块可用");
+}
+use mongodb::options::FindOptions;
+use mongodb::{options::ClientOptions, Client};
+use mongodb::{bson::{doc, Document}, Collection};
+use futures::stream::TryStreamExt;
+
+pub async fn get_conn() -> Result<Client, mongodb::error::Error> {
+    let mut options = ClientOptions::parse("mongodb://localhost:27017").await?;
+    options.app_name = Some("auth".to_string());
+    let client = Client::with_options(options)?;
+    Ok(client)
+}
+use std::error::Error;
+pub async fn test() -> Result<(), Box<dyn Error>> {
+    let client = get_conn().await?;
+    let db = client.database("testmongo");
+    let coll: Collection<Document> = db.collection("test");
+    coll.delete_many(doc!{}, None).await?;
+    let doc = doc! {"name":"Rust用","age":-1};
+    coll.insert_one(doc, None).await?;
+    let options = FindOptions::builder().build();
+    let cursor = coll.find(None, options).await?;
+    let mut cursor_stream = cursor.into_stream(); // 将 Cursor 转换为流
+    while let Some(result) = cursor_stream.try_next().await? { // 使用 try_next 方法获取文档
+        println!("{:#?}", result);
+    }
+    println!("Done testing");
+    Ok(())
+}
+```
+
+如果要传参数，可以考虑关键修改：
+
+```rust
+let mongo_url : String = ... ;
+mongo::test(&mongo_url).await?;
+pub async fn get_conn(url:&String) -> 
+ClientOptions::parse(url).await?;
+pub async fn test(url:&String) ->
+get_conn(url).await?;
+```
+
+
+
+### 文件
+
+#### 配置项读写
+
+[官网](https://github.com/zonyitoo/rust-ini)
+
+```ini
+rust-ini = "0.18"
+```
+
+在根目录(即 `src/` 外)放测试文件 `config.ini`：
+
+```ini
+[database]
+mongo_url=mongodb://localhost:27017
+```
+
+编写：`ini_plugin.rs` (如果写 `iniPlugin.rs` 会警告我命名不规范)
+
+```rust
+use ini::Ini;
+pub fn get_property(file_path: &str, section: Option<&str>, key: &str) -> String {
+    let conf = Ini::load_from_file(file_path).unwrap();
+    let section = conf.section(section).unwrap();
+    let value = section.get(key).unwrap();
+    value.to_string()
+}
+```
+
+主函数调用：
+
+```rust
+mod ini_plugin;
+//...
+let mongo_url = ini_plugin::get_property("config.ini", Some("database"), "mongo_url");
+println!("{}", mongo_url);
+```
+
+
+
+#### json化
+
+```properties
+serde_json = "1.0"
+bson = "2.6.1"
+```
+
+写一个自定义结构体序列化反序列化的例子：(`auth_node.rs`)
+
+```rust
+use bson::{doc, oid::ObjectId};
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize)]
+struct AuthNode {
+    _id: Option<ObjectId>,
+    id: usize,
+    father: usize,
+    name: String,
+}
+impl AuthNode {
+    pub fn new(id: usize, father: usize, name: String) -> Self {
+        AuthNode {
+            _id: None,
+            id,
+            father,
+            name,
+        }
+    }
+}
+
+pub fn test() {
+    let nd = AuthNode::new(1, 1, "root".to_string());
+    println!("{:?}", nd);
+    let doc = bson::ser::to_document(&nd).unwrap();
+    println!("{:?}", doc);
+    let nd2 : AuthNode = bson::from_document(doc).unwrap();
+    println!("{:?}", nd2);
+}
+```
+
+```rust
+mod auth_node;
+auth_node::test();
+```
+
+
+
+> 为对象通用化：
+>
+> ```rust
+> use bson::{Document};
+> use serde::{Deserialize, Serialize};
+> 
+> pub trait BsonConvert {
+>     fn to_document(&self) -> Document;
+>     fn from_document(doc: Document) -> Self
+>     where Self: Sized + for<'de> Deserialize<'de>;
+> }
+> 
+> /** 为所有将来实现该 trait 的结构体实现方法 */
+> impl<T: Serialize + for<'de> Deserialize<'de> + 'static> BsonConvert for T {
+>     fn to_document(&self) -> Document {
+>         bson::to_document(self).unwrap()
+>     }
+> 
+>     fn from_document(doc: Document) -> Self {
+>         bson::from_document(doc).unwrap()
+>     }
+> }
+> ```
+>
+> ```rust
+> let mut nd = crate::auth_node::AuthNode::new(0, 0, "root".to_string());
+> nd._id = Some(bson::oid::ObjectId::new());
+> let doc = nd.to_document();
+> ```
+>
+> 
+
 
 
 ## 例子
@@ -2843,6 +3090,22 @@ async fn main() -> std::io::Result<()> {
 - 字符流
 
   字符串 取模溢出 全局常量
+  
+- 删除最短的子数组使剩余数组有序
+
+  二分搜索
+
+- 全O(1)的数据结构
+
+  vec套map, set, String复制
+  
+- 和相等的子数组
+
+  map遍历
+  
+- 统计只差一个字符的子串数目
+
+  map套set pair String 遍历 查询 type简写
 
 
 
@@ -3337,3 +3600,455 @@ fn main() {
 }
 ```
 
+
+
+##### 1574\.删除最短的子数组使剩余数组有序
+
+[题目](https://leetcode.cn/problems/shortest-subarray-to-be-removed-to-make-array-sorted/)
+
+```rust
+fn lower_bound(v: &Vec<i32>, x: i32) -> usize {
+    v.partition_point(|&y| y < x)
+}
+struct Solution {}
+impl Solution {
+    pub fn find_length_of_shortest_subarray(arr: Vec<i32>) -> i32 {
+        let mut incf = 0; //单调前缀[0,inc]
+        let mut incb = arr.len() - 1; //单调后缀 [incb,n)
+        for i in 1..arr.len() {
+            if arr[i] >= arr[i - 1] {
+                incf += 1;
+            } else {
+                break;
+            }
+        }
+        for i in (0..(arr.len() - 1)).rev() {
+            if arr[i] <= arr[i + 1] {
+                incb -= 1;
+            } else {
+                break;
+            }
+        }
+        if incb <= incf {
+            return 0;
+        }
+        let a = arr[incb..].to_vec();
+        // println!("{} {} {:?}", incf, incb, a);
+        let mut ans = arr.len() - 1 - incf;
+        ans = ans.min(incb);
+        for i in 0..=incf {
+            let j = lower_bound(&a, arr[i]);
+            // println!("{} {} {}", j, arr[i], incb + j - i - 1);
+            ans = ans.min(incb + j - i - 1);
+        }
+        ans as i32
+    }
+}
+fn main() {
+    let arr = vec![1, 2, 3, 10, 4, 2, 3, 5];
+    println!("{}", Solution::find_length_of_shortest_subarray(arr));
+    let arr = vec![5, 4, 3, 2, 1];
+    println!("{}", Solution::find_length_of_shortest_subarray(arr));
+    let arr = vec![1, 2, 2, 3];
+    println!("{}", Solution::find_length_of_shortest_subarray(arr));
+    let arr = vec![1, 4, 3, 7, 5, 8, 1];
+    println!("{}", Solution::find_length_of_shortest_subarray(arr));
+    let arr = vec![1, 2, 3, 3, 10, 1, 3, 3, 5];
+    println!("{}", Solution::find_length_of_shortest_subarray(arr));
+    let arr = vec![16, 10, 0, 3, 22, 1, 14, 7, 1, 12, 15];
+    println!("{}", Solution::find_length_of_shortest_subarray(arr));
+}
+```
+
+> 交题时不要交 struct 那一行，main 也删了
+
+
+
+##### 432\.全O(1)的数据结构
+
+[题目](https://leetcode.cn/problems/all-oone-data-structure/)
+
+```rust
+use std::collections::HashMap;
+use std::collections::HashSet;
+struct AllOne {
+    n: usize, //bin的下标是[0,n]
+    mx: usize,
+    mi: usize,
+    bin: Vec<HashSet<String>>,
+    h: HashMap<String, usize>,
+}
+
+/**
+ * `&self` means the method takes an immutable reference.
+ * If you need a mutable reference, change it to `&mut self` instead.
+ */
+impl AllOne {
+    fn new() -> Self {
+        let mut bin: Vec<HashSet<String>> = vec![];
+        bin.push(HashSet::new());
+        bin[0].insert(String::from(""));
+        let mut h: HashMap<String, usize> = HashMap::new();
+        h.entry(String::from("")).or_insert(0);
+        AllOne {
+            n: 0,
+            mx: 0,
+            mi: 0,
+            bin,
+            h,
+        }
+    }
+
+    fn update_mi_mx(&mut self, v: usize, t: usize) {
+        if self.bin[v].len() == t {
+            self.mx = 0;
+            self.mi = 0;
+            for i in 1..self.bin.len() {
+                if self.bin[i].len() > 0 {
+                    self.mx = i;
+                    if self.mi == 0 {
+                        self.mi = i;
+                    }
+                }
+            }
+        }
+    }
+
+    fn inc(&mut self, key: String) {
+        let mut cnt = *self.h.entry(key.clone()).or_insert(0);
+        self.bin[cnt].remove(&key); //根据有无返回boolean
+        cnt += 1;
+        self.mx = self.mx.max(cnt);
+        if self.mx > self.n {
+            self.n += 1;
+            self.bin.push(HashSet::new());
+        } // self.bin.resize_with(self.mx + 1, HashSet::new);
+          // if self.mi == 0 {
+          //     self.mi = cnt;
+          // }
+        self.bin[cnt].insert(key.clone());
+        *self.h.get_mut(&key).unwrap() = cnt;
+        // println!("ti {} {}", cnt , self.bin[cnt].len());
+        self.update_mi_mx(cnt - 1, 0);
+        self.update_mi_mx(cnt, 1);
+        // println!("incd {} {}", self.mi, self.mx);
+    }
+
+    fn dec(&mut self, key: String) {
+        let mut cnt = *self.h.get_mut(&key).unwrap();
+        self.bin[cnt].remove(&key);
+        // println!("td {} {}", cnt , self.bin[cnt].len());
+        if cnt == 1 {
+            self.h.remove(&key);
+            self.update_mi_mx(cnt, 0);
+        } else {
+            cnt -= 1;
+            *self.h.get_mut(&key).unwrap() = cnt;
+            self.bin[cnt].insert(key.clone());
+            self.update_mi_mx(cnt + 1, 0);
+        }
+        // println!("deld {} {}", self.mi, self.mx);
+    }
+
+    fn get_max_key(&self) -> String {
+        self.bin[self.mx].iter().next().unwrap().clone()
+    }
+
+    fn get_min_key(&self) -> String {
+        self.bin[self.mi].iter().next().unwrap().clone()
+    }
+}
+
+/**
+ * Your AllOne object will be instantiated and called as such:
+ * let obj = AllOne::new();
+ * obj.inc(key);
+ * obj.dec(key);
+ * let ret_3: String = obj.get_max_key();
+ * let ret_4: String = obj.get_min_key();
+ */
+fn main() {
+    test4();
+    test3();
+    test2();
+    test1();
+}
+fn test4(){
+    let mut obj = AllOne::new();
+    obj.inc(String::from("hello"));
+    obj.inc(String::from("hello"));
+    obj.inc(String::from("world"));
+    obj.inc(String::from("world"));
+    obj.inc(String::from("hello"));
+    obj.dec(String::from("world"));
+    println!("{}", obj.get_max_key());
+    println!("{}", obj.get_min_key());
+    obj.inc(String::from("world"));
+    obj.inc(String::from("world"));
+    obj.inc(String::from("leet"));
+    println!("{}", obj.get_max_key());
+    println!("{}", obj.get_min_key());
+    obj.inc(String::from("leet"));
+    obj.inc(String::from("leet"));
+    println!("{}", obj.get_min_key());
+}
+fn test3() {
+    let mut ojb = AllOne::new();
+    ojb.inc(String::from("hello"));
+    ojb.inc(String::from("world"));
+    ojb.inc(String::from("hello"));
+    ojb.dec(String::from("world"));
+    ojb.inc(String::from("hello"));
+    ojb.inc(String::from("shit"));
+    println!("{}", ojb.get_max_key());
+    ojb.dec(String::from("hello"));
+    ojb.dec(String::from("hello"));
+    ojb.dec(String::from("hello"));
+    println!("{}", ojb.get_max_key());
+}
+fn test2() {
+    let mut obj = AllOne::new();
+    obj.inc(String::from("a"));
+
+    obj.inc(String::from("b"));
+    obj.inc(String::from("b"));
+    obj.inc(String::from("b"));
+    obj.inc(String::from("b"));
+    obj.dec(String::from("b"));
+    obj.dec(String::from("b"));
+
+    println!("{}", obj.get_max_key());
+    println!("{}", obj.get_min_key());
+}
+fn test1() {
+    let mut obj = AllOne::new();
+    obj.inc(String::from("lr580"));
+    println!("{}", obj.get_max_key());
+    println!("{}", obj.get_min_key());
+    obj.dec(String::from("lr580"));
+    println!("{}", obj.get_max_key());
+    println!("{}", obj.get_min_key());
+    obj.inc(String::from("baicha"));
+    obj.inc(String::from("baicha"));
+    println!("{}", obj.get_max_key());
+    println!("{}", obj.get_min_key());
+    obj.inc(String::from("fff"));
+    println!("{}", obj.get_max_key());
+    println!("{}", obj.get_min_key());
+}
+```
+
+
+
+##### 2395\.和相等的子数组
+
+[题目](https://leetcode.cn/problems/find-subarrays-with-equal-sum/)
+
+```rust
+use std::collections::HashMap;
+// struct Solution {}
+impl Solution {
+    pub fn find_subarrays(nums: Vec<i32>) -> bool {
+        let mut s = vec![0; nums.len() + 1];
+        for i in 0..nums.len() {
+            s[i + 1] = nums[i] + s[i];
+        }
+        let mut h: HashMap<i32, i32> = HashMap::new();
+        for l in 0..s.len() {
+            // for r in (l + 1)..s.len() { //一开始读错题了
+            for r in (l + 2)..=(l + 2) { 
+                if r >= s.len() {
+                    continue;
+                }
+                let cnt = h.entry(s[r] - s[l]).or_insert(0);
+                *cnt += 1;
+            }
+        }
+        for (k, v) in &h {
+            if *v > 1 {
+                return true;
+            }
+        }
+        false
+    }
+}
+```
+
+更优的做法是，插入时发现 =1 return true 即可，不需要遍历。
+
+##### 1638\.统计只差一个字符的子串数目
+
+[题目](https://leetcode.cn/problems/count-substrings-that-differ-by-one-character/)
+
+```rust
+const P0: i32 = 131;
+const P1: i32 = 10007;
+fn fill(s: &String, h: &mut Vec<i32>) {
+    for i in 0..s.len() {
+        h[i + 1] = h[i]
+            .wrapping_mul(P0)
+            .wrapping_add(s.chars().nth(i).unwrap() as i32);
+    }
+}
+fn hash(l: usize, r: usize, h: &Vec<i32>, p: &Vec<i32>) -> i32 {
+    if l > r || r >= h.len() || l >= h.len() {
+        return 0;
+    }
+    h[r].wrapping_sub(h[l - 1].wrapping_mul(p[r - l + 1]))
+}
+use std::collections::{HashMap, HashSet};
+type Hmap = HashMap<i32, HashSet<i32>>; //hmap 命名会 warning
+type Hmap2 = HashMap<(i32, i32), HashSet<i32>>;
+fn pre(h: &Vec<i32>, p: &Vec<i32>) -> Hmap2 {
+    let mut m: Hmap2 = HashMap::new();
+    for l in 1..h.len() {
+        for r in l..h.len() {
+            for k in l..=r {
+                let hl = hash(l, k - 1, &h, &p);
+                let hr = hash(k + 1, r, &h, &p);
+                let k2 = (l as i32).wrapping_mul(P1).wrapping_add(r as i32);
+                m.entry((hl, hr)).or_insert(HashSet::new()).insert(k2);
+            }
+        }
+    }
+    m
+}
+fn pre2(h: &Vec<i32>, p: &Vec<i32>) -> Hmap {
+    let mut m: Hmap = HashMap::new();
+    for l in 1..h.len() {
+        for r in l..h.len() {
+            let h = hash(l, r, &h, &p);
+            let k = (l as i32).wrapping_mul(P1).wrapping_add(r as i32);
+            m.entry(h).or_insert(HashSet::new()).insert(k);
+        }
+    }
+    m
+}
+pub struct Solution {}
+impl Solution {
+    pub fn count_substrings(s: String, t: String) -> i32 {
+        let n = s.len();
+        let m = t.len();
+        let mn = n.max(m);
+        let mut p: Vec<i32> = vec![0; mn + 1]; //长度不确定不能用array
+                                               //必须声明类型,不然乘不了
+        p[0] = 1;
+        for i in 1..=mn {
+            p[i] = p[i - 1].wrapping_mul(P0);
+        }
+        let mut hs = vec![0; n + 1];
+        let mut ht = vec![0; m + 1];
+        fill(&s, &mut hs);
+        fill(&t, &mut ht);
+        let mt = pre(&ht, &p);
+        let mut ans = 0 as i32;
+        for l in 1..hs.len() {
+            for r in l..hs.len() {
+                let mut bin: HashSet<i32> = HashSet::new();
+                for k in l..=r {
+                    let hl = hash(l, k - 1, &hs, &p);
+                    let hr = hash(k + 1, r, &hs, &p);
+                    if mt.contains_key(&(hl, hr)) {
+                        let vs = mt.get(&(hl, hr)).unwrap();
+                        bin.extend(&*vs);
+                    }
+                }
+                ans += bin.len() as i32;
+            }
+        }
+        let ms2 = pre2(&hs, &p);
+        let mt2 = pre2(&ht, &p);
+        for (k, vs) in ms2.iter() {
+            if !mt2.contains_key(&k) {
+                continue;
+            }
+            let vs2 = mt2.get(&k).unwrap();
+            let cnt = vs.len() as i32;
+            let cnt2 = vs2.len() as i32;
+            ans -= cnt * cnt2;
+        }
+        ans
+    }
+}
+fn main() {
+    // println!("{}", Solution::count_substrings(
+    //     "asdadasdsadsadsdsdsadasdsdsasd".to_owned(),
+    //     "asdsadasss".to_owned(),
+    // ));
+    println!(
+        "{}",
+        Solution::count_substrings("aba".to_owned(), "baba".to_owned(),)
+    );
+    println!(
+        "{}",
+        Solution::count_substrings("ab".to_owned(), "bb".to_owned(),)
+    );
+    println!(
+        "{}",
+        Solution::count_substrings("a".to_owned(), "a".to_owned(),)
+    );
+    println!(
+        "{}",
+        Solution::count_substrings("abe".to_owned(), "bbc".to_owned(),)
+    );
+}
+```
+
+
+
+### 项目
+
+#### 网挑鉴权
+
+##### 模块加载
+
+main 直接调用的话，就 mod 一下。
+
+```rust
+//mongo.rs
+pub fn echo() {
+    println!("模块可用");
+}
+```
+
+同一文件夹下：
+
+```rust
+//main.rs
+mod mongo;
+fn main() {
+    mongo::echo();
+}
+```
+
+其他文件要调用其他文件，首先 main 里 mod，然后其他文件里用绝对路径即 `crate::`。
+
+> ```rust
+> mod test_module;
+> mod db_util;
+> mod ini_plugin;
+> mod mongo;
+> mod auth_node;
+> #[tokio::main]
+> async fn main() -> Result<(), Box<dyn std::error::Error>> {
+>     test_module::test().await;
+>     Ok(())
+> }
+> ```
+>
+> ```rust
+> use mongodb::Collection;
+> use mongodb::bson::{doc, Document};
+> pub async fn test() {
+>     let db = crate::db_util::get_db().await;
+>     let col: Collection<Document> = db.collection("test");
+>     let mut nd = crate::auth_node::AuthNode::new(0, 0, "root".to_string());
+>     nd._id = Some(bson::oid::ObjectId::new());
+>     let doc = bson::ser::to_document(&nd).unwrap();
+>     let res = col.delete_many(doc! {}, None).await.unwrap();
+>     println!("deletes: {}", res.deleted_count);
+>     let res = col.insert_one(doc, None).await.unwrap();
+>     println!("inserted: {}", res.inserted_id);
+>     println!("Done");
+> }
+> ```

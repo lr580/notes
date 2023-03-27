@@ -265,6 +265,18 @@
 - 1032\.字符流
 
   <u>AC自动机</u> / 字符串哈希
+  
+- 1574\.删除最短的子数组使剩余数组有序
+
+  <u>双指针</u> / 二分 
+
+- 432\.全O(1)的数据结构
+
+  哈希表+链表
+  
+- 1638\.统计只差一个字符的子串数目
+
+  字符串哈希 / <u>枚举</u> / <u>DP</u>
 
 
 
@@ -7738,6 +7750,451 @@ public:
 ```
 
 
+
+##### 1574\.删除最短的子数组使剩余数组有序
+
+[题目](https://leetcode.cn/problems/shortest-subarray-to-be-removed-to-make-array-sorted/)
+
+> 截止 2023-3-25 13:20 rust 12ms(100%击败)，3.7MB(1005击败)
+
+扫一遍求出最长单调前缀下标为 $[0,incf]$ 和最长单调后缀下标 $[incb,n)$。如果 $incb\le incf$，则整体单调，不用删。否则，枚举 $[0,incf]$ 的每个数 $x$，在 $[incb,n)$ 内二分找到最前的 $\ge x$ 的数的下标，将这两段拼起来。复杂度 $O(n\log n)$。
+
+```rust
+fn lower_bound(v: &Vec<i32>, x: i32) -> usize {
+    v.partition_point(|&y| y < x)
+}
+impl Solution {
+    pub fn find_length_of_shortest_subarray(arr: Vec<i32>) -> i32 {
+        let mut incf = 0; //单调前缀[0,inc]
+        let mut incb = arr.len() - 1; //单调后缀 [incb,n)
+        for i in 1..arr.len() {
+            if arr[i] >= arr[i - 1] {
+                incf += 1;
+            } else {
+                break;
+            }
+        }
+        for i in (0..(arr.len() - 1)).rev() {
+            if arr[i] <= arr[i + 1] {
+                incb -= 1;
+            } else {
+                break;
+            }
+        }
+        if incb <= incf {
+            return 0;
+        }
+        let a = arr[incb..].to_vec();
+        // println!("{} {} {:?}", incf, incb, a);
+        let mut ans = arr.len() - 1 - incf;
+        ans = ans.min(incb);
+        for i in 0..=incf {
+            let j = lower_bound(&a, arr[i]);
+            // println!("{} {} {}", j, arr[i], incb + j - i - 1);
+            ans = ans.min(incb + j - i - 1);
+        }
+        ans as i32
+    }
+}
+```
+
+双指针：$O(n)$
+
+```java
+class Solution {
+    public int findLengthOfShortestSubarray(int[] arr) {
+        int n = arr.length, j = n - 1;
+        while (j > 0 && arr[j - 1] <= arr[j]) {
+            j--;
+        } //单调递增后缀 [j,n)
+        if (j == 0) {
+            return 0;
+        }
+        int res = j;
+        for (int i = 0; i < n; i++) { //枚举单调递增前缀
+            while (j < n && arr[j] < arr[i]) {
+                j++;
+            } //满足a[i]<=a[j]
+            res = Math.min(res, j - i - 1);
+            if (i + 1 < n && arr[i] > arr[i + 1]) {
+                break;
+            }
+        }
+        return res;
+    }
+}
+```
+
+
+
+##### 432\.全O(1)的数据结构
+
+[题目](https://leetcode.cn/problems/all-oone-data-structure/)
+
+每个字符串用 map 记录出现次数，同出现次数的字符串全部丢到一个 set 里，所有 set 用链表存起来，min max 就是头尾节点
+
+```java
+class AllOne {
+    Node root;
+    Map<String, Node> nodes;
+
+    public AllOne() {
+        root = new Node();
+        root.prev = root;
+        root.next = root;  // 初始化链表哨兵，下面判断节点的 next 若为 root，则表示 next 为空（prev 同理）
+        nodes = new HashMap<String, Node>();
+    }
+    
+    public void inc(String key) {
+        if (nodes.containsKey(key)) {
+            Node cur = nodes.get(key);
+            Node nxt = cur.next;
+            if (nxt == root || nxt.count > cur.count + 1) {
+                nodes.put(key, cur.insert(new Node(key, cur.count + 1)));
+            } else {
+                nxt.keys.add(key);
+                nodes.put(key, nxt);
+            }
+            cur.keys.remove(key);
+            if (cur.keys.isEmpty()) {
+                cur.remove();
+            }
+        } else {  // key 不在链表中
+            if (root.next == root || root.next.count > 1) {
+                nodes.put(key, root.insert(new Node(key, 1)));
+            } else {
+                root.next.keys.add(key);
+                nodes.put(key, root.next);
+            }
+        }
+    }
+    
+    public void dec(String key) {
+        Node cur = nodes.get(key);
+        if (cur.count == 1) {  // key 仅出现一次，将其移出 nodes
+            nodes.remove(key);
+        } else {
+            Node pre = cur.prev;
+            if (pre == root || pre.count < cur.count - 1) {
+                nodes.put(key, cur.prev.insert(new Node(key, cur.count - 1)));
+            } else {
+                pre.keys.add(key);
+                nodes.put(key, pre);
+            }
+        }
+        cur.keys.remove(key);
+        if (cur.keys.isEmpty()) {
+            cur.remove();
+        }
+    }
+    
+    public String getMaxKey() {
+        return root.prev != null ? root.prev.keys.iterator().next() : "";
+    }
+    
+    public String getMinKey() {
+        return root.next != null ? root.next.keys.iterator().next() : "";
+    }
+}
+
+class Node {
+    Node prev;
+    Node next;
+    Set<String> keys;
+    int count;
+
+    public Node() {
+        this("", 0);
+    }
+
+    public Node(String key, int count) {
+        this.count = count;
+        keys = new HashSet<String>();
+        keys.add(key);
+    }
+
+    public Node insert(Node node) {  // 在 this 后插入 node
+        node.prev = this;
+        node.next = this.next;
+        node.prev.next = node;
+        node.next.prev = node;
+        return node;
+    }
+
+    public void remove() {
+        this.prev.next = this.next;
+        this.next.prev = this.prev;
+    }
+}
+```
+
+如果不用链表，用数组，每次发生变动都要 $O(n)$ 才能更新 min, max，容易被卡 $O(n^2)$，反面例子：
+
+> ```rust
+> use std::collections::HashMap;
+> use std::collections::HashSet;
+> struct AllOne {
+>     n: usize, //bin的下标是[0,n]
+>     mx: usize,
+>     mi: usize,
+>     bin: Vec<HashSet<String>>,
+>     h: HashMap<String, usize>,
+> }
+> 
+> /**
+>  * `&self` means the method takes an immutable reference.
+>  * If you need a mutable reference, change it to `&mut self` instead.
+>  */
+> impl AllOne {
+>     fn new() -> Self {
+>         let mut bin: Vec<HashSet<String>> = vec![];
+>         bin.push(HashSet::new());
+>         bin[0].insert(String::from(""));
+>         let mut h: HashMap<String, usize> = HashMap::new();
+>         h.entry(String::from("")).or_insert(0);
+>         AllOne {
+>             n: 0,
+>             mx: 0,
+>             mi: 0,
+>             bin,
+>             h,
+>         }
+>     }
+> 
+>     fn update_mi_mx(&mut self, v: usize, t: usize) {
+>         if self.bin[v].len() == t {
+>             self.mx = 0;
+>             self.mi = 0;
+>             for i in 1..self.bin.len() {
+>                 if self.bin[i].len() > 0 {
+>                     self.mx = i;
+>                     if self.mi == 0 {
+>                         self.mi = i;
+>                     }
+>                 }
+>             }
+>         }
+>     }
+> 
+>     fn inc(&mut self, key: String) {
+>         let mut cnt = *self.h.entry(key.clone()).or_insert(0);
+>         self.bin[cnt].remove(&key); //根据有无返回boolean
+>         cnt += 1;
+>         self.mx = self.mx.max(cnt);
+>         if self.mx > self.n {
+>             self.n += 1;
+>             self.bin.push(HashSet::new());
+>         } // self.bin.resize_with(self.mx + 1, HashSet::new);
+>           // if self.mi == 0 {
+>           //     self.mi = cnt;
+>           // }
+>         self.bin[cnt].insert(key.clone());
+>         *self.h.get_mut(&key).unwrap() = cnt;
+>         // println!("ti {} {}", cnt , self.bin[cnt].len());
+>         self.update_mi_mx(cnt - 1, 0);
+>         self.update_mi_mx(cnt, 1);
+>         // println!("incd {} {}", self.mi, self.mx);
+>     }
+> 
+>     fn dec(&mut self, key: String) {
+>         let mut cnt = *self.h.get_mut(&key).unwrap();
+>         self.bin[cnt].remove(&key);
+>         // println!("td {} {}", cnt , self.bin[cnt].len());
+>         if cnt == 1 {
+>             self.h.remove(&key);
+>             self.update_mi_mx(cnt, 0);
+>         } else {
+>             cnt -= 1;
+>             *self.h.get_mut(&key).unwrap() = cnt;
+>             self.bin[cnt].insert(key.clone());
+>             self.update_mi_mx(cnt + 1, 0);
+>         }
+>         // println!("deld {} {}", self.mi, self.mx);
+>     }
+> 
+>     fn get_max_key(&self) -> String {
+>         self.bin[self.mx].iter().next().unwrap().clone()
+>     }
+> 
+>     fn get_min_key(&self) -> String {
+>         self.bin[self.mi].iter().next().unwrap().clone()
+>     }
+> }
+> ```
+
+
+
+##### 1638. 统计只差一个字符的子串数目
+
+[题目](https://leetcode.cn/problems/count-substrings-that-differ-by-one-character/)
+
+穷凶极恶的字符串哈希暴力。设 $n=\max(|s|,|t|)$。
+
+对同长字符串 $a,b$，只有一个字符不同，意味着枚举不同位置，其前缀后缀分别相同。可以用字符串哈希，需要 $O(n)$ 来枚举不同位置。但是直接枚举 $s$ 的所有子串，再直接枚举 $t$ 的所有子串，再判断是否严格只差一个字符相同的复杂度为 $O(n^5)$，不可行，考虑优化掉一次枚举。
+
+考虑枚举 $t$ 的所有子串，对每个子串 $b$，枚举删掉一个字符后得到的前后缀 $(b_p,b_s)$，计算其字符串哈希(考虑空串冲突，字符值转化后不能为 $0$)。将所有二元哈希值 $(h(b_p),h(b_s))$ (注意不能将两个哈希值并成一个哈希值，如 $h(b_p)C+h(b_s)$，这样会极大地提高哈希冲突率)作为键，所有键相等的子串下标范围 $[l,r]$ 构成不重的值(这里因为不超 int，可以用 $Cl+r$ 压缩二元组为一元) 。也就是说，开一个 hashmap，键是二元哈希值，值是 hashset，set 的每个值是下标范围。这里的复杂度是 $O(n^3)$。
+
+因为如果在这个过程还要考虑中间那个字符串相同不相同，比较复杂。考虑转化问题，即：
+
+- 恰有一个不同的子串数=有一个或零个不同的子串数 - 相同子串数
+
+现在统计有一个或零个不同的子串数。对 $s$，枚举每个子串 $a$ 的删掉一个字符后得到的前后缀 $(a_p,a_s)$，得到二元哈希值，用这个值做键找到 hashset。对 $a$ 能找到的所有 set，进行合并。最坏情况(考虑只由一个字符组成)下每个 set 有 $O(n)$ 个元素，则合并的最坏复杂度是 $O(n^2)$。故总复杂度最坏为 $O(n^4)$。如果字符串比较混乱，平均复杂度 $O(n^3)$。
+
+> 不能用 bitset 优化合并，这是因为 $[l,r]$ 的情况数为 $O(n^2)$，则合并复杂度退化成恒为 $O(\dfrac{n^3}C)$
+
+之后再预处理出 $s,t$ 的每个子串的哈希值，用哈希值作键同理得到 hashmap 套 hashset，然后枚举 $s$ 的每个 hashset，查找 $t$ 里同键的 hashset，则元素数分别为 $cnt_1,cnt_2$，则共有 $cnt_1\times cnt_2$ 个元素哈希值相同，答案里减去即可。这里的复杂度是 $O(n^2)$。
+
+综上，总时间复杂度最坏为 $O(n^4)$，数据弱的话平均为 $O(n^3)$。空间复杂度为 $O(n^3)$。
+
+rust 参考代码：
+
+```rust
+const P0: i32 = 31;
+const P1: i32 = 10007;
+fn fill(s: &String, h: &mut Vec<i32>) {
+    for i in 0..s.len() {
+        h[i + 1] = h[i]
+            .wrapping_mul(P0)
+            .wrapping_add(s.chars().nth(i).unwrap() as i32 - 'a' as i32 + 1);
+    }
+}
+fn hash(l: usize, r: usize, h: &Vec<i32>, p: &Vec<i32>) -> i32 {
+    if l > r || r >= h.len() || l >= h.len() {
+        return 0;
+    }
+    h[r].wrapping_sub(h[l - 1].wrapping_mul(p[r - l + 1]))
+}
+use std::collections::{HashMap, HashSet};
+type Hmap = HashMap<i32, HashSet<i32>>; //hmap 命名会 warning
+type Hmap2 = HashMap<(i32, i32), HashSet<i32>>;
+fn pre(h: &Vec<i32>, p: &Vec<i32>) -> Hmap2 {
+    let mut m: Hmap2 = HashMap::new();
+    for l in 1..h.len() {
+        for r in l..h.len() {
+            for k in l..=r {
+                let hl = hash(l, k - 1, &h, &p);
+                let hr = hash(k + 1, r, &h, &p);
+                let k2 = (l as i32).wrapping_mul(P1).wrapping_add(r as i32);
+                m.entry((hl, hr)).or_insert(HashSet::new()).insert(k2);
+            }
+        }
+    }
+    m
+}
+fn pre2(h: &Vec<i32>, p: &Vec<i32>) -> Hmap {
+    let mut m: Hmap = HashMap::new();
+    for l in 1..h.len() {
+        for r in l..h.len() {
+            let h = hash(l, r, &h, &p);
+            let k = (l as i32).wrapping_mul(P1).wrapping_add(r as i32);
+            m.entry(h).or_insert(HashSet::new()).insert(k);
+        }
+    }
+    m
+}
+//pub struct Solution {}
+impl Solution {
+    pub fn count_substrings(s: String, t: String) -> i32 {
+        let n = s.len();
+        let m = t.len();
+        let mn = n.max(m);
+        let mut p: Vec<i32> = vec![0; mn + 1]; //长度不确定不能用array
+                                               //必须声明类型,不然乘不了
+        p[0] = 1;
+        for i in 1..=mn {
+            p[i] = p[i - 1].wrapping_mul(P0);
+        }
+        let mut hs = vec![0; n + 1];
+        let mut ht = vec![0; m + 1];
+        fill(&s, &mut hs);
+        fill(&t, &mut ht);
+        let mt = pre(&ht, &p);
+        let mut ans = 0 as i32;
+        for l in 1..hs.len() {
+            for r in l..hs.len() {
+                let mut bin: HashSet<i32> = HashSet::new();
+                for k in l..=r {
+                    let hl = hash(l, k - 1, &hs, &p);
+                    let hr = hash(k + 1, r, &hs, &p);
+                    if mt.contains_key(&(hl, hr)) {
+                        let vs = mt.get(&(hl, hr)).unwrap();
+                        bin.extend(&*vs);
+                    }
+                }
+                ans += bin.len() as i32;
+            }
+        }
+        let ms2 = pre2(&hs, &p);
+        let mt2 = pre2(&ht, &p);
+        for (k, vs) in ms2.iter() {
+            if !mt2.contains_key(&k) {
+                continue;
+            }
+            let vs2 = mt2.get(&k).unwrap();
+            let cnt = vs.len() as i32;
+            let cnt2 = vs2.len() as i32;
+            ans -= cnt * cnt2;
+        }
+        ans
+    }
+}
+```
+
+枚举：
+
+```java
+class Solution {
+    public int countSubstrings(String s, String t) {
+        int m = s.length(), n = t.length();
+        int ans = 0;
+        for (int i = 0; i < m; i++) { //s起始位置
+            for (int j = 0; j < n; j++) { //t起始位置
+                int diff = 0;
+                for (int k = 0; i + k < m && j + k < n; k++) { //len
+                    diff += s.charAt(i + k) == t.charAt(j + k) ? 0 : 1;
+                    if (diff > 1) {
+                        break;
+                    } else if (diff == 1) {
+                        ans++;
+                    }
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+DP：
+
+```java
+class Solution {
+    public int countSubstrings(String s, String t) {
+        int m = s.length(), n = t.length();
+        int[][] dpl = new int[m + 1][n + 1]; //s i结束, t j结束相等的最长长度
+        int[][] dpr = new int[m + 1][n + 1]; //s i开始, t j开始相等的最长长度
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                dpl[i + 1][j + 1] = s.charAt(i) == t.charAt(j) ? (dpl[i][j] + 1) : 0;
+            }
+        }
+        for (int i = m - 1; i >= 0; i--) {
+            for (int j = n - 1; j >= 0; j--) {
+                dpr[i][j] = s.charAt(i) == t.charAt(j) ? (dpr[i + 1][j + 1] + 1) : 0;
+            }
+        }
+        int ans = 0;
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (s.charAt(i) != t.charAt(j)) {
+                    ans += (dpl[i][j] + 1) * (dpr[i + 1][j + 1] + 1);
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
 
 
 

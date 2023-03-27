@@ -24384,6 +24384,85 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
 自己写好 `easymall` 包下的子包 `po,pojo,dao,controller,service,admin,exception` 和下的各 java 文件，放到 `src/main/java`。
 
+#### 项目继承
+
+Maven继承
+
+##### 概念
+
+项目进行纵向拆分和横向拆分，搭建的项目越来越多，由于很可能多个项目是为同一个系统提供服务，他们之间的资源管理就成了问题
+
+![image-20221110094327420](img/image-20221110094327420.png)
+
+##### 例子
+
+创建一个新 maven 项目作为父项目，还是选 quickstart，groupID 与之前相同，且配置 pom 的 `packaging` 标签为 `pom，`artifact ID 如 `maven-parent`：
+
+```xml
+<packaging>pom</packaging>
+```
+
+然后对于子项目，
+
+- groupId:可以使用父工程,也可以覆盖
+- versionId:继承父工程,也可以覆盖(一般要统一版本，所以不覆盖)，父项目
+- properties中定义的变量名称和值可以被子工程继承;
+- dependency可以直接继承,一旦父工程依赖了一些资源,子工程在继承之后直接传递过来;
+- dependencyManagement:声明式的依赖继承,子工程中只要不做依赖的指的话，groupId artifactId就不会继承给子工程,一旦子工程继承，会把父工程定义的版本一并继承,版本号可以覆盖，但为了同意版本，一般不覆盖。有需要的话套在 dependencies 标签外边
+- build中的所有插件可以继承:例如父工程定义了所有子工程打包打源码包
+- organization:组织者,也可以继承
+
+创建一个 maven 子项目。pom 改成这个样子：
+
+```xml
+<artifactId>maven-child01</artifactId>
+<packaging>jar</packaging>
+
+<parent>
+    <groupId>cn.edu.scnu</groupId>
+    <artifactId>maven-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+</parent>
+```
+
+在父工程的 properties 标签里定义变量标签：
+
+```xml
+<spring.version>5.1.9.RELEASE</spring.version>
+```
+
+那么在子工程里可以：
+
+```xml
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-beans</artifactId>
+    <version>${spring.version}</version>
+</dependency>
+```
+
+保存后项目点开 maven dependencies 能看到引入了 beans 等包的对应版本。且可以看到因为父项目有 junit 依赖，所以即使子项目 pom 里删掉了这个依赖，还是能传过来
+
+父项目可以添加：
+
+```xml
+<dependencyManagement>
+    <dependencies>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.8.8</version>
+		</dependency>
+	</dependencies>
+</dependencyManagement>
+```
+
+发现保存后子项目不会添加上这个依赖，但是如果把 dependency 拉到外边的 dependencies 一保存子项目马上添加了这些依赖(当然删掉后马上又删掉了)
+
+> 可以点 overview 去导入，继承不成功可以看看是不是 pom 什么地方对着抄抄错了
+>
+> 子项目别填 group id 一级标签
+
 
 
 #### 命令
@@ -25077,81 +25156,6 @@ public class HelloService {
 然后直接跑 main (run as-java application / 跟一般java文件跑main方法一样)就行。然后键入：`http://localhost:8080/hello?name=baicha`，发现能跑。
 
 
-
-#### 项目继承
-
-Maven继承
-
-##### 概念
-
-项目进行纵向拆分和横向拆分，搭建的项目越来越多，由于很可能多个项目是为同一个系统提供服务，他们之间的资源管理就成了问题
-
-![image-20221110094327420](img/image-20221110094327420.png)
-
-##### 例子
-
-创建一个新 maven 项目作为父项目，还是选 quickstart，groupID 与之前相同，且配置 pom 的 `packaging` 标签为 `pom，`artifact ID 如 `maven-parent`：
-
-```xml
-<packaging>pom</packaging>
-```
-
-然后对于子项目，
-
-- groupId:可以使用父工程,也可以覆盖
-- versionId:继承父工程,也可以覆盖(一般要统一版本，所以不覆盖)，父项目
-- properties中定义的变量名称和值可以被子工程继承;
-- dependency可以直接继承,一旦父工程依赖了一些资源,子工程在继承之后直接传递过来;
-- dependencyManagement:声明式的依赖继承,子工程中只要不做依赖的指的话，groupId artifactId就不会继承给子工程,一旦子工程继承，会把父工程定义的版本一并继承,版本号可以覆盖，但为了同意版本，一般不覆盖。有需要的话套在 dependencies 标签外边
-- build中的所有插件可以继承:例如父工程定义了所有子工程打包打源码包
-- organization:组织者,也可以继承
-
-创建一个 maven 子项目。pom 改成这个样子：
-
-```xml
-<artifactId>maven-child01</artifactId>
-<packaging>jar</packaging>
-
-<parent>
-    <groupId>cn.edu.scnu</groupId>
-    <artifactId>maven-parent</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-</parent>
-```
-
-在父工程的 properties 标签里定义变量标签：
-
-```xml
-<spring.version>5.1.9.RELEASE</spring.version>
-```
-
-那么在子工程里可以：
-
-```xml
-<dependency>
-    <groupId>org.springframework</groupId>
-    <artifactId>spring-beans</artifactId>
-    <version>${spring.version}</version>
-</dependency>
-```
-
-保存后项目点开 maven dependencies 能看到引入了 beans 等包的对应版本。且可以看到因为父项目有 junit 依赖，所以即使子项目 pom 里删掉了这个依赖，还是能传过来
-
-父项目可以添加：
-
-```xml
-<dependencyManagement>
-    <dependencies>
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
-			<version>2.8.8</version>
-		</dependency>
-	</dependencies>
-</dependencyManagement>
-```
-
-发现保存后子项目不会添加上这个依赖，但是如果把 dependency 拉到外边的 dependencies 一保存子项目马上添加了这些依赖(当然删掉后马上又删掉了)
 
 
 
@@ -29676,4 +29680,68 @@ server {
 > </dependency>
 > ```
 >
-> 
+
+
+
+#### 综合例子
+
+##### 基础工程
+
+创建 maven quick-start `artifact id` 为 `easymall-parent`，source 删掉 `src/`，进 build path，删掉 jre system library, maven dependencies。点 pom.exe，编辑器点到 overview，把 packaging 改成 pom，或者，project 内一级标签：
+
+```xml
+<packaging>pom</packaging>
+```
+
+一级：
+
+```xml
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>1.5.9.RELEASE</version>
+</parent>
+<properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <java.version>1.8</java.version>
+</properties>
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-dependencies</artifactId>
+            <version>Edgware.RELEASE</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+<dependencies>
+    <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>3.3.2</version>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-eureka</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-ribbon</artifactId>
+    </dependency>
+</dependencies>
+```
+
+然后造一个 quickstart `easymall-common-repository`，集成上述 pom：
+
