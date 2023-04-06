@@ -29687,7 +29687,9 @@ server {
 
 ##### 基础工程
 
-创建 maven quick-start `artifact id` 为 `easymall-parent`，source 删掉 `src/`，进 build path，删掉 jre system library, maven dependencies。点 pom.exe，编辑器点到 overview，把 packaging 改成 pom，或者，project 内一级标签：
+###### parent
+
+创建 maven quick-start `artifact id` 为 `easymall-parent`，`group id` 是 `cn.edu.scnu`，source 删掉 `src/`，进 build path，删掉 jre system library, maven dependencies。点 pom.exe，编辑器点到 overview，把 packaging 改成 pom，或者，project 内一级标签：
 
 ```xml
 <packaging>pom</packaging>
@@ -29743,5 +29745,355 @@ server {
 </dependencies>
 ```
 
-然后造一个 quickstart `easymall-common-repository`，集成上述 pom：
+注：如果子项目pom报错，说找不到 parent，但能跑代码，则可以忽略不计。
+
+###### common-repository
+
+然后造一个 quickstart `easymall-common-repository`，继承上述 pom，直接点overview 拉即可，或者手动点(记得删掉自己的group id)：
+
+```xml
+<parent>
+    <groupId>cn.edu.scnu</groupId>
+    <artifactId>easymall-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+</parent>
+```
+
+加点依赖：
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-jdbc</artifactId>
+</dependency>
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+	<version>8.0.27</version><!--$NO-MVN-MAN-VER$-->
+</dependency>
+<dependency>
+    <groupId>org.mybatis.spring.boot</groupId>
+    <artifactId>mybatis-spring-boot-starter</artifactId>
+    <version>1.3.0</version>
+</dependency>
+```
+
+druid 连接池配置：
+
+随便找一个有 starter 的项目如 order-n，点进 starter 主类
+
+点击文件夹夹住有个浏览器的按钮(open type)，键入 `DatasourceAutoConfiguration`，然后打开，看到有 `@Bean` 的 `public DataSourceInitializer`，按住 ctrl 点击同名的，在 `public void init()` 下加断点，双击行数那里或者右击 toggle 一下。运行时点虫子一样的按钮(debug)-debug as-java application。然后看到会停在这里，一行绿色的。点击黄色上右下箭头(step over f6)，翻到 `if(this.dataSource == null)`，悬停，如果看到 `org.apache.tomcat.jdbc.pool` 就是 tomcat 连接池
+
+回到 `DatasourceAutoConfiguration`，查看 `DataSourceProperties.class`，按住 ctrl 点击，看到有 `private Class<? extends DataSource> type;`。可以在配置文件中通过指定type的值，来定义自定义连接池。
+
+根据 `spring.datasource.type`的连接池全路径名称，在 `springboot-order` 中配置新建连接池对象：
+
+先在自己项目的的 pom文件中加入 Druid 数据源依赖，再在配置文件中指定type的值。
+
+```xml
+<dependency>
+    <groupId>com.alibaba</groupId>
+    <artifactId>druid</artifactId>
+    <version>1.0.14</version>
+</dependency>
+```
+
+在 `springboot-order` 的配置文件中配置连接池对象的全路径名称
+
+```properties
+pring.datasource.type=com.alibaba.druid.pool.DruidDataSource
+```
+
+再次 debug，在 variables properties 点看 type 则不为 null
+
+在pom文件中加入Druid数据源依赖。
+
+创建自定义初始化属性的配置类
+
+```java
+package cn.edu.scnu.repository.config;
+
+import javax.sql.DataSource;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import com.alibaba.druid.pool.DruidDataSource;
+
+@Configuration
+@ConfigurationProperties("spring.datasource")
+public class DataSourceInitConfig {
+    private String driverClassName;
+    private String url;
+    private String username;
+    private String password;
+    private Integer maxActive; // 最大连接数
+    private Integer maxIdle; // 最大空闲连接数
+    private Integer initialSize; // 初始化连接数量
+    private Integer minIdle; // 最大空闲数
+    // 自定义创建的DruidDatasource对象返回给框架使用
+
+    @Bean
+    @Primary // 当容器中存在多个同类对象时,以Primary所在的优先级最高
+    public DataSource initDruidDataSource() {
+        DruidDataSource datasource = new DruidDataSource();
+        datasource.setDriverClassName(driverClassName);
+        datasource.setUrl(url);
+        datasource.setUsername(username);
+        datasource.setPassword(password);
+        // 连接池初始化参数
+        datasource.setInitialSize(initialSize);// 5
+        datasource.setMaxActive(maxActive);// 200
+        datasource.setMaxIdle(maxIdle);// 8
+        datasource.setMinIdle(minIdle);// 3
+        return datasource;
+    }
+    // setter&&getter
+}
+```
+
+###### common-resources
+
+在系统开发过程中,多个系统可能用到同一个工具类,这种也叫作共享资源,可以单独提取一个维护工具类**,**视图类**,**pojo类的common-resource工程
+
+![image-20230327215223800](img/image-20230327215223800.png)
+
+继承 parent，然后将 pojo, utils, vo 的类拷贝进来。
+
+其他项目使用该仓库，直接 dependency 即可：
+
+```xml
+<dependency>
+    <groupId>cn.edu.scnu</groupId>
+    <artifactId>easymall-common-resources</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+</dependency>
+```
+
+同理，对 repository 也是。
+
+##### 商品系统
+
+挂数据库(见砺儒云)。
+
+###### 基建
+
+> 如：
+>
+> ```mysql
+> drop database easydb;
+> CREATE DATABASE IF NOT EXISTS easydb  DEFAULT CHARACTER SET utf8;
+> 
+> USE easydb;
+> 
+> DROP TABLE IF EXISTS t_user;
+> 
+> CREATE TABLE t_user (
+>   user_id char(36) NOT NULL COMMENT '用户id uuid 主键',
+>   user_name varchar(100) NOT NULL COMMENT '用户登陆名称',
+>   user_password varchar(32) NOT NULL DEFAULT '""' COMMENT '用户密码 md5',
+>   user_nickname varchar(50) DEFAULT '上帝' COMMENT '用户昵称',
+>   user_email varchar(30) DEFAULT '""' COMMENT '用户邮箱',
+>   user_type int(11) DEFAULT '0' COMMENT '用户状态 0(普通用户),1(管理员),2(超级管理员)',
+>   PRIMARY KEY (user_id),
+>   UNIQUE KEY UN_user_name (user_name)
+> ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+> 
+> /*Data for the table t_user */
+> insert  into t_user(user_id,user_name,user_password,user_nickname,user_email,user_type) 
+> values ('f577f9f9-159e-4aaf-9332-fd7b294bc208','aa',md5('123'),'李筱雯','aa@163.com',0);
+> 
+> select * from t_user;
+> 
+> 
+> DROP TABLE IF EXISTS t_product;
+> CREATE TABLE t_product (
+>   product_id char(36) NOT NULL DEFAULT '',
+>   product_name varchar(100) DEFAULT NULL,
+>   product_price double DEFAULT '0',
+>   product_category varchar(100) DEFAULT '',
+>   product_imgurl varchar(500) DEFAULT '',
+>   product_num int(11) DEFAULT '0',
+>   product_description varchar(255) DEFAULT '',
+>   PRIMARY KEY (product_id),
+>   UNIQUE KEY UN_product_name (product_name)
+> ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+> 
+> insert into t_product(product_id,product_name,product_price,product_category,product_imgurl,product_num,product_description) 
+> values('05e20c1a-0401-4c0a-82ab-6fb0f37db397','荣耀Play5T','1199','手机数码','http://image.easymall.com/upload/5/e/d/5/4/5/e/b/5f0d34dc-157f-49ba-ad39-1b28927ba6ae_1005714.jpg',206,'22.5W超级快充 5000mAh大电池 6.5英寸护眼屏');
+> ```
+
+配置文件：(mysql8)
+
+```properties
+server.port=10001
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=jdbc:mysql:///easydb?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true
+spring.datasource.username=root
+spring.datasource.password=12345678
+spring.datasource.type=com.alibaba.druid.pool.DruidDataSource
+spring.datasource.initialSize=5
+spring.datasource.maxActive=50
+spring.datasource.maxIdle=10
+spring.datasource.minIdle=5
+
+mybatis.typeAliasesPackage=com.easymall.common.pojo
+mybatis.mapperLocations=classpath:mapper/*.xml
+mybatis.configuration.mapUnderscoreToCamelCase=true
+mybatis.configuration.cacheEnabled=false
+spring.application.name=productservice
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/
+```
+
+>  /// 默认是本机 localhost:3306 (GPT)
+
+如果发现 jar 里 mysql-connector 不是 8 的，那么强制覆盖一下父类的：
+
+```xml
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+	<version>8.0.27</version><!--$NO-MVN-MAN-VER$-->
+</dependency>
+```
+
+启动类：
+
+```java
+package cn.edu.scnu;
+
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+import org.springframework.context.annotation.Bean;
+import org.springframework.web.client.RestTemplate;
+
+@SpringBootApplication
+@EnableEurekaClient
+@MapperScan("cn.edu.scnu.product.mapper")
+public class StarterProductCenter {
+    public static void main(String[] args) {
+        SpringApplication.run(StarterProductCenter.class, args);
+    }
+
+    @Bean
+    @LoadBalanced
+    public RestTemplate iniRestTemplateProduct() {
+        return new RestTemplate();
+    }
+}
+
+```
+
+###### 商品分页查询
+
+`src/main/resources/mapper/ProductMapper.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.edu.scnu.product.mapper.ProductMapper">
+    <select id="queryTotal" resultType="int">
+        select count(product_id) from t_product
+    </select>
+    <select id="queryByPage" resultType="Product">
+        select * from t_product limit #{start},#{rows}
+    </select>
+</mapper>
+```
+
+```java
+package cn.edu.scnu.product.mapper;
+
+import java.util.List;
+import org.apache.ibatis.annotations.Param;
+import com.easymall.common.pojo.Product;//跟数据库结构一样的POJO
+
+public interface ProductMapper {
+    public Integer queryTotal();
+
+    public List<Product> queryByPage(@Param("start") Integer start, @Param("rows") Integer rows);
+}
+```
+
+```java
+package cn.edu.scnu.product.service;
+
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.easymall.common.pojo.Product;
+import com.easymall.common.vo.EasyUIResult;
+import cn.edu.scnu.product.mapper.ProductMapper;
+
+@Service
+public class ProductService {
+    @Autowired
+    private ProductMapper productMapper;
+
+    public EasyUIResult productPageQuery(Integer page, Integer rows) {
+        EasyUIResult result = new EasyUIResult();
+        Integer total = productMapper.queryTotal();
+        Integer start = (page - 1) * rows;
+        List<Product> pList = productMapper.queryByPage(start, rows);
+        result.setTotal(total);
+        result.setRows(pList);
+        return result;
+    }
+}
+```
+
+```java
+package cn.edu.scnu.product.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.easymall.common.vo.EasyUIResult;
+
+import cn.edu.scnu.product.service.ProductService;
+
+@RestController
+public class ProductController {
+    @Autowired
+    private ProductService productService;
+    @RequestMapping("/product/manage/pageManage")
+    public EasyUIResult productPageQuery(Integer page, Integer rows) {
+        return productService.productPageQuery(page, rows);
+    }
+}
+```
+
+单元测试：`http://localhost:10001/product/manage/pageManage?page=1&rows=2`
+
+返回的结果输出类似：
+
+> ```json
+> {
+> 	"total": 29,
+> 	"rows": [{
+> 		"productId": "05e20c1a-0401-4c0a-82ab-6fb0f37db397",
+> 		"productName": "荣耀Play5T",
+> 		"productPrice": 1199.0,
+> 		"productCategory": "手机数码",
+> 		"productImgurl": "http://image.easymall.com/upload/5/e/d/5/4/5/e/b/5f0d34dc-157f-49ba-ad39-1b28927ba6ae_1005714.jpg",
+> 		"productNum": 206,
+> 		"productDescription": "22.5W超级快充 5000mAh大电池 6.5英寸护眼屏"
+> 	}, {
+> 		"productId": "09f47493-214d-44bc-927d-6ce0bf89a057",
+> 		"productName": "爱疯9S(0315-01)",
+> 		"productPrice": 1000.0,
+> 		"productCategory": "手机数码",
+> 		"productImgurl": "http://image.easymall.com/upload/5/2/3/4/7/8/d/c/1838eaa6-6459-420f-b8e2-6ea9f43c4b5e_dfd259ab-bcc7-43f6-a9d5-62872ff5671e.jpg",
+> 		"productNum": 185,
+> 		"productDescription": "爱疯9S(0315-01)"
+> 	}]
+> }
+> ```
+
+###### 整合
 

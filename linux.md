@@ -5228,6 +5228,43 @@ chkconfig mysql on
 
 
 
+#### 后台应用
+
+例如有后台应用如下：(`writing.py`)
+
+```python
+import datetime
+import time
+while True:
+    with open('test.txt', 'a') as f:
+        f.write(str(datetime.datetime.now())+'\n')
+    time.sleep(0.5)
+```
+
+`&` 是后台运行：
+
+```python
+python3 writing.py &
+```
+
+查看后台运行的所有任务：
+
+```sh
+jobs
+```
+
+如果看到这个任务是 `[1]`，则终止它的办法：
+
+```sh
+kill -9 %1 #-9是强制
+```
+
+可以用 `fg 数字` 调前台。`bg` 放后台。
+
+> 如果有 ` print(datetime.datetime.now())`，则无论前后台，shell 都会死命输出。
+
+
+
 ## 维护
 
 ### 清理垃圾

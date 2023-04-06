@@ -277,6 +277,34 @@
 - 1638\.统计只差一个字符的子串数目
 
   字符串哈希 / <u>枚举</u> / <u>DP</u>
+  
+- 1092\.最短公共超序列
+
+  **DP**
+
+- 1641\.统计字典序元音字符串的数目
+
+  高阶前缀和 / DP
+  
+- 1039\.多边形三角剖分的最低得分
+
+  <u>DP</u>
+  
+- 1053\.交换一次的先前排列
+
+  <u>贪心</u> / STL二分
+  
+- 1000\.合并石子的最低成本
+
+  **DP**
+  
+- 2417\.公因子的数目
+
+  枚举 / <u>gcd优化</u>
+  
+- 1017\.负二进制转换
+
+  模拟 进制
 
 
 
@@ -8198,6 +8226,629 @@ class Solution {
 
 
 
+##### 1092\.最短公共超序列
+
+[题目](https://leetcode.cn/problems/shortest-common-supersequence/)
+
+设 $dp_{i,j}$ 表示 $s[i..n]$ 和 $t[j..m]$ (定义 $n,m$ 为越界下标)作为子序列的最短超字符串长度。
+
+1. 若 $s_i=t_j$，则一定包含该字符，即：$dp_{i,j}=dp_{i+1,j+1}+1$
+
+2. 否则，哪个短要哪个 $dp_{i,j}=\min(dp_{i+1,j},dp_{i,j+1})+1$
+
+   哪边下标 +1 就是用了谁的字符来 +1，因为不等于另一边，所以不能延长另一边
+
+对边界，有 $dp_{n,j}=m-j$，$dp_{i,m}=n-i$，$dp_{n,m}=0$。
+
+```c++
+class Solution {
+    public String shortestCommonSupersequence(String str1, String str2) {
+        int n = str1.length(), m = str2.length();
+        int[][] dp = new int[n + 1][m + 1];
+        for (int i = 0; i < n; ++i) {
+            dp[i][m] = n - i; 
+            //如dp[0][m]=n,即s[0..n]自身长度为n
+        }
+        for (int i = 0; i < m; ++i) {
+            dp[n][i] = m - i;
+        }
+        for (int i = n - 1; i >= 0; --i) {
+            for (int j = m - 1; j >= 0; --j) {
+                if (str1.charAt(i) == str2.charAt(j)) {
+                    dp[i][j] = dp[i + 1][j + 1] + 1;
+                } else {
+                    dp[i][j] = Math.min(dp[i + 1][j], dp[i][j + 1]) + 1;
+                }
+            }
+        }
+        StringBuilder res = new StringBuilder();
+        int t1 = 0, t2 = 0;
+        while (t1 < n && t2 < m) {
+            if (str1.charAt(t1) == str2.charAt(t2)) {
+                res.append(str1.charAt(t1));
+                ++t1;
+                ++t2;
+            } else if (dp[t1 + 1][t2] == dp[t1][t2] - 1) { //如果当初推导转移时走的是i+1,j
+                res.append(str1.charAt(t1));
+                ++t1;
+            } else if (dp[t1][t2 + 1] == dp[t1][t2] - 1) {
+                res.append(str2.charAt(t2));
+                ++t2;
+            }
+        }
+        if (t1 < n) {
+            res.append(str1.substring(t1));
+        } else if (t2 < m) {
+            res.append(str2.substring(t2));
+        }
+        return res.toString();
+    }
+}
+```
+
+
+
+##### 1641\.统计字典序元音字符串的数目
+
+[题目](https://leetcode.cn/problems/count-sorted-vowel-strings/)
+
+设 $dp_{i,j}$ 表示长为 $i$ 的以第 $j$ 个元音结尾的答案。则所求为 $\sum_{j=1}^5dp_{n,j}$。
+
+初始状态为 $dp_{1,j}=1$。对 $dp_{i,j}$，所有满足上一个字符不大于 $j$ 的都可以接上 $j$，即 $dp_{i,j}=\sum_{k=1}^jdp_{i-1,k}$。得解，$O(5n)$。
+
+故所求为 $\sum_{j=1}^5dp_{n,j}=dp_{n+1,5}$。
+
+还可以继续优化(看下文)。
+
+朴素 DP：
+
+```rust
+impl Solution {
+    pub fn count_vowel_strings(n: i32) -> i32 {
+        let _n = (n + 1) as usize;
+        let mut dp = Vec::with_capacity(_n);
+        for _ in 0.._n {
+            dp.push(vec![0; 5]);
+        }
+        for i in 0..5 {
+            dp[0][i] = 1;
+        }
+        for i in 1.._n {
+            for j in 0..5 {
+                for k in 0..=j {
+                    dp[i][j] += dp[i - 1][k];
+                }
+            }
+        }
+        dp[_n - 1][4]
+    }
+}
+```
+
+不难发现，$dp_{i,j}$ 的本质是常数数组 $(1,1,\cdots)$ 的 $n$ **阶**前缀和的第 $5$ 个元素。下面拓展并证明如何求该数组的任意阶前缀和的任意元素。转载自我原创的 [我的博客](https://lr580.github.io/2022/11/06/%E6%80%9D%E7%BB%B4-%E6%95%B0%E5%AD%A6%E9%A2%98%E5%8D%95%E9%A2%98%E8%A7%A3/#%E9%AB%98%E9%98%B6%E5%89%8D%E7%BC%80%E5%92%8C)。
+
+设 $a=(1,1,\cdots)$，观察可得，有 $s_{j,i}$ 矩阵(这里设下标行 $j$ 从 $0$ 开始，列 $i$ 从 $0$ 开始)：
+$$
+s=\begin{pmatrix}
+1&1&1&1&\cdots\\
+1&2&3&4&\cdots\\
+1&3&6&10&\cdots\\
+1&4&10&20&\cdots\\
+1&5&15&35&\cdots\\
+\vdots&\vdots&\vdots&\vdots&\ddots
+\end{pmatrix}
+$$
+抽象为 $s_{j,i}$ 表示从最左上角点 $(0,1)$ 出发，只能往左和往下走，共有多少种方案能走到 $(j,i)$。显然初始值是 $s_{0,1}=1$，且根据加法原理，有：$s_{j,i}=s_{j-1,i}+s_{j,i-1}$，可以发现该组合数学意义与前缀和数组算术等价。即问题暂时转化为问方案数。
+
+显然，从 $(0,1)$ 走到 $(j,i)$ 共需要往下移动 $j$ 次，往左移动 $i-1$ 次，在这所有 $i+j-1$ 次移动里，分 $j$ 次往下，共有 $C_{i+j-1}^j$ 种方案。即：$a=(1,1,\cdots)$ 时，有：$s_{j,i}=C_{i+j-1}^j=C_{i+j-1}^{i-1}$。对于本题，即 $j=n,i=4$，即求 $C_{n+4}^4$。
+
+扩展：下面简要推导如何求任意数组的任意阶前缀和任意元素。
+
+推广到 $a=(a_1,a_2,\cdots, a_n)$，有：
+$$
+s=\begin{pmatrix}
+a_1&a_2&a_3&a_4&\cdots\\
+a_1&a_1+a_2&a_1+a_2+a_3&a_1+a_2+a_3+a_4&\cdots\\
+a_1&2a_1+a_2&3a_1+2a_2+a_3&4a_1+3a_2+2a_3+a_4&\cdots\\
+a_1&3a_1+a_2&6a_1+3a_2+a_3&10a_1+6a_2+3a_3+a_4&\cdots\\
+\vdots&\vdots&\vdots&\vdots&\ddots
+\end{pmatrix}
+$$
+换言之，现在抽象成了，可以从任一点 $(0,i)(i\le x)$ 出发，第一步只能往下走且方案数为 $a_i$，在这之后 只能往左和往下走，共有多少种方案能走到 $(j,i)(j\ge 1)$。显然，可以将其拆分为 $x$ 个子问题，即分别从 $(0,1),(0,2),\cdots,(0,x)$ 出发，走到  $(j-1,i)$ 的方案数，将这些方案数用加法原理加起来即可，有：
+$$
+s_{j+1,i}=\sum_{x=1}^iC_{j+i-x}^{j}a_x(j\ge 1)
+$$
+作偏移，有：(你扣不支持 `\begin{align}`，所以排版难看)
+$$
+s_{j+1,i}=\sum_{x=1}^{i}C_{i+j-x}^ja_x\\
+=C_{j+i-1}^ja_1+C_{j+i-2}^ja_2+\cdots+C_{j+i-x+1}^ja_{x-1}+C_{j+i-x}^ja_x①\\
+
+s_{j+1,i-1}=\sum_{x=1}^{i-1}C_{i-1+j-x}^ja_x\\
+=C_{j+i-2}^ja_1+C_{j+i-3}^ja_2+\cdots+C_{j+i-x}^ja_{ix-1}②\\
+
+s_{j,i}=\sum_{x=1}^{i}C_{i+j-1-x}^ja_x\\
+=C_{j+i-2}^{j-1}a_1+C_{j+i-3}^{j-1}a_2+\cdots+C_{j+i-2}^{j-x}a_{x-1}+C_{j+i-x-1}^{j-1}a_x③
+$$
+根据组合数学杨辉三角公式：$C_{n-1}^{r-1}+C_{n-1}^r=C_n^r$ 可知，$②+③=①$。由此，证明了该组合数学意义式子与题给前缀和式子等价。因此，可以用组合数学方法推导高阶前缀和。即所求为：
+$$
+s_{y,x}=\sum_{k=1}^xC_{y+x-k-1}^{y-1}a_k
+$$
+注意到 $y-1$ 很大，我们可以转化为求较小的 $C_{y+x-k-1}^{x-k}$，并且使用线性递推，即所求的从 $k=1$ 开始递增的组合数值分别是：
+$$
+\dfrac{1}{0!},\dfrac{n}{1!},\dfrac{n(n+1)}{2!},\dfrac{n(n+1)(n+2)}{3!},\cdots
+$$
+即每次让分子乘以多一个数，分母也改为下一个阶乘即可，可以降复杂度 $O(y)$ 为 $O(n)$。
+
+> 参考题目：[这里](https://oj.socoding.cn/p/1892)，题解见上文我的博客。
+
+
+
+##### 1039\.多边形三角剖分的最低得分
+
+[题目](https://leetcode.cn/problems/minimum-score-triangulation-of-polygon/)
+
+可知，三角剖分的数目为卡特兰数。具体而言固定一条边，该边所属第三点有 $n-2$ 个选择，并且把剩余部分拆分成了两个子问题，即方案数为 $p_n=\sum_{i=2}^{n-1}p_ip_{n-i}$，且初始值为 $p_2=p_3=1$。可知是指数增长，故不可以暴力枚举所有方案。(可以 $O(n)$ 计算卡特兰数，但没必要)
+
+考虑固定一条边，为了区间连续性期间，不妨固定最后一条边 $(0,n-1)$，给这条边找第三点。设当前边是 $(i,j)$，枚举第三点，则答案为 $dp_{i,j}=v_iv_jv_k+dp_{i,k}+dp_{k,j}$。特判一下边界，并且做记忆化处理，最后输出 $dp_{0,n-1}$ 即可。
+
+```rust
+impl Solution {
+    pub fn min_score_triangulation(v: Vec<i32>) -> i32 {
+        let n = v.len();
+        let mut dp = vec![vec![0; n]; n];
+        fn calc(v: &[i32], dp: &mut Vec<Vec<i32>>, l: usize, r: usize) -> i32 {
+            if dp[l][r] != 0 {
+                return dp[l][r];
+            }
+            if l + 2 > r {
+                return 0;
+            }
+            if l + 2 == r {
+                return v[l] * v[l + 1] * v[r];
+            }
+            let mut ans = i32::MAX;
+            for k in l + 1..r {
+                ans = ans.min(v[l] * v[k] * v[r] + calc(v, dp, l, k) + calc(v, dp, k, r));
+            }
+            dp[l][r] = ans;
+            ans
+        };
+        calc(&v, &mut dp, 0, n - 1)
+    }
+}
+```
+
+> 一种顺序枚举的做法：
+>
+> ```rust
+> pub fn min_score_triangulation(values: Vec<i32>) -> i32 {
+>     let n = values.len();
+>     let mut dp = vec![vec![i32::MAX;n+1];n];
+>     for i in 0..n {
+>         dp[i][2] = 0;
+>     }
+> 
+>     for c in 3..=n {
+>         for i in 0..n {
+>             for j in (i+1)..(i+c-1) {
+>                 let jn = j % n;
+>                 dp[i][c] = dp[i][c].min(
+>                     values[i]*values[jn]*values[(i+c-1)%n] + dp[i][j+1-i] + dp[jn][i+c-j]
+>                 );
+>             }
+>         }
+>     }
+>     dp[0][n]
+> }
+> ```
+
+
+
+##### 1053\.交换一次的先前排列
+
+[题目](https://leetcode.cn/problems/previous-permutation-with-one-swap/)
+
+逆序遍历原数组，对每个 $v$，如果能找到在它之后出现过比它小的值，就用最大比它小的与它交换。注意如果有多个应该取最早出现的一个，考虑 `3,1,1`，显然 `1,3,1` 比 `1,1,3` 更大。
+
+维护 tree map，可以达到时间 $O(n\log n)$ 和空间 $O(n)$。(对 C++ 而言，直接取 v 的 prev 指针即可)
+
+```rust
+use std::collections::BTreeMap;
+impl Solution {
+    pub fn prev_perm_opt1(arr: Vec<i32>) -> Vec<i32> {
+        let n = arr.len();
+        let mut h: BTreeMap<i32, usize> = BTreeMap::new();
+        let mut ans: Vec<i32> = Vec::new();
+        ans.extend(arr);
+        for i in (0..n).rev() {
+            if i + 1 != n {
+                let v = ans[i];
+                if let Some(j) = h.range(..v).next_back().map(|(&_k, &v)| (v)) {
+                    let k = ans[i];
+                    ans[i] = ans[j];
+                    ans[j] = k;
+                    break;
+                }
+            }
+            h.insert(ans[i], i);
+        }
+        ans
+    }
+}
+```
+
+更优解：当找到第一个逆序时，原数组往后的部分一定是单调的，所以直接遍历后半部分可以直接搞到最大小于的目标。
+
+```java
+class Solution {
+    public int[] prevPermOpt1(int[] arr) {
+        int n = arr.length;
+        for (int i = n - 2; i >= 0; i--) {
+            if (arr[i] > arr[i + 1]) {
+                int j = n - 1;
+                while (arr[j] >= arr[i] || arr[j] == arr[j - 1]) {
+                    j--;
+                }
+                int temp = arr[i];
+                arr[i] = arr[j];
+                arr[j] = temp;
+                break;
+            }
+        }
+        return arr;
+    }
+}
+```
+
+
+
+##### 1000\.合并石头的最低成本
+
+[题目](https://leetcode.cn/problems/minimum-cost-to-merge-stones/)
+
+当 $k=2$ 时是典中典的区间 DP 模板题(相邻合并)。
+
+设 $dp_{l,r,t}$ 为将 $[l,r]$ 内石子合为 $t$ 堆的答案。初始 $dp_{i,i,1}=0$，其他为 $\infty$。所求是 $dp_{1,n,1}$。若 $t=1$，则答案为 $dp_{l,r,t}=dp_{l,r,k}+s_{l,r}$。注意 $k$ 是常量，不是 $i,j,k$ 的变量。若 $t>1$，则 $dp_{l,r,t}=\min (dp_{l,p,1}+dp_{p+1,r,t-1})$。之所以不用 $+s_{l,r}$，是因为只是离散地把两个堆放在一起并没有进行合并操作，所以没有代价。只是笼统代表两次子合并的和。
+
+显然，最多能开到 $k$ 的维度，故空间 $O(n^2k)$，时间 $O(n^3k)$。其中多一个 $n$ 来自转移。
+
+递归写法：
+
+```java
+class Solution {
+    static final int INF = 0x3f3f3f3f;
+    int[][][] d;
+    int[] sum;
+    int k;
+
+    public int mergeStones(int[] stones, int k) {
+        int n = stones.length;
+        if ((n - 1) % (k - 1) != 0) {
+            return -1;
+        }
+        this.k = k;
+        d = new int[n][n][k + 1];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                Arrays.fill(d[i][j], -1);
+            }
+        }
+        sum = new int[n];
+
+        // 初始化
+        for (int i = 0, s = 0; i < n; i++) {
+            d[i][i][1] = 0;
+            s += stones[i];
+            sum[i] = s;
+        }
+        int res = get(0, n - 1, 1);
+        return res;
+    }
+
+    public int get(int l, int r, int t) {
+        // 若 d[l][r][t] 不为 -1，表示已经在之前的递归被求解过，直接返回答案
+        if (d[l][r][t] != -1) {
+            return d[l][r][t];
+        }
+        // 当石头堆数小于 t 时，一定无解
+        if (t > r - l + 1) {
+            return INF;
+        }
+        if (t == 1) {
+            int res = get(l, r, k);
+            if (res == INF) {
+                return d[l][r][t] = INF;
+            }
+            return d[l][r][t] = res + (sum[r] - (l == 0 ? 0 : sum[l - 1]));
+        }
+        int val = INF;
+        for (int p = l; p < r; p += (k - 1)) {
+            val = Math.min(val, get(l, p, 1) + get(p + 1, r, t - 1));
+        }
+        return d[l][r][t] = val;
+    }
+}
+```
+
+非递归写法：
+
+```java
+class Solution {
+    static final int INF = 0x3f3f3f3f;
+
+    public int mergeStones(int[] stones, int k) {
+        int n = stones.length;
+        if ((n - 1) % (k - 1) != 0) {
+            return -1;
+        }
+
+        int[][][] d = new int[n][n][k + 1];
+        int[] sum = new int[n];
+
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                Arrays.fill(d[i][j], INF);
+            }
+        }
+
+        for (int i = 0, s = 0; i < n; i++) {
+            d[i][i][1] = 0;
+            s += stones[i];
+            sum[i] = s;
+        }
+
+        for (int len = 2; len <= n; len++) {
+            for (int l = 0; l + len - 1 < n; l++) {
+                int r = l + len - 1;
+                for (int t = 2; t <= k; t++) {
+                    for (int p = l; p < r; p += k - 1) {
+                        d[l][r][t] = Math.min(d[l][r][t], d[l][p][1] + d[p + 1][r][t - 1]);
+                    }
+                }
+                d[l][r][1] = Math.min(d[l][r][1], d[l][r][k] + sum[r] - (l == 0 ? 0 : sum[l - 1]));
+            }
+        }
+        return d[0][n - 1][1];
+    }
+}
+```
+
+优化：对 $[l,r]$，一开始有 $r-l+1$ 堆，不难看出每次减少 $k-1$ 堆，即堆数固定减少。具体而言设 $dp_{l,r}$ 是答案，则：
+$$
+dp_{l,r}=\min dp_{l,p}+dp_{p+1,r}+[(r-l)\bmod (k-1)=0]s_{l,r}
+$$
+也就是默认叠加，满了自动合并。
+
+```java
+class Solution {
+    static final int INF = 0x3f3f3f3f;
+
+    public int mergeStones(int[] stones, int k) {
+        int n = stones.length;
+        if ((n - 1) % (k - 1) != 0) {
+            return -1;
+        }
+
+        int[][] d = new int[n][n];
+        for (int i = 0; i < n; i++) {
+            Arrays.fill(d[i], INF);
+        }
+        int[] sum = new int[n];
+
+        for (int i = 0, s = 0; i < n; i++) {
+            d[i][i] = 0;
+            s += stones[i];
+            sum[i] = s;
+        }
+
+        for (int len = 2; len <= n; len++) {
+            for (int l = 0; l < n && l + len - 1 < n; l++) {
+                int r = l + len - 1;
+                for (int p = l; p < r; p += k - 1) {
+                    d[l][r] = Math.min(d[l][r], d[l][p] + d[p + 1][r]);
+                }
+                if ((r - l) % (k - 1) == 0) {
+                    d[l][r] += sum[r] - (l == 0 ? 0 : sum[l - 1]);
+                }
+            }
+        }
+        return d[0][n - 1];
+    }
+}
+```
+
+
+
+##### 2417\.公因子的数目
+
+[题目](https://leetcode.cn/problems/number-of-common-factors/)
+
+暴力略自己想到的一个是先根号复杂度求 a 的所有因数存 set，然后对 b 求一遍，看看每个在不在 set 里。
+
+更优：直接求 $\gcd(a,b)$ 的因子数。
+
+```rust
+impl Solution {
+    pub fn common_factors(a: i32, b: i32) -> i32 {
+        let mut ans = 0;
+        for i in 1..=a.max(b) {
+            if a % i == 0 && b % i == 0 {
+                ans += 1;
+            }
+        }
+        ans
+    }
+}
+```
+
+
+
+##### 1017\.负二进制转换
+
+[题目](https://leetcode.cn/problems/convert-to-base-2/)
+
+不妨先打个表，打表 C++ 程序如下：
+
+> ```c++
+> #include <bits/stdc++.h>
+> using namespace std;
+> using ll = long long;
+> const ll mn = 7;
+> map<ll, string> m;
+> signed main()
+> {
+>     freopen("1017tab.txt", "w", stdout);
+>     for (ll h = 0; h < 1 << mn; ++h)
+>     {
+>         ll cnt = 0;
+>         string s = "";
+>         for (ll i = 0, v = 1; i < mn; ++i, v *= -2)
+>         {
+>             if ((h >> i) & 1)
+>             {
+>                 cnt += v;
+>             }
+>             s = (((h >> i) & 1) ? '1' : '0') + s;
+>         }
+>         m[cnt] = s;
+>     }
+>     for (auto [v, s] : m)
+>     {
+>         printf("%3lld %s\n", v, s.c_str());
+>     }
+>     return 0;
+> }
+> ```
+
+截取打表打出来的内容，发现抛开 $(-2)^0$ 不谈，对每两负正位如 $(-2)^1,(-2)^2$ 或 $(-2)^2,(-2)^3$，变化规律总是从 $01\to00\to11\to10$ 增大(显然，即把二进制增长的末位反一下)，且总是隔 $2,8,32,\cdots$ 变化一次。例如对 $(-2)^1,(-2)^2$ 是隔 $2$ 个，即：
+
+> ```c
+>  -2 0000010
+>  -1 0000011
+>   0 0000000
+>   1 0000001
+>   2 0000110
+>   3 0000111
+>   4 0000100
+>   5 0000101
+> ```
+
+考虑做一个偏移，即把 $-2$ 看成 $0$，然后开始递增，可以发现，两位两位的映射，把 $(00)_2,(01)_2,(10)_2,(11)_2$ 映射成 $(01)_{-2},(00)_{-2},(11)_{-2}，(10)_{-2}$。
+
+考虑到最大值是 $10^{9}$，可以不断做偏移，即对 $n$ 加上 $-2,(-2)^3,(-2)^5,\cdots,(-2)^{29}$，直到被 $30$ 位负二进制表示的最小的负数变成 $0$，然后从倒数第二低位开始，两位两位地进行映射即可。
+
+```rust
+impl Solution {
+    pub fn base_neg2(n: i32) -> String {
+        if n == 0 {
+            return "0".to_string();
+        }
+        let mut v = n as i64;
+        let mut i = 1 as i64;
+        let mut ip = 2 as i64;
+        const TOP: i64 = 30;
+        while i < TOP {
+            v += ip;
+            i += 2;
+            ip *= 4;
+        }
+        i -= 2;
+        ip /= 4;
+        assert!(i == TOP - 1);
+        let mut ans = String::new();
+        let c = ["01", "00", "11", "10"];
+        while i > 0 {
+            let r = v / ip;
+            v %= ip;
+            ans += c[r as usize];
+            i -= 2;
+            ip /= 4;
+        }
+        if v == 0 {
+            ans += "0";
+        } else {
+            ans += "1";
+        }
+        ans.trim_start_matches('0').to_string()
+    }
+}
+```
+
+题解：
+
+解法一：将 $n$ 拆分为若干 $2^i$，若 $i$ 偶数，直接对应负二进制；否则 $2^i=(-2)^{i+1}+(-2)^i$。这样搞了之后，会得到若干 $C(-2)^i$，当 $C > 1$ 时，需要进位。若 $C$ 是基数，则设 $C(-2)^i=a(-2)^{i+1}+(-2)^i$，否则进位完本位没有，为 $C(-1)^i=a(-2)^{i+1}$。 $C=v=ax+r$，则 $a=\dfrac{v-r}{x}$。$v$ 的最低位就是余数 $r$，负数是二进制补码，所以最低位不变余数直接取 $v\&1$。故 $a=\dfrac{C-(C\&1)}{-2}$。也可以等式两边同除易知。
+
+```java
+class Solution {
+    public String baseNeg2(int n) {
+        if (n == 0) {
+            return "0";
+        }
+        int[] bits = new int[32];
+        for (int i = 0; i < 32 && n != 0; i++) {
+            if ((n & 1) != 0) {
+                bits[i]++;
+                if ((i & 1) != 0) {
+                    bits[i + 1]++;
+                }
+            }
+            n >>= 1;
+        }
+        int carry = 0;
+        for (int i = 0; i < 32; i++) {
+            int val = carry + bits[i];
+            bits[i] = val & 1;
+            carry = (val - bits[i]) / (-2);
+        }
+        int pos = 31;
+        StringBuilder res = new StringBuilder();
+        while (pos >= 0 && bits[pos] == 0) {
+            pos--;
+        }
+        while (pos >= 0) {
+            res.append(bits[pos]);
+            pos--;
+        }
+        return res.toString();
+    }
+}
+```
+
+解法二：可以模仿普通进制转换，如：
+
+![image.png](img/1680742541-xMapiC-image.png)
+
+```python
+def baseNeg2(self, n: int) -> str:
+    return str(n) if n in (0, 1) else self.baseNeg2((n - (n & 1)) // -2) + str(n & 1) 
+```
+
+解法三：显然，奇数位全 0，偶数位全 1 的负二进制最大，转化为二进制为 0x55555555。最小的是奇数位全 1，偶数位全 0，转化为二进制为 0xAAAAAAAA(最高A占了符号位负数)。设最大值与 $n$ 差值为 $d$，若把最大值在负二进制下表示，减去差值，那么得到 $n$ 的负二进制。减法操作可以这么做：
+
+- 对 diff 偶数 1，1-1 变 0；偶数 0，1-0 不变还是 0
+- 对 diff 奇数 0，0-0 不变还是 0；奇数 1，因为 $(2)^i=(-2)^{i+1}+(-2)^i$，故不借位，0-1=1
+
+可以发现符合异或的定义。即对 $m=0x55555555$，差值是 $m-n$，这两个二进制表达，直接用异或，就得到了负二进制的 $n$，即 $n_{-2}=m_2\oplus (m_2-n_2)$。
+
+这种办法最高效，不考虑答案去前导零，则是 $O(1)$ 的。
+
+```java
+class Solution {
+    public String baseNeg2(int n) {
+        int val = 0x55555555 ^ (0x55555555 - n);
+        if (val == 0) {
+            return "0";
+        }
+        StringBuilder res = new StringBuilder();
+        while (val != 0) {
+            res.append(val & 1);
+            val >>= 1;
+        }
+        return res.reverse().toString();
+    }
+}
+```
+
 
 
 > ### 力扣比赛
@@ -8457,6 +9108,8 @@ public:
 >     return i < rhs.i;
 > }
 > ```
+
+
 
 
 
@@ -9867,5 +10520,383 @@ select date_id, make_name, count(distinct lead_id) as `unique_leads`,
 count(distinct partner_id) as `unique_partners`
 from DailySales
 group by date_id, make_name
+```
+
+### CF杂题
+
+目录：
+
+1. CF367C-Hard problem
+
+   DP/最短路
+
+2. CF861B-Playing in a Casino
+
+   枚举优化 排序
+
+3. -Division
+
+   质因数分解
+
+4. codeton4-D Climbing the Tree
+
+   思维 数学 讨论
+
+##### CF367C-Hard problem
+
+[题目](https://codeforces.com/contest/706/problem/C)
+
+每个位置至于前后位置的选择有关。不妨建图，每个字符串有转与不转两种选择，分别连向前后转与不转，然后标上旋转代价，注意不要重复贡献(wa了一发)，然后图上拓扑DP/最短路即可。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+const ll mn = 2e5 + 10, big = 1e16;
+vector<pair<ll, ll>> g[mn];
+ll n, c[mn], t;
+string s[mn];
+ll d[mn];
+bool vis[mn];
+struct node
+{
+    ll i, d;
+    bool operator<(const node &o) const { return d > o.d; }
+};
+priority_queue<node> q;
+signed main()
+{
+    ios::sync_with_stdio(false), cin.tie(0);
+    cin >> n;
+    for (ll i = 1; i <= n; ++i)
+    {
+        cin >> c[i];
+    }
+    for (ll i = 1; i <= n; ++i)
+    {
+        cin >> s[i];
+    }
+    t = 2 * n + 1;
+    g[0].push_back({1, 0});
+    g[0].push_back({2, c[1]});
+    for (ll i = 1; i < n; ++i)
+    {
+        string &sa = s[i], &sb = s[i + 1];
+        string ta = sa, tb = sb;
+        reverse(ta.begin(), ta.end());
+        reverse(tb.begin(), tb.end());
+        ll ua = 2 * i - 1, va = 2 * i, ub = 2 * i + 1, vb = 2 * i + 2;
+        if (sa <= sb)
+        {
+            g[ua].push_back({ub, 0});
+        }
+        if (sa <= tb)
+        {
+            g[ua].push_back({vb, c[i + 1]});
+        }
+        if (ta <= sb)
+        {
+            g[va].push_back({ub, 0});
+        }
+        if (ta <= tb)
+        {
+            g[va].push_back({vb, c[i + 1]});
+        }
+    }
+    g[2 * n - 1].push_back({t, 0});
+    g[2 * n].push_back({t, 0});
+    for (ll i = 1; i <= t; ++i)
+    {
+        d[i] = big;
+    }
+    q.push({0, 0});
+    while (!q.empty())
+    {
+        node p = q.top();
+        q.pop();
+        ll u = p.i;
+        if (vis[u])
+        {
+            continue;
+        }
+        vis[u] = true;
+        for (auto [v, w] : g[u])
+        {
+            if (d[v] > d[u] + w)
+            {
+                d[v] = d[u] + w;
+                q.push({v, d[v]});
+            }
+        }
+    }
+    if (d[t] >= big)
+    {
+        cout << -1;
+    }
+    else
+    {
+        cout << d[t];
+    }
+    return 0;
+}
+/*
+2
+1 2
+ba
+ac
+
+3
+1 3 1
+aa
+ba
+ac
+
+2
+5 5
+bbb
+aaa
+
+2
+3 3
+aaa
+aa
+
+4
+0 0 8 6
+bi
+qp
+bt
+ya
+*/
+```
+
+##### CF861B-Playing in a Casino
+
+[题目](https://codeforces.com/contest/1808/problem/B)
+
+按列排序后，可以去掉绝对值，那么对同一个被减数，减数是前缀和。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+const ll mn = 3e5;
+signed main()
+{
+    ios::sync_with_stdio(false), cin.tie(0);
+    ll t;
+    cin >> t;
+    while (t--)
+    {
+        ll n, m;
+        cin >> n >> m;
+        vector<vector<ll>> a(m + 1, vector<ll>(n + 1));
+        vector<vector<ll>> s(m + 1, vector<ll>(n + 1));
+        for (ll i = 1; i <= n; ++i)
+        {
+            for (ll j = 1; j <= m; ++j)
+            {
+                cin >> a[j][i];
+            }
+        }
+        for (ll i = 1; i <= m; ++i)
+        {
+            sort(a[i].begin(), a[i].end());
+            for (ll j = 1; j <= n; ++j)
+            {
+                s[i][j] = a[i][j] + s[i][j - 1];
+            }
+        }
+        ll ans = 0;
+        for (ll i = 1; i <= m; ++i)
+        {
+            for (ll j = 1; j < n; ++j)
+            {
+                ans += (s[i][n] - s[i][j]) - a[i][j] * (n - j);
+            }
+        }
+        cout << ans << '\n';
+    }
+    return 0;
+}
+```
+
+
+
+##### Division
+
+[题目]()
+
+> 显然不可以对 $p$ 朴素质因数分解(pollard rho 也许可以？但我没成功，对一些数据卡到 TLE 了)。
+
+对 $q$ 质因数分解，则要满足条件必然对所有 $q$ 的组成质数 $mq^{t_i}_i$，如果 $p$ 也有该质数 $mq_{i}^{t'_i}$，若对想要构造的 $x$，其必然 $t'$都是 $p$ 的子集，且满足 $t'_i < t'_i$。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+signed main()
+{
+    ios::sync_with_stdio(false), cin.tie(0);
+    ll t;
+    cin >> t;
+    while (t--)
+    {
+        ll p, q;
+        cin >> p >> q;
+        map<ll, ll> mq;
+        {
+            ll x = q;
+            for (ll i = 2; i * i <= x; ++i)
+            {
+                while (x % i == 0)
+                {
+                    ++mq[i];
+                    x /= i;
+                }
+            }
+            if (x > 1)
+            {
+                mq[x] = 1;
+            }
+        }
+        ll r = 1;
+        if (p % q)
+        {
+            r = p;
+        }
+        for (auto [p_, t_q] : mq)
+        {
+            ll x = p, t_p = 0;
+            while (x % p_ == 0)
+            {
+                t_p++;
+                x /= p_;
+            }
+            if (t_p >= t_q)
+            {
+                ll new_r = p;
+                for (ll i = 0; i < t_p - t_q + 1; ++i)
+                {
+                    new_r /= p_;
+                }
+                r = max(r, new_r);
+            }
+        }
+        cout << r << '\n';
+    }
+    return 0;
+}
+/*
+2
+1 998244353
+6 580
+*/
+```
+
+
+
+##### codeton4-D Climbing the Tree
+
+[题目](https://codeforces.com/contest/1810/problem/D)
+
+对 $(a,b,n)$ 可以确定唯一的可能高度区间 $[a(n-1)-b(n-2)+1,an-b(n-1)]$ (特判 $n=1$ 为 $[1,a]$)。对每个新的 $(a,b,n)$，如果与原有的区间不相交，不合法，否则，取重复区间。
+
+对询问 $(a,b)$，设已知高度为 $h$，则最少需要 $an-b(n-1)\ge h$ 天，解得 $n=\lceil\dfrac{h-b}{a-b}\rceil$，特判 $h\le a$ 为 $1$ 天。对区间两个端点分别计算出 $n$，如果 $n$ 一致，输出，否则说不知道。
+
+单次操作复杂度 $O(1)$。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+using pr = pair<ll, ll>;
+const ll inf = 5e18;
+bool intersect(pr x, pr y)
+{
+    return !(x.second < y.first || y.second < x.first);
+}
+/*
+cout << intersect({1, 3}, {4, 6}) << '\n';
+cout << intersect({4, 6}, {1, 3}) << '\n';
+cout << intersect({2, 3}, {1, 4}) << '\n';
+cout << intersect({1, 4}, {2, 3}) << '\n';
+cout << intersect({1, 10}, {10, 11}) << '\n';
+cout << intersect({10, 11}, {1, 10}) << '\n';
+cout << intersect({4, 7}, {5, 7}) << '\n';
+cout << intersect({5, 7}, {4, 7}) << '\n';
+cout << intersect({4, 7}, {5, 8}) << '\n';
+cout << intersect({5, 8}, {4, 7}) << '\n';
+*/
+pr combine(pr x, pr y)
+{
+    return {max(x.first, y.first), min(x.second, y.second)};
+}
+ll cei(ll a, ll b)
+{
+    return (a + b - 1) / b;
+}
+pr rng(ll a, ll b, ll n)
+{
+    if (n == 1)
+    {
+        return {1, a};
+    }
+    return {a * (n - 1) - b * (n - 2) + 1, a * n - b * (n - 1)};
+}
+ll minday(ll a, ll b, ll h)
+{
+    if (h <= a)
+    {
+        return 1;
+    }
+    return cei(h - b, a - b);
+}
+signed main()
+{
+    ios::sync_with_stdio(false), cin.tie(0);
+    ll t;
+    cin >> t;
+    while (t--)
+    {
+        pr eff = {0, inf};
+        ll q;
+        cin >> q;
+        while (q--)
+        {
+            ll cmd, a, b, n;
+            cin >> cmd >> a >> b;
+            if (cmd == 1)
+            {
+                cin >> n;
+                pr nw = rng(a, b, n);
+                if (intersect(eff, nw))
+                {
+                    cout << "1 ";
+                    eff = combine(eff, nw);
+                }
+                else
+                {
+                    cout << "0 ";
+                }
+            }
+            else
+            {
+                ll l = minday(a, b, eff.first);
+                ll r = minday(a, b, eff.second);
+                if (l == r)
+                {
+                    cout << l << ' ';
+                }
+                else
+                {
+                    cout << "-1 ";
+                }
+            }
+        }
+        cout << "\n";
+    }
+    return 0;
+}
 ```
 

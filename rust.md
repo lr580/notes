@@ -91,7 +91,21 @@ Cargo.lock.orig
 reqwest = "0.11.4"
 ```
 
+> 如果装不了包，挂个梯子。
+
 在执行 `cargo build` 或者 `cargo run` 命令时，Cargo 会自动下载并安装依赖，然后编译并构建项目。如果依赖的版本号不正确，Cargo 会给出相应的提示信息，可以根据提示信息调整版本号。
+
+可以运行 `cargo test`，类似 spring 的 `src/test`。对所有被 main 所引用故能被扫描到的模块里，如果有函数有 `#[test]`，就会被执行测试。
+
+主函数参数：如 `cargo run -- init`，接收参数代码示例：
+
+```rust
+let args: Vec<String> = env::args().collect();
+    if let Some(arg1) = args.get(1) {
+        if arg1 == "init" {
+```
+
+
 
 ## 语法
 
@@ -615,6 +629,15 @@ let s2 = &s1[..];
 ```
 
 有方法 `.len()`。
+
+可以格式化，如：
+
+```rust
+let app_name : &String = ...;
+return format!("Hello {app_name}!"); //String
+```
+
+
 
 ##### String
 
@@ -1535,6 +1558,44 @@ fn main() {
 }
 ```
 
+#### 全局变量
+
+```rust
+/*维护全局变量的单例模式 */
+use lazy_static::lazy_static;
+use std::sync::Mutex;
+lazy_static! { //懒汉模式
+    pub static ref GLOBAL: Mutex<Global> = Mutex::new(Global::new());
+}
+use std::collections::HashMap;
+use crate::auth_node::AuthNode;
+type AuthMap = HashMap<usize, AuthNode>;
+pub struct Global {
+    pub authmap: AuthMap,
+}
+impl Global {
+    fn new() -> Global {
+        Global {
+            authmap: HashMap::new(),
+        }
+    }
+}
+```
+
+```rust
+let mut global = crate::resource::GLOBAL.lock().unwrap();
+global.authmap.insert(node.id, node);
+```
+
+或者安全一点：
+
+```rust
+let mut global = match crate::resource::GLOBAL.lock() {
+    Ok(guard) => guard,
+    Err(poisoned) => poisoned.into_inner(),
+};
+```
+
 
 
 ### I/O
@@ -2176,6 +2237,37 @@ fn main() {
 }
 ```
 
+闭包默认是借用，如果要拥有加 move：
+
+```rust
+#[test]
+fn test() {
+    let name = "白茶".to_string();
+    let greeting = || {
+        println!("Fuck {}", name); //调用外部变量
+    };
+    greeting();
+    println!("Fuck {} again", name);
+}
+```
+
+```rust
+fn main() {
+    let name = String::from("Alice");
+    let greeting = move || {
+        println!("Hello, {}!", name);
+    };
+    greeting(); // 输出 "Hello, Alice!"
+    //println!("{}", name); // 编译时错误，因为 name 的所有权已经被移动
+}
+```
+
+异步：
+
+```rust
+|| async {}
+```
+
 
 
 ### 组织管理
@@ -2779,6 +2871,34 @@ async fn sleepus() {
 
 ## 第三方库
 
+### 基础
+
+#### 异步
+
+```rust
+[dependencies]
+futures = "0.3"
+tokio = { version = "1.16.1", features = ["full"] }
+```
+
+主函数是异步函数时，需要如下：
+
+```rust
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    //xxx.await?;
+    Ok(())
+}
+```
+
+同理，对测试，有：
+
+```rust
+#[tokio::test]
+```
+
+
+
 ### 网络
 
 #### reqwest
@@ -2822,11 +2942,20 @@ web 服务框架。
 
 [参考](https://blog.csdn.net/weixin_37957321/article/details/126633315) [官方文档](https://actix.rs/docs/)
 
+```properties
+[dependencies]
+actix-web = "4"
+```
+
+
+
 
 
 ##### 基本
 
 一个监听 get 和 post，使用两种方法定义路由的服务器：
+
+将其放在 `test/test01.rs`
 
 ```rust
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
@@ -2845,7 +2974,8 @@ async fn manual_hello() -> impl Responder {
     HttpResponse::Ok().body("Hey there!")
 }
 
-#[actix_web::main]
+//#[actix_web::main]
+#[actix_web::test]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
@@ -2859,7 +2989,497 @@ async fn main() -> std::io::Result<()> {
 }
 ```
 
-对 get 请求，可以直接用 http 浏览器检测 `http://127.0.0.1:8080/`。对 post 请求，
+对 get 请求，可以直接用 http 浏览器检测 `http://127.0.0.1:8080/`。
+
+> 也可以用 python 测试：
+>
+> ```python
+> import requests
+> response=requests.get('http://127.0.0.1:8080/')
+> print(response.status_code) #200
+> print(response.text) #'Hello world!'
+> response=requests.post('http://127.0.0.1:8080/echo',data="oops")
+> print(response.text) #'oops' ,status code同上
+> ```
+
+主函数里：
+
+```rust
+mod test {
+    pub mod test01;
+}
+fn main() {
+    println!("Hello, world!");
+}
+```
+
+`pub mod test01;` 会冒出一个 `run tests`，点击后(也可以在上述 main 上方点，但必须先pub)，http 浏览器访问即可。
+
+> 如果 `error: linking with link.exe failed: exit code: 1104`，证明启动着 test，先关掉跑着的 test。
+
+
+
+##### 服务器状态
+
+服务器信息存储。
+
+```rust
+use actix_web::{get, web, App, HttpServer};
+
+// This struct represents state
+struct AppState {
+    app_name: String,
+}
+
+#[get("/")]
+async fn index(data: web::Data<AppState>) -> String {
+    let app_name = &data.app_name; // <- get app_name
+    format!("Hello {app_name}!") // <- response with app_name
+}
+#[actix_web::test]
+async fn main() -> std::io::Result<()> {
+    HttpServer::new(|| {
+        App::new()
+            .app_data(web::Data::new(AppState {
+                app_name: String::from("Actix Web"),
+            }))
+            .service(index)
+    })
+    .bind(("127.0.0.1", 8080))?
+    .run()
+    .await
+}
+```
+
+> ```python
+> requests.get('http://127.0.0.1:8080/').text
+> ```
+
+[这里](https://actix.rs/docs/extractors) 的底部有其他写法。
+
+##### 路由
+
+```rust
+use actix_web::{get, web, App, HttpServer};
+#[get("/show")]
+async fn show_users() -> String {
+    "Fuck, there's no user at all.".to_string()
+}
+#[actix_web::test]
+async fn main() -> std::io::Result<()> {
+    HttpServer::new(|| {
+        let scope = web::scope("/users").service(show_users);
+        App::new().service(scope)
+    })
+    .bind(("127.0.0.1", 8080))?
+    .run()
+    .await
+}
+```
+
+> ```python
+> requests.get('http://127.0.0.1:8080/users/show').text
+> ```
+
+##### guard
+
+根据访问的 URL 的不同选择回答：
+
+```rust
+use actix_web::{web, App, HttpServer, HttpResponse, guard};
+#[actix_web::test]
+async fn main() -> std::io::Result<()> {
+    HttpServer::new(|| {
+        App::new()
+            .service(
+                web::scope("/")
+                    .guard(guard::Host("127.0.0.1"))
+                    .route("", web::to(|| async { HttpResponse::Ok().body("IP") })),
+            )
+            .service(
+                web::scope("/")
+                    .guard(guard::Host("localhost"))
+                    .route("", web::to(|| async { HttpResponse::Ok().body("hostname") })),
+            )
+            .route("/", web::to(HttpResponse::Ok))
+    })
+    .bind(("127.0.0.1", 8080))?
+    .run()
+    .await
+}
+```
+
+> ```python
+> requests.get('http://127.0.0.1:8080/').text
+> requests.get('http://localhost:8080/').text
+> ```
+
+##### configure
+
+动态调整路由。
+
+```rust
+use actix_web::{web, App, HttpResponse, HttpServer};
+
+// this function could be located in a different module
+fn scoped_config(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::resource("/test")
+            .route(web::get().to(|| async { HttpResponse::Ok().body("test") }))
+            .route(web::head().to(HttpResponse::MethodNotAllowed)),
+    );
+}
+
+// this function could be located in a different module
+fn config(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::resource("/app")
+            .route(web::get().to(|| async { HttpResponse::Ok().body("app") }))
+            .route(web::head().to(HttpResponse::MethodNotAllowed)),
+    );
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    HttpServer::new(|| {
+        App::new()
+            .configure(config)
+            .service(web::scope("/api").configure(scoped_config))
+            .route(
+                "/",
+                web::get().to(|| async { HttpResponse::Ok().body("/") }),
+            )
+    })
+    .bind(("127.0.0.1", 8080))?
+    .run()
+    .await
+}
+```
+
+> ```
+> /         -> "/"
+> /app      -> "app"
+> /api/test -> "test"
+> ```
+
+
+
+##### server
+
+同时启动 4 个 HTTP 服务器：
+
+```rust
+use actix_web::{web, App, HttpResponse, HttpServer};
+
+#[actix_web::main]
+async fn main() {
+    HttpServer::new(|| App::new().route("/", web::get().to(HttpResponse::Ok))).workers(4);
+    // <- Start 4 workers
+}
+```
+
+```rust
+async fn my_handler() -> impl Responder {
+    tokio::time::sleep(Duration::from_secs(5)).await; // <-- Ok. Worker thread will handle other requests here
+    "response"
+}
+```
+
+如果要支持 HTTPS，先装个 openssl, windows 参考 [这里](https://www.cnblogs.com/telwanggs/p/16923020.html)，记得配 path。检验：
+
+```sh
+openssl version -a
+```
+
+在根目录下，在 powerful shell 下执行：
+
+```sh
+openssl req -x509 -newkey rsa:4096 -nodes -keyout key.pem -out cert.pem -days 365 -subj '/CN=localhost'
+```
+
+> 生成了一个自签名的 X.509 证书。具体而言，它做了以下几件事情：(GPT)
+>
+> 1. `-newkey rsa:4096`：生成一个 RSA 4096 位的密钥对。
+> 2. `-nodes`：不加密私钥，这样生成的私钥文件就不需要输入密码才能使用。
+> 3. `-keyout key.pem`：将生成的私钥保存到 key.pem 文件中。
+> 4. `-out cert.pem`：将生成的证书保存到 cert.pem 文件中。
+> 5. `-days 365`：指定证书的有效期为 365 天。
+> 6. `-subj '/CN=localhost'`：指定证书的主题为 /CN=localhost，也就是证书的 common name 字段为 localhost。
+
+无密码版本：
+
+```sh
+openssl rsa -in key.pem -out nopass.pem
+```
+
+> 从 `key.pem` 文件中读取一个加密的私钥，并将其写入到 `nopass.pem` 文件中，同时不再需要输入密码才能使用这个私钥。(GPT)
+
+更新环境：(不行的话重启一下全部 vscode)
+
+```properties
+[dependencies]
+actix-web = { version = "4", features = ["openssl"] }
+openssl = { version = "0.10" }
+```
+
+参考 [这里](https://blog.csdn.net/weixin_47610359/article/details/128012583)，装 vcpkg，先 `git clone "https://github.com/microsoft/vcpkg"`，然后运行 `bootstrap-vcpkg.bat`，然后加 path，之后就好了。
+
+power shell 跑：
+
+```sh
+vcpkg intergrate install
+```
+
+配全局变量，将 `OPENSSL_DIR` 设为 openssl 根目录。然后从浏览器搞 `https://127.0.0.1/` 尝试访问，开启下面的服务器：
+
+```rust
+use actix_web::{get, App, HttpRequest, HttpServer, Responder};
+use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
+
+#[get("/")]
+async fn index(_req: HttpRequest) -> impl Responder {
+    "Welcome!"
+}
+
+#[actix_web::test]
+async fn main() -> std::io::Result<()> {
+    // load TLS keys
+    // to create a self-signed temporary cert for testing:
+    // `openssl req -x509 -newkey rsa:4096 -nodes -keyout key.pem -out cert.pem -days 365 -subj '/CN=localhost'`
+    let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+    builder
+        .set_private_key_file("nopass.pem", SslFiletype::PEM)
+        .unwrap();
+    builder.set_certificate_chain_file("cert.pem").unwrap();
+
+    HttpServer::new(|| App::new().service(index))
+        .bind_openssl("127.0.0.1:8080", builder)?
+        .run()
+        .await
+}
+```
+
+> ```python
+> requests.get('https://127.0.0.1:8080',verify=False).text
+> ```
+>
+> ```python
+> #失败的
+> response = requests.get('https://127.0.0.1:8080', cert=(r'D:\_lr580\program\trys\c4\testweb\cert.pem',r'D:\_lr580\program\trys\c4\testweb\nopass.pem'),verify=False)
+> ```
+
+如果要验证安全，可以查怎么把证书添加到自己的电脑。
+
+
+
+##### 路径参数
+
+```rust
+use actix_web::{get, web, App, HttpServer, Result};
+
+/// extract path info from "/users/{user_id}/{friend}" url
+/// {user_id} - deserializes to a u32
+/// {friend} - deserializes to a String
+#[get("/users/{user_id}/{friend}")] // <- define path parameters
+async fn index(path: web::Path<(u32, String)>) -> Result<String> {
+    let (user_id, friend) = path.into_inner();
+    Ok(format!("Welcome {}, user_id {}!", friend, user_id))
+}
+
+#[actix_web::test]
+async fn main() -> std::io::Result<()> {
+    HttpServer::new(|| App::new().service(index))
+        .bind(("127.0.0.1", 8080))?
+        .run()
+        .await
+}
+```
+
+> ```python
+> requests.get('http://127.0.0.1:8080/users/1/friend2').text
+> requests.get('http://127.0.0.1:8080/users/user1/friend2').status_code #404
+> requests.get('http://127.0.0.1:8080/users/user1/friend2').text
+> #'can not parse "user1" to a u32'
+> ```
+
+也可以用结构体：
+
+```properties
+serde = { version = "1.0", features = ["derive"] }
+```
+
+```rust
+use actix_web::{get, web, Result};
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct Info {
+    user_id: u32,
+    friend: String,
+}
+
+/// extract path info using serde
+#[get("/users/{user_id}/{friend}")] // <- define path parameters
+async fn index(info: web::Path<Info>) -> Result<String> {
+    Ok(format!(
+        "Welcome {}, user_id {}!",
+        info.friend, info.user_id
+    ))
+}
+
+#[actix_web::test]
+async fn main() -> std::io::Result<()> {
+    use actix_web::{App, HttpServer};
+    HttpServer::new(|| App::new().service(index))
+        .bind(("127.0.0.1", 8080))?
+        .run()
+        .await
+}
+```
+
+也可以这么搞：
+
+```rust
+use actix_web::{get, HttpRequest, Result};
+#[get("/users/{user_id}/{friend}")] // <- define path parameters
+async fn index(req: HttpRequest) -> Result<String> {
+    let name: String = req.match_info().get("friend").unwrap().parse().unwrap();
+    let userid: i32 = req.match_info().query("user_id").parse().unwrap();
+
+    Ok(format!("Welcome {}, user_id {}!", name, userid))
+}
+
+#[actix_web::test]
+async fn main() -> std::io::Result<()> {
+    use actix_web::{App, HttpServer};
+
+    HttpServer::new(|| App::new().service(index))
+        .bind(("127.0.0.1", 8080))?
+        .run()
+        .await
+}
+```
+
+##### 参数处理
+
+```rust
+use actix_web::{get, HttpRequest, Result};
+#[get("/users/{user_id}/{friend}")] // <- define path parameters
+async fn index(req: HttpRequest) -> Result<String> {
+    let name: String = req.match_info().get("friend").unwrap().parse().unwrap();
+    let userid: i32 = req.match_info().query("user_id").parse().unwrap();
+
+    Ok(format!("Welcome {}, user_id {}!", name, userid))
+}
+
+use actix_web::{post, web};
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct Info {
+    username: String,
+}
+
+// this handler gets called if the query deserializes into `Info` successfully
+// otherwise a 400 Bad Request error response is returned
+#[get("/")]
+async fn index2(info: web::Query<Info>) -> String {
+    format!("Welcome {}!", info.username)
+}
+
+/// deserialize `Info` from request's body
+#[post("/submit")]
+async fn submit(info: web::Json<Info>) -> Result<String> {
+    Ok(format!("Welcome {}!", info.username))
+}
+
+#[actix_web::test]
+async fn main() -> std::io::Result<()> {
+    use actix_web::{App, HttpServer};
+
+    HttpServer::new(|| App::new().service(index).service(index2).service(submit))
+        .bind(("127.0.0.1", 8080))?
+        .run()
+        .await
+}
+```
+
+> ```python
+> import requests
+> pam = {"username":"name1"}
+> print(requests.get('http://127.0.0.1:8080/users/1/name').text)
+> print(requests.get('http://127.0.0.1:8080/',params=pam).text)
+> print(requests.post('http://127.0.0.1:8080/submit',json=pam).text)
+> ```
+
+表单数据处理：
+
+```rust
+#[derive(Deserialize)]
+struct FormData {
+    username: String,
+}
+
+/// extract form data using serde
+/// this handler gets called only if the content type is *x-www-form-urlencoded*
+/// and the content of the request could be deserialized to a `FormData` struct
+#[post("/idx/")]
+async fn index3(form: web::Form<FormData>) -> Result<String> {
+    Ok(format!("Welcome {}!", form.username))
+}
+```
+
+> ```python
+> print(requests.post('http://127.0.0.1:8080/idx/',data=pam).text)#不是json=了
+> ```
+
+
+
+
+
+大小限制和自定义错误处理器：
+
+> ```rust
+> use actix_web::{error, web, App, HttpResponse, HttpServer, Responder};
+> use serde::Deserialize;
+> 
+> #[derive(Deserialize)]
+> struct Info {
+>     username: String,
+> }
+> 
+> /// deserialize `Info` from request's body, max payload size is 4kb
+> async fn index(info: web::Json<Info>) -> impl Responder {
+>     format!("Welcome {}!", info.username)
+> }
+> 
+> #[actix_web::main]
+> async fn main() -> std::io::Result<()> {
+>     HttpServer::new(|| {
+>         let json_config = web::JsonConfig::default()
+>             .limit(4096)
+>             .error_handler(|err, _req| {
+>                 // create custom error response
+>                 error::InternalError::from_response(err, HttpResponse::Conflict().finish())
+>                     .into()
+>             });
+> 
+>         App::new().service(
+>             web::resource("/")
+>                 // change json extractor configuration
+>                 .app_data(json_config)
+>                 .route(web::post().to(index)),
+>         )
+>     })
+>     .bind(("127.0.0.1", 8080))?
+>     .run()
+>     .await
+> }
+> ```
+
+
+
+
 
 ### 数据库
 
@@ -3106,6 +3726,50 @@ auth_node::test();
 - 统计只差一个字符的子串数目
 
   map套set pair String 遍历 查询 type简写
+  
+- 最短公共超序列
+
+  String str 子串 拼接
+  
+- 统计字典序元音字符串的数目
+
+  二维数组
+  
+- 两点之间不包含任何点的最宽垂直区域
+
+  二维数组 排序
+  
+- 两数之和
+
+  hashmap if-let-some 类型转换 raise(panic)
+  
+- 算术三元组的数目
+
+  数组max
+
+- 两数相加
+
+  Option Box 手写链表
+  
+- 隐藏个人信息
+
+  字符串 拼接 遍历 数字检测 match
+  
+- 多边形三角剖分的最低得分
+
+  函数内函数 递归 &mut参数 二维动态数组
+  
+- 交换一次的先前排列
+
+  map-lowerbound 复制vec改为mut 逆序遍历 map元素覆盖 some
+  
+- 合并石头的最低成本
+
+  数组
+
+- 负二进制转换
+
+  i64 字符串去前导0,拼接 常量str数组
 
 
 
@@ -3996,11 +4660,544 @@ fn main() {
 
 
 
+##### 1092\.最短公共超序列
+
+[题目](https://leetcode.cn/problems/shortest-common-supersequence/)
+
+> ```rust
+> struct Solution {}
+> /** t 是否是子串 */
+> fn issub(s: &str, t: &str) -> bool {
+>     let mut j = 0;
+>     for i in 0..s.len() {
+>         let sc = s.chars().nth(i);
+>         let tc = t.chars().nth(j);
+>         if sc == tc {
+>             j += 1;
+>             if j == t.len() {
+>                 return true;
+>             }
+>         }
+>     }
+>     false
+> }
+> fn extend(s: &String, t: &String) -> String {
+>     let mut res = s.clone() + &t;
+>     for i in 1..t.len() {
+>         let ts = &t[0..i];
+>         if issub(&s[..], ts) {
+>             println!("{} {} {} {} {} {}", i, ts, &t[i..], s.clone() + &t[i..], s.len() + (t.len() - i), res.len());
+>         }
+>         if issub(&s[..], ts) && s.len() + (t.len() - i) < res.len() {
+>             res = s.clone() + &t[i..];
+>         }
+>     }
+>     if issub(&s[..], &t[..]) {
+>         res = s.clone();
+>     }
+>     res
+> }
+> impl Solution {
+>     pub fn shortest_common_supersequence(str1: String, str2: String) -> String {
+>         "x".to_string()
+>     }
+> }
+> fn main() {
+>     println!("{}", issub("abac", "aac"));
+>     println!("{}", issub("abac", "abac"));
+>     println!("{}", issub("abac", "ca"));
+>     println!("{}", extend(&"abac".to_string(), &"aac".to_string()));
+>     println!("{}", extend(&"abac".to_string(), &"abac".to_string()));
+>     println!("{}", extend(&"abac".to_string(), &"ca".to_string()));
+>     println!("{}", extend(&"abac".to_string(), &"baba".to_string()));
+>     println!("{}", extend(&"abac".to_string(), &"aaac".to_string()));
+>     println!("{}", extend(&"abac".to_string(), &"g".to_string()));
+> }
+> ```
+
+
+
+##### 1641\.统计字典序元音字符串的数目
+
+[题目](https://leetcode.cn/problems/count-sorted-vowel-strings/)
+
+```rust
+impl Solution {
+    pub fn count_vowel_strings(n: i32) -> i32 {
+        let _n = (n + 1) as usize;
+        let mut dp = Vec::with_capacity(_n);
+        for _ in 0.._n {
+            dp.push(vec![0; 5]);
+        }
+        for i in 0..5 {
+            dp[0][i] = 1;
+        }
+        for i in 1.._n {
+            for j in 0..5 {
+                for k in 0..=j {
+                    dp[i][j] += dp[i - 1][k];
+                }
+            }
+        }
+        dp[_n - 1][4]
+    }
+}
+```
+
+
+
+##### 1637\.两点之间不包含任何点的最宽垂直区域
+
+[题目](https://leetcode.cn/problems/widest-vertical-area-between-two-points-containing-no-points/)
+
+我的：
+
+```rust
+impl Solution {
+    pub fn max_width_of_vertical_area(points: Vec<Vec<i32>>) -> i32 {
+        let n = points.len();
+        let mut a = vec![0; n];
+        for i in 0..n {
+            a[i] = points[i][0];
+        }
+        a.sort();
+        let mut ans = 0;
+        for i in 1..n {
+            ans = ans.max(a[i] - a[i - 1]);
+        }
+        ans
+    }
+}
+```
+
+其他人的写法：
+
+```rust
+impl Solution {
+    pub fn max_width_of_vertical_area(mut points: Vec<Vec<i32>>) -> i32 {
+        points.sort_by(|a, b| a[0].cmp(&b[0]));
+        (1..points.len()).fold(0, |ret, i| ret.max(points[i][0] - points[i - 1][0]))
+    }
+}
+```
+
+```rust
+impl Solution {
+    pub fn max_width_of_vertical_area(mut points: Vec<Vec<i32>>) -> i32 {
+        points.sort_by(|x, y| {
+            x[0].cmp(&y[0])
+        });
+        let mut ans = 0;
+        for v in points.windows(2).into_iter() {
+            ans = std::cmp::max(ans,v[1][0]-v[0][0])
+        }
+
+        ans
+    }
+}
+```
+
+```rust
+impl Solution {
+    pub fn max_width_of_vertical_area(points: Vec<Vec<i32>>) -> i32 {
+        let mut points: Vec<i32> = points.into_iter().map(|point| point[0]).collect();
+        points.sort();
+        let mut ans: i32 = 0;
+        for window in points.windows(2) {
+            ans = ans.max(window[1] - window[0]);
+        }
+        ans
+    }
+}
+```
+
+```rust
+impl Solution {
+    pub fn max_width_of_vertical_area(mut points: Vec<Vec<i32>>) -> i32 {
+        let mut ret = 0;
+
+        points.sort_unstable_by_key(|p| p[0]);
+
+        for i in 1..points.len() {
+            ret = ret.max(points[i][0] - points[i - 1][0]);
+        }
+
+        ret
+    }
+}
+```
+
+
+
+##### 1\.两数之和
+
+[题目](https://leetcode.cn/problems/two-sum/)
+
+```rust
+use std::collections::HashMap;
+impl Solution {
+    pub fn two_sum(nums: Vec<i32>, target: i32) -> Vec<i32> {
+        let mut m = HashMap::new();
+        let n = nums.len();
+        for i in 0..n {
+            let v = target - nums[i];
+            if let Some(j) = m.get(&v) {
+                return vec!(*j as i32, i as i32); //或[ ]
+            }
+            m.insert(nums[i], i);
+        }
+        vec![0, 1] //panic!("not found")
+    }
+}
+```
+
+
+
+##### 2367\.算术三元组的数目
+
+[题目](https://leetcode.cn/problems/number-of-arithmetic-triplets/)
+
+```rust
+impl Solution {
+    pub fn arithmetic_triplets(nums: Vec<i32>, diff: i32) -> i32 {
+        let n = nums.len();
+        let mx = *nums.iter().max().unwrap() as usize;
+        let mut bin = vec![0; mx + 1];
+        for i in 0..n {
+            bin[nums[i] as usize] += 1;
+        }
+        let t = diff as usize;
+        let mut ans = 0;
+        if t >= mx {
+            return 0;
+        }
+        for i in t..=(mx - t) { //mx-t如果t>mx会变无穷
+            ans += bin[i] * bin[i - t] * bin[i + t];
+        }
+        ans
+    }
+}
+```
+
+
+
+##### 2\.两数相加
+
+[题目](https://leetcode.cn/problems/add-two-numbers/)
+
+```rust
+pub struct Solution {}
+// Definition for singly-linked list.
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct ListNode {
+    pub val: i32,
+    pub next: Option<Box<ListNode>>,
+}
+//Box 是一个智能指针类型，用于在堆上分配和存储数据。
+
+impl ListNode {
+    #[inline]
+    fn new(val: i32) -> Self {
+        ListNode { next: None, val }
+    }
+}
+impl Solution { //只交这个
+    pub fn add_two_numbers(
+        l1: Option<Box<ListNode>>,
+        l2: Option<Box<ListNode>>,
+    ) -> Option<Box<ListNode>> {
+        //根据return自动把Option<Unkonwn>推断
+        let mut res = None;
+        let mut p = &mut res;
+        let mut carry = 0;
+        //as_ref 方法的作用是将一个具有所有权的值（例如一个 Box 智能指针）转换为一个只有引用的值（例如一个 &T 引用），以便在不需要所有权的情况下访问该值
+        let mut lfs = l1.as_ref();
+        let mut rfs = l2.as_ref();
+        //注意 is_some 方法
+        while lfs.is_some() || rfs.is_some() || carry > 0 {
+            let mut sum = carry;
+            //ln 是 *Box<ListNode>,注意 if let Some 的用法
+            if let Some(ln) = lfs {
+                sum += ln.val;
+                lfs = ln.next.as_ref();
+            }
+            if let Some(rn) = rfs {
+                sum += rn.val;
+                rfs = rn.next.as_ref();
+            }
+            carry = sum / 10;
+            let node = ListNode::new(sum % 10);
+            *p = Some(Box::new(node));
+            //as_mut 是一个用于将可变引用转换为其他类型的方法。它允许您将一个可变引用从一种类型转换为另一种类型，从而允许您在不改变变量的所有权的情况下对其进行修改
+            p = &mut p.as_mut().unwrap().next;
+        }
+        res
+    }
+}
+pub fn test() {}
+
+```
+
+
+
+##### 831\.隐藏个人信息
+
+[题目](https://leetcode.cn/problems/masking-personal-information/)
+
+```rust
+struct Solution {}
+impl Solution {
+    pub fn mask_pii(s: String) -> String {
+        let t = s.to_lowercase();
+        // if t.contains('@') {
+        if let Some(idx) = t.find('@') {
+            //注意chars, nth 方法都是O(n) --GPT
+            let first = t.chars().nth(0).unwrap().to_string();
+            let res = first + "*****" + &t[idx - 1..];
+            return res;
+        } else {
+            let mut num = String::new();
+            for c in t.chars() {
+                if c.is_numeric() {
+                    num.push(c);
+                }
+            }
+            let last = &num[num.len() - 4..];
+            return match num.len() {
+                10 => "***-***-".to_string() + last,
+                11 => "+*-***-***-".to_string() + last,
+                12 => "+**-***-***-".to_string() + last,
+                13 => "+***-***-***-".to_string() + last,
+                _ => panic!("Oops!"),
+            };
+        }
+    }
+}
+```
+
+> 其他人的写法：
+>
+> ```rust
+> impl Solution {
+>     pub fn mask_pii(s: String) -> String {
+>         if let Some(index) = s.find('@') {
+>             return s[0..1].to_lowercase() + "*****" + &s[(index-1)..].to_lowercase();
+>         }
+> 
+>         let mut count = 0;
+>         let mut num_str = String::new();
+> 
+>         s.chars().rev().for_each(|c| {
+>             if c >= '0' && c <= '9' {
+>                 count += 1;
+> 
+>                 if count <= 4 {
+>                     num_str.insert(0, c);
+>                 }
+>             }
+>         });
+> 
+>         if count == 10 {
+>             "***-***-".to_string() + &num_str
+>         } else {
+>             "+".to_string() + &"*".repeat(count - 10) + &"-***-***-".to_string() + &num_str
+>         }
+>     }
+> }
+> ```
+>
+> ```rust
+> impl Solution {
+>     pub fn mask_pii(s: String) -> String {
+>         const COUNTRY: [&'static str; 4] = ["", "+*-", "+**-", "+＊＊＊-"];
+>         if s.contains('@') {
+>             let s = s.to_lowercase();
+>             let mut s = s.split('@');
+>             let mut t = s.next().unwrap().chars();
+>             format!(
+>                 "{}＊＊＊**{}@{}",
+>                 t.next().unwrap(),
+>                 t.next_back().unwrap(),
+>                 s.next().unwrap()
+>             )
+>         } else {
+>             let s = s
+>                 .replace("+", "")
+>                 .replace("-", "")
+>                 .replace("(", "")
+>                 .replace(")", "")
+>                 .replace(" ", "");
+>             let c = s.len() - 10;
+>             format!("{}＊＊＊-＊＊＊-{}", COUNTRY[c], &s[s.len() - 4..])
+>         }
+>     }
+> }
+> ```
+
+
+
+##### 1039\.多边形三角剖分的最低得分
+
+[题目](https://leetcode.cn/problems/minimum-score-triangulation-of-polygon/)
+
+想不到怎么闭包做递归的语法，所以只能搞函数了，但是因为作用域，必须传参数。
+
+```rust
+impl Solution {
+    pub fn min_score_triangulation(v: Vec<i32>) -> i32 {
+        let n = v.len();
+        let mut dp = vec![vec![0; n]; n];
+        fn calc(v: &[i32], dp: &mut Vec<Vec<i32>>, l: usize, r: usize) -> i32 {
+            if dp[l][r] != 0 {
+                return dp[l][r];
+            }
+            if l + 2 > r {
+                return 0;
+            }
+            if l + 2 == r {
+                return v[l] * v[l + 1] * v[r];
+            }
+            let mut ans = i32::MAX;
+            for k in l + 1..r {
+                ans = ans.min(v[l] * v[k] * v[r] + calc(v, dp, l, k) + calc(v, dp, k, r));
+            }
+            dp[l][r] = ans;
+            ans
+        };
+        calc(&v, &mut dp, 0, n - 1)
+    }
+}
+```
+
+
+
+##### 1052\.交换一次的先前排列
+
+[题目](https://leetcode.cn/problems/previous-permutation-with-one-swap/)
+
+```rust
+use std::collections::BTreeMap;
+impl Solution {
+    pub fn prev_perm_opt1(arr: Vec<i32>) -> Vec<i32> {
+        let n = arr.len();
+        let mut h: BTreeMap<i32, usize> = BTreeMap::new();
+        let mut ans: Vec<i32> = Vec::new();
+        ans.extend(arr);
+        for i in (0..n).rev() {
+            if i + 1 != n {
+                let v = ans[i];
+                if let Some(j) = h.range(..v).next_back().map(|(&_k, &v)| (v)) {
+                    let k = ans[i];
+                    ans[i] = ans[j];
+                    ans[j] = k;
+                    break;
+                }
+            }
+            h.insert(ans[i], i);
+        }
+        ans
+    }
+}
+```
+
+
+
+##### 1000\.合并石头的最低成本
+
+[题目](https://leetcode.cn/problems/minimum-cost-to-merge-stones/)
+
+fake:
+
+> ```rust
+> impl Solution {
+>     pub fn merge_stones(stones: Vec<i32>, k: i32) -> i32 {
+>         let n = stones.len();
+>         if (n as i32 - 1) % (k - 1) != 0 {
+>             return -1;
+>         }
+>         let mut s = vec![0; n + 1];
+>         for i in 0..n {
+>             s[i + 1] += s[i] + stones[i];
+>         }
+>         let sum = |l, r| s[r] - s[l - 1];
+>         let mut dp = vec![vec![0; n + 1]; n + 1];
+>         let mut len = k as usize;
+>         while len <= n {
+>             for r in len..=n {
+>                 let l = r + 1 - len;
+>                 let len2 = len - (k as usize - 1);
+>                 let mut mi = i32::MAX;
+>                 for l2 in l..=r + 1 - len2 {
+>                     let r2 = l2 + len2 - 1;
+>                     let res = sum(l, r) + dp[l2][r2];
+>                     mi = mi.min(res);
+>                 }
+>                 dp[l][r] = mi;
+>             }
+>             len += k as usize - 1;
+>         }
+>         dp[1][n]
+>     }
+> }
+> ```
+
+
+
+##### 1017\.负二进制转换
+
+[题目](https://leetcode.cn/problems/convert-to-base-2/)
+
+```rust
+impl Solution {
+    pub fn base_neg2(n: i32) -> String {
+        if n == 0 {
+            return "0".to_string();
+        }
+        let mut v = n as i64;
+        let mut i = 1 as i64;
+        let mut ip = 2 as i64;
+        const TOP: i64 = 30;
+        while i < TOP {
+            v += ip;
+            i += 2;
+            ip *= 4;
+        }
+        i -= 2;
+        ip /= 4;
+        assert!(i == TOP - 1);
+        // println!("v={} i={} ip={}", v, i, ip);
+        let mut ans = String::new();
+        let c = ["01", "00", "11", "10"];
+        while i > 0 {
+            let r = v / ip;
+            v %= ip;
+            ans += c[r as usize];
+            // println!("r={} ans={}", r, ans);
+            i -= 2;
+            ip /= 4;
+        }
+        if v == 0 {
+            ans += "0";
+        } else {
+            ans += "1";
+        }
+        // println!("v={} ans={}", v, ans);
+        ans.trim_start_matches('0').to_string()
+    }
+}
+```
+
+
+
+
+
 ### 项目
 
 #### 网挑鉴权
 
 ##### 模块加载
+
+###### 同目录
 
 main 直接调用的话，就 mod 一下。
 
@@ -4052,3 +5249,15 @@ fn main() {
 >     println!("Done");
 > }
 > ```
+
+###### 不同目录
+
+设有 `test/test01.rs`，则：
+
+```rust
+mod test {
+    pub mod test01;
+}
+use test::test01::func;
+```
+

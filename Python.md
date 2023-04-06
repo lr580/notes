@@ -3802,6 +3802,40 @@ def md5(path):
 
 
 
+#### requests
+
+get 请求：
+
+```python
+import requests
+response=requests.get('http://127.0.0.1:8080/')
+print(response.status_code) #200
+print(response.text) #'Hello world!'
+```
+
+```python
+params = {
+    'key1': 'value1',
+    'key2': 'value2'
+}
+response = requests.get('http://example.com', params=params)
+```
+
+```python
+data = {
+    'key1': 'value1',
+    'key2': 'value2'
+}
+response = requests.post('http://example.com', data=data) #也可以传str
+```
+
+```python
+import requests
+pam = {"username":"name1"}
+print(requests.get('http://127.0.0.1:8080/',params=pam).text)
+print(requests.post('http://127.0.0.1:8080/submit',json=pam).text)
+```
+
 
 
 # 库
@@ -6686,6 +6720,7 @@ print(torch.ones((2,3,4)))
 
 ```python
 print(torch.randn(2,8))
+# torch.normal(mu, sigma, shape_tuple, requires_grad=False)
 ```
 
 将列表转化为张量或反过来：
@@ -6806,6 +6841,18 @@ print(id(x)) #发现进行运算后，原本的x地址位置被丢掉了
 x[:] = x + y #不要丢，原地操作
 print(id(x))
 ```
+
+去掉为 1 的维度，使用 squeeze。
+
+```python
+x = torch.randn(1, 3, 1, 2, 1)
+y = torch.squeeze(x, 2) #第三个维度，即下标为2的维度
+print(y.shape)  # torch.Size([1, 3, 2, 1])
+y = torch.squeeze(x)
+print(y.shape)  # torch.Size([3, 2])
+```
+
+
 
 ##### 线代
 
@@ -7099,6 +7146,10 @@ pip install d2l==1.0.0b0
 
 #### 线性回归
 
+##### 理论前置
+
+###### 术语
+
 一些术语：
 
 - `traning set`/`training dataset` 训练集
@@ -7155,6 +7206,8 @@ $$
 (\mathbf w,b)\leftarrow (\mathbf w,b)-\dfrac{\eta}{|B|}\sum_{i\in B_t}\partial_{(\mathbf w,b)}l^{(i)}(\mathbf w,b)
 $$
 初始时给一个随机的 $(\mathbf w,b)$，然后不断梯度下降。定义超参数 `hyperparameters` 如 $|B|$。迭代一定次数或满足某些条件后停止，最后在验证集 `validation set` 做测试。可能陷入局部最优或几个最优之一，而且为了泛化也不保证真实数据就是最优的。
+
+###### 代码
 
 写一个正态分布并作图展示：
 
@@ -7277,7 +7330,484 @@ print('X shape:', X.shape, '\ny shape:', y.shape)
 print(len(data.train_dataloader()))
 ```
 
+###### 泛化
 
+数据集大小差异很大，如一些罕见病的数据数量级可能是百，而有标签 `ImageNet` 和无标签 `Flickr YFC100M` 的可能是百万级。
+
+注意过拟合(overfitting)，使用正则化(regularization)对抗。
+
+在标准有监督学习里，假设训练集和测试集是独立同分布的，称为 `IID` 假设。对测试集 $P(X,Y)$ 如何预测不同分布的训练集 $Q(X,Y)$ 需要知道 $P,Q$ 的相关性。
+
+设训练误差为：
+$$
+R_{emp}[\mathbf X,\mathbf y,f]=\dfrac1n\sum_{i=1}^n
+l(\mathbf x^{(i)},\mathbf y^{(i)},f(\mathbf x^{(i)}))
+$$
+泛化误差是训练误差的期望，积分为：
+$$
+R[p,f]=E_{(\mathbf x,y)\sim P}[
+l(\mathbf x,\mathbf y,f(\mathbf x))
+]
+=\iint
+l(\mathbf x,\mathbf y,f(\mathbf x))
+p(\mathbf x,y)d\mathbf xdy
+$$
+无法准确计算 $R$，因为 $p(\mathbf x,y)$ 不可知。并且由于 $P$ 无限大，不能取遍所有数据。所以只能用 $R_{emp}$ 近似 $R$，故要保证 $(\mathbf x,y)$ 随机取样。
+
+之后对测试集计算误差。使用固定分类器(fixed classifier)，不依赖测试集样本，即平均评估。但是对训练集是依赖样本的，所以误差会有偏差。
+
+训练误差降低后，泛化效果可能变差。参数越多，可能效果越好，但不必然。
+
+如果训练误差降不下来，可能模型太简单。如果泛化误差($R_{emp}-R$)又很小，可能是欠拟合(underfitting)。
+
+训练误差比验证误差低很多，可能有过拟合(overfitting)。过拟合并不总是坏的。在训练集(holdout data)的表现比测试集更坏。
+
+![image-20230331151703082](img/image-20230331151703082.png)
+
+训练集越小，越容易过拟合。深度学习只在数据多时比线性模型好。模型复杂度不应该比数据量增长快，数据小时简单模型更好。
+
+有结构、训练目标、选择变量、数据预处理、学习率等不同的很多模型，要选择一个。在确定好超参数前不要动测试集，如果利用测试集需选择超参数，有过拟合风险。不要依赖测试集选择模型。也不能只依赖训练集。测试集可以很少变更。
+
+训练集少时，一种方法是 K 交叉验证集。把训练集分 K 不交子集，训练和验证 K 次，每次在 K-1 的子集训练，在剩下一个子集验证。训练 K 轮。
+
+
+
+##### 实际例子
+
+###### 原理级实现
+
+初始状态生成：
+
+```python
+#%matplotlib inline
+import torch
+from d2l import torch as d2l
+class LinearRegressionScratch(d2l.Module):  #@save
+    """The linear regression model implemented from scratch."""
+    def __init__(self, num_inputs, lr, sigma=0.01):
+        super().__init__()
+        self.save_hyperparameters()
+        self.w = torch.normal(0, sigma, (num_inputs, 1), requires_grad=True)
+        self.b = torch.zeros(1, requires_grad=True)
+```
+
+前向传播，显然是 $Xw+b$。
+
+```python
+@d2l.add_to_class(LinearRegressionScratch)  #@save
+def forward(self, X):
+    return torch.matmul(X, self.w) + self.b
+```
+
+损失函数是 $l^{(i)}(\mathbf w,b)=\dfrac12(\hat y^{(i)}-y^{(i)})^2$。
+
+```python
+@d2l.add_to_class(LinearRegressionScratch)  #@save
+def loss(self, y_hat, y):
+    l = (y_hat - y) ** 2 / 2
+    return l.mean()
+```
+
+训练步骤：
+
+1. 初始化参数 $(\mathbf w,b)$
+2. 重复以下步骤
+   1. 计算梯度 $\mathbf g\leftarrow \partial_{(\mathbf w,b)}\dfrac1{|\mathbf B|}\sum_{i\in\mathbf B}l(\mathbf x^{(i)},\mathbf y^{(i)},\mathbf w,b)$
+   2. 更新参数 $(\mathbf w,b)\leftarrow (\mathbf w,b)-\eta\mathbf g$
+
+```python
+@d2l.add_to_class(d2l.Trainer)  #@save
+def prepare_batch(self, batch):
+    return batch
+
+@d2l.add_to_class(d2l.Trainer)  #@save
+def fit_epoch(self):
+    self.model.train()
+    for batch in self.train_dataloader:
+        loss = self.model.training_step(self.prepare_batch(batch))
+        self.optim.zero_grad()
+        with torch.no_grad():
+            loss.backward()
+            if self.gradient_clip_val > 0:  # To be discussed later
+                self.clip_gradients(self.gradient_clip_val, self.model)
+            self.optim.step()
+        self.train_batch_idx += 1
+    if self.val_dataloader is None:
+        return
+    self.model.eval()
+    for batch in self.val_dataloader:
+        with torch.no_grad():
+            self.model.validation_step(self.prepare_batch(batch))
+        self.val_batch_idx += 1
+```
+
+随便刷点数据。训练-选择超参数-评估。
+
+```python
+model = LinearRegressionScratch(2, lr=0.03)
+data = d2l.SyntheticRegressionData(w=torch.tensor([2, -3.4]), b=4.2)
+trainer = d2l.Trainer(max_epochs=3)
+trainer.fit(model, data)
+```
+
+看看结果：
+
+```python
+print(data.w, data.b) #上面填的[2,-3.4] 4.2
+print(model.w, model.b) #形状w与data.w的不一样，要转置,训练出来的参数
+print(f'error in estimating w: {data.w - model.w.reshape(data.w.shape)}')
+print(f'error in estimating b: {data.b - model.b}')
+```
+
+###### PyTorch实现
+
+全连接层：上一层的每一个点都与下一层每一个点相连，通过矩阵乘法。
+
+`PyTorch` 里全连接层是 `Linear` 和 `LazyLinear`(`1.8.0` 后)。后者允许只自定义输出层，前者需要定义输入形状，很不便。所以推荐使用后者，即如：
+
+```python
+import numpy as np
+import torch
+from torch import nn
+from d2l import torch as d2l
+class LinearRegression(d2l.Module):  #@save
+    """The linear regression model implemented with high-level APIs."""
+    def __init__(self, lr):
+        super().__init__()
+        self.save_hyperparameters()
+        self.net = nn.LazyLinear(1)
+        self.net.weight.data.normal_(0, 0.01)
+        self.net.bias.data.fill_(0)
+```
+
+那么前向传播为：
+
+```python
+@d2l.add_to_class(LinearRegression)  #@save
+def forward(self, X):
+    return self.net(X)
+```
+
+`MSELoss` 计算平均平方差(mean squared error，没有 $\dfrac12$)，比手写快。
+
+```python
+@d2l.add_to_class(LinearRegression)  #@save
+def loss(self, y_hat, y):
+    fn = nn.MSELoss()
+    return fn(y_hat, y)
+```
+
+同理，调库实现参数的学习：
+
+```python
+@d2l.add_to_class(LinearRegression)  #@save
+def configure_optimizers(self):
+    return torch.optim.SGD(self.parameters(), self.lr)
+```
+
+训练：
+
+```python
+model = LinearRegression(lr=0.03)
+data = d2l.SyntheticRegressionData(w=torch.tensor([2, -3.4]), b=4.2)
+trainer = d2l.Trainer(max_epochs=3)
+trainer.fit(model, data)
+```
+
+看结果：
+
+```python
+@d2l.add_to_class(LinearRegression)  #@save
+def get_w_b(self):
+    return (self.net.weight.data, self.net.bias.data)
+w, b = model.get_w_b()
+
+print(f'error in estimating w: {data.w - w.reshape(data.w.shape)}')
+print(f'error in estimating b: {data.b - b}')
+```
+
+`PyTorch` 的 `data` 模块是数据处理，`nn` 模块是神经网络层和损失函数，可以初始化参数通过用 `_` 结尾的方法替换。
+
+###### 权衰减
+
+weight decay。第一个 regularization 技巧。
+
+限制参数数是经典的缓和过拟合办法。考虑多参数的多项式，如 $x_1^2x_2$，最大度数 $d$ 越大，项数成组合数学地指数增长。
+
+权衰减通过限制参数取值实现，称为 $l_2$ regularization。GHT decay 是最常用的，设 $f=0$(输入全置零)。
+
+最常用方法保证小权重向量是添加 norm 作为惩罚。如果权向量增长太快，学习算法会集中于新增的 $||\mathbf w||^2$。之前的损失函数是：
+$$
+L(\mathbf w,b)=\dfrac1n\sum_{i=1}^n\dfrac12(\mathbf w^T\mathbf x^{(i)}+b-y^{(i)})^2
+$$
+添加常量 regularization constant $\lambda$ 非负数超参数，设损失函数为：
+$$
+L(\mathbf w,b)+\dfrac\lambda2||\mathbf w||^2
+$$
+若 $\lambda=0$，跟之前一样。$2$ 分母是为了二次函数求导时消除方便。平方差比标准差计算更方便，去除平方根，计算方便。
+
+岭回归算法(ridge regression algorithm)常用 $l_2$-regularized。$l_1$ 是套索回归(lasso regression)。则，更新参数的方法修改为：
+$$
+\mathbf w\leftarrow(1-\eta\lambda)\mathbf w-
+\dfrac{\eta}{|B|}\sum_{i\in B}\mathbf x^{(i)}(\mathbf w^T\mathbf x^{(i)}+b-y^{(i)})
+$$
+小 $\lambda$ 限制性弱些。相关偏差惩罚 $b^2$。
+
+举例：
+
+随机数据 $y=0.05+\sum_{i=1}^d0.01x_i+N(0,0.01^2)$
+
+为了看到过拟合，设 $d=200$，训练集只有 $20$。
+
+```python
+import torch
+from torch import nn
+from d2l import torch as d2l
+class Data(d2l.DataModule):
+    def __init__(self, num_train, num_val, num_inputs, batch_size):
+        self.save_hyperparameters()
+        n = num_train + num_val
+        self.X = torch.randn(n, num_inputs)
+        noise = torch.randn(n, 1) * 0.01
+        w, b = torch.ones((num_inputs, 1)) * 0.01, 0.05
+        self.y = torch.matmul(self.X, w) + b + noise
+
+    def get_dataloader(self, train):
+        i = slice(0, self.num_train) if train else slice(self.num_train, None)
+        return self.get_tensorloader([self.X, self.y], train, i)
+```
+
+定义 $l_2$：
+
+```python
+def l2_penalty(w):
+    return (w ** 2).sum() / 2
+```
+
+定义模型：
+
+```python
+class WeightDecayScratch(d2l.LinearRegressionScratch):
+    def __init__(self, num_inputs, lambd, lr, sigma=0.01):
+        super().__init__(num_inputs, lr, sigma)
+        self.save_hyperparameters()
+
+    def loss(self, y_hat, y):
+        return (super().loss(y_hat, y) +
+                self.lambd * l2_penalty(self.w))
+```
+
+造数据，训练，输出结果：
+
+```python
+data = Data(num_train=20, num_val=100, num_inputs=200, batch_size=5)
+trainer = d2l.Trainer(max_epochs=10)
+
+def train_scratch(lambd):
+    model = WeightDecayScratch(num_inputs=200, lambd=lambd, lr=0.01)
+    model.board.yscale='log'
+    trainer.fit(model, data)
+    print('L2 norm of w:', float(l2_penalty(model.w)))
+```
+
+先看看没有 $l_2$ 的表现：
+
+```python
+train_scratch(0)
+```
+
+再看看用的结果：
+
+```python
+train_scratch(3)
+```
+
+原理懂了，下面看看集成调库怎么玩：`wd` 设 `net.weight`。偏差 `net.bias` 不衰减。
+
+```python
+class WeightDecay(d2l.LinearRegression):
+    def __init__(self, wd, lr):
+        super().__init__(lr)
+        self.save_hyperparameters()
+        self.wd = wd
+
+    def configure_optimizers(self):
+        return torch.optim.SGD([
+            {'params': self.net.weight, 'weight_decay': self.wd},
+            {'params': self.net.bias}], lr=self.lr)
+```
+
+```python
+model = WeightDecay(wd=3, lr=0.01)
+model.board.yscale='log'
+trainer.fit(model, data)
+
+print('L2 norm of w:', float(l2_penalty(model.get_w_b()[0])))
+```
+
+reproducing kernel Hilbert space (RKHS) 可以在非线性场景应用线性模型，但在高维大数据表现差。
+
+
+
+#### 线性神经网络分类
+
+[教材](https://d2l.ai/chapter_linear-classification/softmax-regression.html)
+
+##### 概念
+
+硬分类 hard assignment：只输出属于哪类；软分类 soft，属于某类的概率是多少
+
+多标签分类 multi-label classification，一个样本可能同时属于多个类别
+
+如下图，输出层可称为全连接层：
+
+![image-20230404193458068](img/image-20230404193458068.png)
+
+则可以表达为 $\mathbf o=\mathbf{Wx}+\mathbf b$，其中 $\mathbf b\in\R^3$，即：
+$$
+\begin{split}\begin{aligned} o_1 &= x_1 w_{11} + x_2 w_{12} + x_3 w_{13} + x_4 w_{14} + b_1,\\ o_2 &= x_1 w_{21} + x_2 w_{22} + x_3 w_{23} + x_4 w_{24} + b_2,\\ o_3 &= x_1 w_{31} + x_2 w_{32} + x_3 w_{33} + x_4 w_{34} + b_3. \end{aligned}\end{split}
+$$
+预命中模型 probit model，$\mathbf y=\mathbf o+\mathbf\epsilon,\epsilon_i\sim N(0,\sigma^2)$。
+
+softmax 函数，一种使和为 1 的 normalization 归一化手段，具体而言：
+$$
+\hat{\mathbf y}=\text{softmax}(\mathbf o),\hat y_i=\dfrac{e^{o_i}}{\sum_j e^{o_j}}
+$$
+显然满足 $\arg\max_j\hat y_j=\arg\max_j\hat o_j$。思想源于热力学温度。具体而言：
+$$
+\mathbf O=\mathbf {XW}+\mathbf b,\hat{\mathbf Y}=\text{softmax}(\mathbf O)
+$$
+设有 $m$ 个类别，则某个样本的单标签分类可以用 one-hot 编码表示，即他所属的类别为 $1$，其他类别设为 $0$ 的长为 $m$ 的向量。那么 $n$ 个样本可以表示成 $Y\in R^{n\times m}$。
+
+cross-entropy loss 交叉熵损失函数：
+$$
+l(\mathbf y,\hat{\mathbf y})=-\sum_{j=1}^qy_j\log \hat y_j
+$$
+将上文 $\hat y$ 代入，得：
+$$
+\begin{align}
+l(\mathbf y,\hat{\mathbf y})&=-\sum_{j=1}^qy_j\log\dfrac
+{e^{o_j}}{\sum_{k=1}^q e^{o_k}}\\
+&=\sum_{j=1}^qy_j\log\sum_{k=1}^q e^{o_k}-\sum_{j=1}^qy_jo_j\\
+&=\log\sum_{k=1}^q e^{o_k}-\sum_{j=1}^qy_jo_j
+\end{align}
+$$
+这是因为 $\sum y=1$，系数相同。
+
+对某个 $o_j$ 求偏导数，易求，得：
+$$
+\partial_{o_j}l(\mathbf y,\hat{\mathbf y})=\dfrac{e^{o_j}}{\sum_{k=1}^q e^{o_k}}-y_j=\text{softmax}(\mathbf o)_j-y_j
+$$
+得到的 $\hat y$ 是概率向量，如 $(0.1,0.2,0.7)$。
+
+信息论Information theory研究编码解码、传输和处理信息(数据)。
+
+对一个分布 $P$，它的熵是 $H[P]=\sum_j-P(j)\log P(j)$。如果数据从 $P$ 随机获取，至少需要 $H[P]$ nat 编码。nat 是等价于位，以 $e$ 为底数，即 $e^k$  个位。约等于 $1\div \ln2\approx 1.44\ bit$。
+
+考虑数据流，所有数据相同，则非常好编码和处理。熵的含义是预期值究竟会有多大的偏差，即 the level of surprice。
+
+从 $P$ 看 $Q$ 的偏差期望是交叉熵，定义为 $H(P,Q)=\sum_j-P(j)\log Q(j)$。若 $P=Q$，交叉熵最低，为 $H(P)$。
+
+MNIST(Modified National Institute of Standards and Technology) 数据集，手写数据分类，6w 28x28 训练，1w 测试。
+
+Fashion-MNIST 包含 10 类图像，每类 6k 张训练，1k 张测试。
+
+##### 训练实例
+
+加载数据：
+
+```python
+%matplotlib inline
+import time
+import torch
+import torchvision
+from torchvision import transforms
+from d2l import torch as d2l
+d2l.use_svg_display()
+class FashionMNIST(d2l.DataModule):  #@save
+    """The Fashion-MNIST dataset."""
+    def __init__(self, batch_size=64, resize=(28, 28)):
+        super().__init__()
+        self.save_hyperparameters()
+        trans = transforms.Compose([transforms.Resize(resize),
+                                    transforms.ToTensor()])
+        self.train = torchvision.datasets.FashionMNIST(
+            root=self.root, train=True, transform=trans, download=True)
+        self.val = torchvision.datasets.FashionMNIST(
+            root=self.root, train=False, transform=trans, download=True)
+data = FashionMNIST(resize=(32, 32)) #可能需要下载
+len(data.train), len(data.val)
+```
+
+设颜色数 $c$，高宽是 $h,w$。则输出数据的 $c,h,w$：
+
+```python
+data.train[0][0].shape
+```
+
+类别标注：
+
+```python
+@d2l.add_to_class(FashionMNIST)  #@save
+def text_labels(self, indices):
+    """Return text labels."""
+    labels = ['t-shirt', 'trouser', 'pullover', 'dress', 'coat',
+              'sandal', 'shirt', 'sneaker', 'bag', 'ankle boot']
+    return [labels[int(i)] for i in indices]
+```
+
+取 minibatch：
+
+```python
+@d2l.add_to_class(FashionMNIST)  #@save
+def get_dataloader(self, train):
+    data = self.train if train else self.val
+    return torch.utils.data.DataLoader(data, self.batch_size, shuffle=train, num_workers=self.num_workers)
+X, y = next(iter(data.train_dataloader()))
+print(X.shape, X.dtype, y.shape, y.dtype)
+```
+
+输出取完全部数据要多久：
+
+```python
+tic = time.time()
+for X, y in data.train_dataloader():
+    continue
+f'{time.time() - tic:.2f} sec'
+```
+
+可视化绘图，并输出一些数据：
+
+```python
+import torch
+from d2l import torch as d2l
+class Classifier(d2l.Module):  #@save
+    """The base class of classification models."""
+    def validation_step(self, batch):
+        Y_hat = self(*batch[:-1])
+        self.plot('loss', self.loss(Y_hat, batch[-1]), train=False)
+        self.plot('acc', self.accuracy(Y_hat, batch[-1]), train=False)
+```
+
+随机梯度下降：
+
+```python
+@d2l.add_to_class(d2l.Module)  #@save
+def configure_optimizers(self):
+    return torch.optim.SGD(self.parameters(), lr=self.lr)
+```
+
+对每个类别的估计得分，取最大的所在的下标即 $\arg\max$ 来获取 $\hat y$，然后与 $y$ 比较，得到准确率。如下：
+
+```python
+@d2l.add_to_class(Classifier)  #@save
+def accuracy(self, Y_hat, Y, averaged=True):
+    """Compute the number of correct predictions."""
+    Y_hat = Y_hat.reshape((-1, Y_hat.shape[-1]))
+    preds = Y_hat.argmax(axis=1).type(Y.dtype)
+    compare = (preds == Y.reshape(-1)).type(torch.float32)
+    return compare.mean() if averaged else compare
+```
 
 
 
@@ -7758,7 +8288,18 @@ print(g.edges([1, 2]), g.degree(1, 2)) #简写为g.edges[1,2]或g[1][2]
 
 加权边：`add_weighted_edges_from`
 
+> 遍历边：
+>
+> ```python
+> for i,j in g.edges(): #可以取len(.edges())
+> 	print(i,j) #int, int
+> ```
+
+
+
 ##### 预制
+
+[更多](https://networkx.org/documentation/stable/reference/generators.html)
 
 生成随机 DAG，且点值从 $[0,n)$ 偏移到 $[1,n]$：
 
@@ -7772,9 +8313,13 @@ print(dag.edges())
 
 随机树：`nx.random_tree(n)`
 
-链：`nx.path_graph(n)`
+n点的链：`nx.path_graph(n)`
 
 完全图：`nx.complete_graph(n)`
+
+0为中心的n边菊花图：`nx.star_graph(n)`
+
+n点完全k叉树：`nx.full_rary_tree(k,n)`
 
 
 
