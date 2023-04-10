@@ -305,6 +305,18 @@
 - 1017\.负二进制转换
 
   模拟 进制
+  
+- 1040\.移动石子直到连续II
+
+  思维+STL / 双指针
+
+- 3\.无重复字符的最长子串
+
+  双指针 / <u>前向星</u>
+  
+- 1125\.最小的必要团队
+
+  BFS 状压
 
 
 
@@ -8851,6 +8863,252 @@ class Solution {
 
 
 
+##### 1040\.移动石子直到连续II
+
+[题目](https://leetcode.cn/problems/moving-stones-until-consecutive-ii/)
+
+讲人话的题意翻译：数轴上有 $n$ 个整点，每次只能移动首/尾的点，将该点移动到任意一个满足：移动后不再是首/尾且该位置本来没有点的整数的位置。求最小和最大移动次数。
+
+先对点排序，得 $a$ 有序坐标序列。由于不能移动使其成为新首，故移动后的位置必然大于 $a_0$。枚举每个 $[a_i,a_i+n)$ 作为终态，本来在这个范围的点不用动，其他点每次拿当前末尾放到这个区间最小空位上去，或拿首放到最大空位。但是有一种特殊条件不可行：唯一空位是最大的空位。其他情况都可以放，例如对 `3,4,5,6,10`，第一个区间是 $[3,7]$，不能放；第二个区间是 $[4,8]$，先把首 $3$ 放到最大空位 $8$，再把尾 $10$ 放到最小空位 $7$ 即可。又如 `1,3,10`，枚举的第一个区间是 $[1,3]$，直接把尾 $10$ 放到最小空位 $2$ 即可。
+
+具体到实现上，当然可以开动态开点的线段树，但是有更优做法。对排序后的 $a$ 叠 $cnt$，存 $map$，即 $m_v$ 表示 $\le v$ 的数有多少个。对每个 $l=a_i$ 和 $r=a_i+n-1$，二分找到 $\le r$ 的最大 $map$ 元素 $m_{r'}$，则这个区间非空位置数为 $m_l-m_{r'}+1$，总位置数为 $r-l+1=n$。单次查询 $O(\log n)$。共 $O(n\log n)$。
+
+对最大值，考虑两种方案：每次把首跳最大空位，或者把尾跳最小空位。首跳最大空位会损失 $a_1-a_0$ 个空位，尾跳最小空位会损失 $a_{n-1}-a_{n-2}$ 个空位。在这之后，必然首与第二小连续，或者尾与第二大连续，对连续的一方，跳走，每次损失一个长度。除去首尾外，还有 $n-2$ 个非空不可跳，故第一步首跳最多跳 $a_{n-1}-a_0-(a_1-a_0+n-2)=a_{n-1}-a_1-(n-2)$ 个空位，第一步尾跳最多跳 $a_{n-1}-a_0-(a_{n-1}-a_{n-2}+n-2)=a_{n-2}-a_0-(n-2)$ 个空位。取最值就是最大值。复杂度 $O(1)$。
+
+考虑上排序复杂度，总时间复杂度为 $O(n\log n)$，开 map 空间复杂度为 $O(n)$。
+
+```rust
+use std::collections::BTreeMap;
+impl Solution {
+    pub fn num_moves_stones_ii(stones: Vec<i32>) -> Vec<i32> {
+        let mut a = stones.clone();
+        a.sort();
+        let n = a.len();
+        let mut cnt = 0;
+        let mut h = BTreeMap::new();
+        for i in 0..n {
+            cnt += 1;
+            h.insert(a[i], cnt);
+        }
+        let mut mi = n as i32;
+        for (l, lcnt) in &h {
+            // if lcnt == &1 {
+            //     continue; //not==1
+            // }
+            //不能h,不然不可以搞h.range
+            let r = l + n as i32 - 1;
+            let pr = h.range(..=r).last();//<=r的最大
+            if let Some((re, rcnt)) = pr {
+                let num = rcnt - lcnt + 1;
+                let rng = r - l + 1;
+                // println!("{} {} {} {}", l, r, lcnt, rcnt);
+                if re < &r && rng - num == 1 {
+                    continue;
+                }
+                mi = mi.min(rng - num);
+            }
+        }
+        if a[n - 1] - a[0] + 1 == n as i32 {
+            mi = 0;
+        }
+        let mut mx = a[n - 1] - a[1] - (n as i32 - 2);
+        mx = mx.max(a[n - 2] - a[0] - (n as i32 - 2));
+        mx = mx.max(0);
+        vec![mi, mx]
+    }
+}
+```
+
+求最小可以用双指针滑窗优化，从而 $O(n)$ 找最小，且空间 $O(1)$：
+
+```java
+class Solution {
+    public int[] numMovesStonesII(int[] stones) {
+        int n = stones.length;
+        Arrays.sort(stones);
+        if (stones[n - 1] - stones[0] + 1 == n) {
+            return new int[]{0, 0};
+        }
+        int ma = Math.max(stones[n - 2] - stones[0] + 1, stones[n - 1] - stones[1] + 1) - (n - 1);
+        int mi = n;
+        for (int i = 0, j = 0; i < n && j + 1 < n; ++i) {
+            while (j + 1 < n && stones[j + 1] - stones[i] + 1 <= n) {
+                ++j;//新区间跨度<=n
+            }
+            if (j - i + 1 == n - 1 && stones[j] - stones[i] + 1 == n - 1) {//如果不在区间内的仅是最大值a[n-1],区间只有一个空位,动两次
+                mi = Math.min(mi, 2);
+            } else {
+                mi = Math.min(mi, n - (j - i + 1));
+            }
+        }
+        return new int[]{mi, ma};
+    }
+}
+```
+
+
+
+##### 3\.无重复字符的最长子串
+
+[题目](https://leetcode.cn/problems/longest-substring-without-repeating-characters/)
+
+当然可以 cnt 双指针，一眼：
+
+```rust
+pub struct Solution {}
+impl Solution {
+    pub fn length_of_longest_substring(s: String) -> i32 {
+        let mut cnt = [0; 128];
+        let mut ans = 0;
+        let mut l = 0 as usize;
+        let mut rs = s.chars();
+        let mut ls = s.chars();
+        for r in 0..s.len() {
+            let i = rs.next().unwrap() as usize;
+            cnt[i] += 1;
+            while cnt[i] > 1 {
+                let j = ls.next().unwrap() as usize;
+                cnt[j] -= 1;
+                l += 1;
+            }
+            ans = ans.max(r - l + 1);
+        }
+        ans as i32
+    }
+}
+```
+
+更优雅：对每个字符，记录上次出现的位置，每次把左指针取近一次重复的。
+
+```rust
+impl Solution {
+    pub fn length_of_longest_substring(s: String) -> i32 {
+        use std::cmp::max;
+        let mut last: [i32; 128] = [-1; 128];
+        let mut left = -1;
+        let mut ans = 0;
+        for (i, v) in s.chars().enumerate() {
+            left = max(left, last[v as usize]);
+            last[v as usize] = i as i32;
+            ans = max(ans, (i as i32) - left);
+        }
+        return ans;
+    }
+}
+```
+
+
+
+##### 1125\.最小的必要团队
+
+[题目](https://leetcode.cn/problems/smallest-sufficient-team/)
+
+设每个技能(哈希转下标)当前团队有与没有为二进制状态，每个团队可以对应一个 $n$ 位的二进制状态。BFS 搜索，初始设状态为 $0$，目标状态为 $2^n-1$。每次搜索，遍历所有人的二进制状态，将它或到当前状态上，如果有更新，就继续 BFS，队列存储状态。注意如果某个状态遍历过了剪一下。
+
+因为每次遍历 $m$ 人，最坏状态都要更新，每次更新复制方案需要 $O(m)$，故单次遍历为 $O(m^2)$。最坏每个状态都遍历一次，故时间复杂度为 $O(m^22^n)$，空间为 $O(m2^n)$。
+
+可以通过前向星办法链表压缩存储，每个方案指向上一个人，能达到时空均降一个 $m$ 的效果，具体参见题解。这里略。 
+
+```rust
+use std::collections::HashMap;
+use std::collections::VecDeque;
+impl Solution {
+    pub fn smallest_sufficient_team(req_skills: Vec<String>, people: Vec<Vec<String>>) -> Vec<i32> {
+        let mut h = HashMap::new();
+        let n = req_skills.len();
+        for i in 0..n {
+            h.insert(&req_skills[i], i);
+        }
+        let tg = (1 << n) - 1;
+        let mut q = VecDeque::new();
+        let mut vis = vec![false; 1 << n];
+        struct Node {
+            state: i32,
+            scheme: Vec<i32>,
+        } //不用分号
+        q.push_back(Node {
+            state: 0,
+            scheme: vec![],
+        });
+        let m = people.len();
+        while !q.is_empty() {
+            let nd = q.pop_front().unwrap();
+            let u = nd.state;
+            // println!("{} {:?}", u, nd.scheme);#不能nd
+            if u == tg {
+                return nd.scheme;
+            }
+            if vis[u as usize] {
+                continue;
+            }
+            vis[u as usize] = true;
+            for i in 0..m {
+                let mut v = u;
+                for j in 0..people[i].len() {
+                    let k = h.get(&people[i][j]).unwrap();
+                    let kv = 1 << k;
+                    v |= kv;
+                }
+                if !vis[v as usize] && v != u {
+                    let mut nx = nd.scheme.clone();
+                    nx.push(i as i32);
+                    q.push_back(Node {
+                        state: v,
+                        scheme: nx,
+                    });
+                }
+            }
+        }
+        panic!("No sol");
+    }
+}
+```
+
+题解顺序遍历：
+
+```java
+class Solution {
+    public int[] smallestSufficientTeam(String[] req_skills, List<List<String>> people) {
+        int n = req_skills.length, m = people.size();
+        HashMap<String, Integer> skill_index = new HashMap<>();
+        for (int i = 0; i < n; ++i) {
+            skill_index.put(req_skills[i], i);
+        }
+        int[] dp = new int[1 << n];
+        Arrays.fill(dp, m);
+        dp[0] = 0;
+        int[] prev_skill = new int[1 << n];
+        int[] prev_people = new int[1 << n];
+        for (int i = 0; i < m; i++) {
+            List<String> p = people.get(i);
+            int cur_skill = 0;
+            for (String s : p) {
+                cur_skill |= 1 << skill_index.get(s);
+            }
+            for (int prev = 0; prev < (1 << n); prev++) {
+                int comb = prev | cur_skill;
+                if (dp[comb] > dp[prev] + 1) {
+                    dp[comb] = dp[prev] + 1;
+                    prev_skill[comb] = prev;
+                    prev_people[comb] = i;
+                }
+            }
+        }
+        List<Integer> res = new ArrayList<>();
+        int i = (1 << n) - 1;
+        while (i > 0) {
+            res.add(prev_people[i]);
+            i = prev_skill[i];
+        }
+        return res.stream().mapToInt(j -> j).toArray();
+    }
+}
+```
+
+
+
+
+
 > ### 力扣比赛
 >
 
@@ -10523,6 +10781,793 @@ group by date_id, make_name
 ```
 
 ### CF杂题
+
+#### 训练赛2
+
+SCNU 软院集训队个人赛第二场。
+
+1. E [CF710A](https://vjudge.csgrandeur.cn/problem/CodeForces-710A/origin)
+
+   签到 模拟
+
+2. A [CF707B](https://vjudge.csgrandeur.cn/problem/CodeForces-707B/origin)
+
+   图论 STL
+
+3. F [CF709C](https://vjudge.csgrandeur.cn/problem/CodeForces-709C/origin)
+
+   贪心
+
+4. B [CF707C](https://vjudge.csgrandeur.cn/problem/CodeForces-707C/origin)
+
+   数学 构造
+
+5. C [CF707D](https://vjudge.csgrandeur.cn/problem/CodeForces-707D/origin)
+
+   并查集 DFS 离线 bitset
+
+6. G [CF709D](https://vjudge.csgrandeur.cn/problem/CodeForces-709D/origin)
+
+   贪心 构造
+
+7. D [CF707E](https://vjudge.csgrandeur.cn/problem/CodeForces-707E/origin)
+
+   二维树状数组 离线 预处理
+
+8. H [CF709E](https://vjudge.csgrandeur.cn/problem/CodeForces-709E/origin)
+
+   重心 树上DP
+
+##### E CF710A
+
+喵一眼题面 href 可知，王后八方向。直接模拟或数学即可。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+signed main()
+{
+    ios::sync_with_stdio(false), cin.tie(0);
+    char c;
+    ll d;
+    cin >> c >> d;
+    ll r = c - 'a' + 1;
+    ll ans = 0;
+    for (ll i = r - 1; i <= r + 1; ++i)
+    {
+        for (ll j = d - 1; j <= d + 1; ++j)
+        {
+            if (!(i == r && j == d))
+            {
+                if (i >= 1 && i <= 8 && j >= 1 && j <= 8)
+                {
+                    ++ans;
+                }
+            }
+        }
+    }
+    cout << ans;
+    return 0;
+}
+```
+
+##### A CF707B
+
+对只有非负权的边，显然任意最短路的最小值是只有一条边的最短路。set 存所有原料店，枚举每条边，如果边的一端在原料店内，一端不在，就更新边权。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+const ll mn = 1e5 + 10, inf = 1e9 + 10;
+ll n, m, k, ans = inf;
+vector<pair<ll, ll>> g[mn];
+set<ll> a;
+signed main()
+{
+    ios::sync_with_stdio(false), cin.tie(0);
+    cin >> n >> m >> k;
+    for (ll i = 1, u, v, w; i <= m; ++i)
+    {
+        cin >> u >> v >> w;
+        g[u].push_back({v, w});
+        g[v].push_back({u, w});
+    }
+    for (ll i = 1, u; i <= k; ++i)
+    {
+        cin >> u;
+        a.insert(u);
+    }
+    for (ll u = 1; u <= n; ++u)
+    {
+        if (a.find(u) == a.end())
+        {
+            continue;
+        }
+        for (auto [v, w] : g[u])
+        {
+            if (a.find(v) != a.end())
+            {
+                continue;
+            }
+            ans = min(ans, w);
+        }
+    }
+    if (ans == inf)
+    {
+        cout << -1;
+    }
+    else
+    {
+        cout << ans << '\n';
+    }
+    return 0;
+}
+```
+
+##### F CF709C
+
+找到第一个不是 a 的地方开始，然后对每个字符都不为 a 的连续子段操作。如果无法找到，字符串必然全 a，改最后一个。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+const ll mn = 1e5 + 10;
+ll n;
+char s[mn];
+signed main()
+{
+    ios::sync_with_stdio(false), cin.tie(0);
+    cin >> s;
+    n = strlen(s);
+    for (ll i = 0; i < n; ++i)
+    {
+        if (s[i] != 'a')
+        {
+            for (; i < n && s[i] != 'a'; ++i)
+            {
+                s[i]--;
+            }
+            cout << s;
+            return 0;
+        }
+    }
+    // all a
+    for (ll i = 0; i < n; ++i)
+    {
+        assert(s[i] == 'a');
+    }
+    s[n - 1] = 'z';
+    cout << s;
+    return 0;
+}
+/*
+codeforces
+abacaba
+z
+zbb
+za
+*/
+```
+
+##### B CF707C
+
+考虑 $m^2-(m-1)^2=2m-1(m\ge2)$，可覆盖所有 $> 1$ 的奇数的 $n^2$。
+
+接下来对 $m^2-(m-2)^2=4m-4(m\ge 3)$，可以覆盖从 $8$ 开始的所有的 $4$ 的倍数的 $n^2$。
+
+对任意 $m^2-(m-i)^2=2mi-i^2(i > 2, m - i \ge 1)$，若 $i$ 是奇数，则结果是奇数，不如 $i=1$。
+
+否则，若 $i$ 是偶数，则 $2mi$ 是 $4$ 的倍数，由于 $i=2j$，故 $i^2=4j^2$ 也是 $4$ 的倍数。最小的是 $i=4$，为 $5^2-(5-4)^2=24$，所以覆盖不了 $8$ 以下。其覆盖结果也都不如 $i=2$。
+
+对于任意的 $n^2$，若 $n$ 是奇数，$n^2$ 也是奇数，必然能被 $i=1$ 覆盖。若 $n > 2$ 且 $n$ 是偶数，则 $n=2x,n^2=4x^2$，即 $n$ 必然是 $4$ 的倍数，能被 $i=2$ 覆盖。所以仅有 $n=1,n=2$ 无解。也就是说得以严格证明不需要使用 $m^2+k^2$，只需要使用 $m^2-(m-1)^2,m^2-(m-2)^2$ 就可以覆盖全体正整数。
+
+因此只需要考虑 $i=1,2$ 就可以覆盖全部情况。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+ll n;
+signed main()
+{
+    ios::sync_with_stdio(false), cin.tie(0);
+    cin >> n;
+    n *= n;
+    if (n > 1 && n % 2 == 1)
+    {
+        cout << n / 2 + 1 << ' ' << n / 2;
+        return 0;
+    }
+    if (n > 4 && n % 4 == 0)
+    {
+        cout << n / 4 + 1 << ' ' << n / 4 - 1;
+        return 0;
+    }
+    cout << -1;
+    return 0;
+}
+/*
+1
+3
+2
+4
+8
+16
+3200080001 40000 40001
+200080010 10001 10003
+*/
+```
+
+##### C CF707D
+
+注意到每次修改只能基于当前版本，且每次操作 $4$ 只能回退当前版本。即本题对版本的变化灵活性较差，这是关键。
+
+当没有操作 4 时，操作可以看成一条链，边就是操作。从初始版本 $0$ 出发走一遍就得到了链上每个结果。当有操作 4 时，设从 $v$ 回退到 $u$，则将 $u,v$ 两点合并(考虑并查集)，然后下一次非 $4$ 的操作从 $v$ 出发继续延伸链，可知，能将询问离线得到一棵树。 
+
+那么只需要从根节点 $0$ 出发，遍历这棵树，遍历时执行操作，然后回溯时撤销掉所执行的操作，就能处理出全部的询问。使用 bitset 优化操作 $3$，则复杂度为 $O(\dfrac m C)$，其他操作都是 $O(1)$。故总复杂度为 $O(\dfrac{qm}C)$。
+
+注意一个细节，对无效的操作 $1$ 或 $2$，不需要撤销。操作 $1$、操作 $2$ 互为逆操作，操作 $3$ 的逆操作是自身。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+const ll mb = 1024, mn = 1e5 + 10;
+bitset<mb> a[mb], rv;
+ll k[mn], n, m, q, fa[mn], s;
+struct cmd
+{
+    ll op, i, j;
+};
+vector<pair<ll, cmd>> g[mn];
+ll findf(ll x)
+{
+    while (x != fa[x])
+    {
+        x = fa[x];
+    }
+    return x;
+}
+void perform(cmd &c)
+{
+    if (c.op == 1)
+    {
+        if (!a[c.i][c.j])
+        {
+            ++s;
+        }
+        else
+        {
+            c.op = 5;
+        }
+        a[c.i][c.j] = 1;
+    }
+    else if (c.op == 2)
+    {
+        if (a[c.i][c.j])
+        {
+            --s;
+        }
+        else
+        {
+            c.op = 5;
+        }
+        a[c.i][c.j] = 0;
+    }
+    else if (c.op == 3)
+    {
+        s -= a[c.i].count();
+        a[c.i] ^= rv;
+        s += a[c.i].count();
+    }
+}
+void revoke(cmd c)
+{
+    if (c.op <= 2)
+    {
+        c.op = 3 - c.op;
+    }
+    perform(c);
+}
+void dfs(ll u)
+{
+    k[u] = s;
+    // cout << "k:" << u << ' ' << k[u] << '\n';
+    for (auto [v, cm] : g[u])
+    {
+        perform(cm);
+        dfs(v);
+        revoke(cm);
+        // cout << "revoke: " << s << '\n';
+    }
+}
+signed main()
+{
+    ios::sync_with_stdio(false), cin.tie(0);
+    cin >> n >> m >> q;
+    for (ll i = 1; i <= m; ++i)
+    {
+        rv[i] = 1;
+    }
+    for (ll i = 1; i <= q; ++i)
+    {
+        fa[i] = i;
+    }
+    for (ll u = 0, v = 1; v <= q; ++v)
+    {
+        cmd cm;
+        cin >> cm.op >> cm.i;
+        if (cm.op <= 2)
+        {
+            cin >> cm.j;
+        }
+        if (cm.op == 4)
+        {
+            u = cm.i;
+            fa[findf(v)] = findf(u);
+            continue;
+        }
+        g[findf(u)].push_back({v, cm});
+        u = v;
+    }
+    dfs(0);
+    for (ll i = 1; i <= q; ++i)
+    {
+        cout << k[findf(i)] << '\n';
+    }
+    return 0;
+}
+```
+
+##### G CF709D
+
+打表找规律，一个参考打表程序如下：
+
+> ```c++
+> #include <bits/stdc++.h>
+> using namespace std;
+> using ll = long long;
+> const ll mn = 1e6 + 10;
+> ll a[mn], top;
+> map<pair<ll, ll>, set<pair<ll, ll>>> m;
+> signed main()
+> {
+>  ios::sync_with_stdio(false), cin.tie(0);
+>  cin >> top;
+>  for (ll i = 0; i < 1 << top; ++i)
+>  {
+>      for (ll j = 0; j < top; ++j)
+>      {
+>          a[j] = (i >> j) & 1;
+>      }
+>      ll a00 = 0, a01 = 0, a10 = 0, a11 = 0;
+>      for (ll j = 0; j < top; ++j)
+>      {
+>          for (ll k = j + 1; k < top; ++k)
+>          {
+>              a00 += a[j] == 0 && a[k] == 0;
+>              a01 += a[j] == 0 && a[k] == 1;
+>              a10 += a[j] == 1 && a[k] == 0;
+>              a11 += a[j] == 1 && a[k] == 1;
+>          }
+>      }
+>      for (ll j = top - 1; j >= 0; --j)
+>      {
+>          cout << a[j];
+>      }
+>      cout << ' ' << a00 << ' ' << a01 << ' ' << a10 << ' ' << a11 << '\n';
+>      m[{a00, a11}].insert({a01, a10});
+>  }
+>  for (auto [pr, s] : m)
+>  {
+>      cout << pr.first << ' ' << pr.second << " - " << s.size() << " : ";
+>      for (auto [a01, a10] : s)
+>      {
+>          cout << '(' << a01 << ',' << a10 << ") ";
+>      }
+>      cout << '\n';
+>  }
+>  return 0;
+> }
+> ```
+
+根据打表规律，发现有解必然满足：
+
+1. $a_{00},a_{11}$ 的出现次数是 $C_{x}^2$。其中 $x$ 是 $0$ 或 $1$ 的数目。
+
+   证明：共有 $x$ 个 $0$ 时，$00$ 的数目一定是 $C_x^2$，直接高中组合数学即可。对 $1$ 同理。
+
+2. 设有 $n_0$ 个 $0$，$n_1$ 个 $1$，若 $n_0 > 0,n_1 > 0$，恒满足 $n_0n_1=a_{01}+a_{10}$。
+
+   证明：一共有 $n_1$ 个 $1$，对每个 $1$，与每个 $0$，要么组成 $10$，要么组成 $01$，故每个 $1$ 贡献 $n_0$ 个 $a_{01}+a_{10}$，故共贡献 $n_0n_1$ 次。
+
+根据第二个规律的证明过程，可以通过在 $n_0$ 个 $0$ 上不断插入 $1$ 构造得字符串，对每次构造，设要插入的 $1$ 的前面有 $u(0\le u\le n_0)$ 个 $0$，后面有 $v=n_0-u$ 个 $0$，则当前 $1$ 对 $a_{01}$ 贡献 $u$，对 $a_{10}$ 贡献 $v$。可以直接贪心，即设 $1$ 先最大地去凑 $a_{10}$，然后再最大地去凑 $a_{01}$。反过来地，若已知某个 $1$ 贡献分别为 $(u,n_0-u)$，也能确定它必然插入在第 $u$ 个 $0$ 后面。注意每个 $0$ 后面可以插入零到任意多个 $1$。设当前还差 $c_{01}$ 个 $a_{01}$ 贡献要凑，$c_{10}$ 个 $a_{10}$ 贡献要凑，有：
+
+- 若 $c_{10}\ge n_{0}$，把 $1$ 插入到最前面(第 $1$ 个 $0$ 前边)，导致 $c_{01}$ 不变，$c_{10}$ 减少 $n_0$。
+- 否则，$0\le c_{10} < n_0$，把 $1$ 插入到第 $c_{10}$ 个 $0$ 前边，导致 $c_{10}$ 清零，$c_{01}$ 减少 $n_0-c_{10}$。
+
+不断如此构造，即可得到有解的目标字符串。
+
+特判一些边界，如全 $0$ 全 $1$ 等，即可得解。 
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+map<ll, ll> m;
+const ll mn = 1e6 + 10;
+ll n, n0, n1, a00, a01, a10, a11;
+ll cnt[mn];
+signed main()
+{
+    ios::sync_with_stdio(false), cin.tie(0);
+    for (ll x = 1; x * (x - 1) / 2 <= 2e9; ++x)
+    {
+        m[x * (x - 1) / 2] = x;
+    }
+    cin >> a00 >> a01 >> a10 >> a11;
+    if (a00 == 0 && a11 == 0 && a01 == 0 && a10 == 0)
+    {
+        cout << 0;
+        return 0;
+    }
+    if (m.find(a00) == m.end() || m.find(a11) == m.end())
+    {
+        cout << "Impossible";
+        return 0;
+    }
+    n0 = m[a00], n1 = m[a11], n = n0 + n1;
+    if (a11 == 0 && a01 == 0 && a10 == 0)
+    {
+        for (ll i = 0; i < n0; ++i)
+        {
+            cout << 0;
+        }
+        return 0;
+    }
+    if (a00 == 0 && a01 == 0 && a10 == 0)
+    {
+        for (ll i = 0; i < n1; ++i)
+        {
+            cout << 1;
+        }
+        return 0;
+    }
+    if (n0 * n1 != a01 + a10)
+    {
+        cout << "Impossible";
+        return 0;
+    }
+    ll c01 = a01, c10 = a10;
+    for (ll i = 0; i < n1; ++i)
+    {
+        ll p01, p10;
+        if (c10 >= n0)
+        {
+            p10 = n0;
+        }
+        else
+        {
+            p10 = c10;
+        }
+        p01 = n0 - p10;
+        cnt[p01]++;
+        c10 -= p10, c01 -= p01;
+    }
+    for (ll i = 0; i < n0; ++i)
+    {
+        for (ll j = 0; j < cnt[i]; ++j)
+        {
+            cout << 1;
+        }
+        cout << 0;
+    }
+    for (ll j = 0; j < cnt[n0]; ++j)
+    {
+        cout << 1;
+    }
+    return 0;
+}
+```
+
+##### D CF707E
+
+> 一开始审题失误没看到关键点 $len < 2000$，且没剩多少时间了，所以没开。
+
+[能过的代码参考](https://blog.csdn.net/dieyi9889/article/details/101867233)
+
+一眼二维树状数组维护矩阵和。对条链，先将其点亮，对应到二维树状数组上有 $O(len\log n\log m)\approx n\log^2 n$ 的代价。然后遍历共 $O(n)$ 次 ask，每次查询该点亮的链对该**子矩阵**(注意不是对该询问)的贡献是多少，查询的复杂度是四次树状数组询问，$O(n)$ 次 ask 故也共 $O(n\log^2 n)$。然后再将该链删掉，即还原树状数组，反向操作，耗费 $O(n\log^2 n)$。共 $k$ 条链，每条都做一次，共 $O(n^2\log^2n)$ 的复杂度。<u>经过这样的预处理，使得每条链对每个子矩阵的贡献都存了下来。</u>(解题核心思路)
+
+接下来顺序遍历询问，维护 bool 数组表示当前点亮的链来维护 switch。对每个 ask，再遍历一遍每条链的点亮状态，如果亮着，加上该子矩阵该链的值。这个过程是 $O(q+nk)=O(n^2)$ 的。
+
+故总复杂度为 $O(n^2\log^2n)$。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+bool Finish_read;
+template <class T>
+inline void read(T &x)
+{
+    Finish_read = 0;
+    x = 0;
+    int f = 1;
+    char ch = getchar();
+    while (!isdigit(ch))
+    {
+        if (ch == '-')
+            f = -1;
+        if (ch == EOF)
+            return;
+        ch = getchar();
+    }
+    while (isdigit(ch))
+        x = x * 10 + ch - '0', ch = getchar();
+    x *= f;
+    Finish_read = 1;
+}
+template <class T>
+inline void print(T x)
+{
+    if (x / 10 != 0)
+        print(x / 10);
+    putchar(x % 10 + '0');
+}
+template <class T>
+inline void writeln(T x)
+{
+    if (x < 0)
+        putchar('-');
+    x = abs(x);
+    print(x);
+    putchar('\n');
+}
+template <class T>
+inline void write(T x)
+{
+    if (x < 0)
+        putchar('-');
+    x = abs(x);
+    print(x);
+}
+/*================Header Template==============*/
+const int maxn = 2005;
+int n, m, k, qcnt, q;
+ll T[maxn + 50][maxn + 50];
+int len[maxn];
+int x[maxn][maxn], y[maxn][maxn], w[maxn][maxn];
+int c[1000005], qx1[maxn], qy1[maxn], qx2[maxn], qy2[maxn];
+bool change[maxn];
+ll ans[maxn][maxn];
+#define lowbit(x) x & (-x)
+/*==================Define Area================*/
+void Add(int x, int y, int w)
+{
+    for (int i = x; i <= maxn; i += lowbit(i))
+    {
+        for (int j = y; j <= maxn; j += lowbit(j))
+        {
+            T[i][j] += w;
+        }
+    }
+}
+
+ll Sum(int x, int y)
+{
+    ll res = 0;
+    for (int i = x; i; i -= lowbit(i))
+    {
+        for (int j = y; j; j -= lowbit(j))
+        {
+            res += T[i][j];
+        }
+    }
+    return res;
+}
+
+int main()
+{
+    read(n);
+    read(m);
+    read(k);
+    for (int i = 1; i <= k; i++)
+    {
+        read(len[i]);
+        for (int j = 1; j <= len[i]; j++)
+        {
+            read(x[i][j]);
+            read(y[i][j]);
+            read(w[i][j]);
+        }
+    }
+    read(q);
+    for (int i = 1; i <= q; i++)
+    {
+        char opt[2];
+        scanf("%s", opt);
+        if (opt[0] == 'A')
+        {
+            ++qcnt;
+            read(qx1[qcnt]);
+            read(qy1[qcnt]);
+            read(qx2[qcnt]);
+            read(qy2[qcnt]);
+        }
+        else
+        {
+            read(c[i]);
+        }
+    }
+    for (int i = 1; i <= k; i++)
+    {
+        for (int j = 1; j <= len[i]; j++)
+        {
+            Add(x[i][j], y[i][j], w[i][j]);
+        }
+        for (int j = 1; j <= qcnt; j++)
+        {
+            ans[i][j] = Sum(qx2[j], qy2[j]) + Sum(qx1[j] - 1, qy1[j] - 1) - Sum(qx1[j] - 1, qy2[j]) - Sum(qx2[j], qy1[j] - 1);
+        }
+        for (int j = 1; j <= len[i]; j++)
+        {
+            Add(x[i][j], y[i][j], -w[i][j]);
+        }
+    }
+    for (int i = 1, cnt = 1; i <= q; i++)
+    {
+        if (c[i])
+        {
+            change[c[i]] ^= 1;
+        }
+        else
+        {
+            ll res = 0;
+            for (int j = 1; j <= k; j++)
+            {
+                if (!change[j])
+                    res += ans[j][cnt];
+            }
+            printf("%lld\n", res);
+            cnt++;
+        }
+    }
+    return 0;
+}
+```
+
+##### H CF709E
+
+> 开始一眼以为统计方案数，所以跳了。
+
+[参考](https://blog.csdn.net/xgc_woker/article/details/82957280)
+
+以重心为根进行 DFS。维护子树大小，该点为根子树的最大和非严格次大子树大小。设 DFS 时选择移边的子树的大小是 $s$，将这条边移动到当前遍历的子树上。
+
+对重心外的点，如果它不是最大子树，那么往下遍历该点时，若当前点的最大子树更大，更新 $s$。否则，它自己是最大子树，不能我挪我自己，所以若当前点的非严格次大子树更大，更新 $s$。
+
+如果有 $s$，当前子树大小是 $t$，因为从重心开始遍历，所以 $t$ 肯定不超，然后子树外部分大小是 $n-t$，如果把那个可删的最大子树 $s$ 给锯掉，连到自己上去，发现能成为重心，就可行。否则不可行。
+
+如果一开始 DFS 根下来第一次就选定了 $s$，容易得知不会再更新 $s$。否则，一开始选的严格次大的话，有可能更新当前的新子树为 $s$，但绝无可能再把原重心那边的更新过来，因为如果包含重心的子树，必然是大于一半个节点树的。所以接下来的更新只需要在 $s$ 子树内考虑即可，且只需要考虑最大子树，看看有没有大于最开始给的非严格次大即可。
+
+参考：
+
+```c++
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+
+using namespace std;
+typedef long long LL;
+int _min(int x, int y) { return x < y ? x : y; }
+int _max(int x, int y) { return x > y ? x : y; }
+int read()
+{
+    int s = 0, f = 1;
+    char ch = getchar();
+    while (ch < '0' || ch > '9')
+    {
+        if (ch == '-')
+            f = -1;
+        ch = getchar();
+    }
+    while (ch >= '0' && ch <= '9')
+        s = s * 10 + ch - '0', ch = getchar();
+    return s * f;
+}
+
+struct edge
+{
+    int x, y, next;
+} e[810000];
+int len, last[410000];
+int n, mx1[410000], mx2[410000], bs[410000];
+int tot[410000], ans[410000];
+
+void ins(int x, int y)
+{
+    e[++len].x = x, e[len].y = y;
+    e[len].next = last[x], last[x] = len;
+}
+
+void dfs(int x, int fa)
+{
+    tot[x] = 1;
+    mx1[x] = mx2[x] = bs[x] = 0;
+    for (int k = last[x]; k; k = e[k].next)
+    {
+        int y = e[k].y;
+        if (y != fa)
+        {
+            dfs(y, x);
+            tot[x] += tot[y];
+            if (tot[y] > n / 2)
+                bs[x] = tot[y]; // 不满足重心的一个子树
+            else if (tot[y] > mx1[x])
+                mx2[x] = mx1[x], mx1[x] = tot[y];
+            else if (tot[y] > mx2[x])
+                mx2[x] = tot[y];
+        }
+    }
+    if (n - tot[x] > n / 2)
+        bs[x] = n - tot[x];
+    else if (n - tot[x] > mx1[x])
+        mx2[x] = mx1[x], mx1[x] = n - tot[x];
+    else if (n - tot[x] > mx2[x])
+        mx2[x] = n - tot[x];
+}
+
+void dfs2(int x, int fa, int s)
+{
+    if (!bs[x])
+        ans[x] = 1;
+    else if (n - tot[x] - s <= n / 2)
+        ans[x] = 1;
+    for (int k = last[x]; k; k = e[k].next)
+    {
+        int y = e[k].y;
+        if (y != fa)
+        {
+            if (mx1[x] != tot[y])
+                dfs2(y, x, _max(s, mx1[x]));
+            else
+                dfs2(y, x, _max(s, mx2[x]));
+        }
+    }
+}
+
+int main()
+{
+    n = read();
+    for (int i = 1; i < n; i++)
+    {
+        int x = read(), y = read();
+        ins(x, y), ins(y, x);
+    }
+    dfs(1, 0); // 找重心
+    int rt;
+    for (int i = 1; i <= n; i++)
+    {
+        if (!bs[i])
+        {
+            rt = i;
+            break;
+        }
+    }
+    dfs(rt, 0); // 重心为根,重新维护最大和次大子树
+    dfs2(rt, 0, 0);
+    for (int i = 1; i <= n; i++)
+        printf("%d ", ans[i]);
+    return 0;
+}
+```
+
+
+
+#### 未分类
 
 目录：
 

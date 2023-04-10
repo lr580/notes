@@ -6755,6 +6755,14 @@ print(x[2].item(),type(x[2].item()))
 
 ##### 常规
 
+比 for 更快地取出下标，如 $(0,0)$ 和 $(1,2)$：
+
+```python
+y = torch.tensor([0, 2])
+y_hat = torch.tensor([[0.1, 0.3, 0.6], [0.3, 0.2, 0.5]])
+y_hat[[0, 1], y]
+```
+
 > 直接运算：
 >
 > ```python
@@ -6850,6 +6858,15 @@ y = torch.squeeze(x, 2) #第三个维度，即下标为2的维度
 print(y.shape)  # torch.Size([1, 3, 2, 1])
 y = torch.squeeze(x)
 print(y.shape)  # torch.Size([3, 2])
+```
+
+将除了第一个维度的其他维度全压到第二维：(GPT)
+
+```python
+flatten = torch.nn.Flatten()
+x = torch.randn(10, 3, 32, 32)
+y = flatten(x)
+print(y.shape)  # torch.Size([10, 3072])
 ```
 
 
@@ -7712,7 +7729,7 @@ MNIST(Modified National Institute of Standards and Technology) 数据集，手�
 
 Fashion-MNIST 包含 10 类图像，每类 6k 张训练，1k 张测试。
 
-##### 训练实例
+##### 训练例子
 
 加载数据：
 
@@ -7807,6 +7824,139 @@ def accuracy(self, Y_hat, Y, averaged=True):
     preds = Y_hat.argmax(axis=1).type(Y.dtype)
     compare = (preds == Y.reshape(-1)).type(torch.float32)
     return compare.mean() if averaged else compare
+```
+
+手撕 $\text{softmax}(\mathbf X)_{ij}=\dfrac{e^{\mathbf X_{ij}}}{\sum_{k}e^{\mathbf X_{ik}}}$。
+
+```python
+def softmax(X):
+    X_exp = torch.exp(X)
+    partition = X_exp.sum(1, keepdims=True) #即[1,n],否则会[n]
+    return X_exp / partition  # The broadcasting mechanism is applied here
+```
+
+上述代码对很大和很小的值不适用。但是可以先看看上面的函数跑的怎样：
+
+```python
+X = torch.rand((2, 5))
+X_prob = softmax(X)
+X_prob, X_prob.sum(1)
+```
+
+随机造数据。定义前向传播，将 $28\times 28$ 图像压成一维 $28^2$。有 $10$ 个类，所以 $10$ 个结果输出，即 $28^2\times 10$。
+
+```python
+class SoftmaxRegressionScratch(d2l.Classifier):
+    def __init__(self, num_inputs, num_outputs, lr, sigma=0.01):
+        super().__init__()
+        self.save_hyperparameters()
+        self.W = torch.normal(0, sigma, size=(num_inputs, num_outputs),
+                              requires_grad=True)
+        self.b = torch.zeros(num_outputs, requires_grad=True)
+
+    def parameters(self):
+        return [self.W, self.b]
+@d2l.add_to_class(SoftmaxRegressionScratch)
+def forward(self, X):
+    X = X.reshape((-1, self.W.shape[0]))
+    return softmax(torch.matmul(X, self.W) + self.b)
+```
+
+手写交叉熵：
+
+```python
+def cross_entropy(y_hat, y):
+    return -torch.log(y_hat[list(range(len(y_hat))), y]).mean()
+cross_entropy(y_hat, y)
+@d2l.add_to_class(SoftmaxRegressionScratch)
+def loss(self, y_hat, y):
+    return cross_entropy(y_hat, y)
+```
+
+比较久的训练，可能要两分钟：
+
+```python
+data = d2l.FashionMNIST(batch_size=256)
+model = SoftmaxRegressionScratch(num_inputs=784, num_outputs=10, lr=0.1)
+trainer = d2l.Trainer(max_epochs=10)
+trainer.fit(model, data)
+```
+
+尝试预测一些图片：
+
+```python
+X, y = next(iter(data.val_dataloader()))
+preds = model(X).argmax(axis=1)
+preds.shape
+```
+
+输出一些错误的预测(第一行正确)：
+
+```python
+wrong = preds.type(y.dtype) != y
+X, y, preds = X[wrong], y[wrong], preds[wrong]
+labels = [a+'\n'+b for a, b in zip(
+    data.text_labels(y), data.text_labels(preds))]
+data.visualize([X, y], labels=labels)
+```
+
+现在来解决对太大和太小的数难以计算指数的问题。对单精度，最多表示 $10^{-38}$ 到 $10^{38}$，则指数的范围不能超过 $[-90,90]$。
+
+定义 $\overline o=\max_ko_k$，根据 $a^{b}a^c=a^{b+c}$，有 $e^{o}=e^{o-\overline o+\overline o}=e^{o-\overline o}e^{\overline o}$，则：
+$$
+\hat y_j=\dfrac{e^{o_j}}{\sum_ke^{o_k}}=
+\dfrac{e^{o_j-\overline o}e^{\overline o}}{\sum_ke^{o_k-\overline o}e^{\overline o}}=
+\dfrac{e^{o_j-\overline o}}{\sum_ke^{o_k-\overline o}}
+$$
+显然 $o_i-\overline o\le 0$，则对 $q$ 分类问题，$o$ 取值是 $[1,q]$。
+
+虽然上式可能会下溢，但是当用 softmax 时，是还会取对数的，即：
+$$
+\log\hat y_j=\log\dfrac{e^{o_j-\overline o}}{\sum_ke^{o_k-\overline o}}=o_j-\overline o-\log\sum_ke^{o_k-\overline o}
+$$
+根据数学结论，有：
+$$
+\max_{i=1}^nx_i\le\log\sum_{i=1}^ne^{x_i}\le\max_{i=1}^nx_i+\log n
+$$
+所以上式不会发生下溢。
+
+##### 调库优化
+
+```python
+import torch
+from torch import nn
+from torch.nn import functional as F
+from d2l import torch as d2l
+```
+
+将除了第一个维度的其他维度全压到第二维：
+
+```python
+class SoftmaxRegression(d2l.Classifier):  #@save
+    """The softmax regression model."""
+    def __init__(self, num_outputs, lr):
+        super().__init__()
+        self.save_hyperparameters()
+        self.net = nn.Sequential(nn.Flatten(),
+                                 nn.LazyLinear(num_outputs))
+
+    def forward(self, X):
+        return self.net(X)
+@d2l.add_to_class(d2l.Classifier)  #@save
+def loss(self, Y_hat, Y, averaged=True):
+    Y_hat = Y_hat.reshape((-1, Y_hat.shape[-1]))
+    Y = Y.reshape((-1,))
+    return F.cross_entropy(
+        Y_hat, Y, reduction='mean' if averaged else 'none')
+```
+
+训练：(时间还是接近上次的版本的)
+
+```python
+data = d2l.FashionMNIST(batch_size=256)
+model = SoftmaxRegression(num_outputs=10, lr=0.1)
+trainer = d2l.Trainer(max_epochs=10)
+trainer.fit(model, data)
 ```
 
 

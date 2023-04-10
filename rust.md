@@ -3770,6 +3770,26 @@ auth_node::test();
 - 负二进制转换
 
   i64 字符串去前导0,拼接 常量str数组
+  
+- 移动石子直到连续II
+
+  i32与&i32混合运算与比较 map-bound 复制vec排序 some map遍历
+
+- 无重复字符的最长子串
+
+  双指针 字符串遍历
+  
+- 最小的必要团队
+
+  队列 结构体 map 字符串 BFS
+  
+- 检查相同字母间的距离
+
+  模块化测试 字符串遍历
+  
+- 链表中的下一个更大节点
+
+  链表 单调栈 vec-last-解引用 while-let-some
 
 
 
@@ -5183,6 +5203,287 @@ impl Solution {
         }
         // println!("v={} ans={}", v, ans);
         ans.trim_start_matches('0').to_string()
+    }
+}
+```
+
+
+
+##### 1040\.移动石子直到连续II
+
+[题目](https://leetcode.cn/problems/moving-stones-until-consecutive-ii/)
+
+```rust
+use std::collections::BTreeMap;
+impl Solution {
+    pub fn num_moves_stones_ii(stones: Vec<i32>) -> Vec<i32> {
+        let mut a = stones.clone();
+        a.sort();
+        let n = a.len();
+        let mut cnt = 0;
+        let mut h = BTreeMap::new();
+        for i in 0..n {
+            cnt += 1;
+            h.insert(a[i], cnt);
+        }
+        let mut mi = n as i32;
+        for (l, lcnt) in &h {
+            // if lcnt == &1 {
+            //     continue; //not==1
+            // }
+            //不能h,不然不可以搞h.range
+            let r = l + n as i32 - 1;
+            let pr = h.range(..=r).last();//<=r的最大
+            if let Some((re, rcnt)) = pr {
+                let num = rcnt - lcnt + 1;
+                let rng = r - l + 1;
+                // println!("{} {} {} {}", l, r, lcnt, rcnt);
+                if re < &r && rng - num == 1 {
+                    continue;
+                }
+                mi = mi.min(rng - num);
+            }
+        }
+        if a[n - 1] - a[0] + 1 == n as i32 {
+            mi = 0;
+        }
+        let mut mx = a[n - 1] - a[1] - (n as i32 - 2);
+        mx = mx.max(a[n - 2] - a[0] - (n as i32 - 2));
+        mx = mx.max(0);
+        vec![mi, mx]
+    }
+}
+```
+
+
+
+##### 3\.无重复字符的最长子串
+
+[题目](https://leetcode.cn/problems/longest-substring-without-repeating-characters/)
+
+```rust
+impl Solution {
+    pub fn length_of_longest_substring(s: String) -> i32 {
+        let mut cnt = [0; 128];
+        let mut ans = 0;
+        let mut l = 0 as usize;
+        let mut rs = s.chars();
+        let mut ls = s.chars();
+        for r in 0..s.len() {
+            let i = rs.next().unwrap() as usize;
+            cnt[i] += 1;
+            while cnt[i] > 1 {
+                let j = ls.next().unwrap() as usize;
+                cnt[j] -= 1;
+                l += 1;
+            }
+            ans = ans.max(r - l + 1);
+        }
+        ans as i32
+    }
+}
+```
+
+
+
+##### 1125\.最小的必要团队
+
+[题目](https://leetcode.cn/problems/smallest-sufficient-team/)
+
+```rust
+use std::collections::HashMap;
+use std::collections::VecDeque;
+impl Solution {
+    pub fn smallest_sufficient_team(req_skills: Vec<String>, people: Vec<Vec<String>>) -> Vec<i32> {
+        let mut h = HashMap::new();
+        let n = req_skills.len();
+        for i in 0..n {
+            h.insert(&req_skills[i], i);
+        }
+        let tg = (1 << n) - 1;
+        let mut q = VecDeque::new();
+        let mut vis = vec![false; 1 << n];
+        struct Node {
+            state: i32,
+            scheme: Vec<i32>,
+        } //不用分号
+        q.push_back(Node {
+            state: 0,
+            scheme: vec![],
+        });
+        let m = people.len();
+        while !q.is_empty() {
+            let nd = q.pop_front().unwrap();
+            let u = nd.state;
+            // println!("{} {:?}", u, nd.scheme);#不能nd
+            if u == tg {
+                return nd.scheme;
+            }
+            if vis[u as usize] {
+                continue;
+            }
+            vis[u as usize] = true;
+            for i in 0..m {
+                let mut v = u;
+                for j in 0..people[i].len() {
+                    let k = h.get(&people[i][j]).unwrap();
+                    let kv = 1 << k;
+                    v |= kv;
+                }
+                if !vis[v as usize] && v != u {
+                    let mut nx = nd.scheme.clone();
+                    nx.push(i as i32);
+                    q.push_back(Node {
+                        state: v,
+                        scheme: nx,
+                    });
+                }
+            }
+        }
+        panic!("No sol");
+    }
+}
+```
+
+
+
+##### 2399\.检查相同字母间的距离
+
+[题目](https://leetcode.cn/problems/check-distances-between-same-letters/)
+
+个人代码(完整项目)：
+
+```rust
+pub struct Solution {}
+mod lc2399;
+fn main() {}
+```
+
+```rust
+use crate::Solution;
+impl Solution {
+    pub fn check_distances(s: String, distance: Vec<i32>) -> bool {
+        const INF: usize = 99;
+        let mut prv = [INF; 26];
+        let mut cs = s.chars();
+        for i in 0..s.len() {
+            let j = cs.next().unwrap() as usize - 'a' as usize;
+            if prv[j] == INF {
+                prv[j] = i;
+            } else {
+                if i - prv[j] - 1 != distance[j] as usize {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+}
+
+#[test]
+pub fn test() {
+    println!(
+        "{}",
+        Solution::check_distances(
+            "abaccb".to_string(),
+            vec![1, 3, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        )
+    );
+}
+```
+
+更优实现：
+
+```rust
+impl Solution {
+    pub fn check_distances(s: String, distance: Vec<i32>) -> bool {
+        let mut cache = vec![-1; 26];
+        for (i, ch) in s.bytes().enumerate() {
+            let j = (ch - b'a') as usize;
+            if cache[j] != -1 && i as i32 - cache[j] - 1 != distance[j] { return false; }
+            cache[j] = i as i32;
+        }
+        true
+    }
+}
+```
+
+
+
+##### 1019\.链表中的下一个更大节点
+
+[题目](https://leetcode.cn/problems/next-greater-node-in-linked-list/)
+
+```rust
+// Definition for singly-linked list.
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct ListNode {
+    pub val: i32,
+    pub next: Option<Box<ListNode>>,
+}
+
+impl ListNode {
+    #[inline]
+    fn new(val: i32) -> Self {
+        ListNode { next: None, val }
+    }
+}
+use crate::Solution;
+impl Solution {
+    pub fn next_larger_nodes(head: Option<Box<ListNode>>) -> Vec<i32> {
+        let mut p = head.as_ref();
+        let mut n = 0;
+        let mut q = Vec::new();
+        let mut ans = vec![0; n];
+        let mut a = Vec::new();
+        while p.is_some() {
+            if let Some(nd) = p {
+                a.push(nd.val);
+                loop {
+                    if let Some(i) = q.last() {
+                        if a[*i] < nd.val {
+                            ans[*i] = nd.val;
+                            q.pop();
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                q.push(n);
+                n += 1;
+                ans.push(0);
+                p = nd.next.as_ref();
+            }
+        }
+        ans
+    }
+}
+```
+
+更优实现：
+
+```rust
+impl Solution {
+    pub fn next_larger_nodes(head: Option<Box<ListNode>>) -> Vec<i32> {
+        let mut stk: Vec<(i32, i32)> = Vec::new();
+        let mut result = Vec::new();
+
+        let mut curr = head;
+        let mut i = 0;
+        while let Some(mut curr_node) = curr {
+            result.push(0);
+            while !stk.is_empty() && curr_node.val > stk.last().unwrap().0 {
+                let index = stk.last().unwrap().1;
+                result[index as usize] = curr_node.val;
+                stk.pop();
+            }
+            stk.push((curr_node.val, i as i32));
+            curr = curr_node.next.take();
+            i += 1;
+        }
+        result
     }
 }
 ```
