@@ -317,6 +317,22 @@
 - 1125\.最小的必要团队
 
   BFS 状压
+  
+- 1147\.段式回文
+
+  字符串哈希 贪心 双指针
+  
+- 1023\.驼峰式匹配
+
+  小模拟 / <u>正则</u>
+  
+- 1157\.子数组中占绝大多数的元素
+
+  **随机化+二分** / **摩尔投票+线段树**
+
+- 2409\.统计共同度过的日子数
+
+  日期 模拟 / <u>优化</u>
 
 
 
@@ -9107,6 +9123,434 @@ class Solution {
 
 
 
+##### 1041\.困于环中的机器人
+
+[题目](https://leetcode.cn/problems/robot-bounded-in-circle/)
+
+可以连续走四次，如果回到原点就行。更优雅的解法：
+
+1. 走一轮回到原点，困于环中。
+2. 没回到原点：
+   1. 面朝北，则不会困于环中。
+   2. 面朝南，再走一次就会于上一次逆向，使得下一轮必然回到原点，困于环中。
+   3. 面朝东，那么再走一次面朝南，于是再走两次面朝北(第一第三次相反，第二第四次相反)，困于环中。
+   4. 面朝西，同理。
+
+```rust
+impl Solution {
+    pub fn is_robot_bounded(instructions: String) -> bool {
+        let mut x = 0;
+        let mut y = 0;
+        const DX: [i32; 4] = [0, -1, 0, 1];
+        const DY: [i32; 4] = [1, 0, -1, 0];
+        let mut d = 0;
+        for _i in 0..4 {
+            for c in instructions.chars() {
+                match c {
+                    'G' => {
+                        x += DX[d];
+                        y += DY[d];
+                    }
+                    'L' => d = (1 + d) % 4,
+                    'R' => d = (3 + d) % 4,
+                    _ => (),
+                }
+            }
+        }
+        x == 0 && y == 0
+    }
+}
+```
+
+```java
+class Solution {
+    public boolean isRobotBounded(String instructions) {
+        int[][] direc = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+        int direcIndex = 0;
+        int x = 0, y = 0;
+        int n = instructions.length();
+        for (int idx = 0; idx < n; idx++) {
+            char instruction = instructions.charAt(idx);
+            if (instruction == 'G') {
+                x += direc[direcIndex][0];
+                y += direc[direcIndex][1];
+            } else if (instruction == 'L') {
+                direcIndex += 3;
+                direcIndex %= 4;
+            } else {
+                direcIndex++;
+                direcIndex %= 4;
+            }
+        }
+        return direcIndex != 0 || (x == 0 && y == 0);
+    }
+}
+```
+
+
+
+##### 1147\.段式回文
+
+[题目](https://leetcode.cn/problems/longest-chunked-palindrome-decomposition/)
+
+rust 双百。看到没人用 rust 写字符串哈希的题解，那我补一个。
+
+解题思路很一眼，不断贪心找当前前缀和后缀，用字符串哈希判断是否相等相等就删掉。
+
+```rust
+impl Solution {
+    pub fn longest_decomposition(text: String) -> i32 {
+        let n = text.len();
+        const P: usize = 41;
+        let mut h = vec![0 as usize; n + 1];
+        let mut p = vec![1 as usize; n + 1];
+        let mut c = text.chars();
+        for i in 1..=n {
+            p[i] = p[i - 1].wrapping_mul(P);
+            h[i] = h[i - 1].wrapping_mul(P);
+            h[i] = h[i].wrapping_add(c.next().unwrap() as usize - 'a' as usize + 1);
+        }
+        let hash = |l: usize, r: usize| h[r].wrapping_sub(h[l - 1].wrapping_mul(p[r + 1 - l])); //必须显式usize声明
+        let mut ans = 0;
+        let (mut l, mut r) = (1 as usize, n);
+        while l <= r {
+            let mut k = 0;
+            loop {
+                let hl = hash(l, l + k);
+                let hr = hash(r - k, r);
+                if hl == hr {
+                    ans += 2;
+                    if l + k == r {
+                        ans -= 1;
+                        l = 1;
+                        r = 0;
+                    } else {
+                        l += k + 1;
+                        r -= k + 1;
+                    }
+                    break;
+                }
+                k += 1;
+            }
+        }
+        ans
+    }
+}
+```
+
+
+
+##### 1023\.驼峰式匹配
+
+[题目](https://leetcode.cn/problems/camelcase-matching/)
+
+```rust
+impl Solution {
+    pub fn camel_match(queries: Vec<String>, pattern: String) -> Vec<bool> {
+        let n = queries.len();
+        let mut ans = vec![false; n];
+        let cs: Vec<char> = pattern.chars().collect();
+        for i in 0..n {
+            let mut ci = 0;
+            let mut ok = true;
+            for q in queries[i].chars() {
+                if ci == pattern.len() {
+                    if q.is_uppercase() {
+                        ok = false;
+                        break;
+                    }
+                    continue;
+                }
+                if q == cs[ci] {
+                    ci += 1;
+                } else if q.is_uppercase() {
+                    ok = false;
+                    break;
+                }
+            }
+            ans[i] = ok && ci == pattern.len();
+        }
+        ans
+    }
+}
+```
+
+更优实现：
+
+```rust
+impl Solution {
+    pub fn camel_match(queries: Vec<String>, pattern: String) -> Vec<bool> {
+        let mut ans = vec![false; queries.len()];
+        let pattern: Vec<char> = pattern.chars().collect();
+        for (i, query) in queries.iter().enumerate() {
+            let mut j = 0;
+            for ch in query.chars() {
+                if j < pattern.len() && ch == pattern[j] {
+                    j += 1;
+                }else {
+                    if 'A' <= ch  && ch <= 'Z' {
+                        j = 0;
+                        break;
+                    }
+                }
+            }
+            if j == pattern.len() {
+                ans[i] = true;
+            }
+        }
+
+        ans
+    }
+}
+```
+
+
+
+正则：
+
+```java
+class Solution {
+    public List<Boolean> camelMatch(String[] queries, String pattern) {
+        String newPattern = "[a-z]*" + String.join("[a-z]*", pattern.split("")) + "[a-z]*";
+        return Arrays.stream(queries).map(query -> query.matches(newPattern)).collect(Collectors.toList());
+    }
+}
+```
+
+
+
+##### 1157\.子数组中占绝大多数的元素
+
+[题目](https://leetcode.cn/problems/online-majority-element-in-subarray/)
+
+解法一：随机化+二分查找。
+
+显然，题目所求的是绝对众数(即不会出现并列众数的众数)，不仅如此还要在众数的基础上满足一个频次需求。
+
+设众数存在，为 $x$，若随机选择一个区间内的数，有最低 $\dfrac12$ 概率选到众数，如果连续选 $k=20$ 次都选不到众数的概率最坏为 $(\dfrac12)^k\approx10^{-6}$。
+
+对每个值，升序存每个出现的下标。二分查询 $[l,r]$ 内有多少个该值出现，跟频次比较。特别地如果该值已经是众数(即频次乘二大于等于长度)，但不满足频次，可以直接停止随机化。
+
+```c++
+class MajorityChecker {
+public:
+    MajorityChecker(vector<int>& arr): arr(arr) {
+        for (int i = 0; i < arr.size(); ++i) {
+            loc[arr[i]].push_back(i);
+        }
+    }
+    
+    int query(int left, int right, int threshold) {
+        int length = right - left + 1;
+        uniform_int_distribution<int> dis(left, right);
+
+        for (int i = 0; i < k; ++i) {
+            int x = arr[dis(gen)];
+            vector<int>& pos = loc[x];
+            int occ = upper_bound(pos.begin(), pos.end(), right) - lower_bound(pos.begin(), pos.end(), left);
+            if (occ >= threshold) {
+                return x;
+            }
+            else if (occ * 2 >= length) {
+                return -1;
+            }
+        }
+
+        return -1;
+    }
+
+private:
+    static constexpr int k = 20;
+
+    const vector<int>& arr;
+    unordered_map<int, vector<int>> loc;
+    mt19937 gen{random_device{}()};
+};
+```
+
+解法二：摩尔投票+线段树。
+
+Boyer-Moore 投票算法。如果众数 +1，其他数 -1，求和后必然和 \>0。时间复杂度是 $O(n)$，空间复杂度是 $O(1)$，具体而言：
+
+1. 设候选总数 `candidate` 和出现次数 `count`。初始随机选一个候选，如首元素。
+2. 往下遍历，如果 `count` 变成 0，那么下一个出现的数重新选为候选数
+
+最后选定的一定是众数。即：[参考](https://leetcode.cn/problems/majority-element/solution/duo-shu-yuan-su-by-leetcode-solution/)
+
+```java
+class Solution {
+    public int majorityElement(int[] nums) {
+        int count = 0;
+        Integer candidate = null;
+        for (int num : nums) {
+            if (count == 0) {
+                candidate = num;
+            }
+            count += (num == candidate) ? 1 : -1;
+        }
+        return candidate;
+    }
+}
+```
+
+只能在已知必然有众数的前提下使用，不然是错的，如 `1 2 3 4 5` 会找出 `5`。
+
+原理：每次更换候选数时，能保持 count 确实仍为 0，因为 -1 的变 +1，而 +1 的变 -1，整体不变。
+
+根据投票算法的本质，可知，对给定数组，拆成两部分(无论连续与否)，分别投票得到 $(x_0,cnt_0),(x_1,cnt_1)$，要进行合并时：
+
+- $x_0=x_1$，结果相加 $(x_0,cnt_0+cnt_1)$。
+- 否则，取较大那个，然后大减小，即 $(\max(x_0,x_1),|cnt_0-cnt_1|)$
+
+如果本来这个区间就没有众数，那么查出来显然假。否则，总数肯定是 $x_0,x_1$ 其一，若 $x_0=x_1$，直接相加是容易理解的。否则，相减后的结果，不等于直接整段投票的结果，如 `4,1,1,1,4` 和 `5,4,4,4,4`，直接计算合并后的投票值是 4，但是算出来是 2。
+
+根据这个原理套上线段树，可以区间查询任意区间摩尔投票的值然后再用上述二分检查。注意这个合并可能会查假，例如 `0 1 1 1 0` 合并 `5 4 4 4 4`，实际上是无解，但是合出来 cnt 是对的。
+
+```c++
+struct Node {
+    Node(int x = 0, int cnt = 0): x(x), cnt(cnt) {}
+    Node& operator+=(const Node& that) {
+        if (x == that.x) {
+            cnt += that.cnt;
+        }
+        else if (cnt >= that.cnt) {
+            cnt -= that.cnt;
+        }
+        else {
+            x = that.x;
+            cnt = that.cnt - cnt;
+        }
+        return *this;
+    }
+
+    int x, cnt;
+};
+
+class MajorityChecker {
+public:
+    MajorityChecker(vector<int>& arr): arr(arr) {
+        n = arr.size();
+        for (int i = 0; i < n; ++i) {
+            loc[arr[i]].push_back(i);
+        }
+
+        tree.resize(n * 4);
+        seg_build(0, 0, n - 1);
+    }
+    
+    int query(int left, int right, int threshold) {
+        Node ans;
+        seg_query(0, 0, n - 1, left, right, ans);
+        vector<int>& pos = loc[ans.x];
+        int occ = upper_bound(pos.begin(), pos.end(), right) - lower_bound(pos.begin(), pos.end(), left);
+        return (occ >= threshold ? ans.x : -1);
+    }
+
+private:
+    int n;
+    const vector<int>& arr;
+    unordered_map<int, vector<int>> loc;
+    vector<Node> tree;
+
+    void seg_build(int id, int l, int r) {
+        if (l == r) {
+            tree[id] = {arr[l], 1};
+            return;
+        }
+
+        int mid = (l + r) / 2;
+        seg_build(id * 2 + 1, l, mid);
+        seg_build(id * 2 + 2, mid + 1, r);
+        tree[id] += tree[id * 2 + 1];
+        tree[id] += tree[id * 2 + 2];
+    }
+
+    void seg_query(int id, int l, int r, int ql, int qr, Node& ans) {
+        if (l > qr || r < ql) {
+            return;
+        }
+        if (ql <= l && r <= qr) {
+            ans += tree[id];
+            return;
+        }
+
+        int mid = (l + r) / 2;
+        seg_query(id * 2 + 1, l, mid, ql, qr, ans);
+        seg_query(id * 2 + 2, mid + 1, r, ql, qr, ans);
+    }
+};
+```
+
+
+
+##### 2409\.统计共同度过的日子数
+
+[题目](https://leetcode.cn/problems/count-days-spent-together/)
+
+暴力逐日模拟+时间戳思想，判断每天是否都在两个时间戳区间内：
+
+```rust
+const DAYS: [i32; 13] = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+pub fn tomd(s: String) -> (i32, i32) {
+    let m = s[0..2].parse::<i32>().unwrap();
+    let d = s[s.len() - 2..].parse::<i32>().unwrap();
+    return (m, d);
+}
+pub fn val(m: i32, d: i32) -> i32 {
+    m * 100 + d
+}
+impl Solution {
+    pub fn count_days_together(
+        arrive_alice: String,
+        leave_alice: String,
+        arrive_bob: String,
+        leave_bob: String,
+    ) -> i32 {
+        let (m11, d11) = tomd(arrive_alice);
+        let (m12, d12) = tomd(leave_alice);
+        let (m21, d21) = tomd(arrive_bob);
+        let (m22, d22) = tomd(leave_bob);
+        let (v11, v12) = (val(m11, d11), val(m12, d12));
+        let (v21, v22) = (val(m21, d21), val(m22, d22));
+        let mut ans = 0;
+        for m in m11..=m12 {
+            for d in 1..=DAYS[m as usize] {
+                let v = val(m, d);
+                if v >= v11 && v <= v12 && v >= v21 && v <= v22 {
+                    ans += 1;
+                }
+            }
+        }
+        ans
+    }
+}
+```
+
+更优解：将月日转一年的第几天，然后可以直接求区间长度，两区间并即可。
+
+```rust
+const MONTHS: [i32; 12] = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+impl Solution {
+    pub fn count_days_together(arrive_alice: String, leave_alice: String, arrive_bob: String, leave_bob: String) -> i32 {
+        let parse = |s: String| -> i32 {
+            let mut it = s.split('-').map(|v| v.parse::<i32>().unwrap());
+            let (month, day) = (it.next().unwrap(), it.next().unwrap());
+            MONTHS[..(month - 1) as usize].iter().sum::<i32>() + day
+        };
+
+        let a1 = parse(arrive_alice);
+        let a2 = parse(leave_alice);
+        let b1 = parse(arrive_bob);
+        let b2 = parse(leave_bob);
+        let min_day = a1.max(b1);
+        let max_day = a2.min(b2);
+
+        0.max(max_day - min_day + 1)
+    }
+}
+```
+
 
 
 > ### 力扣比赛
@@ -11942,6 +12386,68 @@ signed main()
         cout << "\n";
     }
     return 0;
+}
+```
+
+### 其他杂题
+
+#### ATC
+
+##### DP-V-Subtree
+
+[题目](https://atcoder.jp/contests/dp/tasks/dp_v?lang=en) [题解](https://blog.csdn.net/Emm_Titan/article/details/123875298)
+
+$f$ 维护自己往下的子树数，$g$ 维护自己往上的子树数，答案是 $fg$。
+
+转移时要用除法，但模数不是质数，所以将其转化为前后缀积乘法。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+#define int long long
+#define maxn 100005
+vector < int > pre[maxn], suf[maxn];
+vector < int > G[maxn];
+int f[maxn], g[maxn];
+int n, mod;
+void dfs1( int u, int fa ) {
+	f[u] = 1;
+	for( int v : G[u] )
+		if( v == fa ) continue;
+		else dfs1( v, u ), f[u] = f[u] * (f[v] + 1) % mod;
+	pre[u].resize( G[u].size() + 1, 1 );
+	suf[u].resize( G[u].size() + 1, 1 );
+	for( int i = 1;i < G[u].size();i ++ ) {
+		pre[u][i] = pre[u][i - 1];
+		if( G[u][i - 1] ^ fa ) 
+			pre[u][i] = pre[u][i] * (f[G[u][i - 1]] + 1) % mod;
+	}
+	for( int i = G[u].size() - 2;i >= 0;i -- ) {
+		suf[u][i] = suf[u][i + 1];
+		if( G[u][i + 1] ^ fa )
+			suf[u][i] = suf[u][i] * (f[G[u][i + 1]] + 1) % mod;
+	}
+}
+void dfs2( int u, int fa ) {
+	for( int i = 0;i < G[u].size();i ++ ) {
+		int v = G[u][i];
+		if( v == fa ) continue;
+		g[v] = pre[u][i] * suf[u][i] % mod * g[u] % mod + 1;//加1是父亲代表的子树全为白 
+		dfs2( v, u );
+	}
+}
+signed main() {
+	scanf( "%lld %lld", &n, &mod );
+	for( int i = 1, u, v;i < n;i ++ ) {
+		scanf( "%lld %lld", &u, &v );
+		G[u].push_back( v );
+		G[v].push_back( u );
+	}
+	dfs1( 1, 0 );
+	g[1] = 1;
+	dfs2( 1, 0 );
+	for( int i = 1;i <= n;i ++ ) printf( "%lld\n", g[i] * f[i] % mod );
+	return 0;
 }
 ```
 

@@ -1244,6 +1244,8 @@ add(x) 插入
 
 remove(x) 删除，找不到返回KeyError
 
+discard 删除，找不到忽略
+
 update(set) 批量插入
 
 copy() 副本
@@ -6272,6 +6274,12 @@ sheet.iter_cols() #同理
 
 行数，列数即 `sheet.max_row` , `.max_column`。
 
+自适应某列列宽：(如第一列)
+
+```python
+sh2.column_dimensions['A'].auto_size = True
+```
+
 
 
 举例：
@@ -7155,6 +7163,8 @@ plt.show()
 
 ### d2l
 
+[教程](https://d2l.ai/chapter_installation/index.html)。右击数学公式可以复制为 md 格式。
+
 ```
 pip install d2l==1.0.0b0
 ```
@@ -7958,6 +7968,78 @@ model = SoftmaxRegression(num_outputs=10, lr=0.1)
 trainer = d2l.Trainer(max_epochs=10)
 trainer.fit(model, data)
 ```
+
+
+
+##### 其他理论
+
+对一个训练好的分类器 $f$ 和数据样本 $\mathcal{D} = {(\mathbf{x}^{(i)},y^{(i)})}_{i=1}^n$，经验误差为：
+$$
+\epsilon_\mathcal{D}(f) = \frac{1}{n}\sum_{i=1}^n \mathbf{1}(f(\mathbf{x}^{(i)}) \neq y^{(i)}).
+$$
+总体误差：
+$$
+\epsilon(f) =  E_{(\mathbf{x}, y) \sim P} \mathbf{1}(f(\mathbf{x}) \neq y) =
+\int\int \mathbf{1}(f(\mathbf{x}) \neq y) p(\mathbf{x}, y) \;d\mathbf{x} dy.
+$$
+将样本的经验误差认为是总体误差，用样本估测整体。
+
+中心极限定理，任意分布 $\mu,\sigma$ 的 $n$ 个随机样本，样本分布近似$\dfrac{\sigma}{\sqrt n}$。$\epsilon_D(f)$ 以 $O(\dfrac 1{\sqrt n})$ 的速率接近 $\epsilon(f)$，也就是说提高一倍的准度需要四倍大的数据。
+
+由于所求是伯努利分布，若期望为 $\epsilon$，显然方差为 $\epsilon(1-\epsilon)$。根据 $\epsilon\in [0,1]$ 可知，方差是二次函数且最大值是 $\epsilon=0.5$ 取得 $0.25$。所以标准差不会超过 $\sqrt{\dfrac{0.25}n}$。
+
+如果想要标准差在 $0.01$ 内，解得 $n=2500$。根据四倍，可知需要样本 $10^4$ 个。
+
+根据霍夫丁不等式：
+$$
+P(\epsilon_\mathcal{D}(f) - \epsilon(f) \geq t) < \exp\left( - 2n t^2 \right).
+$$
+要有 $95\%$ 把握差值不超过 $0.01$，代入得，需要 $15000$ 样本比较。
+
+有 $k$ 个训练好的模型 $f_1,\cdots,f_k$，如果用同一个测试集 $D$，可能不行。多假设测试。因为有可能后续的 $f_i$ 的训练过程受到训练者在前面训练的 $f_j$ 的结论的影响。即 adaptive overfitting 自适应过拟合。考虑弄多几个测试集，旧的测试集当新模型的训练集，新的换个测试集。
+
+测试集很可能已经被别人用来当训练集。且测试集只能后验得出结论，不能先验。
+
+统计学习理论 statistical learning theory。目的是研究测试集和训练集一样时的误差。
+
+矛盾是更灵活可变的模型，适应更多测试集但更大风险过拟合，要么就适应少一点数据，欠拟合。
+
+VC 维度：(Vapnik-Chervonenkis (VC) )
+$$
+P\left(R[p, f] - R_\mathrm{emp}[\mathbf{X}, \mathbf{Y}, f] < \alpha\right) \geq 1-\delta
+\ \text{ for }\ \alpha \geq c \sqrt{(\mathrm{VC} - \log \delta)/n}.
+$$
+$\delta > 0$ 是违背的概率。$\alpha$ 是泛化差距。$c$ 是常数，取决于损失的规模。
+
+一条直线可以分类任意三点，但不能任意四点。$d$ 维输入的 VC 维度是 $d+1$。
+
+模型还需要考虑数据的来源和用途。避免训练集和真实业务场景的差距过大。如，训练一个预测偿还的模型，发现申请人穿的鞋子与违约风险有关，即判断穿名鞋的偿还能力可能比穿运动鞋的好。如果真的这么干，则申请人都会穿名鞋。即模型会影响环境。
+
+考虑训练集是 $p_S(\mathbf{x},y)$，测试集是 $p_T(\mathbf{x},y)$。假设是二分类问题，区分猫狗。最极端情况是完全错误，即 $p_S(y \mid \mathbf{x}) = 1 - p_T(y \mid \mathbf{x})$。
+
+Distribution Shift：
+
+协变位移covariate shift。考虑条件分布不变 $P(y \mid \mathbf{x})$。考虑训练集是真实世界猫狗的照片，二测试集是猫狗的卡通画。
+
+标签位移label shift。$P(y)$ 变化，$P(\mathbf{x} \mid y)$ 不变。即相信 $y$ 引起 $\mathbf X$。如疾病引起症状，但诊断方法改变。
+
+概念偏差concept shift。标签的定义发生变化。如对 soft drink 的定义。
+
+如训练检测癌症的模型。收集数据时，主要是采血，二健康人的血样本比较难获取。样本在年龄、激素水平、生理状态、饮食、酒精摄入等与问题无关的变量不同。但，真实的病人可能差距较小，则协变位移大。
+
+对自动驾驶汽车，检测器训练，真实带标记数据很难获取，如果使用游戏数据来额外训练，然后在游戏数据测试。但游戏数据1的材质渲染过于简化，且路用同一种材质渲染，则真实效果很差。如检测森林里的坦克，用不带坦克的航空照片训练，坦克开进去再拍训练集。最后训练出了如何判断有阴影的树和没有的，因为一开始排的训练集是早上的，坦克开进去是中午拍的。
+
+不稳定分布。分布缓慢的变化，但模型没有更新。如：①广告投放系统vs新手机系统；②垃圾邮件筛除vs新的套路；③时令性推荐过时了还在。
+
+其他例子，如人脸识别系统，但是没有特写镜头(全是脸)的训练集。US 英语与 UK 英语搜索引擎。图片识别，训练集每个图片只有一类标签，但真实用途里一张图片可能多个标签。
+
+对于最简单的损失函数：$\mathop{\mathrm{minimize}}_f \frac{1}{n} \sum_{i=1}^n l(f(\mathbf{x}_i), y_i)$，其中 $f$ 是经验误差 empirical risk。而全体样本的损失是 $E_{p(\mathbf{x}, y)} [l(f(\mathbf{x}), y)] = \int\int l(f(\mathbf{x}), y) p(\mathbf{x}, y) \;d\mathbf{x}dy$。
+
+
+
+
+
+
 
 
 

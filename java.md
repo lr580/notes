@@ -2780,6 +2780,25 @@ public static String ranpsw(int len) {
 - nextDouble()
 - nextGaussian() 概率密度为高斯分布的双精度值
 
+###### UUID
+
+连字符分割的 32 个 16 进制数。
+
+```java
+import java.util.UUID;
+UUID.randomUUID().toString()
+```
+
+将 128 位的数字划分为 5 个部分，其中第 1 部分为 8 个字符，第 2、3 部分各为 4 个字符，第 4、5 部分各为 12 个字符。这些部分之间使用连字符 "-" 连接起来，形成一个长度为 36 的字符串
+
+- 第 1 部分是时间戳的高位部分。
+- 第 2 部分是时间戳的中间部分。
+- 第 3 部分是时间戳的低位部分。
+- 第 4 部分是节点 ID 的高位部分。
+- 第 5 部分是节点 ID 的低位部分和随机数部分的组合。
+
+--GPT
+
 ##### 大数字运算
 
 `java.math.BigInteger`,`java.math.BigDecimal` 高精度运算
@@ -16922,7 +16941,25 @@ TestController testController = (TestController) context.getBean("testController
 testController.save();
 ```
 
+#### Pojo
 
+entity: 严格一个字段对应一个 mysql 数据表属性的 java bean
+
+![image-20230410205923798](img/image-20230410205923798.png)
+
+![image-20230410205941832](img/image-20230410205941832.png)
+
+domain: 具有一定业务意义的后台封装对象,一般代表具有关系的内容;例如:Order中封装一个orderItemList，一个订单可以包括多个商品。但是order表中设有orderItem字段
+
+![image-20230410210035481](img/image-20230410210035481.png)
+
+dto 数据传输对象Data Transfer Object 从页面传递给服务器的数据的格式对象，比如，京东商品输入，输入的信息特别细，比如说输入“TCL大彩电”，还会被要求输入尺寸，大小，长度高度，颜色，型号，重量等等信息，这些信息可以被封装在一个dto对象，但是这些数据将会被拆分开来，分别添加到不同的表格里面。
+
+vo 后台传递给js解析的对象,vo是view object的简写
+
+![image-20230410210259920](img/image-20230410210259920.png)
+
+![image-20230410210306300](img/image-20230410210306300.png)
 
 ### Spring AOP
 
@@ -26014,6 +26051,8 @@ public class User implements Serializable {
 
 Redis（Remote Dictionary Server )，即远程字典服务
 
+一个支持nosql，key-value数据类型、内存、缓存、分布式的、可持久化、非关系型数据库。
+
 作用：
 
 1. Redis最常用来做缓存，是实现分布式缓存的首先中间件；
@@ -29747,6 +29786,16 @@ server {
 
 注：如果子项目pom报错，说找不到 parent，但能跑代码，则可以忽略不计。
 
+可以考虑添加 dependencies management，不然疑似以后的子项目都要手动加一个:
+
+```xml
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <version>8.0.27</version><!--$NO-MVN-MAN-VER$ -->
+</dependency>
+```
+
 ###### common-repository
 
 然后造一个 quickstart `easymall-common-repository`，继承上述 pom，直接点overview 拉即可，或者手动点(记得删掉自己的group id)：
@@ -29942,7 +29991,7 @@ mybatis.mapperLocations=classpath:mapper/*.xml
 mybatis.configuration.mapUnderscoreToCamelCase=true
 mybatis.configuration.cacheEnabled=false
 spring.application.name=productservice
-eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/,http://localhost:8762/eureka/
 ```
 
 >  /// 默认是本机 localhost:3306 (GPT)
@@ -30095,5 +30144,570 @@ public class ProductController {
 > }
 > ```
 
-###### 整合
+###### 网关
+
+`easymall-micro-zuul` 项目，pom 如下：
+
+```xml
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>cn.edu.scnu</groupId>
+	<artifactId>easymall-micro-zuul</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<packaging>jar</packaging>
+
+	<name>easymall-micro-zuul</name>
+	<url>http://maven.apache.org</url>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<java.version>1.8</java.version>
+	</properties>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>1.5.9.RELEASE</version>
+	</parent>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>Edgware.RELEASE</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-eureka</artifactId>
+		</dependency>
+
+		<!--zuul相关依赖 -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-zuul</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+</project>
+```
+
+改 `application.properties`
+
+```properties
+server.port=9005
+spring.application.name=serviceZuul
+zuul.routes.zuul-product.path=/zuul-product/**
+zuul.routes.zuul-product.serviceId=productservice
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/,http://localhost:8762/eureka/
+```
+
+启动类：
+
+```java
+package cn.edu.scnu;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.netflix.zuul.EnableZuulProxy;
+
+@SpringBootApplication
+@EnableZuulProxy
+public class StarterZuul {
+    public static void main(String[] args) {
+        SpringApplication.run(StarterZuul.class, args);
+    }
+}
+```
+
+在 nginx 根目录复制一个 `easymall-static`。hosts 加 `127.0.0.1 www.easymall.com`。配 nginx：
+
+```nginx
+server {
+    listen 80;
+    server_name www.easymall.com;
+    location /{
+        root easymall-static;
+        index index.html;
+    }	
+    location /products {
+        proxy_pass http://127.0.0.1:9005/zuul-product/product/manage;
+        add_header 'Access-Control-Allow-Credentials' 'true';
+        add_header 'Access-Control-Allow-Origin' '*'; 
+    }
+}
+```
+
+启动nginx，依次启动上次的两个 eureka-server，zuul 和 product 四个项目。运行测试：
+
+```
+http://www.easymall.com/products/pageManage?page=1&rows=5
+```
+
+根据上述逻辑，首先重定向到了 zuul，然后由于商品系统的 id 是 productservice，所以直接转发了过去。
+
+###### 图片资源
+
+添加hosts `127.0.0.1 image.easymall.com`，添加 nginx：
+
+```nginx
+server {
+    listen       80;
+    server_name  image.easymall.com;
+    location / {
+        root D:\\Temps\\easymall_image;
+    }
+}
+```
+
+对应路径为根目录丢一个教程里的 uploads 文件夹。重启 nginx，测试：
+
+```
+http://image.easymall.com/upload/2/6/4/a/a/5/2/3/ee6c796a-6333-4cd5-a06e-271d876aac8c_589577.jpg
+```
+
+###### 商品查询
+
+`ProductMapper.xml` 追加：
+
+```xml
+<select id="queryById" parameterType="String" resultType="Product">
+    select * from t_product where product_id=#{prodId}
+</select>
+```
+
+`ProductMapper` 追加：
+
+```java
+public Product queryById(String prodId);
+```
+
+`ProductService` 追加：
+
+```java
+public Product queryById(String productId) {
+    return productMapper.queryById(productId);
+}
+```
+
+`ProductController` 追加：
+
+```java
+@RequestMapping("/product/manage/item/{prodId}")
+public Product queryById(@PathVariable String prodId) {
+    return productService.queryById(prodId);
+}
+```
+
+根据接口描述，测试：
+
+```
+http://www.easymall.com/products/item/05e20c1a-0401-4c0a-82ab-6fb0f37db397
+```
+
+###### 商品新增
+
+`ProductMapper.xml` 追加：
+
+```xml
+<insert id="productSave" parameterType="Product">
+    insert into t_product(product_id, product_name, product_category, product_num, product_imgurl, product_price, product_description) values (#{productId}, #{productName}, #{productCategory}, #{productNum}, #{productImgurl}, #{productPrice}, #{productDescription})
+</insert>
+```
+
+`ProductMapper` 追加：
+
+```java
+void productSave(Product product);
+```
+
+`ProductService` 追加：
+
+```java
+import java.util.UUID;
+public void productSave(Product product) {
+    product.setProductId(UUID.randomUUID().toString());
+	productMapper.productSave(product);
+}
+```
+
+`ProductController` 追加：
+
+```java
+import com.easymall.common.vo.SysResult;
+@RequestMapping("/product/manage/save")
+public SysResult productSave(Product product) {
+    try {
+        productService.productSave(product);
+        return SysResult.ok();
+    } catch (Exception e) {
+        e.printStackTrace();
+        return SysResult.build(201, e.getMessage(), null);
+    }
+}
+```
+
+###### 商品修改
+
+```xml
+<update id="productUpdate" parameterType="Product">
+    update t_product set
+    product_name=#{productName},
+    product_category=#{productCategory},
+    product_num=#{productNum},
+    product_price=#{productPrice},
+    product_description=#{productDescription},
+    product_imgurl=#{productImgurl}
+    where product_id=#{productId}
+</update>
+```
+
+```java
+void productUpdate(Product product);
+```
+
+```java
+public void productUpdate(Product product) {
+    productMapper.productUpdate(product);
+}
+```
+
+```java
+@RequestMapping("/product/manage/update")
+public SysResult productUpdate(Product product) {
+    try {
+        productService.productUpdate(product);
+        return SysResult.ok();
+    } catch (Exception e) {
+        e.printStackTrace();
+        return SysResult.build(201, e.getMessage(), null);
+    }
+}
+```
+
+###### 图片上传
+
+```nginx
+location /uploadImg {
+    proxy_pass http://127.0.0.1:9005/zuul-pic/pic/upload;
+    add_header 'Access-Control-Allow-Credentials' 'true';
+    add_header 'Access-Control-Allow-Origin' '*'; 
+}
+```
+
+改网关配置：
+
+```properties
+zuul.routes.zuul-pic.path=/zuul-pic/**
+zuul.routes.zuul-pic.serviceId=picservice
+```
+
+新 quick start：`easymall-microservice-pic`
+
+```properties
+server.port=10002
+server.contextPath=/
+spring.application.name=picservice
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka,http://localhost:8762/eureka
+pic.pathDirPrefix=d://Temps//easymall_image/
+pic.urlPrefix=http://image.easymall.com/
+```
+
+```xml
+<dependencies>
+    <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
+<parent>
+    <groupId>cn.edu.scnu</groupId>
+    <artifactId>easymall-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+</parent>
+```
+
+```java
+package cn.edu.scnu;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+
+@SpringBootApplication
+@EnableEurekaClient
+public class StarterPicCenter {
+    public static void main(String[] args) {
+        SpringApplication.run(StarterPicCenter.class, args);
+    }
+}
+```
+
+```java
+package cn.edu.scnu.service;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.util.UUID;
+import javax.imageio.ImageIO;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import com.easymall.common.utils.UploadUtil;
+import com.easymall.common.vo.PicUploadResult;
+
+@Service
+public class PicService {
+    @Value("${pic.pathDirPrefix}")
+    private String pathDirPrefix;
+
+    @Value("${pic.urlPrefix}")
+    private String urlPreparePrefix;
+
+    public PicUploadResult picUpload(MultipartFile pic) {
+        PicUploadResult result = new PicUploadResult();
+        String originName = pic.getOriginalFilename();
+        String extName = originName.substring(originName.lastIndexOf("."));
+        boolean isok = extName.matches(".(jpg|png|gif|JPG|PNG|GIF)");
+        if (!isok) {
+            result.setError(1);
+            return result;
+        }
+        try { // 确认确实是图片
+            BufferedImage bufImg = ImageIO.read(pic.getInputStream());
+            bufImg.getWidth();
+            bufImg.getHeight();
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setError(1);
+            return result;
+        }
+        String dir = "/" + UploadUtil.getUploadPath(originName, "upload") + "/";
+        String pathDir = pathDirPrefix + dir;
+        File file = new File(pathDir);
+        if (!file.exists()) {
+            file.mkdirs();
+        }
+        String urlPrefix = urlPreparePrefix + dir;
+        String fileName = UUID.randomUUID().toString() + extName;
+        try {
+            pic.transferTo(new File(pathDir + fileName));
+        } catch (Exception e) {
+            e.printStackTrace();
+            result.setError(1);
+            return result;
+        }
+        result.setUrl(urlPrefix + fileName);
+        return result;
+    }
+}
+```
+
+```java
+package cn.edu.scnu.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import com.easymall.common.vo.PicUploadResult;
+import cn.edu.scnu.service.PicService;
+
+@RestController
+public class PicController {
+    @Autowired
+    private PicService picService;
+    @RequestMapping("/pic/upload")
+    public PicUploadResult picUpload(MultipartFile pic) {
+        return picService.picUpload(pic);
+    }
+}
+```
+
+测试：`http://www.easymall.com/manage.html`。疑似课程给的前端写的很烂，如果点什么地方没反应就刷新
+
+遇到过需要重启来解决的问题：
+
+1. eureka 主机 localhost 变 lr580
+2. `netstat -ano | findstr 端口号` 找不到占用还是说占用
+
+
+
+##### 用户系统
+
+###### 基建
+
+quickstart `easymall-microservice-user`，继承 parents,依赖两个 common。
+
+```properties
+server.port=10003
+server.contextPath=/
+spring.application.name=userservice
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/,http://localhost:8762/eureka/
+
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=jdbc:mysql:///easydb?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true
+spring.datasource.username=root
+spring.datasource.password=123
+spring.datasource.type=com.alibaba.druid.pool.DruidDataSource
+spring.datasource.initialSize=5
+spring.datasource.maxActive=50
+spring.datasource.maxIdle=10
+spring.datasource.minIdle=5
+
+mybatis.typeAliasesPackage=com.easymall.common.pojo
+mybatis.mapperLocations=classpath:mapper/*.xml
+mybatis.configuration.mapUnderscoreToCamelCase=true
+mybatis.configuration.cacheEnabled=false
+```
+
+```java
+package cn.edu.scnu;
+
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+import org.springframework.context.annotation.Bean;
+import org.springframework.web.client.RestTemplate;
+
+@SpringBootApplication
+@EnableEurekaClient
+@MapperScan("cn.edu.scnu.user.mapper")
+public class StarterUserCenter {
+    public static void main(String[] args) {
+        SpringApplication.run(StarterUserCenter.class, args);
+    }
+    
+    @Bean
+    @LoadBalanced
+    public RestTemplate iniRestTemplateProduct() {
+        return new RestTemplate();
+    }
+}
+```
+
+同理有 `UserController, UserService, UserMapper, UserMapper.xml`，autowired 下。
+
+> 注意控制器是 `@RestController`，如果 `@Controller` 会挂。注意包是 `cn.scnu.edu.user.?`
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.edu.scnu.user.mapper.UserMapper">
+</mapper>
+```
+
+nginx 修改并重启：
+
+```nginx
+location /user {
+    proxy_pass http://127.0.0.1:9005/zuul-user/user/manage;
+    add_header 'Access-Control-Allow-Credentials' 'true';
+    add_header 'Access-Control-Allow-Origin' '*'; 
+}
+```
+
+zuul 修改并重启：
+
+```properties
+zuul.routes.zuul-user.path=/zuul-user/**
+zuul.routes.zuul-user.serviceId=userservice
+```
+
+###### 用户名存在检验
+
+```xml
+<select id="queryUsername" parameterType="String" resultType="int">
+    select count(user_name) from t_user where user_name=#{userName};
+</select>
+```
+
+```java
+Integer queryUsername(String userName);
+```
+
+```java
+public Integer checkUsername(String userName) {
+    return userMapper.queryUsername(userName);
+}
+```
+
+```java
+@RequestMapping("/user/manage/checkUserName")
+public SysResult checkUsername(String userName) {
+    Integer exist = userService.checkUsername(userName);
+    if (exist == 0) {
+        return SysResult.ok();
+    } else {
+        return SysResult.build(201, "已存在", null);
+    }
+}
+```
+
+试运行，用 py 发 post：
+
+```python
+import requests
+requests.post('http://www.easymall.com/user/checkUserName',data={'userName':'aa'}).text
+```
+
+###### 注册
+
+```xml
+<insert id="userSave" parameterType="User">
+    insert into t_user(user_id, user_name, user_password, user_nickname, user_email) values (#{userId}, #{userName}, #{userPassword}, #{userNickname}, #{userEmail})
+</insert>
+```
+
+```java
+void userSave(User user);
+```
+
+```java
+public void userSave(User user) {
+    user.setUserId(UUID.randomUUID().toString());
+    user.setUserPassword(MD5Util.md5(user.getUserPassword()));
+    userMapper.userSave(user);
+}
+```
+
+```java
+@RequestMapping("/user/manage/save")
+public SysResult userSave(User user) {
+    Integer cnt = userService.checkUsername(user.getUserName());
+    if (cnt > 0) {
+        return SysResult.build(201, "用户名已存在", null);
+    }
+    try {
+        userService.userSave(user);
+        return SysResult.ok();
+    } catch (Exception e) {
+        e.printStackTrace();
+        return SysResult.build(201, e.getMessage(), null);
+    }
+}
+```
 

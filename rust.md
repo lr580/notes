@@ -165,6 +165,10 @@ let y = {
 }; //注意x+1之后没有分号，否则是语句
 ```
 
+```rust
+let (mut dir, mut x, mut y) = (0, 0, 0);
+```
+
 
 
 #### 基本数据类型
@@ -1793,7 +1797,7 @@ match 对整数、浮点数、字符和字符串切片引用（&str）类型的�
 fn main() {
     let t = "abc";
     match t {
-        "abc" => println!("Yes"),
+        "abc" => println!("Yes"), //多行就代码块，即 =>{},
         _ => {},
     }
 }
@@ -3790,6 +3794,30 @@ auth_node::test();
 - 链表中的下一个更大节点
 
   链表 单调栈 vec-last-解引用 while-let-some
+  
+- 困于环中的机器人
+
+  match 字符串遍历 一行多变量定义 常量数组
+  
+- 段式回文
+
+  闭包参数类型 字符串哈希
+  
+- 出现最频繁的偶数元素
+
+  map计数
+  
+- 驼峰式匹配
+
+  string转char[]
+  
+- 不邻接植花
+
+  局部函数递归 图DFS
+  
+- 统计共同度过的日子数
+
+  日期 字符串
 
 
 
@@ -5484,6 +5512,365 @@ impl Solution {
             i += 1;
         }
         result
+    }
+}
+```
+
+
+
+##### 1041\.困于环中的机器人
+
+[题目](https://leetcode.cn/problems/robot-bounded-in-circle/)
+
+```rust
+impl Solution {
+    pub fn is_robot_bounded(instructions: String) -> bool {
+        let mut x = 0;
+        let mut y = 0;
+        const DX: [i32; 4] = [0, -1, 0, 1];
+        const DY: [i32; 4] = [1, 0, -1, 0];
+        let mut d = 0;
+        for _i in 0..4 {
+            for c in instructions.chars() {
+                match c {
+                    'G' => {
+                        x += DX[d];
+                        y += DY[d];
+                    }
+                    'L' => d = (1 + d) % 4,
+                    'R' => d = (3 + d) % 4,
+                    _ => (),
+                }
+            }
+        }
+        x == 0 && y == 0
+    }
+}
+```
+
+其他写法：
+
+```rust
+impl Solution {
+    pub fn is_robot_bounded(instructions: String) -> bool {
+        let (mut dir, mut x, mut y) = (0, 0, 0);
+        for i in instructions.bytes() {
+            match i {
+                b'L' => dir = (dir + 4 - 1) % 4,
+                b'R' => dir = (dir + 1) % 4,
+                _ => match dir {
+                    0 => y += 1,
+                    1 => x += 1,
+                    2 => y -= 1,
+                    _ => x -= 1,
+                },
+            }
+        }
+        !(dir == 0 && (x, y) != (0, 0))
+    }
+}
+```
+
+```rust
+impl Solution {
+    pub fn is_robot_bounded(instructions: String) -> bool {
+        let directions = [[0, 1], [-1, 0], [0, -1], [1, 0]];
+        let (x, y, i) = instructions.bytes().fold((0, 0, 0), |(x, y, i), ch| if ch == b'L' { (x, y, (i + 3) % 4) } else if ch == b'R' { (x, y, (i + 1) % 4) } else { (x + directions[i][0], y + directions[i][1], i) });
+        x == 0 && y == 0 || i > 0
+    }
+}
+```
+
+
+
+##### 1147\.段式回文
+
+[题目](https://leetcode.cn/problems/longest-chunked-palindrome-decomposition/)
+
+```rust
+impl Solution {
+    pub fn longest_decomposition(text: String) -> i32 {
+        let n = text.len();
+        const P: usize = 41;
+        let mut h = vec![0 as usize; n + 1];
+        let mut p = vec![1 as usize; n + 1];
+        let mut c = text.chars();
+        for i in 1..=n {
+            p[i] = p[i - 1].wrapping_mul(P);
+            h[i] = h[i - 1].wrapping_mul(P);
+            h[i] = h[i].wrapping_add(c.next().unwrap() as usize - 'a' as usize + 1);
+        }
+        let hash = |l: usize, r: usize| h[r].wrapping_sub(h[l - 1].wrapping_mul(p[r + 1 - l])); //必须显式usize声明
+        let mut ans = 0;
+        let (mut l, mut r) = (1 as usize, n);
+        while l <= r {
+            let mut k = 0;
+            loop {
+                let hl = hash(l, l + k);
+                let hr = hash(r - k, r);
+                if hl == hr {
+                    ans += 2;
+                    if l + k == r {
+                        ans -= 1;
+                        l = 1;
+                        r = 0;
+                    } else {
+                        l += k + 1;
+                        r -= k + 1;
+                    }
+                    break;
+                }
+                k += 1;
+            }
+        }
+        ans
+    }
+}
+```
+
+
+
+##### 2404\.出现最频繁的偶数元素
+
+[题目](https://leetcode.cn/problems/most-frequent-even-element/)
+
+```rust
+use std::collections::HashMap;
+impl Solution {
+    pub fn most_frequent_even(nums: Vec<i32>) -> i32 {
+        let mut h = HashMap::new();
+        for i in 0..nums.len() {
+            if nums[i] % 2 == 0 {
+                //默认&mut i32，不需要显式mut
+                let cnt = h.entry(&nums[i]).or_insert(0);
+                *cnt += 1;
+            }
+        }
+        let (mut mxcnt, mut mxv) = (0, -1);
+        for (k, v) in h {
+            if v > mxcnt || (v == mxcnt && k < &mxv) {
+                mxv = k.clone();
+                mxcnt = v;
+            }
+        }
+        mxv
+    }
+}
+```
+
+
+
+##### 1023\.驼峰式匹配
+
+[题目](https://leetcode.cn/problems/camelcase-matching/)
+
+```rust
+impl Solution {
+    pub fn camel_match(queries: Vec<String>, pattern: String) -> Vec<bool> {
+        let n = queries.len();
+        let mut ans = vec![false; n];
+        let cs: Vec<char> = pattern.chars().collect();
+        for i in 0..n {
+            let mut ci = 0;
+            let mut ok = true;
+            for q in queries[i].chars() {
+                if ci == pattern.len() {
+                    if q.is_uppercase() {
+                        ok = false;
+                        break;
+                    }
+                    continue;
+                }
+                if q == cs[ci] {
+                    ci += 1;
+                } else if q.is_uppercase() {
+                    ok = false;
+                    break;
+                }
+            }
+            ans[i] = ok && ci == pattern.len();
+        }
+        ans
+    }
+}
+```
+
+```rust
+impl Solution {
+    pub fn camel_match(queries: Vec<String>, pattern: String) -> Vec<bool> {
+        let mut ans = vec![false; queries.len()];
+        let pattern: Vec<char> = pattern.chars().collect();
+        for (i, query) in queries.iter().enumerate() {
+            let mut j = 0;
+            for ch in query.chars() {
+                if j < pattern.len() && ch == pattern[j] {
+                    j += 1;
+                }else {
+                    if 'A' <= ch  && ch <= 'Z' {
+                        j = 0;
+                        break;
+                    }
+                }
+            }
+            if j == pattern.len() {
+                ans[i] = true;
+            }
+        }
+
+        ans
+    }
+}
+```
+
+
+
+##### 1042\.不邻接植花
+
+[题目](https://leetcode.cn/problems/flower-planting-with-no-adjacent/)
+
+```rust
+type Graph = Vec<Vec<usize>>; //G不大写会warning
+impl Solution {
+    pub fn garden_no_adj(n: i32, paths: Vec<Vec<i32>>) -> Vec<i32> {
+        let mut ans = vec![0; n as usize];
+        let mut g: Graph = vec![Vec::new(); n as usize + 1];
+        for i in 0..paths.len() {
+            let u = paths[i][0] as usize;
+            let v = paths[i][1] as usize;
+            g[u].push(v);
+            g[v].push(u);
+        }
+        fn dfs(u: usize, c: &mut [i32], g: &Graph) -> () {
+            let mut vis = [false; 5];
+            for i in 0..g[u].len() {
+                let v = g[u][i];
+                vis[c[v - 1] as usize] = true;
+            }
+            for i in 1..=4 {
+                if !vis[i] {
+                    c[u - 1] = i as i32;
+                    break;
+                }
+            }
+            for i in 0..g[u].len() {
+                let v = g[u][i];
+                if c[v - 1] == 0 {
+                    dfs(v, c, g);
+                }
+            }
+        }
+        for i in 1..=n as usize {
+            if ans[i - 1] == 0 {
+                dfs(i, &mut ans, &g);
+            }
+        }
+        ans
+    }
+}
+```
+
+非递归写法：
+
+```rust
+impl Solution {
+    pub fn garden_no_adj(n: i32, paths: Vec<Vec<i32>>) -> Vec<i32> {
+        // color 记录每一顶点的颜色, 0 表示还没有上色
+        let mut color = vec![0;n as usize +1];
+        // adj表示邻接链表
+        let mut adj = vec![vec![];n as usize +1];
+        // 建立邻接链表
+        for x in paths{
+            let i = x[0] as usize;
+            let j = x[1] as usize;
+            adj[i].push(j);
+            adj[j].push(i);
+        }
+        //依次为每个顶点着色
+        for i in 1..= n as usize {
+            // 如果该顶点未着色，则选择一种与所有邻接顶点不同的颜色着色，
+            // 如果邻接顶点未着色则不管它，因为我们的方案保证之后的顶点着色不会影响到之前的顶点
+            let mut valid = [true;5];
+            for &j in adj[i].iter(){
+                valid[color[j]] = false;
+            }
+            for k in 1..=4 {
+                if valid[k] {
+                    color[i] = k;
+                }
+            }
+        }
+        //返回着色方案
+        color[1..].iter().map(|x| (*x) as i32).collect()
+    }
+}
+```
+
+
+
+##### 2409\.统计共同度过的日子数
+
+[题目](https://leetcode.cn/problems/count-days-spent-together/)
+
+暴力逐日模拟+时间戳思想，判断每天是否都在两个时间戳区间内：
+
+```rust
+const DAYS: [i32; 13] = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+pub fn tomd(s: String) -> (i32, i32) {
+    let m = s[0..2].parse::<i32>().unwrap();
+    let d = s[s.len() - 2..].parse::<i32>().unwrap();
+    return (m, d);
+}
+pub fn val(m: i32, d: i32) -> i32 {
+    m * 100 + d
+}
+impl Solution {
+    pub fn count_days_together(
+        arrive_alice: String,
+        leave_alice: String,
+        arrive_bob: String,
+        leave_bob: String,
+    ) -> i32 {
+        let (m11, d11) = tomd(arrive_alice);
+        let (m12, d12) = tomd(leave_alice);
+        let (m21, d21) = tomd(arrive_bob);
+        let (m22, d22) = tomd(leave_bob);
+        let (v11, v12) = (val(m11, d11), val(m12, d12));
+        let (v21, v22) = (val(m21, d21), val(m22, d22));
+        let mut ans = 0;
+        for m in m11..=m12 {
+            for d in 1..=DAYS[m as usize] {
+                let v = val(m, d);
+                if v >= v11 && v <= v12 && v >= v21 && v <= v22 {
+                    ans += 1;
+                }
+            }
+        }
+        ans
+    }
+}
+```
+
+更优解：将月日转一年的第几天，然后可以直接求区间长度，两区间并即可。
+
+```rust
+const MONTHS: [i32; 12] = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+impl Solution {
+    pub fn count_days_together(arrive_alice: String, leave_alice: String, arrive_bob: String, leave_bob: String) -> i32 {
+        let parse = |s: String| -> i32 {
+            let mut it = s.split('-').map(|v| v.parse::<i32>().unwrap());
+            let (month, day) = (it.next().unwrap(), it.next().unwrap());
+            MONTHS[..(month - 1) as usize].iter().sum::<i32>() + day
+        };
+
+        let a1 = parse(arrive_alice);
+        let a2 = parse(leave_alice);
+        let b1 = parse(arrive_bob);
+        let b2 = parse(leave_bob);
+        let min_day = a1.max(b1);
+        let max_day = a2.min(b2);
+
+        0.max(max_day - min_day + 1)
     }
 }
 ```
