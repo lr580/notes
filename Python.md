@@ -38,6 +38,15 @@ py -0p
 
 ### 第三方库
 
+> linux 无 pip：(gpt)
+>
+> ```sh
+> yum update
+> yum install epel-release
+> yum install python-pip
+> pip --version
+> ```
+
 打开cmd，输入如下指令：
 
 ```bash
@@ -1281,7 +1290,7 @@ a[:21:5] #[0,5,10,15,20]
 "abcde"[slice(2)] #'ab'
 ```
 
-
+可以随便越界，如：`"123"[-12321312321:155555]=="123"`
 
 ### 对象
 
@@ -3804,42 +3813,6 @@ def md5(path):
 
 
 
-#### requests
-
-get 请求：
-
-```python
-import requests
-response=requests.get('http://127.0.0.1:8080/')
-print(response.status_code) #200
-print(response.text) #'Hello world!'
-```
-
-```python
-params = {
-    'key1': 'value1',
-    'key2': 'value2'
-}
-response = requests.get('http://example.com', params=params)
-```
-
-```python
-data = {
-    'key1': 'value1',
-    'key2': 'value2'
-}
-response = requests.post('http://example.com', data=data) #也可以传str
-```
-
-```python
-import requests
-pam = {"username":"name1"}
-print(requests.get('http://127.0.0.1:8080/',params=pam).text)
-print(requests.post('http://127.0.0.1:8080/submit',json=pam).text)
-```
-
-
-
 # 库
 
 在这里列出部分常用的标准库或第三方库的一些学习笔记
@@ -6082,6 +6055,8 @@ import pandas as pd
 audiometric = pd.read_csv('audiometric.csv')
 ```
 
+> 可以读 `.tsv`，加参数 `sep='\t'`
+
 其 `.shape` 依次是行数(不含表头)、列数。是独有的类型。
 
 若数据里写着 NA (不带引号)而不是数值，读进去是 not a number。
@@ -6150,7 +6125,7 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 
 取单独元素 `.at[行号, 列str]`
 
-转 numpy(丢失表头)：`.to_numpy()`
+转 numpy(丢失表头)：`.to_numpy()`，转列表 `.tolist()`
 
 简要统计 `.describe()`
 
@@ -8027,7 +8002,7 @@ Distribution Shift：
 
 如训练检测癌症的模型。收集数据时，主要是采血，二健康人的血样本比较难获取。样本在年龄、激素水平、生理状态、饮食、酒精摄入等与问题无关的变量不同。但，真实的病人可能差距较小，则协变位移大。
 
-对自动驾驶汽车，检测器训练，真实带标记数据很难获取，如果使用游戏数据来额外训练，然后在游戏数据测试。但游戏数据1的材质渲染过于简化，且路用同一种材质渲染，则真实效果很差。如检测森林里的坦克，用不带坦克的航空照片训练，坦克开进去再拍训练集。最后训练出了如何判断有阴影的树和没有的，因为一开始排的训练集是早上的，坦克开进去是中午拍的。
+对自动驾驶汽车，检测器训练，真实带标记数据很难获取，如果使用游戏数据来额外训练，然后在游戏数据测试。但游戏数据的材质渲染过于简化，且路用同一种材质渲染，则真实效果很差。如检测森林里的坦克，用不带坦克的航空照片训练，坦克开进去再拍训练集。最后训练出了如何判断有阴影的树和没有的，因为一开始排的训练集是早上的，坦克开进去是中午拍的。
 
 不稳定分布。分布缓慢的变化，但模型没有更新。如：①广告投放系统vs新手机系统；②垃圾邮件筛除vs新的套路；③时令性推荐过时了还在。
 
@@ -8037,13 +8012,937 @@ Distribution Shift：
 
 
 
+#### 多层感知机
 
+##### 理论
 
+线性模型是有局限的，即单调性，即某个参数增加必然导致结果单调增加或减少，不可能先增后减等，如最适温度(即便可以通过距离转成单调)。而且真实问题即便单调递增，也不必然速率是恒定的，即便可以对数化。
 
+> 以猫狗二分类为例，如果用线性模型，做一次反色处理，可能会得到相反结果。
+
+非线性的模型有决策树、核方法kernel methods。
+
+隐藏层(介于输入层和输出层之间的层)，如中间加一个全连接层。
+
+![image-20230417161519628](img/image-20230417161519628.png)
+
+multilayer perceptron 多层感知机，MLP。上图感知机有 2 层，都是全连接层，即对前后都全连接。
+
+设隐藏层有 $h$ 个单元，输入数据是 $\mathbf{X} \in \mathbb{R}^{n \times d}$，隐藏层是 $\mathbf{H} \in \mathbb{R}^{n \times h}$，且 $\mathbf{W}^{(1)} \in \mathbb{R}^{d \times h}$，$\mathbf{b}^{(1)} \in \mathbb{R}^{1 \times h}$，$\mathbf{W}^{(2)} \in \mathbb{R}^{h \times q}$，$\mathbf{b}^{(2)} \in \mathbb{R}^{1 \times q}$，有：
+$$
+\begin{split}\begin{aligned}
+    \mathbf{H} & = \mathbf{X} \mathbf{W}^{(1)} + \mathbf{b}^{(1)}, \\
+    \mathbf{O} & = \mathbf{H}\mathbf{W}^{(2)} + \mathbf{b}^{(2)}.
+\end{aligned}\end{split}
+$$
+仍然是线性变换，因为令 $\mathbf{W} = \mathbf{W}^{(1)}\mathbf{W}^{(2)}$ 且 $\mathbf{b} = \mathbf{b}^{(1)} \mathbf{W}^{(2)} + \mathbf{b}^{(2)}$ 有： 
+$$
+\mathbf{O} = (\mathbf{X} \mathbf{W}^{(1)} + \mathbf{b}^{(1)})\mathbf{W}^{(2)} + \mathbf{b}^{(2)} = \mathbf{X} \mathbf{W}^{(1)}\mathbf{W}^{(2)} + \mathbf{b}^{(1)} \mathbf{W}^{(2)} + \mathbf{b}^{(2)} = \mathbf{X} \mathbf{W} + \mathbf{b}.
+$$
+为了打破线性化，使用一个非线性激活函数，如 ReLU(Rectified Linear Unit)，表达式为：$\sigma(x) = \mathrm{max}(0, x)$。当激活后，将不再是线性模型：
+$$
+\begin{split}\begin{aligned}
+    \mathbf{H} & = \sigma(\mathbf{X} \mathbf{W}^{(1)} + \mathbf{b}^{(1)}), \\
+    \mathbf{O} & = \mathbf{H}\mathbf{W}^{(2)} + \mathbf{b}^{(2)}.\\
+\end{aligned}\end{split}
+$$
+多层的例子：$\mathbf{H}^{(1)} = \sigma_1(\mathbf{X} \mathbf{W}^{(1)} + \mathbf{b}^{(1)})$，$\mathbf{H}^{(2)} = \sigma_2(\mathbf{H}^{(1)} \mathbf{W}^{(2)} + \mathbf{b}^{(2)})$。
+
+可以证明单隐藏层网络可以学习任意函数。但有时候核方法更有效，也可以用深层网络。
+
+relu 函数示意图：
+
+```python
+x = torch.arange(-8.0, 8.0, 0.1, requires_grad=True)
+y = torch.relu(x)
+d2l.plot(x.detach(), y.detach(), 'x', 'relu(x)', figsize=(5, 2.5))
+```
+
+relu 在 $x=0$ 不可微，规定为左侧集导数为 $0$。绘制导数：
+
+```python
+y.backward(torch.ones_like(x), retain_graph=True)
+d2l.plot(x.detach(), x.grad, 'x', 'grad of relu', figsize=(5, 2.5))
+```
+
+relu 解决了梯度消失的问题。还有其他 relu 变种，如 prelu(parameterized)：$\operatorname{pReLU}(x) = \max(0, x) + \alpha \min(0, x)$。
+
+sigmoid 将值域转化为 $(0,1)$ 之间，即 $\operatorname{sigmoid}(x) = \frac{1}{1 + \exp(-x)}$。又名squashing function。增减性跟原本一样(即原本 $x$ 越大它越大)。
+
+sigmoid 平滑，可微，常用于输出激活。二分类的 sigmoid 可以将其看成是 softmax 的特例。隐藏层 relu 比 sigmoid 更常用，因为更简单。sigmoid 容易梯度消失，对大正负参数。
+
+> 阈值激活(thresholding activation)层：小于阈值设0，否则设1。
+
+作图：
+
+```python
+y = torch.sigmoid(x)
+d2l.plot(x.detach(), y.detach(), 'x', 'sigmoid(x)', figsize=(5, 2.5))
+```
+
+sigmoid 的导数为：
+$$
+\frac{d}{dx} \operatorname{sigmoid}(x) = \frac{\exp(-x)}{(1 + \exp(-x))^2} = \operatorname{sigmoid}(x)\left(1-\operatorname{sigmoid}(x)\right)
+$$
+看成二次函数即 $(sigmoid(x)-0.5)^2+0.25$，故当 $sigmoid(x)=0.5,x=0$ 时，最大值为 $0.25$。 
+
+```python
+# Clear out previous gradients
+x.grad.data.zero_()
+y.backward(torch.ones_like(x),retain_graph=True)
+d2l.plot(x.detach(), x.grad, 'x', 'grad of sigmoid', figsize=(5, 2.5))
+```
+
+双曲正切 tanh 函数将值域压缩为 $(-1,1)$。$\operatorname{tanh}(x) = \frac{1 - \exp(-2x)}{1 + \exp(-2x)}$，单调性也跟 x 增。两侧极限，对负无穷，洛必达一下可知趋于 $-1$，正无穷易得 $1$。可求得，导数为：$\frac{d}{dx} \operatorname{tanh}(x) = 1 - \operatorname{tanh}^2(x)$。则导数最大值是 $1$，当 $tanh(x)=0$ 即 $x=0$ 取得。
+
+```python
+y = torch.tanh(x)
+d2l.plot(x.detach(), y.detach(), 'x', 'tanh(x)', figsize=(5, 2.5))
+```
+
+```python
+# Clear out previous gradients
+x.grad.data.zero_()
+y.backward(torch.ones_like(x),retain_graph=True)
+d2l.plot(x.detach(), x.grad, 'x', 'grad of tanh', figsize=(5, 2.5))
+```
+
+##### 训练例子
+
+隐藏层的层数和每层单元数是超参数。通常层宽是 $2^k$。
+
+作两层：
+
+```python
+import torch
+from torch import nn
+from d2l import torch as d2l
+class MLPScratch(d2l.Classifier):
+    def __init__(self, num_inputs, num_outputs, num_hiddens, lr, sigma=0.01):
+        super().__init__()
+        self.save_hyperparameters()
+        self.W1 = nn.Parameter(torch.randn(num_inputs, num_hiddens) * sigma)
+        self.b1 = nn.Parameter(torch.zeros(num_hiddens))
+        self.W2 = nn.Parameter(torch.randn(num_hiddens, num_outputs) * sigma)
+        self.b2 = nn.Parameter(torch.zeros(num_outputs))
+```
+
+手写 relu：
+
+```python
+def relu(X):
+    a = torch.zeros_like(X)
+    return torch.max(X, a)
+```
+
+一次前向传播：
+
+```python
+@d2l.add_to_class(MLPScratch)
+def forward(self, X):
+    X = X.reshape((-1, self.num_inputs))
+    H = relu(torch.matmul(X, self.W1) + self.b1)
+    return torch.matmul(H, self.W2) + self.b2
+```
+
+训练：(大约两分钟)
+
+```python
+model = MLPScratch(num_inputs=784, num_outputs=10, num_hiddens=256, lr=0.1)
+data = d2l.FashionMNIST(batch_size=256)
+trainer = d2l.Trainer(max_epochs=10)
+trainer.fit(model, data)
+```
+
+调库版本：(自动实现了前向传播)
+
+```python
+class MLP(d2l.Classifier):
+    def __init__(self, num_outputs, num_hiddens, lr):
+        super().__init__()
+        self.save_hyperparameters()
+        self.net = nn.Sequential(nn.Flatten(), nn.LazyLinear(num_hiddens),
+                                 nn.ReLU(), nn.LazyLinear(num_outputs))
+```
+
+训练：(可能快一些)
+
+```python
+model = MLP(num_outputs=10, num_hiddens=256, lr=0.1)
+trainer.fit(model, data)
+```
+
+##### 传播理论
+
+对有一个隐藏层的网络，手动前向传播的过程如下：设输入是 $\mathbf{x}\in \mathbb{R}^d$，则中介变量：$\mathbf{z}= \mathbf{W}^{(1)} \mathbf{x}$，其中隐藏层权重是 $\mathbf{W}^{(1)} \in \mathbb{R}^{h \times d}$，然后走一个激活层：$\mathbf{h}= \phi (\mathbf{z})$。$\mathbf h$ 也是中间变量，输出层如果经过 $\mathbf{W}^{(2)} \in \mathbb{R}^{q \times h}$，则可以求出输出：$\mathbf{o}= \mathbf{W}^{(2)} \mathbf{h}$。损失：$L = l(\mathbf{o}, y)$。对 $l_2$ 正则化，给定超参数 $\lambda$，有：$s = \frac{\lambda}{2} \left(\|\mathbf{W}^{(1)}\|_F^2 + \|\mathbf{W}^{(2)}\|_F^2\right)$，则正则化损失(目标函数)是 $J = L + s$。
+
+下图正方形是变量，圆形是操作，代表了计算损失函数的顺序。
+
+![image-20230417212909847](img/image-20230417212909847.png)
+
+反向传播是计算神经网络参数梯度的方法。逆序遍历上述计算图，根据微积分的链式法则。假设有 $\mathsf{Y}=f(\mathsf{X})$ 和 $\mathsf{Z}=g(\mathsf{Y})$，则 $Z$ 对 $X$ 的偏导为 $\frac{\partial \mathsf{Z}}{\partial \mathsf{X}} = \text{prod}\left(\frac{\partial \mathsf{Z}}{\partial \mathsf{Y}}, \frac{\partial \mathsf{Y}}{\partial \mathsf{X}}\right)$。prod 对向量和矩阵是乘法。
+
+对应上图，所求为 $\partial J/\partial \mathbf{W}^{(1)}$ 和 $\partial J/\partial \mathbf{W}^{(2)}$。先一步步来，即首先计算：$\frac{\partial J}{\partial L} = 1 \; \text{and} \; \frac{\partial J}{\partial s} = 1$，很显然(求导易得)。则可以算出：
+$$
+\frac{\partial J}{\partial \mathbf{o}}
+= \text{prod}\left(\frac{\partial J}{\partial L}, \frac{\partial L}{\partial \mathbf{o}}\right)
+= \frac{\partial L}{\partial \mathbf{o}}
+\in \mathbb{R}^q
+$$
+根据求导显然有：
+$$
+\frac{\partial s}{\partial \mathbf{W}^{(1)}} = \lambda \mathbf{W}^{(1)}
+\; \text{and} \;
+\frac{\partial s}{\partial \mathbf{W}^{(2)}} = \lambda \mathbf{W}^{(2)}
+$$
+则有：
+$$
+\frac{\partial J}{\partial \mathbf{W}^{(2)}}= \text{prod}\left(\frac{\partial J}{\partial \mathbf{o}}, \frac{\partial \mathbf{o}}{\partial \mathbf{W}^{(2)}}\right) + \text{prod}\left(\frac{\partial J}{\partial s}, \frac{\partial s}{\partial \mathbf{W}^{(2)}}\right)= \frac{\partial J}{\partial \mathbf{o}} \mathbf{h}^\top + \lambda \mathbf{W}^{(2)}
+$$
+继续算：
+$$
+\frac{\partial J}{\partial \mathbf{h}}
+= \text{prod}\left(\frac{\partial J}{\partial \mathbf{o}}, \frac{\partial \mathbf{o}}{\partial \mathbf{h}}\right)
+= {\mathbf{W}^{(2)}}^\top \frac{\partial J}{\partial \mathbf{o}}.
+$$
+继续倒回去：
+$$
+\frac{\partial J}{\partial \mathbf{z}}
+= \text{prod}\left(\frac{\partial J}{\partial \mathbf{h}}, \frac{\partial \mathbf{h}}{\partial \mathbf{z}}\right)
+= \frac{\partial J}{\partial \mathbf{h}} \odot \phi'\left(\mathbf{z}\right)
+$$
+最终有：
+$$
+\frac{\partial J}{\partial \mathbf{W}^{(1)}}
+= \text{prod}\left(\frac{\partial J}{\partial \mathbf{z}}, \frac{\partial \mathbf{z}}{\partial \mathbf{W}^{(1)}}\right) + \text{prod}\left(\frac{\partial J}{\partial s}, \frac{\partial s}{\partial \mathbf{W}^{(1)}}\right)
+= \frac{\partial J}{\partial \mathbf{z}} \mathbf{x}^\top + \lambda \mathbf{W}^{(1)}
+$$
+因为训练时遍历 DAG 反向传播，记忆化存储每个节点的偏导以降低复杂度，所以会增加空间开销。预测，不训练，不需要反向传播，所以内存大约少一倍开销。
+
+##### 初始化
+
+初始化的值如果不好，可能会导致梯度消失、训练更久等问题。
+
+对 $L$ 层神经网络，每层转换为参数 $\mathbf{W}^{(l)}$ 和 $f_l$，隐藏层是 $\mathbf{h}^{(l)}$，其中 $\mathbf{h}^{(0)} = \mathbf{x}$。则神经网络可以表述为：
+$$
+\mathbf{h}^{(l)} = f_l (\mathbf{h}^{(l-1)}) \text{ and thus } \mathbf{o} = f_L \circ \ldots \circ f_1(\mathbf{x}).
+$$
+如果隐藏层输出都是向量，则梯度表示为：
+$$
+\partial_{\mathbf{W}^{(l)}} \mathbf{o} = \underbrace{\partial_{\mathbf{h}^{(L-1)}} \mathbf{h}^{(L)}}_{ \mathbf{M}^{(L)} \stackrel{\mathrm{def}}{=}} \cdot \ldots \cdot \underbrace{\partial_{\mathbf{h}^{(l)}} \mathbf{h}^{(l+1)}}_{ \mathbf{M}^{(l+1)} \stackrel{\mathrm{def}}{=}} \underbrace{\partial_{\mathbf{W}^{(l)}} \mathbf{h}^{(l)}}_{ \mathbf{v}^{(l)} \stackrel{\mathrm{def}}{=}}.
+$$
+亦即梯度是 $L-l$ 个矩阵的连乘积 $\mathbf{M}^{(L)} \cdot \ldots \cdot \mathbf{M}^{(l+1)}$ 乘上 $\mathbf{v}^{(l)}$。
+
+既然这么多个连乘积，则可能会有下溢问题。一个技巧是对数化。参数可能：过大(梯度爆炸)、过小(梯度消失)。
+
+梯度消失的一个典型原因是激活函数选的不好。如 sigmoid 函数及其梯度如图所示：
+
+```python
+x = torch.arange(-8.0, 8.0, 0.1, requires_grad=True)
+y = torch.sigmoid(x)
+y.backward(torch.ones_like(x))
+
+d2l.plot(x.detach().numpy(), [y.detach().numpy(), x.grad.numpy()],
+         legend=['sigmoid', 'gradient'], figsize=(4.5, 2.5))
+```
+
+如上文所示，已经知道导函数了。则层数过多就会导致梯度消失。因此使用 relu 比较能避开梯度消失。
+
+梯度爆炸，即不断进行矩阵乘法，经过很多层后会非常大，即使一开始是也许标准正态分布，后面也指数级增长，例如：
+
+```python
+M = torch.normal(0, 1, size=(4, 4))
+print('a single matrix \n',M)
+for i in range(100):
+    M = M @ torch.normal(0, 1, size=(4, 4))
+print('after multiplying 100 matrices\n', M)
+```
+
+对称性：对只有一个隐藏层的MLP，可以 $\mathbf{W}^{(1)}$ 改变顺序，然后改变输出层顺序，得到同样的作用。设全设同一个初始值 $\mathbf{W}^{(1)} = c$，那么会得到相同的梯度变化。SGD 不能打破对称性，但 dropout 正则化可以。
+
+默认是随机初始化。对没有非线性化的全连接层，有 $o_{i} = \sum_{j=1}^{n_\mathrm{in}} w_{ij} x_j$。若权重设均值 0，方差 $\sigma^2$。若输入层也是 0 均值，方差 $\gamma^2$，都独立。则输出的均值和方差可以计算，即：
+$$
+\begin{split}\begin{aligned}
+    E[o_i] & = \sum_{j=1}^{n_\mathrm{in}} E[w_{ij} x_j] \\&= \sum_{j=1}^{n_\mathrm{in}} E[w_{ij}] E[x_j] \\&= 0, \\
+    \mathrm{Var}[o_i] & = E[o_i^2] - (E[o_i])^2 \\
+        & = \sum_{j=1}^{n_\mathrm{in}} E[w^2_{ij} x^2_j] - 0 \\
+        & = \sum_{j=1}^{n_\mathrm{in}} E[w^2_{ij}] E[x^2_j] \\
+        & = n_\mathrm{in} \sigma^2 \gamma^2.
+\end{aligned}\end{split}
+$$
+让方差固定，可以令 $n_\mathrm{in} \sigma^2 = 1$。对于反向传播，方差会爆炸，除非这么固定下来即 $n_\mathrm{out} \sigma^2 = 1$。即两难了，不能同时满足。因此，折中而言可以选择：
+$$
+\begin{aligned}
+\frac{1}{2} (n_\mathrm{in} + n_\mathrm{out}) \sigma^2 = 1 \text{ or equivalently }
+\sigma = \sqrt{\frac{2}{n_\mathrm{in} + n_\mathrm{out}}}.
+\end{aligned}
+$$
+即 Xavier initialization，显然即刷 0 均值和 $\sigma^2 = \frac{2}{n_\mathrm{in} + n_\mathrm{out}}$ 的随机分布。
+
+均匀分布 $U(-a, a)$ 的方差是 $\frac{a^2}{3}$，如果用均匀分布实现上述要求，可设：
+$$
+U\left(-\sqrt{\frac{6}{n_\mathrm{in} + n_\mathrm{out}}}, \sqrt{\frac{6}{n_\mathrm{in} + n_\mathrm{out}}}\right).
+$$
+这么搞的假设是确实不存在非线性化。
+
+现有的理论很难全面解释：①为什么能优化；②为什么梯度下降泛化如此好。但实际上，①很少是问题。下面综述当前的研究。
+
+> “no free lunch” theorem：任何学习算法在某些分布的数据上更好，但其他的更差。
+
+> 归纳性偏差，inductive biases 即人看待世界的思维方式，如MLE的构建。
+
+训练的两阶段：与训练数据拟合，评估泛化误差。得出generalization gap即训练集测试集误差。对过拟合的经典观点是模型太复杂了。
+
+一般降低过拟合就是减少模型复杂度，增加惩罚，限制取值。而很多深度学习模型，可以达到0训练误差，而generalization error还能更低，如果模型更复杂。而模型复杂度与generalization gap不是单调的，复杂度增加一开始降低准确随后又继续增加。
+
+传统的理论对深度神经网络难以解释。基于 VC维度或Rademacher度咋读的假设无法解释深度神经网络泛化良好的结果。
+
+当把深度学习想成参数模型，即确实有参数，每次更新模型就是更新参数。但神经网络的表现就跟无参数模型一样。无参数方法复杂度增长与数据量有关。
+
+最简单的无参数模型如k近邻算法(k-nearest neighbor algorithm)，即学习器记住数据集，对每个新样本，求出离它最近的k个样本。实际上即暴力遍历求距离排序输出前k个。其他方法如核方法kernel methods。
+
+如果训练集里有错误数据，那么一开始训练不会适应错误数据，随后才会适应。
+
+早停止early stopping，如果一轮训练后错误率下降幅度没有达到一个标准，就停止训练，名为 patience criteria。但是如果没有标签噪声，数据集是可实现的(每个标签类之间区分明显，数据不假)，则没有什么优化。
+
+权衰减根据哪个权范数被实现分类为ridge regularization($l_2$ penalty)或lasso regularization($l_1$ penalty)。然而前者提升不是很大，且有可能只在早停止有用。
+
+平滑：不应该对小变化敏感。如图片的随机噪声不影响图片分类。
+
+##### Dropout
+
+每次训练丢掉一些神经元。初始是通过类比基因的选择提出的。增加高斯噪声，用来随机筛除，得到激活函数：
+$$
+\begin{split}\begin{aligned}
+h' =
+\begin{cases}
+    0 & \text{ with probability } p \\
+    \frac{h}{1-p} & \text{ otherwise}
+\end{cases}
+\end{aligned}\end{split}
+$$
+则期望不变，仍然为 $E[h'] = h$。删掉的点反向传播梯度也消失。具体而言：
+
+![image-20230424211118314](img/image-20230424211118314.png)
+
+只在训练时 dropout，训练好跑样本不做。如果做，就是用来测试预测的不确定性。如果每次不同 dropout 后跑出来效果差不多，网络效果更可信。
+
+实现伯努利分布分布的一种办法是对一个随机分布 > 某个值的全部置 1。如：
+
+```python
+import torch
+from torch import nn
+from d2l import torch as d2l
+def dropout_layer(X, dropout):
+    assert 0 <= dropout <= 1
+    if dropout == 1: return torch.zeros_like(X)
+    mask = (torch.rand(X.shape) > dropout).float()
+    return mask * X / (1.0 - dropout)
+```
+
+测试使用：(对第二个样例，剩下的值全部翻倍)
+
+```python
+X = torch.arange(16, dtype = torch.float32).reshape((2, 8))
+print('dropout_p = 0:', dropout_layer(X, 0))
+print('dropout_p = 0.5:', dropout_layer(X, 0.5))
+print('dropout_p = 1:', dropout_layer(X, 1))
+```
+
+经验而言越靠近输入层的dropout率设的越低一些。
+
+把激活层干掉，换成 dropout：
+
+```python
+class DropoutMLPScratch(d2l.Classifier):
+    def __init__(self, num_outputs, num_hiddens_1, num_hiddens_2,
+                 dropout_1, dropout_2, lr):
+        super().__init__()
+        self.save_hyperparameters()
+        self.lin1 = nn.LazyLinear(num_hiddens_1)
+        self.lin2 = nn.LazyLinear(num_hiddens_2)
+        self.lin3 = nn.LazyLinear(num_outputs)
+        self.relu = nn.ReLU()
+
+    def forward(self, X):
+        H1 = self.relu(self.lin1(X.reshape((X.shape[0], -1))))
+        if self.training:
+            H1 = dropout_layer(H1, self.dropout_1)
+        H2 = self.relu(self.lin2(H1))
+        if self.training:
+            H2 = dropout_layer(H2, self.dropout_2)
+        return self.lin3(H2)
+```
+
+训练：(2min)
+
+```python
+hparams = {'num_outputs':10, 'num_hiddens_1':256, 'num_hiddens_2':256,
+           'dropout_1':0.5, 'dropout_2':0.5, 'lr':0.1}
+model = DropoutMLPScratch(**hparams)
+data = d2l.FashionMNIST(batch_size=256)
+trainer = d2l.Trainer(max_epochs=10)
+trainer.fit(model, data)
+```
+
+调库版本：
+
+```python
+class DropoutMLP(d2l.Classifier):
+    def __init__(self, num_outputs, num_hiddens_1, num_hiddens_2,
+                 dropout_1, dropout_2, lr):
+        super().__init__()
+        self.save_hyperparameters()
+        self.net = nn.Sequential(
+            nn.Flatten(), nn.LazyLinear(num_hiddens_1), nn.ReLU(),
+            nn.Dropout(dropout_1), nn.LazyLinear(num_hiddens_2), nn.ReLU(),
+            nn.Dropout(dropout_2), nn.LazyLinear(num_outputs))
+```
+
+```python
+model = DropoutMLP(**hparams)
+trainer.fit(model, data)
+```
+
+##### kaggle房价预测例子
+
+kaggle:ML比赛平台。下载解压：
+
+```python
+%matplotlib inline
+import pandas as pd
+import torch
+from torch import nn
+from d2l import torch as d2l
+def download(url, folder, sha1_hash=None):
+    """Download a file to folder and return the local filepath."""
+
+def extract(filename, folder):
+    """Extract a zip/tar file into folder."""
+```
+
+因为不参赛，将给定的训练集划一部分出来测试：
+
+```python
+class KaggleHouse(d2l.DataModule):
+    def __init__(self, batch_size, train=None, val=None):
+        super().__init__()
+        self.save_hyperparameters()
+        if self.train is None:
+            self.raw_train = pd.read_csv(d2l.download(
+                d2l.DATA_URL + 'kaggle_house_pred_train.csv', self.root,
+                sha1_hash='585e9cc93e70b39160e7921475f9bcd7d31219ce'))
+            self.raw_val = pd.read_csv(d2l.download(
+                d2l.DATA_URL + 'kaggle_house_pred_test.csv', self.root,
+                sha1_hash='fa19780a7b011d9b009e8bff8e99922a8ee2eb90'))
+data = KaggleHouse(batch_size=64)
+print(data.raw_train.shape)
+print(data.raw_val.shape)
+```
+
+看看数据集：
+
+```python
+print(data.raw_train.iloc[:4, [0, 1, 2, 3, -3, -2, -1]])
+```
+
+可以看到第一列是 ID，是无效信息，应该剔除。数据集可能含有缺失，即部分标签是无效值(如nan)。对这些值，用均值替代。然后去掉量纲，即：$x \leftarrow \frac{x - \mu}{\sigma}$。当这么做之后，有：
+$$
+E[\frac{x-\mu}{\sigma}] = \frac{\mu - \mu}{\sigma} = 0\\
+E[(x-\mu)^2] = (\sigma^2 + \mu^2) - 2\mu^2+\mu^2 = \sigma^2
+$$
+对每个字符串离散取值，使用 one hot 转换，即设值域有 m 个不同的值，转换为 m 列 0/1 变量。这些预处理过程写下来为：
+
+```python
+@d2l.add_to_class(KaggleHouse)
+def preprocess(self):
+    # Remove the ID and label columns
+    label = 'SalePrice'
+    features = pd.concat(
+        (self.raw_train.drop(columns=['Id', label]),
+         self.raw_val.drop(columns=['Id'])))
+    # Standardize numerical columns
+    numeric_features = features.dtypes[features.dtypes!='object'].index
+    features[numeric_features] = features[numeric_features].apply(
+        lambda x: (x - x.mean()) / (x.std()))
+    # Replace NAN numerical features by 0
+    features[numeric_features] = features[numeric_features].fillna(0)
+    # Replace discrete features by one-hot encoding
+    features = pd.get_dummies(features, dummy_na=True)
+    # Save preprocessed features
+    self.train = features[:self.raw_train.shape[0]].copy()
+    self.train[label] = self.raw_train[label]
+    self.val = features[self.raw_train.shape[0]:].copy()
+data.preprocess()
+data.train.shape
+```
+
+先跑一个普通的线性模型，平方差误差，检查一下数据是不是有意义的。如果训练出来不如乱蒙，可能数据有问题。而跑出来后，也能当成一个基准测试，对比用。
+
+对预测结果的评估，认为相对误差比绝对误差好，即使用 $\frac{y - \hat{y}}{y}$ 而不是 $y - \hat{y}$。也可以用对数空间作差，这也是 kaggle 该场的标准评估误差办法，因为 $|\log y - \log \hat{y}| \leq \delta$ 可以转换为 $e^{-\delta} \leq \frac{\hat{y}}{y} \leq e^\delta$。具体而言，平方根均方差为：
+$$
+\sqrt{\frac{1}{n}\sum_{i=1}^n\left(\log y_i -\log \hat{y}_i\right)^2}
+$$
+
+```python
+@d2l.add_to_class(KaggleHouse)
+def get_dataloader(self, train):
+    label = 'SalePrice'
+    data = self.train if train else self.val
+    if label not in data: return
+    get_tensor = lambda x: torch.tensor(x.values, dtype=torch.float32)
+    # Logarithm of prices
+    tensors = (get_tensor(data.drop(columns=[label])),  # X
+               torch.log(get_tensor(data[label])).reshape((-1, 1)))  # Y
+    return self.get_tensorloader(tensors, train)
+```
+
+做 K 折交叉验证，一种暴力办法取折是(注意到range上下溢没事)：
+
+```python
+def k_fold_data(data, k):
+    rets = []
+    fold_size = data.train.shape[0] // k
+    for j in range(k):
+        idx = range(j * fold_size, (j+1) * fold_size)
+        rets.append(KaggleHouse(data.batch_size, data.train.drop(index=idx),
+                                data.train.loc[idx]))
+    return rets
+```
+
+```python
+def k_fold(trainer, data, k, lr):
+    val_loss, models = [], []
+    for i, data_fold in enumerate(k_fold_data(data, k)):
+        model = d2l.LinearRegression(lr)
+        model.board.yscale='log'
+        if i != 0: model.board.display = False
+        trainer.fit(model, data_fold)
+        val_loss.append(float(model.board.data['val_loss'][-1].y))
+        models.append(model)
+    print(f'average validation log mse = {sum(val_loss)/len(val_loss)}')
+    return models
+```
+
+来点训练：
+
+```python
+trainer = d2l.Trainer(max_epochs=10)
+models = k_fold(trainer, data, k=5, lr=0.01)
+```
+
+有时候训练误差很低，可能会过拟合。
+
+现在把训练好的模型跑验证集：
+
+```python
+preds = [model(torch.tensor(data.val.values, dtype=torch.float32))
+         for model in models]
+# Taking exponentiation of predictions in the logarithm scale
+ensemble_preds = torch.exp(torch.cat(preds, 1)).mean(1)
+submission = pd.DataFrame({'Id':data.raw_val.Id,
+                           'SalePrice':ensemble_preds.detach().numpy()})
+submission.to_csv('submission.csv', index=False)
+```
+
+可以把训练结果 submit 上去，注册个号，去比赛上传文件即可。[交代码](https://www.kaggle.com/c/house-prices-advanced-regression-techniques)
+
+#### 杂项
+
+##### 模块
+
+一个神经网络模块可以是一层网络、多层网络也可以是一整个模型。
+
+![image-20230425210753132](img/image-20230425210753132.png)
+
+具体到实现上，一个模块就是一个类。一个模块可能不需要参数。基于自动化的库实现，每个模块只需要关心参数、前向传播。
+
+下面是一个 256 单元单层和 10 个输出的网络：
+
+```python
+import torch
+from torch import nn
+from torch.nn import functional as F
+net = nn.Sequential(nn.LazyLinear(256), nn.ReLU(), nn.LazyLinear(10))
+X = torch.rand(2, 20) #2个样本，每个样本20个参数
+net(X).shape #2,10,即net.__call__(X)
+```
+
+模块必须做的事情：
+
+1. 摄入输入数据作为参数到前向传播方法
+2. 调用前向传播生成输出
+3. 计算输出对输入的梯度，使用反向传播
+4. 存储参数
+5. 初始化参数
+
+包装一下上面的代码：
+
+```python
+class MLP(nn.Module):
+    def __init__(self):
+        # Call the constructor of the parent class nn.Module to perform
+        # the necessary initialization
+        super().__init__()
+        self.hidden = nn.LazyLinear(256)
+        self.out = nn.LazyLinear(10)
+
+    # Define the forward propagation of the model, that is, how to return the
+    # required model output based on the input X
+    def forward(self, X):
+        return self.out(F.relu(self.hidden(X)))
+```
+
+```python
+net = MLP()
+net(X).shape
+```
+
+序列模块 Sequential Module，要完成：将多个模块装在一起，前向传播。
+
+```python
+class MySequential(nn.Module):
+    def __init__(self, *args):
+        super().__init__()
+        for idx, module in enumerate(args):
+            self.add_module(str(idx), module)
+
+    def forward(self, X):
+        for module in self.children():
+            X = module(X)
+        return X
+```
+
+```python
+net = MySequential(nn.LazyLinear(256), nn.ReLU(), nn.LazyLinear(10))
+net(X).shape
+```
+
+常参数constant parameters，即不随着传播改变的，不依赖参数的常量如 $f(\mathbf{x},\mathbf{w}) = c \cdot \mathbf{w}^\top \mathbf{x}$。
+
+```python
+class FixedHiddenMLP(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # Random weight parameters that will not compute gradients and
+        # therefore keep constant during training
+        self.rand_weight = torch.rand((20, 20))
+        self.linear = nn.LazyLinear(20)
+
+    def forward(self, X):
+        X = self.linear(X)
+        X = F.relu(X @ self.rand_weight + 1)
+        # Reuse the fully connected layer. This is equivalent to sharing
+        # parameters with two fully connected layers
+        X = self.linear(X)
+        # Control flow
+        while X.abs().sum() > 1:#l1范数
+            X /= 2
+        return X.sum()
+```
+
+```python
+net = FixedHiddenMLP()
+net(X)
+```
+
+综合拼接的奇怪例子：
+
+```python
+class NestMLP(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.net = nn.Sequential(nn.LazyLinear(64), nn.ReLU(),
+                                 nn.LazyLinear(32), nn.ReLU())
+        self.linear = nn.LazyLinear(16)
+
+    def forward(self, X):
+        return self.linear(self.net(X))
+
+chimera = nn.Sequential(NestMLP(), nn.LazyLinear(20), FixedHiddenMLP())
+chimera(X)
+```
+
+```python
+class NestMLP(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.net = nn.Sequential(nn.LazyLinear(64), nn.ReLU(),
+                                 nn.LazyLinear(32), nn.ReLU())
+        self.linear = nn.LazyLinear(16)
+
+    def forward(self, X):
+        return self.linear(self.net(X))
+
+chimera = nn.Sequential(NestMLP(), nn.LazyLinear(20), FixedHiddenMLP())
+chimera(X)
+```
+
+##### 参数
+
+训练好的参数，可能需要存到磁盘，以备以后拿来用。
+
+假设有神经网络如下所示：
+
+```python
+import torch
+from torch import nn
+net = nn.Sequential(nn.LazyLinear(8),
+                    nn.ReLU(),
+                    nn.LazyLinear(1))
+X = torch.rand(size=(2, 4))
+net(X).shape
+```
+
+输出各层的参数：
+
+```python
+for i in range(3):
+    print(net[i].state_dict())
+#依次为8x4,空,1x8
+print(net[0].state_dict()['weight'].tolist())
+print(net[0].state_dict()['bias'].tolist())
+```
+
+```python
+print(type(net[2].bias))
+print(type(net[2].weight))
+print(net[2].bias.data)
+print(net[2].bias.data.tolist())
+```
+
+bias, weight 的类型是 Parameter。包含值，梯度和其他信息。如：
+
+```python
+print(net[2].weight.grad == None)
+```
+
+这样遍历对树状结构等很不方便，一种方便的遍历办法为：
+
+```python
+[(name, param.shape) for name, param in net.named_parameters()]
+```
+
+多层共享参数设置：
+
+```python
+# We need to give the shared layer a name so that we can refer to its
+# parameters
+shared = nn.LazyLinear(8)
+net = nn.Sequential(nn.LazyLinear(8), nn.ReLU(),
+                    shared, nn.ReLU(),
+                    shared, nn.ReLU(),
+                    nn.LazyLinear(1))
+
+net(X)
+# Check whether the parameters are the same
+print(net[2].weight.data[0] == net[4].weight.data[0])
+net[2].weight.data[0, 0] = 100
+# Make sure that they are actually the same object rather than just having the
+# same value
+print(net[2].weight.data[0] == net[4].weight.data[0])
+```
+
+如果这么设置了，那么反向传播时，梯度会加在一起。
+
+##### 参数初始化
+
+默认通过输入输出维度确定随机的幅度分配随机值。
+
+```python
+import torch
+from torch import nn
+```
+
+标准分布和置零：
+
+```python
+def init_normal(module):
+    if type(module) == nn.Linear:
+        nn.init.normal_(module.weight, mean=0, std=0.01)
+        nn.init.zeros_(module.bias)
+
+net.apply(init_normal)
+net[0].weight.data[0], net[0].bias.data[0]
+```
+
+置常量：
+
+```python
+def init_constant(module):
+    if type(module) == nn.Linear:
+        nn.init.constant_(module.weight, 1)
+        nn.init.zeros_(module.bias)
+
+net.apply(init_constant)
+net[0].weight.data[0], net[0].bias.data[0]
+```
+
+不同层不同的初始化
+
+```python
+def init_xavier(module):
+    if type(module) == nn.Linear:
+        nn.init.xavier_uniform_(module.weight)
+
+def init_42(module):
+    if type(module) == nn.Linear:
+        nn.init.constant_(module.weight, 42)
+
+net[0].apply(init_xavier)
+net[2].apply(init_42)
+print(net[0].weight.data[0])
+print(net[2].weight.data)
+```
+
+可以自定义一些奇怪的初始化，例如：
+$$
+\begin{split}\begin{aligned}
+    w \sim \begin{cases}
+        U(5, 10) & \text{ with probability } \frac{1}{4} \\
+            0    & \text{ with probability } \frac{1}{2} \\
+        U(-10, -5) & \text{ with probability } \frac{1}{4}
+    \end{cases}
+\end{aligned}\end{split}
+$$
+具体到实现上，因为 $[-5,5]$ 的区间长刚好占一半，所以先跑一个 $[-10,10]$ 的分布，然后看看绝对值是不是在 $[-5,5]$ 是的话置零即可。即：
+
+```python
+def my_init(module):
+    if type(module) == nn.Linear:
+        print("Init", *[(name, param.shape)
+                        for name, param in module.named_parameters()][0])
+        nn.init.uniform_(module.weight, -10, 10)
+        module.weight.data *= module.weight.data.abs() >= 5
+
+net.apply(my_init)
+net[0].weight[:2]
+```
+
+还可以直接设置参数：
+
+```python
+net[0].weight.data[:] += 1
+net[0].weight.data[0, 0] = 42
+net[0].weight.data[0]
+```
+
+直到传入数据前，模型都不会初始化，所以模型的维度在传入数据前都是不确定的。这是因为参数数未知。
+
+假设有网络如下：
+
+```python
+import torch
+from torch import nn
+from d2l import torch as d2l
+net = nn.Sequential(nn.LazyLinear(256), nn.ReLU(), nn.LazyLinear(10))
+```
+
+如果输出参数，会发现是未定义的：
+
+```python
+net[0].weight
+```
+
+现在传入样本，定义变量数目。
+
+```python
+X = torch.rand(2, 20)
+net(X)
+
+net[0].weight.shape #256,20
+```
+
+上例只有第一层需要知道输入的维度(即20)其它层不需要知道。但是要顺序递推，所以其它层也算不出来。(都显示为止，除了 relu 无参数)
+
+```python
+@d2l.add_to_class(d2l.Module)  #@save
+def apply_init(self, inputs, init=None):
+    self.forward(*inputs)
+    if init is not None:
+        self.net.apply(init)
+```
+
+##### 自定义层
+
+```python
+import torch
+from torch import nn
+from torch.nn import functional as F
+from d2l import torch as d2l
+```
+
+一个例子：
+
+```python
+class CenteredLayer(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, X):
+        return X - X.mean()
+```
+
+使用：
+
+```python
+layer = CenteredLayer()
+layer(torch.tensor([1.0, 2, 3, 4, 5]))
+```
+
+一个手写全连接层例子：(参数是输入和输出数)
+
+```python
+class MyLinear(nn.Module):
+    def __init__(self, in_units, units):
+        super().__init__()
+        self.weight = nn.Parameter(torch.randn(in_units, units))
+        self.bias = nn.Parameter(torch.randn(units,))
+
+    def forward(self, X):
+        linear = torch.matmul(X, self.weight.data) + self.bias.data
+        return F.relu(linear)
+```
 
 
 
 ## 网络
+
+### requests
+
+get 请求：
+
+```python
+import requests
+response=requests.get('http://127.0.0.1:8080/')
+print(response.status_code) #200
+print(response.text) #'Hello world!'
+```
+
+```python
+params = {
+    'key1': 'value1',
+    'key2': 'value2'
+}
+response = requests.get('http://example.com', params=params)
+```
+
+```python
+data = {
+    'key1': 'value1',
+    'key2': 'value2'
+}
+response = requests.post('http://example.com', data=data) #也可以传str
+```
+
+```python
+import requests
+pam = {"username":"name1"}
+print(requests.get('http://127.0.0.1:8080/',params=pam).text)
+print(requests.post('http://127.0.0.1:8080/submit',json=pam).text)
+```
+
+
 
 ### socket
 
@@ -8609,6 +9508,20 @@ print(isFullerene)
 
 
 # 应用举例
+
+#### 网络
+
+##### 局域网共享文件
+
+cd 到要贡献的目录下，输入：
+
+```sh
+python -m http.server 8888
+```
+
+之后本机，和局域网内的其他机子，可以下载该目录下的文件。
+
+ctrl+c 关闭。
 
 #### 文件
 

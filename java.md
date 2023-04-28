@@ -1822,6 +1822,66 @@ int dest[] = Arrays.stream(xx).mapToInt(Integer::valueOf).toArray();// Integer[]
 
 若 `(数组,a,b,v)`  在子段$[a,b)$搜索
 
+##### 排序
+
+结构体：以 height 逆序为例
+
+```java
+import java.util.Arrays;
+
+class Solution {
+    class Node implements Comparable<Node> {
+        public String name;
+        public int height;
+
+        public Node(String name, int height) {
+            this.name = name;
+            this.height = height;
+        }
+
+        @Override
+        public int compareTo(Node o) {
+            return o.height - this.height;
+        }
+
+    }
+
+    public String[] sortPeople(String[] names, int[] heights) {
+        int n = names.length;
+        Node[] a = new Node[n];
+        for (int i = 0; i < n; ++i) {
+            a[i] = new Node(names[i], heights[i]);
+        }
+        Arrays.sort(a);
+        String res[] = new String[n];
+        for (int i = 0; i < n; ++i) {
+            res[i] = a[i].name;
+        }
+        return res;
+    }
+}
+```
+
+```java
+class Solution {
+    public String[] sortPeople(String[] names, int[] heights) {
+        int n = names.length;
+        Integer[] indices = new Integer[n];
+        for (int i = 0; i < n; i++) {
+            indices[i] = i;
+        }
+        Arrays.sort(indices, (a, b) -> heights[b] - heights[a]);
+        String[] res = new String[n];
+        for (int i = 0; i < n; i++) {
+            res[i] = names[indices[i]];
+        }
+        return res;
+    }
+}
+```
+
+
+
 ### 运算
 
 #### 基本运算
@@ -27139,6 +27199,274 @@ Remote Procedure Call Protocol RPC
 
 总之，RPC主要用于公司内部的服务调用，性能消耗低，传输效率高，服务治理方便。HTTP主要用于对外的异构环境，浏览器接口调用，APP接口调用，第三方接口调用等。
 
+#### 例子
+
+##### CRUD
+
+Jedis中的方法名称和redis的命令名称几乎一样
+
+开一个 quick start maven, parent 继承下文 spring cloud 的 easymall parent。增加依赖：
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-redis</artifactId>
+    <version>1.4.7.RELEASE</version>
+</dependency>
+```
+
+测试：
+
+```java
+package cn.edu.scnu.test;
+
+import org.junit.Test;
+import redis.clients.jedis.Jedis;
+
+public class Test01 {
+    @Test
+    public void test01() {
+        // 10s超时,默认2000ms(GPT)
+        Jedis jedis = new Jedis("192.168.126.128", 6379, 10000);
+        jedis.set("num1", "100");
+        System.out.println(jedis.get("num1"));
+        System.out.println(jedis.decr("num1"));
+        System.out.println(jedis.decrBy("num1", 10));
+    }
+}
+```
+
+```java
+jedis.hset("user", "username", "aa");
+jedis.hset("user", "psw", "123");
+System.out.println(jedis.hget("user", "username"));
+System.out.println(jedis.hget("user", "psw"));
+```
+
+```java
+import redis.clients.jedis.BinaryClient;
+jedis.flushDB();
+jedis.lpush("list01", "10", "20", "30", "40");
+// List<String>返回
+System.out.println(jedis.lrange("list01", 0, -1));
+jedis.rpush("list01", "200", "300");
+System.out.println(jedis.lrange("list01", 0, -1));
+jedis.linsert("list01", BinaryClient.LIST_POSITION.BEFORE, "200", "100");
+jedis.linsert("list01", BinaryClient.LIST_POSITION.AFTER, "300", "400");
+System.out.println(jedis.lrange("list01", 0, -1));
+System.out.println(jedis.sort("list01"));// 临时排序输出
+System.out.println(jedis.lrange("list01", 0, -1));
+```
+
+```java
+jedis.sadd("favor", "sleeping", "gaming", "gambling");
+// Set<String>
+System.out.println(jedis.smembers("favor"));
+System.out.println(jedis.scard("favor"));
+jedis.srem("favor", "gaming");
+System.out.println(jedis.smembers("favor"));
+```
+
+```java
+import redis.clients.jedis.Tuple;
+jedis.zadd("english", 90, "baicha");
+jedis.zadd("english", 70, "guodong");
+jedis.zadd("english", 95, "hefeng");
+// Set<String>
+System.out.println(jedis.zrange("english", 0, -1));
+// Set<>
+System.out.println(jedis.zrangeByScoreWithScores("english", 60, 100));
+Set<Tuple> elements = jedis.zrevrangeWithScores("english", 0, -1);
+//现在是字符串了
+for (Tuple tuple : elements) {
+    System.out.println(tuple.getElement() + " : " + tuple.getScore());
+}
+```
+
+##### 序列化
+
+逻辑:
+
+1）判断缓存是否存在某个数据库数据
+
+2）如果存在,读取出来.直接封装返回,不再调用持久层
+
+3）如果不存在,调用持久层获取数据,并存储一份在redis供后续使用。
+
+4）存储数据时,key值的设计规则:根据业务意义设计key
+
+例如,某个商品的key="product\_"+productId;
+
+某个用户的key="user\_"+userId;
+
+将一个对象转化为 String 放进 redis，使用序列化，参考：
+
+```java
+package cn.edu.scnu.test;
+
+import org.junit.Test;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+class TmpObject {
+    public int v, i;
+    public String name;
+
+    // 反序列化必用
+    public TmpObject() {
+    }
+
+    public TmpObject(int v, int i, String name) {
+        this.v = v;
+        this.i = i;
+        this.name = name;
+    }
+}
+
+public class Test02 {
+    @Test
+    public void test02() {
+        ObjectMapper mapper = new ObjectMapper();
+        TmpObject obj = new TmpObject(1, 2, "pwp");
+        try {
+            // {"v":1,"i":2,"name":"pwp"}
+            String res = mapper.writeValueAsString(obj);
+            System.out.println(res);
+            TmpObject obj2 = mapper.readValue(res, TmpObject.class);
+            System.out.println(obj2.name);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+```
+
+列表：(GPT)
+
+```java
+ObjectMapper objectMapper = new ObjectMapper();
+List<TmpObject> tmpObjectList = new ArrayList<>();
+tmpObjectList.add(new TmpObject(1, 2, "pwp"));
+tmpObjectList.add(new TmpObject(3, 4, "test"));
+
+// Convert Java object list to JSON string
+String jsonString = objectMapper.writeValueAsString(tmpObjectList);
+System.out.println("JSON string: " + jsonString);
+
+// Convert JSON string back to Java object list
+List<TmpObject> tmpObjectList2 = objectMapper.readValue(jsonString, new TypeReference<List<TmpObject>>() {});
+for (TmpObject tmpObject : tmpObjectList2) {
+    System.out.println("Java object: " + tmpObject.v + ", " + tmpObject.i + ", " + tmpObject.name);
+}
+```
+
+##### 分片
+
+单个redis的内存容量上限.很容易达到瓶颈,即使配置数据时使用超时逻辑，也会因为单机down掉导致系统无法登录。
+
+可以利用redis的分布式集群;
+
+分布式技术引入项目之后.要考虑一个问题.数据如何划分
+
+在分布式结构中,如何将数据划分给不同的节点.进行分布式处理的过程—也就是数据分片的计算过程
+
+下面引入一个分布式简单算法完成
+
+当前引入的算法:hash取余算法(利用hashCode完成)
+
+即：先取 `String.hashCode()`，再取正，即与 `Integer.MAX_VALUE` 按位与，然后取模，保证结果必然为正的。
+
+```java
+public void test06() {
+    // 模拟海量数据生成 key=value
+    Jedis jedis1 = new Jedis("192.168.243.133", 6379);
+    Jedis jedis2 = new Jedis("192.168.243.133", 6380);
+    Jedis jedis3 = new Jedis("192.168.243.133", 6381);
+    for (int i = 0; i < 10000; i++) {
+        String key = UUID.randomUUID().toString();
+        String value = "value_" + i;
+        // 根据计算划分数据逻辑代码调用不同的jedis
+        // 将数据存储在不同的redis服务端,定义的计算逻辑
+        // 需要在存取,判断存在等方法中完全一致;
+        // 利用hash取余的公式,每一个key都能得到0,1,2
+        Integer result = (key.hashCode() & Integer.MAX_VALUE) % 3;
+        if (result == 0) {
+            jedis1.set(key, value);
+        }
+        if (result == 1) {
+            jedis2.set(key, value);
+        }
+        if (result == 2) {
+            jedis3.set(key, value);
+        }
+    }
+}
+```
+
+> 逐步解析上述过程：
+>
+> ```java
+> Integer hashResult = "4900e409-4873-4c25-8f37-11d6a3d33e64".hashCode();
+> System.out.println("hashResult-bin:");
+> System.out.println(Integer.toBinaryString(hashResult));
+> System.out.println(Integer.toBinaryString(Integer.MAX_VALUE));
+> Integer result = hashResult & Integer.MAX_VALUE;		
+> System.out.println(Integer.toBinaryString(result));
+> System.out.println(result);
+> ```
+
+jedis实现底层的hash一致性算法,利用一个对象收集多个节点信息,通过底层hash一致性算法封装,可以跟jedis对象调用方法一样.实际上已经做了hash一致性计算。
+
+我们只要获取一个封装了算法的对象ShardedJedis分片对象即可;
+
+hash一致性算法优点远远大于hash取余算法
+
+按哈希取一个插入：
+
+```java
+@Test
+public void test08() {
+    // 收集所有节点信息
+    List<JedisShardInfo> infoList = new ArrayList<JedisShardInfo>();
+    // 将3个节点信息.add到infoList总
+    infoList.add(new JedisShardInfo("192.168.243.133", 6379));
+    infoList.add(new JedisShardInfo("192.168.243.133", 6380));
+    infoList.add(new JedisShardInfo("192.168.243.133", 6381));
+    ShardedJedis sJedis = new ShardedJedis(infoList);
+    sJedis.set("name", "白茶");
+    System.out.println(sJedis.get("name"));
+}
+```
+
+分片链接池：
+
+```java
+@Test
+public void test09() {
+    // 收集节点信息
+    List<JedisShardInfo> infoList = new ArrayList<JedisShardInfo>();
+    // 将3个节点信息.add到infoList总
+    infoList.add(new JedisShardInfo("10.9.100.26", 6379));
+    infoList.add(new JedisShardInfo("10.9.100.26", 6380));
+    infoList.add(new JedisShardInfo("10.9.100.26", 6381));
+    // 创建一个连接池的配置对象,定义最大连接数
+    // 最小空闲,最大空闲,最大等待时长
+    GenericObjectPoolConfig config = new GenericObjectPoolConfig();
+    config.setMaxTotal(200);
+    config.setMaxIdle(8);
+    config.setMinIdle(2);
+    // 配置对象.收集对象创建连接池
+    ShardedJedisPool pool = new ShardedJedisPool(config, infoList);
+    // 每次操作redis集群时,从pool来获取资源
+    ShardedJedis sJedis = pool.getResource();
+    // sJedis.set("location", "华南师范大学南海校区");
+    System.out.println(sJedis.get("location"));
+    pool.returnResource(sJedis);
+}
+```
+
+Jedis客户端生成连接池，ShardedJedis分片对象通过hash一致性算法进行数据操作
+
 ### Spring Security
 
 #### 概念
@@ -29175,7 +29503,7 @@ eureka注册中心.提供一种保护微服务集群注册服务信息的机制,
 
 ###### 服务端
 
-> 注：由于未知原因，如果启动后台显示不是 localhost 而是 lr580 或别的名字 UP 的，建议重启电脑，原因未知，怀疑跟梯子有关
+> 注：由于未知原因，如果启动后台显示不是 localhost 而是 lr580 或别的名字 UP 的，建议重启电脑，原因未知，怀疑跟梯子有关。但是，有时候即使是 lr580，也不代表跑不动，如果确实后续能跑动，那可以考虑不管。
 
 创建一个 quickstart maven 工程。
 
@@ -30551,6 +30879,80 @@ public class PicController {
 1. eureka 主机 localhost 变 lr580
 2. `netstat -ano | findstr 端口号` 找不到占用还是说占用
 
+###### redis缓存
+
+自己写的，不保证规范。
+
+```properties
+redis.ip=192.168.126.128
+redis.port=6379
+```
+
+```java
+@Value("${redis.ip}")
+private String redis_ip;
+@Value("${redis.port}")
+private Integer redis_port;
+
+static private ObjectMapper mapper = new ObjectMapper();
+
+public EasyUIResult productPageQuery(Integer page, Integer rows) {
+    EasyUIResult result = new EasyUIResult();
+    Integer total = productMapper.queryTotal();
+    Integer start = (page - 1) * rows;
+    String key = "productlist_" + start + "_" + rows;
+    Jedis jedis = new Jedis(redis_ip, redis_port, 10000);
+    List<Product> pList = null;
+    if (jedis.exists(key)) {
+        System.out.println("Read page from Redis");
+        String value = jedis.get(key);
+        try {
+            pList = mapper.readValue(value, new TypeReference<List<Product>>() {});
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    else {
+        System.out.println("Read page from MySQL");
+        pList = productMapper.queryByPage(start, rows);
+        try {
+            String value = mapper.writeValueAsString(pList);
+            jedis.set(key, value);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+    }
+    jedis.close();
+    result.setTotal(total);
+    result.setRows(pList);
+    return result;
+}
+
+public String queryById(String productId) {
+    String key = "product_" + productId;
+    Jedis jedis = new Jedis(redis_ip, redis_port, 10000);
+    if (jedis.exists(key)) {
+        String value = jedis.get(key);
+        jedis.close();
+        System.out.println("Read by Redis");
+        return value;
+    }
+    Product product = productMapper.queryById(productId);
+    String value;
+    try {
+        value = mapper.writeValueAsString(product);
+    } catch (JsonProcessingException e) {
+        e.printStackTrace();
+        jedis.close();
+        return "";
+    }
+    jedis.set(key, value);
+    jedis.close();
+    System.out.println("Read by MySQL");
+    return value;
+}
+```
+
 
 
 ##### 用户系统
@@ -30707,6 +31109,193 @@ public SysResult userSave(User user) {
     } catch (Exception e) {
         e.printStackTrace();
         return SysResult.build(201, e.getMessage(), null);
+    }
+}
+```
+
+###### 登录
+
+![image-20230419203852042](img/image-20230419203852042.png)
+
+```xml
+<select id="queryUserByNameAndPassword" parameterType="User" resultType="User">
+    select * from t_user where user_name=#{userName} and user_password=#{userPassword}
+</select>
+```
+
+```java
+User queryUserByNameAndPassword(User user);
+```
+
+```java
+@Value("${redis.ip}")
+private String redis_ip;
+@Value("${redis.port}")
+private Integer redis_port;
+
+public String doLogin(User user) {
+    user.setUserPassword(MD5Util.md5(user.getUserPassword()));
+    User exist = userMapper.queryUserByNameAndPassword(user);
+    if (exist == null) {
+        return "";
+    }
+    String ticket = UUID.randomUUID().toString();
+    ObjectMapper mapper = new ObjectMapper();
+    String userJson;
+    try {
+        userJson = mapper.writeValueAsString(exist);
+    } catch (JsonProcessingException e) {
+        e.printStackTrace();
+        return "";
+    }
+    Jedis jedis = new Jedis(redis_ip, redis_port);// 2000ms超时
+    jedis.set(ticket, userJson);
+    jedis.close();
+    return ticket;
+}
+```
+
+```java
+@RequestMapping("/user/manage/login")
+public SysResult doLogin(User user, HttpServletRequest request, HttpServletResponse response) {
+    String ticket = userService.doLogin(user);
+    if (!StringUtils.isEmpty(ticket)) {
+        CookieUtils.setCookie(request, response, "EM_TICKET", ticket);
+        // setCookie(request, response, cookieName, cookieValue, -1);
+        return SysResult.ok();
+    }
+    return SysResult.build(201, "登陆失败", null);
+}
+```
+
+启动eureka、zuul网关、product和ngin后，对登录进行测试，发现第一个登录功能在登录成功时，主页上没有显示登录账号，F12查看，发现没有存cookie，浏览器并不能接收cookie，原因是Zuul网关组件.默认对Cookie的头敏感，将cookie过滤掉了，我们只需要在Zuul网关的application.properties中添加敏感头为空的配置：
+
+```properties
+zuul.sensitive-headers=
+```
+
+调试查询 cookie：浏览器 f12 network 选择对应的请求，name 然后点右边菜单 cookies。或 application - storage - cookie。
+
+第二步：根据 ticket 直接返回 user。
+
+```java
+public String queryUserJson(String ticket) {
+    Jedis jedis = new Jedis(redis_ip, redis_port);
+    String user = jedis.get(ticket);
+    jedis.close();
+    return user;
+}
+```
+
+```java
+@RequestMapping("/user/manage/query/{ticket}")
+public SysResult checkLoginUser(@PathVariable String ticket) {
+    String userJson = userService.queryUserJson(ticket);
+    if (!StringUtils.isEmpty(userJson)) {
+        return SysResult.build(200, "ok", userJson);
+    }
+    return SysResult.build(201, "", null);
+}
+```
+
+之后由于 ticket 存在 cookie，所以一直可以免登录。如果需要调试，手动掐灭 cookie。
+
+目前实现的缺点：
+
+1. 代码中使用了new jedis,登录并发量多，导致内存溢出
+2. 访问的redis是单机节点，节点down了，任何人都无法登录。所以单节点如果节点down了，任何人无法登录
+3. 单节点，容易达到内存容量上限
+
+###### 分片优化
+
+```properties
+spring.redis.shardedpool.nodes=192.168.126.128:6379,192.168.126.128:6380,192.168.126.128:6381
+spring.redis.shardedpool.maxTotal=200
+spring.redis.shardedpool.maxIdle=10
+spring.redis.shardedpool.minIdle=2
+```
+
+配置类：
+
+```java
+package cn.edu.scnu.config;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import redis.clients.jedis.JedisShardInfo;
+import redis.clients.jedis.ShardedJedisPool;
+
+@Configuration
+//读一个前缀的全部配置文件内容
+@ConfigurationProperties(prefix = "spring.redis.shardedpool")
+public class ShardedJedisPoolConfig {
+    private List<String> nodes;
+    private Integer maxTotal;
+    private Integer maxIdle;
+    private Integer minIdle;
+
+    @Bean
+    public ShardedJedisPool sjPoolInit() {
+        List<JedisShardInfo> infoList = new ArrayList<>();
+        for (String node : nodes) {
+            String ip = node.split(":")[0];
+            int port = Integer.parseInt(node.split(":")[1]);
+            infoList.add(new JedisShardInfo(ip, port));
+        }
+        GenericObjectPoolConfig config = new GenericObjectPoolConfig();
+        config.setMaxIdle(maxIdle);
+        config.setMinIdle(minIdle);
+        config.setMaxTotal(maxTotal);
+        return new ShardedJedisPool(config, infoList);
+    }
+    //getter setter
+}
+```
+
+之后改 service
+
+```java
+@Autowired
+private ShardedJedisPool pool;
+private ObjectMapper mapper = MapperUtil.MP;
+
+@SuppressWarnings("deprecation")
+public String doLogin(User user) {
+    ShardedJedis jedis = pool.getResource();
+    try {
+        user.setUserPassword(MD5Util.md5(user.getUserPassword()));
+        User exist = userMapper.queryUserByNameAndPassword(user);
+        if (exist == null) {
+            return "";
+        }
+        String ticket = UUID.randomUUID().toString();
+        String userJson = mapper.writeValueAsString(exist);
+        jedis.set(ticket, userJson);
+        return ticket;
+    } catch (Exception e) {
+        e.printStackTrace();
+        return "";
+    } finally {
+        pool.returnResource(jedis);
+    }
+}
+
+@SuppressWarnings("deprecation")
+public String queryUserJson(String ticket) {
+    ShardedJedis jedis = pool.getResource();
+    try {
+        return jedis.get(ticket);
+    } catch (Exception e) {
+        e.printStackTrace();
+        return "";
+    } finally {
+        pool.returnResource(jedis);
     }
 }
 ```

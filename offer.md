@@ -333,6 +333,42 @@
 - 2409\.统计共同度过的日子数
 
   日期 模拟 / <u>优化</u>
+  
+- 1026\.节点与其祖先之间的最大差值
+
+  DFS
+  
+- 1043\.分隔数组以得到最大和
+
+  **DP**
+  
+- 1187\.使数组严格递增
+
+  DP+二分 / <u>优化</u>
+  
+- 1027\.最长等差数列
+
+  DP
+  
+- 1105\.填充书架
+
+  DP
+  
+- 1163\.按字典序排在最后的子串
+
+  后缀数组 / <u>双指针</u>
+  
+- 1031\.两个非重叠子数组的最大和
+
+  前缀和 / <u>DP+滑动窗口</u>
+  
+- 1048\.最长字符串链
+
+  DP / 拓扑排序 / <u>后缀自动机</u>
+  
+- 1172\.餐盘栈
+
+  数据结构
 
 
 
@@ -9550,6 +9586,708 @@ impl Solution {
     }
 }
 ```
+
+
+
+##### 1026\.节点与其祖先之间的最大差值
+
+[题目](https://leetcode.cn/problems/maximum-difference-between-node-and-ancestor/)
+
+所以直接搞最大最小即可，丢到参数里即可。
+
+```java
+class Solution {
+    private int ans = Integer.MIN_VALUE;
+
+    private void dfs(TreeNode u, Integer mi, Integer mx) {
+        if (u == null) {
+            return;
+        }
+        if (mi != null) {
+            ans = Math.max(ans, Math.abs(u.val - mi));
+            ans = Math.max(ans, Math.abs(u.val - mx));
+            mi = Math.min(mi, u.val);
+            mx = Math.max(mx, u.val);
+        } else {
+            mi = u.val;
+            mx = u.val;
+        }
+        dfs(u.left, mi, mx);
+        dfs(u.right, mi, mx);
+    }
+
+    public int maxAncestorDiff(TreeNode root) {
+        dfs(root, null, null);
+        return ans;
+    }
+}
+```
+
+解法二：维护路径最值，然后相减。不管值域是不是非负数都可以这么搞。
+
+```java
+
+
+    public int maxAncestorDiff(TreeNode root) {
+        if (root == null) {
+            return 0;
+        }
+        // 默认情况下，已知的最小最大边界既是root.val
+        return dfs(root, root.val, root.val);
+    }
+
+
+    /**
+     * DFS
+     * @param root 树节点
+     * @param min 已知的最小边界值
+     * @param max 已知的最大边界值
+     * @return 最大差值
+     */
+    private int dfs(TreeNode root, int min, int max) {
+        // maxAncestorDiff已经对root判空了，这里就不需要判空了
+        // 每经过一个节点，则根据当前节点值，重新计算最小边界和最大边界值（不断扩张已知的范围）
+        min = Math.min(min, root.val);
+        max = Math.max(max, root.val);
+
+        if (root.left == null && root.right == null) {
+            // 到叶子节点的时候，此时该DFS路径的上下边界值已经是已知的最大范围，则计算差值
+            return max - min;
+        }
+        // 递归处理左子树（路径往左走）
+        int leftMaxAncestorDiff = dfs(root.left, min, max);
+        // 递归处理右子树（路径往右走）
+        int rightMaxAncestorDiff = dfs(root.right, min, max);
+        // 返回最大差值的最大值
+        return Math.max(leftMaxAncestorDiff, rightMaxAncestorDiff);
+    }
+```
+
+
+
+##### 1043\.分隔数组以得到最大和
+
+[题目](https://leetcode.cn/problems/partition-array-for-maximum-sum/)
+
+设 $dp_i$ 前 $i$ 个数的答案，倒序枚举 $j\in[i-k,i-1]$，有：
+$$
+dp_i=\max dp_j+(i-j)\max_{k=j+1}^ia_k
+$$
+也就是枚举将 $a_i$ 不断往前扩展直到 $k$ 长，期间维护后缀 max。复杂度 $O(nk)$。
+
+```java
+class Solution {
+    public int maxSumAfterPartitioning(int[] arr, int k) {
+        int n = arr.length;
+        int[] d = new int[n + 1];
+        for (int i = 1; i <= n; i++) {
+            int maxValue = arr[i - 1];
+            for (int j = i - 1; j >= 0 && j >= i - k; j--) {
+                d[i] = Math.max(d[i], d[j] + maxValue * (i - j));
+                if (j > 0) {
+                    maxValue = Math.max(maxValue, arr[j - 1]);
+                }
+            }
+        }
+        return d[n];
+    }
+}
+```
+
+
+
+##### 1187\.使数组严格递增
+
+[题目](https://leetcode.cn/problems/make-array-strictly-increasing/)
+
+设 $dp_i$ 表示只考虑前 $i$ 个数，且第 $i$ 个数不变时的答案。因为最后一个数可能变，所以增设 $arr1_{n+1}=\infty$，求 $dp_{n+1}$，以让最后一个数可以变化。初始设 $dp_i=\infty$，空区间 $dp_{0}=0$。如果最后法发现为 $\infty$ 就无解。
+
+如果有 $arr1_{i} > arr1_{i-1}$，那么可以仍然递增不需要额外操作即 $dp_{i}=dp_{i-1}$。之后，进行一轮遍历，枚举 $j < i-1$，将 $[1,i-1]$ 区间分割成 $[1,j],[j+1,i-1]$，前者保留，后者全部替换。显然 $arr2$ 的重复值没有意义，可以直接排序去重。然后统计一下 $arr2$ 值域在 $[arr1_{j}+1,arr1_{i}-1]$ 的不相同元素有几个，如果不少于区间长度 $i-j-1$，那么可以全部替换，转移方程为 $dp_{i}=dp_j+i-j-1$。
+
+每次查询，在有序数组二分或使用 map，对数复杂度，故总复杂度为 $O(n^2\log m)$
+
+```java
+import java.util.Arrays;
+import java.util.TreeMap;
+
+class Solution {
+    private TreeMap<Integer, Integer> s;
+    private final static int INF = (int) (1e9 + 7);
+
+    private int rangeCnt(int l, int r) {
+        int rv = s.higherEntry(r).getValue() - 1;
+        int lv = s.ceilingEntry(l).getValue();
+        return rv - lv + 1;
+    }
+
+    public int makeArrayIncreasing(int[] arr1, int[] arr2) {
+        int n = arr1.length;
+        int a[] = new int[n + 2];
+        int dp[] = new int[n + 2];
+        a[0] = -1;
+        for (int i = 1; i <= n; ++i) {
+            a[i] = arr1[i - 1];
+        }
+        a[n + 1] = INF;
+        Arrays.fill(dp, INF);
+        dp[0] = 0;
+        s = new TreeMap<>();
+        Arrays.sort(arr2);
+        for (Integer val : arr2) {
+            s.put(val, s.size());
+            s.put(val, s.size());
+        }
+        s.put(INF, s.size() + 1);
+        for (int i = 1; i <= n + 1; ++i) {
+            if (a[i] > a[i - 1]) {
+                dp[i] = dp[i - 1];
+            }
+            for (int j = 0; j < i - 1; ++j) {
+                int cnt = rangeCnt(a[j] + 1, a[i] - 1);
+                if (cnt >= i - j - 1) {
+                    dp[i] = Math.min(dp[i], dp[j] + i - j - 1);
+                }
+            }
+        }
+        return dp[n + 1] == INF ? -1 : dp[n + 1];
+    }
+}
+```
+
+> 附：提供一些测试用例
+>
+> ```
+> [3,2,1]
+> [1,2,3]
+> 
+> [1,5,3,6,7]
+> [3,4]
+> 
+> [6,8,7,10,20]
+> [5,6,7]
+> 
+> [1,3,2]
+> [4]
+> 
+> [1,5,4,10,9,20]
+> [4,6,9,10,14]
+> 
+> [10,1,12,2,5]
+> [1,2,3,4,11,13,14]
+> 
+> [1,2,3,4,6]
+> [5]
+> ```
+
+其他解法：
+
+设 $dp_{i,j}$ 表示前 $i$ 个元素替换了 $j$ 次后末尾元素的最小值。
+
+- 若 $a_i$ 保留，则必须严格大于前 $i-1$ 个元素，即 $a_i > dp_{i-1,j}$
+- 若 $a_i$ 替换，换了一定要大于前 $i-1$ 个元素，即 $v > dp_{i-1,j-1}$，找到 $b$ 里大于其的最小元素进行替换即可
+
+方便起见，初始设 $dp=\infty,dp_{0,0}=-\infty$。
+
+```c++
+constexpr int INF = 0x3f3f3f3f;
+
+class Solution {
+public:
+    int makeArrayIncreasing(vector<int>& arr1, vector<int>& arr2) {
+        sort(arr2.begin(), arr2.end());
+        arr2.erase(unique(arr2.begin(), arr2.end()), arr2.end());
+        int n = arr1.size();
+        int m = arr2.size();
+        vector<vector<int>> dp(n + 1, vector<int>(min(m, n) + 1, INF));
+        dp[0][0] = -1;
+        for (int i = 1; i <= n; i++) {
+            for (int j = 0; j <= min(i, m); j++) {
+                /* 如果当前元素大于序列的最后一个元素 */
+                if (arr1[i - 1] > dp[i - 1][j]) {
+                    dp[i][j] = arr1[i - 1];
+                }
+                if (j > 0 && dp[i - 1][j - 1] != INF) {
+                    /* 查找严格大于 dp[i - 1][j - 1] 的最小元素 */
+                    auto it = upper_bound(arr2.begin(), arr2.end(), dp[i - 1][j - 1]);//也可以begin+j-1,因为前j-1次一定消耗掉了不能反复用
+                    if (it != arr2.end()) {
+                        dp[i][j] = min(dp[i][j], *it);
+                    }
+                }
+                if (i == n && dp[i][j] != INF) {
+                    return j;
+                }
+            }
+        }
+        return -1;
+    }
+};
+```
+
+而对自己想出的那个状态，还可以继续优化，每个 i 只一次二分：
+
+```c++
+constexpr int INF = 0x3f3f3f3f;
+
+class Solution {
+public:
+    int makeArrayIncreasing(vector<int>& arr1, vector<int>& arr2) {
+        sort(arr2.begin(), arr2.end());
+        arr2.erase(unique(arr2.begin(), arr2.end()), arr2.end());
+        /* 右侧哨兵 inf */
+        arr1.push_back(INF); 
+        /* 左侧哨兵 -1 */
+        arr1.insert(arr1.begin(), -1); 
+        int n = arr1.size();
+        int m = arr2.size();
+
+        vector<int> dp(n, INF);
+        dp[0] = 0;
+        for (int i = 1; i < n; i++) {
+            /* arr1[i] 左侧的元素不进行替换 */
+            if (arr1[i - 1] < arr1[i]) {
+                dp[i] = min(dp[i], dp[i - 1]);
+            }
+            /* 固定替换元素的右侧终点 */
+            int k = lower_bound(arr2.begin(), arr2.end(), arr1[i]) - arr2.begin();
+            /* 枚举从 i 左侧连续替换元素的个数 */
+            for (int j = 1; j <= min(i - 1, k); ++j) {
+                /* 替换的连续 j 个元素的左侧起点需满足大于 arr1[i - j - 1] */ 
+                if (arr1[i - j - 1] < arr2[k - j]) {
+                    dp[i] = min(dp[i], dp[i - j - 1] + j);
+                }
+            }
+        }
+        return dp[n - 1] == INF ? -1 : dp[n - 1];
+    }
+};
+```
+
+
+
+##### 1027\.最长等差数列
+
+[题目](https://leetcode.cn/problems/longest-arithmetic-subsequence/)
+
+枚举每个公差，然后用桶优化，存下每个结尾的最长等差子序列。
+
+```java
+class Solution {
+    public int longestArithSeqLength(int[] nums) {
+        int n = nums.length, cnt[] = new int[501], ans = 2;
+        for (int d = -500; d <= 500; ++d) {
+            for (int i = 0; i < n; ++i) {
+                cnt[nums[i]] = 0;
+            }
+            for (int i = 0; i < n; ++i) {
+                if (nums[i] - d >= 0 && nums[i] - d <= 500) {
+                    cnt[nums[i]] = Math.max(cnt[nums[i]], cnt[nums[i] - d] + 1);
+                } else {
+                    cnt[nums[i]] = Math.max(cnt[nums[i]], 1);
+                }
+            }
+            for (int i = 0; i < n; ++i) {
+                ans = Math.max(ans, cnt[nums[i]]);
+            }
+        }
+        return ans;
+    }
+}
+```
+
+优雅写法：
+
+```java
+class Solution {
+    public int longestArithSeqLength(int[] nums) {
+        int minv = Arrays.stream(nums).min().getAsInt();
+        int maxv = Arrays.stream(nums).max().getAsInt();
+        int diff = maxv - minv;
+        int ans = 1;
+        for (int d = -diff; d <= diff; ++d) {
+            int[] f = new int[maxv + 1];
+            Arrays.fill(f, -1);
+            for (int num : nums) {
+                int prev = num - d;
+                if (prev >= minv && prev <= maxv && f[prev] != -1) {
+                    f[num] = Math.max(f[num], f[prev] + 1);
+                    ans = Math.max(ans, f[num]);
+                }
+                f[num] = Math.max(f[num], 1);
+            }
+        }
+        return ans;
+    }
+}
+```
+
+
+
+##### 1105\.填充书架
+
+[题目](https://leetcode.cn/problems/filling-bookcase-shelves/)
+
+比较显然的 DP。
+
+```java
+class Solution {
+    public int minHeightShelves(int[][] a, int w) {
+        int n = a.length, dp[] = new int[n + 1];
+        for (int i = 1; i <= n; ++i) {
+            int cnt = a[i - 1][0], h = a[i - 1][1];
+            dp[i] = dp[i - 1] + h;
+            for (int j = i - 1; j >= 1; --j) {
+                cnt += a[j - 1][0];
+                if (cnt > w) {
+                    break;
+                }
+                h = Math.max(h, a[j - 1][1]);
+                dp[i] = Math.min(dp[i], dp[j - 1] + h);
+            }
+        }
+        return dp[n];
+    }
+}
+```
+
+
+
+##### 1163\.按字典序排在最后的子串
+
+[题目](https://leetcode.cn/problems/last-substring-in-lexicographical-order/)
+
+字典序最大的子串一定是一个后缀。因为如果找到了一个非后缀的子串，一定可以不断向后扩展该子串，使得该子串更大，最终成为后缀。因此只需要求出最大的后缀即可。
+
+使用后缀数组/后缀自动机可以完成该目标。以后缀数组为例，只需要求出 `sa[n]` 的序号，然后输出该序号的后缀即可。倍增法后缀数组复杂度为 $O(n\log n)$，可以用 SA-IS 或 3DC 法优化为 $O(n)$(这里懒，不优化了)，后缀自动机的话复杂度直接就是 $O(n)$。
+
+```java
+import java.util.Arrays;
+
+class SuffixArray {
+    public int m = 300, p, n;
+    public int[] cnt, rk, sa, id, px, oldrk;
+
+    boolean cmp(int x, int y, int w) {
+        return oldrk[x] == oldrk[y] && oldrk[x + w] == oldrk[y + w];
+    }
+
+    public SuffixArray(String s) {
+        n = s.length();
+        cnt = new int[m + 1];
+        rk = new int[n + 1];
+        sa = new int[n + 1];
+        id = new int[n + 1];
+        px = new int[n + 1];
+        oldrk = new int[2 * (n + 1)];
+        for (int i = 1; i <= n; ++i) {
+            ++cnt[rk[i] = s.charAt(i - 1)];
+        }
+        for (int i = 1; i <= m; ++i) {
+            cnt[i] += cnt[i - 1];
+        }
+        for (int i = n; i >= 1; --i) {
+            sa[cnt[rk[i]]--] = i;
+        }
+        for (int w = 1, i;; w <<= 1, m = p) {
+            for (p = 0, i = n; i > n - w; --i) {
+                id[++p] = i;
+            }
+            for (int j = 1; j <= n; ++j) {
+                if (sa[j] > w) {
+                    id[++p] = sa[j] - w;
+                }
+            }
+            Arrays.fill(cnt, 0);
+            for (int j = 1; j <= n; ++j) {
+                ++cnt[px[j] = rk[id[j]]];
+            }
+            for (int j = 1; j <= m; ++j) {
+                cnt[j] += cnt[j - 1];
+            }
+            for (int j = n; j >= 1; --j) {
+                sa[cnt[px[j]]--] = id[j];
+            }
+            for (int j = 0; j <= n; ++j) {
+                oldrk[j] = rk[j];
+            }
+            for (p = 0, i = 1; i <= n; ++i) {
+                rk[sa[i]] = cmp(sa[i], sa[i - 1], w) ? p : ++p;
+            }
+            if (p == n) {
+                for (int j = 1; j <= n; ++j) {
+                    sa[rk[j]] = j;
+                }
+                break;
+            }
+            cnt = new int[p + 1];
+        }
+    }
+}
+
+class Solution {
+    public String lastSubstring(String s) {
+        SuffixArray sa = new SuffixArray(s);
+        int biggest = sa.sa[s.length()];
+        return s.substring(biggest - 1);
+    }
+}
+```
+
+更优解：双指针。
+
+```java
+class Solution {
+    public String lastSubstring(String s) {
+        int n = s.length();
+        int i = 0;//当前最长子串起点,j是候选起点
+        for (int j = 1, k = 0; j + k < n;) {
+            int d = s.charAt(i + k) - s.charAt(j + k);
+            if (d == 0) {//[i,i+k]==[j,j+k]都是同一个字母
+                ++k;
+            } else if (d < 0) {//既然都是同一个字母,那么这些字母对应的后缀都丢了
+                i += k + 1;
+                k = 0;
+                //yedcbazaaa i=y,j=z,k=0 -> i=e while to i=z,j=a
+                if (i >= j) {
+                    j = i + 1;
+                }
+            } else {
+                //zbzazc -> j=b -> j=a then above i=z1 i=z2 i=z3,j=c
+                j += k + 1;
+                k = 0;
+            }
+        }
+        return s.substring(i);
+    }
+}
+```
+
+
+
+##### 1031\.两个非重叠子数组的最大和
+
+[题目](https://leetcode.cn/problems/maximum-sum-of-two-non-overlapping-subarrays/)
+
+前缀和直接枚举全体方案即可。
+
+```java
+class Solution {
+    public int maxSumTwoNoOverlap(int[] nums, int firstLen, int secondLen) {
+        int n = nums.length, s[] = new int[n + 1], ans = 0;
+        for (int i = 1; i <= n; ++i) {
+            s[i] += s[i - 1] + nums[i - 1];
+        }
+        for (int i = 1; i + firstLen - 1 <= n; ++i) {
+            for (int j = 1; j + secondLen - 1 <= n; ++j) {
+                if (j > i + firstLen - 1 || j + secondLen - 1 < i) {
+                    int res = s[i + firstLen - 1] - s[i - 1];
+                    res += s[j + secondLen - 1] - s[j - 1];
+                    ans = Math.max(ans, res);
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+假设第一段总是在第二段前边(否则，可以交换两个 Len 再跑一次)，维护 suml 为当前第一段的和，sumr 是当前第二段的和，维护有史以来最大的 suml，然后让其加上 sumr。
+
+```java
+class Solution {
+    public int maxSumTwoNoOverlap(int[] nums, int firstLen, int secondLen) {
+        return Math.max(help(nums, firstLen, secondLen), help(nums, secondLen, firstLen));
+    }
+
+    public int help(int[] nums, int firstLen, int secondLen) {
+        int suml = 0;
+        for (int i = 0; i < firstLen; ++i) {
+            suml += nums[i];
+        }
+        int maxSumL = suml;
+        int sumr = 0;
+        for (int i = firstLen; i < firstLen + secondLen; ++i) {
+            sumr += nums[i];
+        }
+        int res = maxSumL + sumr;
+        for (int i = firstLen + secondLen, j = firstLen; i < nums.length; ++i, ++j) {
+            suml += nums[j] - nums[j - firstLen];
+            maxSumL = Math.max(maxSumL, suml);
+            sumr += nums[i] - nums[i - secondLen];
+            res = Math.max(res, maxSumL + sumr);
+        }
+        return res;
+    }
+}d
+```
+
+
+
+##### 1048\.最长字符串链
+
+[题目](https://leetcode.cn/problems/longest-string-chain/)
+
+比题解更优复杂度的拓扑排序DP。
+
+前身关系可以建一张 DAG，枚举每个字符串，遍历删掉每个字符得到的子串，然后查询该子串是否在 words 出现过(如果重复出现任取一个)，若出现过。连一条有向边，设字符串有 $n$ 个，每个长度为 $m$，则建图的复杂度是 $O(nm^2)$，空间复杂度也是 $O(nm)$(考虑 hashmap 预处理优化查询)。
+
+在这之后，对建好的图，初始化每个点的最长单词链为 $dp_i=1$，拓扑序转移，对每个节点 $u$，设子节点为 $v$，则转移方程为 $dp_u=\max dp_v+1$。跑拓扑序的时空复杂度均为 $O(n)$(用下标表示节点，而不是用字符串表示)。
+
+因此总时空复杂度取建图复杂度，为 $O(nm^2)$。
+
+```java
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+
+class Solution {
+    public int longestStrChain(String[] words) {
+        int n = words.length;
+        int[] ru = new int[n], dp = new int[n];
+        @SuppressWarnings("unchecked")
+        ArrayList<Integer> g[] = new ArrayList[n];
+        for (int i = 0; i < n; ++i) {
+            g[i] = new ArrayList<>();
+            dp[i] = 1;
+        }
+        HashMap<String, Integer> m = new HashMap<>();
+        for (int i = 0; i < n; ++i) {
+            m.put(words[i], i);
+        }
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0, je = words[i].length(); j < je; ++j) {
+                String s = words[i].substring(0, j) + words[i].substring(j + 1);
+                Integer k = m.get(s);
+                if (k != null) {
+                    g[k].add(i);
+                    ++ru[i];
+                }
+            }
+        }
+        Deque<Integer> q = new ArrayDeque<>();
+        for (int i = 0; i < n; ++i) {
+            if (ru[i] == 0) {
+                q.addLast(i);
+            }
+        }
+        int ans = 1;
+        while (!q.isEmpty()) {
+            int u = q.pollFirst();
+            for (int v : g[u]) {
+                dp[v] = Math.max(dp[v], dp[u] + 1);
+                ans = Math.max(ans, dp[v]);
+                if (--ru[v] == 0) {
+                    q.addLast(v);
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+题解的不建图排序 DP，按长度排序 $O(n\log n)$，排序后不断存 map，空间 $O(nm)$，枚举每个串的子串为 $O(nm^2)$。
+
+```java
+class Solution {
+    public int longestStrChain(String[] words) {
+        Map<String, Integer> cnt = new HashMap<String, Integer>();
+        Arrays.sort(words, (a, b) -> a.length() - b.length());
+        int res = 0;
+        for (String word : words) {
+            cnt.put(word, 1);
+            for (int i = 0; i < word.length(); i++) {
+                String prev = word.substring(0, i) + word.substring(i + 1);
+                if (cnt.containsKey(prev)) {
+                    cnt.put(word, Math.max(cnt.get(word), cnt.get(prev) + 1));
+                }
+            }
+            res = Math.max(res, cnt.get(word));
+        }
+        return res;
+    }
+}
+```
+
+后缀自动机，复杂度为 $O(\sum|s|)$。
+
+字符串 t 是 s 的前身，相当于字符串 t 可以被分割为两部分，且两部分分别是 s 的前缀和后缀。令 $rep(s)=s+\#+s$，若是 $t$ 是 $s$ 的前身，则 $rep(t)$ 和 $rep(s)$ 有长为 $|s|$  的公共子串(即 原串后缀+`#`+原串前缀 组成的子串)。
+
+按长度顺序处理 DP，每次处理所有同长字符串，将 DP 值存入 SAM。之后看不懂了。[参考](https://leetcode.cn/problems/longest-string-chain/solution/zi-fu-chuan-geng-chang-shi-de-onmjie-fa-bjk1b/)
+
+
+
+##### 1172\.餐盘栈
+
+[题目](https://leetcode.cn/problems/dinner-plate-stacks/)
+
+维护栈套栈，具体而言，将每个栈用列表连接起来，然后开 tree set 有序维护列表里不满的栈的下标。则对每个操作：
+
+1. `push`。取不满的第一个栈插入，并更新 tree set
+2. `popAtStack`。做完边界/有效性特判后，删掉指定栈顶，更新 tree set
+3. `pop`。不断取列表尾(栈套栈的外层栈顶)，如果空就弹掉，这样就避免了再维护多一个 tree set 区分空和不满。
+
+不需要维护满的栈下标，因为上述操作用不到。只需要维护未满即可。
+
+均摊每次操作时间复杂度取 tree set 复杂度 $O(\log n)$，总空间复杂度 $O(n)$。
+
+```java
+import java.util.ArrayList;
+import java.util.TreeSet;
+
+class DinnerPlates {
+    int c;
+    TreeSet<Integer> full, avail;
+    ArrayList<ArrayList<Integer>> s;
+
+    public DinnerPlates(int capacity) {
+        c = capacity;
+        full = new TreeSet<>();
+        avail = new TreeSet<>();
+        s = new ArrayList<>();
+    }
+
+    public void push(int val) {
+        if (avail.isEmpty()) {
+            avail.add(s.size());
+            s.add(new ArrayList<>());
+        }
+        int i = avail.first();
+        s.get(i).add(val);
+        if (s.get(i).size() == c) {
+            avail.remove(i);
+            full.add(i);
+        } else {
+            avail.add(i);
+        }
+    }
+
+    public int pop() {
+        while (!s.isEmpty() && s.get(s.size() - 1).size() == 0) {
+            avail.remove(s.size() - 1);
+            s.remove(s.size() - 1);
+        }
+        return popAtStack(s.size() - 1);
+    }
+
+    public int popAtStack(int index) {
+        if (s.isEmpty() || index >= s.size()) {
+            return -1;
+        }
+        ArrayList<Integer> lt = s.get(index);
+        if (lt.isEmpty()) {
+            return -1;
+        }
+        int val = lt.get(lt.size() - 1);
+        lt.remove(lt.size() - 1);
+        full.remove(index);
+        avail.add(index);
+        return val;
+    }
+}
+```
+
+题解写的是什么乱七八糟不想看。
 
 
 

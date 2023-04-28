@@ -3598,6 +3598,15 @@ virsual interface 默认文本编辑器
 
 ##### vim
 
+> 安装
+>
+> ```sh
+> rpm -qa | grep vim
+> yum -y install vim-enhanced
+> yum -y install vim*
+> rpm -qa | grep vim #查询 
+> ```
+
 vi improved，增加了语法高亮等拓展功能
 
 三种工作模式：命令模式、输入模式、末行模式
@@ -4778,6 +4787,19 @@ centos 7 为例
 临时关闭：`setenforce 0`
 
 永久关闭：`/etc/selinux/config` 里 `SELINUX=enforcing` 改为 `SELINUX=disabled`
+
+
+
+查询端口，修改状态：
+
+```sh
+firewall-cmd --query-port=6379/tcp
+firewall-cmd --zone=public --add-port=6379/tcp --permanent
+firewall-cmd --reload
+firewall-cmd --query-port=6379/tcp
+```
+
+
 
 
 
