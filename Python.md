@@ -8890,6 +8890,14 @@ layer = CenteredLayer()
 layer(torch.tensor([1.0, 2, 3, 4, 5]))
 ```
 
+检验一下：
+
+```python
+net = nn.Sequential(nn.LazyLinear(128), CenteredLayer())
+Y = net(torch.rand(4, 8))
+Y.mean()
+```
+
 一个手写全连接层例子：(参数是输入和输出数)
 
 ```python
@@ -8902,9 +8910,200 @@ class MyLinear(nn.Module):
     def forward(self, X):
         linear = torch.matmul(X, self.weight.data) + self.bias.data
         return F.relu(linear)
+linear = MyLinear(5, 3)
+print(linear.weight) #5x3
+print(linear.bias) #3
 ```
 
+将2个样本直接传入该全连接层，得到这两个样本的输出：
 
+```python
+linear(torch.rand(2, 5)) #2x3
+```
+
+用多个自己的全连接层：
+
+```python
+net = nn.Sequential(MyLinear(64, 8), MyLinear(8, 1))
+net(torch.rand(2, 64)) #2x1
+```
+
+##### 文件读写
+
+模型可能需要存储，而且对长时间的训练，定期备份也是一个好习惯。
+
+torch 可以直接读写，如下所示：
+
+```python
+import torch
+from torch import nn
+from torch.nn import functional as F
+```
+
+```python
+x = torch.arange(4)
+torch.save(x, 'result') #无后缀名,当前运行目录,二进制文件
+x2 = torch.load('result')
+print(x2)
+```
+
+可以存多个 tensors：
+
+```python
+y = torch.zeros(4)
+torch.save([x, y],'x-files')
+x2, y2 = torch.load('x-files')
+print(x2, y2)
+```
+
+还可以存任意其他想存的：
+
+```python
+mydict = {'x': x, 'y': y}
+torch.save(mydict, 'mydict')
+mydict2 = torch.load('mydict')
+print(mydict2)
+```
+
+```python
+ww = "白茶再见"
+def f(s):
+    return s+s
+torch.save([ww,f],'tmp') #但是lambda不能保存
+ww2,f2 = torch.load('tmp')
+print(f2(ww2))
+```
+
+对网络的存取：
+
+```python
+class MLP(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.hidden = nn.LazyLinear(256)
+        self.output = nn.LazyLinear(10)
+
+    def forward(self, x):
+        return self.output(F.relu(self.hidden(x)))
+
+net = MLP()
+X = torch.randn(size=(2, 20))
+Y = net(X)
+
+torch.save(net.state_dict(), 'mlp.params')
+clone = MLP()
+clone.load_state_dict(torch.load('mlp.params'))
+print(clone.eval())
+
+Y_clone = clone(X)
+print(Y_clone == Y)
+```
+
+##### GPU
+
+jupyter 输出 GPU 信息：
+
+```python
+!nvidia-smi
+```
+
+输出基本信息：
+
+```python
+import torch
+from torch import nn
+from d2l import torch as d2l
+def cpu():  #@save
+    """Get the CPU device."""
+    return torch.device('cpu')
+
+def gpu(i=0):  #@save
+    """Get a GPU device."""
+    return torch.device(f'cuda:{i}')
+
+print(cpu(), gpu(), gpu(1))
+
+def num_gpus():  #@save
+    """Get the number of available GPUs."""
+    return torch.cuda.device_count()
+
+print(num_gpus())
+
+def try_gpu(i=0):  #@save
+    """Return gpu(i) if exists, otherwise return cpu()."""
+    if num_gpus() >= i + 1:
+        return gpu(i)
+    return cpu()
+
+def try_all_gpus():  #@save
+    """Return all available GPUs, or [cpu(),] if no GPU exists."""
+    return [gpu(i) for i in range(num_gpus())]
+
+print(try_gpu(), try_gpu(10), try_all_gpus())
+```
+
+查看运算用 CPU 还是用 GPU：
+
+```python
+x = torch.tensor([1, 2, 3])
+x.device #cpu
+```
+
+要计算的张量要部署在同一个设备上。否则，先复制：
+
+```python
+X = torch.ones(2, 3, device=cpu())
+Y = torch.rand(2, 3, device=try_gpu())
+Z = X.cuda()
+print(X,Z)
+```
+
+虽然 GPU 计算快，但设备转移数据慢。因此多个小操作比一个大操作要劣。而且需要考虑局部性原理。
+
+使用 GPU 的网络：
+
+```python
+net = nn.Sequential(nn.LazyLinear(1))
+net = net.to(device=try_gpu())
+net(X)
+```
+
+```python
+print(net[0].weight.data.device)
+```
+
+抽象而言：
+
+```python
+@d2l.add_to_class(d2l.Trainer)  #@save
+def __init__(self, max_epochs, num_gpus=0, gradient_clip_val=0):
+    self.save_hyperparameters()
+    self.gpus = [d2l.gpu(i) for i in range(min(num_gpus, d2l.num_gpus()))]
+
+@d2l.add_to_class(d2l.Trainer)  #@save
+def prepare_batch(self, batch):
+    if self.gpus:
+        batch = [a.to(self.gpus[0]) for a in batch]
+    return batch
+
+@d2l.add_to_class(d2l.Trainer)  #@save
+def prepare_model(self, model):
+    model.trainer = self
+    model.board.xlim = [0, self.max_epochs]
+    if self.gpus:
+        model.to(self.gpus[0])
+    self.model = model
+```
+
+注意输出会调回 GPU，所以在 GPT 每次训练后调试输出会损耗性能。
+
+#### 卷积神经网络
+
+##### 概念
+
+传统 MLP 对特征(feature)间的关联处理不太好。
+
+如果图片太大，那么特征非常多，即 $3nm$ 个，然后如果是全连接层，设有 $t$ 个神经元，也需要 $3nmt$ 个参数。
 
 ## 网络
 
@@ -9357,6 +9556,87 @@ with open('titles.txt', 'w', encoding=enc) as f:
 ![image-20220426205334175](img/image-20220426205334175.png)
 
 ![image-20220426205500774](img/image-20220426205500774.png)
+
+### Flask
+
+#### 简单post
+
+几乎都是 GPT 生成。
+
+```python
+#你的核心业务代码,也可以单独写一个.py然后import过来
+def mainFunc(name):
+    #返回的是你业务代码处理得到的结果
+    return {'data': name + "爱lr580", 'type': 3}
+
+
+from flask import Flask, request
+
+# print(__name__) '__main__'
+app = Flask(__name__)
+
+
+@app.route('/', methods=['POST'])
+def call_mainFunc():
+    name = request.form.get('name')
+    res = mainFunc(name)
+    return res
+
+app.run(port=52580)  #[1024,65535]任意int
+```
+
+测试：
+
+```python
+import requests
+requests.post('http://127.0.0.1:52580/',data={'name':'yym'}).text
+```
+
+网页测试：
+
+```html
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>lr580是米娜桑的主人</title>
+    </head>
+    <body>
+        <form>
+            <label for="name">你的名字：</label>
+            <input type="text" id="name" name="name">
+            <button type="button" onclick="callPythonServer()">提交</button>
+        </form>
+        <div id="result"></div>
+        <script>
+        //你用jquery也行，我懒，就不用了
+		function callPythonServer() {
+			// 获取输入框中的名称
+			var name = document.getElementById("name").value;
+
+			// 创建一个XMLHttpRequest对象
+			var xhr = new XMLHttpRequest();
+
+			// 设置POST请求的URL和参数
+			var url = "http://localhost:52580/";
+			var params = "name=" + name;
+
+			// 发送POST请求
+			xhr.open("POST", url, true);
+			xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+			xhr.onreadystatechange = function() {
+				if (xhr.readyState == 4 && xhr.status == 200) {
+					// 显示结果
+                    var res = JSON.parse(xhr.responseText);
+					document.getElementById("result").innerHTML = "data: " + res.data + ", type: " + res.type;
+				
+				}
+			};
+			xhr.send(params);
+		}
+        </script>
+    </body>
+</html>
+```
 
 
 

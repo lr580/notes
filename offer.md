@@ -369,6 +369,18 @@
 - 1172\.餐盘栈
 
   数据结构
+  
+- 2423\.删除字符使频率相同
+
+  STL
+  
+- 1003\.检查替换后的词是否有效
+
+  贪心
+  
+- 2106\.摘水果
+
+  前缀和 / <u>滑动窗口</u>
 
 
 
@@ -10290,6 +10302,375 @@ class DinnerPlates {
 题解写的是什么乱七八糟不想看。
 
 
+
+##### 2423\.删除字符使频率相同
+
+[题目]()
+
+自己的n方暴力和假贪心：
+
+```java
+class Solution {
+    public boolean equalFrequency(String word) {
+        int n = word.length();
+        for (int i = 0; i < n; ++i) {
+            String s = word.substring(0, i) + word.substring(i + 1);
+            int cnt[] = new int[26];
+            for (int c : s.getBytes()) {
+                cnt[c - 'a']++;
+            }
+            boolean avail = true;
+            for (int j = 0, bf = 0; j < 26; ++j) {
+                if (cnt[j] > 0) {
+                    if (bf != 0 && bf != cnt[j]) {
+                        avail = false;
+                    }
+                    bf = cnt[j];
+                }
+            }
+            if (avail) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+/*
+"bac"
+"bb"
+"ba"
+"aazz"
+"abcc"
+"aab"
+"azaz"
+"aabbccb"
+"abbcc"
+"abcdee"
+"cbccca"
+ */
+```
+
+归纳结论：
+
+```java
+class Solution {
+   public boolean equalFrequency(String word) {
+       int cnt[] = new int[26], n = word.length();
+       for (int i = 0; i < n; ++i) {
+           cnt[word.charAt(i) - 'a']++;
+       }
+       TreeMap<Integer, Integer> m = new TreeMap<>();
+       for (int i = 0; i < 26; ++i) {
+           if (cnt[i] > 0) {
+               m.put(cnt[i], m.getOrDefault(cnt[i], 0) + 1);
+           }
+       }
+       if (m.size() == 1) {// bb | abc
+           return m.firstEntry().getValue() == 1 || m.firstKey() == 1;
+       }
+       if (m.size() != 2) {
+           return false;
+       }
+       // abbbccc | aabbcczzz
+       return (m.firstKey() == 1 && m.firstEntry().getValue() == 1) ||
+            (m.lastEntry().getValue() == 1 && m.lastKey() - m.firstKey() == 1);
+   }
+}
+```
+
+一种枚举优化：将原串转cnt数组，枚举删掉每个字符，然后统计字符集
+
+```java
+class Solution {
+    public boolean equalFrequency(String word) {
+        int[] charCount = new int[26];
+        int n = word.length();
+        for (int i = 0; i < n; i++) {
+            charCount[word.charAt(i) - 'a']++;
+        }
+        for (int i = 0; i < 26; i++) {
+            if (charCount[i] == 0) {
+                continue;
+            }
+            charCount[i]--;
+            HashSet<Integer> frequency = new HashSet<Integer>();
+            for (int f : charCount) {
+                if (f > 0) {
+                    frequency.add(f);
+                }
+            }
+            if (frequency.size() == 1) {
+                return true;
+            }
+            charCount[i]++;
+        }
+        return false;
+    }
+}
+```
+
+来点继续优化：
+
+```java
+class Solution {
+    public boolean equalFrequency(String word) {
+        int[] charCount = new int[26];
+        for (char c : word.toCharArray()) {
+            charCount[c - 'a']++;
+        }
+        Map<Integer, Integer> freqCount = new HashMap<>();
+        for (int c : charCount) {
+            if (c > 0) {
+                freqCount.put(c, freqCount.getOrDefault(c, 0) + 1);
+            }
+        }
+        for (int c : charCount) {
+            if (c == 0) {
+                continue;
+            }
+            freqCount.put(c, freqCount.get(c) - 1);
+            if (freqCount.get(c) == 0) {
+                freqCount.remove(c);
+            }
+            if (c - 1 > 0) {
+                freqCount.put(c - 1, freqCount.getOrDefault(c - 1, 0) + 1);
+            }
+            if (freqCount.size() == 1) {
+                return true;
+            }
+            if (c - 1 > 0) {
+                freqCount.put(c - 1, freqCount.get(c - 1) - 1);
+                if (freqCount.get(c - 1) == 0) {
+                    freqCount.remove(c - 1);
+                }
+            }
+            freqCount.put(c, freqCount.getOrDefault(c, 0) + 1);
+        }
+        return false;
+    }
+}
+```
+
+
+
+##### 1003\.检查替换后的词是否有效
+
+[题目](https://leetcode.cn/problems/check-if-word-is-valid-after-substitutions/)
+
+贪心，不断删 abc，一定不会更差。
+
+列表比较快：
+
+```java
+import java.util.ArrayList;
+
+class Solution {
+    public boolean isValid(String s) {
+        ArrayList<Character> a = new ArrayList<>();
+        for (byte c : s.getBytes()) {
+            a.add((char) c);
+            while (a.size() >= 3 && a.get(a.size() - 1) == 'c') {
+                if (a.get(a.size() - 2) == 'b' && a.get(a.size() - 3) == 'a') {
+                    for (int i = 0; i < 3; ++i) {
+                        a.remove(a.size() - 1);
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+        return a.size() == 0;
+    }
+}
+```
+
+sb 比较慢：
+
+```java
+class Solution {
+    public boolean isValid(String s) {
+        StringBuilder stk = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            stk.append(c);
+            if (stk.length() >= 3 && stk.substring(stk.length() - 3).equals("abc")) {
+                stk.delete(stk.length() - 3, stk.length());
+            }
+        }
+        return stk.isEmpty();
+    }
+}
+```
+
+
+
+##### 2106\.摘水果
+
+[题目](https://leetcode.cn/problems/maximum-fruits-harvested-after-at-most-k-steps/)
+
+前缀和枚举所有走 k 步的方案：①只往左/往右；②先左后右；③先右后左。其他方案一定不会比上述方案更优。
+
+```java
+class Solution {
+    private int s[], m, n;
+
+    private int sum(int l, int r) {
+        l = Math.max(0, Math.min(m, l));
+        r = Math.max(0, Math.min(m, r));
+        return s[r + 1] - s[l];
+    }
+
+    public int maxTotalFruits(int[][] fruits, int a, int k) {
+        n = fruits.length;
+        m = Math.max(a, fruits[n - 1][0]);
+        s = new int[m + 2];
+        for (int i = 0; i < n; ++i) {
+            s[fruits[i][0] + 1] += fruits[i][1];
+        }
+        for (int i = 1; i <= m + 1; ++i) {
+            s[i] += s[i - 1];
+        }
+        int ans = sum(a, a + k);
+        ans = Math.max(ans, sum(a - k, a));
+        for (int l = 1; a - l >= 0 && 2 * l <= k; ++l) {
+            int r = k - 2 * l;
+            ans = Math.max(ans, sum(a - l, a + r));
+        }
+        for (int r = 1; a + r <= m && 2 * r <= k; ++r) {
+            int l = k - 2 * r;
+            ans = Math.max(ans, sum(a - l, a + r));
+        }
+        return ans;
+    }
+}
+```
+
+也可以离散化前缀和，那么查询要用二分。就是省空间不剩时间了。
+
+```java
+class Solution {
+    public int maxTotalFruits(int[][] fruits, int startPos, int k) {
+        int n = fruits.length;
+        int[] sum = new int[n + 1];
+        int[] indices = new int[n];
+        sum[0] = 0;
+        for (int i = 0; i < n; i++) {
+            sum[i + 1] = sum[i] + fruits[i][1];
+            indices[i] = fruits[i][0];
+        }
+        int ans = 0;
+        for (int x = 0; x <= k / 2; x++) {
+            /* 向左走 x 步，再向右走 k - x 步 */
+            int y = k - 2 * x;
+            int left = startPos - x;
+            int right = startPos + y;
+            int start = lowerBound(indices, 0, n - 1, left);
+            int end = upperBound(indices, 0, n - 1, right);
+            ans = Math.max(ans, sum[end] - sum[start]);
+            /* 向右走 x 步，再向左走 k - x 步 */
+            y = k - 2 * x;
+            left = startPos - y;
+            right = startPos + x;
+            start = lowerBound(indices, 0, n - 1, left);
+            end = upperBound(indices, 0, n - 1, right);
+            ans = Math.max(ans, sum[end] - sum[start]);
+        }
+        return ans;
+    }
+
+    public int lowerBound(int[] arr, int left, int right, int val) {
+        int res = right + 1;
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            if (arr[mid] >= val) {
+                res = mid;
+                right = mid - 1;
+            } else {
+                left = mid + 1;
+            }
+        }
+        return res;
+    }
+
+    public int upperBound(int[] arr, int left, int right, int val) {
+        int res = right + 1;
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            if (arr[mid] > val) {
+                res = mid;
+                right = mid - 1;
+            } else {
+                left = mid + 1;
+            }
+        }
+        return res;
+    }
+}
+```
+
+优化成 $O(2n)$ 时间和 $O(1)$ 的滑窗：
+
+对一个固定的区间 $[l,r]$，求出走完该区间所需的步数，有：
+
+1. 如果起点 $p$ 在区间右，要走 $p-l$ 步
+
+2. 如果起点 $p$ 在区间左，要走 $r-p$ 步
+
+3. 否则，先左后右，要走 $p-l+r-l$ 步
+
+4. 否则，先右后左，要走 $r-p+r-l$ 步
+
+   第三第四种情况合并为 $r-l+\min(r-p,p-l)$
+
+   加上绝对值时，即 $r-l+\min(|r-p|,|p-l|)$，第三第四不变，
+
+   对第一，有 $\min$ 取 $p-r$，得 $r-l+p-r=p-l$
+
+   对第二，有 $\min$ 取 $l-p$，得 $r-l+l-p=r-p$
+
+综上，$r-l+\min(|r-p|,|p-l|)$ 能覆盖全部情况，简写为 $f(l,r)$
+
+若 $r$ 不变，$l$ 减少，作差得：
+$$
+f(l,r)-f(l-1,r)=-1+\min(|r-p|,|p-l|)-\min(|r-p|,|p-l+1|)
+$$
+如果 $p\le l$，最值肯定都不取 $|r-p|$，通常有 $-1+l-p-(l-1-p)=0$，当且仅当 $p=l$ 取 $-1+0-1=-2$。
+
+若 $l < p$，如果都取 $|r-p|$，得 $-1$。否则，如果能取 $|p-l|$ 也能取 $|p-l+1|$，由上述得 $0$，否则取 $|r-p|-|p-l|$，必然满足 $|p-l+1|=|r-p|$ 也得 $-1$。
+
+综上，有 $f(l,r)\ge f(l-1,r)$。即论证了滑窗的可行性。也就是严格论证了越长的区间步数越大这一显然结论。
+
+区间越长肯定越好。故初始化 $l=r=0$，不断移动 $r$，当超出步数时，缩减 $l$。
+
+```java
+class Solution {
+    public int maxTotalFruits(int[][] fruits, int startPos, int k) {
+        int left = 0;
+        int right = 0;
+        int n = fruits.length;
+        int sum = 0;
+        int ans = 0;
+        // 每次固定住窗口右边界
+        while (right < n) {
+            sum += fruits[right][1];
+            // 移动左边界
+            while (left <= right && step(fruits, startPos, left, right) > k) {
+                sum -= fruits[left][1];
+                left++;
+            }
+            ans = Math.max(ans, sum);
+            right++;
+        }
+        return ans;
+    }
+
+    public int step(int[][] fruits, int startPos, int left, int right) {
+        return Math.min(Math.abs(startPos - fruits[right][0]), Math.abs(startPos - fruits[left][0])) + fruits[right][0] - fruits[left][0];
+    }
+}
+```
+
+ 
 
 > ### 力扣比赛
 >

@@ -27229,9 +27229,13 @@ public class Test01 {
         // 10s超时,默认2000ms(GPT)
         Jedis jedis = new Jedis("192.168.126.128", 6379, 10000);
         jedis.set("num1", "100");
+        //setex(stringkey,int sec extime, stringvalue)
         System.out.println(jedis.get("num1"));
         System.out.println(jedis.decr("num1"));
         System.out.println(jedis.decrBy("num1", 10));
+        /*Long leftTime = jedis.ttl(ticket);
+            if (leftTime < 60 * 10L) 
+                jedis.expire(ticket, (int) (leftTime + 60 * 5));*/
     }
 }
 ```
@@ -27466,6 +27470,165 @@ public void test09() {
 ```
 
 Jedis客户端生成连接池，ShardedJedis分片对象通过hash一致性算法进行数据操作
+
+##### 哨兵集群
+
+```java
+package cn.edu.scnu.test;
+
+import java.util.HashSet;
+import java.util.Set;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisSentinelPool;
+
+public class Test {
+    @org.junit.Test
+    public void test10() {
+        Set<String> sentinelSet = new HashSet<>();
+        for (int port = 26379; port <= 26381; ++port) {
+            sentinelSet.add(new HostAndPort("192.168.126.128", port).toString());
+        }
+        GenericObjectPoolConfig config = new GenericObjectPoolConfig();
+        config.setMaxTotal(200);
+        JedisSentinelPool pool = new JedisSentinelPool("mymaster", sentinelSet, config);
+        Jedis jedis = pool.getResource();
+        System.out.println("正在服役的主节点:" + pool.getCurrentHostMaster());
+        //查询redis,获取key为name的数据
+        System.out.println("name: " + jedis.get("name"));
+        pool.close();
+    }
+}
+```
+
+##### cluster集群
+
+假设已经部署好了一个集群，集群的某个端口号为 8005：
+
+```java
+package cn.edu.scnu.test;
+
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.JedisCluster;
+
+public class Test2 {
+    @org.junit.Test
+    public void test02() {
+        Set<HostAndPort> clusterSet = new HashSet<>();
+        clusterSet.add(new HostAndPort("192.168.126.128", 8005));
+        GenericObjectPoolConfig config = new GenericObjectPoolConfig();
+        config.setMaxTotal(200);
+        JedisCluster cluster = new JedisCluster(clusterSet, config);
+        cluster.set("gender", "male");
+        System.out.println(cluster.get("gender"));
+        try {
+            cluster.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+##### cluster集成
+
+新建项目，导依赖，设配置项如：(跟 spring cloud 综合例子一起用)
+
+```properties
+server.port=8095
+#redis config
+spring.redis.cluster.nodes=192.168.126.128:8000,192.168.126.128:8001,192.168.126.128:8002
+spring.redis.cluster.maxTotal=200
+spring.redis.cluster.maxIdle=8
+spring.redis.cluster.minIdle=2
+spring.application.name=redisservice
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/
+```
+
+写一个 config 类：
+
+```java
+package cn.edu.scnu.config;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.JedisCluster;
+
+@Configuration
+@ConfigurationProperties(prefix = "spring.redis.cluster")
+public class RedisClusterConfig {
+    private List<String> nodes;
+    private Integer maxTotal;
+    private Integer maxIdle;
+    private Integer minIdle;
+
+    @Bean
+    public JedisCluster initJedisCluster() {
+        Set<HostAndPort> set = new HashSet<>();
+        for (String node : nodes) {
+            String host = node.split(":")[0];
+            Integer port = Integer.parseInt(node.split(":")[1]);
+            set.add(new HostAndPort(host, port));
+        }
+        GenericObjectPoolConfig config = new GenericObjectPoolConfig();
+        config.setMaxTotal(maxTotal);
+        config.setMaxIdle(maxIdle);
+        config.setMinIdle(minIdle);
+        return new JedisCluster(set, config);
+    }
+    //getter &&setter
+}
+```
+
+偷懒将启动器类和控制器类合并：
+
+```java
+package cn.edu.scnu;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import redis.clients.jedis.JedisCluster;
+
+@SpringBootApplication
+@RestController
+public class StarterRedis {
+    @Autowired
+    private JedisCluster cluster;
+
+    public static void main(String[] args) {
+        SpringApplication.run(StarterRedis.class, args);
+    }
+
+    @RequestMapping("cluster")
+    public String setAndGet(String key, String value) {
+        cluster.set(key, value);
+        return cluster.get(key);
+    }
+}
+```
+
+测试：`http://localhost:8095/cluster?key=test&value=abc`
+
+高可用测试：kill/shutdown掉存储`test`的主节点，刷新页面，发现报错然后继续刷新看到能刷出来。可以反复测试，对3主3从最多kill三个，还能继续工作。
+
+![image-20230502163237374](img/image-20230502163237374.png)
+
+![image-20230502163253809](img/image-20230502163253809.png)
 
 ### Spring Security
 
@@ -30048,7 +30211,206 @@ server {
 > ```
 >
 
+#### config
 
+##### 服务端例子
+
+quickstart config-server。
+
+```xml
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>1.5.9.RELEASE</version>
+</parent>
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-dependencies</artifactId>
+            <version>Edgware.RELEASE</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-config-server</artifactId>
+</dependency>
+```
+
+搭一个 git 仓库，如 `https://gitee.com/lr580/easymallconfig`，建一个文件夹如 `lr580test` 然后里面随便放一个配置文件随便写点内容如 `demo01-test.properties`，然后对本项目配置文件写入：
+
+```properties
+server.port=11000
+spring.cloud.config.server.git.uri=https://gitee.com/lr580/easymallconfig
+spring.cloud.config.server.git.searchPaths=/lr580test
+#默认master
+spring.cloud.config.label=master 
+#spring.cloud.config.server.git.username= 私有仓库需要
+#spring.cloud.config.server.git.password=
+```
+
+启动类：
+
+```java
+package cn.edu.scnu;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.config.server.EnableConfigServer;
+
+@SpringBootApplication
+@EnableConfigServer
+public class StarterConfigServer {
+    public static void main(String[] args) {
+        SpringApplication.run(StarterConfigServer.class, args);
+    }
+}
+```
+
+启动，测试：`http://localhost:11000/demo01-test.properties`，能读出该文件，文本格式。
+
+根据短横线能自动拆分(即一个或多个短横线可以用`-`替代，读到 json 格式：(返回完全一致)
+
+- `http://localhost:11000/demo01/test/`
+- `http://localhost:11000/demo01/test/master`
+
+替代时，json有所不同，如 `http://localhost:11000/demo01-test/master`
+
+如果没有一个短横线，要加default，如 `http://localhost:11000/redis/default` 对应 `redis.properties`
+
+多文件查询：`http://localhost:11000/redis,datasource/default/master`。
+
+##### 客户端例子
+
+quickstart config client
+
+```xml
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>1.5.9.RELEASE</version>
+</parent>
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-dependencies</artifactId>
+            <version>Edgware.RELEASE</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-config</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+```
+
+建 `bootstrap.properties` 如下：
+
+- `spring.application.name=configclient` 默认读取以 `configclient` 为前缀的配置文件，除非下文有规定
+
+- `spring.cloud.config.label=master`
+
+- `spring.cloud.config.uri=http://localhost:11000` 暂时不高可用
+
+- `spring.cloud.config.name=demo01`
+
+- `spring.cloud.config.profile=test,test2`
+
+  读取 `demo01-test.properties`, `demo01-test2.properties`
+
+- `server.port=11100`
+
+启动类：
+
+```java
+package cn.edu.scnu;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@SpringBootApplication
+@RestController
+public class StarterConfigClient {
+    public static void main(String[] args) {
+        SpringApplication.run(StarterConfigClient.class, args);
+    }
+
+    @Value("${name}")
+    private String name;
+    @Value("${location}")
+    private String location;
+
+    @RequestMapping("properties")
+    public String getProperties() {
+        return name + "/" + location;
+    }
+}
+
+```
+
+测试：`http://localhost:11100/properties`，发现正确读取了配置。
+
+##### 高可用例子
+
+服务端添加：
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-eureka</artifactId>
+</dependency>
+```
+
+```properties
+spring.application.name=configserver
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka ,http://localhost:8762/eureka/
+```
+
+启动类加：
+
+```java
+@EnableEurekaClient
+```
+
+客户端：
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-eureka</artifactId>
+</dependency>
+```
+
+(删掉 `spring.cloud.config.uri`)
+
+```properties
+eureka.server.serviceUrl.defaultZone=http://localhost:8761/eureka,http://localhost:8762/eureka
+spring.cloud.config.discovery.enabled=true
+spring.cloud.config.discovery.serviceId=configserver
+```
+
+上面的配置表示开启通过服务发现的方式找到配置中心的服务名称,进行调用底层restTemplate+ribbon http://配置中心服务名称/application/profile
+
+启动类加：
+
+```java
+@EnableEurekaClient
+```
+
+记得开两个 eureka，然后启动，跟上面一样调试，实现高可用。
 
 #### 综合例子
 
@@ -30953,7 +31315,83 @@ public String queryById(String productId) {
 }
 ```
 
+###### cluster
 
+同用户系统(见下文)，拉配置和导依赖和加autowired。修改 `queryById` 为：
+
+```java
+public Product queryById(String productId) {
+    String productKey = "product_query_" + productId;
+    try {
+        if (jedis.exists(productKey)) {
+            String productJson = jedis.get(productKey);
+            return MapperUtil.MP.readValue(productJson, Product.class);
+        }
+        Product product = productMapper.queryById(productId);
+        String productJson = MapperUtil.MP.writeValueAsString(product);
+        jedis.setex(productKey, 60 * 60 * 24 * 2, productJson);
+        return product;
+    } catch (Exception e) {
+        e.printStackTrace();
+        return null;
+    }
+}
+```
+
+```java
+@RequestMapping("/product/manage/item/{prodId}")
+public String queryById(@PathVariable String prodId) {
+    Product product = productService.queryById(prodId);
+    try {
+        return MapperUtil.MP.writeValueAsString(product);
+    } catch (JsonProcessingException e) {
+        e.printStackTrace();
+        return "";
+    }
+}
+```
+
+上述逻辑会有一个错误：数据库中商品的价钱改变,由于缓存数据的存在.会导致至少2天用户查询的价钱是错误的
+
+解决办法:只要商家对商品进行修改/删除,就将缓存数据删除，即：
+
+```java
+public void productUpdate(Product product) {
+    jedis.del("product_query_" + product.getProductId());
+    productMapper.productUpdate(product);
+}
+```
+
+高并发下的缓存问题：商家修改商品之前删除了缓存,但是由于高并发的查询在还没有修改数据库之前,用户就把数据库的旧数据重新利用查询的逻辑,放到缓存中.这样就导致,商家修改后的数据又和缓存不一致了。
+
+也就是说，修改时删掉了缓存，但是同时的查询又把旧数据写入了缓存。
+
+<img src="img/image-20230502192803437.png" alt="image-20230502192803437" style="zoom:67%;" />
+
+解决办法：在修改完毕之前:缓存的新增要上锁(redis上锁)，进一步修改：
+
+```java
+public void productUpdate(Product product) {
+    String lock = "product_update_" + product.getProductId() + ".lock";
+    String key = "product_query_" + product.getProductId();
+    int leftTime = Integer.parseInt(jedis.ttl(key) + "");// 旧数据剩余时间
+    jedis.setex(lock, leftTime, "");
+    jedis.del(key);
+    productMapper.productUpdate(product);
+    jedis.del(lock);
+}
+```
+
+同时修改 `queryById`：
+
+```java
+String lock = "product_update_" + productId + ".lock";
+if (jedis.exists(lock)) {
+    return productMapper.queryById(productId);
+}
+```
+
+![image-20230502193336072](img/image-20230502193336072.png)
 
 ##### 用户系统
 
@@ -31296,6 +31734,383 @@ public String queryUserJson(String ticket) {
         return "";
     } finally {
         pool.returnResource(jedis);
+    }
+}
+```
+
+###### cluster
+
+新建 `easymall_common_rediscluster`，将 `Redis-例子-cluster集成` 的配置类弄过去，配置文件里 `spring.redis.cluster` 内容拉到用户系统的配置文件，并导入依赖：
+
+```xml
+<dependency>
+    <groupId>cn.edu.scnu</groupId>
+    <artifactId>easymall-common-rediscluster</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+</dependency>
+```
+
+对 `UserService` 直接绑定：
+
+```java
+@Autowired
+private JedisCluster jedis;
+```
+
+对里面的方法，删掉 `ShardedJedis jedis = pool.getResource();` 和 finally。
+
+###### 登录超时
+
+之前的代码，用户的ticket的值一直保存在redis中。登录状态一直存在，不符合业务逻辑，必须设置登录超时时间：
+
+//用户登录超时30分钟，在 `doLogin`：
+
+```java
+jedis.setex(ticket, 60*30, userJson);
+```
+
+如果写死了用户登录后30分钟超时，当用户连续操作了30分钟时，到达超时时间，用户操作了过程突然断开，用户必须重新登录后才可以继续操作，用户体验较差。
+
+解决办法：制定一个阈值，用户登录后不断的操作,一旦时间到达这个阈值，就续租;
+
+一旦发现某次访问redis后.ticket剩余时间少于10分钟,自动给延长5分钟
+
+对 `queryUserJson` 添加：
+
+```java
+Long leftTime = jedis.ttl(ticket);
+if (leftTime < 60 * 10L) {
+    jedis.expire(ticket, (int) (leftTime + 60 * 5));
+}
+```
+
+###### 登录顶替
+
+登录顶替：当一个账号在另外一个地方登录时，直接清除前面的登录状态
+
+![image-20230502185222623](img/image-20230502185222623.png)
+
+即，判断当前用户是否已经存在如果是就把旧的删了，保存新的键值，在 `doLogin` 添加：
+
+```java
+// 上一次登录的ticket随机值是什么
+String existTicket = jedis.get("user_logined_" + exist.getUserId());
+if (StringUtils.isNotEmpty(existTicket)) {//可以syso登录顶替
+    jedis.del(existTicket);
+}
+// 换一个随机值
+jedis.setex("user_logined_" + exist.getUserId(), 60 * 30, ticket);
+jedis.setex(ticket, 60 * 30, userJson);
+```
+
+测试：一台浏览器登录，另一台再登，后台输出登录顶替，前一台刷新发现登出
+
+###### 同时登陆
+
+以3个用户同时登陆为例，使用redis的list结构的数据用userId相关的字符串做list的key值,元素内容存储ticket的值,判断list的长度,一旦大于3,将进行顶替,lpush新增使用rpop顶替删除,rpush新增使用lpop删除
+
+##### 配置系统
+
+###### 仓库
+
+如 `https://gitee.com/lr580/easymallconfig`，有文件夹 `lr580test`，有：
+
+`datasouce.properties`
+
+```properties
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=jdbc:mysql:///easydb?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true
+spring.datasource.username=root
+spring.datasource.password=1
+spring.datasource.type=com.alibaba.druid.pool.DruidDataSource
+spring.datasource.initialSize=5
+spring.datasource.maxActive=50
+spring.datasource.maxIdle=10
+spring.datasource.minIdle=5
+mybatis.typeAliasesPackage=com.easymall.common.pojo
+mybatis.mapperLocations=classpath:mapper/*.xml
+mybatis.configuration.mapUnderscoreToCamelCase=true
+mybatis.configuration.cacheEnabled=false
+```
+
+`redis.properties`
+
+```properties
+spring.redis.cluster.nodes=192.168.126.128:8000,192.168.126.128:8001,192.168.126.128:8002
+spring.redis.cluster.maxTotal=200
+spring.redis.cluster.maxIdle=8
+spring.redis.cluster.minIdle=2
+```
+
+使用上文 `config-server`。
+
+###### 商品系统
+
+加依赖
+
+```xml
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-config</artifactId>
+</dependency>
+```
+
+备份原有 `application.properties` 为 `backup-application.properties` 后删掉，创建 `bootstrap.properties`，内容为：
+
+```properties
+server.port=10001
+spring.application.name=productservice
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/,http://localhost:8762/eureka/
+spring.cloud.config.label=master
+spring.cloud.config.name=redis,datasource
+spring.cloud.config.discovery.enabled=true
+spring.cloud.config.discovery.serviceId=configserver
+```
+
+如果出现了端口被覆盖的问题，检查pom依赖项目或父项目`application.properties`有没有`server.port`等内容，如果有要删了。这是因为`application.properties`规定比`bootstrap.properties`后加载并且会覆盖所以当子类没有`application.properties`时父类的会进行覆盖。
+
+###### 用户系统
+
+加依赖。下面是自己的操作，模仿商品系统，有：
+
+```properties
+server.port=10003
+server.contextPath=/
+spring.application.name=userservice
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/,http://localhost:8762/eureka/
+spring.cloud.config.label=master
+spring.cloud.config.name=redis,datasource
+spring.cloud.config.discovery.enabled=true
+spring.cloud.config.discovery.serviceId=configserver
+```
+
+把 config 类 `ShardedJedisPoolConfig` 给扬了。
+
+测试启动顺序：
+
+- 清空redis持久化文件并启动redis集群
+- 启动eureke和zuul
+- 启动云配置服务
+- 启动商品、用户和图片服务
+
+##### 购物车系统
+
+###### 基建
+
+添加三个 common resources 基建，即 repository, resources, rediscluster。
+
+配置：`bootstrap.properties`
+
+```properties
+server.port=10004
+spring.application.name=cartservice
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/,http://localhost:8762/eureka/
+spring.cloud.config.label=master
+spring.cloud.config.name=redis,datasource
+spring.cloud.config.discovery.enabled=true
+spring.cloud.config.discovery.serviceId=configserver
+```
+
+```java
+package cn.edu.scnu;
+
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+import org.springframework.context.annotation.Bean;
+import org.springframework.web.client.RestTemplate;
+
+@SpringBootApplication
+@EnableEurekaClient
+@MapperScan("cn.edu.scnu.cart.mapper")
+public class StarterCartCenter {
+    public static void main(String[] args) {
+        SpringApplication.run(StarterCartCenter.class, args);
+    }
+
+    @Bean
+    @LoadBalanced
+    public RestTemplate initCartRestTemplate() {
+        return new RestTemplate();
+    }
+}
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.edu.scnu.cart.mapper.CartMapper">
+</mapper>
+```
+
+```java
+@Service
+public class CartService {
+    @Autowired
+    private CartMapper cartMapper;
+}
+```
+
+```java
+@RestController
+@RequestMapping("cart/manage")
+public class CartController {
+    @Autowired
+    private CartService cartService;
+}
+```
+
+nginx：
+
+```nginx
+location /cart {
+    proxy_pass http://127.0.0.1:9005/zuul-cart/cart/manage;
+    add_header 'Access-Control-Allow-Credentials' 'true';
+    add_header 'Access-Control-Allow-Origin' '*'; 
+}
+```
+
+zuul:
+
+```properties
+zuul.routes.zuul-cart.path=/zuul-cart/**
+zuul.routes.zuul-cart.serviceId=cartservice
+```
+
+###### 查询
+
+```xml
+<select id="queryMyCart" parameterType="String" resultType="Cart">
+    select * from t_cart where user_id=#{userId};
+</select>
+```
+
+```java
+import com.easymall.common.pojo.Cart;
+List<Cart> queryMyCart(String userId);
+```
+
+```java
+public List<Cart> queryMyCart(String userId) {
+    return cartMapper.queryMyCart(userId);
+}
+```
+
+```java
+@RequestMapping("query")
+public List<Cart> queryMyCart(String userId) {
+    if (StringUtils.isEmpty(userId)) {
+        return null;
+    }
+    return cartService.queryMyCart(userId);
+}
+```
+
+单元测试：`http://localhost:10004/cart/manage/query?userId=f577f9f9-159e-4aaf-9332-fd7b294bc208`
+
+联合测试：`http://www.easymall.com/mycart.html`
+
+###### 加入购物车
+
+```xml
+<select id="queryOne" parameterType="Cart" resultType="Cart">
+    select * from t_cart where user_id=#{userId} and product_id=#{productId};
+</select>
+<update id="updateNum" parameterType="Cart">
+    update t_cart set num=#{num} where user_id=#{userId} and product_id=#{productId};
+</update>
+<insert id="saveCart" parameterType="Cart">
+    insert into t_cart(user_id,product_id,product_name,product_image,product_price,num)values(#{userId},#{productId},#{productName},#{productImage},#{productPrice},#{num});
+</insert>
+```
+
+```java
+void updateNum(Cart exist);
+void saveCart(Cart cart);
+Cart queryOne(Cart cart);
+```
+
+```java
+public void cartSave(Cart cart) {
+    Cart exist = cartMapper.queryOne(cart);
+    if (exist != null) {
+        exist.setNum(exist.getNum() + cart.getNum());
+        cartMapper.updateNum(exist);
+        return;
+    }
+    String uri = "http://productservice/product/manage/item/" + cart.getProductId();
+    Product product = restTemplate.getForObject(uri, Product.class);
+    cart.setProductPrice(product.getProductPrice());
+    cart.setProductName(product.getProductName());
+    cart.setProductImage(product.getProductImgurl());
+    cartMapper.saveCart(cart);
+}
+```
+
+```java
+@RequestMapping("save")
+public SysResult cartSave(Cart cart) {
+    try {
+        cartService.cartSave(cart);
+        return SysResult.ok();
+    } catch (Exception e) {
+        e.printStackTrace();
+        return SysResult.build(201, "", null);
+    }
+}
+```
+
+###### 更新
+
+```java
+public void updateNum(Cart cart) {
+    cartMapper.updateNum(cart);
+}
+```
+
+```java
+@RequestMapping("update")
+public SysResult updateNum(Cart cart) {
+    try {
+        cartService.updateNum(cart);
+        return SysResult.ok();
+    } catch (Exception e) {
+        e.printStackTrace();
+        return SysResult.build(201, "", null);
+    }
+}
+```
+
+###### 删除
+
+```xml
+<delete id="deleteCart" parameterType="Cart">
+    delete from t_cart where user_id=#{userId} and product_id=#{productId};
+</delete>
+```
+
+```java
+void deleteCart(Cart cart);
+```
+
+```java
+public void deleteCart(Cart cart) {
+    cartMapper.deleteCart(cart);
+}
+```
+
+```java
+@RequestMapping("delete")
+public SysResult delete(Cart cart) {
+    try {
+        cartService.deleteCart(cart);
+        return SysResult.ok();
+    } catch (Exception e) {
+        e.printStackTrace();
+        return SysResult.build(201, "", null);
     }
 }
 ```

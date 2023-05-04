@@ -339,25 +339,6 @@ windows网络中心-更改适配器设置
 
 
 
-#### 克隆
-
-虚拟机-管理-克隆，创建链接克隆。
-
-克隆后可以要新建一个网卡(同上方法操作)
-
-克隆后的虚拟机可能不能用 `network` ，可以注释掉 `/etc/sysconfig/network-scripts` 对应文件把 `HWADDR` 这一行注释掉(`#`) ，如果还报错，可以把 `UUID` 也注释掉。  
-
-为避免设备冲突，虚拟机会用新的MAC地址，网卡新名字，但网卡配置文件没变。可以清空网卡命名的udev规则文件，重启系统
-
-```shell
-> /etc/udev/rules.d/70-persistent-net.rules
-reboot
-```
-
-删除要管理-从磁盘移除
-
-左侧菜单右击可重命名虚拟机
-
 
 
 #### 打开装好的虚拟机
@@ -365,6 +346,57 @@ reboot
 装好的虚拟机的特征为：文件夹，内有 `.vmx` 的文件，比较大(可能几百MB)。
 
 VMware-打开虚拟机，点击那个 vmx 即可。
+
+#### 克隆
+
+方法一：
+
+找到虚拟机目录，整个文件夹复制粘贴，重命名，然后vmware打开vmx,workstation重命名，选已复制来更换MAC地址，要做，然后：
+
+- 修改 IP 地址，在 `/etc/sysconfig/network-scripts/ifcfg-ens33`，改 `IPADDR`。
+
+  > 具体而言，可能需要：
+  >
+  > ```properties
+  > BOOTPROTO=static
+  > IPADDR=192.168.126.129
+  > NETMASK=255.255.255.0
+  > GATEWAY=192.168.126.2
+  > DNS1=192.168.126.2
+  > DNS2=202.96.128.86
+  > ```
+
+- 修改主机名，即 `/etc/sysconfig/network` 改 `HOSTNAME`
+
+  > 具体而言，可能需要：
+  >
+  > ```properties
+  > NETWORKING=yes
+  > HOSTNAME=Tomcat02
+  > ```
+
+重启与验证。
+
+
+
+方法二：
+
+> 虚拟机-管理-克隆，创建链接克隆。
+>
+> 克隆后可以要新建一个网卡(同上方法操作)
+>
+> 克隆后的虚拟机可能不能用 `network` ，可以注释掉 `/etc/sysconfig/network-scripts` 对应文件把 `HWADDR` 这一行注释掉(`#`) ，如果还报错，可以把 `UUID` 也注释掉。  
+>
+> 为避免设备冲突，虚拟机会用新的MAC地址，网卡新名字，但网卡配置文件没变。可以清空网卡命名的udev规则文件，重启系统
+>
+> ```shell
+> > /etc/udev/rules.d/70-persistent-net.rules
+> reboot
+> ```
+>
+> 删除要管理-从磁盘移除
+>
+> 左侧菜单右击可重命名虚拟机
 
 
 
