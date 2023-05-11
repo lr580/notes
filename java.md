@@ -30412,6 +30412,470 @@ spring.cloud.config.discovery.serviceId=configserver
 
 记得开两个 eureka，然后启动，跟上面一样调试，实现高可用。
 
+#### RabbitMQ
+
+##### 理论
+
+###### 消息队列
+
+![img](img/clip_image002.jpg)
+
+客户端/系统与系统间的通信时,可以通过消息队列实现高峰期无法处理的海量并发缓存--消峰限流;
+
+也可以通过消息队列实现异步通信--通信解耦.
+
+有时候一些方法的执行,第一步->第二步->第三步->第四步.由于第三步出错,导致整个方法执行失败;第三步并不是整个方法中最重要的部分;
+
+例如:新增商品写缓存;新增描述;新增商品product;发消息:新增缓存; （交给异步去处理）
+
+RabbitMQ是实现了高级消息队列协议（AMQP）的开源消息代理软件（亦称面向消息的中间件）。RabbitMQ服务器是用Erlang语言编写的,企业级的消息代理软件;
+AMQP:sun公司对消息队列提出的规范(定义了一堆接口);
+java的消息队列机制JMS(性能极低);
+Erlang:一种并发语言(可以控制cpu核心,线程资源的语言).go也是并发语言.能将一个进程的并发性能处理到最强;Erlang是rabbitmq的核心组件交换机exchange的开发语言
+
+###### 结构
+
+客户端:一切连接rabbitmq的客户端可以分为两个角色:
+
+- 生产者:消息生产者发送者
+- 消费者:消息的接收者处理者
+
+核心组件：
+
+- 连接
+
+  - connection:长连接（不能频繁销毁和创建的连接）
+  - channel:信道,短连接
+
+- 交换机组件exchange
+
+  基于Erlang语言开发的,rabbitmq核心组件,处理客户端中生产端的所有消息的高并发。客户端并发能力不稳定（java处理并发的能力不稳定，所以要交给exchange处理，exchange是Erlang并发语言写的）。生产端的消息并不是直接发送给队列,队列能够接收处理消息的前提,就是交换机逻辑
+
+- 队列queue
+
+  真正处理消息的rabbitmq组件,消息的顺序排队,确定机制等,都由queue维护,没有队列,消息队列的技术不存在了，消息中的数据应该尽量精简到最小的单位
+
+![img](img/clip_image002-16834584803442.jpg)
+
+###### 交换机类型
+
+rabbitmq应对不同的消息生产和消息消费的场景,使用不同的交换机类型:direct(routing路由模式),fanout(发布订阅),主题模式(topic,特殊的路由)
+
+##### 场景
+
+###### 简单模式
+
+一对一
+
+在一次消息的生产消费过程中,一个生产者对应一个消费者,形成一发一接的结构;
+
+这里使用的是路由交换机,路由交换机需要绑定队列的名称作为路由Key(路由交换机可以使用默认的AMQP default交换机)
+
+应用场景:消息软件,短信/微信
+
+![image-20230507202033176](img/image-20230507202033176.png)
+
+###### 工作模式
+
+一发多接,资源争抢
+
+在生产消息发送到队列,之后由多个消费端同时争抢.
+
+谁的空闲率最大,谁争抢到的可能性就大;交换机可以是任意类型的(代码测试阶段还是AMQP default);
+
+应用场景:抢红包.
+
+![image-20230507202224938](img/image-20230507202224938.png)
+
+###### 路由模式
+
+路由模式不关心后端消费者数量,如果是一个消费者监听一个队列就是简单模式,如果是多个消费者监听一个队列就是争抢模式;
+
+使用路由模式的交换机,可以自定义不同的路由key绑定不同队列,在消息中携带一个路由key,通过交换机后匹配后端的队列;
+
+场景: error错误,通过筛选打印在开发人员的屏幕上
+
+![image-20230507202832667](img/image-20230507202832667.png)
+
+###### 发布订阅
+
+一条消息不携带具体路由key,经过fanout模式的交换机发送给后端绑定的所有队列;
+
+场景:邮件群发,广告(qq)
+
+![image-20230507202859804](img/image-20230507202859804.png)
+
+###### 主题模式
+
+![image-20230507203054731](img/image-20230507203054731.png)
+
+主题是一种特殊的路由模式,体现在后端队列绑定topic类型交换机时,可以不使用具体路由key,可以使用匹配符号
+
+\*:表示一个字符串
+
+\#:表示任意长度任意字符串
+
+easymall.*:可以匹配到消息路由: easymall.product,easymall.user,
+
+easymall.user.save(不能匹配到的)
+
+easymall.#:可以匹配到消息路由:
+
+easymall.product,easymall.dasfas.daskf.sdfklsad.sdf(只要以easymall.开始都能匹配上);
+
+场景:多级消息发送接收的路由过程可以使用topic,快递
+
+##### 搭建
+
+###### 安装
+
+rabbitmq核心组件exchange 基于erlang开发, linux需要安装erlang语言匹配rabbitmq的版本; 相当于tomcat启动依赖java,比如tomcat9必须匹配Java1.8以上
+
+虚拟机下载 [erlang](https://www.erlang.org/downloads) 和 [rabbitmq](https://www.rabbitmq.com/which-erlang.html)
+
+安装依赖：
+
+```sh
+yum install -y make gcc gcc-c++  glibc-devel m4 openssl openssl-devel ncurses-devel
+```
+
+安装 erlang，解压压缩包 (otp_src)，进去 make：
+
+```sh
+./configure --prefix=/usr/local/erlang
+make && make install
+```
+
+检验安装：`cd /usr/local/erlang`
+
+配全局 path：`vim /etc/profile`
+
+```sh
+export ER_LANG=/usr/local/erlang
+export PATH=$PATH:$ER_LANG/bin
+```
+
+```sh
+source /etc/profile
+```
+
+测试：`erl`
+
+插件安装：rabbitmq,有些命令,底层运行需要依赖插件socat(提供了相对应的脚本命令)
+
+```sh
+yum -y install socat
+```
+
+rabbitmq-server-3.10.5-1.el8.noarch.rpm 版本要求在censtos8以上。我们选择rabbitmq-server-3.7.10-1.el6.noarch.rpm版本
+
+```sh
+rpm -ivh rabbitmq-server-3.7.10-1.el6.noarch.rpm --force --nodeps
+```
+
+模板复制：
+
+```sh
+cp /usr/share/doc/rabbitmq-server-3.7.10/rabbitmq.config.example /etc/rabbitmq/rabbitmq.config
+```
+
+修改/新增一行开启用户登录权限：
+
+```
+{loopback_users, []}
+```
+
+直接开启web控制台监听插件(启动web应用) rabbitmq支持以视图页面web应用格式观察使用操作rabbitmq
+
+```sh
+rabbitmq-plugins enable rabbitmq_management
+```
+
+启动 rabbitmq
+
+```sh
+cd /usr/lib/rabbitmq/bin
+./rabbitmq-server start
+```
+
+开开端口，开 15672 和 5672：
+
+```sh
+firewall-cmd --zone=public --add-port=15672/tcp --permanent && firewall-cmd --zone=public --add-port=5672/tcp --permanent && firewall-cmd --reload
+```
+
+测试访问(账号密码均为guest，15672是web默认访问端口客户端代码用5672)，测试：`http://192.168.126.129:15672/`
+
+直接用 web 界面操作，点 admin-virtual hosts-add a new virtual host，输入 easymall。菜单栏看 exchanges 多了 7条数据。对应easymall虚拟主机。通过虚拟主机对交换机进行分组，只有绑定了easymall虚拟主机的用户，才能使用easymall虚拟主机对应的交换机，防止两个不同功能的用户用同个类型的交换机传两个完全不相关的数据，造成错乱
+
+点击查看admin发现guest默认绑定easymall虚拟主机
+
+admin-users，添加用户，账号 easymall 密码 123456，tags 点 admin 自动填充 administrator。all users点easymall，set permission 里 virtual host 选 easymall，点 set permission，可以看到 easymall 的 can access virtual hosts 多了 easymall。
+
+##### 场景示例
+
+###### 基建
+
+quickstart 继承下文综合例子 easymall parent, 开依赖：
+
+```xml
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-amqp</artifactId>
+</dependency>
+```
+
+开 rabbitMQ
+
+###### 简单模式
+
+queueDeclare参数意义:
+
+- queue:String类型,代表当前声明的queue名称
+- durable:Boolean类型,表示当前队列创建之后,声明之后是否持久化(rabbitmq宕机之后是否重启恢复),true表示持久化宕机之后重启可以恢复队列,false表示不作持久化
+- exclusive:Boolean类型,表示队列是否专属.true表示专属,只有当前连接对象创建的信道能够操作队列,其他连接对象不能,false表示不专属谁都能用。
+- autoDelete:Boolean,是否自动删除,最后一个channel使用完毕队列,channel关闭之后,是否删除,true自动删,false表示不删
+- arguments:Map类型,表示queue其他属性设置,例如队列可存储的消息长度,消息存储在队列是否有超时时间
+
+basicPublish方法:发布消息
+
+- exchange:交换机名称
+- routingKey:消息发布时携带的路由key,交换机会根据路由key决定消息的目的队列
+- props:BasicProperties类型,可以通过一个对象定义消息的各种属性,例如,可以指定消息也持久化(必须配合队列)
+- body:消息体,byge[]数组
+
+basicConsume:绑定消费者对象与队列,定义回执的逻辑;
+
+channel.basicConsume(queue, autoAck, callback)
+
+- queue:消费对象绑定的队列
+
+- callback:回执使用的消费者对象
+
+- autoAck:Boolean类型,是否自动回执确认(ack)
+
+  true自动确认,一拿到消息就确认,false不自动确认,手动确认
+
+```java
+package cn.edu.scnu.rabbit.test;
+
+import java.io.IOException;
+import java.util.UUID;
+import java.util.concurrent.TimeoutException;
+import org.junit.Before;
+import org.junit.Test;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.ConsumerCancelledException;
+import com.rabbitmq.client.QueueingConsumer;
+import com.rabbitmq.client.QueueingConsumer.Delivery;
+import com.rabbitmq.client.ShutdownSignalException;
+
+@SuppressWarnings("deprecation")
+public class SimpleMode {
+    private Channel channel;
+
+    @Before //Junit
+    public void initChannel() {
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost("192.168.126.129");
+        factory.setPort(5672);
+        factory.setUsername("guest");
+        factory.setPassword("guest");
+        factory.setVirtualHost("/");
+        Connection conn = null;
+        try {
+            conn = factory.newConnection();
+        } catch (IOException | TimeoutException e) {
+            e.printStackTrace();
+        }
+        try {
+            channel = conn.createChannel();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private final String routingKey = "lr581";
+
+    public void send() {
+        String msg = "白茶abc@" + UUID.randomUUID().toString();
+        try {
+            channel.queueDeclare(routingKey, false, false, false, null);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            channel.basicPublish("", routingKey, null, msg.getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void consume() {
+        QueueingConsumer consumer = new QueueingConsumer(channel);
+        try {
+            channel.basicConsume(routingKey, consumer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        while (true) {// 实际代码使用nio
+            try {
+                Delivery delivery = consumer.nextDelivery();
+                System.out.println(new String(delivery.getBody()));
+            } catch (ShutdownSignalException | ConsumerCancelledException
+                    | InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+    }
+    
+    @Test
+    public void test01() throws InterruptedException {
+        send(); //每运行一次就加多一条
+//        Thread.sleep(10);
+        consume();
+    }
+}
+```
+
+```java
+public void send2() throws IOException {
+    channel.queueDeclare(routingKey, false, false, false, null);
+    for (int i = 0; i < 10; ++i) {
+        String msg = "msg" + i;
+        channel.basicPublish("", routingKey, null, msg.getBytes());
+    }
+}
+
+@Test
+public void test02() throws IOException {
+    send2();
+    consume();// 按序到达
+    // 如果启动多次test02，那么第一个启动的consume优先接收,其他consume当之前的关掉后会得到消息(消息不删除)
+}
+```
+
+
+
+###### 工作模式
+
+```java
+public void consume2(String name) throws IOException, ShutdownSignalException,
+ConsumerCancelledException, InterruptedException {
+    QueueingConsumer consumer = new QueueingConsumer(channel);
+    channel.basicConsume(routingKey, false, consumer);
+    while (true) {
+        System.out.println(name);
+        Delivery delivery = consumer.nextDelivery();
+        System.out.println(new String(delivery.getBody()));
+        channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+    }
+}
+
+@Test
+public void test031() throws Exception {
+    send2();
+    new Thread(new Runnable() {
+        @Override
+        public void run() {
+            try {
+                consume2("1");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }).start();
+    new Thread(new Runnable() {
+        @Override
+        public void run() {
+            try {
+                consume2("2");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }).start();
+    for (;;)
+        ;
+    //都给了2或都给了1,不能各给一点,如果只开1就都给了1
+}
+```
+
+###### 路由模式
+
+如果 pos1 pos2 全部改成同一个字符串，就是发布订阅(全局广播)
+
+```java
+public void send3() throws IOException {
+    channel.exchangeDeclare("direct01", "direct");
+    channel.queueDeclare("heaven", false, false, false, null);
+    channel.queueDeclare("hell", false, false, false, null);
+    channel.queueBind("heaven", "direct01", "pos1");
+    channel.queueBind("hell", "direct01", "pos2");
+    channel.basicPublish("direct01", "pos1", null, "天国大魔境".getBytes());
+    channel.basicPublish("direct01", "pos2", null, "地狱乐".getBytes());
+}
+
+public void consume31() throws IOException, ShutdownSignalException, ConsumerCancelledException,
+InterruptedException {
+    QueueingConsumer consumer = new QueueingConsumer(channel);
+    channel.basicConsume("heaven", false, consumer);
+    while (true) {
+        Delivery delivery = consumer.nextDelivery();
+        System.out.println("频道1:" + new String(delivery.getBody()));
+        channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+    }
+}
+
+public void consume32() throws IOException, ShutdownSignalException, ConsumerCancelledException,
+InterruptedException {
+    QueueingConsumer consumer = new QueueingConsumer(channel);
+    channel.basicConsume("hell", false, consumer);
+    while (true) {
+        Delivery delivery = consumer.nextDelivery();
+        System.out.println("频道2:" + new String(delivery.getBody()));
+        channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+    }
+}
+
+@Test
+public void test4() throws Exception {
+    send3();
+    new Thread(new Runnable() {
+        @Override
+        public void run() {
+            try {
+                consume31();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }).start();
+    consume32();
+}
+```
+
+###### 主题模式
+
+```java
+public void send5() throws IOException {
+    channel.queueDeclare("place1", false, false, false, null);
+    channel.queueDeclare("place2", false, false, false, null);
+    channel.queueDeclare("place3", false, false, false, null);
+    channel.exchangeDeclare("topic01", "topic");
+    String msc = "pwp可爱捏";
+    channel.queueBind("place1", "topic01", "place1.#");
+    channel.queueBind("place2", "topic01", "place1.street.#");
+    channel.queueBind("place3", "topic01", "place1.street.block.*");
+    channel.basicPublish("topic01", "place1.street.block.ac", null, msc.getBytes());
+}
+```
+
+
+
 #### 综合例子
 
 ##### 基础工程
@@ -32115,3 +32579,751 @@ public SysResult delete(Cart cart) {
 }
 ```
 
+##### 订单系统
+
+###### 数据库
+
+使用 mycat，配 `server.xml` 为：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mycat:server SYSTEM "server.dtd">
+<mycat:server xmlns:mycat="http://io.mycat/">
+    <system>
+        <property name="defaultSqlParser">druidparser</property>
+    </system>
+    <user name="root">
+        <property name="password">root</property>
+        <property name="schemas">easydb</property>
+    </user>
+</mycat:server>
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mycat:schema SYSTEM "schema.dtd">
+<mycat:schema xmlns:mycat="http://io.mycat/" >
+	<schema name="easydb" checkSQLschema="true" sqlMaxLimit="100">	
+	<table name="t_order" primaryKey="order_id" dataNode="dn1,dn2" rule="order-by-murmur">
+		<childTable name="t_order_item" primaryKey="id" joinKey="order_id" parentKey="order_id"/>
+	</table>
+	</schema>
+	<dataNode name="dn1" dataHost="localhost1" database="easydb"/>
+	<dataNode name="dn2" dataHost="localhost2" database="easydb"/>
+	<dataHost name="localhost1" maxCon="1000" minCon="10" balance="0"
+		writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100">
+		<heartbeat>select user()</heartbeat>
+		<writeHost host="hostM1" url="localhost:3306" user="root" password="Gu1+"/>
+	</dataHost>
+	<dataHost name="localhost2" maxCon="1000" minCon="10" balance="0"
+		writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100">
+		<heartbeat>select user()</heartbeat>
+		<writeHost host="hostM1" url="192.168.126.129:3306" user="root" password="Gu1+"/>
+	</dataHost>
+</mycat:schema>
+```
+
+```xml
+<tableRule name="custom-by-murmur">
+    <rule>
+        <columns>user_id</columns>
+        <algorithm>murmur</algorithm>
+    </rule>
+</tableRule>
+```
+
+数据库与上述系统分离，互不影响。在每个虚拟机重建每个表，不要添加数据，表为：
+
+```mysql
+drop database easydb;
+CREATE DATABASE IF NOT EXISTS easydb  DEFAULT CHARACTER SET utf8;
+USE easydb;
+
+CREATE TABLE t_order (
+    order_id char(36) NOT NULL DEFAULT '',
+    order_money double DEFAULT '0',
+    order_receiverinfo varchar(255) DEFAULT '',
+    order_paystate int(11) DEFAULT '0',
+    order_time timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    user_id char(36) DEFAULT NULL,
+    PRIMARY KEY (order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE t_order_item (
+    id bigint(20) NOT NULL AUTO_INCREMENT,
+    order_id char(100) DEFAULT NULL,
+    product_id char(36) DEFAULT NULL,
+    num int(11) DEFAULT '0',
+    product_image varchar(500) DEFAULT NULL,
+    product_name varchar(100) DEFAULT NULL,
+    product_price double DEFAULT NULL,
+    PRIMARY KEY (id)
+) ENGINE=InnoDB AUTO_INCREMENT=138 DEFAULT CHARSET=utf8;
+```
+
+然后开 mycat，在 mycat 里导入全部数据，自动分片。查询测试。
+
+###### 基建
+
+继承 parent，导入两个 common，不用云配置，使用下面配置：
+
+```properties
+server.port=10005
+spring.application.name=orderservice
+eureka.client.serviceUrl.defaultZone=http://localhost:8761/eureka/,http://localhost:8762/eureka/
+
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=jdbc:mysql://192.168.126.128:8066/easydb?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true
+spring.datasource.username=root
+spring.datasource.password=root
+spring.datasource.type=com.alibaba.druid.pool.DruidDataSource
+spring.datasource.initialSize=5
+spring.datasource.maxActive=50
+spring.datasource.maxIdle=10
+spring.datasource.minIdle=5
+
+mybatis.typeAliasesPackage=com.easymall.common.pojo
+mybatis.mapperLocations=classpath:mapper/*.xml
+mybatis.configuration.mapUnderscoreToCamelCase=true
+mybatis.configuration.cacheEnabled=false
+```
+
+懂的都懂：
+
+```java
+package cn.edu.scnu;
+
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+import org.springframework.context.annotation.Bean;
+import org.springframework.web.client.RestTemplate;
+
+@SpringBootApplication
+@EnableEurekaClient
+@MapperScan("cn.edu.scnu.order.mapper")
+public class StarterOrderCenter {
+    public static void main(String[] args) {
+        SpringApplication.run(StarterOrderCenter.class, args);
+    }
+    
+    @Bean
+    @LoadBalanced
+    public RestTemplate initCartRestTemplate() {
+        return new RestTemplate();
+    }
+}
+```
+
+```java
+package cn.edu.scnu.order.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import cn.edu.scnu.order.service.OrderService;
+
+@RestController
+@RequestMapping("/order/manage")
+public class OrderController {
+    @Autowired
+    private OrderService orderService;
+}
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.edu.scnu.order.mapper.OrderMapper">
+</mapper>
+```
+
+```xml
+zuul.routes.zuul-order.path=/zuul-order/**
+zuul.routes.zuul-order.serviceId=orderservice
+```
+
+```xml
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <version>5.1.49</version><!-- $NO-MVN-MAN-VER$ -->
+</dependency>
+```
+
+```nginx
+location /order {
+    proxy_pass http://127.0.0.1:9005/zuul-order/order/manage;
+    add_header 'Access-Control-Allow-Credentials' 'true';
+    add_header 'Access-Control-Allow-Origin' '*'; 
+}
+```
+
+###### 查询
+
+```xml
+<resultMap type="Order" id="OrderRM">
+    <id property="orderId" column="order_id" />
+    <collection property="orderItems" javaType="List" ofType="OrderItem" column="order_id" select="queryOrderItems">
+    </collection>
+</resultMap>
+<select id="queryOrder" parameterType="String" resultMap="OrderRM">
+    select * from t_order where user_id=#{userId};
+</select>
+<select id="queryOrderItems" parameterType="String" resultType="OrderItem">
+    select * from t_order_item where order_id=#{orderId}
+</select>
+```
+
+```java
+List<Order> queryOrder(String userId);
+```
+
+```java
+public List<Order> queryMyOrder(String userId) {
+    return orderMapper.queryOrder(userId);
+}
+```
+
+```java
+@RequestMapping("query/{userId}")
+public List<Order> queryMyOrder(@PathVariable String userId){
+    //        System.out.println(userId);
+    return orderService.queryMyOrder(userId);
+}
+```
+
+###### 新增
+
+不要尝试 xml for each，不成功也不报错(因为不报错找出错在这里花了很久)。所以分开：
+
+```xml
+<insert id="saveOrder" parameterType="Order"> insert into t_order
+    (order_id,
+    order_money, order_paystate, order_receiverinfo, order_time,
+    user_id) values
+    (#{orderId}, #{orderMoney}, #{orderPaystate},
+    #{orderReceiverinfo},
+    #{orderTime},
+    #{userId});
+</insert>
+<insert id="saveOrderItem" parameterType="OrderItem">
+    insert into t_order_item
+    (order_id,product_id,num,product_name,product_image,product_price)
+    values
+    (#{orderId},#{productId},#{num},#{productName},#{productImage},#{productPrice})
+</insert>
+```
+
+```java
+void saveOrder(Order order);
+void saveOrderItem(OrderItem orderItem);
+```
+
+```java
+public void saveOrder(Order order) {
+    String orderId = UUID.randomUUID().toString();
+    order.setOrderId(orderId);
+    order.setOrderTime(new Date());
+    order.setOrderPaystate(0);
+    orderMapper.saveOrder(order);
+    for (OrderItem orderItem : order.getOrderItems()) {
+        orderItem.setOrderId(orderId);
+        orderMapper.saveOrderItem(orderItem);
+    }
+}
+```
+
+```java
+@RequestMapping("save")
+public SysResult saveOrder(Order order) {
+    try {
+        orderService.saveOrder(order);
+        return SysResult.ok();
+    } catch (Exception e) {
+        e.printStackTrace();
+        return SysResult.build(201, e.getMessage(), null);
+    }
+}
+```
+
+###### 删除
+
+不能一个 delete 两条语句，必须分开写。
+
+```xml
+<delete id="deleteOrderItem" parameterType="String">
+    delete from t_order_item where order_id=#{orderId};
+</delete>
+<delete id="deleteOrder" parameterType="String">
+    delete from t_order where order_id=#{orderId};
+</delete>
+```
+
+```java
+void deleteOrder(String orderId);
+void deleteOrderItem(String orderId);
+```
+
+```java
+public void deleteOrder(String orderId) {
+    orderMapper.deleteOrder(orderId);
+    orderMapper.deleteOrderItem(orderId);
+}
+```
+
+```java
+@RequestMapping("delete/{orderId}")
+public SysResult deleteOrder(@PathVariable String orderId) {
+    try {
+        orderService.deleteOrder(orderId);
+        return SysResult.ok();
+    } catch (Exception e) {
+        e.printStackTrace();
+        return SysResult.build(201, e.getMessage(), null);
+    }
+}
+```
+
+##### 秒杀系统
+
+###### 消息队列基建
+
+quick start - `easymall-microservice-seckill`，parent 和 resources 和 repository，添加
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-amqp</artifactId>
+</dependency>
+```
+
+配置
+
+```properties
+spring.rabbitmq.host=192.168.126.129
+spring.rabbitmq.username=guest
+spring.rabbitmq.password=guest
+spring.rabbitmq.virtualHost=/
+```
+
+配置类：
+
+```java
+package cn.edu.scnu.seckill.config;
+
+import org.springframework.amqp.core.Binding;
+import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.DirectExchange;
+import org.springframework.amqp.core.Queue;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class RabbitmqConfig {
+    public static final String exName = "seckillEx";
+    public static final String qName = "seckillQueue";
+    public static final String routingKey = "seckill";
+    
+    @Bean
+    public DirectExchange exInit() {
+        return new DirectExchange(exName, false, false);
+    }
+    
+    @Bean
+    public Queue queueInit() {
+        return new Queue(qName, false, false ,false);
+    }
+    
+    @Bean
+    public Binding bindInit() {
+        return BindingBuilder.bind(queueInit()).to(exInit()).with(routingKey);
+    }
+}
+```
+
+主类：
+
+```java
+package cn.edu.scnu;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class StartSeckillCenter {
+    public static void main(String[] args) {
+        SpringApplication.run(StartSeckillCenter.class);
+    }
+}
+```
+
+发送：
+
+```java
+package cn.edu.scnu.seckill.controller;
+
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import cn.edu.scnu.seckill.config.RabbitmqConfig;
+
+@RestController
+public class SenderController {
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+    
+    @RequestMapping("send")
+    public String sendMsg(String msg) {
+        rabbitTemplate.convertAndSend(RabbitmqConfig.exName, RabbitmqConfig.routingKey, msg);
+        return "success";
+    }
+}
+```
+
+接收：
+
+```java
+package cn.edu.scnu.seckill.consumer;
+
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
+import cn.edu.scnu.seckill.config.RabbitmqConfig;
+
+@Component
+public class SeckillConsumer {
+    @RabbitListener(queues = RabbitmqConfig.qName)
+    public void processMsg(String msg) {
+        System.out.println("消费端接收消息:" + msg);
+    }
+}
+```
+
+启动 rabbitmq:
+
+```sh
+cd /usr/lib/rabbitmq/bin
+./rabbitmq-server start
+```
+
+启动项目单独做测试：(先不管 repository，即依赖里删了先，忽略 eureka 报错)
+
+`http://localhost:8080/send?msg=你好再见`
+
+###### 基建
+
+前端接收秒杀请求的系统的线程处理速度要快，这单位时间的并发量才会提高。
+
+windows 主机新增数据库：
+
+```mysql
+CREATE DATABASE seckill;
+
+USE seckill;
+
+DROP TABLE IF EXISTS seckill;
+CREATE TABLE seckill (
+    seckill_id bigint(20) NOT NULL AUTO_INCREMENT COMMENT '商品库存id',
+    name varchar(120) NOT NULL COMMENT '商品名称',
+    number int(11) NOT NULL COMMENT '库存数量',
+    initial_price bigint(20) NOT NULL COMMENT '原价',
+    seckill_price bigint(20) NOT NULL COMMENT '秒杀价',
+    sell_point varchar(500) NOT NULL COMMENT '卖点',
+    create_time timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '秒杀创建时间',
+    start_time timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT '秒杀开始时间',
+    end_time timestamp NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT '秒杀结束时间',
+    PRIMARY KEY (seckill_id),
+    KEY idx_create_time (create_time),
+    KEY idx_start_time (start_time),
+    KEY idx_end_time (end_time)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8 COMMENT='秒杀库存表';
+delete from seckill;
+insert  into seckill(seckill_id,name,number,initial_price,seckill_price,sell_point,create_time,start_time,end_time) values (1,'oppo17',719,2000,1000,'1000元成功秒杀oppo10','2022-08-17 11:12:49','2023-05-09 13:13:49','2023-05-18 00:00:00'),(2,'荣耀10',80,1800,800,'800元成功秒杀荣耀10','2023-07-21 22:08:49','2023-07-23 00:00:00','2023-07-24 00:00:00'),(3,'iPhone10',60,1600,600,'600元成功秒杀iPhone6','2023-08-21 23:08:49','2023-08-24 00:00:00','2023-06-25 00:00:00'),(4,'小米4',40,1400,400,'400元成功秒杀小米7','2023-06-21 22:08:49','2023-06-25 00:00:00','2023-06-26 00:00:00'),(5,'vivo2',20,1200,200,'200元成功秒杀vivo2','2023-01-21 22:08:49','2023-06-26 00:00:00','2023-06-27 00:00:00'),(6,'魅族3',10,1000,100,'100元成功秒杀魅族1','2018-06-21 22:08:49','2023-01-27 00:00:00','2023-06-28 00:00:00');
+
+select * from seckill;
+DROP TABLE IF EXISTS success;
+
+CREATE TABLE success (
+    success_id bigint(20) NOT NULL AUTO_INCREMENT COMMENT '秒杀成功id',
+    seckill_id bigint(20) NOT NULL COMMENT '秒杀商品id',
+    user_id varchar(11) NOT NULL COMMENT '用户手机号',
+    state tinyint(4) NOT NULL DEFAULT '-1' COMMENT '状态标志：-1：无效；0：成功；1：已付款；2：已发货',
+    create_time timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '秒杀成功创建时间',
+    PRIMARY KEY (success_id),
+    KEY idx_create_time (create_time)
+) ENGINE=InnoDB AUTO_INCREMENT=6382 DEFAULT CHARSET=utf8 COMMENT='秒杀成功明细表';
+
+update seckill set start_time = '2022-8-23 11:45:14';
+```
+
+重新加上 repository 依赖，加上 rediscluster 依赖，创建基建：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.edu.scnu.seckill.mapper.SecMapper">
+</mapper>
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.edu.scnu.seckill.mapper.SucMapper">
+</mapper>
+```
+
+开 `SecService` 和 `SecController`。
+
+```properties
+spring.datasource.driver-class-name=com.mysql.jdbc.Driver
+spring.datasource.url=jdbc:mysql:///seckill?useUnicode=true&characterEncoding=utf8&autoReconnect=true&allowMultiQueries=true
+spring.datasource.username=root
+spring.datasource.password=1
+spring.datasource.type=com.alibaba.druid.pool.DruidDataSource
+spring.datasource.initialSize=5
+spring.datasource.maxActive=50
+spring.datasource.maxIdle=10
+spring.datasource.minIdle=5
+
+mybatis.typeAliasesPackage=com.easymall.common.pojo
+mybatis.mapperLocations=classpath:mapper/*.xml
+mybatis.configuration.mapUnderscoreToCamelCase=true
+mybatis.configuration.cacheEnabled=false
+
+#redis config
+spring.redis.cluster.nodes=192.168.126.128:8000,192.168.126.128:8001,192.168.126.128:8002
+spring.redis.cluster.maxTotal=200
+spring.redis.cluster.maxIdle=8
+spring.redis.cluster.minIdle=2
+```
+
+启动 redis：
+
+```sh
+cd /home/software/redis-3.2.11/
+rm -rf appendonly800* dump800* nodes-800*
+redis-server 8000/redis-cluster.conf && redis-server 8001/redis-cluster.conf && redis-server 8002/redis-cluster.conf && redis-server 8003/redis-cluster.conf && redis-server 8004/redis-cluster.conf && redis-server 8005/redis-cluster.conf
+cd src
+./redis-trib.rb create --replicas 1 192.168.126.128:8000 192.168.126.128:8001 192.168.126.128:8002 192.168.126.128:8003 192.168.126.128:8004 192.168.126.128:8005
+```
+
+```properties
+zuul.routes.zuul-seckill.path=/zuul-seckill/**
+zuul.routes.zuul-seckill.serviceId=seckillservice
+```
+
+```nginx
+location /seckills {
+	proxy_pass http://127.0.0.1:9005/zuul-seckill/seckill/manage;
+	add_header 'Access-Control-Allow-Credentials' 'true';
+	add_header 'Access-Control-Allow-Origin' '*'; 
+}
+```
+
+主类加：
+
+```java
+@EnableEurekaClient
+@MapperScan("cn.edu.scnu.seckill.mapper")
+```
+
+###### 查询
+
+sec mapper
+
+```xml
+<select id="queryAll" resultType="Seckill">
+    select * from seckill;
+</select>
+<select id="queryOne" parameterType="long" resultType="Seckill">
+    select * from seckill where seckill_id=#{seckillId}
+</select>
+```
+
+```java
+public List<Seckill> queryAll();
+public Seckill queryOne(Long seckillId);
+```
+
+```java
+public List<Seckill> queryAll() {
+    return secMapper.queryAll();
+}
+public Seckill queryOne(String seckillId) {
+    long seckillId_long = Long.parseLong(seckillId);
+    return secMapper.queryOne(seckillId_long);
+}
+```
+
+```java
+@RestController
+public class SecController {
+    @Autowired
+    private SecService secService;
+    
+    @RequestMapping("seckill/manage/list")
+    public List<Seckill> queryAll(){
+        return secService.queryAll();
+    }
+    
+    @RequestMapping("seckill/manage/detail")
+    public Seckill queryOne(String seckillId) {
+        return secService.queryOne(seckillId);
+    }
+}
+```
+
+启动，测试 `http://www.easymall.com/seckill-list.html`
+
+前端改改：`seckill-detail.html` (刷新即可马上生效)
+
+```javascript
+for(i=0;i<result.length;i++){
+    str += "非常感谢您参与本次秒杀活动，恭喜手机号为"+result[i].userId+"的幸运用户<br/>";
+}
+```
+
+###### 秒杀
+
+```java
+@Autowired
+private RabbitTemplate client;
+private static Random random = new Random();
+@RequestMapping("seckill/manage/{seckillId}")
+public SysResult startSeckill(@PathVariable Long seckillId) {
+    System.out.println(seckillId);
+    String userId = "180888" + (random.nextInt(89999) + 10000);
+    String msg = userId + "/" + seckillId;
+    client.convertAndSend(RabbitmqConfig.exName, RabbitmqConfig.routingKey, msg);
+    return SysResult.ok();
+}
+```
+
+测试：`http://www.easymall.com/seckills/1`
+
+sec mapper
+
+```xml
+<update id="updateNum">
+    update seckill set number=number-1 where
+    #{nowTime} &lt; end_time and #{nowTime} &gt; start_time
+    and seckill_id=#{seckillId} and number &gt; 0
+</update>
+```
+
+```java
+import java.util.Date;
+import org.apache.ibatis.annotations.Param;
+public int updateNum(@Param("seckillId") Long seckillId, @Param("nowTime") Date nowTime);
+```
+
+suc mapper
+
+```xml
+<insert id="saveSuc" parameterType="Success">
+    insert into success(success_id, seckill_id, user_id, state, create_time)
+    values (#{successId}, #{seckillId}, #{userId}, #{state},
+    #{createTime})
+</insert>
+```
+
+```java
+public void saveSuc(Success success);
+```
+
+```java
+@Component
+public class SeckillConsumer {
+    @Autowired
+    private SecMapper secMapper;
+    @Autowired
+    private SucMapper sucMapper;
+
+    @RabbitListener(queues = RabbitmqConfig.qName)
+    public void processMsg(String msg) {
+        System.out.println("消费端接收消息:" + msg);
+        String userId = msg.split("/")[0];
+        Long seckillId = Long.parseLong(msg.split("/")[1]);
+        Date nowTime = new Date();
+        int result = secMapper.updateNum(seckillId, nowTime);
+        if (result == 0) {
+            System.out.println("秒杀失败，售罄");
+            return;
+        }
+        Success success = new Success();
+        success.setUserId(userId);
+        success.setCreateTime(nowTime);
+        success.setState(1);
+        success.setSeckillId(seckillId);
+        sucMapper.saveSuc(success);
+    }
+}
+```
+
+测试：`http://www.easymall.com/seckills/1`
+
+预期：有 success 在 `select * from success;`
+
+###### 防超卖
+
+使用redis中的数据类型list,将秒杀商品的个数对应元素提前存放到redis中,秒杀之前先rpop取出数据，取数据成功的人才能调用减库存逻辑
+
+```java
+@Component
+public class SeckillConsumer {
+    @Autowired
+    private SecMapper secMapper;
+    @Autowired
+    private SucMapper sucMapper;
+    @Autowired
+    private JedisCluster cluster;
+
+    @RabbitListener(queues = RabbitmqConfig.qName)
+    public void processMsg(String msg) {
+        System.out.println("消费端接收消息:" + msg);
+        if (!cluster.exists("opposeckill")) {
+            System.out.println("售罄");
+            return;
+        }
+        String rpop = cluster.rpop("opposeckill");
+        if (rpop == null) {
+            System.out.println("售罄-");
+            return;
+        }
+        String userId = msg.split("/")[0];
+        Long seckillId = Long.parseLong(msg.split("/")[1]);
+        Date nowTime = new Date();
+        int result = secMapper.updateNum(seckillId, nowTime);
+        if (result == 0) {
+            System.out.println("秒杀失败，售罄");
+            return;
+        }
+        Success success = new Success();
+        success.setUserId(userId);
+        success.setCreateTime(nowTime);
+        success.setState(1);
+        success.setSeckillId(seckillId);
+        try {
+            sucMapper.saveSuc(success);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+进 redis 手动拉数据 
+
+```
+redis-cli -c -p 8000
+lpush opposeckill 1 1 1 1 1 
+```
+
+测试：`http://www.easymall.com/seckills/1/userPhone`

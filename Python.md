@@ -4614,6 +4614,25 @@ get 得到所显示的值
 
 - 读入的日期会以 `datetime` 格式保存。
 
+建议用 `with oj.cursor() as cur` 写法，会自动关闭。
+
+写一定要 commit，不然不成功，如：
+
+```python
+import pymysql as sql
+from random import randint
+oj = sql.connect(host='192.168.126.128', port=8066, user='root', password='root', database='mstest', charset='UTF8')
+with oj.cursor() as cur:
+    sql = "INSERT INTO t_user VALUES (%s, %s)"
+    values = (randint(1, 65535), '白茶')
+    cur.execute(sql, values)
+    oj.commit()
+with oj.cursor() as cur:
+    cmd = 'SELECT * FROM t_user'
+    cur.execute(cmd)
+    print(cur.fetchall())
+```
+
 
 
 ### paramiko
@@ -6788,6 +6807,16 @@ print(torch.cat((x,y),dim=0)) #上下拼接
 print(torch.cat((x,y),dim=1)) #左右
 ```
 
+> ```python
+> x=torch.normal(0,1,(1,3,4))
+> y=torch.normal(0,1,(1,3,4))
+> print(x)
+> print(torch.cat((x,y)).size()) #2,3,4
+> print(torch.cat((x,y))) 
+> print(torch.cat((x,y),dim=1).size()) #1,6,4
+> print(torch.cat((x,y),dim=1))
+> ```
+
 广播机制，行向量各列复制第一列，列向量复制第一行：
 
 
@@ -6795,7 +6824,6 @@ print(torch.cat((x,y),dim=1)) #左右
 x = torch.tensor([0, 1, 2]).reshape((3, 1))  # 列
 y = torch.tensor([0, 10]).reshape((1, 2))  # 变二维
 print(x+y)
-
 ```
 
 类比 numpy，索引和切片机制：
@@ -6856,7 +6884,7 @@ print(y.shape)  # torch.Size([10, 3072])
 
 ##### 线代
 
-转置： `.T`
+转置： `.T` 或 `.t()`
 
 ```python
 x = torch.arange(12).reshape(3,4)
@@ -9104,6 +9132,994 @@ def prepare_model(self, model):
 传统 MLP 对特征(feature)间的关联处理不太好。
 
 如果图片太大，那么特征非常多，即 $3nm$ 个，然后如果是全连接层，设有 $t$ 个神经元，也需要 $3nmt$ 个参数。
+
+对图像识别，可能不需要关心准确的位置。空间不变性(spatial invariance)
+
+- 平移不变性（translation invariance） 检测对象出现在图像中的哪个位置都能有相似的反应
+- 局部性 locality 神经网络的前面几层应该只探索输入图像中的局部区域，而不过度在意图像中相隔较远区域的关系
+
+输入层到隐藏层的变换为：
+$$
+\begin{split}\begin{aligned} \left[\mathbf{H}\right]_{i, j} &= [\mathbf{U}]_{i, j} + \sum_k \sum_l[\mathsf{W}]_{i, j, k, l}  [\mathbf{X}]_{k, l}\\ &=  [\mathbf{U}]_{i, j} +
+\sum_a \sum_b [\mathsf{V}]_{i, j, a, b}  [\mathbf{X}]_{i+a, j+b}.\end{aligned}\end{split}
+$$
+其中 $[\mathsf{V}]_{i, j, a, b} = [\mathsf{W}]_{i, j, i+a, j+b}$。
+
+平移不变性：如果 $X$ 位移，$H$ 也只位移。即 $V,U$ 不依赖下标，有 $[\mathsf{V}]_{i, j, a, b} = [\mathbf{V}]_{a, b}$，且是一个常数，因此可以简化为：
+$$
+[\mathbf{H}]_{i, j} = u + \sum_a\sum_b [\mathbf{V}]_{a, b} [\mathbf{X}]_{i+a, j+b}
+$$
+上述即为卷积(convolution)运算，这将使得系数变少。
+
+局部性，即对 $|a|>\Delta$ 或 $|b|>\Delta$，设 $[\mathbf{V}]_{a, b} = 0$，即：
+$$
+[\mathbf{H}]_{i, j} = u + \sum_{a = -\Delta}^{\Delta} \sum_{b = -\Delta}^{\Delta} [\mathbf{V}]_{a, b}  [\mathbf{X}]_{i+a, j+b}
+$$
+卷积神经网络是包含卷积层的一类特殊的神经网络。 在深度学习研究社区中，V被称为卷积核（convolution kernel）或者滤波器（filter），亦或简单地称之为该卷积层的权重
+
+多层感知机可能需要数十亿个参数来表示网络中的一层，而现在卷积神经网络通常只需要几百个参数。代价是，我们的特征现在是平移不变的。且每一层只包含局部的信息。当且仅当要训练的内容确实符合平移不变性和局部性假设时，才能得到有效的模型，否则拟合可能不好。
+
+数学而言，$f, g: \mathbb{R}^d \to \mathbb{R}$ 的卷积的定义是：
+$$
+(f * g)(\mathbf{x}) = \int f(\mathbf{z}) g(\mathbf{x}-\mathbf{z}) d\mathbf{z}
+$$
+也就是说，卷积是当把一个函数“翻转”并移位x时，测量f和g之间的重叠。 当为离散对象时，积分就变成求和。对离散对象为：
+$$
+(f * g)(i) = \sum_a f(a) g(i-a)
+$$
+二维：
+$$
+(f * g)(i, j) = \sum_a\sum_b f(a, b) g(i-a, j-b)
+$$
+图像一般包含三个通道，即红绿蓝。第三轴可看成每个像素的多维表示。所以隐藏层也用三维张量。采用一组而不是一个隐藏表示。这样一组隐藏表示可以想象成一些互相堆叠的二维网格。可以把隐藏表示想象为一系列具有二维张量的通道（channel）。 这些通道有时也被称为特征映射（feature maps），即：
+$$
+[\mathsf{H}]_{i,j,d} = \sum_{a = -\Delta}^{\Delta} \sum_{b = -\Delta}^{\Delta} \sum_c [\mathsf{V}]_{a, b, c, d} [\mathsf{X}]_{i+a, j+b, c}
+$$
+其中 d 表示输出通道，即将 c 映射到 d。
+
+##### 卷积
+
+严格来说，卷积层是个错误的叫法，因为它所表达的运算其实是互相关运算（cross-correlation）
+
+一个卷积的例子：
+
+![image-20230504202508814](img/image-20230504202508814.png)
+$$
+\begin{split}0\times0+1\times1+3\times2+4\times3=19,\\
+1\times0+2\times1+4\times2+5\times3=25,\\
+3\times0+4\times1+6\times2+7\times3=37,\\
+4\times0+5\times1+7\times2+8\times3=43.\end{split}
+$$
+对输入大小 $n_h \times n_w$ 和卷积核大小 $k_h \times k_w$，输出大小为 $(n_h-k_h+1) \times (n_w-k_w+1)$
+
+手写如下：
+
+```python
+import torch
+from torch import nn
+from d2l import torch as d2l
+
+def corr2d(X, K):  #@save
+    """计算二维互相关运算"""
+    h, w = K.shape
+    Y = torch.zeros((X.shape[0] - h + 1, X.shape[1] - w + 1))
+    for i in range(Y.shape[0]):
+        for j in range(Y.shape[1]):
+            Y[i, j] = (X[i:i + h, j:j + w] * K).sum()
+    return Y
+```
+
+```python
+X = torch.tensor([[0.0, 1.0, 2.0], [3.0, 4.0, 5.0], [6.0, 7.0, 8.0]])
+K = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
+corr2d(X, K)
+```
+
+因此可以写一个卷积层：
+
+```python
+class Conv2D(nn.Module):
+    def __init__(self, kernel_size):
+        super().__init__()
+        self.weight = nn.Parameter(torch.rand(kernel_size))
+        self.bias = nn.Parameter(torch.zeros(1))
+
+    def forward(self, x):
+        return corr2d(x, self.weight) + self.bias
+```
+
+数字图像处理的边缘检测例子，卷积核为 1代表从白色到黑色的边缘，-1代表从黑色到白色的边缘：
+
+```python
+K = torch.tensor([[1.0, -1.0]])
+```
+
+检测例子：
+
+```python
+X = torch.ones((6, 8))
+X[:, 2:6] = 0 #中间四列0，其他1
+print(corr2d(X, K))
+print(corr2d(X.t(), K))
+```
+
+得到结果为，第二列是1，倒数第二列是-1，其他都是0。转置后结果全0
+
+尝试训练一个上述的边缘检测函数：
+
+```python
+Y = corr2d(X, K)
+# 构造一个二维卷积层，它具有1个输出通道和形状为（1，2）的卷积核
+conv2d = nn.Conv2d(1,1, kernel_size=(1, 2), bias=False)
+
+# 这个二维卷积层使用四维输入和输出格式（批量大小、通道、高度、宽度），
+# 其中批量大小和通道数都为1
+X = X.reshape((1, 1, 6, 8))
+Y = Y.reshape((1, 1, 6, 7))
+lr = 3e-2  # 学习率
+
+for i in range(10):
+    Y_hat = conv2d(X)
+    l = (Y_hat - Y) ** 2
+    conv2d.zero_grad()
+    l.sum().backward()
+    # 迭代卷积核
+    conv2d.weight.data[:] -= lr * conv2d.weight.grad
+    if (i + 1) % 2 == 0:
+        print(f'epoch {i+1}, loss {l.sum():.3f}')
+```
+
+输出训练结果发现跟实际上述的卷积核比较接近：
+
+```python
+print(conv2d.weight.data.reshape((1, 2)))
+```
+
+只需水平和垂直翻转二维卷积核张量，然后对输入张量执行互相关运算，就是卷积运算。实际上效果是一样的。
+
+输出的卷积层有时被称为特征映射（feature map），因为它可以被视为一个输入映射到下一层的空间维度的转换器。 在卷积神经网络中，对于某一层的任意元素x，其感受野（receptive field）是指在前向传播期间可能影响x计算的所有元素（来自所有先前层）。感受野可能大于输入的实际大小。
+
+##### 填充和步幅
+
+原始图像的边界丢失了许多有用信息。而填充是解决此问题最有效的方法。输入图像的边界填充元素（通常填充元素是0），如先 3x3 填到 5x5 再卷成 4x4
+
+![image-20230504205739477](img/image-20230504205739477.png)
+
+添加$p_h$行填充（大约一半在顶部，一半在底部）和$p_w$列填充（左侧大约一半，右侧一半），则输出形状将为 $(n_h-k_h+p_h+1)\times(n_w-k_w+p_w+1)$
+
+多数情况设 $p_h=k_h-1$ 和 $p_w=k_w-1$ 使得输入输出维度不变。若 $k_h$ 是奇数，可以两侧填充 $p_h\div2$ 行，偶数就顶部 $\lceil p_h\div2\rceil$ 行，底部 $\lfloor p_h\div2\rfloor$ 行。宽度同理。
+
+卷积神经网络中卷积核的高度和宽度通常为奇数，例如1、3、5或7。 选择奇数的好处是，保持空间维度的同时，我们可以在顶部和底部填充相同数量的行，在左侧和右侧填充相同数量的列。
+
+> 若满足 1\. 卷积核的大小是奇数； 2\. 所有边的填充行数和列数相同； 3\. 输出与输入具有相同高度和宽度 则可以得出：输出`Y[i, j]`是通过以输入`X[i, j]`为中心，与卷积核进行互相关计算得到的。
+
+一个卷积的例子：
+
+```python
+import torch
+from torch import nn
+
+
+# 为了方便起见，我们定义了一个计算卷积层的函数。
+# 此函数初始化卷积层权重，并对输入和输出提高和缩减相应的维数
+def comp_conv2d(conv2d, X):
+    # 这里的（1，1）表示批量大小和通道数都是1
+    X = X.reshape((1, 1) + X.shape)
+    Y = conv2d(X)
+    # 省略前两个维度：批量大小和通道
+    return Y.reshape(Y.shape[2:])
+
+# 请注意，这里每边都填充了1行或1列，因此总共添加了2行或2列
+conv2d = nn.Conv2d(1, 1, kernel_size=3, padding=1)
+X = torch.rand(size=(8, 8))
+comp_conv2d(conv2d, X).shape
+```
+
+将每次滑动元素的数量称为步幅（stride），如垂直步幅为3，水平步幅为2的二维互相关运算：
+
+![image-20230504210953672](img/image-20230504210953672.png)
+
+每行算完两次后，当卷积窗口继续向右滑动两列时，没有输出，因为输入元素无法填充窗口（除非我们添加另一列填充）。
+
+通常，当垂直步幅为 $s_h$、水平步幅为 $s_w$ 时，输出形状为
+$$
+\lfloor(n_h-k_h+p_h+s_h)/s_h\rfloor \times \lfloor(n_w-k_w+p_w+s_w)/s_w\rfloor
+$$
+如果设置了 $p_h=k_h-1$ 且 $p_w=k_w-1$ 则有 $\lfloor(n_h+s_h-1)/s_h\rfloor \times \lfloor(n_w+s_w-1)/s_w\rfloor$，如果再将输入高度宽度被步幅整除，则输出形状为 $(n_h/s_h) \times (n_w/s_w)$
+
+一个高度宽度减半的例子：
+
+```python
+conv2d = nn.Conv2d(1, 1, kernel_size=3, padding=1, stride=2)
+comp_conv2d(conv2d, X).shape
+```
+
+其他例子：
+
+```python
+conv2d = nn.Conv2d(1, 1, kernel_size=(3, 5), padding=(0, 1), stride=(3, 4))
+comp_conv2d(conv2d, X).shape
+```
+
+##### 通道
+
+添加通道时，我们的输入和隐藏的表示都变成了三维张量，如 $3\times h\times w$ 的是大小为 $3$ 的轴是通道 channel 维度。设通道数是 $c_i$。每个卷积核二位张量互相关运算，然后将每个通道求和，得到二位张量。
+
+![image-20230510203120898](img/image-20230510203120898.png)
+
+手写示例：
+
+```python
+import torch
+from d2l import torch as d2l
+
+def corr2d_multi_in(X, K):
+    # 先遍历“X”和“K”的第0个维度（通道维度），再把它们加在一起
+    return sum(d2l.corr2d(x, k) for x, k in zip(X, K))
+```
+
+```python
+X = torch.tensor([[[0.0, 1.0, 2.0], [3.0, 4.0, 5.0], [6.0, 7.0, 8.0]],
+               [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]]])
+K = torch.tensor([[[0.0, 1.0], [2.0, 3.0]], [[1.0, 2.0], [3.0, 4.0]]])
+
+corr2d_multi_in(X, K)
+```
+
+每个通道不是独立学习的，而是为了共同使用而优化的。为了输出多个通道可以创造形状为 $c_o\times c_i\times k_h\times k_w$ 的卷积核。
+
+```python
+def corr2d_multi_in_out(X, K):
+    # 迭代“K”的第0个维度，每次都对输入“X”执行互相关运算。
+    # 最后将所有结果都叠加在一起
+    return torch.stack([corr2d_multi_in(X, k) for k in K], 0)
+```
+
+stack 解释：
+
+```python
+# 假设是时间步T1的输出
+T1 = torch.tensor([[1, 2, 3],
+        		[4, 5, 6],
+        		[7, 8, 9]])
+# 假设是时间步T2的输出
+T2 = torch.tensor([[10, 20, 30],
+        		[40, 50, 60],
+        		[70, 80, 90]])
+print(torch.stack((T1,T2),dim=0))
+print(torch.stack((T1,T2),dim=1))
+print(torch.stack((T1,T2),dim=2))
+'''第一个：
+tensor([[[ 1,  2,  3],
+         [10, 20, 30]],
+
+        [[ 4,  5,  6],
+         [40, 50, 60]],
+
+        [[ 7,  8,  9],
+         [70, 80, 90]]])'''
+```
+
+```python
+print(torch.stack((T1,T1,T2),0)) #[T1,T1,T2] , 3x3x3
+print(torch.stack((T1,T2,T2),0)) #[T1,T2,T2]
+```
+
+```python
+K = torch.stack((K, K + 1, K + 2), 0)
+print(K.shape)
+print(K)
+```
+
+卷一下上述的 3x2x2x2，得到 3x2x2：
+
+```python
+corr2d_multi_in_out(X, K)
+```
+
+可以造 1x1 卷积层，用来调整通道数量，控制模型复杂度：
+
+![image-20230510212432232](img/image-20230510212432232.png)
+
+```python
+def corr2d_multi_in_out_1x1(X, K):
+    c_i, h, w = X.shape
+    c_o = K.shape[0]
+    X = X.reshape((c_i, h * w))
+    K = K.reshape((c_o, c_i))
+    # 全连接层中的矩阵乘法
+    Y = torch.matmul(K, X)
+    return Y.reshape((c_o, h, w))
+X = torch.normal(0, 1, (3, 3, 3))
+K = torch.normal(0, 1, (2, 3, 1, 1))
+
+Y1 = corr2d_multi_in_out_1x1(X, K)
+Y2 = corr2d_multi_in_out(X, K)
+print(Y1) #3x3
+print(Y2) #3x3
+assert float(torch.abs(Y1 - Y2).sum()) < 1e-6
+```
+
+##### 汇聚层
+
+希望逐渐降低隐藏表示的空间分辨率、聚集信息，这样随着我们在神经网络中层叠的上升，每个神经元对其敏感的感受野（输入）就越大，最后一层的神经元应该对整个输入的全局敏感
+
+在现实中，随着拍摄角度的移动，任何物体几乎不可能发生在同一像素上。即使用三脚架拍摄一个静止的物体，由于快门的移动而引起的相机振动，可能会使所有物体左右移动一个像素
+
+汇聚（pooling）层，它具有双重目的：降低卷积层对位置的敏感性，同时降低对空间降采样表示的敏感性
+
+汇聚层运算符为固定形状窗口，有时称为汇聚窗口。不包含参数，池运算是确定性的，我们通常计算汇聚窗口中所有元素的最大值或平均值。这些操作分别称为最大汇聚层（maximum pooling）和平均汇聚层（average pooling）。
+
+汇聚窗口形状为 pxq 的汇聚层称为 pxq 汇聚层，汇聚操作称 pxq 汇聚。如
+
+```python
+import torch
+from torch import nn
+from d2l import torch as d2l
+
+def pool2d(X, pool_size, mode='max'):
+    p_h, p_w = pool_size
+    Y = torch.zeros((X.shape[0] - p_h + 1, X.shape[1] - p_w + 1))
+    for i in range(Y.shape[0]):
+        for j in range(Y.shape[1]):
+            if mode == 'max':
+                Y[i, j] = X[i: i + p_h, j: j + p_w].max()
+            elif mode == 'avg':
+                Y[i, j] = X[i: i + p_h, j: j + p_w].mean()
+    return Y
+```
+
+```python
+X = torch.tensor([[0.0, 1.0, 2.0], [3.0, 4.0, 5.0], [6.0, 7.0, 8.0]])
+print(pool2d(X, (2, 2)))
+print(pool2d(X, (2, 2), 'avg'))
+```
+
+显然可以调库：
+
+```python
+X = torch.arange(16, dtype=torch.float32).reshape((1, 1, 4, 4))
+pool2d = nn.MaxPool2d(3)
+print(pool2d(X)) #1x1x1x1
+pool2d = nn.MaxPool2d(3, padding=1, stride=2)
+print(pool2d(X)) #1x1x2x2
+pool2d = nn.MaxPool2d((2, 3), stride=(2, 3), padding=(0, 1))
+print(pool2d(X)) #==上
+```
+
+多通道：
+
+```python
+X = torch.arange(16, dtype=torch.float32).reshape((1, 1, 4, 4))
+X = torch.cat((X, X + 1), 1)
+print(X) #1x1x4x4
+pool2d = nn.MaxPool2d(3, padding=1, stride=2)
+print(pool2d(X))
+```
+
+##### LeNet
+
+LeNet，它是最早发布的卷积神经网络之一。当时，LeNet取得了与支持向量机（support vector machines）性能相媲美的成果，成为监督学习的主流方法
+
+在LeNet提出后，卷积神经网络在计算机视觉和机器学习领域中很有名气。但卷积神经网络并没有主导这些领域。这是因为虽然LeNet在小数据集上取得了很好的效果，但是在更大、更真实的数据集上训练卷积神经网络的性能和可行性还有待研究。事实上，在上世纪90年代初到2012年之间的大部分时间里，神经网络往往被其他机器学习方法超越，如支持向量机（support vector machines）
+
+> 卷积神经网络的输入是由原始像素值或是经过简单预处理（例如居中、缩放）的像素值组成的。但在使用传统机器学习方法时，从业者永远不会将原始像素作为输入。在传统机器学习方法中，计算机视觉流水线是由经过人的手工精心设计的特征流水线组成的。对于这些传统方法，大部分的进展都来自于对特征有了更聪明的想法，并且学习到的算法往往归于事后的解释
+>
+> 卷积神经网络的输入是由原始像素值或是经过简单预处理（例如居中、缩放）的像素值组成的。但在使用传统机器学习方法时，从业者永远不会将原始像素作为输入。在传统机器学习方法中，计算机视觉流水线是由经过人的手工精心设计的特征流水线组成的。对于这些传统方法，大部分的进展都来自于对特征有了更聪明的想法
+>
+> 经典机器学习的流水线看起来更像下面这样：
+>
+> 1. 获取一个有趣的数据集。在早期，收集这些数据集需要昂贵的传感器（在当时最先进的图像也就100万像素）。
+> 2. 根据光学、几何学、其他知识以及偶然的发现，手工对特征数据集进行预处理。
+> 3. 通过标准的特征提取算法，如SIFT（尺度不变特征变换） ([Lowe, 2004](https://zh.d2l.ai/chapter_references/zreferences.html#id102))和SURF（加速鲁棒特征） ([Bay *et al.*, 2006](https://zh.d2l.ai/chapter_references/zreferences.html#id7))或其他手动调整的流水线来输入数据。
+> 4. 将提取的特征送入最喜欢的分类器中（例如线性模型或其它核方法），以训练分类器
+>
+> 计算机视觉研究人员相信，从对最终模型精度的影响来说，更大或更干净的数据集、或是稍微改进的特征提取，比任何学习算法带来的进步要大得多。
+
+（LeNet-5）由两个部分组成：
+
+- 卷积编码器：由两个卷积层组成;
+- 全连接层密集块：由三个全连接层组成。
+
+![image-20230510215520477](img/image-20230510215520477.png)
+
+每个卷积块中的基本单元是一个卷积层、一个sigmoid激活函数和平均汇聚层。relu 和最大汇聚层更有效。
+
+每个卷积层使用5×5卷积核和一个sigmoid激活函数。第一卷积层有6个输出通道，而第二个卷积层有16个输出通道。每个2×2池操作（步幅2）通过空间下采样将维数减少4倍。卷积的输出形状由批量大小、通道数、高度、宽度决定。
+
+具体实现：
+
+```python
+import torch
+from torch import nn
+from d2l import torch as d2l
+
+net = nn.Sequential(
+    nn.Conv2d(1, 6, kernel_size=5, padding=2), nn.Sigmoid(),
+    nn.AvgPool2d(kernel_size=2, stride=2),
+    nn.Conv2d(6, 16, kernel_size=5), nn.Sigmoid(),
+    nn.AvgPool2d(kernel_size=2, stride=2),
+    nn.Flatten(), #展平维度
+    nn.Linear(16 * 5 * 5, 120), nn.Sigmoid(),
+    nn.Linear(120, 84), nn.Sigmoid(),
+    nn.Linear(84, 10))
+```
+
+去掉了原始模型最后一层的高斯激活。
+
+![image-20230510235015846](img/image-20230510235015846.png)
+
+输出一下各层及其形状：
+
+```python
+X = torch.rand(size=(1, 1, 28, 28), dtype=torch.float32)
+for layer in net:
+    X = layer(X)
+    print(layer.__class__.__name__,'output shape: \t',X.shape)
+```
+
+用这个网络跑一下之前的衣服 Fashion-MNIST 数据集，使用 GPU 加速：
+
+```python
+batch_size = 256
+train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size=batch_size)
+```
+
+由于完整的数据集位于内存中，因此在模型使用GPU计算数据集之前，我们需要将其复制到显存中。在进行正向和反向传播之前，我们需要将每一小批量数据移动到我们指定的设备（例如GPU）上
+
+```python
+def evaluate_accuracy_gpu(net, data_iter, device=None): #@save
+    """使用GPU计算模型在数据集上的精度"""
+    if isinstance(net, nn.Module):
+        net.eval()  # 设置为评估模式
+        if not device:
+            device = next(iter(net.parameters())).device
+    # 正确预测的数量，总预测的数量
+    metric = d2l.Accumulator(2)
+    with torch.no_grad():
+        for X, y in data_iter:
+            if isinstance(X, list):
+                # BERT微调所需的（之后将介绍）
+                X = [x.to(device) for x in X]
+            else:
+                X = X.to(device)
+            y = y.to(device)
+            metric.add(d2l.accuracy(net(X), y), y.numel())
+    return metric[0] / metric[1]
+```
+
+```python
+#@save
+def train_ch6(net, train_iter, test_iter, num_epochs, lr, device):
+    """用GPU训练模型(在第六章定义)"""
+    def init_weights(m):
+        if type(m) == nn.Linear or type(m) == nn.Conv2d:
+            nn.init.xavier_uniform_(m.weight)
+    net.apply(init_weights)
+    print('training on', device)
+    net.to(device)
+    optimizer = torch.optim.SGD(net.parameters(), lr=lr)
+    loss = nn.CrossEntropyLoss()
+    animator = d2l.Animator(xlabel='epoch', xlim=[1, num_epochs],
+                            legend=['train loss', 'train acc', 'test acc'])
+    timer, num_batches = d2l.Timer(), len(train_iter)
+    for epoch in range(num_epochs):
+        # 训练损失之和，训练准确率之和，样本数
+        metric = d2l.Accumulator(3)
+        net.train()
+        for i, (X, y) in enumerate(train_iter):
+            timer.start()
+            optimizer.zero_grad()
+            X, y = X.to(device), y.to(device)
+            y_hat = net(X)
+            l = loss(y_hat, y)
+            l.backward()
+            optimizer.step()
+            with torch.no_grad():
+                metric.add(l * X.shape[0], d2l.accuracy(y_hat, y), X.shape[0])
+            timer.stop()
+            train_l = metric[0] / metric[2]
+            train_acc = metric[1] / metric[2]
+            if (i + 1) % (num_batches // 5) == 0 or i == num_batches - 1:
+                animator.add(epoch + (i + 1) / num_batches,
+                             (train_l, train_acc, None))
+        test_acc = evaluate_accuracy_gpu(net, test_iter)
+        animator.add(epoch + 1, (None, None, test_acc))
+    print(f'loss {train_l:.3f}, train acc {train_acc:.3f}, '
+          f'test acc {test_acc:.3f}')
+    print(f'{metric[2] * num_epochs / timer.sum():.1f} examples/sec '
+          f'on {str(device)}')
+```
+
+进行训练，要一分钟多一点吧：
+
+```python
+lr, num_epochs = 0.9, 10
+train_ch6(net, train_iter, test_iter, num_epochs, lr, d2l.try_gpu())
+```
+
+#### 现代神经网络
+
+ImageNet竞赛自2010年以来，一直是计算机视觉中监督学习进展的指向标。
+
+经典模型包括：
+
+- AlexNet。第一个在大规模视觉竞赛中击败传统计算机视觉模型的大型神经网络；
+- 使用重复块的网络（VGG）。它利用许多重复的神经网络块；
+- 网络中的网络（NiN）。它重复使用由卷积层和1×1卷积层（用来代替全连接层）来构建深层网络;
+- 含并行连结的网络（GoogLeNet）。它使用并行连结的网络，通过不同窗口大小的卷积层和最大汇聚层来并行抽取信息；
+- 残差网络（ResNet）。它通过残差块构建跨层的数据通道，是计算机视觉中最流行的体系架构；
+- 稠密连接网络（DenseNet）。它的计算成本很高，但给我们带来了更好的效果。
+
+深度神经网络的概念非常简单——将神经网络堆叠在一起。但由于不同的网络架构和超参数选择，这些神经网络的性能会发生很大变化
+
+##### AlexNet
+
+AlexNet以Alex Krizhevsky的名字命名。首次证明了学习到的特征可以超越手工设计的特征
+
+特征本身应该被学习。此外，他们还认为，在合理地复杂性前提下，特征应该由多个共同学习的神经网络层组成，每个层都有可学习的参数。在机器视觉中，最底层可能检测边缘、颜色和纹理
+
+> 有一群执着的研究者不断钻研，试图学习视觉数据的逐级表征，然而很长一段时间里这些尝试都未有突破
+
+包含许多特征的深度模型需要大量的有标签数据，才能显著优于基于凸优化的传统方法（如线性方法和核方法）。image net 提供了大量的数据集。
+
+深度学习对计算资源要求很高，训练可能需要数百个迭代轮数，每次迭代都需要通过代价高昂的许多线性代数层传递数据。GPU 用来加速通用计算。
+
+> CPU的每个核心都拥有高时钟频率的运行能力，和高达数MB的三级缓存（L3Cache）。 它们非常适合执行各种指令，具有分支预测器、深层流水线和其他使CPU能够运行各种程序的功能。 然而，这种明显的优势也是它的致命弱点：通用核心的制造成本非常高。 它们需要大量的芯片面积、复杂的支持结构（内存接口、内核之间的缓存逻辑、高速互连等等），而且它们在任何单个任务上的性能都相对较差。 现代笔记本电脑最多有4核，即使是高端服务器也很少超过64核，因为它们的性价比不高。
+>
+> GPU由100∼1000个小的处理单元组成。虽然每个GPU核心都相对较弱，有时甚至以低于1GHz的时钟频率运行，但庞大的核心数量使GPU比CPU快几个数量级。功耗往往会随时钟频率呈二次方增长。 对于一个CPU核心，假设它的运行速度比GPU快4倍，但可以使用16个GPU核代替，那么GPU的综合性能就是CPU的16×1/4=4倍。GPU内核要简单得多，这使得它们更节能。GPU拥有10倍于CPU的带宽。
+>
+> 卷积神经网络中的计算瓶颈：卷积和矩阵乘法，都是可以在硬件上并行化的操作。 
+
+使用了8层卷积神经网络。
+
+<img src="img/image-20230511153127106.png" alt="image-20230511153127106" style="zoom:67%;" />
+
+AlexNet和LeNet的设计理念非常相似，但也存在显著差异。
+
+1. AlexNet比相对较小的LeNet5要深得多。AlexNet由八层组成：五个卷积层、两个全连接隐藏层和一个全连接输出层。
+2. AlexNet使用ReLU而不是sigmoid作为其激活函数。
+
+提供的是一个稍微精简版本的AlexNet，去除了当年需要两个小型GPU同时运算的设计特点。
+
+在AlexNet的第一层，卷积窗口的形状是11×11。 由于ImageNet中大多数图像的宽和高比MNIST图像的多10倍以上，因此，需要一个更大的卷积窗口来捕获目标。 第二层中的卷积窗口形状被缩减为5×5，然后是3×3。 此外，在第一层、第二层和第五层卷积层之后，加入窗口形状为3×3、步幅为2的最大汇聚层。 而且，AlexNet的卷积通道数目是LeNet的10倍。
+
+在最后一个卷积层后有两个全连接层，分别有4096个输出。 这两个巨大的全连接层拥有将近1GB的模型参数。
+
+一方面，ReLU激活函数的计算更简单，它不需要如sigmoid激活函数那般复杂的求幂运算。 另一方面，当使用不同的参数初始化方法时，ReLU激活函数使训练模型更加容易。ReLU激活函数在正区间的梯度总是1。 当sigmoid激活函数的输出非常接近于0或1时，这些区域的梯度几乎为0，因此反向传播无法继续更新一些模型参数。如果模型参数没有正确初始化，sigmoid函数可能在正区间内得到几乎为0的梯度，从而使模型无法得到有效的训练。
+
+AlexNet通过暂退法(dropout)控制全连接层的模型复杂度，而LeNet只使用了权重衰减。 为了进一步扩充数据，AlexNet在训练时增加了大量的图像增强数据，如翻转、裁切和变色。
+
+```python
+import torch
+from torch import nn
+from d2l import torch as d2l
+
+net = nn.Sequential(
+    # 这里使用一个11*11的更大窗口来捕捉对象。
+    # 同时，步幅为4，以减少输出的高度和宽度。
+    # 另外，输出通道的数目远大于LeNet
+    nn.Conv2d(1, 96, kernel_size=11, stride=4, padding=1), nn.ReLU(),
+    nn.MaxPool2d(kernel_size=3, stride=2),
+    # 减小卷积窗口，使用填充为2来使得输入与输出的高和宽一致，且增大输出通道数
+    nn.Conv2d(96, 256, kernel_size=5, padding=2), nn.ReLU(),
+    nn.MaxPool2d(kernel_size=3, stride=2),
+    # 使用三个连续的卷积层和较小的卷积窗口。
+    # 除了最后的卷积层，输出通道的数量进一步增加。
+    # 在前两个卷积层之后，汇聚层不用于减少输入的高度和宽度
+    nn.Conv2d(256, 384, kernel_size=3, padding=1), nn.ReLU(),
+    nn.Conv2d(384, 384, kernel_size=3, padding=1), nn.ReLU(),
+    nn.Conv2d(384, 256, kernel_size=3, padding=1), nn.ReLU(),
+    nn.MaxPool2d(kernel_size=3, stride=2),
+    nn.Flatten(),
+    # 这里，全连接层的输出数量是LeNet中的好几倍。使用dropout层来减轻过拟合
+    nn.Linear(6400, 4096), nn.ReLU(),
+    nn.Dropout(p=0.5),
+    nn.Linear(4096, 4096), nn.ReLU(),
+    nn.Dropout(p=0.5),
+    # 最后是输出层。由于这里使用Fashion-MNIST，所以用类别数为10，而非论文中的1000
+    nn.Linear(4096, 10))
+```
+
+用一个单通道图片观察形状：
+
+```python
+X = torch.randn(1, 1, 224, 224)
+for layer in net:
+    X=layer(X)
+    print(layer.__class__.__name__,'output shape:\t',X.shape)
+```
+
+即使在现代GPU上，训练ImageNet模型，同时使其收敛可能需要数小时或数天的时间。 将AlexNet直接应用于Fashion-MNIST的一个问题是，Fashion-MNIST图像的分辨率（28×28像素）低于ImageNet图像。 为了解决这个问题，我们将它们增加到224×224（通常来讲这不是一个明智的做法，但在这里这样做是为了有效使用AlexNet架构）。 这里需要使用`d2l.load_data_fashion_mnist`函数中的`resize`参数执行此调整。
+
+```python
+batch_size = 128
+train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size, resize=224)
+```
+
+训练：(本机 15min)
+
+```python
+lr, num_epochs = 0.01, 10
+d2l.train_ch6(net, train_iter, test_iter, num_epochs, lr, d2l.try_gpu())
+```
+
+##### VGG
+
+从单个神经元的角度思考问题，发展到整个层，现在又转向块，重复层的模式。VGG 是牛津大学 visual geometry group
+
+经典卷积神经网络的基本组成部分是下面的这个序列：
+
+1. 带填充以保持分辨率的卷积层；
+2. 非线性激活函数，如ReLU；
+3. 汇聚层，如最大汇聚层。
+
+而一个VGG块与之类似，由一系列卷积层组成，后面再加上用于空间下采样的最大汇聚层。
+
+两个参数，分别对应于卷积层的数量`num_convs`和输出通道的数量`num_channels`
+
+```python
+import torch
+from torch import nn
+from d2l import torch as d2l
+
+
+def vgg_block(num_convs, in_channels, out_channels):
+    layers = []
+    for _ in range(num_convs):
+        layers.append(nn.Conv2d(in_channels, out_channels,
+                                kernel_size=3, padding=1))
+        layers.append(nn.ReLU())
+        in_channels = out_channels
+    layers.append(nn.MaxPool2d(kernel_size=2,stride=2))
+    return nn.Sequential(*layers)
+```
+
+VGG网络可以分为两部分：第一部分主要由卷积层和汇聚层组成，第二部分由全连接层组成
+
+![image-20230511163920168](img/image-20230511163920168.png)
+
+超参数变量`conv_arch`。该变量指定了每个VGG块里卷积层个数和输出通道数。全连接模块则与AlexNet中的相同。
+
+原始VGG网络有5个卷积块，其中前两个块各有一个卷积层，后三个块各包含两个卷积层。 第一个模块有64个输出通道，每个后续模块将输出通道数量翻倍，直到该数字达到512。由于该网络使用8个卷积层和3个全连接层，因此它通常被称为VGG-11。
+
+```python
+conv_arch = ((1, 64), (1, 128), (2, 256), (2, 512), (2, 512))
+def vgg(conv_arch):
+    conv_blks = []
+    in_channels = 1
+    # 卷积层部分
+    for (num_convs, out_channels) in conv_arch:
+        conv_blks.append(vgg_block(num_convs, in_channels, out_channels))
+        in_channels = out_channels
+
+    return nn.Sequential(
+        *conv_blks, nn.Flatten(),
+        # 全连接层部分
+        nn.Linear(out_channels * 7 * 7, 4096), nn.ReLU(), nn.Dropout(0.5),
+        nn.Linear(4096, 4096), nn.ReLU(), nn.Dropout(0.5),
+        nn.Linear(4096, 10))
+
+net = vgg(conv_arch)
+```
+
+观察形状：
+
+```python
+X = torch.randn(size=(1, 1, 224, 224))
+for blk in net:
+    X = blk(X)
+    print(blk.__class__.__name__,'output shape:\t',X.shape)
+```
+
+由于VGG-11比AlexNet计算量更大，因此我们构建了一个通道数较少的网络，足够用于训练Fashion-MNIST数据集
+
+```python
+ratio = 4
+small_conv_arch = [(pair[0], pair[1] // ratio) for pair in conv_arch]
+net = vgg(small_conv_arch)
+```
+
+训练：(本机 24min)
+
+```python
+lr, num_epochs, batch_size = 0.05, 10, 128
+train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size, resize=224)
+d2l.train_ch6(net, train_iter, test_iter, num_epochs, lr, d2l.try_gpu())
+```
+
+##### NiN
+
+LeNet、AlexNet和VGG都有一个共同的设计模式：通过一系列的卷积层与汇聚层来提取空间结构特征；然后通过全连接层对特征的表征进行处理。 AlexNet和VGG对LeNet的改进主要在于如何扩大和加深这两个模块。 或者，可以想象在这个过程的早期使用全连接层。然而，如果使用了全连接层，可能会完全放弃表征的空间结构。 网络中的网络（NiN net in net）提供了一个非常简单的解决方案：在每个像素的通道上分别使用多层感知机
+
+NiN的想法是在每个像素位置（针对每个高度和宽度）应用一个全连接层， 从另一个角度看，即将空间维度中的每个像素视为单个样本，将通道维度视为不同特征（feature）
+
+![image-20230511180218686](img/image-20230511180218686.png)
+
+```python
+import torch
+from torch import nn
+from d2l import torch as d2l
+
+
+def nin_block(in_channels, out_channels, kernel_size, strides, padding):
+    return nn.Sequential(
+        nn.Conv2d(in_channels, out_channels, kernel_size, strides, padding),
+        nn.ReLU(),
+        nn.Conv2d(out_channels, out_channels, kernel_size=1), nn.ReLU(),
+        nn.Conv2d(out_channels, out_channels, kernel_size=1), nn.ReLU())
+```
+
+NiN和AlexNet之间的一个显著区别是NiN完全取消了全连接层。 相反，NiN使用一个NiN块，其输出通道数等于标签类别的数量。最后放一个*全局平均汇聚层*（global average pooling layer），生成一个对数几率 （logits）。NiN设计的一个优点是，它显著减少了模型所需参数的数量。然而，在实践中，这种设计有时会增加训练模型的时间
+
+```python
+net = nn.Sequential(
+    nin_block(1, 96, kernel_size=11, strides=4, padding=0),
+    nn.MaxPool2d(3, stride=2),
+    nin_block(96, 256, kernel_size=5, strides=1, padding=2),
+    nn.MaxPool2d(3, stride=2),
+    nin_block(256, 384, kernel_size=3, strides=1, padding=1),
+    nn.MaxPool2d(3, stride=2),
+    nn.Dropout(0.5),
+    # 标签类别数是10
+    nin_block(384, 10, kernel_size=3, strides=1, padding=1),
+    nn.AdaptiveAvgPool2d((1, 1)),
+    # 将四维的输出转成二维的输出，其形状为(批量大小,10)
+    nn.Flatten())
+```
+
+形状检查：
+
+```python
+X = torch.rand(size=(1, 1, 224, 224))
+for layer in net:
+    X = layer(X)
+    print(layer.__class__.__name__,'output shape:\t', X.shape)
+```
+
+训练：(18min)
+
+```python
+lr, num_epochs, batch_size = 0.1, 10, 128
+train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size, resize=224)
+d2l.train_ch6(net, train_iter, test_iter, num_epochs, lr, d2l.try_gpu())
+```
+
+##### GoogLeNet
+
+GoogLeNet吸收了NiN中串联网络的思想，并在此基础上做了改进。 这篇论文的一个重点是解决了什么样大小的卷积核最合适的问题。有时使用不同大小的卷积核组合是有利的
+
+省略了一些为稳定训练而添加的特殊特性，现在有了更好的训练方法，这些特性不是必要的
+
+基本的卷积块被称为Inception块（Inception block）
+
+![image-20230511181459823](img/image-20230511181459823.png)
+
+Inception块由四条并行路径组成。 前三条路径使用窗口大小为1×1、3×3和5×5的卷积层，从不同空间大小中提取信息。 中间的两条路径在输入上执行1×1卷积，以减少通道数，从而降低模型的复杂性。 第四条路径使用3×3最大汇聚层，然后使用1×1卷积层来改变通道数。 这四条路径都使用合适的填充来使输入与输出的高和宽一致，最后我们将每条线路的输出在通道维度上连结，并构成Inception块的输出。在Inception块中，通常调整的超参数是每层输出通道数。
+
+```python
+import torch
+from torch import nn
+from torch.nn import functional as F
+from d2l import torch as d2l
+
+
+class Inception(nn.Module):
+    # c1--c4是每条路径的输出通道数
+    def __init__(self, in_channels, c1, c2, c3, c4, **kwargs):
+        super(Inception, self).__init__(**kwargs)
+        # 线路1，单1x1卷积层
+        self.p1_1 = nn.Conv2d(in_channels, c1, kernel_size=1)
+        # 线路2，1x1卷积层后接3x3卷积层
+        self.p2_1 = nn.Conv2d(in_channels, c2[0], kernel_size=1)
+        self.p2_2 = nn.Conv2d(c2[0], c2[1], kernel_size=3, padding=1)
+        # 线路3，1x1卷积层后接5x5卷积层
+        self.p3_1 = nn.Conv2d(in_channels, c3[0], kernel_size=1)
+        self.p3_2 = nn.Conv2d(c3[0], c3[1], kernel_size=5, padding=2)
+        # 线路4，3x3最大汇聚层后接1x1卷积层
+        self.p4_1 = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
+        self.p4_2 = nn.Conv2d(in_channels, c4, kernel_size=1)
+
+    def forward(self, x):
+        p1 = F.relu(self.p1_1(x))
+        p2 = F.relu(self.p2_2(F.relu(self.p2_1(x))))
+        p3 = F.relu(self.p3_2(F.relu(self.p3_1(x))))
+        p4 = F.relu(self.p4_2(self.p4_1(x)))
+        # 在通道维度上连结输出
+        return torch.cat((p1, p2, p3, p4), dim=1)
+```
+
+考虑一下滤波器（filter）的组合，它们可以用各种滤波器尺寸探索图像，这意味着不同大小的滤波器可以有效地识别不同范围的图像细节。 同时，我们可以为不同的滤波器分配不同数量的参数。
+
+GoogLeNet一共使用9个Inception块和全局平均汇聚层的堆叠来生成其估计值。Inception块之间的最大汇聚层可降低维度。 第一个模块类似于AlexNet和LeNet，Inception块的组合从VGG继承，全局平均汇聚层避免了在最后使用全连接层。
+
+![image-20230511182343389](img/image-20230511182343389.png)
+
+GoogLeNet模型的计算复杂，而且不如VGG那样便于修改通道数。 为了使Fashion-MNIST上的训练短小精悍，我们将输入的高和宽从224降到96，这简化了计算。下面演示各个模块输出的形状变化。
+
+```python
+b1 = nn.Sequential(nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3),
+                   nn.ReLU(),
+                   nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+
+b2 = nn.Sequential(nn.Conv2d(64, 64, kernel_size=1),
+                   nn.ReLU(),
+                   nn.Conv2d(64, 192, kernel_size=3, padding=1),
+                   nn.ReLU(),
+                   nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+
+b3 = nn.Sequential(Inception(192, 64, (96, 128), (16, 32), 32),
+                   Inception(256, 128, (128, 192), (32, 96), 64),
+                   nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+
+b4 = nn.Sequential(Inception(480, 192, (96, 208), (16, 48), 64),
+                   Inception(512, 160, (112, 224), (24, 64), 64),
+                   Inception(512, 128, (128, 256), (24, 64), 64),
+                   Inception(512, 112, (144, 288), (32, 64), 64),
+                   Inception(528, 256, (160, 320), (32, 128), 128),
+                   nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+
+b5 = nn.Sequential(Inception(832, 256, (160, 320), (32, 128), 128),
+                   Inception(832, 384, (192, 384), (48, 128), 128),
+                   nn.AdaptiveAvgPool2d((1,1)),
+                   nn.Flatten())
+
+net = nn.Sequential(b1, b2, b3, b4, b5, nn.Linear(1024, 10))
+```
+
+形状检查：
+
+```python
+X = torch.rand(size=(1, 1, 96, 96))
+for layer in net:
+    X = layer(X)
+    print(layer.__class__.__name__,'output shape:\t', X.shape)
+```
+
+训练：(16min)
+
+```python
+lr, num_epochs, batch_size = 0.1, 10, 128
+train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size, resize=96)
+d2l.train_ch6(net, train_iter, test_iter, num_epochs, lr, d2l.try_gpu())
+```
+
+
+
+##### 批量规范化
+
+训练深层神经网络是十分困难的，特别是在较短的时间内使他们收敛更加棘手
+
+批量规范化（batch normalization）是一种流行且有效的技术，可持续加速深层网络的收敛速度。 再结合在残差块，批量规范化使得研究人员能够训练100层以上的网络。需要批量规范化的理由：
+
+- 标准化输入特征，使其平均值为0，方差为1。 直观地说，这种标准化可以很好地与我们的优化器配合使用，因为它可以将参数的量级进行统一
+- 中间层中的变量（例如，多层感知机中的仿射变换输出）可能具有更广的变化范围。假设这些变量分布中的这种偏移可能会阻碍网络的收敛。 直观地说，我们可能会猜想，如果一个层的可变值是另一层的100倍，这可能需要对学习率进行补偿调整
+- 更深层的网络很复杂，容易过拟合。 这意味着正则化变得更加重要。
+
+批量规范化应用于单个可选层（也可以应用到所有层），其原理如下：在每次训练迭代中，我们首先规范化输入，即通过减去其均值并除以其标准差，其中两者均基于当前小批量处理。 接下来，我们应用比例系数和比例偏移。 正是由于这个基于批量统计的标准化，才有了批量规范化的名称。
+
+请注意，如果我们尝试使用大小为1的小批量应用批量规范化，我们将无法学到任何东西。 这是因为在减去均值之后，每个隐藏单元将为0。
+
+从形式上来说，用 $\mathbf{x} \in \mathcal{B}$ 表示一个来自小批量 B 的输入，批量规范化BN根据以下表达式转换 x：
+$$
+\mathrm{BN}(\mathbf{x}) = \boldsymbol{\gamma} \odot \frac{\mathbf{x} - \hat{\boldsymbol{\mu}}_\mathcal{B}}{\hat{\boldsymbol{\sigma}}_\mathcal{B}} + \boldsymbol{\beta}
+$$
+生成的小批量的平均值为0和单位方差为1，拉伸参数 scale $\gamma$ 和偏移参数 shift $\beta$ 是与 $x$ 形状相同的，需要与其他模型参数一起学习的参数。
+
+中间层的变化幅度不能过于剧烈，而批量规范化将每一层主动居中，并将它们重新调整为给定的平均值和大小（通过 $\hat{\boldsymbol{\mu}}_\mathcal{B}$ 和 ${\hat{\boldsymbol{\sigma}}_\mathcal{B}}$) 
+$$
+\begin{split}\begin{aligned} \hat{\boldsymbol{\mu}}_\mathcal{B} &= \frac{1}{|\mathcal{B}|} \sum_{\mathbf{x} \in \mathcal{B}} \mathbf{x}\\
+\hat{\boldsymbol{\sigma}}_\mathcal{B}^2 &= \frac{1}{|\mathcal{B}|} \sum_{\mathbf{x} \in \mathcal{B}} (\mathbf{x} - \hat{\boldsymbol{\mu}}_{\mathcal{B}})^2 + \epsilon\end{aligned}\end{split}
+$$
+小常量 $\epsilon > 0$ 的添加以确保永远不会尝试除以零，即使在经验方差估计值可能消失的情况下也是如此。通过使用平均值和方差的噪声（noise）估计来抵消缩放问题。
+
+由于尚未在理论上明确的原因，优化中的各种噪声源通常会导致更快的训练和较少的过拟合：这种变化似乎是正则化的一种形式。批量规范化最适应50∼100范围中的中等批量大小
+
+批量规范化层在”训练模式“（通过小批量统计数据规范化）和“预测模式”（通过数据集统计规范化）中的功能不同。 在训练过程中，我们无法得知使用整个数据集来估计平均值和方差，所以只能根据每个小批次的平均值和方差不断训练模型。 而在预测模式下，可以根据整个数据集精确计算批量规范化所需的平均值和方差。
+
+批量规范化和其他层之间的一个关键区别是，由于批量规范化在完整的小批量上运行，因此我们不能像以前在引入其他层时那样忽略批量大小。 我们在下面讨论这两种情况：全连接层和卷积层，他们的批量规范化实现略有不同。
+
+全连接层，通常，我们将批量规范化层置于全连接层中的仿射变换和激活函数之间，设激活函数是 $\phi$，批量规范化运算符是 $BN$，则：
+$$
+\mathbf{h} = \phi(\mathrm{BN}(\mathbf{W}\mathbf{x} + \mathbf{b}) )
+$$
+卷积层，我们可以在卷积层之后和非线性激活函数之前应用批量规范化，每个通道都有自己的拉伸（scale）和偏移（shift）参数，这两个参数都是标量。给定通道内应用相同的均值和方差
+
+预测模式，首先，将训练好的模型用于预测时，我们不再需要样本均值中的噪声以及在微批次上估计每个小批次产生的样本方差了。 其次，例如，我们可能需要使用我们的模型对逐个样本进行预测。 一种常用的方法是通过移动平均估算整个训练数据集的样本均值和方差，并在预测时使用它们得到确定的输出
+
+手写：
+
+```python
+import torch
+from torch import nn
+from d2l import torch as d2l
+
+
+def batch_norm(X, gamma, beta, moving_mean, moving_var, eps, momentum):
+    # 通过is_grad_enabled来判断当前模式是训练模式还是预测模式
+    if not torch.is_grad_enabled():
+        # 如果是在预测模式下，直接使用传入的移动平均所得的均值和方差
+        X_hat = (X - moving_mean) / torch.sqrt(moving_var + eps)
+    else:
+        assert len(X.shape) in (2, 4)
+        if len(X.shape) == 2:
+            # 使用全连接层的情况，计算特征维上的均值和方差
+            mean = X.mean(dim=0)
+            var = ((X - mean) ** 2).mean(dim=0)
+        else:
+            # 使用二维卷积层的情况，计算通道维上（axis=1）的均值和方差。
+            # 这里我们需要保持X的形状以便后面可以做广播运算
+            mean = X.mean(dim=(0, 2, 3), keepdim=True)
+            var = ((X - mean) ** 2).mean(dim=(0, 2, 3), keepdim=True)
+        # 训练模式下，用当前的均值和方差做标准化
+        X_hat = (X - mean) / torch.sqrt(var + eps)
+        # 更新移动平均的均值和方差
+        moving_mean = momentum * moving_mean + (1.0 - momentum) * mean
+        moving_var = momentum * moving_var + (1.0 - momentum) * var
+    Y = gamma * X_hat + beta  # 缩放和移位
+    return Y, moving_mean.data, moving_var.data
+```
+
+通常情况下，我们用一个单独的函数定义其数学原理，比如说`batch_norm`。 然后，我们将此功能集成到一个自定义层中，其代码主要处理数据移动到训练设备（如GPU）、分配和初始化任何必需的变量、跟踪移动平均线（此处为均值和方差）等问题。 为了方便起见，我们并不担心在这里自动推断输入形状，因此我们需要指定整个特征的数量。 
+
+```python
+class BatchNorm(nn.Module):
+    # num_features：完全连接层的输出数量或卷积层的输出通道数。
+    # num_dims：2表示完全连接层，4表示卷积层
+    def __init__(self, num_features, num_dims):
+        super().__init__()
+        if num_dims == 2:
+            shape = (1, num_features)
+        else:
+            shape = (1, num_features, 1, 1)
+        # 参与求梯度和迭代的拉伸和偏移参数，分别初始化成1和0
+        self.gamma = nn.Parameter(torch.ones(shape))
+        self.beta = nn.Parameter(torch.zeros(shape))
+        # 非模型参数的变量初始化为0和1
+        self.moving_mean = torch.zeros(shape)
+        self.moving_var = torch.ones(shape)
+
+    def forward(self, X):
+        # 如果X不在内存上，将moving_mean和moving_var
+        # 复制到X所在显存上
+        if self.moving_mean.device != X.device:
+            self.moving_mean = self.moving_mean.to(X.device)
+            self.moving_var = self.moving_var.to(X.device)
+        # 保存更新过的moving_mean和moving_var
+        Y, self.moving_mean, self.moving_var = batch_norm(
+            X, self.gamma, self.beta, self.moving_mean,
+            self.moving_var, eps=1e-5, momentum=0.9)
+        return Y
+```
+
+将其应用于LeNet模型
+
+```python
+net = nn.Sequential(
+    nn.Conv2d(1, 6, kernel_size=5), BatchNorm(6, num_dims=4), nn.Sigmoid(),
+    nn.AvgPool2d(kernel_size=2, stride=2),
+    nn.Conv2d(6, 16, kernel_size=5), BatchNorm(16, num_dims=4), nn.Sigmoid(),
+    nn.AvgPool2d(kernel_size=2, stride=2), nn.Flatten(),
+    nn.Linear(16*4*4, 120), BatchNorm(120, num_dims=2), nn.Sigmoid(),
+    nn.Linear(120, 84), BatchNorm(84, num_dims=2), nn.Sigmoid(),
+    nn.Linear(84, 10))
+```
+
+这个代码与我们第一次训练 LeNet 时几乎完全相同，主要区别在于学习率大得多，训练用时本机3min
+
+```python
+lr, num_epochs, batch_size = 1.0, 10, 256
+train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size)
+d2l.train_ch6(net, train_iter, test_iter, num_epochs, lr, d2l.try_gpu())
+```
+
+看看从第一个批量规范化层中学到的拉伸参数gamma和偏移参数beta
+
+```python
+print(net[1].gamma.reshape((-1,)), net[1].beta.reshape((-1,)))
+```
+
+
 
 ## 网络
 

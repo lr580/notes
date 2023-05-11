@@ -381,6 +381,26 @@
 - 2106\.摘水果
 
   前缀和 / <u>滑动窗口</u>
+  
+- 1419\.数青蛙
+
+  贪心 小模拟
+  
+- 1010\.总持续时间可被60整除的歌曲
+
+  枚举
+  
+- 1263\.推箱子
+
+  BFS套BFS
+  
+- 1015\.可被k整除的最小整数
+
+  数论
+  
+- 1016\.子串能表示从1到N的数字的二进制串
+
+  枚举 / <u>滑动窗口+数学</u>
 
 
 
@@ -10671,6 +10691,488 @@ class Solution {
 ```
 
  
+
+##### 1419\.数青蛙
+
+[题目](https://leetcode.cn/problems/minimum-number-of-frogs-croaking/)
+
+模拟多线程，用较优复杂度给每个线程分配任务。不能一遍遍扫，只能扫一遍，考虑 `c...r...o...a...k...` 会卡到 $n^2$。个人实现：
+
+```java
+class Solution {
+    public int minNumberOfFrogs(String s) {
+        int cnt[] = new int[5], ans = 0;
+        byte[] t = new byte[] { 'c', 'r', 'o', 'a', 'k' };
+        int[] p = new int[128];
+        for (int i = 0; i < 5; ++i) {
+            p[t[i]] = i;
+        }
+        for (byte c : s.getBytes()) {
+            int i = p[c], sum = 0;
+            if (i == 0) {
+                ++cnt[i];
+            } else if (cnt[i - 1] > 0) {
+                --cnt[i - 1];
+                ++cnt[i];
+            } else {
+                return -1;
+            }
+            for (int j = 0; j < 5; ++j) {
+                sum += cnt[j];
+            }
+            ans = Math.max(ans, sum);
+            if (i == 4) {
+                --cnt[i];
+            }
+        }
+        for (int i = 0; i < 4; ++i) {
+            if (cnt[i] != 0) {
+                return -1;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+更优实现(少一个 for，理论上快五倍但实践上不如我的快)
+
+```java
+class Solution {
+    public int minNumberOfFrogs(String croakOfFrogs) {
+        if (croakOfFrogs.length() % 5 != 0) {
+            return -1;
+        }
+        int res = 0, frogNum = 0;
+        int[] cnt = new int[4];
+        Map<Character, Integer> map = new HashMap<Character, Integer>() {{
+            put('c', 0);
+            put('r', 1);
+            put('o', 2);
+            put('a', 3);
+            put('k', 4);
+        }};
+        for (int i = 0; i < croakOfFrogs.length(); i++) {
+            char c = croakOfFrogs.charAt(i);
+            int t = map.get(c);
+            if (t == 0) {
+                cnt[t]++;
+                frogNum++;
+                if (frogNum > res) {
+                    res = frogNum;
+                }
+            } else {
+                if (cnt[t - 1] == 0) {
+                    return -1;
+                }
+                cnt[t - 1]--;
+                if (t == 4) {
+                    frogNum--;
+                } else {
+                    cnt[t]++;
+                }
+            }
+        }
+        if (frogNum > 0) {
+            return -1;
+        }
+        return res;
+    }
+}
+```
+
+
+
+##### 1010\.总持续时间可被60整除的歌曲
+
+[题目](https://leetcode.cn/problems/pairs-of-songs-with-total-durations-divisible-by-60/)
+
+直接枚举：
+
+```java
+class Solution {
+    public int numPairsDivisibleBy60(int[] time) {
+        int cnt[] = new int[60], n = time.length, ans = 0;
+        for (int i = 0; i < n; ++i) {
+            ans += cnt[(60 - time[i] % 60) % 60];
+            ++cnt[time[i] % 60];
+        }
+        return ans;
+    }
+}
+```
+
+遍历完计数再枚举：
+
+```java
+class Solution {
+    public int numPairsDivisibleBy60(int[] time) {
+        int[] cnt = new int[60];
+        for (int t : time) {
+            cnt[t % 60]++;
+        }
+        long res = 0;
+        for (int i = 1; i < 30; i++) {
+            res += cnt[i] * cnt[60 - i];
+        }
+        res += (long) cnt[0] * (cnt[0] - 1) / 2 + (long) cnt[30] * (cnt[30] - 1) / 2;
+        return (int) res;
+    }
+}
+```
+
+
+
+##### 1263\.推箱子
+
+[题目](https://leetcode.cn/problems/minimum-moves-to-move-a-box-to-their-target-location/)
+
+空间更优的解法。BFS 套 BFS。所有状态为：当前箱子位置+玩家相对箱子的四方向位置，共 $4nm$ 个状态。所以外层 BFS 的存储状态为：箱子位置+玩家位置+已经推动的次数。每次遍历时，对当前玩家位置，再进行一次内层 BFS，以求出箱子的四个相对位置玩家是否可达，如果可达，就尝试推一次。时间复杂度为 $O(4n^2m^2)$，空间复杂度为 $O(4nm)$。
+
+```java
+import java.util.ArrayDeque;
+
+class Solution {
+    int n, m, ex, ey, bx, by, px, py;
+    int[] dx = { -1, 0, 1, 0 }, dy = { 0, -1, 0, 1 };
+    boolean reach[][], vis[][][];
+    char g[][];
+
+    private boolean in(int x, int y) {
+        return x >= 0 && y >= 0 && x < n && y < m;
+    }
+
+    private void updateReachable() {
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < m; ++j) {
+                reach[i][j] = false;
+            }
+        }
+        ArrayDeque<Integer[]> q = new ArrayDeque<>();
+        q.addLast(new Integer[] { px, py });
+        while (!q.isEmpty()) {
+            Integer[] tm = q.pollFirst();
+            int ax = tm[0], ay = tm[1];
+            if (reach[ax][ay]) {
+                continue;
+            }
+            reach[ax][ay] = true;
+            for (int i = 0; i < 4; ++i) {
+                int nx = ax + dx[i], ny = ay + dy[i];
+                if (in(nx, ny) && g[nx][ny] != '#' && !(nx == bx && ny == by)) {
+                    q.addLast(new Integer[] { nx, ny });
+                }
+            }
+        }
+    }
+
+    public int minPushBox(char[][] grid) {
+        n = grid.length;
+        m = grid[0].length;
+        g = grid;
+        reach = new boolean[n][m];
+        vis = new boolean[n][m][4];
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < m; ++j) {
+                if (grid[i][j] == 'T') {
+                    ex = i;
+                    ey = j;
+                } else if (grid[i][j] == 'B') {
+                    bx = i;
+                    by = j;
+                } else if (grid[i][j] == 'S') {
+                    px = i;
+                    py = j;
+                }
+            }
+        }
+        ArrayDeque<Integer[]> q = new ArrayDeque<>();
+        q.addLast(new Integer[] { bx, by, px, py, 0 });
+        while (!q.isEmpty()) {
+            Integer[] tm = q.pollFirst();
+            bx = tm[0];
+            by = tm[1];
+            if (bx == ex && by == ey) {
+                return tm[4];
+            }
+            px = tm[2];
+            py = tm[3];
+            updateReachable();
+            for (int i = 0; i < 4; ++i) {
+                int qx = bx + dx[i], qy = by + dy[i];
+                if (in(qx, qy) && reach[qx][qy] && !vis[bx][by][i]) {
+                    int cx = bx - dx[i], cy = by - dy[i];
+                    if (in(cx, cy) && g[cx][cy] != '#') {
+                        vis[bx][by][i] = true;
+                        q.addLast(new Integer[] { cx, cy, bx, by, tm[4] + 1 });
+                    }
+                }
+            }
+        }
+        return -1;
+    }
+}
+```
+
+一种时间更优但空间更劣的办法：
+
+```java
+class Solution {
+    public int minPushBox(char[][] grid) {
+        int m = grid.length, n = grid[0].length;
+        int sx = -1, sy = -1, bx = -1, by = -1; // 玩家、箱子的初始位置
+        for (int x = 0; x < m; x++) {
+            for (int y = 0; y < n; y++) {
+                if (grid[x][y] == 'S') {
+                    sx = x;
+                    sy = y;
+                } else if (grid[x][y] == 'B') {
+                    bx = x;
+                    by = y;
+                }
+            }
+        }
+
+        int[] d = {0, -1, 0, 1, 0};
+
+        int[][] dp = new int[m * n][m * n];
+        for (int i = 0; i < m * n; i++) {
+            Arrays.fill(dp[i], Integer.MAX_VALUE);
+        }
+        Queue<int[]> queue = new ArrayDeque<int[]>();
+        dp[sx * n + sy][bx * n + by] = 0; // 初始状态的推动次数为 0
+        queue.offer(new int[]{sx * n + sy, bx * n + by});
+        while (!queue.isEmpty()) {
+            Queue<int[]> queue1 = new ArrayDeque<int[]>();
+            while (!queue.isEmpty()) {
+                int[] arr = queue.poll();
+                int s1 = arr[0], b1 = arr[1];
+                int sx1 = s1 / n, sy1 = s1 % n, bx1 = b1 / n, by1 = b1 % n;
+                if (grid[bx1][by1] == 'T') { // 箱子已被推到目标处
+                    return dp[s1][b1];
+                }
+                for (int i = 0; i < 4; i++) { // 玩家向四个方向移动到另一个状态
+                    int sx2 = sx1 + d[i], sy2 = sy1 + d[i + 1], s2 = sx2*n+sy2;
+                    if (!ok(grid, m, n, sx2, sy2)) { // 玩家位置不合法
+                        continue;
+                    }
+                    if (bx1 == sx2 && by1 == sy2) { // 推动箱子
+                        int bx2 = bx1 + d[i], by2 = by1 + d[i + 1], b2 = bx2*n+by2;
+                        if (!ok(grid, m, n, bx2, by2) || dp[s2][b2] <= dp[s1][b1] + 1) { // 箱子位置不合法 或 状态已访问
+                            continue;
+                        }
+                        dp[s2][b2] = dp[s1][b1] + 1;
+                        queue1.offer(new int[]{s2, b2});
+                    } else {
+                        if (dp[s2][b1] <= dp[s1][b1]) { // 状态已访问
+                            continue;
+                        }
+                        dp[s2][b1] = dp[s1][b1];
+                        queue.offer(new int[]{s2, b1});
+                    }
+                }
+            }
+            queue = queue1;
+        }
+        return -1;
+    }
+
+    public boolean ok(char[][] grid, int m, int n, int x, int y) { // 不越界且不在墙上
+        return x >= 0 && x < m && y >= 0 && y < n && grid[x][y] != '#';
+    }
+}
+```
+
+
+
+##### 1015\.可被k整除的最小整数
+
+[题目](https://leetcode.cn/problems/smallest-integer-divisible-by-k/)
+
+我的暴力，思路模仿天梯赛一道20分题-整除光棍。
+
+```java
+class Solution {
+    public int smallestRepunitDivByK(int k) {
+        if (k % 2 == 0 || k % 5 == 0) {
+            return -1;
+        }
+        int cnt = 0, s = 0, p = 1;
+        do {
+            s = (s + p % k) % k;
+            ++cnt;
+            p = p * 10 % k;
+        } while (s != 0);
+        return cnt;
+    }
+}
+```
+
+前置知识：四则运算取模定理、费马小定理、欧拉定理等。
+
+即求最小长度 $n$ 满足 $\sum_{i=0}^{n-1}10^i\equiv0\pmod k$。
+
+根据乘法取模公式容易得知，只要 $10^i\equiv 10^j\pmod k$，其中 $i < j$，那么一定可以用 $10^i$ 替换 $10^j$，从而使得任意 $10^{i+k}$ 与 $10^{j+k}$ 等价，即一个循环节长度为 $j-i$(不一定是最短循环节，如 $x$ 是循环长度的话任意整数 $cx$ 都是循环长度)。根据费马小定理，对任意整数 $a$ 有 $a^k\equiv a\pmod k$，代入 $10$，可知一个循环节的长度是 $k-1$。
+
+> 到这里其实已经可以暴力套取模公式了，即只需要运算 $k-1$ 次，如果还没到 $0$ 必然无解，否则一旦到 $0$ 就输出。
+
+更优雅解法：$\overline{111\cdots1}=\dfrac{10^n-1}9$，因为是整数，所以必然有 $9|(10^n-1)$，也可以用等比数列证，当 $n|k$ 时，等价于 $10^n\equiv 1\pmod{9k}$，根据欧拉定理，求出 $\varphi(9k)$ 是一个循环节，然后枚举 $\varphi(9k)$  的所有因子 $d$，快速幂求出是否 $10^d\equiv 1\pmod{9k}$ 即可。求欧拉函数和枚举所有因子(不是质因子)的复杂度都是  $O(\sqrt k)$，枚举后要上快速幂，故总复杂度为 $O(\log k\sqrt k)$。当然，如果枚举后一个都不为 $1$，就证明无解了。
+
+下面证明若 $2|k$ 或 $5|k$(即 $k$ 含因数 $2$ 或 $5$，也可以表示成 $\gcd(10,k)\neq 1$)必然无解，其他情况$(\gcd(10,k)= 1)$必然有解。
+
+因为成循环节，所以必然有同余的 $a=\dfrac{10^x-1}{9},b=\dfrac{10^y-1}{9},a > b$，其中同余意味着 $k|(a-b)$，作差得 $a-b=\dfrac{10^x-10^y}9=10^y\dfrac{10^{x-y}-1}9$ 。如果 $k$ 没有因子 $2$ 或 $5$，要满足 $k|(a-b)$，只能让 $k|\dfrac{10^{x-y}-1}9$，即 $\dfrac{10^{x-y}-1}9\equiv 0\pmod k$，这意味着 $n=x-y$ 是可行解。
+
+否则，可以整除 $10^y$， 
+
+```java
+class Solution {
+    public int smallestRepunitDivByK(int k) {
+        if (k % 2 == 0 || k % 5 == 0)
+            return -1;
+        int m = phi(k * 9);
+        // 从小到大枚举不超过 sqrt(m) 的因子
+        int i = 1;
+        for (; i * i <= m; i++)
+            if (m % i == 0 && pow(10, i, k * 9) == 1)
+                return i;
+        // 从小到大枚举不低于 sqrt(m) 的因子
+        for (i--; ; i--)
+            if (m % i == 0 && pow(10, m / i, k * 9) == 1)
+                return m / i;
+    }
+
+    // 计算欧拉函数（n 以内的与 n 互质的数的个数）
+    private int phi(int n) {
+        int res = n;
+        for (int i = 2; i * i <= n; i++) {
+            if (n % i == 0) {
+                res = res / i * (i - 1);
+                while (n % i == 0) n /= i;
+            }
+        }
+        if (n > 1)
+            res = res / n * (n - 1);
+        return res;
+    }
+
+    // 快速幂，返回 pow(x, n) % mod
+    private long pow(long x, int n, long mod) {
+        long res = 1;
+        for (; n > 0; n /= 2) {
+            if (n % 2 > 0) res = res * x % mod;
+            x = x * x % mod;
+        }
+        return res;
+    }
+}
+```
+
+
+
+##### 1016\.子串能表示从 1 到 N 数字的二进制串
+
+[链接]((https://leetcode.cn/problems/binary-string-with-substrings-representing-1-to-n/))
+
+手玩发现如果要包含全体连续正整数，字符串长度会很长，根据构造直觉，可知 n 很快无法完全覆盖，故想过直接枚举每个数字转二进制然后开字符串哈希/KMP判是否在字符串内。
+
+然后想到既然判是否在字符串内了，字符串又这么短，何不直接预处理每个字符串子串，然后存 hash 表，然后枚举 hash 表看看是否前 n 个数都在表内即可，因此，时空复杂度为 $O(|s|^2)$。
+
+```java
+class Solution {
+    public boolean queryString(String s, int n) {
+        HashSet<Integer> h = new HashSet<>();
+        byte[] b = s.getBytes();
+        for (int i = 0, ie = s.length(); i < ie; ++i) {
+            int v = 0;
+            for (int j = i; j < ie; ++j) {
+                v = v * 2 + b[j] - '0'; //注意没处理溢出,可能会被hack
+                h.add(v);
+            }
+        }
+        for (int i = 1; i <= n; ++i) {
+            if (!h.contains(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+```
+
+枚举优化：$O(|s|\log n)$，内层只需要枚举到不超过 $n$ 即可。
+
+```java
+class Solution {
+    public boolean queryString(String S, int n) {
+        var seen = new HashSet<Integer>();
+        var s = S.toCharArray();
+        for (int i = 0, m = s.length; i < m; ++i) {
+            int x = s[i] - '0';
+            if (x == 0) continue; // 二进制数从 1 开始
+            for (int j = i + 1; x <= n; j++) {
+                seen.add(x);
+                if (j == m) break;
+                x = (x << 1) | (s[j] - '0'); // 子串 [i,j] 的二进制数
+            }
+        }
+        return seen.size() == n;
+    }
+}
+```
+
+如一个字符串要包含所有连续整数，例如长为 $3$ 的互不相同字符共有 $4$ 个($100,101,110,111$)，既然互不相同，理想情况下就算重叠的再好，每个字符也会多一个不一样的即最优总长度为 $3+(4-1)=6$。推广一下，设 $n$ 的二进制长度是 $k+1$，则 $[2^k,n]$ 内长度为 $k+1$ 的数，共 $n-2^k+1$ 个，总长度为 $k+1+n-2^k$。同理，$[2^{k-1},2^k-1]$ 有 $2^{k-1}$ 个，满足 $k+2^{k-1}-1$，因为不同长度间可以叠，所以不是加，具体而言应当至少满足 $|s|\ge \max(k+1+n-2^k,k+2^{k-1}-1)$，才可能(不是必然)有解。$k$ 是 $O(\log n)$，所以 $\max$ 式子求出来大约是 $0.5n$ 的数据量，准确而言，$|s| \le 10^3$ 可以推出 $n < 2014$，因此，只需要遍历 $n$ 的每个数，看看是否在子串也行：
+
+```java
+class Solution {
+    public boolean queryString(String s, int n) {
+        for (int i = 1; i <= n; i++)
+            if (!s.contains(Integer.toBinaryString(i)))
+                return false;
+        return true;
+    }
+}
+```
+
+大约是 $O(|s|^2\log n)$ 的复杂度，但空间优。
+
+注意到在上文分析里，区间 $[2^{k-1},2^k-1]$ 如果能全部覆盖，那么更低的位数区间必然也能被覆盖，这是因为把 $k$ 长最低位砍掉，刚好就是低一位的。因此，只需要考虑能否被长为 $k,k+1$ 这两组的全体二进制。同理，对 $[2^k,n]$ 的全体数，可以被 $k$ 的一部分覆盖，所以只需要从 $\lfloor\dfrac n2\rfloor+1$ 开始考虑。
+
+更优解法：滑动窗口。不断维护长为 $k$ 的窗口，$O(|s|)$ 求出所有长为 $k$ 的 01 串的十进制值然后丢 set 里，最后看看 set 是否包含给定范围。
+
+```java
+class Solution {
+    public boolean queryString(String s, int n) {
+        if (n == 1)
+            return s.contains("1");
+
+        int k = 31 - Integer.numberOfLeadingZeros(n); // n 的二进制长度减一
+        if (s.length() < Math.max(n - (1 << k) + k + 1, (1 << (k - 1)) + k - 1))
+            return false;
+
+        return check(s, k, n / 2 + 1, (1 << k) - 1) && check(s, k + 1, 1 << k, n);
+    }
+
+    // 对于长为 k 的在 [lower, upper] 内的二进制数，判断这些数 s 是否都有
+    private boolean check(String s, int k, int lower, int upper) {
+        if (lower > upper) return true;
+        var seen = new HashSet<Integer>();
+        int mask = (1 << (k - 1)) - 1;
+        int x = Integer.parseInt(s.substring(0, k - 1), 2);
+        for (int i = k - 1, m = s.length(); i < m; i++) {
+            // & mask 可以去掉最高比特位，从而实现滑窗的「出」
+            // << 1 | (s.charAt(i) - '0') 即为滑窗的「入」
+            x = ((x & mask) << 1) | (s.charAt(i) - '0');
+            if (lower <= x && x <= upper)
+                seen.add(x);
+        }
+        return seen.size() == upper - lower + 1;
+    }
+}
+```
+
+
+
+
 
 > ### 力扣比赛
 >

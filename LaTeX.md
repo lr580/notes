@@ -1415,6 +1415,12 @@ LaTeX Workshop 默认的编译工具是 latexmk，根据需要修改所需的工
 
 
 
+> ### 在线使用
+
+[overleaf](https://www.overleaf.com/)
+
+
+
 ## 基本语法
 
 ### 基本常识
@@ -2588,7 +2594,7 @@ latex 会自动给长单词跨行加 `-` 连接符。
 
 ##### 转义
 
-单行代码使用 `\verb|内容|`，如 `\verb|\alpha|`。输出 `\alpha`。
+单行代码使用 `\verb|内容`，如 `\verb|\alpha`。输出 `\alpha`。
 
 多行代码用 verbatim 代码块(注意缩进会没有掉)。
 
@@ -2619,6 +2625,16 @@ latex 会自动给长单词跨行加 `-` 连接符。
 ```
 
 
+
+##### 图标
+
+```latex
+\usepackage{fontawesome}
+```
+
+
+
+font awesome [参考](https://blog.csdn.net/zzq060143/article/details/89380160) [官网](https://fontawesome.com/icons) [参考2-k2d7](https://pan.baidu.com/s/1cK0wRS9GIAwgtaTW6y_F0w)
 
 
 
