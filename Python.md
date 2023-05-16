@@ -1726,6 +1726,34 @@ with ... as ... 可以在读写错误时自动关闭文件。
 
 
 
+扩展：自定义 with
+
+```python
+#@save
+class Benchmark:
+    """用于测量运行时间"""
+    def __init__(self, description='Done'):
+        self.description = description
+
+    def __enter__(self):
+        self.timer = d2l.Timer()
+        return self
+
+    def __exit__(self, *args):
+        print(f'{self.description}: {self.timer.stop():.4f} sec')
+net = get_net()
+with Benchmark('无torchscript'):
+    for i in range(1000): net(x)
+
+net = torch.jit.script(net)
+with Benchmark('有torchscript'):
+    for i in range(1000): net(x)
+```
+
+
+
+
+
 ## 函数
 
 又称子程序。支持递归。
@@ -2183,6 +2211,35 @@ while True:
 ###### exec
 
 执行一行到多行代码，可以是任意代码。同样有上述参数。没有返回值。
+
+##### compile
+
+```python
+def add_():
+    return '''
+def add(a, b):
+    return a + b
+'''
+
+def fancy_func_():
+    return '''
+def fancy_func(a, b, c, d):
+    e = add(a, b)
+    f = add(c, d)
+    g = add(e, f)
+    return g
+'''
+
+def evoke_():
+    return add_() + fancy_func_() + 'print(fancy_func(1, 2, 3, 4))'
+
+prog = evoke_()
+print(prog)
+y = compile(prog, '', 'exec')
+exec(y)
+```
+
+
 
 #### 元/反射
 
@@ -6725,6 +6782,8 @@ print(torch.randn(2,8))
 # torch.normal(mu, sigma, shape_tuple, requires_grad=False)
 ```
 
+`[0,1)` 均匀分布： `torch.rand(n_train)`
+
 将列表转化为张量或反过来：
 
 
@@ -10105,7 +10164,7 @@ net = nn.Sequential(
     nn.Linear(84, 10))
 ```
 
-这个代码与我们第一次训练 LeNet 时几乎完全相同，主要区别在于学习率大得多，训练用时本机3min
+这个代码与我们第一次训练 LeNet 时几乎完全相同，主要区别在于学习率大得多，训练用时本机1.5min
 
 ```python
 lr, num_epochs, batch_size = 1.0, 10, 256
@@ -10119,7 +10178,1480 @@ d2l.train_ch6(net, train_iter, test_iter, num_epochs, lr, d2l.try_gpu())
 print(net[1].gamma.reshape((-1,)), net[1].beta.reshape((-1,)))
 ```
 
+调库优化和重新训练，用时差不多：
 
+```python
+net = nn.Sequential(
+    nn.Conv2d(1, 6, kernel_size=5), nn.BatchNorm2d(6), nn.Sigmoid(),
+    nn.AvgPool2d(kernel_size=2, stride=2),
+    nn.Conv2d(6, 16, kernel_size=5), nn.BatchNorm2d(16), nn.Sigmoid(),
+    nn.AvgPool2d(kernel_size=2, stride=2), nn.Flatten(),
+    nn.Linear(256, 120), nn.BatchNorm1d(120), nn.Sigmoid(),
+    nn.Linear(120, 84), nn.BatchNorm1d(84), nn.Sigmoid(),
+    nn.Linear(84, 10))
+```
+
+```python
+d2l.train_ch6(net, train_iter, test_iter, num_epochs, lr, d2l.try_gpu())
+```
+
+##### ResNet
+
+残差网络。
+
+假设有一类特定的神经网络架构 F，它包括学习速率和其他超参数设置。 对于所有f∈F，存在一些参数集（例如权重和偏置），这些参数可以通过在合适的数据集上进行训练而获得。若f\*是真正想找的函数若f\*∈F可以训练得到，但一般不会这么幸运，而是只能找到 $f^*_\mathcal{F}$。
+$$
+f^*_\mathcal{F} := \mathop{\mathrm{argmin}}_f L(\mathbf{X}, \mathbf{y}, f) \text{ subject to } f \in \mathcal{F}.
+$$
+找到更近似 f\*，需要设计更强大的 F' 即更近似的 $f^*_{\mathcal{F}'}$。只有当较复杂的函数类包含较小的函数类时，我们才能确保提高它们的性能。如图所示：
+
+![image-20230511205940128](img/image-20230511205940128.png)
+
+嵌套：每次更新完全包含上一次的内容。对于深度神经网络，如果我们能将新添加的层训练成恒等映射（identity function）f(x)=x，新模型和原模型将同样有效。 同时，由于新模型可能得出更优的解来拟合训练数据集，因此添加层似乎更容易降低训练误差。
+
+残差网络的核心思想是：每个附加层都应该更容易地包含原始函数作为其元素之一。 于是，残差块（residual blocks）便诞生了
+
+右图虚线框内上方的加权运算（如仿射）的权重和偏置参数设成0，那么f(x)是恒等变换。极接近于恒等映射时，残差映射也易于捕捉恒等映射的细微波动。在残差块中，输入可通过跨层数据线路更快地向前传播
+
+![image-20230511210902087](img/image-20230511210902087.png)
+
+ResNet沿用了VGG完整的3×3卷积层设计。 残差块里首先有2个有相同输出通道数的3×3卷积层。 每个卷积层后接一个批量规范化层和ReLU激活函数。 然后我们通过跨层数据通路，跳过这2个卷积运算，将输入直接加在最后的ReLU激活函数前。 这样的设计要求2个卷积层的输出与输入形状一样，从而使它们可以相加。 如果想改变通道数，就需要引入一个额外的1×1卷积层来将输入变换成需要的形状后再做相加运算
+
+```python
+import torch
+from torch import nn
+from torch.nn import functional as F
+from d2l import torch as d2l
+
+
+class Residual(nn.Module):  #@save
+    def __init__(self, input_channels, num_channels,
+                 use_1x1conv=False, strides=1):
+        super().__init__()
+        self.conv1 = nn.Conv2d(input_channels, num_channels,
+                               kernel_size=3, padding=1, stride=strides)
+        self.conv2 = nn.Conv2d(num_channels, num_channels,
+                               kernel_size=3, padding=1)
+        if use_1x1conv:
+            self.conv3 = nn.Conv2d(input_channels, num_channels,
+                                   kernel_size=1, stride=strides)
+        else:
+            self.conv3 = None
+        self.bn1 = nn.BatchNorm2d(num_channels)
+        self.bn2 = nn.BatchNorm2d(num_channels)
+
+    def forward(self, X):
+        Y = F.relu(self.bn1(self.conv1(X)))
+        Y = self.bn2(self.conv2(Y))
+        if self.conv3:
+            X = self.conv3(X)
+        Y += X
+        return F.relu(Y)
+```
+
+![image-20230512160858437](img/image-20230512160858437.png)
+
+查看形状：
+
+```python
+blk = Residual(3,3)
+X = torch.rand(4, 3, 6, 6)
+Y = blk(X)
+print(Y.shape)
+blk = Residual(3,6, use_1x1conv=True, strides=2)
+print(blk(X).shape)
+```
+
+搭一个 resnet：每个模块有4个卷积层（不包括恒等映射的1×1卷积层）。 加上第一个7×7卷积层和最后一个全连接层，共有18层。 因此，这种模型通常被称为ResNet-18。
+
+```python
+b1 = nn.Sequential(nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3),
+                   nn.BatchNorm2d(64), nn.ReLU(),
+                   nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+def resnet_block(input_channels, num_channels, num_residuals,
+                 first_block=False):
+    blk = []
+    for i in range(num_residuals):
+        if i == 0 and not first_block:
+            blk.append(Residual(input_channels, num_channels,
+                                use_1x1conv=True, strides=2))
+        else:
+            blk.append(Residual(num_channels, num_channels))
+    return blk
+b2 = nn.Sequential(*resnet_block(64, 64, 2, first_block=True))
+b3 = nn.Sequential(*resnet_block(64, 128, 2))
+b4 = nn.Sequential(*resnet_block(128, 256, 2))
+b5 = nn.Sequential(*resnet_block(256, 512, 2))
+net = nn.Sequential(b1, b2, b3, b4, b5,
+                    nn.AdaptiveAvgPool2d((1,1)),
+                    nn.Flatten(), nn.Linear(512, 10))
+```
+
+![image-20230512161953982](img/image-20230512161953982.png)
+
+观察形状：
+
+```python
+X = torch.rand(size=(1, 1, 224, 224))
+for layer in net:
+    X = layer(X)
+    print(layer.__class__.__name__,'output shape:\t', X.shape)
+```
+
+训练(11min)：
+
+```python
+lr, num_epochs, batch_size = 0.05, 10, 256
+train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size, resize=96)
+d2l.train_ch6(net, train_iter, test_iter, num_epochs, lr, d2l.try_gpu())
+```
+
+
+
+##### DenseNet
+
+某种程度上是ResNet的逻辑扩展
+
+联想泰勒展开式：
+$$
+f(x) = f(0) + f'(0) x + \frac{f''(0)}{2!}  x^2 + \frac{f'''(0)}{3!}  x^3 + \ldots.
+$$
+resset 将函数展开为 $f(\mathbf{x}) = \mathbf{x} + g(\mathbf{x})$，一个简单的线性项和一个复杂的非线性项
+
+esNet和DenseNet的关键区别在于，DenseNet输出是*连接*（用图中的[,]表示）而不是如ResNet的简单相加。 因此，在应用越来越复杂的函数序列后，我们执行从到x其展开式的映射：
+$$
+\mathbf{x} \to \left[
+\mathbf{x},
+f_1(\mathbf{x}),
+f_2([\mathbf{x}, f_1(\mathbf{x})]), f_3([\mathbf{x}, f_1(\mathbf{x}), f_2([\mathbf{x}, f_1(\mathbf{x})])]), \ldots\right]
+$$
+![image-20230512162744574](img/image-20230512162744574.png)
+
+稠密网络主要由2部分构成：稠密块（dense block）和过渡层（transition layer）。 前者定义如何连接输入和输出，而后者则控制通道数量，使其不会太复杂
+
+![image-20230512162822574](img/image-20230512162822574.png)
+
+DenseNet使用了ResNet改良版的“批量规范化、激活和卷积”架构
+
+```python
+import torch
+from torch import nn
+from d2l import torch as d2l
+
+
+def conv_block(input_channels, num_channels):
+    return nn.Sequential(
+        nn.BatchNorm2d(input_channels), nn.ReLU(),
+        nn.Conv2d(input_channels, num_channels, kernel_size=3, padding=1))
+```
+
+一个稠密块由多个卷积块组成，每个卷积块使用相同数量的输出通道。 然而，在前向传播中，我们将每个卷积块的输入和输出在通道维上连结
+
+```python
+class DenseBlock(nn.Module):
+    def __init__(self, num_convs, input_channels, num_channels):
+        super(DenseBlock, self).__init__()
+        layer = []
+        for i in range(num_convs):
+            layer.append(conv_block(
+                num_channels * i + input_channels, num_channels))
+        self.net = nn.Sequential(*layer)
+
+    def forward(self, X):
+        for blk in self.net:
+            Y = blk(X)
+            # 连接通道维度上每个块的输入和输出
+            X = torch.cat((X, Y), dim=1)
+        return X
+```
+
+在下面的例子中，我们定义一个有2个输出通道数为10的`DenseBlock`。 使用通道数为3的输入时，我们会得到通道数为3+2×10=23的输出。 卷积块的通道数控制了输出通道数相对于输入通道数的增长，因此也被称为增长率（growth rate）
+
+```python
+blk = DenseBlock(2, 3, 10)
+X = torch.randn(4, 3, 8, 8)
+Y = blk(X)
+Y.shape
+```
+
+由于每个稠密块都会带来通道数的增加，使用过多则会过于复杂化模型。 而过渡层可以用来控制模型复杂度。 它通过1×1卷积层来减小通道数，并使用步幅为2的平均汇聚层减半高和宽，从而进一步降低模型复杂度。
+
+```python
+def transition_block(input_channels, num_channels):
+    return nn.Sequential(
+        nn.BatchNorm2d(input_channels), nn.ReLU(),
+        nn.Conv2d(input_channels, num_channels, kernel_size=1),
+        nn.AvgPool2d(kernel_size=2, stride=2))
+```
+
+对上一个例子中稠密块的输出使用通道数为10的过渡层。 此时输出的通道数减为10，高和宽均减半。
+
+```python
+blk = transition_block(23, 10)
+print(blk(Y).shape)
+```
+
+DenseNet首先使用同ResNet一样的单卷积层和最大汇聚层。
+
+```python
+b1 = nn.Sequential(
+    nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3),
+    nn.BatchNorm2d(64), nn.ReLU(),
+    nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+```
+
+设置每个稠密块使用多少个卷积层。 这里我们设成4，从而与 ResNet-18 保持一致。 稠密块里的卷积层通道数（即增长率）设为32，所以每个稠密块将增加128个通道。每个模块之间，ResNet通过步幅为2的残差块减小高和宽，DenseNet则使用过渡层来减半高和宽，并减半通道数。最后接上全局汇聚层和全连接层来输出结果。
+
+```python
+b1 = nn.Sequential(
+    nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3),
+    nn.BatchNorm2d(64), nn.ReLU(),
+    nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+# num_channels为当前的通道数
+num_channels, growth_rate = 64, 32
+num_convs_in_dense_blocks = [4, 4, 4, 4]
+blks = []
+for i, num_convs in enumerate(num_convs_in_dense_blocks):
+    blks.append(DenseBlock(num_convs, num_channels, growth_rate))
+    # 上一个稠密块的输出通道数
+    num_channels += num_convs * growth_rate
+    # 在稠密块之间添加一个转换层，使通道数量减半
+    if i != len(num_convs_in_dense_blocks) - 1:
+        blks.append(transition_block(num_channels, num_channels // 2))
+        num_channels = num_channels // 2
+
+net = nn.Sequential(
+    b1, *blks,
+    nn.BatchNorm2d(num_channels), nn.ReLU(),
+    nn.AdaptiveAvgPool2d((1, 1)),
+    nn.Flatten(),
+    nn.Linear(num_channels, 10))
+```
+
+将输入高和宽从224降到96来简化计算。(9min)
+
+```python
+lr, num_epochs, batch_size = 0.1, 10, 256
+train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size, resize=96)
+d2l.train_ch6(net, train_iter, test_iter, num_epochs, lr, d2l.try_gpu())
+```
+
+#### 循环神经网络
+
+##### 概念
+
+到目前为止我们默认数据都来自于某种分布， 并且所有样本都是独立同分布的 （independently and identically distributed，i.i.d.）。 然而，大多数的数据并非如此。 例如，文章中的单词是按顺序写的，如果顺序被随机地重排，就很难理解文章原始的意思。 同样，视频中的图像帧、对话中的音频信号以及网站上的浏览行为都是有顺序的。 因此，针对此类数据而设计特定模型，可能效果会更好
+
+recurrent neural network，RNN 处理序列信息。 循环神经网络通过引入状态变量存储过去的信息和当前的输入，从而可以确定当前的输出
+
+序列数据的常见特点：
+
+- 在使用程序时，许多用户都有很强的特定习惯。 例如，在学生放学后社交媒体应用更受欢迎。在市场开放时股市交易软件更常用。
+- 预测明天的股价要比过去的股价更困难。前者（对超出已知观测范围进行预测）称为外推法（extrapolation）， 而后者（在现有观测值之间进行估计）称为内插法（interpolation）。
+- 音乐、语音、文本和视频都是连续的。 如果它们的序列被我们重排，那么就会失去原有的意义
+- 地震是时空相关的，即余震通常发生在很短的时间跨度和很近的距离内
+- 人类之间的互动也是连续的，这可以从微博上的争吵和辩论中看出
+
+在时间步（time step）$t \in \mathbb{Z}^+$，则离散序列为 $x_t \sim P(x_t \mid x_{t-1}, \ldots, x_1)$
+
+输入数据的数量这个数字将会随着我们遇到的数据量的增加而增加， 因此需要一个近似方法来使这个计算变得容易处理，策略为：
+
+- 滑窗，只保留长为 $\tau$ 的观测序列 $x_{t-1}, \ldots, x_{t-\tau}$，当 $t > \tau$ 参数数量不变。这种模型被称为自回归模型（autoregressive models）， 因为它们是对自己执行回归
+- 是保留一些对过去观测的总结 $h_t$，同时更新预测 $\hat{x}_t$ 和总结 $h_t$，即基于 $\hat{x}_t = P(x_t \mid h_{t})$ 估计 $x_t$，根据 $h_t = g(h_{t-1}, x_{t-1})$ 更新模型。$h_t$ 从未被观测到，故被称为 隐变量自回归模型（latent autoregressive models）
+
+生成训练数据经典方法是使用历史观测来预测下一个未来观测。假设序列本身的动力学不会改变。不变的动力学为静止的（stationary）。 因此，整个序列的估计值都将通过以下的方式获得：$P(x_1, \ldots, x_T) = \prod_{t=1}^T P(x_t \mid x_{t-1}, \ldots, x_1)$
+
+自回归近似法，只要这种是近似精确的，我们就说序列满足马尔可夫条件（Markov condition）。 特别是，如果r=1，得到一个 一阶马尔可夫模型（first-order Markov model）
+$$
+P(x_1, \ldots, x_T) = \prod_{t=1}^T P(x_t \mid x_{t-1}) \text{ 当 } P(x_1 \mid x_0) = P(x_1)
+$$
+$x_t$ 是离散值时，可以 DP 求精确值：
+$$
+\begin{split}\begin{aligned}
+P(x_{t+1} \mid x_{t-1})
+&= \frac{\sum_{x_t} P(x_{t+1}, x_t, x_{t-1})}{P(x_{t-1})}\\
+&= \frac{\sum_{x_t} P(x_{t+1} \mid x_t, x_{t-1}) P(x_t, x_{t-1})}{P(x_{t-1})}\\
+&= \sum_{x_t} P(x_{t+1} \mid x_t) P(x_t \mid x_{t-1})
+\end{aligned}\end{split}
+$$
+利用这一事实，我们只需要考虑过去观察中的一个非常短的历史 $P(x_{t+1} \mid x_t, x_{t-1}) = P(x_{t+1} \mid x_t)$
+
+基于条件概率可以倒序遍历公式：
+$$
+P(x_1, \ldots, x_T) = \prod_{t=T}^1 P(x_t \mid x_{t+1}, \ldots, x_T).
+$$
+对可加性噪声 $\epsilon$，可以找到 $x_{t+1} = f(x_t) + \epsilon$，而反之则不行
+
+正弦函数+可加性噪声生成一个 1,2, ..., 1000 的序列：
+
+```python
+%matplotlib inline
+import torch
+from torch import nn
+from d2l import torch as d2l
+
+T = 1000  # 总共产生1000个点
+time = torch.arange(1, T + 1, dtype=torch.float32)
+x = torch.sin(0.01 * time) + torch.normal(0, 0.2, (T,))
+d2l.plot(time, [x], 'time', 'x', xlim=[1, 1000], figsize=(6, 3))
+```
+
+将这个序列转换为模型的特征－标签（feature-label）对。对前 $\tau$ 个数据，要么丢掉或零填充。这里用了前者。
+
+```python
+tau = 4
+features = torch.zeros((T - tau, tau))
+for i in range(tau):
+    features[:, i] = x[i: T - tau + i]
+labels = x[tau:].reshape((-1, 1))
+# print(x)
+print(labels.size(),labels) #丢弃前4个数据，并重塑形状为 996x1
+```
+
+```python
+batch_size, n_train = 16, 600
+# 只有前n_train个样本用于训练
+train_iter = d2l.load_array((features[:n_train], labels[:n_train]),
+                            batch_size, is_train=True)
+```
+
+用多层感知机训练：
+
+```python
+# 初始化网络权重的函数
+def init_weights(m):
+    if type(m) == nn.Linear:
+        nn.init.xavier_uniform_(m.weight)
+
+# 一个简单的多层感知机
+def get_net():
+    net = nn.Sequential(nn.Linear(4, 10),
+                        nn.ReLU(),
+                        nn.Linear(10, 1))
+    net.apply(init_weights)
+    return net
+
+# 平方损失。注意：MSELoss计算平方误差时不带系数1/2
+loss = nn.MSELoss(reduction='none')
+```
+
+```python
+def train(net, train_iter, loss, epochs, lr):
+    trainer = torch.optim.Adam(net.parameters(), lr)
+    for epoch in range(epochs):
+        for X, y in train_iter:
+            trainer.zero_grad()
+            l = loss(net(X), y)
+            l.sum().backward()
+            trainer.step()
+        print(f'epoch {epoch + 1}, '
+              f'loss: {d2l.evaluate_loss(net, train_iter, loss):f}')
+
+net = get_net()
+train(net, train_iter, loss, 5, 0.01)
+```
+
+检测单步预测one-step-ahead prediction能力：
+
+```python
+onestep_preds = net(features)
+print(onestep_preds.shape) #996x1
+d2l.plot([time, time[tau:]],
+         [x.detach().numpy(), onestep_preds.detach().numpy()], 'time',
+         'x', legend=['data', '1-step preds'], xlim=[1, 1000],
+         figsize=(6, 3))
+```
+
+检测继续往下的预测能力，即 k步预测。必须使用我们自己的预测（而不是原始数据）来进行多步预测。
+$$
+\begin{split}\hat{x}_{605} = f(x_{601}, x_{602}, x_{603}, x_{604}), \\
+\hat{x}_{606} = f(x_{602}, x_{603}, x_{604}, \hat{x}_{605}), \\
+\hat{x}_{607} = f(x_{603}, x_{604}, \hat{x}_{605}, \hat{x}_{606}),\\
+\hat{x}_{608} = f(x_{604}, \hat{x}_{605}, \hat{x}_{606}, \hat{x}_{607}),\\
+\hat{x}_{609} = f(\hat{x}_{605}, \hat{x}_{606}, \hat{x}_{607}, \hat{x}_{608}),\\
+\ldots\end{split}
+$$
+
+```python
+multistep_preds = torch.zeros(T)
+multistep_preds[: n_train + tau] = x[: n_train + tau]
+for i in range(n_train + tau, T):
+    multistep_preds[i] = net(
+        multistep_preds[i - tau:i].reshape((1, -1)))
+print(multistep_preds.shape) #1000
+
+d2l.plot([time, time[tau:], time[n_train + tau:]],
+         [x.detach().numpy(), onestep_preds.detach().numpy(),
+          multistep_preds[n_train + tau:].detach().numpy()], 'time',
+         'x', legend=['data', '1-step preds', 'multistep preds'],
+         xlim=[1, 1000], figsize=(6, 3))
+```
+
+可以看到，预测失败，预测结果序列降到了一个常数列不变。由于错误的累积： 假设在步骤1之后，我们积累了一些错误 $\epsilon_1 = \bar\epsilon$。 于是，步骤2的输入被扰动了$\epsilon_1$， 结果积累的误差是依照次序的$\epsilon_2 = \bar\epsilon + c \epsilon_1$， 其中c为某个常数，后面的预测误差依此类推。 因此误差可能会相当快地偏离真实的观测结果。 例如，未来24小时的天气预报往往相当准确， 但超过这一点，精度就会迅速下降。
+
+修改预测步数，查看不同步数下的结果：
+
+```python
+max_steps = 64
+
+features = np.zeros((T - tau - max_steps + 1, tau + max_steps))
+# 列i（i<tau）是来自x的观测，其时间步从（i）到（i+T-tau-max_steps+1）
+for i in range(tau):
+    features[:, i] = x[i: i + T - tau - max_steps + 1]
+
+# 列i（i>=tau）是来自（i-tau+1）步的预测，其时间步从（i）到（i+T-tau-max_steps+1）
+for i in range(tau, tau + max_steps):
+    features[:, i] = net(features[:, i - tau:i]).reshape(-1)
+print(features.shape) #933,68
+
+steps = (1, 4, 16, 64)
+d2l.plot([time[tau + i - 1: T - max_steps + i] for i in steps],
+         [features[:, tau + i - 1].asnumpy() for i in steps], 'time', 'x',
+         legend=[f'{i}-step preds' for i in steps], xlim=[5, 1000],
+         figsize=(6, 3))
+```
+
+##### 文本预处理
+
+通常包括：
+
+1. 将文本作为字符串加载到内存中。
+2. 将字符串拆分为词元（如单词和字符）。
+3. 建立一个词表，将拆分的词元映射到数字索引。
+4. 将文本转换为数字索引序列，方便模型操作。
+
+```python
+import collections
+import re
+from d2l import torch as d2l
+```
+
+将一篇3w词小说当作语料库喂进去，查看数据：
+
+```python
+#@save
+d2l.DATA_HUB['time_machine'] = (d2l.DATA_URL + 'timemachine.txt',
+                                '090b5e7e70c295757f55df93cb0a180b9691891a')
+
+def read_time_machine():  #@save
+    """将时间机器数据集加载到文本行的列表中"""
+    with open(d2l.download('time_machine'), 'r') as f:
+        lines = f.readlines()
+    return [re.sub('[^A-Za-z]+', ' ', line).strip().lower() for line in lines]
+
+lines = read_time_machine()
+print(f'# 文本总行数: {len(lines)}')
+print(lines[0])
+print(lines[10])
+```
+
+下面的`tokenize`函数将文本行列表（`lines`）作为输入， 列表中的每个元素是一个文本序列（如一条文本行）。 每个文本序列又被拆分成一个词元列表，*词元*（token）是文本的基本单位。 最后，返回一个由词元列表组成的列表，其中的每个词元都是一个字符串（string）。
+
+```python
+def tokenize(lines, token='word'):  #@save
+    """将文本行拆分为单词或字符词元"""
+    if token == 'word':
+        return [line.split() for line in lines]
+    elif token == 'char':
+        return [list(line) for line in lines]
+    else:
+        print('错误：未知词元类型：' + token)
+
+tokens = tokenize(lines)
+for i in range(11):
+    print(tokens[i])
+```
+
+词元的类型是字符串，而模型需要的输入是数字。构建一个字典，通常也叫做词表（vocabulary）， 用来将字符串类型的词元映射到从0开始的数字索引中。将训练集中的所有文档合并在一起，对它们的唯一词元进行统计， 得到的统计结果称之为语料（corpus）。 然后根据每个唯一词元的出现频率，为其分配一个数字索引。 很少出现的词元通常被移除，这可以降低复杂性。 另外，语料库中不存在或已删除的任何词元都将映射到一个特定的未知词元“<unk>”。我们可以选择增加一个列表，用于保存那些被保留的词元， 例如：填充词元（“<pad>”）； 序列开始词元（“<bos>”）； 序列结束词元（“<eos>”）。
+
+```python
+class Vocab:  #@save
+    """文本词表"""
+    def __init__(self, tokens=None, min_freq=0, reserved_tokens=None):
+        if tokens is None:
+            tokens = []
+        if reserved_tokens is None:
+            reserved_tokens = []
+        # 按出现频率排序
+        counter = count_corpus(tokens)
+        self._token_freqs = sorted(counter.items(), key=lambda x: x[1],
+                                   reverse=True)
+        # 未知词元的索引为0
+        self.idx_to_token = ['<unk>'] + reserved_tokens
+        self.token_to_idx = {token: idx
+                             for idx, token in enumerate(self.idx_to_token)}
+        for token, freq in self._token_freqs:
+            if freq < min_freq:
+                break
+            if token not in self.token_to_idx:
+                self.idx_to_token.append(token)
+                self.token_to_idx[token] = len(self.idx_to_token) - 1
+
+    def __len__(self):
+        return len(self.idx_to_token)
+
+    def __getitem__(self, tokens):
+        if not isinstance(tokens, (list, tuple)):
+            return self.token_to_idx.get(tokens, self.unk)
+        return [self.__getitem__(token) for token in tokens]
+
+    def to_tokens(self, indices):
+        if not isinstance(indices, (list, tuple)):
+            return self.idx_to_token[indices]
+        return [self.idx_to_token[index] for index in indices]
+
+    @property
+    def unk(self):  # 未知词元的索引为0
+        return 0
+
+    @property
+    def token_freqs(self):
+        return self._token_freqs
+
+def count_corpus(tokens):  #@save
+    """统计词元的频率"""
+    # 这里的tokens是1D列表或2D列表
+    if len(tokens) == 0 or isinstance(tokens[0], list):
+        # 将词元列表展平成一个列表
+        tokens = [token for line in tokens for token in line]
+    return collections.Counter(tokens)
+```
+
+测试转换结果：
+
+```python
+for i in [0, 10]:
+    print('文本:', tokens[i])
+    print('索引:', vocab[tokens[i]])
+```
+
+在使用上述函数时，我们将所有功能打包到`load_corpus_time_machine`函数中， 该函数返回`corpus`（词元索引列表）和`vocab`（时光机器语料库的词表）。 我们在这里所做的改变是：
+
+1. 为了简化后面章节中的训练，我们使用字符（而不是单词）实现文本词元化；
+2. 时光机器数据集中的每个文本行不一定是一个句子或一个段落，还可能是一个单词，因此返回的`corpus`仅处理为单个列表，而不是使用多词元列表构成的一个列表。
+
+```python
+def load_corpus_time_machine(max_tokens=-1):  #@save
+    """返回时光机器数据集的词元索引列表和词表"""
+    lines = read_time_machine()
+    tokens = tokenize(lines, 'char')
+    vocab = Vocab(tokens)
+    # 因为时光机器数据集中的每个文本行不一定是一个句子或一个段落，
+    # 所以将所有文本行展平到一个列表中
+    corpus = [vocab[token] for line in tokens for token in line]
+    if max_tokens > 0:
+        corpus = corpus[:max_tokens]
+    return corpus, vocab
+
+corpus, vocab = load_corpus_time_machine()
+print(len(corpus), len(vocab))
+print(corpus[:10])
+```
+
+##### 语言模型和数据集
+
+假设长度为T的文本序列中的词元依次为 $x_1, x_2, \ldots, x_T$，其中 $1 \leq t \leq T$ 是文本序列在时间步 $t$ 的观测或标签。给定这样的文本序列时，语言模型（language model）的目标是估计序列的联合概率
+
+例如，只需要一次抽取一个词元 $x_t \sim P(x_t \mid x_{t-1}, \ldots, x_1)$， 一个理想的语言模型就能够基于模型本身生成自然文本。
+
+假设在单词级别对文本数据进行词元化：
+$$
+P(x_1, x_2, \ldots, x_T) = \prod_{t=1}^T P(x_t  \mid  x_1, \ldots, x_{t-1}).
+$$
+例如，包含了四个单词的一个文本序列的概率是：
+$$
+P(\text{deep}, \text{learning}, \text{is}, \text{fun}) =  P(\text{deep}) P(\text{learning}  \mid  \text{deep}) P(\text{is}  \mid  \text{deep}, \text{learning}) P(\text{fun}  \mid  \text{deep}, \text{learning}, \text{is})
+$$
+为了训练语言模型，我们需要计算单词的概率， 以及给定前面几个单词后出现某个单词的条件概率。
+
+假设训练数据集是一个大型的文本语料库。 比如，维基百科的所有条目、 古登堡计划， 或者所有发布在网络上的文本。 训练数据集中词的概率可以根据给定词的相对词频来计算。 例如，可以将估计值 $\hat{P}(\text{deep})$ 计算为任何以单词 deep 开头的句子概率。一种（稍稍不太精确的）方法是统计单词“deep”在数据集中的出现次数， 然后将其除以整个语料库中的单词总数。 这种方法效果不错，特别是对于频繁出现的单词，接下来有：
+$$
+\hat{P}(\text{learning} \mid \text{deep}) = \frac{n(\text{deep, learning})}{n(\text{deep})}
+$$
+分子是连续单词对出现的次数。连续单词对“deep learning”的出现频率要低得多， 所以估计这类单词正确的概率要困难得多。 特别是对于一些不常见的单词组合，要想找到足够的出现次数来获得准确的估计可能都不容易。 而对于三个或者更多的单词组合，情况会变得更糟。 许多合理的三个单词组合可能是存在的，但是在数据集中却找不到。 除非我们提供某种解决方案，来将这些单词组合指定为非零计数， 否则将无法在语言模型中使用它们。 如果数据集很小，或者单词非常罕见，那么这类单词出现一次的机会可能都找不到。
+
+一种常见的策略是执行某种形式的拉普拉斯平滑（Laplace smoothing）， 具体方法是在所有计数中添加一个小常量。用n表示训练集中的单词总数，用m表示唯一单词的数量
+$$
+\begin{split}\begin{aligned}
+    \hat{P}(x) & = \frac{n(x) + \epsilon_1/m}{n + \epsilon_1}, \\
+    \hat{P}(x' \mid x) & = \frac{n(x, x') + \epsilon_2 \hat{P}(x')}{n(x) + \epsilon_2}, \\
+    \hat{P}(x'' \mid x,x') & = \frac{n(x, x',x'') + \epsilon_3 \hat{P}(x'')}{n(x, x') + \epsilon_3}
+\end{aligned}\end{split}
+$$
+三个 $\epsilon$ 是超参数，若 $\epsilon_1=0$ 不平滑，$\epsilon_1\to\infty$，则 $\hat P$ 接近均匀分布 $\dfrac1m$。
+
+然而，这样的模型很容易变得无效，原因如下： 首先，我们需要存储所有的计数； 其次，这完全忽略了单词的意思。 例如，“猫”（cat）和“猫科动物”（feline）可能出现在相关的上下文中， 但是想根据上下文调整这类模型其实是相当困难的。 最后，长单词序列大部分是没出现过的， 因此一个模型如果只是简单地统计先前“看到”的单词序列频率， 那么模型面对这种问题肯定是表现不佳的。
+
+一阶马尔科夫是 $P(x_{t+1} \mid x_t, \ldots, x_1) = P(x_{t+1} \mid x_t)$，阶数高的话是近似序列建模公式：
+$$
+\begin{split}\begin{aligned}
+P(x_1, x_2, x_3, x_4) &=  P(x_1) P(x_2) P(x_3) P(x_4),\\
+P(x_1, x_2, x_3, x_4) &=  P(x_1) P(x_2  \mid  x_1) P(x_3  \mid  x_2) P(x_4  \mid  x_3),\\
+P(x_1, x_2, x_3, x_4) &=  P(x_1) P(x_2  \mid  x_1) P(x_3  \mid  x_1, x_2) P(x_4  \mid  x_2, x_3).
+\end{aligned}\end{split}
+$$
+通常，涉及一个、两个和三个变量的概率公式分别被称为 *一元语法*（unigram）、*二元语法*（bigram）和*三元语法*（trigram）模型。 
+
+调库查看词频：
+
+```python
+import random
+import torch
+from d2l import torch as d2l
+
+tokens = d2l.tokenize(d2l.read_time_machine())
+# 因为每个文本行不一定是一个句子或一个段落，因此我们把所有文本行拼接到一起
+corpus = [token for line in tokens for token in line]
+vocab = d2l.Vocab(corpus)
+vocab.token_freqs[:10]
+```
+
+最流行的词看起来很无聊， 这些词通常被称为*停用词*（stop words），因此可以被过滤掉。 尽管如此，它们本身仍然是有意义的，我们仍然会在模型中使用它们。 此外，还有个明显的问题是词频衰减的速度相当地快。 例如，最常用单词的词频对比，第10个还不到第1个的1/5。 为了更好地理解，我们可以画出的词频图：
+
+```python
+freqs = [freq for token, freq in vocab.token_freqs]
+d2l.plot(freqs, xlabel='token: x', ylabel='frequency: n(x)',
+         xscale='log', yscale='log')
+```
+
+单词大致遵循双对数坐标图上的一条直线。 这意味着单词的频率满足*齐普夫定律*（Zipf’s law）， 即第i个最常用单词的频率$n_i$为： $n_i \propto \frac{1}{i^\alpha}$ 即 $\log n_i = -\alpha \log i + c$
+
+其中 $\alpha$ 是刻画分布的指数，$c$ 是常数。这告诉我们想要通过计数统计和平滑来建模单词是不可行的， 因为这样建模的结果会大大高估尾部单词的频率，也就是所谓的不常用单词。
+
+1. 除了一元语法词，单词序列似乎也遵循齐普夫定律， 尽管公式中的指数a更小 （指数的大小受序列长度的影响）；
+2. 词表中n元组的数量并没有那么大，这说明语言中存在相当多的结构， 这些结构给了我们应用模型的希望；
+3. 很多n元组很少出现，这使得拉普拉斯平滑非常不适合语言建模。 作为代替，我们将使用基于深度学习的模型。
+
+当序列变得太长而不能被模型一次性全部处理时， 我们可能希望拆分这样的序列方便模型读取。假设我们将使用神经网络来训练语言模型， 模型中的网络一次处理具有预定义长度 （例如n个时间步）的一个小批量序列。 现在的问题是如何随机生成一个小批量数据的特征和标签以供读取。可以选择任意偏移量来指示初始位置，所以我们有相当大的自由度。
+
+![image-20230512210314675](img/image-20230512210314675.png)
+
+如果我们只选择一个偏移量， 那么用于训练网络的、所有可能的子序列的覆盖范围将是有限的。 因此，我们可以从随机偏移量开始划分序列， 以同时获得*覆盖性*（coverage）和*随机性*（randomness）
+
+在随机采样中，每个样本都是在原始的长序列上任意捕获的子序列。 在迭代过程中，来自两个相邻的、随机的、小批量中的子序列不一定在原始序列上相邻。 对于语言建模，目标是基于到目前为止我们看到的词元来预测下一个词元， 因此标签是移位了一个词元的原始序列
+
+```python
+def seq_data_iter_random(corpus, batch_size, num_steps):  #@save
+    """使用随机抽样生成一个小批量子序列"""
+    # 从随机偏移量开始对序列进行分区，随机范围包括num_steps-1
+    corpus = corpus[random.randint(0, num_steps - 1):]
+    # 减去1，是因为我们需要考虑标签
+    num_subseqs = (len(corpus) - 1) // num_steps
+    # 长度为num_steps的子序列的起始索引
+    initial_indices = list(range(0, num_subseqs * num_steps, num_steps))
+    # 在随机抽样的迭代过程中，
+    # 来自两个相邻的、随机的、小批量中的子序列不一定在原始序列上相邻
+    random.shuffle(initial_indices)
+
+    def data(pos):
+        # 返回从pos位置开始的长度为num_steps的序列
+        return corpus[pos: pos + num_steps]
+
+    num_batches = num_subseqs // batch_size
+    for i in range(0, batch_size * num_batches, batch_size):
+        # 在这里，initial_indices包含子序列的随机起始索引
+        initial_indices_per_batch = initial_indices[i: i + batch_size]
+        X = [data(j) for j in initial_indices_per_batch]
+        Y = [data(j + 1) for j in initial_indices_per_batch]
+        yield torch.tensor(X), torch.tensor(Y)
+my_seq = list(range(35))
+for X, Y in seq_data_iter_random(my_seq, batch_size=2, num_steps=5):
+    print('X: ', X, '\nY:', Y)
+```
+
+在迭代过程中，除了对原始序列可以随机抽样外， 我们还可以保证两个相邻的小批量中的子序列在原始序列上也是相邻的。 这种策略在基于小批量的迭代过程中保留了拆分的子序列的顺序，因此称为顺序分区。
+
+```python
+def seq_data_iter_sequential(corpus, batch_size, num_steps):  #@save
+    """使用顺序分区生成一个小批量子序列"""
+    # 从随机偏移量开始划分序列
+    offset = random.randint(0, num_steps)
+    num_tokens = ((len(corpus) - offset - 1) // batch_size) * batch_size
+    Xs = torch.tensor(corpus[offset: offset + num_tokens])
+    Ys = torch.tensor(corpus[offset + 1: offset + 1 + num_tokens])
+    Xs, Ys = Xs.reshape(batch_size, -1), Ys.reshape(batch_size, -1)
+    num_batches = Xs.shape[1] // num_steps
+    for i in range(0, num_steps * num_batches, num_steps):
+        X = Xs[:, i: i + num_steps]
+        Y = Ys[:, i: i + num_steps]
+        yield X, Y
+for X, Y in seq_data_iter_sequential(my_seq, batch_size=2, num_steps=5):
+    print('X: ', X, '\nY:', Y)
+```
+
+包装：
+
+```python
+class SeqDataLoader:  #@save
+    """加载序列数据的迭代器"""
+    def __init__(self, batch_size, num_steps, use_random_iter, max_tokens):
+        if use_random_iter:
+            self.data_iter_fn = d2l.seq_data_iter_random
+        else:
+            self.data_iter_fn = d2l.seq_data_iter_sequential
+        self.corpus, self.vocab = d2l.load_corpus_time_machine(max_tokens)
+        self.batch_size, self.num_steps = batch_size, num_steps
+
+    def __iter__(self):
+        return self.data_iter_fn(self.corpus, self.batch_size, self.num_steps)
+```
+
+同时返回数据迭代器和词表
+
+```python
+def load_data_time_machine(batch_size, num_steps,  #@save
+                           use_random_iter=False, max_tokens=10000):
+    """返回时光机器数据集的迭代器和词表"""
+    data_iter = SeqDataLoader(
+        batch_size, num_steps, use_random_iter, max_tokens)
+    return data_iter, data_iter.vocab
+```
+
+##### 循环神经网络
+
+$n$ 元语法对词表 $V$ 要存储 $|V|^2$ 个数字所以使用隐变量模型：$P(x_t \mid x_{t-1}, \ldots, x_1) \approx P(x_t \mid h_{t-1})$ 其中 $h_{t-1}$ 是*隐状态*（hidden state）， 也称为*隐藏变量*（hidden variable）， 它存储了到时间步t−1的序列信息。 通常，我们可以基于当前输入$x_t$和先前隐状态$h_{t-1}$ 来计算时间步t处的任何时间的隐状态：$h_t = f(x_{t}, h_{t-1})$
+
+对f函数，隐变量模型不是近似值。 $h_t$ 是可以仅仅储存到目前为止观察到的所有数据， 然而这样的操作可能会使计算和存储的代价都变得昂贵。
+
+隐藏层是在从输入到输出的路径上（以观测角度来理解）的隐藏的层， 而隐状态则是在给定步骤所做的任何事情（以技术角度来定义）的*输入*， 并且这些状态只能通过先前时间步的数据来计算。
+
+*循环神经网络*（recurrent neural networks，RNNs） 是具有隐状态的神经网络。
+
+回顾隐藏层，激活函数是 $\phi$，样本批量 $\mathbf{X} \in \mathbb{R}^{n \times d}$ 大小 n 维度 d，隐藏层输出 $\mathbf{H} \in \mathbb{R}^{n \times h}$ 为 $\mathbf{H} = \phi(\mathbf{X} \mathbf{W}_{xh} + \mathbf{b}_h)$ ，输出层 $\mathbf{O} \in \mathbb{R}^{n \times q}$ 为 $\mathbf{O} = \mathbf{H} \mathbf{W}_{hq} + \mathbf{b}_q$
+
+在时间步 $t$ 有输入 $\mathbf{X}_t \in \mathbb{R}^{n \times d}$，每一行是时间步 $t$ 的一个样本，隐藏变量为 $\mathbf{H}_t \in \mathbb{R}^{n \times h}$。保存了上一个时间步的隐藏变量 $\mathbf{H}_{t-1}$，添加了新权重参数 $\mathbf{W}_{hh} \in \mathbb{R}^{h \times h}$ 描述如何在当前时间步中使用前一个时间步的隐藏变量，具体而言为：
+$$
+\mathbf{H}_t = \phi(\mathbf{X}_t \mathbf{W}_{xh} + \mathbf{H}_{t-1} \mathbf{W}_{hh}  + \mathbf{b}_h)
+$$
+些变量捕获并保留了序列直到其当前时间步的历史信息。这样的隐藏变量被称为*隐状态*（hidden state）。 由于在当前时间步中， 隐状态使用的定义与前一个时间步中使用的定义相同， 因此上述计算是*循环的*（recurrent）。 于是基于循环计算的隐状态神经网络被命名为 *循环神经网络*（recurrent neural network）。 在循环神经网络中执行上述计算的层 称为*循环层*（recurrent layer）。
+
+输出：$\mathbf{O}_t = \mathbf{H}_t \mathbf{W}_{hq} + \mathbf{b}_q$ 其中 $\mathbf{b}_h \in \mathbb{R}^{1 \times h}$，$\mathbf{W}_{xh} \in \mathbb{R}^{d \times h}, \mathbf{W}_{hh} \in \mathbb{R}^{h \times h}$，$\mathbf{W}_{xh} \in \mathbb{R}^{d \times h}, \mathbf{W}_{hh} \in \mathbb{R}^{h \times h},\mathbf{W}_{hq} \in \mathbb{R}^{h \times q},\mathbf{b}_q \in \mathbb{R}^{1 \times q}$。值得一提的是，即使在不同的时间步，循环神经网络也总是使用这些模型参数。 因此，循环神经网络的参数开销不会随着时间步的增加而增加。
+
+在任意时间步t，隐状态的计算可以被视为：
+
+1. 拼接当前时间步t的输入$X_t$和前一时间步t−1的隐状态$H_{t-1}$；
+2. 将拼接的结果送入带有激活函数$phi$的全连接层。 全连接层的输出是当前时间步t的隐状态$H_t$。
+
+![image-20230512214838039](img/image-20230512214838039.png)
+
+下面两个函数乘法同形故可以：
+
+```python
+import torch
+from d2l import torch as d2l
+
+X, W_xh = torch.normal(0, 1, (3, 1)), torch.normal(0, 1, (1, 4))
+H, W_hh = torch.normal(0, 1, (3, 4)), torch.normal(0, 1, (4, 4))
+print(torch.matmul(X, W_xh) + torch.matmul(H, W_hh))
+print(X, H,sep='\n')
+print(torch.cat((X, H), 1)) #[X,H]
+print(W_xh, W_hh,sep='\n')
+print(torch.cat((W_xh, W_hh), 0)) #[Wxh, Whh]
+print(torch.cat((X, H), 1).shape) #3,5
+print(torch.cat((W_xh, W_hh), 0).shape) #5,4
+```
+
+等效于：
+
+```python
+torch.matmul(torch.cat((X, H), 1), torch.cat((W_xh, W_hh), 0))
+```
+
+即对矩阵 $A,B,C,D$，设 $E=[A,C],F=[\matrix{B\\D}]$，有(分块证?)：
+$$
+AB+CD=EF
+$$
+
+一个字符级的语言模型例子：将文本词元化为字符而不是单词。
+
+![image-20230515125234501](img/image-20230515125234501.png)
+
+> 由不同的语言模型给出的对“It is raining …”的续写：
+>
+> - “It is raining outside” 已经能够捕捉到跟在后面的是哪类单词
+> - “It is raining banana tree” 产生了一个无意义的续写，至少该模型已经学会了如何拼写单词， 以及单词之间的某种程度的相关性
+> - “It is raining piouw;kcj pwepoiut” 训练不足的模型是无法正确地拟合数据的
+
+以通过一个序列中所有的n个词元的交叉熵损失的平均值来衡量：
+$$
+\frac{1}{n} \sum_{t=1}^n -\log P(x_t \mid x_{t-1}, \ldots, x_1)
+$$
+P由语言模型给出，$x_t$是在时间步t从该序列观察到的实际词元，这使得不同长度的文档的性能具有了可比性。定义困惑度为 Perplexity
+$$
+\exp\left(-\frac{1}{n} \sum_{t=1}^n \log P(x_t \mid x_{t-1}, \ldots, x_1)\right)
+$$
+最好的理解是“下一个词元的实际选择数的调和平均数”
+
+- 在最好的情况下，模型总是完美地估计标签词元的概率为1。 在这种情况下，模型的困惑度为1。
+- 在最坏的情况下，模型总是预测标签词元的概率为0。 在这种情况下，困惑度是正无穷大。
+- 在基线上，该模型的预测是词表的所有可用词元上的均匀分布。 在这种情况下，困惑度等于词表中唯一词元的数量。 事实上，如果我们在没有任何压缩的情况下存储序列， 这将是我们能做的最好的编码方式。 因此，这种方式提供了一个重要的上限， 而任何实际模型都必须超越这个上限。
+
+
+
+
+
+读取数据集：
+
+```python
+%matplotlib inline
+import math
+import torch
+from torch import nn
+from torch.nn import functional as F
+from d2l import torch as d2l
+
+batch_size, num_steps = 32, 35
+train_iter, vocab = d2l.load_data_time_machine(batch_size, num_steps)
+```
+
+one-hot encoding 独热编码将值域在 w 的一个值转变成 w-1 列 0 和 1 列 1
+
+```python
+F.one_hot(torch.tensor([0, 2]), len(vocab))
+```
+
+每次采样的小批量数据形状是二维张量： （批量大小，时间步数）。 `one_hot`函数将这样一个小批量数据转换成三维张量， 张量的最后一个维度等于词表大小（`len(vocab)`）。 我们经常转换输入的维度，以便获得形状为 （时间步数，批量大小，词表大小）的输出。 这将使我们能够更方便地通过最外层的维度， 一步一步地更新小批量数据的隐状态
+
+```python
+X = torch.arange(10).reshape((2, 5))
+F.one_hot(X.T, 28).shape
+```
+
+藏单元数`num_hiddens`是一个可调的超参数。 当训练语言模型时，输入和输出来自相同的词表。 因此，它们具有相同的维度，即词表的大小。
+
+```python
+def get_params(vocab_size, num_hiddens, device):
+    num_inputs = num_outputs = vocab_size
+
+    def normal(shape):
+        return torch.randn(size=shape, device=device) * 0.01
+
+    # 隐藏层参数
+    W_xh = normal((num_inputs, num_hiddens))
+    W_hh = normal((num_hiddens, num_hiddens))
+    b_h = torch.zeros(num_hiddens, device=device)
+    # 输出层参数
+    W_hq = normal((num_hiddens, num_outputs))
+    b_q = torch.zeros(num_outputs, device=device)
+    # 附加梯度
+    params = [W_xh, W_hh, b_h, W_hq, b_q]
+    for param in params:
+        param.requires_grad_(True)
+    return params
+```
+
+```python
+def init_rnn_state(batch_size, num_hiddens, device):
+    return (torch.zeros((batch_size, num_hiddens), device=device), )
+```
+
+这里使用tanh函数作为激活函数，当元素在实数上满足均匀分布时，tanh函数的平均值为0。
+
+```python
+def rnn(inputs, state, params):
+    # inputs的形状：(时间步数量，批量大小，词表大小)
+    W_xh, W_hh, b_h, W_hq, b_q = params
+    H, = state
+    outputs = []
+    # X的形状：(批量大小，词表大小)
+    for X in inputs:
+        H = torch.tanh(torch.mm(X, W_xh) + torch.mm(H, W_hh) + b_h)
+        Y = torch.mm(H, W_hq) + b_q
+        outputs.append(Y)
+    return torch.cat(outputs, dim=0), (H,)
+```
+
+```python
+class RNNModelScratch: #@save
+    """从零开始实现的循环神经网络模型"""
+    def __init__(self, vocab_size, num_hiddens, device,
+                 get_params, init_state, forward_fn):
+        self.vocab_size, self.num_hiddens = vocab_size, num_hiddens
+        self.params = get_params(vocab_size, num_hiddens, device)
+        self.init_state, self.forward_fn = init_state, forward_fn
+
+    def __call__(self, X, state):
+        X = F.one_hot(X.T, self.vocab_size).type(torch.float32)
+        return self.forward_fn(X, state, self.params)
+
+    def begin_state(self, batch_size, device):
+        return self.init_state(batch_size, self.num_hiddens, device)
+```
+
+检查输出是否具有正确的形状。 例如，隐状态的维数是否保持不变。
+
+```python
+num_hiddens = 512
+net = RNNModelScratch(len(vocab), num_hiddens, d2l.try_gpu(), get_params,
+                      init_rnn_state, rnn)
+state = net.begin_state(X.shape[0], d2l.try_gpu())
+Y, new_state = net(X.to(d2l.try_gpu()), state)
+Y.shape, len(new_state), new_state[0].shape
+```
+
+可以看到输出形状是（时间步数×批量大小，词表大小）， 而隐状态形状保持不变，即（批量大小，隐藏单元数）
+
+首先定义预测函数来生成`prefix`之后的新字符， 其中的`prefix`是一个用户提供的包含多个字符的字符串。 在循环遍历`prefix`中的开始字符时， 我们不断地将隐状态传递到下一个时间步，但是不生成任何输出。 这被称为*预热*（warm-up）期， 因为在此期间模型会自我更新（例如，更新隐状态）， 但不会进行预测。 预热期结束后，隐状态的值通常比刚开始的初始值更适合预测， 从而预测字符并输出它们
+
+```python
+def predict_ch8(prefix, num_preds, net, vocab, device):  #@save
+    """在prefix后面生成新字符"""
+    state = net.begin_state(batch_size=1, device=device)
+    outputs = [vocab[prefix[0]]]
+    get_input = lambda: torch.tensor([outputs[-1]], device=device).reshape((1, 1))
+    for y in prefix[1:]:  # 预热期
+        _, state = net(get_input(), state)
+        outputs.append(vocab[y])
+    for _ in range(num_preds):  # 预测num_preds步
+        y, state = net(get_input(), state)
+        outputs.append(int(y.argmax(dim=1).reshape(1)))
+    return ''.join([vocab.idx_to_token[i] for i in outputs])
+```
+
+测试该函数：(预计生成10个随机字符)
+
+```python
+predict_ch8('time traveller ', 10, net, vocab, d2l.try_gpu())
+```
+
+对于长度为T的序列，我们在迭代中计算这T个时间步上的梯度， 将会在反向传播过程中产生长度为O(T)的矩阵乘法链。当T较大时，它可能导致数值不稳定， 例如可能导致梯度爆炸或梯度消失。 因此，循环神经网络模型往往需要额外的方式来支持稳定训练。
+
+有时梯度可能很大，从而优化算法可能无法收敛。 我们可以通过降低$\eta$的学习率来解决这个问题。如果我们很少得到大的梯度，一个流行的替代方案是通过将梯度g投影回给定半径 （例如$\theta$）的球来裁剪梯度。 如下式：
+$$
+\mathbf{g} \leftarrow \min\left(1, \frac{\theta}{\|\mathbf{g}\|}\right) \mathbf{g}
+$$
+通过这样做，我们知道梯度范数永远不会超过$\theta$， 并且更新后的梯度完全与g的原始方向对齐。 它还有一个值得拥有的副作用， 即限制任何给定的小批量数据（以及其中任何给定的样本）对参数向量的影响， 这赋予了模型一定程度的稳定性。 梯度裁剪提供了一个快速修复梯度爆炸的方法， 虽然它并不能完全解决问题，但它是众多有效的技术之一。
+
+```python
+def grad_clipping(net, theta):  #@save
+    """裁剪梯度"""
+    if isinstance(net, nn.Module):
+        params = [p for p in net.parameters() if p.requires_grad]
+    else:
+        params = net.params
+    norm = torch.sqrt(sum(torch.sum((p.grad ** 2)) for p in params))
+    if norm > theta:
+        for param in params:
+            param.grad[:] *= theta / norm
+```
+
+有三个不同之处。
+
+1. 序列数据的不同采样方法（随机采样和顺序分区）将导致隐状态初始化的差异。
+2. 我们在更新模型参数之前裁剪梯度。 这样的操作的目的是，即使训练过程中某个点上发生了梯度爆炸，也能保证模型不会发散。
+3. 我们用困惑度来评价模型。这样的度量确保了不同长度的序列具有可比性。
+
+具体来说，当使用顺序分区时， 我们只在每个迭代周期的开始位置初始化隐状态。 由于下一个小批量数据中的第i个子序列样本 与当前第i个子序列样本相邻， 因此当前小批量数据最后一个样本的隐状态， 将用于初始化下一个小批量数据第一个样本的隐状态。 这样，存储在隐状态中的序列的历史信息 可以在一个迭代周期内流经相邻的子序列。 然而，在任何一点隐状态的计算， 都依赖于同一迭代周期中前面所有的小批量数据， 这使得梯度计算变得复杂。 为了降低计算量，在处理任何一个小批量数据之前， 我们先分离梯度，使得隐状态的梯度计算总是限制在一个小批量数据的时间步内。
+
+当使用随机抽样时，因为每个样本都是在一个随机位置抽样的， 因此需要为每个迭代周期重新初始化隐状态。
+
+`updater`是更新模型参数的常用函数。 它既可以是从头开始实现的`d2l.sgd`函数， 也可以是深度学习框架中内置的优化函数
+
+```python
+#@save
+def train_epoch_ch8(net, train_iter, loss, updater, device, use_random_iter):
+    """训练网络一个迭代周期（定义见第8章）"""
+    state, timer = None, d2l.Timer()
+    metric = d2l.Accumulator(2)  # 训练损失之和,词元数量
+    for X, Y in train_iter:
+        if state is None or use_random_iter:
+            # 在第一次迭代或使用随机抽样时初始化state
+            state = net.begin_state(batch_size=X.shape[0], device=device)
+        else:
+            if isinstance(net, nn.Module) and not isinstance(state, tuple):
+                # state对于nn.GRU是个张量
+                state.detach_()
+            else:
+                # state对于nn.LSTM或对于我们从零开始实现的模型是个张量
+                for s in state:
+                    s.detach_()
+        y = Y.T.reshape(-1)
+        X, y = X.to(device), y.to(device)
+        y_hat, state = net(X, state)
+        l = loss(y_hat, y.long()).mean()
+        if isinstance(updater, torch.optim.Optimizer):
+            updater.zero_grad()
+            l.backward()
+            grad_clipping(net, 1)
+            updater.step()
+        else:
+            l.backward()
+            grad_clipping(net, 1)
+            # 因为已经调用了mean函数
+            updater(batch_size=1)
+        metric.add(l * y.numel(), y.numel())
+    return math.exp(metric[0] / metric[1]), metric[1] / timer.stop()
+```
+
+循环神经网络模型的训练函数既支持从零开始实现， 也可以使用高级API来实现
+
+```python
+#@save
+def train_ch8(net, train_iter, vocab, lr, num_epochs, device,
+              use_random_iter=False):
+    """训练模型（定义见第8章）"""
+    loss = nn.CrossEntropyLoss()
+    animator = d2l.Animator(xlabel='epoch', ylabel='perplexity',
+                            legend=['train'], xlim=[10, num_epochs])
+    # 初始化
+    if isinstance(net, nn.Module):
+        updater = torch.optim.SGD(net.parameters(), lr)
+    else:
+        updater = lambda batch_size: d2l.sgd(net.params, lr, batch_size)
+    predict = lambda prefix: predict_ch8(prefix, 50, net, vocab, device)
+    # 训练和预测
+    for epoch in range(num_epochs):
+        ppl, speed = train_epoch_ch8(
+            net, train_iter, loss, updater, device, use_random_iter)
+        if (epoch + 1) % 10 == 0:
+            print(predict('time traveller'))
+            animator.add(epoch + 1, [ppl])
+    print(f'困惑度 {ppl:.1f}, {speed:.1f} 词元/秒 {str(device)}')
+    print(predict('time traveller'))
+    print(predict('traveller'))
+```
+
+只使用了10000个词元， 所以模型需要更多的迭代周期来更好地收敛。
+
+```python
+num_epochs, lr = 500, 1
+train_ch8(net, train_iter, vocab, lr, num_epochs, d2l.try_gpu())
+```
+
+随机抽查结果，发现约等于在乱说话，大约是上述续写二三之间：
+
+```python
+net = RNNModelScratch(len(vocab), num_hiddens, d2l.try_gpu(), get_params,
+                      init_rnn_state, rnn)
+train_ch8(net, train_iter, vocab, lr, num_epochs, d2l.try_gpu(),
+          use_random_iter=True)
+```
+
+实现方式具有指导意义，但并不方便
+
+##### 简洁实现
+
+构造一个具有256个隐藏单元的单隐藏层的循环神经网络层，现在仅需要将多层理解为一层循环神经网络的输出被用作下一层循环神经网络的输入就足够了
+
+```python
+import torch
+from torch import nn
+from torch.nn import functional as F
+from d2l import torch as d2l
+
+batch_size, num_steps = 32, 35
+train_iter, vocab = d2l.load_data_time_machine(batch_size, num_steps)
+```
+
+```python
+num_hiddens = 256
+rnn_layer = nn.RNN(len(vocab), num_hiddens)
+```
+
+使用张量来初始化隐状态，它的形状是（隐藏层数，批量大小，隐藏单元数）
+
+```python
+state = torch.zeros((1, batch_size, num_hiddens))
+```
+
+通过一个隐状态和一个输入，我们就可以用更新后的隐状态计算输出。 需要强调的是，`rnn_layer`的“输出”（`Y`）不涉及输出层的计算： 它是指每个时间步的隐状态，这些隐状态可以用作后续输出层的输入。
+
+```python
+X = torch.rand(size=(num_steps, batch_size, len(vocab)))
+Y, state_new = rnn_layer(X, state)
+Y.shape, state_new.shape #(torch.Size([35, 32, 256]), torch.Size([1, 32, 256]))
+```
+
+为一个完整的循环神经网络模型定义了一个`RNNModel`类。 注意，`rnn_layer`只包含隐藏的循环层，我们还需要创建一个单独的输出层。
+
+```python
+#@save
+class RNNModel(nn.Module):
+    """循环神经网络模型"""
+    def __init__(self, rnn_layer, vocab_size, **kwargs):
+        super(RNNModel, self).__init__(**kwargs)
+        self.rnn = rnn_layer
+        self.vocab_size = vocab_size
+        self.num_hiddens = self.rnn.hidden_size
+        # 如果RNN是双向的（之后将介绍），num_directions应该是2，否则应该是1
+        if not self.rnn.bidirectional:
+            self.num_directions = 1
+            self.linear = nn.Linear(self.num_hiddens, self.vocab_size)
+        else:
+            self.num_directions = 2
+            self.linear = nn.Linear(self.num_hiddens * 2, self.vocab_size)
+
+    def forward(self, inputs, state):
+        X = F.one_hot(inputs.T.long(), self.vocab_size)
+        X = X.to(torch.float32)
+        Y, state = self.rnn(X, state)
+        # 全连接层首先将Y的形状改为(时间步数*批量大小,隐藏单元数)
+        # 它的输出形状是(时间步数*批量大小,词表大小)。
+        output = self.linear(Y.reshape((-1, Y.shape[-1])))
+        return output, state
+
+    def begin_state(self, device, batch_size=1):
+        if not isinstance(self.rnn, nn.LSTM):
+            # nn.GRU以张量作为隐状态
+            return  torch.zeros((self.num_directions * self.rnn.num_layers,
+                                 batch_size, self.num_hiddens),
+                                device=device)
+        else:
+            # nn.LSTM以元组作为隐状态
+            return (torch.zeros((
+                self.num_directions * self.rnn.num_layers,
+                batch_size, self.num_hiddens), device=device),
+                    torch.zeros((
+                        self.num_directions * self.rnn.num_layers,
+                        batch_size, self.num_hiddens), device=device))
+```
+
+训练模型之前，让我们基于一个具有随机权重的模型进行预测
+
+```python
+device = d2l.try_gpu()
+net = RNNModel(rnn_layer, vocab_size=len(vocab))
+net = net.to(device)
+d2l.predict_ch8('time traveller', 10, net, vocab, device)
+```
+
+使用高级API训练模型
+
+```python
+num_epochs, lr = 500, 1
+d2l.train_ch8(net, train_iter, vocab, lr, num_epochs, device)
+```
+
+效果还是不好
+
+##### 时间反向传播
+
+通过时间反向传播（backpropagation through time，BPTT）是循环神经网络中反向传播技术的一个特定应用。 它要求我们将循环神经网络的计算图一次展开一个时间步， 以获得模型变量和参数之间的依赖关系。 然后，基于链式法则，应用反向传播来计算和存储梯度。 由于序列可能相当长，因此依赖关系也可能相当长。 例如，某个1000个字符的序列， 其第一个词元可能会对最后位置的词元产生重大影响。 这在计算上是不可行的（它需要的时间和内存都太多了）， 并且还需要超过1000个矩阵的乘积才能得到非常难以捉摸的梯度。 这个过程充满了计算与统计的不确定性。
+
+输入和隐状态可以拼接后与隐藏层中的一个权重变量相乘。 因此，我们分别使用 $w_h,w_o$ 表示隐藏层和输出层的权重。 每个时间步的隐状态和输出可以写为：
+$$
+\begin{split}\begin{aligned}h_t &= f(x_t, h_{t-1}, w_h),\\o_t &= g(h_t, w_o),\end{aligned}\end{split}
+$$
+f,g是隐藏层和输出层的变换。 因此，我们有一个链 $\{\ldots, (x_{t-1}, h_{t-1}, o_{t-1}), (x_{t}, h_{t}, o_t), \ldots\}$，
+$$
+L(x_1, \ldots, x_T, y_1, \ldots, y_T, w_h, w_o) = \frac{1}{T}\sum_{t=1}^T l(y_t, o_t).
+$$
+在反向传播，计算非常缓慢，并且可能会发生梯度爆炸， 因为初始条件的微小变化就可能会对结果产生巨大的影响。 也就是说，我们可以观察到类似于蝴蝶效应的现象， 即初始条件的很小变化就会导致结果发生不成比例的变化。 这对于我们想要估计的模型而言是非常不可取的。 
+
+可以在$\tau$步后截断求和，即反向传播的：
+$$
+\frac{\partial h_t}{\partial w_h}=\frac{\partial f(x_{t},h_{t-1},w_h)}{\partial w_h}+\sum_{i=1}^{t-1}\left(\prod_{j=i+1}^{t} \frac{\partial f(x_{j},h_{j-1},w_h)}{\partial h_{j-1}} \right) \frac{\partial f(x_{i},h_{i-1},w_h)}{\partial w_h}
+$$
+可以用一个随机变量替换 $\partial h_t/\partial w_h$， 这个随机变量是通过使用序列 $\xi_t$ 实现的，预定义 $0 \leq \pi_t \leq 1$，其中 $P(\xi_t = 0) = 1-\pi_t$ 且 $P(\xi_t = \pi_t^{-1}) = \pi_t$，故 $E[\xi_t] = 1$，替换梯度得 
+$$
+z_t= \frac{\partial f(x_{t},h_{t-1},w_h)}{\partial w_h} +\xi_t \frac{\partial f(x_{t},h_{t-1},w_h)}{\partial h_{t-1}} \frac{\partial h_{t-1}}{\partial w_h}
+$$
+![image-20230515151845868](img/image-20230515151845868.png)
+
+- 第一行采用随机截断，方法是将文本划分为不同长度的片断；
+- 第二行采用常规截断，方法是将文本分解为相同长度的子序列。 这也是我们在循环神经网络实验中一直在做的；
+- 第三行采用通过时间的完全反向传播，结果是产生了在计算上不可行的表达式。
+
+虽然随机截断在理论上具有吸引力， 但很可能是由于多种因素在实践中并不比常规截断更好。 首先，在对过去若干个时间步经过反向传播后， 观测结果足以捕获实际的依赖关系。 其次，增加的方差抵消了时间步数越多梯度越精确的事实。 第三，我们真正想要的是只有短范围交互的模型。 因此，模型需要的正是截断的通过时间反向传播方法所具备的轻度正则化效果
+
+> ##### 现代RNN
+
+循环神经网络在实践中一个常见问题是数值不稳定性。 尽管我们已经应用了梯度裁剪等技巧来缓解这个问题， 但是仍需要通过设计更复杂的序列模型来进一步处理它
+
+梯度异常在实践中的意义：
+
+- 我们可能会遇到这样的情况：早期观测值对预测所有未来观测值具有非常重要的意义。 考虑一个极端情况，其中第一个观测值包含一个校验和， 目标是在序列的末尾辨别校验和是否正确。 在这种情况下，第一个词元的影响至关重要。 我们希望有某些机制能够在一个记忆元里存储重要的早期信息。 如果没有这样的机制，我们将不得不给这个观测值指定一个非常大的梯度， 因为它会影响所有后续的观测值。
+- 我们可能会遇到这样的情况：一些词元没有相关的观测值。 例如，在对网页内容进行情感分析时， 可能有一些辅助HTML代码与网页传达的情绪无关。 我们希望有一些机制来*跳过*隐状态表示中的此类词元。
+- 我们可能会遇到这样的情况：序列的各个部分之间存在逻辑中断。 例如，书的章节之间可能会有过渡存在， 或者证券的熊市和牛市之间可能会有过渡存在。 在这种情况下，最好有一种方法来*重置*我们的内部状态表示
+
+##### 门控循环单元
+
+门控循环单元（gated recurrent unit，GRU）是”长短期记忆”（long-short-term memory，LSTM）稍微简化的变体，通常能够提供同等的效果且速度明显更快
+
+门控循环单元与普通的循环神经网络之间的关键区别在于： 前者支持隐状态的门控。 这意味着模型有专门的机制来确定应该何时更新隐状态， 以及应该何时重置隐状态。 这些机制是可学习的，并且能够解决了上面列出的问题。 例如，如果第一个词元非常重要， 模型将学会在第一次观测之后不更新隐状态。 同样，模型也可以学会跳过不相关的临时观测。 最后，模型还将学会在需要的时候重置隐状态。
+
+重置门（reset gate）和更新门（update gate）。 我们把它们设计成$(0,1)$区间中的向量。重置门允许我们控制“可能还想记住”的过去状态的数量； 更新门将允许我们控制新状态中有多少个是旧状态的副本。
+
+两个门的输出是由使用sigmoid激活函数的两个全连接层给出。
+
+![image-20230515152758209](img/image-20230515152758209.png)
+
+R,Z 与 H 形状相同，即隐藏单元数 h，样本数为 n 则为 nxh，b 都是 1xh
+$$
+\begin{split}\begin{aligned}
+\mathbf{R}_t = \sigma(\mathbf{X}_t \mathbf{W}_{xr} + \mathbf{H}_{t-1} \mathbf{W}_{hr} + \mathbf{b}_r),\\
+\mathbf{Z}_t = \sigma(\mathbf{X}_t \mathbf{W}_{xz} + \mathbf{H}_{t-1} \mathbf{W}_{hz} + \mathbf{b}_z),
+\end{aligned}\end{split}
+$$
+
+> #### 注意力机制
+>
+> ##### 概念
+>
+> 人类的注意力被视为可以交换的、有限的、有价值的且稀缺的商品。注意力是稀缺的，而环境中的干扰注意力的信息却并不少。 比如人类的视觉神经系统大约每秒收到1e8位的信息。非自主性提示是基于环境中物体的突出性和易见性。 
+>
+> 考虑一个相对简单的状况， 即只使用非自主性提示。 要想将选择偏向于感官输入， 则可以简单地使用参数化的全连接层， 甚至是非参数化的最大汇聚层或平均汇聚层。
+>
+> “是否包含自主性提示”将注意力机制与全连接层或汇聚层区别开来。 在注意力机制的背景下，自主性提示被称为*查询*（query）。 给定任何查询，注意力机制通过*注意力汇聚*（attention pooling） 将选择引导至*感官输入*（sensory inputs，例如中间特征表示）。 在注意力机制中，这些感官输入被称为*值*（value）。 更通俗的解释，每个值都与一个*键*（key）配对， 这可以想象为感官输入的非自主提示。可以通过设计注意力汇聚的方式， 便于给定的查询（自主性提示）与键（非自主性提示）进行匹配， 这将引导得出最匹配的值（感官输入）。
+>
+> ![image-20230515161542598](img/image-20230515161542598.png)
+>
+> 绘制热力图：
+>
+> ```python
+> import torch
+> from d2l import torch as d2l
+> ```
+>
+> ```python
+> #@save
+> def show_heatmaps(matrices, xlabel, ylabel, titles=None, figsize=(2.5, 2.5),
+>                   cmap='Reds'):
+>     """显示矩阵热图"""
+>     d2l.use_svg_display()
+>     num_rows, num_cols = matrices.shape[0], matrices.shape[1]
+>     fig, axes = d2l.plt.subplots(num_rows, num_cols, figsize=figsize,
+>                                  sharex=True, sharey=True, squeeze=False)
+>     for i, (row_axes, row_matrices) in enumerate(zip(axes, matrices)):
+>         for j, (ax, matrix) in enumerate(zip(row_axes, row_matrices)):
+>             pcm = ax.imshow(matrix.detach().numpy(), cmap=cmap)
+>             if i == num_rows - 1:
+>                 ax.set_xlabel(xlabel)
+>             if j == 0:
+>                 ax.set_ylabel(ylabel)
+>             if titles:
+>                 ax.set_title(titles[j])
+>     fig.colorbar(pcm, ax=axes, shrink=0.6);
+> ```
+>
+> 仅当查询和键相同时，注意力权重为1，否则为0。
+>
+> ```python
+> attention_weights = torch.eye(10).reshape((1, 1, 10, 10))
+> show_heatmaps(attention_weights, xlabel='Keys', ylabel='Queries')
+> ```
+>
+> 仅当查询和键相同时，注意力权重为1，否则为0。
+>
+> ```python
+> attention_weights = torch.eye(10).reshape((1, 1, 10, 10))
+> show_heatmaps(attention_weights, xlabel='Keys', ylabel='Queries')
+> ```
+
+> #### 计算性能
+>
+> ##### 编译器和解释器
+>
+> 考虑如下代码：
+>
+> ```python
+> def add(a, b):
+>     return a + b
+> 
+> def fancy_func(a, b, c, d):
+>     e = add(a, b)
+>     f = add(c, d)
+>     g = add(e, f)
+>     return g
+> 
+> print(fancy_func(1, 2, 3, 4))
+> ```
+>
+> *符号式编程*（symbolic programming），即代码通常只在完全定义了过程之后才执行计算。这个策略被多个深度学习框架使用，包括Theano和TensorFlow（后者已经获得了命令式编程的扩展）。一般包括以下步骤：
+>
+> 1. 定义计算流程；
+> 2. 将流程编译成可执行的程序；
+> 3. 给定输入，调用编译好的程序执行。
+>
+> 这将允许进行大量的优化。首先，在大多数情况下，我们可以跳过Python解释器。从而消除因为多个更快的GPU与单个CPU上的单个Python线程搭配使用时产生的性能瓶颈。其次，编译器可以将上述代码优化和重写为`print((1 + 2) + (3 + 4))`甚至`print(10)`。因为编译器在将其转换为机器指令之前可以看到完整的代码，所以这种优化是可以实现的。例如，只要某个变量不再需要，编译器就可以释放内存（或者从不分配内存），或者将代码转换为一个完全等价的片段。下面使用 `complie` 指令，生成与上述等价的代码：
+>
+> ```python
+> def add_():
+>     return '''
+> def add(a, b):
+>     return a + b
+> '''
+> 
+> def fancy_func_():
+>     return '''
+> def fancy_func(a, b, c, d):
+>     e = add(a, b)
+>     f = add(c, d)
+>     g = add(e, f)
+>     return g
+> '''
+> 
+> def evoke_():
+>     return add_() + fancy_func_() + 'print(fancy_func(1, 2, 3, 4))'
+> 
+> prog = evoke_()
+> print(prog)
+> y = compile(prog, '', 'exec')
+> exec(y)
+> ```
+>
+> 命令式（解释型）编程和符号式编程的区别如下：
+>
+> - 命令式编程更容易使用。在Python中，命令式编程的大部分代码都是简单易懂的。命令式编程也更容易调试，这是因为无论是获取和打印所有的中间变量值，或者使用Python的内置调试工具都更加简单；
+> - 符号式编程运行效率更高，更易于移植。符号式编程更容易在编译期间优化代码，同时还能够将程序移植到与Python无关的格式中，从而允许程序在非Python环境中运行，避免了任何潜在的与Python解释器相关的性能问题。
+>
+> torchscript允许用户使用纯命令式编程进行开发和调试，同时能够将大多数程序转换为符号式程序，以便在需要产品级计算性能和部署时使用。
+>
+> 加速例子：
+>
+> ```python
+> import torch
+> from torch import nn
+> from d2l import torch as d2l
+> 
+> 
+> # 生产网络的工厂模式
+> def get_net():
+>     net = nn.Sequential(nn.Linear(512, 256),
+>             nn.ReLU(),
+>             nn.Linear(256, 128),
+>             nn.ReLU(),
+>             nn.Linear(128, 2))
+>     return net
+> 
+> x = torch.randn(size=(1, 512))
+> net = get_net()
+> net(x)
+> net = torch.jit.script(net)
+> net(x)
+> ```
+>
+> 性能测试：
+>
+> ```python
+> #@save
+> class Benchmark:
+>     """用于测量运行时间"""
+>     def __init__(self, description='Done'):
+>         self.description = description
+> 
+>     def __enter__(self):
+>         self.timer = d2l.Timer()
+>         return self
+> 
+>     def __exit__(self, *args):
+>         print(f'{self.description}: {self.timer.stop():.4f} sec')
+> net = get_net()
+> with Benchmark('无torchscript'):
+>     for i in range(1000): net(x)
+> 
+> net = torch.jit.script(net)
+> with Benchmark('有torchscript'):
+>     for i in range(1000): net(x)
+> ```
+>
+> 可以看到 torch 明显比 numpy 快几个数量级：
+>
+> ```python
+> # GPU计算热身
+> device = d2l.try_gpu()
+> a = torch.randn(size=(1000, 1000), device=device)
+> b = torch.mm(a, a)
+> 
+> with d2l.Benchmark('numpy'):
+>     for _ in range(10):
+>         a = numpy.random.normal(size=(1000, 1000))
+>         b = numpy.dot(a, a)
+> 
+> with d2l.Benchmark('torch'):
+>     for _ in range(10):
+>         a = torch.randn(size=(1000, 1000), device=device)
+>         b = torch.mm(a, a)
+> ```
+
+#### 计算机视觉
+
+##### 图像增广
+
+图像增广在对训练图像进行一系列的随机变化之后，生成相似但不同的训练样本，从而扩大了训练集的规模。 此外，应用图像增广的原因是，随机改变训练样本可以减少模型对某些属性的依赖，从而提高模型的泛化能力。 例如，我们可以以不同的方式裁剪图像，使感兴趣的对象出现在不同的位置，减少模型对于对象出现位置的依赖。 我们还可以调整亮度、颜色等因素来降低模型对颜色的敏感度。 
+
+```python
+%matplotlib inline
+import torch
+import torchvision
+from torch import nn
+from d2l import torch as d2l
+```
+
+打开一张图片：
+
+```python
+d2l.set_figsize()
+img = d2l.Image.open('/img/a.jpg')
+d2l.plt.imshow(img);
+```
+
+随机 50% 概率水平翻转：
+
+```python
+def apply(img, aug, num_rows=2, num_cols=4, scale=1.5):
+    Y = [aug(img) for _ in range(num_rows * num_cols)]
+    d2l.show_images(Y, num_rows, num_cols, scale=scale)
+apply(img, torchvision.transforms.RandomHorizontalFlip())
+```
+
+垂直翻转：
+
+```python
+apply(img, torchvision.transforms.RandomVerticalFlip())
+```
+
+随机裁剪一个面积为原始面积10%到100%的区域，该区域的宽高比从0.5～2之间随机取值。 然后，区域的宽度和高度都被缩放到200像素。 随机区间指均匀分布等概率取值：
+
+```python
+shape_aug = torchvision.transforms.RandomResizedCrop(
+    (200, 200), scale=(0.1, 1), ratio=(0.5, 2))
+apply(img, shape_aug)
+```
+
+以改变图像颜色的四个方面：亮度、对比度、饱和度和色调。 在下面的示例中，我们随机更改图像的亮度，随机值为原始图像的50%（1−0.5）到150%（1+0.5）之间。
+
+```python
+apply(img, torchvision.transforms.ColorJitter(
+    brightness=0.5, contrast=0, saturation=0, hue=0))
+```
+
+色调：
+
+```python
+apply(img, torchvision.transforms.ColorJitter(
+    brightness=0, contrast=0, saturation=0, hue=0.5))
+```
+
+同时改变：
+
+```python
+color_aug = torchvision.transforms.ColorJitter(
+    brightness=0.5, contrast=0.5, saturation=0.5, hue=0.5)
+apply(img, color_aug)
+```
+
+综合变换：
+
+```python
+augs = torchvision.transforms.Compose([
+    torchvision.transforms.RandomHorizontalFlip(), color_aug, shape_aug])
+apply(img, augs)
+```
+
+使用CIFAR-10数据集，对象的颜色和大小差异更明显。输出前几个图像：
+
+```python
+all_images = torchvision.datasets.CIFAR10(train=True, root="../data",
+                                          download=True)
+d2l.show_images([all_images[i][0] for i in range(32)], 4, 8, scale=0.8);
+```
+
+CIFAR-10 是由 Hinton 的学生 Alex Krizhevsky 和 Ilya Sutskever 整理的一个用于识别普适物体的小型数据集。一共包含 10 个类别的 RGB 彩色图 片：飞机（ plane ）、汽车（ automobile ）、鸟类（ bird ）、猫（ cat ）、鹿（ deer ）、狗（ dog ）、蛙类（ frog ）、马（ horse ）、船（ ship ）和卡车（ truck ）。图片的尺寸为 32×32 ，数据集中一共有 50000 张训练圄片和 10000 张测试图片。
+
+*迁移学习*（transfer learning）将从*源数据集*学到的知识迁移到*目标数据集*。 例如，尽管ImageNet数据集中的大多数图像与椅子无关，但在此数据集上训练的模型可能会提取更通用的图像特征，这有助于识别边缘、纹理、形状和对象组合。 这些类似的特征也可能有效地识别椅子。
+
+*微调*（fine-tuning）。
 
 ## 网络
 

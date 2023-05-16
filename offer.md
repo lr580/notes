@@ -401,6 +401,18 @@
 - 1016\.子串能表示从1到N的数字的二进制串
 
   枚举 / <u>滑动窗口+数学</u>
+  
+- 1330\.翻转子数组得到最大的数组值
+
+  **思维**
+  
+- 1054\.距离相等的条形码
+
+  STL
+  
+- 1335\.工作计划的最低难度
+
+  DP / <u>单调栈优化</u>
 
 
 
@@ -11166,6 +11178,447 @@ class Solution {
                 seen.add(x);
         }
         return seen.size() == upper - lower + 1;
+    }
+}
+```
+
+
+
+##### 1330\.翻转子数组得到最大的数组值
+
+[题目](https://leetcode.cn/problems/reverse-subarray-to-maximize-array-value/)
+
+先特判掉翻转左端点为起始点和右端点为终点的情况，对剩下的情况，设翻转的区间是 $[i,j],i > 0, j < n-1$，
+
+解法一：
+
+根据 $|x|=\max(x,-x)$，且 $\max(a,b)+c=\max(a+c,b+c)$ 得
+$$
+\max(a,b)+\max(c,d)=\max(a+c,a+d,b+c,b+d)
+$$
+有：
+
+原式核心问题即求 $\max _{0 < i <j < n-1}|a_j-a_{i-1}|+|a_{j+1}-a_i|-|a_{j+1}-a_j|-|a_i-a_{i-1}|$。
+$$
+\begin{align}
+&|a_j-a_{i-1}|+|a_{j+1}-a_i|-|a_{j+1}-a_j|-|a_i-a_{i-1}|\\
+=&\max\pmatrix{a_j-a_{i-1},\\a_{i-1}-a_j}+\max\pmatrix{a_{j+1}-a_i,\\a_i-a_{j+1}}+(-|a_{j+1}-a_j|-|a_i-a_{i-1}|)\\
+=&\max\pmatrix{a_j-a_{i-1}+a_{j+1}-a_i,\\a_j-a_{i-1}+a_i-a_{j+1},\\a_{i-1}-a_j+a_{j+1}-a_i,\\a_{i-1}-a_j+a_i-a_{j+1}}+(-|a_{j+1}-a_j|-|a_i-a_{i-1}|)\\
+=&\max\pmatrix{
+a_j-a_{i-1}+a_{j+1}-a_i-|a_{j+1}-a_j|-|a_i-a_{i-1}|,\\
+a_j-a_{i-1}+a_i-a_{j+1}-|a_{j+1}-a_j|-|a_i-a_{i-1}|,\\
+a_{i-1}-a_j+a_{j+1}-a_i-|a_{j+1}-a_j|-|a_i-a_{i-1}|,\\
+a_{i-1}-a_j+a_i-a_{j+1}-|a_{j+1}-a_j|-|a_i-a_{i-1}|}\\
+=&\max\pmatrix{
+a_j+a_{j+1}-|a_{j+1}-a_j|-a_{i-1}-a_i-|a_i-a_{i-1}|,\\
+-a_{j+1}+a_j-|a_{j+1}-a_j|+a_i-a_{i-1}-|a_i-a_{i-1}|,\\
+a_{j+1}-a_j-|a_{j+1}-a_j|-a_i+a_{i-1}-|a_i-a_{i-1}|,\\
+-a_{j+1}-a_j-|a_{j+1}-a_j|+a_i+a_{i-1}-|a_i-a_{i-1}|}
+\end{align}
+$$
+因为 $i <j$，所以维护四个前缀最大值 $\pm a_i\pm a_{i-1}-|a_i-a_{i-1}|$，每次对不同的 $j$，分别求出最大值即可。
+
+```java
+class Solution {
+public:
+    static constexpr int INF = 0x3f3f3f3f;
+
+    int maxValueAfterReverse(const vector<int>& nums) {
+        const int n = nums.size(), a = nums[0], b = nums[n - 1];
+        // 记录前缀最大值，数组下标表示正负号，0 为正，1 为负
+        int premax[2][2] = {-INF, -INF, -INF, -INF};
+        int sum = 0, ans = 0;
+        for (int i = 1;i < n;++i) {
+            const int x = nums[i - 1], y = nums[i], d = abs(x - y);
+            sum += d;
+            // 更新结果，将公共的 -d 部分提取出来减少计算量
+            ans = max(ans, max({
+                abs(x - b),
+                abs(y - a),
+                premax[0][0] - x - y,
+                premax[0][1] - x + y,
+                premax[1][0] + x - y,
+                premax[1][1] + x + y
+            }) - d);
+            // 更新最大值信息
+            premax[0][0] = max(premax[0][0], x + y - d);
+            premax[0][1] = max(premax[0][1], x - y - d);
+            premax[1][0] = max(premax[1][0], -x + y - d);
+            premax[1][1] = max(premax[1][1], -x - y - d);
+        }
+        return sum + ans;
+    }
+};
+```
+
+解法二：
+
+令 $a=nums_{i-1},b=nums_{i},x=nums_{j},y=nums_{j+1}$，先算出原数组值，然后求最大增量即：
+$$
+\max_{i <j}\Delta=|a-x|+|b-y|-|a-b|-|x-y|
+$$
+显然有 $|a-b|=\max(a,b)-\min(a,b)$，且显然 $a+b=\max(a,b)+\min(a,b)$，相加、相减得：
+$$
+a+b+|a-b|=2\max(a,b),\quad a+b-|a-b|=2\min(a,b)
+$$
+若 $\max(a,b)\le\min(x,y)$，可知
+$$
+\begin{align}
+\Delta&=x-a+y-b-|a-b|-|x-y|\\
+&=(x+y-|x-y|)-(a+b+|a-b|)\\
+&=2\min(x,y)-2\max(a,b)
+\end{align}
+$$
+根据假设，可知 $\max(a,b)\le \min(x,y)$，故上式 $\ge 0$。
+
+同理，若 $\max(x,y)\le \min(a,b)$，得 $\Delta=2\min(a,b)-2\max(x,y)\ge 0$。
+
+在全体 $a,b,x,y$ 的 $4!$ 种大小关系里，$\max(a,b)\le\min(x,y)$ 有 $abxy,abyx,baxy,bayx$ 四种情况，同理，$\max(x,y)\le\min(a,b)$ 也有四种情况。
+
+如果 $\max(a,x)\le\min(b,y)$，同理 $\Delta=2\max(a,x)-2\min(b,y)\le 0$，而不等号反即 $\max(b,y)\le\min(a,x)$ 时 $\Delta=2\max(b,y)-2\min(a,x)\le 0$。共八种情况。
+
+剩下的情况为 $\max(a,y)\le \min(b,x)$，或 $\max(b,x)\le\min(a,y)$，均得 $\Delta=0$。
+
+也就是说，当且仅当 $\max(x,y)\le\min(a,b)$ 或 $\max(x,y)\le \min(x,y)$ 时翻转更优，分别为：
+
+1. $\max(x,y)\le\min(a,b),\Delta=2\min(x,y)-2\max(a,b)$
+2. $\max(a,b)\le\min(x,y),\Delta=2\min(a,b)-2\max(x,y)$
+
+维护 $mx=\max\min(|nums_i-nums_{i-1}|)$ 和 $mn=\min\max(|nums_i-nums_{i-1}|)$。
+
+如果 $mx > mn$，也就是拿最大的 $\min(x,y)=mx$，最小的 $\max(a,b)=mn$，代入上式，求得最大的差值 $\Delta$。
+
+```java
+class Solution {
+    public int maxValueAfterReverse(int[] nums) {
+        int base = 0, d = 0, n = nums.length;
+        int mx = Integer.MIN_VALUE, mn = Integer.MAX_VALUE;
+        for (int i = 1; i < n; i++) {
+            int a = nums[i - 1], b = nums[i];
+            int dab = Math.abs(a - b);
+            base += dab;
+            mx = Math.max(mx, Math.min(a, b));
+            mn = Math.min(mn, Math.max(a, b));
+            d = Math.max(d, Math.max(Math.abs(nums[0] - b) - dab, // i=0
+                                     Math.abs(nums[n - 1] - a) - dab)); // j=n-1
+        }
+        return base + Math.max(d, 2 * (mx - mn));
+    }
+}
+```
+
+
+
+##### 1054\.距离相等的条形码
+
+[题目](https://leetcode.cn/problems/distant-barcodes/)
+
+个人解法：对每个出现频次，记录所有数字，按频次从高到低隔一个地填数。
+
+```java
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map.Entry;
+import java.util.TreeMap;
+
+class Solution {
+    public int[] rearrangeBarcodes(int[] barcodes) {
+        int n = barcodes.length;
+        HashMap<Integer, Integer> h = new HashMap<>();
+        for (int v : barcodes) {
+            h.put(v, h.getOrDefault(v, 0) + 1);
+        }
+        TreeMap<Integer, ArrayList<Integer>> h2 = new TreeMap<>();
+        for (Entry<Integer, Integer> pr : h.entrySet()) {
+            int k = pr.getKey(), v = -pr.getValue();
+            if (h2.containsKey(v)) {
+                h2.get(v).add(k);
+            } else {
+                ArrayList<Integer> lt = new ArrayList<>();
+                lt.add(k);
+                h2.put(v, lt);
+            }
+        }
+        int i = 0, ans[] = new int[n];
+        for (Entry<Integer, ArrayList<Integer>> pr : h2.entrySet()) {
+            int k = -pr.getKey();
+            ArrayList<Integer> lt = pr.getValue();
+            for (int v : lt) {
+                for (int j = 0; j < k; ++j) {
+                    ans[i] = v;
+                    if (i + 2 >= n) {
+                        i = 1;
+                    } else {
+                        i += 2;
+                    }
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+官解一：贪心填最高频的，维护大根堆，顺序遍历，如果当前跟上一个重复，就填次大的
+
+```java
+class Solution {
+    public int[] rearrangeBarcodes(int[] barcodes) {
+        Map<Integer, Integer> count = new HashMap<>();
+        for (int b : barcodes) {
+            if (!count.containsKey(b)) {
+                count.put(b, 0);
+            }
+            count.put(b, count.get(b) + 1);
+        }
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> b[0] - a[0]);
+        for (Map.Entry<Integer, Integer> entry : count.entrySet()) {
+            pq.offer(new int[]{entry.getValue(), entry.getKey()});
+        }
+        int n = barcodes.length;
+        int[] res = new int[n];
+        for (int i = 0; i < n; ++i) {
+            int[] p = pq.poll();
+            int cx = p[0], x = p[1];
+            if (i == 0 || res[i - 1] != x) {
+                res[i] = x;
+                if (cx > 1) {
+                    pq.offer(new int[]{cx - 1, x});
+                }
+            } else {
+                int[] p2 = pq.poll();
+                int cy = p2[0], y = p2[1];
+                res[i] = y;
+                if (cy > 1) {
+                    pq.offer(new int[]{cy - 1, y});
+                }
+                pq.offer(new int[]{cx, x});
+            }
+        }
+        return res;
+    }
+}
+```
+
+官解二：分两个道，可以证明贪心直接摆不会冲突。
+
+```java
+class Solution {
+    public static int[] rearrangeBarcodes(int[] barcodes) {
+        int length = barcodes.length;
+        if (length < 2) {
+            return barcodes;
+        }
+
+        Map<Integer, Integer> counts = new HashMap<>();
+        int maxCount = 0;
+        for (int b : barcodes) {
+            counts.put(b, counts.getOrDefault(b, 0) + 1);
+            maxCount = Math.max(maxCount, counts.get(b));
+        }
+
+        int evenIndex = 0;
+        int oddIndex = 1;
+        int halfLength = length / 2;
+        int[] res = new int[length];
+        for (Map.Entry<Integer, Integer> entry : counts.entrySet()) {
+            int x = entry.getKey();
+            int count = entry.getValue();
+            while (count > 0 && count <= halfLength && oddIndex < length) {
+                res[oddIndex] = x;
+                count--;
+                oddIndex += 2;
+            }
+            while (count > 0) {
+                res[evenIndex] = x;
+                count--;
+                evenIndex += 2;
+            }
+        }
+        return res;
+    }
+}
+```
+
+
+
+##### 1072\.按列翻转得到最大值等行数
+
+[题目](https://leetcode.cn/problems/flip-columns-for-maximum-number-of-equal-rows/)
+
+求出把每行变成 0 或变成 1 需要的操作序列，然后反求出现次数最大的操作序列。
+
+```java
+
+import java.util.ArrayList;
+import java.util.HashMap;
+
+class Solution {
+    public int maxEqualRowsAfterFlips(int[][] a) {
+        HashMap<ArrayList<Boolean>, Integer> h = new HashMap<>();
+        int n = a.length, m = a[0].length, ans = 0;
+        for (int i = 0; i < n; ++i) {
+            ArrayList<Boolean> f0 = new ArrayList<>(m), f1 = new ArrayList<>(m);
+            for (int j = 0; j < m; ++j) {
+                if (a[i][j] == 0) {
+                    f1.add(true);
+                    f0.add(false);
+                } else {
+                    f1.add(false);
+                    f0.add(true);
+                }
+            }
+            h.put(f0, h.getOrDefault(f0, 0) + 1);
+            h.put(f1, h.getOrDefault(f1, 0) + 1);
+            ans = Math.max(ans, h.get(f0));
+            ans = Math.max(ans, h.get(f1));
+        }
+        return ans;
+    }
+}
+```
+
+优化：一个操作序列与其取反(该操作不操作，不该操作操作)是等价的，换言之对一个行整行按位取反后是等价的
+
+```java
+class Solution {
+    public int maxEqualRowsAfterFlips(int[][] matrix) {
+        int m = matrix.length, n = matrix[0].length;
+        Map<String, Integer> map = new HashMap<String, Integer>();
+        for (int i = 0; i < m; i++) {
+            char[] arr = new char[n];
+            Arrays.fill(arr, '0');
+            for (int j = 0; j < n; j++) {
+                // 如果 matrix[i][0] 为 1，则对该行元素进行翻转
+                arr[j] = (char) ('0' + (matrix[i][j] ^ matrix[i][0]));
+            }
+            String s = new String(arr);
+            map.put(s, map.getOrDefault(s, 0) + 1);
+        }
+        int res = 0;
+        for (Map.Entry<String, Integer> entry : map.entrySet()) {
+            res = Math.max(res, entry.getValue());
+        }
+        return res;
+    }
+}
+```
+
+
+
+##### 1335. 工作计划的最低难度
+
+[题目](https://leetcode.cn/problems/minimum-difficulty-of-a-job-schedule/)
+
+设 $dp_{i,k}$ 表示只考虑前 $i$ 个工作前 $k$ 天，则自然能想到转移为：
+$$
+dp_{i,k}=\min_{j=1}^{i-1}(dp_{j,k-1}+\max_{v=j+1}^ia_v),k-1\le j\le i
+$$
+其中 max 直接原地叠后缀即可，故复杂度为 $O(n^2d)$，且空间可以压第二维，可以优化成 $O(n)$
+
+```java
+class Solution {
+    public int minDifficulty(int[] a, int d) {
+        int n = a.length;
+        if (d > n) {
+            return -1;
+        }
+        int dp[][] = new int[n + 1][d + 1];
+        for (int i = 1, mx = 0; i <= n; ++i) {
+            mx = Math.max(mx, a[i - 1]);
+            dp[i][1] = mx;
+        }
+        for (int k = 2; k <= d; ++k) {
+            for (int i = k; i <= n; ++i) {
+                int mx = 0;
+                dp[i][k] = Integer.MAX_VALUE;
+                for (int j = i; j > k - 1; --j) {
+                    mx = Math.max(mx, a[j - 1]);
+                    dp[i][k] = Math.min(dp[i][k], dp[j - 1][k - 1] + mx);
+                }
+            }
+        }
+        return dp[n][d];
+    }
+}
+```
+
+> 滚动数组：
+>
+> ```java
+> class Solution {
+>     public int minDifficulty(int[] jobDifficulty, int d) {
+>         int n = jobDifficulty.length;
+>         if (n < d) {
+>             return -1;
+>         }
+>         int[] dp = new int[n];
+>         for (int i = 0, j = 0; i < n; ++i) {
+>             j = Math.max(j, jobDifficulty[i]);
+>             dp[i] = j;
+>         }
+>         for (int i = 1; i < d; ++i) {
+>             int[] ndp = new int[n];
+>             Arrays.fill(ndp, 0x3f3f3f3f);
+>             for (int j = i; j < n; ++j) {
+>                 int ma = 0;
+>                 for (int k = j; k >= i; --k) {
+>                     ma = Math.max(ma, jobDifficulty[k]);
+>                     ndp[j] = Math.min(ndp[j], ma + dp[k - 1]);
+>                 }
+>             }
+>             dp = ndp;
+>         }
+>         return dp[n - 1];
+>     }
+> }
+> ```
+
+优化：
+
+令 $left_i$ 是 $a_i$ 左边最近比它严格大的元素的下标。
+
+设 $left_i=p$，则任选 $k$，有：
+
+- $j\ge p$ 时，$\max _{v=j+1}^i=a_i$，即 $dp_{i,k}=a_j+\min_{j=p}^{j-1}dp_{j,k-1}$
+
+  可以用严格单调递减栈求出 $left_i$，用线段树/ST表维护上一层的 $dp$ 最小值，即可 $O(\log n)$ 求出这个值。
+
+   还有一种更好的办法，每个栈节点存下标 $i$ 加上 $\min_{v=p}^{i}dp_{v,k-1}$，如果 $p$ 不存在就一直拉到首部。初始设为 $a_i$，每次 while 弹栈时，维护弹走的 $\min$ 加上去，可以 $O(n)$ 维护一层的所有该情况。
+
+- 否则，$\max_{v=j+1}^i=\max_{v=j+1}^pa_v$，即：
+  $$
+  dp_{i,k}=\min_{j=1}^{p-1}(dp_{j,k-1}+\max_{v=j+1}^pa_v)=dp_{i,p}
+  $$
+  这种情况可以直接 $O(1)$ 推，本质上是 $p$ 点往右推。在上文单调栈的情况下，可以直接取出 $p$。
+
+维护一个关于 $dp_{i,k-1}$ 的一层严格单调递减栈，可以求出 $p$。
+
+故复杂度为 $O(nd)$，空间 $O(n)$。
+
+```java
+class Solution {
+    public int minDifficulty(int[] a, int d) {
+        int n = a.length;
+        if (n < d) return -1;
+
+        var f = new int[d][n];
+        f[0][0] = a[0];
+        for (int i = 1; i < n; i++)
+            f[0][i] = Math.max(f[0][i - 1], a[i]);
+        for (int i = 1; i < d; i++) {
+            var st = new ArrayDeque<int[]>(); // (下标 j，从 f[i-1][left[j]] 到 f[i-1][j-1] 的最小值)
+            for (int j = i; j < n; j++) {
+                int mn = f[i - 1][j - 1]; // 只有 a[j] 一项工作
+                while (!st.isEmpty() && a[st.peek()[0]] <= a[j]) // 向左一直计算到 left[j]
+                    mn = Math.min(mn, st.pop()[1]);
+                f[i][j] = mn + a[j]; // 从 a[left[j]+1] 到 a[j] 的最大值是 a[j]
+                if (!st.isEmpty()) // 如果这一段包含 <=left[j] 的工作，那么这一段的最大值必然不是 a[j]
+                    f[i][j] = Math.min(f[i][j], f[i][st.peek()[0]]); // 答案和 f[i][left[j]] 是一样的
+                st.push(new int[]{j, mn}); // 注意这里保存的不是 f[i][j]
+            }
+        }
+        return f[d - 1][n - 1];
     }
 }
 ```
