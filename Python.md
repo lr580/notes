@@ -6755,6 +6755,8 @@ print(list(x.shape)) #一维列表
 # print(x.type()) #数据类型
 ```
 
+> 复制：用于创建一个新的张量，该张量与原始张量共享相同的数据，但是与计算图不再有关系 `.detach()`
+
 类比 numpy，修改张量形状(可以自动计算，用 `-1` 填充)，下面几个张量完全一样：
 
 
@@ -6930,6 +6932,17 @@ y = torch.squeeze(x)
 print(y.shape)  # torch.Size([3, 2])
 ```
 
+> 维度增加：
+>
+> ```python
+> x = torch.tensor([1, 2, 3])  # 一维张量
+> print(x.shape)  # 输出: (3,)
+> y = torch.unsqueeze(x, 0)  # 在维度0插入新维度
+> print(y.shape)  # 输出: (1, 3)
+> z = torch.unsqueeze(x, 1)  # 在维度1插入新维度
+> print(z.shape)  # 输出: (3, 1)
+> ```
+
 将除了第一个维度的其他维度全压到第二维：(GPT)
 
 ```python
@@ -6937,6 +6950,138 @@ flatten = torch.nn.Flatten()
 x = torch.randn(10, 3, 32, 32)
 y = flatten(x)
 print(y.shape)  # torch.Size([10, 3072])
+```
+
+查看配对情况：
+
+```python
+labels = multibox_target(anchors.unsqueeze(dim=0),
+                         ground_truth.unsqueeze(dim=0))
+print(labels[2]) #五个锚分别对什么
+```
+
+返回的第二个元素是掩码（mask）变量，形状为（批量大小，锚框数的四倍）。 掩码变量中的元素与每个锚框的4个偏移量一一对应。 由于我们不关心对背景的检测，负类的偏移量不应影响目标函数。 通过元素乘法，掩码变量中的零将在计算目标函数之前过滤掉负类偏移量。
+
+```python
+labels[1]
+```
+
+第一个元素包含了为每个锚框标记的四个偏移值。 请注意，负类锚框的偏移量被标记为零。
+
+```python
+labels[0]
+```
+
+在预测时，我们先为图像生成多个锚框，再为这些锚框一一预测类别和偏移量。 一个*预测好的边界框*则根据其中某个带有预测偏移量的锚框而生成。 下面我们实现了`offset_inverse`函数，该函数将锚框和偏移量预测作为输入，并应用逆偏移变换来返回预测的边界框坐标。
+
+```python
+#@save
+def offset_inverse(anchors, offset_preds):
+    """根据带有预测偏移量的锚框来预测边界框"""
+    anc = d2l.box_corner_to_center(anchors)
+    pred_bbox_xy = (offset_preds[:, :2] * anc[:, 2:] / 10) + anc[:, :2]
+    pred_bbox_wh = torch.exp(offset_preds[:, 2:] / 5) * anc[:, 2:]
+    pred_bbox = torch.cat((pred_bbox_xy, pred_bbox_wh), axis=1)
+    predicted_bbox = d2l.box_center_to_corner(pred_bbox)
+    return predicted_bbox
+```
+
+当有许多锚框时，可能会输出许多相似的具有明显重叠的预测边界框，都围绕着同一目标。 为了简化输出，我们可以使用*非极大值抑制*（non-maximum suppression，NMS）合并属于同一目标的类似的预测边界框。
+
+对预测边界框B，计算每个类别的预测概率。 假设最大的预测概率为p，则该概率所对应的类别就是预测类别。p称为预测边界框的置信度confidence。在同一张图像中，所有预测的非背景边界框都按置信度降序排序，以生成列表L。不断选取置信度最高的Bi，将与该Bi的IoU超过阈值$\epsilon$的未被选中的框排除，并选中当前Bi。不断执行直到所有边框用完。
+
+```python
+#@save
+def nms(boxes, scores, iou_threshold):
+    """对预测边界框的置信度进行排序"""
+    B = torch.argsort(scores, dim=-1, descending=True)
+    keep = []  # 保留预测边界框的指标
+    while B.numel() > 0:
+        i = B[0]
+        keep.append(i)
+        if B.numel() == 1: break
+        iou = box_iou(boxes[i, :].reshape(-1, 4),
+                      boxes[B[1:], :].reshape(-1, 4)).reshape(-1)
+        inds = torch.nonzero(iou <= iou_threshold).reshape(-1)
+        B = B[inds + 1]
+    return torch.tensor(keep, device=boxes.device)
+```
+
+将非极大值抑制应用于预测边界框
+
+```python
+#@save
+def multibox_detection(cls_probs, offset_preds, anchors, nms_threshold=0.5,
+                       pos_threshold=0.009999999):
+    """使用非极大值抑制来预测边界框"""
+    device, batch_size = cls_probs.device, cls_probs.shape[0]
+    anchors = anchors.squeeze(0)
+    num_classes, num_anchors = cls_probs.shape[1], cls_probs.shape[2]
+    out = []
+    for i in range(batch_size):
+        cls_prob, offset_pred = cls_probs[i], offset_preds[i].reshape(-1, 4)
+        conf, class_id = torch.max(cls_prob[1:], 0)
+        predicted_bb = offset_inverse(anchors, offset_pred)
+        keep = nms(predicted_bb, conf, nms_threshold)
+
+        # 找到所有的non_keep索引，并将类设置为背景
+        all_idx = torch.arange(num_anchors, dtype=torch.long, device=device)
+        combined = torch.cat((keep, all_idx))
+        uniques, counts = combined.unique(return_counts=True)
+        non_keep = uniques[counts == 1]
+        all_id_sorted = torch.cat((keep, non_keep))
+        class_id[non_keep] = -1
+        class_id = class_id[all_id_sorted]
+        conf, predicted_bb = conf[all_id_sorted], predicted_bb[all_id_sorted]
+        # pos_threshold是一个用于非背景预测的阈值
+        below_min_idx = (conf < pos_threshold)
+        class_id[below_min_idx] = -1
+        conf[below_min_idx] = 1 - conf[below_min_idx]
+        pred_info = torch.cat((class_id.unsqueeze(1),
+                               conf.unsqueeze(1),
+                               predicted_bb), dim=1)
+        out.append(pred_info)
+    return torch.stack(out)
+```
+
+一个具体的例子：
+
+```python
+anchors = torch.tensor([[0.1, 0.08, 0.52, 0.92], [0.08, 0.2, 0.56, 0.95],
+                      [0.15, 0.3, 0.62, 0.91], [0.55, 0.2, 0.9, 0.88]])
+offset_preds = torch.tensor([0] * anchors.numel())
+cls_probs = torch.tensor([[0] * 4,  # 背景的预测概率
+                      [0.9, 0.8, 0.7, 0.1],  # 狗的预测概率
+                      [0.1, 0.2, 0.3, 0.9]])  # 猫的预测概率
+```
+
+绘制该例子给定的框及其置信度：
+
+```python
+fig = d2l.plt.imshow(img)
+show_bboxes(fig.axes, anchors * bbox_scale,
+            ['dog=0.9', 'dog=0.8', 'dog=0.7', 'cat=0.9'])
+```
+
+进行检测：
+
+```python
+output = multibox_detection(cls_probs.unsqueeze(dim=0),
+                            offset_preds.unsqueeze(dim=0),
+                            anchors.unsqueeze(dim=0),
+                            nms_threshold=0.5)
+output
+```
+
+输出由非极大值抑制保存的最终预测边界框
+
+```python
+fig = d2l.plt.imshow(img)
+for i in output[0].detach().numpy():
+    if i[0] == -1:
+        continue
+    label = ('dog=', 'cat=')[int(i[0])] + str(i[1])
+    show_bboxes(fig.axes, [torch.tensor(i[2:]) * bbox_scale], label)
 ```
 
 
@@ -7140,6 +7285,12 @@ d2l.plt.legend()
 ```
 
 
+
+#### 设置
+
+```python
+torch.set_printoptions(2)  # 精简输出精度
+```
 
 
 
@@ -7803,7 +7954,7 @@ Fashion-MNIST 包含 10 类图像，每类 6k 张训练，1k 张测试。
 
 ##### 训练例子
 
-加载数据：
+加载数据：80MB左右
 
 ```python
 %matplotlib inline
@@ -11647,11 +11798,1189 @@ all_images = torchvision.datasets.CIFAR10(train=True, root="../data",
 d2l.show_images([all_images[i][0] for i in range(32)], 4, 8, scale=0.8);
 ```
 
-CIFAR-10 是由 Hinton 的学生 Alex Krizhevsky 和 Ilya Sutskever 整理的一个用于识别普适物体的小型数据集。一共包含 10 个类别的 RGB 彩色图 片：飞机（ plane ）、汽车（ automobile ）、鸟类（ bird ）、猫（ cat ）、鹿（ deer ）、狗（ dog ）、蛙类（ frog ）、马（ horse ）、船（ ship ）和卡车（ truck ）。图片的尺寸为 32×32 ，数据集中一共有 50000 张训练圄片和 10000 张测试图片。
+CIFAR-10 是由 Hinton 的学生 Alex Krizhevsky 和 Ilya Sutskever 整理的一个用于识别普适物体的小型数据集。一共包含 10 个类别的 RGB 彩色图 片：飞机（ plane ）、汽车（ automobile ）、鸟类（ bird ）、猫（ cat ）、鹿（ deer ）、狗（ dog ）、蛙类（ frog ）、马（ horse ）、船（ ship ）和卡车（ truck ）。图片的尺寸为 32×32 ，数据集中一共有 50000 张训练圄片和 10000 张测试图片。150MB左右。
+
+##### 微调
 
 *迁移学习*（transfer learning）将从*源数据集*学到的知识迁移到*目标数据集*。 例如，尽管ImageNet数据集中的大多数图像与椅子无关，但在此数据集上训练的模型可能会提取更通用的图像特征，这有助于识别边缘、纹理、形状和对象组合。 这些类似的特征也可能有效地识别椅子。
 
-*微调*（fine-tuning）。
+*微调* fine-tuning 步骤如下：
+
+1. 在源数据集（例如ImageNet数据集）上预训练神经网络模型，即*源模型*。
+2. 创建一个新的神经网络模型，即*目标模型*。这将复制源模型上的所有模型设计及其参数（输出层除外）。我们假定这些模型参数包含从源数据集中学到的知识，这些知识也将适用于目标数据集。我们还假设源模型的输出层与源数据集的标签密切相关；因此不在目标模型中使用该层。
+3. 向目标模型添加输出层，其输出数是目标数据集中的类别数。然后随机初始化该层的模型参数。
+4. 在目标数据集（如椅子数据集）上训练目标模型。输出层将从头开始进行训练，而所有其他层的参数将根据源模型的参数进行微调。
+
+![image-20230516153648923](img/image-20230516153648923.png)
+
+当目标数据集比源数据集小得多时，微调有助于提高模型的泛化能力。
+
+在一个小型数据集上微调ResNet模型。该模型已在ImageNet数据集上进行了预训练。 这个小型数据集包含数千张包含热狗和不包含热狗的图像，我们将使用微调模型来识别图像中是否包含热狗。
+
+```python
+%matplotlib inline
+import os
+import torch
+import torchvision
+from torch import nn
+from d2l import torch as d2l
+```
+
+数据：该数据集包含1400张热狗的“正类”图像，以及包含尽可能多的其他食物的“负类”图像。 含着两个类别的1000张图片用于训练，其余的则用于测试。250MB左右。
+
+```python
+#@save
+d2l.DATA_HUB['hotdog'] = (d2l.DATA_URL + 'hotdog.zip',
+                         'fba480ffa8aa7e0febbb511d181409f899b9baa5')
+
+data_dir = d2l.download_extract('hotdog')
+```
+
+载入数据：
+
+```python
+train_imgs = torchvision.datasets.ImageFolder(os.path.join(data_dir, 'train'))
+test_imgs = torchvision.datasets.ImageFolder(os.path.join(data_dir, 'test'))
+```
+
+看看数据集：
+
+```python
+hotdogs = [train_imgs[i][0] for i in range(8)]
+not_hotdogs = [train_imgs[-i - 1][0] for i in range(8)]
+d2l.show_images(hotdogs + not_hotdogs, 2, 8, scale=1.4);
+```
+
+在训练期间，我们首先从图像中裁切随机大小和随机长宽比的区域，然后将该区域缩放为224×224输入图像。 在测试过程中，我们将图像的高度和宽度都缩放到256像素，然后裁剪中央224×224区域作为输入。 此外，对于RGB（红、绿和蓝）颜色通道，我们分别*标准化*每个通道。 具体而言，该通道的每个值减去该通道的平均值，然后将结果除以该通道的标准差。
+
+```python
+# 使用RGB通道的均值和标准差，以标准化每个通道
+normalize = torchvision.transforms.Normalize(
+    [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+
+train_augs = torchvision.transforms.Compose([
+    torchvision.transforms.RandomResizedCrop(224),
+    torchvision.transforms.RandomHorizontalFlip(),
+    torchvision.transforms.ToTensor(),
+    normalize])
+
+test_augs = torchvision.transforms.Compose([
+    torchvision.transforms.Resize([256, 256]),
+    torchvision.transforms.CenterCrop(224),
+    torchvision.transforms.ToTensor(),
+    normalize])
+```
+
+使用在ImageNet数据集上预训练的ResNet-18作为源模型。 在这里，我们指定`pretrained=True`以自动下载预训练的模型参数
+
+```python
+pretrained_net = torchvision.models.resnet18(pretrained=True)
+```
+
+预训练的源模型实例包含许多特征层和一个输出层`fc`。 此划分的主要目的是促进对除输出层以外所有层的模型参数进行微调
+
+```python
+pretrained_net.fc
+```
+
+可以看到ResNet的全局平均汇聚层后，全连接层转换为ImageNet数据集的1000个类输出。 之后，我们构建一个新的神经网络作为目标模型。 它的定义方式与预训练源模型的定义方式相同，只是最终层中的输出数量被设置为目标数据集中的类数。成员变量`output`的参数是随机初始化的，通常需要更高的学习率才能从头开始训练。 假设`Trainer`实例中的学习率为n，我们将成员变量`output`中参数的学习率设置为10n。
+
+```python
+finetune_net = torchvision.models.resnet18(pretrained=True)
+finetune_net.fc = nn.Linear(finetune_net.fc.in_features, 2)
+nn.init.xavier_uniform_(finetune_net.fc.weight)
+```
+
+```python
+# 如果param_group=True，输出层中的模型参数将使用十倍的学习率
+def train_fine_tuning(net, learning_rate, batch_size=128, num_epochs=5,
+                      param_group=True):
+    train_iter = torch.utils.data.DataLoader(torchvision.datasets.ImageFolder(
+        os.path.join(data_dir, 'train'), transform=train_augs),
+        batch_size=batch_size, shuffle=True)
+    test_iter = torch.utils.data.DataLoader(torchvision.datasets.ImageFolder(
+        os.path.join(data_dir, 'test'), transform=test_augs),
+        batch_size=batch_size)
+    devices = d2l.try_all_gpus()
+    loss = nn.CrossEntropyLoss(reduction="none")
+    if param_group:
+        params_1x = [param for name, param in net.named_parameters()
+             if name not in ["fc.weight", "fc.bias"]]
+        trainer = torch.optim.SGD([{'params': params_1x},
+                                   {'params': net.fc.parameters(),
+                                    'lr': learning_rate * 10}],
+                                lr=learning_rate, weight_decay=0.001)
+    else:
+        trainer = torch.optim.SGD(net.parameters(), lr=learning_rate,
+                                  weight_decay=0.001)
+    d2l.train_ch13(net, train_iter, test_iter, loss, trainer, num_epochs,
+                   devices)
+```
+
+```python
+train_fine_tuning(finetune_net, 5e-5)
+```
+
+作为不微调的对比：
+
+```python
+scratch_net = torchvision.models.resnet18()
+scratch_net.fc = nn.Linear(scratch_net.fc.in_features, 2)
+train_fine_tuning(scratch_net, 5e-4, param_group=False)
+```
+
+迁移学习的，训练准确率本机 0.886，测试准确率 0.932，训练了 2min
+
+不迁移学习，训练准确率本机 0.820，测试准确率 0.829，同样训 2min
+
+##### 目标检测和边界框
+
+很多时候图像里有多个我们感兴趣的目标，我们不仅想知道它们的类别，还想得到它们在图像中的具体位置。 在计算机视觉里，我们将这类任务称为*目标检测*（object detection）或*目标识别*（object recognition）。
+
+```python
+%matplotlib inline
+import torch
+from d2l import torch as d2l
+```
+
+通常使用*边界框*（bounding box）来描述对象的空间位置。 边界框是矩形的，由矩形左上角的以及右下角的x和y坐标决定。 另一种常用的边界框表示方法是边界框中心的(x,y)轴坐标以及框的宽度和高度。
+
+我们定义在这两种表示法之间进行转换的函数：`box_corner_to_center`从两角表示法转换为中心宽度表示法，而`box_center_to_corner`反之亦然。 输入参数`boxes`可以是长度为4的张量，也可以是形状为（n，4）的二维张量，其中n是边界框的数量。
+
+```python
+#@save
+def box_corner_to_center(boxes):
+    """从（左上，右下）转换到（中间，宽度，高度）"""
+    x1, y1, x2, y2 = boxes[:, 0], boxes[:, 1], boxes[:, 2], boxes[:, 3]
+    cx = (x1 + x2) / 2
+    cy = (y1 + y2) / 2
+    w = x2 - x1
+    h = y2 - y1
+    boxes = torch.stack((cx, cy, w, h), axis=-1)
+    return boxes
+
+#@save
+def box_center_to_corner(boxes):
+    """从（中间，宽度，高度）转换到（左上，右下）"""
+    cx, cy, w, h = boxes[:, 0], boxes[:, 1], boxes[:, 2], boxes[:, 3]
+    x1 = cx - 0.5 * w
+    y1 = cy - 0.5 * h
+    x2 = cx + 0.5 * w
+    y2 = cy + 0.5 * h
+    boxes = torch.stack((x1, y1, x2, y2), axis=-1)
+    return boxes
+```
+
+画两个框，原点是左上角，右x，下y：
+
+```python
+# bbox是边界框的英文缩写
+dog_bbox, cat_bbox = [60.0, 45.0, 378.0, 516.0], [400.0, 112.0, 655.0, 493.0]
+```
+
+一致性检验：
+
+```python
+boxes = torch.tensor((dog_bbox, cat_bbox))
+box_center_to_corner(box_corner_to_center(boxes)) == boxes
+```
+
+绘制边框：
+
+```python
+#@save
+def bbox_to_rect(bbox, color):
+    # 将边界框(左上x,左上y,右下x,右下y)格式转换成matplotlib格式：
+    # ((左上x,左上y),宽,高)
+    return d2l.plt.Rectangle(
+        xy=(bbox[0], bbox[1]), width=bbox[2]-bbox[0], height=bbox[3]-bbox[1],
+        fill=False, edgecolor=color, linewidth=2)
+```
+
+绘制带边框的图像：
+
+```python
+fig = d2l.plt.imshow(img)
+fig.axes.add_patch(bbox_to_rect(dog_bbox, 'blue'))
+fig.axes.add_patch(bbox_to_rect(cat_bbox, 'red'))
+```
+
+##### 锚框
+
+目标检测算法通常会在输入图像中采样大量的区域，然后判断这些区域中是否包含我们感兴趣的目标，并调整区域边界从而更准确地预测目标的*真实边界框*（ground-truth bounding box）
+
+以每个像素为中心，生成多个缩放比和宽高比（aspect ratio）不同的边界框。 这些边界框被称为*锚框*（anchor box）
+
+```python
+%matplotlib inline
+import torch
+from d2l import torch as d2l
+
+torch.set_printoptions(2)  # 精简输出精度
+```
+
+*缩放比*为 $s\in (0, 1]$，宽高比是 r > 0，则宽高是 $hs\sqrt{r}$，$hs/\sqrt{r}$，
+
+要生成多个不同形状的锚框，设置n个缩放比（scale）取值s和m个宽高比r，如果完全遍历有 $whnm$ 个框，实践中，通常考虑下述 $wh(n+m-1)$ 个框：
+$$
+(s_1, r_1), (s_1, r_2), \ldots, (s_1, r_m), (s_2, r_1), (s_3, r_1), \ldots, (s_n, r_1)
+$$
+锚框：
+
+```python
+#@save
+def multibox_prior(data, sizes, ratios):
+    """生成以每个像素为中心具有不同形状的锚框"""
+    in_height, in_width = data.shape[-2:]
+    device, num_sizes, num_ratios = data.device, len(sizes), len(ratios)
+    boxes_per_pixel = (num_sizes + num_ratios - 1)
+    size_tensor = torch.tensor(sizes, device=device)
+    ratio_tensor = torch.tensor(ratios, device=device)
+
+    # 为了将锚点移动到像素的中心，需要设置偏移量。
+    # 因为一个像素的高为1且宽为1，我们选择偏移我们的中心0.5
+    offset_h, offset_w = 0.5, 0.5
+    steps_h = 1.0 / in_height  # 在y轴上缩放步长
+    steps_w = 1.0 / in_width  # 在x轴上缩放步长
+
+    # 生成锚框的所有中心点
+    center_h = (torch.arange(in_height, device=device) + offset_h) * steps_h
+    center_w = (torch.arange(in_width, device=device) + offset_w) * steps_w
+    shift_y, shift_x = torch.meshgrid(center_h, center_w, indexing='ij')
+    shift_y, shift_x = shift_y.reshape(-1), shift_x.reshape(-1)
+
+    # 生成“boxes_per_pixel”个高和宽，
+    # 之后用于创建锚框的四角坐标(xmin,xmax,ymin,ymax)
+    w = torch.cat((size_tensor * torch.sqrt(ratio_tensor[0]),
+                   sizes[0] * torch.sqrt(ratio_tensor[1:])))\
+                   * in_height / in_width  # 处理矩形输入
+    h = torch.cat((size_tensor / torch.sqrt(ratio_tensor[0]),
+                   sizes[0] / torch.sqrt(ratio_tensor[1:])))
+    # 除以2来获得半高和半宽
+    anchor_manipulations = torch.stack((-w, -h, w, h)).T.repeat(
+                                        in_height * in_width, 1) / 2
+
+    # 每个中心点都将有“boxes_per_pixel”个锚框，
+    # 所以生成含所有锚框中心的网格，重复了“boxes_per_pixel”次
+    out_grid = torch.stack([shift_x, shift_y, shift_x, shift_y],
+                dim=1).repeat_interleave(boxes_per_pixel, dim=0)
+    output = out_grid + anchor_manipulations
+    return output.unsqueeze(0)
+```
+
+测试：
+
+```python
+img = d2l.plt.imread('../img/catdog.jpg')
+h, w = img.shape[:2]
+
+print(h, w)
+X = torch.rand(size=(1, 3, h, w))
+Y = multibox_prior(X, sizes=[0.75, 0.5, 0.25], ratios=[1, 2, 0.5])
+Y.shape #[1,w*h,n+m-1]
+```
+
+在图像上绘制多个边界框。
+
+```python
+#@save
+def show_bboxes(axes, bboxes, labels=None, colors=None):
+    """显示所有边界框"""
+    def _make_list(obj, default_values=None):
+        if obj is None:
+            obj = default_values
+        elif not isinstance(obj, (list, tuple)):
+            obj = [obj]
+        return obj
+
+    labels = _make_list(labels)
+    colors = _make_list(colors, ['b', 'g', 'r', 'm', 'c'])
+    for i, bbox in enumerate(bboxes):
+        color = colors[i % len(colors)]
+        rect = d2l.bbox_to_rect(bbox.detach().numpy(), color)
+        axes.add_patch(rect)
+        if labels and len(labels) > i:
+            text_color = 'k' if color == 'w' else 'w'
+            axes.text(rect.xy[0], rect.xy[1], labels[i],
+                      va='center', ha='center', fontsize=9, color=text_color,
+                      bbox=dict(facecolor=color, lw=0))
+```
+
+```python
+d2l.set_figsize()
+bbox_scale = torch.tensor((w, h, w, h))
+fig = d2l.plt.imshow(img)
+show_bboxes(fig.axes, boxes[250, 250, :, :] * bbox_scale,
+            ['s=0.75, r=1', 's=0.5, r=1', 's=0.25, r=1', 's=0.75, r=2',
+             's=0.75, r=0.5'])
+```
+
+已知目标的真实边界框，可以衡量锚框和真实边界框之间的相似性。 *杰卡德系数*（Jaccard）可以衡量两组之间的相似性。 给定集合A和B，他们的杰卡德系数是他们交集的大小除以他们并集的大小，通常称为*交并比*（intersection over union，IoU）
+
+```python
+#@save
+def box_iou(boxes1, boxes2):
+    """计算两个锚框或边界框列表中成对的交并比"""
+    box_area = lambda boxes: ((boxes[:, 2] - boxes[:, 0]) *
+                              (boxes[:, 3] - boxes[:, 1]))
+    # boxes1,boxes2,areas1,areas2的形状:
+    # boxes1：(boxes1的数量,4),
+    # boxes2：(boxes2的数量,4),
+    # areas1：(boxes1的数量,),
+    # areas2：(boxes2的数量,)
+    areas1 = box_area(boxes1)
+    areas2 = box_area(boxes2)
+    # inter_upperlefts,inter_lowerrights,inters的形状:
+    # (boxes1的数量,boxes2的数量,2)
+    inter_upperlefts = torch.max(boxes1[:, None, :2], boxes2[:, :2])
+    inter_lowerrights = torch.min(boxes1[:, None, 2:], boxes2[:, 2:])
+    inters = (inter_lowerrights1 - inter_upperlefts).clamp(min=0)
+    # inter_areasandunion_areas的形状:(boxes1的数量,boxes2的数量)
+    inter_areas = inters[:, :, 0] * inters[:, :, 1]
+    union_areas = areas1[:, None] + areas2 - inter_areas
+    return inter_areas / union_areas
+```
+
+训练集中，我们将每个锚框视为一个训练样本。 为了训练目标检测模型，我们需要每个锚框的*类别*（class）和*偏移量*（offset）标签
+
+一种将锚框A匹配真实框B的算法：求出 IOU 矩阵，行列是锚框和真实边界框，不断选择最大元素匹配然后删行列，直到当前最大 IOU 值 < 阈值或选完。
+
+定义常数 $\mu_x = \mu_y = \mu_w = \mu_h = 0, \sigma_x=\sigma_y=0.1$，设中心坐标，宽高分别为 $(x_a, y_a),(x_b, y_b),w_a,w_b,h_a,h_b$,定义 A 的偏移量：
+$$
+\left( \frac{ \frac{x_b - x_a}{w_a} - \mu_x }{\sigma_x},
+\frac{ \frac{y_b - y_a}{h_a} - \mu_y }{\sigma_y},
+\frac{ \log \frac{w_b}{w_a} - \mu_w }{\sigma_w},
+\frac{ \log \frac{h_b}{h_a} - \mu_h }{\sigma_h}\right)
+$$
+
+```python
+#@save
+def offset_boxes(anchors, assigned_bb, eps=1e-6):
+    """对锚框偏移量的转换"""
+    c_anc = d2l.box_corner_to_center(anchors)
+    c_assigned_bb = d2l.box_corner_to_center(assigned_bb)
+    offset_xy = 10 * (c_assigned_bb[:, :2] - c_anc[:, :2]) / c_anc[:, 2:]
+    offset_wh = 5 * torch.log(eps + c_assigned_bb[:, 2:] / c_anc[:, 2:])
+    offset = torch.cat([offset_xy, offset_wh], axis=1)
+    return offset
+```
+
+如果一个锚框没有被分配真实边界框，我们只需将锚框的类别标记为*背景*（background）。 背景类别的锚框通常被称为*负类*锚框，其余的被称为*正类*锚框。 我们使用真实边界框（`labels`参数）实现以下`multibox_target`函数，来标记锚框的类别和偏移量（`anchors`参数）。 此函数将背景类别的索引设置为零，然后将新类别的整数索引递增一。
+
+```python
+#@save
+def multibox_target(anchors, labels):
+    """使用真实边界框标记锚框"""
+    batch_size, anchors = labels.shape[0], anchors.squeeze(0)
+    batch_offset, batch_mask, batch_class_labels = [], [], []
+    device, num_anchors = anchors.device, anchors.shape[0]
+    for i in range(batch_size):
+        label = labels[i, :, :]
+        anchors_bbox_map = assign_anchor_to_bbox(
+            label[:, 1:], anchors, device)
+        bbox_mask = ((anchors_bbox_map >= 0).float().unsqueeze(-1)).repeat(
+            1, 4)
+        # 将类标签和分配的边界框坐标初始化为零
+        class_labels = torch.zeros(num_anchors, dtype=torch.long,
+                                   device=device)
+        assigned_bb = torch.zeros((num_anchors, 4), dtype=torch.float32,
+                                  device=device)
+        # 使用真实边界框来标记锚框的类别。
+        # 如果一个锚框没有被分配，标记其为背景（值为零）
+        indices_true = torch.nonzero(anchors_bbox_map >= 0)
+        bb_idx = anchors_bbox_map[indices_true]
+        class_labels[indices_true] = label[bb_idx, 0].long() + 1
+        assigned_bb[indices_true] = label[bb_idx, 1:]
+        # 偏移量转换
+        offset = offset_boxes(anchors, assigned_bb) * bbox_mask
+        batch_offset.append(offset.reshape(-1))
+        batch_mask.append(bbox_mask.reshape(-1))
+        batch_class_labels.append(class_labels)
+    bbox_offset = torch.stack(batch_offset)
+    bbox_mask = torch.stack(batch_mask)
+    class_labels = torch.stack(batch_class_labels)
+    return (bbox_offset, bbox_mask, class_labels)
+```
+
+一个标记的例子：
+
+```python
+ground_truth = torch.tensor([[0, 0.1, 0.08, 0.52, 0.92],
+                         [1, 0.55, 0.2, 0.9, 0.88]])
+anchors = torch.tensor([[0, 0.1, 0.2, 0.3], [0.15, 0.2, 0.4, 0.4],
+                    [0.63, 0.05, 0.88, 0.98], [0.66, 0.45, 0.8, 0.8],
+                    [0.57, 0.3, 0.92, 0.9]])
+
+fig = d2l.plt.imshow(img)
+show_bboxes(fig.axes, ground_truth[:, 1:] * bbox_scale, ['dog', 'cat'], 'k')
+show_bboxes(fig.axes, anchors * bbox_scale, ['0', '1', '2', '3', '4']);
+```
+
+实践中，在执行非极大值抑制前，我们甚至可以将置信度较低的预测边界框移除，从而减少此算法中的计算量。 我们也可以对非极大值抑制的输出结果进行后处理。例如，只保留置信度更高的结果作为最终输出。
+
+##### 多尺度目标检测
+
+如果为每个像素都生成的锚框，我们最终可能会得到太多需要计算的锚框。减少图像上的锚框数量并不困难。 比如，我们可以在输入图像中均匀采样一小部分像素，并以它们为中心生成锚框。 此外，在不同尺度下，我们可以生成不同数量和不同大小的锚框。 直观地说，比起较大的目标，较小的目标在图像上出现的可能性更多样。 因此，当使用较小的锚框检测较小的物体时，我们可以采样更多的区域，而对于较大的物体，我们可以采样较少的区域。
+
+将卷积图层的二维数组输出称为特征图。 通过定义特征图的形状，我们可以确定任何图像上均匀采样锚框的中心。在特征图（`fmap`）上生成锚框（`anchors`），每个单位（像素）作为锚框的中心。 由于锚框中的(x,y)轴坐标值（`anchors`）已经被除以特征图（`fmap`）的宽度和高度，因此这些值介于0和1之间，表示特征图中锚框的相对位置。
+
+由于锚框（`anchors`）的中心分布于特征图（`fmap`）上的所有单位，因此这些中心必须根据其相对空间位置在任何输入图像上*均匀*分布。 更具体地说，给定特征图的宽度和高度`fmap_w`和`fmap_h`，以下函数将*均匀地*对任何输入图像中`fmap_h`行和`fmap_w`列中的像素进行采样。 以这些均匀采样的像素为中心，将会生成大小为`s`（假设列表`s`的长度为1）且宽高比（`ratios`）不同的锚框。
+
+查看选定的边框：
+
+```python
+def display_anchors(fmap_w, fmap_h, s):
+    d2l.set_figsize()
+    # 前两个维度上的值不影响输出
+    fmap = torch.zeros((1, 10, fmap_h, fmap_w))
+    anchors = d2l.multibox_prior(fmap, sizes=s, ratios=[1, 2, 0.5])
+    bbox_scale = torch.tensor((w, h, w, h))
+    d2l.show_bboxes(d2l.plt.imshow(img).axes,
+                    anchors[0] * bbox_scale)
+```
+
+```python
+display_anchors(fmap_w=4, fmap_h=4, s=[0.15])
+```
+
+将特征图的高度和宽度减小一半，然后使用较大的锚框来检测较大的目标。 当尺度设置为0.4时，一些锚框将彼此重叠。
+
+```python
+display_anchors(fmap_w=2, fmap_h=2, s=[0.4])
+```
+
+我们进一步将特征图的高度和宽度减小一半，然后将锚框的尺度增加到0.8。 此时，锚框的中心即是图像的中心。
+
+在某种规模上，假设我们有c张hxw的特征图，生成hw组锚框，每组有a个中心相同的锚框，每个锚框都根据真实值边界框来标记了类和偏移量。 在当前尺度下，目标检测模型需要预测输入图像上hw组锚框类别和偏移量，其中不同组锚框具有不同的中心。既然每张特征图上都有hw个不同的空间位置，那么相同空间位置可以看作含有c个单元。特征图在相同空间位置的c个单元在输入图像上的感受野相同： 它们表征了同一感受野内的输入图像信息。 因此，我们可以将特征图在同一空间位置的c个单元变换为使用此空间位置生成的a个锚框类别和偏移量。 本质上，我们用输入图像在某个感受野区域内的信息，来预测输入图像上与该区域位置相近的锚框类别和偏移量。
+
+当不同层的特征图在输入图像上分别拥有不同大小的感受野时，它们可以用于检测不同大小的目标。 例如，我们可以设计一个神经网络，其中靠近输出层的特征图单元具有更宽的感受野，这样它们就可以从输入图像中检测到较大的目标
+
+##### 目标检测数据集
+
+用1000张单个假香蕉P进任意图片的图像做目标检测：132MB
+
+```python
+%matplotlib inline
+import os
+import pandas as pd
+import torch
+import torchvision
+from d2l import torch as d2l
+
+#@save
+d2l.DATA_HUB['banana-detection'] = (
+    d2l.DATA_URL + 'banana-detection.zip',
+    '5de26c8fce5ccdea9f91267273464dc968d20d72')
+```
+
+读取数据：
+
+```python
+#@save
+def read_data_bananas(is_train=True):
+    """读取香蕉检测数据集中的图像和标签"""
+    data_dir = d2l.download_extract('banana-detection')
+    csv_fname = os.path.join(data_dir, 'bananas_train' if is_train
+                             else 'bananas_val', 'label.csv')
+    csv_data = pd.read_csv(csv_fname)
+    csv_data = csv_data.set_index('img_name')
+    images, targets = [], []
+    for img_name, target in csv_data.iterrows():
+        images.append(torchvision.io.read_image(
+            os.path.join(data_dir, 'bananas_train' if is_train else
+                         'bananas_val', 'images', f'{img_name}')))
+        # 这里的target包含（类别，左上角x，左上角y，右下角x，右下角y），
+        # 其中所有图像都具有相同的香蕉类（索引为0）
+        targets.append(list(target))
+    return images, torch.tensor(targets).unsqueeze(1) / 256
+```
+
+读取图像和标签
+
+```python
+#@save
+class BananasDataset(torch.utils.data.Dataset):
+    """一个用于加载香蕉检测数据集的自定义数据集"""
+    def __init__(self, is_train):
+        self.features, self.labels = read_data_bananas(is_train)
+        print('read ' + str(len(self.features)) + (f' training examples' if
+              is_train else f' validation examples'))
+
+    def __getitem__(self, idx):
+        return (self.features[idx].float(), self.labels[idx])
+
+    def __len__(self):
+        return len(self.features)
+```
+
+为训练集和测试集返回两个数据加载器实例，测试集，无须按随机顺序读取它
+
+```python
+#@save
+def load_data_bananas(batch_size):
+    """加载香蕉检测数据集"""
+    train_iter = torch.utils.data.DataLoader(BananasDataset(is_train=True),
+                                             batch_size, shuffle=True)
+    val_iter = torch.utils.data.DataLoader(BananasDataset(is_train=False),
+                                           batch_size)
+    return train_iter, val_iter
+```
+
+读取一个小批量，并打印其中的图像和标签的形状。 图像的小批量的形状为（批量大小、通道数、高度、宽度）,标签的小批量的形状为（批量大小，m，5），其中m是数据集的任何图像中边界框可能出现的最大数量。小批量计算虽然高效，但它要求每张图像含有相同数量的边界框，以便放在同一个批量中。 通常来说，图像可能拥有不同数量个边界框
+
+因此，在达到m之前，边界框少于m的图像将被非法边界框填充。 这样，每个边界框的标签将被长度为5的数组表示。 数组中的第一个元素是边界框中对象的类别，其中-1表示用于填充的非法边界框。 数组的其余四个元素是边界框左上角和右下角的（x，y）坐标值（值域在0～1之间）。 对于香蕉数据集而言，由于每张图像上只有一个边界框，因此m=1。
+
+```python
+batch_size, edge_size = 32, 256
+train_iter, _ = load_data_bananas(batch_size)
+batch = next(iter(train_iter))
+batch[0].shape, batch[1].shape
+```
+
+展示10幅带有真实边界框的图像。 我们可以看到在所有这些图像中香蕉的旋转角度、大小和位置都有所不同。 当然，这只是一个简单的人工数据集，实践中真实世界的数据集通常要复杂得多。
+
+```python
+imgs = (batch[0][0:10].permute(0, 2, 3, 1)) / 255
+axes = d2l.show_images(imgs, 2, 5, scale=2)
+for ax, label in zip(axes, batch[1][0:10]):
+    d2l.show_bboxes(ax, [label[0][1:5] * edge_size], colors=['w'])
+```
+
+##### 单发多框检测
+
+单发多框检测（SSD single shot multibox detection）模型简单、快速且被广泛使用。主要由基础网络组成，其后是几个多尺度特征块。 基本网络用于从输入图像中提取特征，因此它可以使用深度卷积神经网络。选用了在分类层之前截断的VGG，现在也常用ResNet替代。
+
+可以设计基础网络，使它输出的高和宽较大。 这样一来，基于该特征图生成的锚框数量较多，可以用来检测尺寸较小的目标。 接下来的每个多尺度特征块将上一层提供的特征图的高和宽缩小（如减半），并使特征图中每个单元在输入图像上的感受野变得更广阔。
+
+顶部的多尺度特征图较小，但具有较大的感受野，它们适合检测较少但较大的物体。 简而言之，通过多尺度特征块，单发多框检测生成不同大小的锚框，并通过预测边界框的类别和偏移量来检测大小不同的目标，因此这是一个多尺度目标检测模型。
+
+![image-20230516204343573](img/image-20230516204343573.png)
+
+设目标类别的数量为q。这样一来，锚框有q+1个类别，其中0类是背景。某个尺度下，设特征图的高和宽分别为h和w。 如果以其中每个单元为中心生成a个锚框，那么我们需要对hwa个锚框进行分类。 如果使用全连接层作为输出，很容易导致模型参数过多。
+
+具体来说，类别预测层使用一个保持输入高和宽的卷积层。 这样一来，输出和输入在特征图宽和高上的空间坐标一一对应。 考虑输出和输入同一空间坐标（x、y）：输出特征图上（x、y）坐标的通道里包含了以输入特征图（x、y）坐标为中心生成的所有锚框的类别预测。 因此输出通道数为a(q+1)，其中索引为i(q+1)+j（0≤j≤q）的通道代表了索引为i的锚框有关类别索引为j的预测。
+
+`num_anchors`和`num_classes`分别指定了a和q。 该图层使用填充为1的3×3的卷积层。此卷积层的输入和输出的宽度和高度保持不变。
+
+```python
+%matplotlib inline
+import torch
+import torchvision
+from torch import nn
+from torch.nn import functional as F
+from d2l import torch as d2l
+
+
+def cls_predictor(num_inputs, num_anchors, num_classes):
+    return nn.Conv2d(num_inputs, num_anchors * (num_classes + 1),
+                     kernel_size=3, padding=1)
+```
+
+边界框预测层：
+
+```python
+def bbox_predictor(num_inputs, num_anchors):
+    return nn.Conv2d(num_inputs, num_anchors * 4, kernel_size=3, padding=1)
+```
+
+在不同的尺度下，特征图的形状或以同一单元为中心的锚框的数量可能会有所不同。 因此，不同尺度下预测输出的形状可能会有所不同。
+
+为同一个小批量构建两个不同比例（`Y1`和`Y2`）的特征图，其中`Y2`的高度和宽度是`Y1`的一半。 以类别预测为例，假设`Y1`和`Y2`的每个单元分别生成了5个和3个锚框。 进一步假设目标类别的数量为10，对于特征图`Y1`和`Y2`，类别预测输出中的通道数分别为5×(10+1)=55和3×(10+1)=33，其中任一输出的形状是（批量大小，通道数，高度，宽度）。
+
+```python
+def forward(x, block):
+    return block(x)
+
+Y1 = forward(torch.zeros((2, 8, 20, 20)), cls_predictor(8, 5, 10))
+Y2 = forward(torch.zeros((2, 16, 10, 10)), cls_predictor(16, 3, 10))
+Y1.shape, Y2.shape
+```
+
+通道维包含中心相同的锚框的预测结果。我们首先将通道维移到最后一维。 因为不同尺度下批量大小仍保持不变，我们可以将预测结果转成二维的（批量大小，高×宽×通道数）的格式，以方便之后在维度1上的连结。
+
+```python
+def flatten_pred(pred):
+    return torch.flatten(pred.permute(0, 2, 3, 1), start_dim=1)
+
+def concat_preds(preds):
+    return torch.cat([flatten_pred(p) for p in preds], dim=1)
+```
+
+这样一来，尽管`Y1`和`Y2`在通道数、高度和宽度方面具有不同的大小，我们仍然可以在同一个小批量的两个不同尺度上连接这两个预测输出。
+
+```python
+concat_preds([Y1, Y2]).shape
+```
+
+定义了高和宽减半块`down_sample_blk`，该模块将输入特征图的高度和宽度减半。 事实上，该块应用了在 `subsec_vgg-blocks`中的VGG模块设计。 更具体地说，每个高和宽减半块由两个填充为1的3×3的卷积层、以及步幅为2的2×2最大汇聚层组成。 我们知道，填充为1的3×3卷积层不改变特征图的形状。但是，其后的2×2的最大汇聚层将输入特征图的高度和宽度减少了一半。 对于此高和宽减半块的输入和输出特征图，因为1×2+(3−1)+(3−1)=6，所以输出中的每个单元在输入上都有一个6×6的感受野。因此，高和宽减半块会扩大每个单元在其输出特征图中的感受野。
+
+```python
+def down_sample_blk(in_channels, out_channels):
+    blk = []
+    for _ in range(2):
+        blk.append(nn.Conv2d(in_channels, out_channels,
+                             kernel_size=3, padding=1))
+        blk.append(nn.BatchNorm2d(out_channels))
+        blk.append(nn.ReLU())
+        in_channels = out_channels
+    blk.append(nn.MaxPool2d(2))
+    return nn.Sequential(*blk)
+```
+
+我们构建的高和宽减半块会更改输入通道的数量，并将输入特征图的高度和宽度减半。
+
+```python
+forward(torch.zeros((2, 3, 20, 20)), down_sample_blk(3, 10)).shape
+```
+
+基本网络块用于从输入图像中抽取特征。 为了计算简洁，我们构造了一个小的基础网络，该网络串联3个高和宽减半块，并逐步将通道数翻倍。 给定输入图像的形状为256×256，此基本网络块输出的特征图形状为32×32（256/2\*\*3=32）。
+
+```python
+def base_net():
+    blk = []
+    num_filters = [3, 16, 32, 64]
+    for i in range(len(num_filters) - 1):
+        blk.append(down_sample_blk(num_filters[i], num_filters[i+1]))
+    return nn.Sequential(*blk)
+
+forward(torch.zeros((2, 3, 256, 256)), base_net()).shape
+```
+
+完整的单发多框检测模型由五个模块组成。每个块生成的特征图既用于生成锚框，又用于预测这些锚框的类别和偏移量。在这五个模块中，第一个是基本网络块，第二个到第四个是高和宽减半块，最后一个模块使用全局最大池将高度和宽度都降到1。从技术上讲，第二到第五个区块都是多尺度特征块。
+
+```python
+def get_blk(i):
+    if i == 0:
+        blk = base_net()
+    elif i == 1:
+        blk = down_sample_blk(64, 128)
+    elif i == 4:
+        blk = nn.AdaptiveMaxPool2d((1,1))
+    else:
+        blk = down_sample_blk(128, 128)
+    return blk
+```
+
+为每个块定义前向传播。与图像分类任务不同，此处的输出包括：CNN特征图`Y`；在当前尺度下根据`Y`生成的锚框；预测的这些锚框的类别和偏移量（基于`Y`）。
+
+```python
+def blk_forward(X, blk, size, ratio, cls_predictor, bbox_predictor):
+    Y = blk(X)
+    anchors = d2l.multibox_prior(Y, sizes=size, ratios=ratio)
+    cls_preds = cls_predictor(Y)
+    bbox_preds = bbox_predictor(Y)
+    return (Y, anchors, cls_preds, bbox_preds)
+```
+
+定义常量：
+
+```python
+sizes = [[0.2, 0.272], [0.37, 0.447], [0.54, 0.619], [0.71, 0.79],
+         [0.88, 0.961]]
+ratios = [[1, 2, 0.5]] * 5
+num_anchors = len(sizes[0]) + len(ratios[0]) - 1
+```
+
+```python
+class TinySSD(nn.Module):
+    def __init__(self, num_classes, **kwargs):
+        super(TinySSD, self).__init__(**kwargs)
+        self.num_classes = num_classes
+        idx_to_in_channels = [64, 128, 128, 128, 128]
+        for i in range(5):
+            # 即赋值语句self.blk_i=get_blk(i)
+            setattr(self, f'blk_{i}', get_blk(i))
+            setattr(self, f'cls_{i}', cls_predictor(idx_to_in_channels[i],
+                                                    num_anchors, num_classes))
+            setattr(self, f'bbox_{i}', bbox_predictor(idx_to_in_channels[i],
+                                                      num_anchors))
+
+    def forward(self, X):
+        anchors, cls_preds, bbox_preds = [None] * 5, [None] * 5, [None] * 5
+        for i in range(5):
+            # getattr(self,'blk_%d'%i)即访问self.blk_i
+            X, anchors[i], cls_preds[i], bbox_preds[i] = blk_forward(
+                X, getattr(self, f'blk_{i}'), sizes[i], ratios[i],
+                getattr(self, f'cls_{i}'), getattr(self, f'bbox_{i}'))
+        anchors = torch.cat(anchors, dim=1)
+        cls_preds = concat_preds(cls_preds)
+        cls_preds = cls_preds.reshape(
+            cls_preds.shape[0], -1, self.num_classes + 1)
+        bbox_preds = concat_preds(bbox_preds)
+        return anchors, cls_preds, bbox_preds
+```
+
+形状查看：
+
+```python
+net = TinySSD(num_classes=1)
+X = torch.zeros((32, 3, 256, 256))
+anchors, cls_preds, bbox_preds = net(X)
+
+print('output anchors:', anchors.shape)
+print('output class preds:', cls_preds.shape)
+print('output bbox preds:', bbox_preds.shape)
+```
+
+数据读取和训练器：
+
+```python
+batch_size = 32
+train_iter, _ = d2l.load_data_bananas(batch_size)
+```
+
+```python
+device, net = d2l.try_gpu(), TinySSD(num_classes=1)
+trainer = torch.optim.SGD(net.parameters(), lr=0.2, weight_decay=5e-4)
+```
+
+损失函数：
+
+```python
+cls_loss = nn.CrossEntropyLoss(reduction='none')
+bbox_loss = nn.L1Loss(reduction='none')
+
+def calc_loss(cls_preds, cls_labels, bbox_preds, bbox_labels, bbox_masks):
+    batch_size, num_classes = cls_preds.shape[0], cls_preds.shape[2]
+    cls = cls_loss(cls_preds.reshape(-1, num_classes),
+                   cls_labels.reshape(-1)).reshape(batch_size, -1).mean(dim=1)
+    bbox = bbox_loss(bbox_preds * bbox_masks,
+                     bbox_labels * bbox_masks).mean(dim=1)
+    return cls + bbox
+```
+
+```python
+def cls_eval(cls_preds, cls_labels):
+    # 由于类别预测结果放在最后一维，argmax需要指定最后一维。
+    return float((cls_preds.argmax(dim=-1).type(
+        cls_labels.dtype) == cls_labels).sum())
+
+def bbox_eval(bbox_preds, bbox_labels, bbox_masks):
+    return float((torch.abs((bbox_labels - bbox_preds) * bbox_masks)).sum())
+```
+
+尝试训练：
+
+```python
+num_epochs, timer = 20, d2l.Timer()
+animator = d2l.Animator(xlabel='epoch', xlim=[1, num_epochs],
+                        legend=['class error', 'bbox mae'])
+net = net.to(device)
+for epoch in range(num_epochs):
+    # 训练精确度的和，训练精确度的和中的示例数
+    # 绝对误差的和，绝对误差的和中的示例数
+    metric = d2l.Accumulator(4)
+    net.train()
+    for features, target in train_iter:
+        timer.start()
+        trainer.zero_grad()
+        X, Y = features.to(device), target.to(device)
+        # 生成多尺度的锚框，为每个锚框预测类别和偏移量
+        anchors, cls_preds, bbox_preds = net(X)
+        # 为每个锚框标注类别和偏移量
+        bbox_labels, bbox_masks, cls_labels = d2l.multibox_target(anchors, Y)
+        # 根据类别和偏移量的预测和标注值计算损失函数
+        l = calc_loss(cls_preds, cls_labels, bbox_preds, bbox_labels,
+                      bbox_masks)
+        l.mean().backward()
+        trainer.step()
+        metric.add(cls_eval(cls_preds, cls_labels), cls_labels.numel(),
+                   bbox_eval(bbox_preds, bbox_labels, bbox_masks),
+                   bbox_labels.numel())
+    cls_err, bbox_mae = 1 - metric[0] / metric[1], metric[2] / metric[3]
+    animator.add(epoch + 1, (cls_err, bbox_mae))
+print(f'class err {cls_err:.2e}, bbox mae {bbox_mae:.2e}')
+print(f'{len(train_iter.dataset) / timer.stop():.1f} examples/sec on '
+      f'{str(device)}')
+```
+
+在预测阶段，我们希望能把图像里面所有我们感兴趣的目标检测出来。在下面，我们读取并调整测试图像的大小，然后将其转成卷积层需要的四维格式。一张多个香蕉的图片，注意训练集和测试集都只有一个香蕉。
+
+```python
+X = torchvision.io.read_image('../img/banana.jpg').unsqueeze(0).float()
+img = X.squeeze(0).permute(1, 2, 0).long()
+```
+
+边界框：
+
+```python
+def predict(X):
+    net.eval()
+    anchors, cls_preds, bbox_preds = net(X.to(device))
+    cls_probs = F.softmax(cls_preds, dim=2).permute(0, 2, 1)
+    output = d2l.multibox_detection(cls_probs, bbox_preds, anchors)
+    idx = [i for i, row in enumerate(output[0]) if row[0] != -1]
+    return output[0, idx]
+
+output = predict(X)
+```
+
+筛选并输出：
+
+```python
+def display(img, output, threshold):
+    d2l.set_figsize((5, 5))
+    fig = d2l.plt.imshow(img)
+    for row in output:
+        score = float(row[1])
+        if score < threshold:
+            continue
+        h, w = img.shape[0:2]
+        bbox = [row[2:6] * torch.tensor((w, h, w, h), device=row.device)]
+        d2l.show_bboxes(fig.axes, bbox, '%.2f' % score, 'w')
+
+display(img, output.cpu(), threshold=0.9)
+```
+
+##### R-CNN系列
+
+ 区域卷积神经网络（region-based CNN或regions with CNN features，R-CNN），快速的R-CNN（Fast R-CNN），更快的R-CNN（Faster R-CNN），掩码R-CNN（Mask R-CNN）
+
+*R-CNN*首先从输入图像中选取若干（例如2000个）*提议区域*（*region proposals* 如锚框也是一种选取方法），并标注它们的类别和边界框（如偏移量）。然后，用卷积神经网络对每个提议区域进行前向传播以抽取其特征。 接下来，我们用每个提议区域的特征来预测类别和边界框。
+
+![image-20230516211227515](img/image-20230516211227515.png)
+
+1. 对输入图像使用*选择性搜索*来选取多个高质量的提议区域。这些提议区域通常是在多个尺度下选取的，并具有不同的形状和大小。每个提议区域都将被标注类别和真实边界框；
+2. 选择一个预训练的卷积神经网络，并将其在输出层之前截断。将每个提议区域变形为网络需要的输入尺寸，并通过前向传播输出抽取的提议区域特征；
+3. 将每个提议区域的特征连同其标注的类别作为一个样本。训练多个支持向量机对目标分类，其中每个支持向量机用来判断样本是否属于某一个类别；
+4. 将每个提议区域的特征连同其标注的边界框作为一个样本，训练线性回归模型来预测真实边界框。
+
+尽管R-CNN模型通过预训练的卷积神经网络有效地抽取了图像特征，但它的速度很慢。 想象一下，我们可能从一张图像中选出上千个提议区域，这需要上千次的卷积神经网络的前向传播来执行目标检测。 这种庞大的计算量使得R-CNN在现实世界中难以被广泛应用。
+
+R-CNN的主要性能瓶颈在于，对每个提议区域，卷积神经网络的前向传播是独立的，而没有共享计算。 由于这些区域通常有重叠，独立的特征抽取会导致重复的计算。*Fast R-CNN* 对R-CNN的主要改进之一，是仅在整张图象上执行卷积神经网络的前向传播。
+
+![image-20230516211535130](img/image-20230516211535130.png)
+
+为了较精确地检测目标结果，Fast R-CNN模型通常需要在选择性搜索中生成大量的提议区域。 *Faster R-CNN* 提出将选择性搜索替换为*区域提议网络*（region proposal network），从而减少提议区域的生成数量，并保证目标检测的精度。
+
+![image-20230516211622320](img/image-20230516211622320.png)
+
+如果在训练集中还标注了每个目标在图像上的像素级位置，那么*Mask R-CNN* 能够有效地利用这些详尽的标注信息进一步提升目标检测的精度。
+
+![image-20230516211658119](img/image-20230516211658119.png)
+
+Mask R-CNN将兴趣区域汇聚层替换为了 *兴趣区域对齐*层，使用*双线性插值*（bilinear interpolation）来保留特征图上的空间信息，从而更适于像素级预测。 兴趣区域对齐层的输出包含了所有与兴趣区域的形状相同的特征图。 它们不仅被用于预测每个兴趣区域的类别和边界框，还通过额外的全卷积网络预测目标的像素级位置。
+
+##### 语义分割和数据集
+
+*语义分割*（semantic segmentation）问题，它重点关注于如何将图像分割成属于不同语义类别的区域。 与目标检测不同，语义分割可以识别并理解图像中每一个像素的内容：其语义区域的标注和预测是像素级的。与目标检测相比，语义分割标注的像素级的边框显然更加精细。
+
+![image-20230516211912810](img/image-20230516211912810.png)
+
+区分 *图像分割*（image segmentation）和*实例分割*（instance segmentation）
+
+- *图像分割*将图像划分为若干组成区域，这类问题的方法通常利用图像中像素之间的相关性。它在训练时不需要有关图像像素的标签信息，在预测时也无法保证分割出的区域具有我们希望得到的语义。图像分割可能会将狗分为两个区域：一个覆盖以黑色为主的嘴和眼睛，另一个覆盖以黄色为主的其余部分身体。
+- *实例分割*也叫*同时检测并分割*（simultaneous detection and segmentation），它研究如何识别图像中各个目标实例的像素级区域。与语义分割不同，实例分割不仅需要区分语义，还要区分不同的目标实例。例如，如果图像中有两条狗，则实例分割需要区分像素属于的两条狗中的哪一条。
+
+最重要的语义分割数据集之一是[Pascal VOC2012](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/)。1.9GB
+
+```python
+%matplotlib inline
+import os
+import torch
+import torchvision
+from d2l import torch as d2l
+#@save
+d2l.DATA_HUB['voc2012'] = (d2l.DATA_URL + 'VOCtrainval_11-May-2012.tar',
+                           '4e443f8a2eca6b1dac8a6c57641b67dd40621a49')
+
+voc_dir = d2l.download_extract('voc2012', 'VOCdevkit/VOC2012')
+```
+
+`ImageSets/Segmentation`路径包含用于训练和测试样本的文本文件，而`JPEGImages`和`SegmentationClass`路径分别存储着每个示例的输入图像和标签。 此处的标签也采用图像格式，其尺寸和它所标注的输入图像的尺寸相同。 此外，标签中颜色相同的像素属于同一个语义类别。 下面将`read_voc_images`函数定义为将所有输入的图像和标签读入内存。
+
+```python
+#@save
+def read_voc_images(voc_dir, is_train=True):
+    """读取所有VOC图像并标注"""
+    txt_fname = os.path.join(voc_dir, 'ImageSets', 'Segmentation',
+                             'train.txt' if is_train else 'val.txt')
+    mode = torchvision.io.image.ImageReadMode.RGB
+    with open(txt_fname, 'r') as f:
+        images = f.read().split()
+    features, labels = [], []
+    for i, fname in enumerate(images):
+        features.append(torchvision.io.read_image(os.path.join(
+            voc_dir, 'JPEGImages', f'{fname}.jpg')))
+        labels.append(torchvision.io.read_image(os.path.join(
+            voc_dir, 'SegmentationClass' ,f'{fname}.png'), mode))
+    return features, labels
+
+train_features, train_labels = read_voc_images(voc_dir, True)
+```
+
+绘制前5个输入图像及其标签。 在标签图像中，白色和黑色分别表示边框和背景，而其他颜色则对应不同的类别。
+
+```python
+n = 5
+imgs = train_features[0:n] + train_labels[0:n]
+imgs = [img.permute(1,2,0) for img in imgs]
+d2l.show_images(imgs, 2, n);
+```
+
+接下来，我们列举RGB颜色值和类名
+
+```python
+#@save
+VOC_COLORMAP = [[0, 0, 0], [128, 0, 0], [0, 128, 0], [128, 128, 0],
+                [0, 0, 128], [128, 0, 128], [0, 128, 128], [128, 128, 128],
+                [64, 0, 0], [192, 0, 0], [64, 128, 0], [192, 128, 0],
+                [64, 0, 128], [192, 0, 128], [64, 128, 128], [192, 128, 128],
+                [0, 64, 0], [128, 64, 0], [0, 192, 0], [128, 192, 0],
+                [0, 64, 128]]
+
+#@save
+VOC_CLASSES = ['background', 'aeroplane', 'bicycle', 'bird', 'boat',
+               'bottle', 'bus', 'car', 'cat', 'chair', 'cow',
+               'diningtable', 'dog', 'horse', 'motorbike', 'person',
+               'potted plant', 'sheep', 'sofa', 'train', 'tv/monitor']
+```
+
+通过上面定义的两个常量，我们可以方便地查找标签中每个像素的类索引。 我们定义了`voc_colormap2label`函数来构建从上述RGB颜色值到类别索引的映射，而`voc_label_indices`函数将RGB值映射到在Pascal VOC2012数据集中的类别索引。
+
+```python
+#@save
+def voc_colormap2label():
+    """构建从RGB到VOC类别索引的映射"""
+    colormap2label = torch.zeros(256 ** 3, dtype=torch.long)
+    for i, colormap in enumerate(VOC_COLORMAP):
+        colormap2label[
+            (colormap[0] * 256 + colormap[1]) * 256 + colormap[2]] = i
+    return colormap2label
+
+#@save
+def voc_label_indices(colormap, colormap2label):
+    """将VOC标签中的RGB值映射到它们的类别索引"""
+    colormap = colormap.permute(1, 2, 0).numpy().astype('int32')
+    idx = ((colormap[:, :, 0] * 256 + colormap[:, :, 1]) * 256
+           + colormap[:, :, 2])
+    return colormap2label[idx]
+```
+
+使用示例：
+
+```python
+y = voc_label_indices(train_labels[0], voc_colormap2label())
+y[105:115, 130:140], VOC_CLASSES[1]
+```
+
+将图像裁剪为固定尺寸，而不是再缩放。 具体来说，我们使用图像增广中的随机裁剪，裁剪输入图像和标签的相同区域。
+
+```python
+#@save
+def voc_rand_crop(feature, label, height, width):
+    """随机裁剪特征和标签图像"""
+    rect = torchvision.transforms.RandomCrop.get_params(
+        feature, (height, width))
+    feature = torchvision.transforms.functional.crop(feature, *rect)
+    label = torchvision.transforms.functional.crop(label, *rect)
+    return feature, label
+
+imgs = []
+for _ in range(n):
+    imgs += voc_rand_crop(train_features[0], train_labels[0], 200, 300)
+
+imgs = [img.permute(1, 2, 0) for img in imgs]
+d2l.show_images(imgs[::2] + imgs[1::2], 2, n);
+```
+
+通过实现`__getitem__`函数，我们可以任意访问数据集中索引为`idx`的输入图像及其每个像素的类别索引。 由于数据集中有些图像的尺寸可能小于随机裁剪所指定的输出尺寸，这些样本可以通过自定义的`filter`函数移除掉。 此外，我们还定义了`normalize_image`函数，从而对输入图像的RGB三个通道的值分别做标准化。
+
+```python
+#@save
+class VOCSegDataset(torch.utils.data.Dataset):
+    """一个用于加载VOC数据集的自定义数据集"""
+
+    def __init__(self, is_train, crop_size, voc_dir):
+        self.transform = torchvision.transforms.Normalize(
+            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        self.crop_size = crop_size
+        features, labels = read_voc_images(voc_dir, is_train=is_train)
+        self.features = [self.normalize_image(feature)
+                         for feature in self.filter(features)]
+        self.labels = self.filter(labels)
+        self.colormap2label = voc_colormap2label()
+        print('read ' + str(len(self.features)) + ' examples')
+
+    def normalize_image(self, img):
+        return self.transform(img.float() / 255)
+
+    def filter(self, imgs):
+        return [img for img in imgs if (
+            img.shape[1] >= self.crop_size[0] and
+            img.shape[2] >= self.crop_size[1])]
+
+    def __getitem__(self, idx):
+        feature, label = voc_rand_crop(self.features[idx], self.labels[idx],
+                                       *self.crop_size)
+        return (feature, voc_label_indices(label, self.colormap2label))
+
+    def __len__(self):
+        return len(self.features)
+```
+
+自定义的`VOCSegDataset`类来分别创建训练集和测试集的实例。 假设我们指定随机裁剪的输出图像的形状为320×480， 下面我们可以查看训练集和测试集所保留的样本个数。
+
+```python
+crop_size = (320, 480)
+voc_train = VOCSegDataset(True, crop_size, voc_dir)
+voc_test = VOCSegDataset(False, crop_size, voc_dir)
+```
+
+设批量大小为64，我们定义训练集的迭代器。 打印第一个小批量的形状会发现：与图像分类或目标检测不同，这里的标签是一个三维数组。
+
+```python
+batch_size = 64
+train_iter = torch.utils.data.DataLoader(voc_train, batch_size, shuffle=True,
+                                    drop_last=True,
+                                    num_workers=d2l.get_dataloader_workers())
+for X, Y in train_iter:
+    print(X.shape)
+    print(Y.shape)
+    break
+```
+
+数据加载：
+
+```python
+#@save
+def load_data_voc(batch_size, crop_size):
+    """加载VOC语义分割数据集"""
+    voc_dir = d2l.download_extract('voc2012', os.path.join(
+        'VOCdevkit', 'VOC2012'))
+    num_workers = d2l.get_dataloader_workers()
+    train_iter = torch.utils.data.DataLoader(
+        VOCSegDataset(True, crop_size, voc_dir), batch_size,
+        shuffle=True, drop_last=True, num_workers=num_workers)
+    test_iter = torch.utils.data.DataLoader(
+        VOCSegDataset(False, crop_size, voc_dir), batch_size,
+        drop_last=True, num_workers=num_workers)
+    return train_iter, test_iter
+```
+
+##### 转置卷积
+
+如果输入和输出图像的空间维度相同，在以像素级分类的语义分割中将会很方便。 例如，输出像素所处的通道维可以保有输入像素在同一位置上的分类结果。
+
+为了实现这一点，尤其是在空间维度被卷积神经网络层缩小后，我们可以使用另一种类型的卷积神经网络层，它可以增加上采样中间层特征图的空间维度。  *转置卷积*（transposed convolution）， 用于逆转下采样导致的空间尺寸减小。
+
+```python
+import torch
+from torch import nn
+from d2l import torch as d2l
+```
+
+暂时忽略通道，从基本的转置卷积开始，设步幅为1且没有填充。设输入张量 $n_h \times n_w$ 和卷积核 $k_h \times k_w$，产生 $n_h n_w$ 个中间结果，都是一个 $(n_h + k_h - 1) \times (n_w + k_w - 1)$ 的张量。
+
+![image-20230517145130400](img/image-20230517145130400.png)
+
+即：
+
+```python
+def trans_conv(X, K):
+    h, w = K.shape
+    Y = torch.zeros((X.shape[0] + h - 1, X.shape[1] + w - 1))
+    for i in range(X.shape[0]):
+        for j in range(X.shape[1]):
+            Y[i: i + h, j: j + w] += X[i, j] * K
+    return Y
+```
+
+转置卷积通过卷积核“广播”输入元素，从而产生大于输入的输出。
+
+```python
+X = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
+K = torch.tensor([[0.0, 1.0], [2.0, 3.0]])
+trans_conv(X, K)
+```
+
+或者，当输入`X`和卷积核`K`都是四维张量时，我们可以使用高级API获得相同的结果。
+
+```python
+X, K = X.reshape(1, 1, 2, 2), K.reshape(1, 1, 2, 2)
+tconv = nn.ConvTranspose2d(1, 1, kernel_size=2, bias=False)
+tconv.weight.data = K
+tconv(X) #1x1x3x3
+```
+
+与常规卷积不同，在转置卷积中，填充被应用于的输出（常规卷积将填充应用于输入）。 例如，当将高和宽两侧的填充数指定为1时，转置卷积的输出中将删除第一和最后的行与列
+
+```python
+tconv = nn.ConvTranspose2d(1, 1, kernel_size=2, padding=1, bias=False)
+tconv.weight.data = K
+tconv(X) #1x1x1x1
+```
+
+在转置卷积中，步幅被指定为中间结果（输出），而不是输入。 将步幅从1更改为2会增加中间张量的高和权重。
+
+![image-20230517150413435](img/image-20230517150413435.png)
+
+验证：
+
+```python
+tconv = nn.ConvTranspose2d(1, 1, kernel_size=2, stride=2, bias=False)
+tconv.weight.data = K
+tconv(X)
+```
+
+多个输入和输出通道，转置卷积与常规卷积以相同方式运作。 假设输入有$c_i$个通道，且转置卷积为每个输入通道分配了一个$k_hk_w$的卷积核张量。 当指定多个输出通道时，每个输出通道将有一个$c_i\times k_h\times k_w$的卷积核。转置的含义：
+
+```python
+X = torch.rand(size=(1, 10, 16, 16))
+conv = nn.Conv2d(10, 20, kernel_size=5, padding=2, stride=3)
+tconv = nn.ConvTranspose2d(20, 10, kernel_size=5, padding=2, stride=3)
+tconv(conv(X)).shape == X.shape
+```
+
+可以用矩阵乘法实现卷积和转置卷积，对卷积如：
+
+```python
+X = torch.arange(9.0).reshape(3, 3)
+K = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+Y = d2l.corr2d(X, K)
+Y
+```
+
+```python
+def kernel2matrix(K):
+    k, W = torch.zeros(5), torch.zeros((4, 9))
+    k[:2], k[3:5] = K[0, :], K[1, :]
+    W[0, :5], W[1, 1:6], W[2, 3:8], W[3, 4:] = k, k, k, k
+    return W
+
+W = kernel2matrix(K)
+W
+```
+
+```python
+Y == torch.matmul(W, X.reshape(-1)).reshape(2, 2)
+```
+
+转置卷积如：
+
+```python
+Z = trans_conv(Y, K)
+Z == torch.matmul(W.T, Y.reshape(-1)).reshape(3, 3)
+```
+
+##### 全卷积网络
+
+*全卷积网络*（fully convolutional network，FCN）采用卷积神经网络实现了从图像像素到像素类别的变换，全卷积网络将中间层特征图的高和宽变换回输入图像的尺寸。 因此，输出的类别预测与输入图像在像素级别上具有一一对应关系：通道维的输出即该位置对应像素的类别预测。
+
+```python
+%matplotlib inline
+import torch
+import torchvision
+from torch import nn
+from torch.nn import functional as F
+from d2l import torch as d2l
+```
+
+全卷积网络先使用卷积神经网络抽取图像特征，然后通过1×1卷积层将通道数变换为类别个数，通过转置卷积层将特征图的高和宽变换为输入图像的尺寸。 因此，模型输出与输入图像的高和宽相同，且最终输出通道包含了该空间位置像素的类别预测。
+
+![image-20230517153123734](img/image-20230517153123734.png)
+
+
 
 ## 网络
 
@@ -12188,7 +13517,8 @@ requests.post('http://127.0.0.1:52580/',data={'name':'yym'}).text
 
 
 
-### 其他
+> ### 其他
+>
 
 > `PySNMP` 模块可以实现 SNMP 功能
 

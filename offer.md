@@ -413,6 +413,10 @@
 - 1335\.工作计划的最低难度
 
   DP / <u>单调栈优化</u>
+  
+- 2446\.判断两个事件是否存在冲突
+
+  日期
 
 
 
@@ -11624,6 +11628,38 @@ class Solution {
 ```
 
 
+
+##### 2446. 判断两个事件是否存在冲突
+
+[题目](https://leetcode.cn/problems/determine-if-two-events-have-conflict/)
+
+两个区间 $[a,b],[c,d]$ 重合的充要条件是 $c\ge b$ 且 $d\ge a$
+
+```java
+class Solution {
+    private int toMinute(String s) {
+        int h = Integer.parseInt(s.substring(0, 2));
+        int m = Integer.parseInt(s.substring(3));
+        return h * 60 + m;
+    }
+
+    public boolean haveConflict(String[] event1, String[] event2) {
+        int a = toMinute(event1[0]), b = toMinute(event1[1]);
+        int c = toMinute(event2[0]), d = toMinute(event2[1]);
+        return b >= c && d >= a;
+    }
+}
+```
+
+更优做法是直接比较字典序：
+
+```java
+class Solution {
+    public boolean haveConflict(String[] event1, String[] event2) {
+        return !(event1[1].compareTo(event2[0]) < 0 || event2[1].compareTo(event1[0]) < 0);
+    }
+}
+```
 
 
 
