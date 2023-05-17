@@ -6922,6 +6922,8 @@ x[:] = x + y #不要丢，原地操作
 print(id(x))
 ```
 
+##### 变形
+
 去掉为 1 的维度，使用 squeeze。
 
 ```python
@@ -6952,139 +6954,17 @@ y = flatten(x)
 print(y.shape)  # torch.Size([10, 3072])
 ```
 
-查看配对情况：
+维度重排序：
 
 ```python
-labels = multibox_target(anchors.unsqueeze(dim=0),
-                         ground_truth.unsqueeze(dim=0))
-print(labels[2]) #五个锚分别对什么
+x = torch.randn(2, 3, 4)
+
+# 使用permute函数重新排列维度
+y = x.permute(1, 0, 2)  # 将维度1和0交换顺序
+
+print(x.shape)  # 输出: torch.Size([2, 3, 4])
+print(y.shape)  # 输出: torch.Size([3, 2, 4])
 ```
-
-返回的第二个元素是掩码（mask）变量，形状为（批量大小，锚框数的四倍）。 掩码变量中的元素与每个锚框的4个偏移量一一对应。 由于我们不关心对背景的检测，负类的偏移量不应影响目标函数。 通过元素乘法，掩码变量中的零将在计算目标函数之前过滤掉负类偏移量。
-
-```python
-labels[1]
-```
-
-第一个元素包含了为每个锚框标记的四个偏移值。 请注意，负类锚框的偏移量被标记为零。
-
-```python
-labels[0]
-```
-
-在预测时，我们先为图像生成多个锚框，再为这些锚框一一预测类别和偏移量。 一个*预测好的边界框*则根据其中某个带有预测偏移量的锚框而生成。 下面我们实现了`offset_inverse`函数，该函数将锚框和偏移量预测作为输入，并应用逆偏移变换来返回预测的边界框坐标。
-
-```python
-#@save
-def offset_inverse(anchors, offset_preds):
-    """根据带有预测偏移量的锚框来预测边界框"""
-    anc = d2l.box_corner_to_center(anchors)
-    pred_bbox_xy = (offset_preds[:, :2] * anc[:, 2:] / 10) + anc[:, :2]
-    pred_bbox_wh = torch.exp(offset_preds[:, 2:] / 5) * anc[:, 2:]
-    pred_bbox = torch.cat((pred_bbox_xy, pred_bbox_wh), axis=1)
-    predicted_bbox = d2l.box_center_to_corner(pred_bbox)
-    return predicted_bbox
-```
-
-当有许多锚框时，可能会输出许多相似的具有明显重叠的预测边界框，都围绕着同一目标。 为了简化输出，我们可以使用*非极大值抑制*（non-maximum suppression，NMS）合并属于同一目标的类似的预测边界框。
-
-对预测边界框B，计算每个类别的预测概率。 假设最大的预测概率为p，则该概率所对应的类别就是预测类别。p称为预测边界框的置信度confidence。在同一张图像中，所有预测的非背景边界框都按置信度降序排序，以生成列表L。不断选取置信度最高的Bi，将与该Bi的IoU超过阈值$\epsilon$的未被选中的框排除，并选中当前Bi。不断执行直到所有边框用完。
-
-```python
-#@save
-def nms(boxes, scores, iou_threshold):
-    """对预测边界框的置信度进行排序"""
-    B = torch.argsort(scores, dim=-1, descending=True)
-    keep = []  # 保留预测边界框的指标
-    while B.numel() > 0:
-        i = B[0]
-        keep.append(i)
-        if B.numel() == 1: break
-        iou = box_iou(boxes[i, :].reshape(-1, 4),
-                      boxes[B[1:], :].reshape(-1, 4)).reshape(-1)
-        inds = torch.nonzero(iou <= iou_threshold).reshape(-1)
-        B = B[inds + 1]
-    return torch.tensor(keep, device=boxes.device)
-```
-
-将非极大值抑制应用于预测边界框
-
-```python
-#@save
-def multibox_detection(cls_probs, offset_preds, anchors, nms_threshold=0.5,
-                       pos_threshold=0.009999999):
-    """使用非极大值抑制来预测边界框"""
-    device, batch_size = cls_probs.device, cls_probs.shape[0]
-    anchors = anchors.squeeze(0)
-    num_classes, num_anchors = cls_probs.shape[1], cls_probs.shape[2]
-    out = []
-    for i in range(batch_size):
-        cls_prob, offset_pred = cls_probs[i], offset_preds[i].reshape(-1, 4)
-        conf, class_id = torch.max(cls_prob[1:], 0)
-        predicted_bb = offset_inverse(anchors, offset_pred)
-        keep = nms(predicted_bb, conf, nms_threshold)
-
-        # 找到所有的non_keep索引，并将类设置为背景
-        all_idx = torch.arange(num_anchors, dtype=torch.long, device=device)
-        combined = torch.cat((keep, all_idx))
-        uniques, counts = combined.unique(return_counts=True)
-        non_keep = uniques[counts == 1]
-        all_id_sorted = torch.cat((keep, non_keep))
-        class_id[non_keep] = -1
-        class_id = class_id[all_id_sorted]
-        conf, predicted_bb = conf[all_id_sorted], predicted_bb[all_id_sorted]
-        # pos_threshold是一个用于非背景预测的阈值
-        below_min_idx = (conf < pos_threshold)
-        class_id[below_min_idx] = -1
-        conf[below_min_idx] = 1 - conf[below_min_idx]
-        pred_info = torch.cat((class_id.unsqueeze(1),
-                               conf.unsqueeze(1),
-                               predicted_bb), dim=1)
-        out.append(pred_info)
-    return torch.stack(out)
-```
-
-一个具体的例子：
-
-```python
-anchors = torch.tensor([[0.1, 0.08, 0.52, 0.92], [0.08, 0.2, 0.56, 0.95],
-                      [0.15, 0.3, 0.62, 0.91], [0.55, 0.2, 0.9, 0.88]])
-offset_preds = torch.tensor([0] * anchors.numel())
-cls_probs = torch.tensor([[0] * 4,  # 背景的预测概率
-                      [0.9, 0.8, 0.7, 0.1],  # 狗的预测概率
-                      [0.1, 0.2, 0.3, 0.9]])  # 猫的预测概率
-```
-
-绘制该例子给定的框及其置信度：
-
-```python
-fig = d2l.plt.imshow(img)
-show_bboxes(fig.axes, anchors * bbox_scale,
-            ['dog=0.9', 'dog=0.8', 'dog=0.7', 'cat=0.9'])
-```
-
-进行检测：
-
-```python
-output = multibox_detection(cls_probs.unsqueeze(dim=0),
-                            offset_preds.unsqueeze(dim=0),
-                            anchors.unsqueeze(dim=0),
-                            nms_threshold=0.5)
-output
-```
-
-输出由非极大值抑制保存的最终预测边界框
-
-```python
-fig = d2l.plt.imshow(img)
-for i in output[0].detach().numpy():
-    if i[0] == -1:
-        continue
-    label = ('dog=', 'cat=')[int(i[0])] + str(i[1])
-    show_bboxes(fig.axes, [torch.tensor(i[2:]) * bbox_scale], label)
-```
-
-
 
 ##### 线代
 
