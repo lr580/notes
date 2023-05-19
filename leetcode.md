@@ -417,6 +417,14 @@
 - 2446\.判断两个事件是否存在冲突
 
   日期
+  
+- 1073\.负二进制数相加
+
+  模拟
+  
+- 1079\.活字印刷
+
+  DFS / <u>DP</u>
 
 
 
@@ -11660,6 +11668,227 @@ class Solution {
     }
 }
 ```
+
+
+
+##### 1073\.负二进制数相加
+
+[题目](https://leetcode.cn/problems/adding-two-negabinary-numbers/)
+
+考虑在负二进制下原地进位模拟，由于：
+$$
+\begin{align}
+2\cdot (-2)^0&=(-2)^1+(-2)^2\\
+\end{align}
+$$
+两边同乘 $(-2)^k$，可以得知对任意的位进位规则有：
+$$
+\begin{align}
+2\cdot (-2)^k&=(-2)^{k+1}+(-2)^{k+2}\\
+\end{align}
+$$
+经过进位，会使得某个位叠上 $3$(原本 $1+1$，加上进位 $1$)，同理可得：
+$$
+3\cdot(-2)^k=(-2)^k+(-2)^{k+1}+(-2)^{k+2}
+$$
+考虑某个位 $k$ 的前两个位都是 $1+1$，那么对 $k$ 能叠两次进位，即叠到 $4$，而有：
+$$
+4\cdot (-2)^k=(-2)^{k+2}
+$$
+不可能叠到更高的，如 $5$ 或以上。根据上述规则，只有前两位能叠，每个位最多叠多一个数，所以显然得证。
+
+但是如果只用这三条规则，会产生循环进位，考虑 $(11)_{-2}+(01)_{-2}$，会无限进位。因此需要特别多考虑：
+$$
+2\cdot(-2)^k+(-2)^{k+1}=0
+$$
+如此，则完备地讨论了全部可能的情况，上述规则只涉及 $3$ 个位(当前，上一个，上上一个)的两个本位和一个进位，枚举可知每种情况都有对应的解法，故已经完备。
+
+代码：
+
+```java
+class Solution {
+    public int[] addNegabinary(int[] arr1, int[] arr2) {
+        int a[] = new int[Math.max(arr1.length, arr2.length) + 5];
+        for (int i = 0, j = arr1.length - 1; j >= 0; --j, ++i) {
+            a[i] += arr1[j];
+        }
+        for (int i = 0, j = arr2.length - 1; j >= 0; --j, ++i) {
+            a[i] += arr2[j];
+        }
+        for (int i = 0; i < a.length - 2; ++i) {
+            if (a[i] == 2) {
+                if (a[i + 1] == 0) {
+                    ++a[i + 1];
+                    ++a[i + 2];
+                } else {
+                    --a[i + 1];
+                }
+                a[i] = 0;
+            }
+            if (a[i] == 3) {
+                a[i] -= 2;
+                ++a[i + 1];
+                ++a[i + 2];
+            }
+            if (a[i] == 4) {
+                a[i] = 0;
+                ++a[i + 2];
+            }
+        }
+        int n = 0;
+        for (int i = a.length - 1; i >= 0; --i) {
+            if (a[i] > 0) {
+                n = i;
+                break;
+            }
+        }
+        int r[] = new int[n + 1];
+        for (int i = 0, j = n; j >= 0; --j, ++i) {
+            r[i] = a[j];
+        }
+        return r;
+    }
+}
+```
+
+解法二：进位不算1，算-1，则原本的数的范围从2进制加法的0123变成了-1012，分类讨论：若为2，本位0，进位-1；若为-1，则本位下一位都设为1。这种进位算法只需要牵扯一个位。
+
+```java
+class Solution {
+    public int[] addNegabinary(int[] arr1, int[] arr2) {
+        int i = arr1.length - 1, j = arr2.length - 1;
+        int carry = 0;
+        List<Integer> ans = new ArrayList<Integer>();
+        while (i >= 0 || j >= 0 || carry != 0) {
+            int x = carry;
+            if (i >= 0) {
+                x += arr1[i];
+            }
+            if (j >= 0) {
+                x += arr2[j];
+            }
+            if (x >= 2) {
+                ans.add(x - 2);
+                carry = -1;
+            } else if (x >= 0) {
+                ans.add(x);
+                carry = 0;
+            } else {
+                ans.add(1);
+                carry = 1;
+            }
+            --i;
+            --j;
+        }
+        while (ans.size() > 1 && ans.get(ans.size() - 1) == 0) {
+            ans.remove(ans.size() - 1);
+        }
+        int[] arr = new int[ans.size()];
+        for (i = 0, j = ans.size() - 1; j >= 0; i++, j--) {
+            arr[i] = ans.get(j);
+        }
+        return arr;
+    }
+}
+```
+
+也可以转十进制然后转回去：
+
+```python
+class Solution:
+    def addNegabinary(self, arr1: List[int], arr2: List[int]) -> List[int]:
+        def atn(arr:List[int]):
+            l=len(arr)
+            return sum((-2)**(l-1-i)*arr[i] for i in range(l))
+        def nta(num:int):
+            arr=[]
+            while num!=0:
+                tmp=num%(-2)
+                arr.insert(0,-tmp)
+                num+=tmp#key
+                num//=(-2)
+            if arr==[]: return [0]
+            return arr
+        num1,num2=atn(arr1),atn(arr2)
+        num_plus=num1+num2
+        return nta(num_plus)
+```
+
+
+
+##### 1079\.活字印刷
+
+[题目]()
+
+个人爆搜，复杂度 $O(n\cdot n!)$
+
+```java
+class Solution {
+    private HashSet<String> h = new HashSet<>();
+    private boolean vis[];
+    private int n;
+    private StringBuilder cur = new StringBuilder();
+    private String t;
+
+    private void dfs() {
+        String s = cur.toString();
+        if (h.contains(s)) {
+            return;
+        }
+        h.add(s);
+        for (int i = 0; i < n; ++i) {
+            if (!vis[i]) {
+                vis[i] = true;
+                cur.append(t.charAt(i));
+                dfs();
+                vis[i] = false;
+                cur.deleteCharAt(cur.length() - 1);
+            }
+        }
+    }
+
+    public int numTilePossibilities(String tiles) {
+        h.clear();
+        t = tiles;
+        n = tiles.length();
+        vis = new boolean[n];
+        dfs();
+        return h.size() - 1;
+    }
+}
+```
+
+> 题解写法：
+>
+> ```java
+> class Solution {
+>     public int numTilePossibilities(String tiles) {
+>         Map<Character, Integer> count = new HashMap<>();
+>         for (char t : tiles.toCharArray()) {
+>             count.put(t, count.getOrDefault(t, 0) + 1);
+>         }
+>         Set<Character> tile = new HashSet<>(count.keySet());
+>         return dfs(tiles.length(), count, tile) - 1;
+>     }
+> 
+>     private int dfs(int i, Map<Character, Integer> count, Set<Character> tile) {
+>         if (i == 0) {
+>             return 1;
+>         }
+>         int res = 1;
+>         for (char t : tile) {
+>             if (count.get(t) > 0) {
+>                 count.put(t, count.get(t) - 1);
+>                 res += dfs(i - 1, count, tile);
+>                 count.put(t, count.get(t) + 1);
+>             }
+>         }
+>         return res;
+>     }
+> }
+> ```
+
+
 
 
 

@@ -3095,6 +3095,12 @@ import shutil
 shutil.copyfile(原完整文件名,新完整文件名) #返回新完整文件名
 ```
 
+> 复制文件夹：
+>
+> ```python
+> shutil.copytree(src_dir, dst_dir)
+> ```
+
 列出当前文件或目录：
 
 > isdir,isfile需要绝对路径；下例中dirx为os.getcwd()
