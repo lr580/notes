@@ -425,6 +425,26 @@
 - 1079\.活字印刷
 
   DFS / <u>DP</u>
+  
+- 2514\.统计同位异构字符串数目
+
+  组合数学
+  
+- LCP33\.蓄水
+
+  贪心 <u>+优先队列</u>
+
+- 1373\.二叉搜索子树的最大键值和
+
+  DFS
+  
+- 1080\.根到叶路径上的不足节点
+
+  DFS
+  
+- 1090\.受标签影响的最大值
+
+  贪心
 
 
 
@@ -11888,7 +11908,723 @@ class Solution {
 > }
 > ```
 
+设 $dp_{i,j}$ 表示只用前 $i$ 种字符构造长为 $j$ 的序列的方案数，设第 $i$ 种字符有 $cnt$ 个，则：
 
+- 一个也不选，$dp_{i,j}=dp_{i-1,j}$
+- 选 $k$ 个，则 $C_{j}^k$ 种选法，其余位置顶上，即 $dp_{i,j}=dp_{i-1,j-k}\cdot C_j^k$
+
+即：
+$$
+dp_{i,j}=\sum_{k=0}^{\min(j,cnt_i)}dp_{i-1,j-k}C_k^j
+$$
+初始值为 $dp_{0,0}=0$。所求为 $\sum_{j=1}^ndp_{m,j}$，其中 $m$ 是字符种类数。
+
+由于 $\sum cnt=n$，故三重循环的总复杂度为 $O(n^2)$，还可以滚动压 DP。
+
+```java
+class Solution {
+    private static final int MX = 8;
+    private static final int[][] c = new int[MX][MX];
+
+    static {
+        for (int i = 0; i < MX; i++) {
+            c[i][0] = c[i][i] = 1;
+            for (int j = 1; j < i; j++)
+                c[i][j] = c[i - 1][j - 1] + c[i - 1][j]; // 预处理组合数
+        }
+    }
+
+    public int numTilePossibilities(String tiles) {
+        // 注：改成 int[26] 统计可能会快一点点，感兴趣可以试试（下面 DP 跳过 cnt=0 的情况）
+        var counts = new HashMap<Character, Integer>(); // 统计每个字母的出现次数
+        for (var c : tiles.toCharArray())
+            counts.merge(c, 1, Integer::sum); // counts[c]++
+        var f = new int[tiles.length() + 1];
+        f[0] = 1; // 构造空序列的方案数
+        int n = 0;
+        for (var cnt : counts.values()) { // 枚举第 i 种字母
+            n += cnt; // 常数优化：相比从 tiles.length() 开始要更快
+            for (int j = n; j > 0; j--) // 枚举序列长度 j
+                // 枚举第 i 种字母选了 k 个，注意 k=0 时的方案数已经在 f[j] 中了
+                for (int k = 1; k <= j && k <= cnt; k++)
+                    f[j] += f[j - k] * c[j][k];
+        }
+        int ans = 0;
+        for (int j = 1; j <= n; j++)
+            ans += f[j];
+        return ans;
+    }
+}
+```
+
+多项式：
+
+> 在做这道题之前，让我们回忆一下 OJ 的一道题目：[还是还是字符串计数](https://oj.socoding.cn/p/1451)
+>
+> 这道题目的解法是指数生成函数，该知识可以参考离散数学(递推方程-指数生成函数及其应用)。
+>
+> 对于 OJ `还是还是字符串计数` 这题，组合形式的指数生成函数为：
+> $$
+> (1+\frac{x}{1!}+\frac{x^2}{2!}+\dots)^2(1+\frac{x^2}{2!}+\frac{x^4}{4!}+\dots)^2
+> $$
+> 利用泰勒展开 $e^x=\sum_{n=0}^\infty\frac{x^n}{n!},x\in\mathbf{R}$ 和二项式奇偶求和 $e^{2x}(\frac{e^x+e^{-x}}2)^2=\frac14(e^{4x}+1+2e^{2x})$ 并再次展开生成函数原式：
+> $$
+> \frac14+\frac14(1+\frac{4x}{1!}+\dots+\frac{(4x)^n}{n!}+\dots)+\frac12(1+\frac{2x}{1!}+\dots+\frac{(2x)^n}{n!}+\dots)
+> $$
+> 提取 $x^n$ 项系数 $\dfrac14\cdot\dfrac{4^n}{n!}+\dfrac12\cdot\dfrac{2^n}{n!}$，将组合转排列，乘以 $n!$，得 $4^{n-1}+2^{n-1}$
+
+现在回到这道题，题意转化为：设第 $i$ 个字母有 $cnt_i$ 个，其中 $\sum cnt=n$，使用任意多个字母，求能组成本质不同字符串有几个。
+
+类比引入题，可以得出，只考虑排列时，指数生成函数为：
+$$
+\prod_{i}(1+\dfrac{x}{1!}+\dfrac{x^2}{2!}+\cdots+\dfrac{x^{cnt_i}}{cnt_i!})
+$$
+现在加上组合，所求为该生成函数的每一项乘以 $i!$，设 $x_i$ 的系数为 $a_i$，则所求为：$\sum_{i=1}^na_ii!$
+
+> 以样例 `aab` 为例，有指数生成函数 $(1+x+\dfrac{x^2}2)(1+x)=1+2x+\dfrac32x^2+\dfrac12x^3$。
+>
+> 则所求为 $2\cdot1!+\dfrac32\cdot2!+\dfrac12\cdot3!=2+3+3=8$。
+
+为了适应模意义，使用 NTT 求解多项式乘法，最多进行 $26$ 次乘法，每次复杂度为 $O(n\log n)$(考虑最坏情况，第一个多项式长度 $\approx n$，其他多项式长度极小)，故总复杂度为 $O(26n\log n)$。
+
+> 常数优化：可以控制多项式乘法的顺序，如使用哈夫曼编码的思想，将至多 $26$ 个多项式不断每次让最短的两个相乘， 乘至多 $25$ 次。如果有很多个同 $cnt$ 的多项式，还可以用多项式乘方。略。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+const ll mod = 998244353;
+ll qui(ll a, ll x)
+{
+    ll ret = 1;
+    while (x)
+    {
+        if (x & 1)
+            ret = ret * a % mod;
+        a = a * a % mod;
+        x >>= 1;
+    }
+    return ret;
+}
+
+using Poly = vector<ll>;
+const int BIT = 20;
+int p[1 << BIT];
+
+Poly operator*(const Poly &a, const Poly &b)
+{
+    int n = a.size() - 1, m = b.size() - 1;
+    int L, l = 0;
+    for (L = 1; L <= n + m; l++, L = L << 1)
+        ;
+
+    vector<int> p(L);
+
+    for (int i = 1; i < L; i++)
+        p[i] = ((p[i >> 1] >> 1) | ((i & 1) << (l - 1)));
+    auto u = a, v = b;
+    u.resize(L, 0), v.resize(L, 0);
+    auto ntt = [&L, &l, &p](Poly &g, int type)
+    {
+        for (int i = 0; i < L; i++)
+            if (i < p[i])
+                swap(g[i], g[p[i]]);
+        for (int i = 1; i < L; (i <<= 1))
+        {
+            ll wn = qui(3, (mod - 1) / (i << 1));
+            for (int j = 0; j < L; j += (i << 1))
+            {
+                ll w = 1;
+                for (int k = j; k < j + i; w = w * wn % mod, k++)
+                {
+                    assert(k + i < L);
+                    assert(k < L);
+                    ll t = g[k + i] * w % mod;
+                    g[k + i] = (g[k] - t + mod) % mod;
+                    g[k] = (g[k] + t) % mod;
+                }
+            }
+        }
+        if (type == 1)
+            return;
+        reverse(g.begin() + 1, g.begin() + L);
+        ll ni = qui(L, mod - 2);
+        for (int i = 0; i < L; i++)
+            g[i] = g[i] * ni % mod;
+    };
+    ntt(u, 1), ntt(v, 1);
+
+    Poly g(L, 0);
+    for (int i = 0; i < L; i++)
+        g[i] = u[i] * v[i] % mod;
+    ntt(g, -1);
+
+    return g;
+}
+
+const ll maxn = 1e5 + 10;
+ll fact[maxn], inv[maxn], n, cnt[256], ans;
+string s;
+
+signed main()
+{
+    ios::sync_with_stdio(false), cin.tie(0);
+    cin >> s;
+    n = s.length();
+    for (auto c : s)
+    {
+        ++cnt[c];
+    }
+    fact[0] = 1;
+    for (int i = 1; i <= n; ++i)
+    {
+        fact[i] = fact[i - 1] * i % mod;
+    }
+    inv[n] = qui(fact[n], mod - 2);
+    for (int i = n - 1; i >= 0; --i) // 线性阶乘逆元
+    {
+        inv[i] = inv[i + 1] * (i + 1) % mod;
+    }
+
+    Poly a = {1};
+    for (int i = 'a'; i <= 'z'; ++i)
+    {
+        if (cnt[i])
+        {
+            Poly b = vector<ll>(cnt[i] + 1, 0);
+            for (ll j = 0; j <= cnt[i]; ++j)
+            {
+                b[j] = inv[j];
+            }
+            a = a * b;
+            while (a.back() == 0) // 避免长度指数增长
+            {
+                a.pop_back();
+            }
+        }
+    }
+    for (ll i = 1; i < a.size(); ++i)
+    {
+        ans = (ans + (a[i] * fact[i])) % mod;
+    }
+    cout << ans;
+    return 0;
+}
+```
+
+哈夫曼树：
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+inline constexpr unsigned rev(unsigned x) {
+	x = ((x >> 1) & 0x55555555) | ((x & 0x55555555) << 1);
+	x = ((x >> 2) & 0x33333333) | ((x & 0x33333333) << 2);
+	x = ((x >> 4) & 0x0F0F0F0F) | ((x & 0x0F0F0F0F) << 4);
+	x = ((x >> 8) & 0x00FF00FF) | ((x & 0x00FF00FF) << 8);
+	return x >> 16 | x << 16;
+}
+
+template<bool Inv = true, typename T>
+inline void fft(std::complex<T>* seq, unsigned n, unsigned m) {
+	static constexpr std::complex<T> C(0, Inv ? -M_PI : M_PI);
+	const unsigned d = 32 - m;
+	for (unsigned i = 1;i < n;++i) {
+		const unsigned ri = rev(i) >> d;
+		if (i < ri) swap(seq[i], seq[ri]);
+	}
+	for (unsigned p = 1;p < n;p *= 2) {
+		const std::complex<T> step = exp(C / T(p));
+		for (unsigned i = 0;i < n;i += p) {
+			std::complex<T> cur = 1;
+			for (unsigned j = i + p;i < j;++i) {
+				const std::complex<T> l = seq[i];
+				const std::complex<T> r = seq[i + p] * cur;
+				cur *= step;
+				seq[i] = l + r;
+				seq[i + p] = l - r;
+			}
+		}
+	}
+	if constexpr (Inv)
+		for (unsigned i = 0;i < n;++i)
+			seq[i] /= n;
+}
+
+class Poly : public std::vector<double> {
+public:
+    using std::vector<double>::vector;
+
+	Poly operator*(const Poly& other) const {
+		const unsigned ln = size(), rn = other.size();
+		const unsigned n = ln + rn - 1;
+		unsigned m = 0;
+		while ((1 << m) < n) ++m;
+		const unsigned pn = 1 << m;
+		std::vector<std::complex<double>> lf(pn), rf(pn);
+		for (unsigned i = 0;i < ln;++i)
+			lf[i] = (*this)[i];
+		for (unsigned i = 0;i < rn;++i)
+			rf[i] = other[i];
+		fft<0>(lf.data(), pn, m);
+		fft<0>(rf.data(), pn, m);
+		for (unsigned i = 0;i < pn;++i)
+			lf[i] *= rf[i];
+		fft<1>(lf.data(), pn, m);
+		Poly ans(n);
+		for (unsigned i = 0;i < n;++i)
+			ans[i] = lf[i].real();
+		return ans;
+	}
+
+	Poly pow(unsigned e) const {
+		const unsigned n0 = size();
+		const unsigned n = e * (n0 - 1) + 1;
+		unsigned m = 0;
+		while ((1 << m) < n) ++m;
+		const unsigned pn = 1 << m;
+		std::vector<std::complex<double>> f(pn);
+		for (unsigned i = 0;i < n0;++i)
+			f[i] = (*this)[i];
+		fft<0>(f.data(), pn, m);
+		for (unsigned i = 0;i < pn;++i) {
+			std::complex<double> p2 = f[i], pe = 1;
+			for (unsigned j = e;j > 0;j /= 2) {
+				if (j % 2 == 1) pe *= p2;
+				p2 *= p2;
+			}
+			f[i] = pe;
+		}
+		fft<1>(f.data(), pn, m);
+		Poly ans(n);
+		for (unsigned i = 0;i < n;++i)
+			ans[i] = f[i].real();
+		return ans;
+	}
+};
+
+class Solution {
+public:
+    struct Comparator {
+        bool operator()(const Poly& lhs, const Poly& rhs) const {
+            return lhs.size() > rhs.size();
+        }
+    };
+
+    int numTilePossibilities(string tiles) {
+        unordered_map<char, int> char_cnt;
+        unordered_map<int, int> cnt_cnt;
+        for (char c : tiles)
+            ++char_cnt[c];
+        for (auto [k, v] : char_cnt)
+            ++cnt_cnt[v];
+        vector<Poly> q;
+        for (auto [k, v] : cnt_cnt) {
+            Poly poly(k + 1);
+            poly[0] = 1;
+            double fac = 1;
+            for (int i = 1;i <= k;++i)
+                poly[i] = fac /= i;
+            q.push_back(poly.pow(v));
+        }
+        make_heap(q.begin(), q.end(), Comparator{});
+        while (q.size() > 1) {
+            const Poly lv = move(q.front());
+            pop_heap(q.begin(), q.end(), Comparator{});
+            q.pop_back();
+            const Poly rv = move(q.front());
+            pop_heap(q.begin(), q.end(), Comparator{});
+            q.pop_back();
+            q.push_back(lv * rv);
+            push_heap(q.begin(), q.end());
+        }
+        const Poly poly = q.front();
+        const int n = poly.size();
+        int ans = 0;
+        double fac = 1;
+        for (int i = 1;i < n;++i)
+            ans += round(poly[i] * (fac *= i));
+        return ans;
+    }
+};
+
+signed main()
+{
+    return 0;
+}
+```
+
+
+
+##### 2514\.统计同位异构字符串数目
+
+[题目]()
+
+个人实现：
+
+```java
+import java.util.HashMap;
+import java.util.Map.Entry;
+
+class Solution {
+    private long p = 1000000007, f[], iv[];
+
+    private long inv(long a) {
+        long r = 1;
+        for (long b = p - 2; b > 0; b >>= 1) {
+            if ((b & 1) == 1) {
+                r = r * a % p;
+            }
+            a = a * a % p;
+        }
+        return r;
+    }
+
+//    private long c(int u, int d) {// d选u的组合数
+//        return f[d] * iv[u] % p * iv[d - u] % p;
+//    }
+
+    public int countAnagrams(String s) {
+        String t[] = s.split(" ");
+        int n = 0, m = t.length;
+        for (int i = 0; i < m; ++i) {
+            n = Math.max(n, t[i].length());
+        }
+
+        f = new long[n + 1];
+        iv = new long[n + 1];
+        f[0] = 1;
+        for (int i = 1; i <= n; ++i) {
+            f[i] = f[i - 1] * i % p;
+        }
+        iv[n] = inv(f[n]);
+        for (int i = n - 1; i >= 0; --i) {
+            iv[i] = iv[i + 1] * (i + 1) % p;
+        }
+
+        long ans = 1;
+        for (int i = 0; i < m; ++i) {
+            long v = f[t[i].length()];
+            HashMap<Character, Integer> cnt = new HashMap<>();
+            for (int j = 0; j < t[i].length(); ++j) {
+                char c = t[i].charAt(j);
+                cnt.put(c, cnt.getOrDefault(c, 0) + 1);
+            }
+            for (Entry<Character, Integer> pr : cnt.entrySet()) {
+                v = v * iv[pr.getValue()] % p;
+            }
+            ans = ans * v % p;
+        }
+        return (int) ans;
+    }
+}
+```
+
+更优实现：都是乘法，分母可以只算一次逆元，也不需要预处理什么东西
+
+```java
+class Solution {
+    private static final int MOD = (int) 1e9 + 7;
+
+    public int countAnagrams(String S) {
+        var s = S.toCharArray();
+        long ans = 1L, mul = 1L;
+        var cnt = new int[26];
+        for (int i = 0, j = 0; i < s.length; ++i) {
+            if (s[i] == ' ') {
+                Arrays.fill(cnt, 0);
+                j = 0;
+            } else {
+                mul = mul * ++cnt[s[i] - 'a'] % MOD;
+                ans = ans * ++j % MOD;
+            }
+        }
+        return (int) (ans * pow(mul, MOD - 2) % MOD);
+    }
+
+    private long pow(long x, int n) {
+        var res = 1L;
+        for (; n > 0; n /= 2) {
+            if (n % 2 > 0) res = res * x % MOD;
+            x = x * x % MOD;
+        }
+        return res;
+    }
+}
+```
+
+
+
+##### LCP33\.蓄水
+
+[题目](https://leetcode.cn/problems/o8SXZn/)
+
+个人解法，复杂度也不太懂的瞎贪，觉得对每个数操作次数有限，很快收敛，所以每次找到代价最大的将它尝试缩减一下，直到无论怎么缩都不会降低次数为止：
+
+```java
+class Solution {
+    private int max(int[] a) {
+        int ans = 0;
+        for (int i = 0; i < a.length; ++i) {
+            ans = Math.max(ans, a[i]);
+        }
+        return ans;
+    }
+
+    public int storeWater(int[] bucket, int[] vat) {
+        int n = bucket.length, c[] = new int[n], mx = 0, op = 0, ans = 0;
+        for (int i = 0; i < n; ++i) {
+            if (vat[i] == 0) {// SPJ
+                c[i] = 0;
+                continue;
+            }
+            if (bucket[i] == 0) {// SPJ
+                ++bucket[i];
+                ++op;
+            }
+            c[i] = (vat[i] - 1) / bucket[i] + 1;
+        }
+        mx = max(c);
+        ans = mx + op;
+        int cc = 0;
+        while (true) {
+            ++cc;
+            boolean move = false;
+            for (int i = 0; i < n; ++i) {
+                if (c[i] == mx) {
+                    int od = c[i];
+                    int nw = (vat[i] - 1) / (bucket[i] + 1) + 1;
+                    if (nw >= od) {
+                        continue;
+                    }
+                    move = true;
+                    ++op;
+                    ++bucket[i];
+                    c[i] = (vat[i] - 1) / bucket[i] + 1;
+                }
+//                System.out.print(bucket[i] + " ");
+            }
+//            System.out.println();
+            mx = max(c);
+//            System.out.println(op + " " + mx + " " + (op + mx) + " " + ans);
+            if (!move) {
+                break;
+            }
+            ans = Math.min(ans, op + mx);
+        }
+//        System.out.println(cc);
+        return ans;
+    }
+}
+```
+
+设最终装水次数是 $k$，显然一次至少需要装 $\lceil\dfrac{vat_i}k\rceil$，也就是说，升级的次数是 $\max(0,\lceil\dfrac{vat_i}k\rceil-bucket_i)$，故总次数是 $k+\sum \lceil\dfrac{vat_i}k\rceil$。
+
+枚举 $k$，复杂度为 $O(n\max vat_i)$。
+
+```java
+class Solution {
+    public int storeWater(int[] bucket, int[] vat) {
+        int n = bucket.length;
+        int maxk = Arrays.stream(vat).max().getAsInt();
+        if (maxk == 0) {
+            return 0;
+        }
+        int res = Integer.MAX_VALUE;
+        for (int k = 1; k <= maxk && k < res; ++k) {
+            int t = 0;
+            for (int i = 0; i < bucket.length; ++i) {
+                t += Math.max(0, (vat[i] + k - 1) / k - bucket[i]);
+            }
+            res = Math.min(res, t + k);
+        }
+        return res;
+    }
+}
+```
+
+显然，对升级后的 $b'$，与初始容量 $b$，总操作次数是：
+$$
+\sum(b'_i-b_i)+\max\lceil\dfrac{v_i}{b'_i}\rceil
+$$
+每次选择需要操作最大的一个 $i$ 进行升级。使用最大堆 $(cnt_i,i)$ 维护每个有容量的 $i$ 需要装水多少次。不断升级，直到无法降低操作次数。
+
+```java
+class Solution {
+    public int storeWater(int[] bucket, int[] vat) {
+        int n = bucket.length;
+        PriorityQueue<int[]> pq = new PriorityQueue<int[]>((a, b) -> b[0] - a[0]);
+        int cnt = 0;
+        for (int i = 0; i < n; ++i) {
+            if (bucket[i] == 0 && vat[i] != 0) {
+                ++cnt;
+                ++bucket[i];
+            }
+            if (vat[i] > 0) {
+                pq.offer(new int[]{(vat[i] + bucket[i] - 1) / bucket[i], i});
+            }
+        }
+        if (pq.isEmpty()) {
+            return 0;
+        }
+        int res = Integer.MAX_VALUE;
+        while (cnt < res) {
+            int[] arr = pq.poll();
+            int v = arr[0], i = arr[1];
+            res = Math.min(res, cnt + v);
+            if (v == 1) {
+                break;
+            }
+            int t = (vat[i] + v - 2) / (v - 1);
+            cnt += t - bucket[i];
+            bucket[i] = t;
+            pq.offer(new int[]{(vat[i] + bucket[i] - 1) / bucket[i], i});
+        }
+        return res;
+    }
+}
+```
+
+
+
+##### 1373\.二叉搜索子树的最大键值和
+
+[题目](https://leetcode.cn/problems/maximum-sum-bst-in-binary-tree/)
+
+个人版本：
+
+```java
+class Solution {
+    private int ans;
+
+    private int[] dfs(TreeNode now) {
+        int min = Integer.MAX_VALUE, max = Integer.MIN_VALUE, s = 0;
+        if (now == null) {
+            return new int[] { min, max, s, 1 };
+        }
+        int l[] = dfs(now.left), r[] = dfs(now.right), state = 0;
+        if (l[1] < now.val && r[0] > now.val && l[3] > 0 && r[3] > 0) {
+            state = 1;
+            min = Math.min(now.val, Math.min(l[0], r[0]));
+            max = Math.max(now.val, Math.max(l[1], r[1]));
+            s = s + l[2] + r[2] + now.val;
+            ans = Math.max(ans, s);
+        }
+        return new int[] { min, max, s, state };
+    }
+
+    public int maxSumBST(TreeNode root) {
+        ans = 0;
+        dfs(root);
+        return ans;
+    }
+}
+```
+
+减少一个参数返回的版本：
+
+```java
+class Solution {
+    private int ans; // 二叉搜索树可以为空
+
+    public int maxSumBST(TreeNode root) {
+        dfs(root);
+        return ans;
+    }
+
+    private int[] dfs(TreeNode node) {
+        if (node == null)
+            return new int[]{Integer.MAX_VALUE, Integer.MIN_VALUE, 0};
+
+        int[] left = dfs(node.left); // 递归左子树
+        int[] right = dfs(node.right); // 递归右子树
+        int x = node.val;
+        if (x <= left[1] || x >= right[0]) // 不是二叉搜索树
+            return new int[]{Integer.MIN_VALUE, Integer.MAX_VALUE, 0};
+
+        int s = left[2] + right[2] + x; // 这棵子树的所有节点值之和
+        ans = Math.max(ans, s);
+
+        return new int[]{Math.min(left[0], x), Math.max(right[1], x), s};
+    }
+}
+```
+
+
+
+##### 1080\.根到叶路径上的不足节点
+
+[题目](https://leetcode.cn/problems/insufficient-nodes-in-root-to-leaf-paths/)
+
+按题意遍历即可，可以优化为 return le | re
+
+```java
+class Solution {
+    private int lim;
+
+    private boolean dfs(TreeNode u, int sum) {
+        if (u == null) {
+            return false;
+        }
+        sum += u.val;
+        if (u.left == null && u.right == null) {
+            return sum >= lim;
+        }
+        boolean exist = false;
+        boolean le = dfs(u.left, sum), re = dfs(u.right, sum);
+        exist |= le | re;
+        if (!le) {
+            u.left = null;
+        }
+        if (!re) {
+            u.right = null;
+        }
+        return exist;
+    }
+
+    public TreeNode sufficientSubset(TreeNode root, int limit) {
+        lim = limit;
+        if (!dfs(root, 0)) {
+            root = null;
+        }
+        return root;
+    }
+}
+```
+
+
+
+##### 1090\.受标签影响的最大值
+
+[题目](https://leetcode.cn/problems/largest-values-from-labels/)
+
+不断取能取的最大的，结果不会更差。即使考虑标签不同值相同有多项，这些项不管取哪个标签都不影响更小值，即，如果有一种策略对同一个标签，不取更大取了次大，则不如取更大更优，如 `[9,9,9,8,7,6]` 和 `[1,2,3,1,2,3]` 且 `3,1`，则取二到四项不如一到三更优。
+
+```java
+class Solution {
+    public int largestValsFromLabels(int[] values, int[] labels, int numWanted, int useLimit) {
+        int n = values.length, a[][] = new int[n][2];
+        for (int i = 0; i < n; ++i) {
+            a[i][0] = values[i];
+            a[i][1] = labels[i];
+        }
+        Arrays.sort(a, (u, v) -> v[0] - u[0]);
+        int s = 0;
+        HashMap<Integer, Integer> h = new HashMap<>();
+        for (int i = 0, j = 0; i < n && j < numWanted; ++i) {
+            if (h.getOrDefault(a[i][1], 0) < useLimit) {
+                h.put(a[i][1], h.getOrDefault(a[i][1], 0) + 1);
+                s += a[i][0];
+                ++j;
+            }
+        }
+        return s;
+    }
+}
+```
 
 
 

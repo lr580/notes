@@ -6149,7 +6149,7 @@ audiometric = pd.read_csv('audiometric.csv')
 print(audiometric.head())
 ```
 
-查看行号 `.index`，列 `.columns`
+查看行号 `.index`，列 `.columns`，各列信息 `.info()`
 
 求列的相关系数：
 
@@ -6185,6 +6185,29 @@ data = pd.read_excel('pca_data.xlsx',index_col=0)
 with pd.ExcelWriter("pca_result.xlsx") as writer:
     data.to_excel(writer, index=True) #单个表单
 ```
+
+> excel 转 csv:
+>
+> ```python
+> #指定空值的显示方式，否则会在保存时以字符“.”代替，影响后续的数据分析
+> data_xls = pd.read_excel(data_file, index_col=0, na_values='')
+> data_xls.to_csv(data_name + '.csv', encoding='utf-8')
+> ```
+
+
+
+> 多 csv 数据合并：
+>
+> ```python
+> merge_list = []
+> for i in matches:
+>     # 读取风机这部分数据
+>     data_df = pd.read_csv(os.path.join(data_dir, i), index_col=False, keep_default_na=False)
+>     merge_list.append(data_df)
+> if len(merge_list) > 0:
+>     all_data = pd.concat(merge_list,axis=0,ignore_index=True).fillna(".")
+>     all_data.to_csv(os.path.join(data_dir, data_basename.split('-')[0]+ '.csv'),index=False) 
+> ```
 
 
 
@@ -6233,6 +6256,19 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 > ```
 
 取 `.values` 可以转化为 np array。然后可以丢进 tensor。
+
+
+
+##### 数据处理
+
+清理冗余数据：
+
+```python
+#时间戳重复的脏数据,保留第一个,假设有Column为DATATIME
+df.drop_duplicates(subset = ['DATATIME'],keep='first',inplace=True)
+```
+
+
 
 
 
@@ -7259,6 +7295,10 @@ plt.show()
 ```
 
 对样本求主成分得分
+
+
+
+### paddle
 
 
 
