@@ -445,6 +445,18 @@
 - 1090\.受标签影响的最大值
 
   贪心
+  
+- 1377\.T秒后青蛙的位置
+
+  DFS
+  
+- 2451\.差值数组不同的字符串
+
+  模拟
+  
+- 1093\.大样本统计
+
+  模拟
 
 
 
@@ -12628,6 +12640,218 @@ class Solution {
 
 
 
+##### 1377\.T秒后青蛙的位置
+
+[题目](https://leetcode.cn/problems/frog-position-after-t-seconds/)
+
+```java
+class Solution {
+    private ArrayList<Integer> e[];
+    private double ans;
+    private int t, target;
+
+    private void dfs(int u, int fa, double p, int d) {
+        int sons = e[u].size() - 1;
+        if (u == target) {
+            if (sons == 0 || (sons > 0 && d == t)) {
+                ans = p;
+            }
+            return;
+        }
+        if (d >= t) {
+            return;
+        }
+        for (int v : e[u]) {
+            if (v != fa) {
+                dfs(v, u, p / sons, d + 1);
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public double frogPosition(int n, int[][] edges, int t, int target) {
+        this.t = t;
+        this.target = target;
+        e = new ArrayList[n + 1];
+        for (int i = 0; i <= n; ++i) {
+            e[i] = new ArrayList<>();
+        }
+        for (int i = 0; i < edges.length; ++i) {
+            int u = edges[i][0], v = edges[i][1];
+            e[u].add(v);
+            e[v].add(u);
+        }
+        e[1].add(0);
+        dfs(1, 0, 1, 0);
+        return ans;
+    }
+}
+```
+
+
+
+##### 2451\.差值数组不同的字符串
+
+[题目](https://leetcode.cn/problems/odd-string-difference/)
+
+个人写法：
+
+```java
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map.Entry;
+class Solution {
+    public String oddString(String[] words) {
+        HashMap<String, ArrayList<Integer>> h = new HashMap<>();
+        for (int i = 0; i < words.length; ++i) {
+            byte[] b = words[i].getBytes();
+            StringBuilder sb = new StringBuilder();
+            for (int j = 1; j < b.length; ++j) {
+                int v = b[j] - b[j - 1];
+                sb.append(v);
+                sb.append(',');
+            }
+            String s = sb.toString();
+            if (!h.containsKey(s)) {
+                h.put(s, new ArrayList<>());
+            }
+            h.get(s).add(i);
+        }
+        for (Entry<String, ArrayList<Integer>> it : h.entrySet()) {
+            if (it.getValue().size() == 1) {
+                return words[it.getValue().get(0)];
+            }
+        }
+        return null;
+    }
+}
+```
+
+更优实现：
+
+```java
+class Solution {
+    public String oddString(String[] words) {
+        int[] diff0 = get(words[0]);
+        int[] diff1 = get(words[1]);
+        if (Arrays.equals(diff0, diff1)) {
+            for (int i = 2; i < words.length; i++) {
+                if (!Arrays.equals(diff0, get(words[i]))) {
+                    return words[i];
+                }
+            }
+        }
+        return Arrays.equals(diff0, get(words[2])) ? words[1] : words[0];
+    }
+
+    public int[] get(String word) {
+        int[] diff = new int[word.length() - 1];
+        for (int i = 0; i + 1 < word.length(); i++) {
+            diff[i] = word.charAt(i + 1) - word.charAt(i);
+        }
+        return diff;
+    }
+}
+```
+
+
+
+##### 1093\.大样本统计
+
+[题目](https://leetcode.cn/problems/statistics-from-a-large-sample/)
+
+个人：
+
+```java
+class Solution {
+    public double[] sampleStats(int[] count) {
+        double mx = -1, mi = 257, s = 0, mode = 0, mid = 0;
+        int mxcnt = 0, num = 0, now = 0;
+        for (int i = 0; i < count.length; ++i) {
+            if (count[i] > 0) {
+                mx = Math.max(mx, i);
+                mi = Math.min(mi, i);
+                s += (long)count[i] * i;
+                num += count[i];
+            }
+            if (count[i] > mxcnt) {
+                mxcnt = count[i];
+                mode = i;
+            }
+        }
+        for (int i = 0, pr = 0; i < count.length; ++i) {
+            if (count[i] > 0) {
+                int l = now + 1, r = now + count[i];
+                if (num % 2 == 1) {
+                    if (l <= num / 2 + 1 && num / 2 + 1 <= r) {
+                        mid = i;
+                    }
+                } else {
+                    if (l <= num / 2 && num / 2 + 1 <= r) {
+                        mid = i;
+                    } else if (r == num / 2) {
+                        pr = i;
+                    } else if (l == num / 2 + 1) {
+                        mid = (pr + i) / 2.0;
+                    }
+                }
+                now += count[i];
+            }
+        }
+        return new double[] { mi, mx, s / num, mid, mode };
+    }
+}
+```
+
+题解：
+
+```java
+class Solution {
+    public double[] sampleStats(int[] count) {
+        int n = count.length;
+        int total = Arrays.stream(count).sum();
+        double mean = 0.0;
+        double median = 0.0;
+        int minnum = 256;
+        int maxnum = 0;
+        int mode = 0;
+
+        int left = (total + 1) / 2;
+        int right = (total + 2) / 2;
+        int cnt = 0;
+        int maxfreq = 0;
+        long sum = 0;
+        for (int i = 0; i < n; i++) {
+            sum += (long) count[i] * i;
+            if (count[i] > maxfreq) {
+                maxfreq = count[i];
+                mode = i;
+            }
+            if (count[i] > 0) {
+                if (minnum == 256) {
+                    minnum = i;
+                }
+                maxnum = i;
+            }
+            if (cnt < right && cnt + count[i] >= right) {
+                median += i;
+            }
+            if (cnt < left && cnt + count[i] >= left) {
+                median += i;
+            }
+            cnt += count[i];
+        }
+        mean = (double) sum / total;
+        median = median / 2.0;
+        return new double[]{minnum, maxnum, mean, median, mode};
+    }
+}
+```
+
+
+
+
+
 > ### 力扣比赛
 >
 
@@ -14298,6 +14522,566 @@ count(distinct partner_id) as `unique_partners`
 from DailySales
 group by date_id, make_name
 ```
+
+#### 多线程
+
+##### 1114\.按序打印
+
+[题目](https://leetcode.cn/problems/print-in-order/)
+
+> 错误的：
+>
+> ```java
+> class Foo {
+> 
+>  private static boolean firstDone = false;
+>  private static boolean secondDone = false;
+> 
+>  public Foo() {
+> 
+>  }
+> 
+>  public void first(Runnable printFirst) throws InterruptedException {
+> 
+>      // printFirst.run() outputs "first". Do not change or remove this line.
+>      printFirst.run();
+>      firstDone = true;
+>  }
+> 
+>  public void second(Runnable printSecond) throws InterruptedException {
+> 
+>      // printSecond.run() outputs "second". Do not change or remove this line.
+>      while (!firstDone)
+>          ;
+>      printSecond.run();
+>      secondDone = true;
+>  }
+> 
+>  public void third(Runnable printThird) throws InterruptedException {
+> 
+>      // printThird.run() outputs "third". Do not change or remove this line.
+>      while (!secondDone)
+>          ;
+>      printThird.run();
+>  }
+> }
+> ```
+>
+>
+> 换成非静态更错，会导致 TLE 的发生。
+>
+> 对非静态，分析如下：
+>
+> 每个线程有自己的工作内存(线程栈)，将用到的变量备份一份。所以最初每个线程都把 `firstDone, secondDone` 拷贝了一份。当 `firstDone` 更新时，这个更新没有通知其他线程的工作内存。
+>
+> 修改：被`volatile`关键字修饰的变量保证修改的值立刻更新到主存，使得其他线程需要读取时要到主存读取。所以上述变量加个 `volatile` 即可。
+
+先看一份**错误的**代码：
+
+```java
+class Foo {
+
+    private boolean firstDone = false;
+    private boolean secondDone = false;
+
+    public Foo() {
+    }
+
+    public void first(Runnable printFirst) throws InterruptedException {
+        printFirst.run();
+        firstDone = true;  
+    }
+
+    public void second(Runnable printSecond) throws InterruptedException {
+        while (!firstDone)
+            ;
+        printSecond.run();
+        secondDone = true;
+    }
+
+    public void third(Runnable printThird) throws InterruptedException {
+        while (!secondDone)
+            ;
+        printThird.run();
+    }
+}
+```
+
+错误原因分析：
+
+每个线程有自己的工作内存(线程栈)，将用到的变量备份一份。所以最初每个线程都把 `firstDone, secondDone` 拷贝了一份。当 `f1` 执行完毕时，`firstDone` 更新时，这个更新没有通知其他线程的工作内存，所以导致 `firstDone` 对其他线程一直认为是 `false` 的。
+
+> 具体而言，JVM定义了内存模型JMM(java memory model)屏蔽硬件平台和操作系统的内存访问差异，规定所有变量存在主存，线程有自己的工作内存，所有操作在工作内存进行(不能直接对主存操作)，线程不能访问其他线程的工作内存。
+
+被 `volatile` 关键字修饰的变量保证修改的值立刻更新到主存，使得其他线程需要读取时要到主存读取。
+
+> 具体而言，类的成员或静态成员变量被 `volatile` 修饰后：
+>
+> - 保证可见性，一个线程修改值后新值对其他线程立刻可见
+>
+>   当写一个volatile变量时，JMM会把该线程本地内存中的变量强制刷新到主内存中去，这个写会操作会导致其他线程中的volatile变量缓存无效
+>
+> - 禁止进行指令重排序
+>
+>   即执行到volatile变量时，其前面的所有语句都执行完，后面所有语句都未执行。且前面语句的结果对volatile变量及其后面语句可见
+>
+> 但 volatile 不保证原子性，因为运算操作符并非原子操作，需要保证原子性可以使用下面三种方法之一：
+>
+> 1. synchronized
+> 2. Lock 
+> 3. `AtomicInteger`
+>
+> 由于单纯的 `firstDone = true` 操作是原子操作，所以直接使用 volatile 即可。具体而言，Java 只保证基本数据类型变量的读取和赋值是原子性操作，如：
+>
+> ```java
+> x = 10; //原子性
+> y = x; //非原子性
+> x++; //非原子性
+> x = x + 1; //非原子性
+> ```
+
+因此，正确代码如下：
+
+```java
+class Foo {
+
+    private volatile boolean firstDone = false;
+    private volatile boolean secondDone = false;
+
+    public Foo() {
+    }
+
+    public void first(Runnable printFirst) throws InterruptedException {
+        printFirst.run();
+        firstDone = true;  
+    }
+
+    public void second(Runnable printSecond) throws InterruptedException {
+        while (!firstDone)
+            ;
+        printSecond.run();
+        secondDone = true;
+    }
+
+    public void third(Runnable printThird) throws InterruptedException {
+        while (!secondDone)
+            ;
+        printThird.run();
+    }
+}
+```
+
+正确的其他：
+
+①原子变量
+
+```java
+class Foo {
+
+  private AtomicInteger firstJobDone = new AtomicInteger(0);
+  private AtomicInteger secondJobDone = new AtomicInteger(0);
+
+  public Foo() {}
+
+  public void first(Runnable printFirst) throws InterruptedException {
+    // printFirst.run() outputs "first".
+    printFirst.run();
+    // mark the first job as done, by increasing its count.
+    firstJobDone.incrementAndGet();
+  }
+
+  public void second(Runnable printSecond) throws InterruptedException {
+    while (firstJobDone.get() != 1) {
+      // waiting for the first job to be done.
+    }
+    // printSecond.run() outputs "second".
+    printSecond.run();
+    // mark the second as done, by increasing its count.
+    secondJobDone.incrementAndGet();
+  }
+
+  public void third(Runnable printThird) throws InterruptedException {
+    while (secondJobDone.get() != 1) {
+      // waiting for the second job to be done.
+    }
+    // printThird.run() outputs "third".
+    printThird.run();
+  }
+}
+```
+
+同步锁：
+
+```java
+class Foo {
+    
+    private boolean firstFinished;
+    private boolean secondFinished;
+    private Object lock = new Object();
+
+    public Foo() {
+        
+    }
+
+    public void first(Runnable printFirst) throws InterruptedException {
+        
+        synchronized (lock) {
+            // printFirst.run() outputs "first". Do not change or remove this line.
+            printFirst.run();
+            firstFinished = true;
+            lock.notifyAll(); 
+        }
+    }
+
+    public void second(Runnable printSecond) throws InterruptedException {
+        
+        synchronized (lock) {
+            while (!firstFinished) {
+                lock.wait();
+            }
+        
+            // printSecond.run() outputs "second". Do not change or remove this line.
+            printSecond.run();
+            secondFinished = true;
+            lock.notifyAll();
+        }
+    }
+
+    public void third(Runnable printThird) throws InterruptedException {
+        
+        synchronized (lock) {
+           while (!secondFinished) {
+                lock.wait();
+            }
+
+            // printThird.run() outputs "third". Do not change or remove this line.
+            printThird.run();
+        } 
+    }
+}
+```
+
+##### 1115\.交替打印FooBar
+
+[题目](https://leetcode.cn/problems/print-foobar-alternately/)
+
+一种**错误的**超时代码如下：(n=5就超时了)
+
+```java
+class FooBar {
+    private int n;
+    private volatile boolean beforeBar = true;
+
+    public FooBar(int n) {
+        this.n = n;
+    }
+
+    public void foo(Runnable printFoo) throws InterruptedException {
+        for (int i = 0; i < n; i++) {
+            while (!beforeBar)
+                ;
+            printFoo.run();
+            beforeBar = false;
+        }
+    }
+
+    public void bar(Runnable printBar) throws InterruptedException {
+        for (int i = 0; i < n; i++) {
+            while (beforeBar)
+                ;
+            printBar.run();
+            beforeBar = true;
+        }
+    }
+}
+```
+
+错误理由：忙等太浪费 CPU，使得拉满时间片，占用了 2n 次时间片。
+
+语法前置知识：
+
+- synchronized了同一个对象的，同一时间只能有一个线程执行这个同步块中的代码。但不保证同步块内是原子性的。
+- 将一个 Object 对象视为资源，当该对象使用 wait 方法时，阻塞掉对象所在线程。直到其他线程里被同一对象使用 notify(唤醒第一个wait的线程)或 notifyAll(唤醒所有wait的线程)
+- 注意，wait 和 notify(All) 方法必须放在对该 object 自身的同步块内执行。
+
+修改后的代码：
+
+```java
+class FooBar {
+    private int n;
+    private volatile boolean beforeBar = true;// 上一次打印了Bar
+    private Object lock = new Object();
+
+    public FooBar(int n) {
+        this.n = n;
+    }
+
+    public void foo(Runnable printFoo) throws InterruptedException {
+        for (int i = 0; i < n; i++) {
+            synchronized (lock) {
+                while (!beforeBar) {
+                    lock.wait(); // 因lock而阻塞当前线程
+                }
+                printFoo.run();
+                beforeBar = false;
+                lock.notifyAll(); // 唤醒所有被lock阻塞的线程
+                //在本题,都用notify也行
+            }
+        }
+
+    }
+
+    public void bar(Runnable printBar) throws InterruptedException {
+        for (int i = 0; i < n; i++) {
+            synchronized (lock) {
+                while (beforeBar) {
+                    lock.wait();
+                }
+                printBar.run();
+                beforeBar = true;
+                lock.notifyAll();
+            }
+        }
+    }
+}
+```
+
+为什么上述代码是可行的，考虑一种情况，线程 A 执行 foo，线程 B 执行 bar， A,B 单处理机并发，一种可能的顺序如下：(不考虑 print 等的 IO 阻塞)
+
+1. A while 判假，直接 print foo
+2. A 赋值 `beforeBar=false` 然后时间片到了让出了处理机
+3. B 刚开始执行，看到 false 了所以 while 判假，print bar
+4. B 继续跑，不仅弄了 `beforeBar = true` 还 `notifyAll` 了
+5. B 这一轮 for 完了，下一次 while 里把自己阻塞了
+6. A 顺着之前，`notifyAll` 然后时间片又到了(或者被B唤醒抢占)
+7. B 被唤醒，while 走下一轮，又把自己阻塞了
+8. A 继续 print foo……
+
+> 这样写也行：(foo bar 都类似改)
+>
+> ```java
+> for (int i = 0; i < n; i++) {
+>     while (!beforeBar) {
+>         synchronized (lock) { //如果改成 lock2 或别的不行
+>             lock.wait(); // 因lock而阻塞当前线程
+>         }
+>     }
+>     printFoo.run();
+>     beforeBar = false;
+>     synchronized (lock) {
+>         lock.notify(); // 唤醒所有被lock阻塞的线程
+>     }
+> }
+> ```
+
+
+
+附：六种方法：
+
+```java
+//手太阴肺经 BLOCKING Queue
+public class FooBar {
+    private int n;
+    private BlockingQueue<Integer> bar = new LinkedBlockingQueue<>(1);
+    private BlockingQueue<Integer> foo = new LinkedBlockingQueue<>(1);
+    public FooBar(int n) {
+        this.n = n;
+    }
+    public void foo(Runnable printFoo) throws InterruptedException {
+        for (int i = 0; i < n; i++) {
+            foo.put(i);
+            printFoo.run();
+            bar.put(i);
+        }
+    }
+
+    public void bar(Runnable printBar) throws InterruptedException {
+        for (int i = 0; i < n; i++) {
+            bar.take();
+            printBar.run();
+            foo.take();
+        }
+    }
+}
+
+//手阳明大肠经CyclicBarrier 控制先后
+class FooBar6 {
+    private int n;
+
+    public FooBar6(int n) {
+        this.n = n;
+    }
+
+    CyclicBarrier cb = new CyclicBarrier(2);
+    volatile boolean fin = true;
+
+    public void foo(Runnable printFoo) throws InterruptedException {
+        for (int i = 0; i < n; i++) {
+            while(!fin);
+            printFoo.run();
+            fin = false;
+            try {
+                cb.await();
+            } catch (BrokenBarrierException e) {}
+        }
+    }
+
+    public void bar(Runnable printBar) throws InterruptedException {
+        for (int i = 0; i < n; i++) {
+            try {
+                cb.await();
+            } catch (BrokenBarrierException e) {}
+            printBar.run();
+            fin = true;
+        }
+    }
+}
+
+//手少阴心经 自旋 + 让出CPU
+class FooBar5 {
+    private int n;
+
+    public FooBar5(int n) {
+        this.n = n;
+    }
+
+    volatile boolean permitFoo = true;
+
+    public void foo(Runnable printFoo) throws InterruptedException {     
+        for (int i = 0; i < n; ) {
+            if(permitFoo) {
+        	    printFoo.run();
+            	i++;
+            	permitFoo = false;
+            }else{
+                Thread.yield();
+            }
+        }
+    }
+
+    public void bar(Runnable printBar) throws InterruptedException {       
+        for (int i = 0; i < n; ) {
+            if(!permitFoo) {
+        	printBar.run();
+        	i++;
+        	permitFoo = true;
+            }else{
+                Thread.yield();
+            }
+        }
+    }
+}
+
+
+
+//手少阳三焦经 可重入锁 + Condition
+class FooBar4 {
+    private int n;
+
+    public FooBar4(int n) {
+        this.n = n;
+    }
+    Lock lock = new ReentrantLock(true);
+    private final Condition foo = lock.newCondition();
+    volatile boolean flag = true;
+    public void foo(Runnable printFoo) throws InterruptedException {
+        for (int i = 0; i < n; i++) {
+            lock.lock();
+            try {
+            	while(!flag) {
+                    foo.await();
+                }
+                printFoo.run();
+                flag = false;
+                foo.signal();
+            }finally {
+            	lock.unlock();
+            }
+        }
+    }
+
+    public void bar(Runnable printBar) throws InterruptedException {
+        for (int i = 0; i < n;i++) {
+            lock.lock();
+            try {
+            	while(flag) {
+                    foo.await();
+            	}
+                printBar.run();
+                flag = true;
+                foo.signal();
+            }finally {
+            	lock.unlock();
+            }
+        }
+    }
+}
+
+//手厥阴心包经 synchronized + 标志位 + 唤醒
+class FooBar3 {
+    private int n;
+    // 标志位，控制执行顺序，true执行printFoo，false执行printBar
+    private volatile boolean type = true;
+    private final Object foo=  new Object(); // 锁标志
+
+    public FooBar3(int n) {
+        this.n = n;
+    }
+    public void foo(Runnable printFoo) throws InterruptedException {
+        for (int i = 0; i < n; i++) {
+            synchronized (foo) {
+                while(!type){
+                    foo.wait();
+                }
+                printFoo.run();
+                type = false;
+                foo.notifyAll();
+            }
+        }
+    }
+
+    public void bar(Runnable printBar) throws InterruptedException {
+        for (int i = 0; i < n; i++) {
+            synchronized (foo) {
+                while(type){
+                    foo.wait();
+                }
+                printBar.run();
+                type = true;
+                foo.notifyAll();
+            }
+        }
+    }
+}
+
+
+//手太阳小肠经 信号量 适合控制顺序
+class FooBar2 {
+    private int n;
+    private Semaphore foo = new Semaphore(1);
+    private Semaphore bar = new Semaphore(0);
+    public FooBar2(int n) {
+        this.n = n;
+    }
+
+    public void foo(Runnable printFoo) throws InterruptedException {
+        for (int i = 0; i < n; i++) {
+            foo.acquire();
+        	printFoo.run();
+            bar.release();
+        }
+    }
+    public void bar(Runnable printBar) throws InterruptedException {
+        for (int i = 0; i < n; i++) {
+            bar.acquire();
+        	printBar.run();
+            foo.release();
+        }
+    }
+}
+```
+
+
 
 ### CF杂题
 
