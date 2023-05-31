@@ -457,6 +457,18 @@
 - 1093\.大样本统计
 
   模拟
+  
+- 1439\.有序矩阵中的第k个最小数组和
+
+  STL <u>+归并优化</u> <u>+DP剪枝</u> / <u>二分答案+DFS</u>
+  
+- 1110\.删点成林
+
+  DFS
+
+- 1130\.叶值的最小代价生成树
+
+  区间DP / <u>单调栈</u>
 
 
 
@@ -12850,6 +12862,306 @@ class Solution {
 
 
 
+##### 1439\.有序矩阵中的第k个最小数组和
+
+[题目](https://leetcode.cn/problems/find-the-kth-smallest-sum-of-a-matrix-with-sorted-rows/)
+
+个人：优先级队列，共最多 $k=200$ 种状态，每种状态推一次是 $O(n^2)$ 复杂度，加上堆，故 $O(200n^2\log n)$ 时间和 $O(200n)$ 空间。
+
+```java
+class Solution {
+    public int kthSmallest(int[][] mat, int k) {
+        int cnt = 0, n = mat.length, m = mat[0].length;
+        PriorityQueue<int[]> q = new PriorityQueue<>((a, b) -> a[n] - b[n]);
+        HashSet<String> h = new HashSet<>();
+        int p[] = new int[n + 1];
+        for (int i = 0; i < n; ++i) {
+            p[i] = 0;
+            p[n] += mat[i][0];
+        }
+        q.add(p);
+        while (!q.isEmpty()) {
+            int a[] = q.poll();
+            String as = Arrays.toString(a);
+            if (h.contains(as)) {
+                continue;
+            }
+            h.add(as);
+            if (++cnt == k) {
+                return a[n];
+            }
+            for (int i = 0; i < n; ++i) {
+                if (a[i] + 1 >= m) {
+                    continue;
+                }
+                int b[] = Arrays.copyOf(a, n + 1);
+                b[n] += mat[i][b[i] + 1] - mat[i][b[i]];
+                ++b[i];
+                q.add(b);
+            }
+        }
+        return -1;
+    }
+}
+```
+
+一种暴力：设只考虑前 $i$ 行(初始为 $[0]$)下的前 $k$ 小结果是 $a$，将这个结果乘法原理搞一下下一行，然后排序只取前 $k$ 小，不难发现复杂度为 $O(nmk\log nk)$ 和空间 $O(nk)$。
+
+```java
+class Solution {
+    public int kthSmallest(int[][] mat, int k) {
+        var a = new int[]{0};
+        for (var row : mat) {
+            var b = new int[a.length * row.length];
+            int i = 0;
+            for (int x : a)
+                for (int y : row)
+                    b[i++] = x + y;
+            Arrays.sort(b);
+            if (b.length > k) // 保留最小的 k 个
+                b = Arrays.copyOfRange(b, 0, k);
+            a = b;
+        }
+        return a[k - 1];
+    }
+}
+```
+
+上述 for-for 还可以用归并排序合并思想来进一步优化。
+
+
+
+参考暴力，最小堆优化实现：
+
+- 每个状态的递推顺序优化，即第一行只能由本行左边推出，其他行只能由上一行同一列推出，避免用哈希表去重。
+- 每次只考虑两行，把前 i 行状态压缩成一行。
+
+每次实现的空间是 $O(k)$，时间是 $O(k\log k)$，故总空间不变，时间为 $O(nk\log k)$。
+
+```java
+class Solution {
+    public int kthSmallest(int[][] mat, int k) {
+        var a = new int[]{0};
+        for (var row : mat)
+            a = kSmallestPairs(row, a, k);
+        return a[k - 1];
+    }
+
+    // 373. 查找和最小的 K 对数字
+    private int[] kSmallestPairs(int[] nums1, int[] nums2, int k) {
+        int n = nums1.length, m = nums2.length, sz = 0;
+        var ans = new int[Math.min(k, n * m)];
+        var pq = new PriorityQueue<int[]>((a, b) -> a[0] - b[0]);
+        pq.add(new int[]{nums1[0] + nums2[0], 0, 0});
+        while (!pq.isEmpty() && sz < k) {
+            var p = pq.poll();
+            int i = p[1], j = p[2];
+            ans[sz++] = nums1[i] + nums2[j]; // 数对和
+            if (j == 0 && i + 1 < n)
+                pq.add(new int[]{nums1[i + 1] + nums2[0], i + 1, 0});
+            if (j + 1 < m)
+                pq.add(new int[]{nums1[i] + nums2[j + 1], i, j + 1});
+        }
+        return ans;
+    }
+}
+```
+
+
+
+
+
+二分：设有 $f(s)$ 个不超过 $s$ 的数组和，则随着 $s$ 的增大，显然 $f(s)$ 非严格递增。则二分 $s$，若 $f(s)\ge k$，则答案至多为 $s$，若 $f(s) < k$，则答案至少为 $s+1$。
+
+```java
+class Solution {
+    private int leftK;
+
+    public int kthSmallest(int[][] mat, int k) {
+        int sl = 0, sr = 0;
+        for (var row : mat) {
+            sl += row[0];
+            sr += row[row.length - 1];
+        }
+        // 二分模板 https://www.bilibili.com/video/BV1AP41137w7/
+        int left = sl - 1, right = sr; // 开区间 (sl-1,sr)
+        while (left + 1 < right) { // 开区间不为空
+            // 循环不变量：
+            // f(left) < k
+            // f(right) >= k
+            int mid = (left + right) >>> 1;
+            leftK = k;
+            if (dfs(mat, mat.length - 1, mid - sl)) // 先把第一列的所有数都选上
+                right = mid; // 二分范围缩小至开区间 (left, mid)
+            else // f(mid) < k
+                left = mid; // 二分范围缩小至开区间 (mid, right)
+        }
+        return right;
+    }
+
+    // 返回是否找到 k 个子数组和
+    private boolean dfs(int[][] mat, int i, int s) {
+        if (i < 0) // 能递归到这里，说明数组和不超过二分的 mid
+            return --leftK == 0; // 是否找到 k 个
+        for (int x : mat[i]) { // 「枚举选哪个」，注意 mat[i] 是有序的
+            if (x - mat[i][0] > s) // 选 x 不选 mat[i][0]
+                break; // 剪枝：后面的元素更大，无需枚举
+            if (dfs(mat, i - 1, s - (x - mat[i][0]))) // 选 x 不选 mat[i][0]
+                return true; // 找到 k 个就一直返回 true，不再递归
+        }
+        return false;
+    }
+}
+```
+
+对检验函数 dfs，从最后一行开始，暴力搜索，看能不能找到至少 k 条路径，使得路径和不小于 s。显然每条路径长 n，故每次搜索复杂度为 $O(nk)$。
+
+如果确实有不少于 k 个，就找更小的 s，并保留答案。
+
+二分次数是值域，故总复杂度为 $O(nk\log\sum_j mat_{n,j})$，空间是递归栈 $O(n)$。
+
+
+
+##### 1110\.删点成林
+
+[题目](https://leetcode.cn/problems/delete-nodes-and-return-forest/)
+
+个人写法：
+
+```java
+class Solution {
+    private HashSet<Integer> h;
+    private List<TreeNode> res;
+
+    private void dfs(TreeNode u, TreeNode fa) {
+        if (u == null) {
+            return;
+        }
+        boolean die = h.contains(u.val);
+        TreeNode pv = die ? null : u;
+        dfs(u.left, pv);
+        dfs(u.right, pv);
+        if (u.left != null && h.contains(u.left.val)) {
+            u.left = null;
+        }
+        if (u.right != null && h.contains(u.right.val)) {
+            u.right = null;
+        }
+        if (fa == null && !die) {
+            res.add(u);
+        }
+    }
+
+    public List<TreeNode> delNodes(TreeNode root, int[] to_delete) {
+        Integer[] del = Arrays.stream(to_delete).boxed().toArray(Integer[]::new);
+        h = new HashSet<>(Arrays.asList(del));
+        res = new ArrayList<>();
+        dfs(root, null);
+        return res;
+    }
+}
+```
+
+优雅写法：
+
+```java
+class Solution {
+    public List<TreeNode> delNodes(TreeNode root, int[] toDelete) {
+        var ans = new ArrayList<TreeNode>();
+        var s = new HashSet<Integer>();
+        for (int x : toDelete) s.add(x);
+        if (dfs(ans, s, root) != null) ans.add(root);
+        return ans;
+    }
+
+    private TreeNode dfs(List<TreeNode> ans, Set<Integer> s, TreeNode node) {
+        if (node == null) return null;
+        node.left = dfs(ans, s, node.left);
+        node.right = dfs(ans, s, node.right);
+        if (!s.contains(node.val)) return node;
+        if (node.left != null) ans.add(node.left);
+        if (node.right != null) ans.add(node.right);
+        return null;
+    }
+}
+```
+
+##### 1130\.叶值的最小代价生成树
+
+[题目](https://leetcode.cn/problems/minimum-cost-tree-from-leaf-values/)
+
+容易想到区间 DP 然后轻而易举弄出来：
+
+```java
+class Solution {
+    public int mctFromLeafValues(int[] a) {
+        int n = a.length, mx[][] = new int[n][n];// orST表
+        for (int i = 0; i < n; ++i) {
+            mx[i][i] = a[i];
+            for (int j = i + 1; j < n; ++j) {
+                mx[i][j] = Math.max(mx[i][j - 1], a[j]);
+            }
+        }
+        int dp[][] = new int[n][n];
+        for (int len = 2; len <= n; ++len) {
+            for (int l = 0, r = len - 1; r < n; ++l, ++r) {
+                dp[l][r] = Integer.MAX_VALUE;
+                for (int k = l; k < r; ++k) {
+                    int v = dp[l][k] + dp[k + 1][r] + mx[l][k] * mx[k + 1][r];
+                    dp[l][r] = Math.min(dp[l][r], v);
+                }
+            }
+        }
+        return dp[0][n - 1];
+    }
+}
+```
+
+操作步骤：不断合并 $a$ 的相邻数，代价为两数乘积，**合并后的数为两数最大值** ，直到 $a$ 只剩一个数。
+
+若 $a_{i-1}\ge a_i$ 且 $a_i\le a_{i+1}$，若 $a_{i-1}\le a_{i+1}$，那么：
+
+- 先合并左边再合并右边的代价为 $a_{i-1}a_i+a_{i-1}a_{i+1}$
+- 先合并右边再合并左边的代价为 $a_{i+1}a_i+a_{i-1}a_{i+1}$
+
+显然先合并左边的代价更小，所以先合并左边更优。如果 $a_{i-1} > a_{i+1}$ 则先合并右边更优。
+
+维护严格递减单调栈，遍历 $a$，设当前值是 $x$，若栈顶 $y\le x$，那么将栈顶 $y$ 出栈，然后新栈顶为 $z$。
+
+- 若 $z$ 不存在或 $z > x$，根据上述规则，后者显然合右更好，直接合掉。对 $z$ 不存在，在当前子问题下，$y$ 选择合掉不会更差，否则新的 $x$ 不会更小。
+- 若 $z\le x$，根据上述规则，合左即 $yz$。
+
+合并后，新的 $y$ 继续判断，直到 $y > x$ 或栈空。到最后时，剩下的栈内元素递减，故不断合并栈顶即可。
+
+```java
+class Solution {
+    public int mctFromLeafValues(int[] arr) {
+        int res = 0;
+        Deque<Integer> stk = new ArrayDeque<Integer>();
+        for (int x : arr) {
+            while (!stk.isEmpty() && stk.peek() <= x) {
+                int y = stk.pop();
+                if (stk.isEmpty() || stk.peek() > x) {
+                    res += y * x;
+                } else {
+                    res += stk.peek() * y;
+                }
+            }
+            stk.push(x);
+        }
+        while (stk.size() >= 2) {
+            int x = stk.pop();
+            res += stk.peek() * x;
+        }
+        return res;
+    }
+}
+```
+
+
+
+
+
 
 
 > ### 力扣比赛
@@ -15080,6 +15392,658 @@ class FooBar2 {
     }
 }
 ```
+
+##### 1116\.打印零与奇偶数
+
+[题目](https://leetcode.cn/problems/print-zero-even-odd/)
+
+个人：
+
+```java
+class ZeroEvenOdd {
+    private int n;
+    private volatile boolean beforeZero = false;
+    private volatile boolean beforeEven = true;
+    private Object lockZero = new Object();
+    private Object lockOdd = new Object();
+    private Object lockEven = new Object();
+
+    public ZeroEvenOdd(int n) {
+        this.n = n;
+    }
+
+    // printNumber.accept(x) outputs "x", where x is an integer.
+    public void zero(IntConsumer printNumber) throws InterruptedException {
+        for (int i = 0; i < n; ++i) {
+            while (beforeZero) {
+                synchronized (lockZero) {
+                    lockZero.wait();
+                }
+            }
+            printNumber.accept(0);
+            beforeZero = true;
+            synchronized (lockOdd) {
+                lockOdd.notifyAll();
+            }
+            synchronized (lockEven) {
+                lockEven.notifyAll();
+            }
+        }
+    }
+
+    public void even(IntConsumer printNumber) throws InterruptedException {
+        for (int i = 2; i <= n; i += 2) {
+            while (!(beforeZero && !beforeEven)) {
+                synchronized (lockEven) {
+                    lockEven.wait();
+                }
+            }
+            printNumber.accept(i);
+            beforeEven = true;
+            beforeZero = false;
+            synchronized (lockZero) {
+                lockZero.notifyAll();
+            }
+            synchronized (lockOdd) {
+                lockOdd.notifyAll();
+            }
+        }
+    }
+
+    public void odd(IntConsumer printNumber) throws InterruptedException {
+        for (int i = 1; i <= n; i += 2) {
+            while (!(beforeZero && beforeEven)) {
+                lockOdd.wait();
+            }
+            printNumber.accept(i);
+            beforeEven = false;
+            beforeZero = false;
+            synchronized (lockZero) {
+                lockZero.notifyAll();
+            }
+            synchronized (lockEven) {
+                lockEven.notifyAll();
+            }
+        }
+    }
+}
+```
+
+[其他一堆解法](https://leetcode.cn/problems/print-zero-even-odd/solution/by-be_a_better_coder-axp4/)
+
+[一些解法](https://leetcode.cn/problems/print-zero-even-odd/solution/java-san-chong-xing-neng-you-yue-de-jie-h4pxx/)
+
+信号量：
+
+```java
+class ZeroEvenOdd {
+    private int n;
+
+    // 默认 zero 有一个信号量可用
+    private Semaphore zero = new Semaphore(1);
+
+    // 默认 even 和 odd 没有可用信号量
+    private Semaphore even = new Semaphore(0);
+    private Semaphore odd = new Semaphore(0);
+
+    public ZeroEvenOdd(int n) {
+        this.n = n;
+    }
+
+    // printNumber.accept(x) outputs "x", where x is an integer.
+    public void zero(IntConsumer printNumber) throws InterruptedException {
+
+        for (int i = 1;i <= n; i++){
+
+            // 首次执行时， zero 有一个可用的信号量
+            zero.acquire();
+            printNumber.accept(0);
+            if(i % 2 == 1){
+                // 可以理解为 odd 增加一个信号量，这样 odd 可以继续走流程
+                odd.release();
+            }else{
+                // 可以理解为 even 增加一个信号量， 这样 even 可以继续走流程
+                even.release();
+            }
+        }
+    }
+
+    public void even(IntConsumer printNumber) throws InterruptedException {
+
+        for (int i = 2; i <= n;i += 2){
+
+            // 等待信号量，获取到了信号后，往下走
+            even.acquire();
+
+            printNumber.accept(i);
+
+            // 发送信号量给 zero
+            zero.release();
+        }
+
+    }
+
+    public void odd(IntConsumer printNumber) throws InterruptedException {
+
+        for (int i = 1; i <= n; i += 2){
+
+            // 等待信号量，获取到了信号后，往下走
+            odd.acquire();
+            printNumber.accept(i);
+
+            // 发送信号量给 zero
+            zero.release();
+        }
+    }
+
+}
+```
+
+```java
+class ZeroEvenOdd {
+    private int n;
+
+    // 方法二： 不用锁，直接用 volatile
+    private volatile int curValue = 0;
+
+    public ZeroEvenOdd(int n) {
+        this.n = n;
+    }
+
+    // printNumber.accept(x) outputs "x", where x is an integer.
+    public void zero(IntConsumer printNumber) throws InterruptedException {
+
+        for (int i = 1; i <= n; i++) {
+            while (curValue != 0) {
+                Thread.yield();
+            }
+
+            printNumber.accept(0);
+
+            if (i % 2 == 1) {
+                curValue = 1;
+            } else {
+                curValue = 2;
+            }
+
+        }
+    }
+
+    public void even(IntConsumer printNumber) throws InterruptedException {
+        for (int i = 2; i <= n; i += 2) {
+            while (curValue != 2) {
+                Thread.yield();
+            }
+
+            printNumber.accept(i);
+            curValue = 0;
+        }
+    }
+
+    public void odd(IntConsumer printNumber) throws InterruptedException {
+        for (int i = 1; i <= n; i += 2) {
+            while (curValue != 1) {
+                Thread.yield();
+            }
+
+            printNumber.accept(i);
+            curValue = 0;
+        }
+    }
+}
+```
+
+##### 1117\.H2O生成
+
+[题目](https://leetcode.cn/problems/building-h2o/)
+
+个人：
+
+```java
+package lc;
+
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
+
+class H2O {
+    private Semaphore h1 = new Semaphore(0), h2 = new Semaphore(0);
+    private Semaphore o1 = new Semaphore(0), o2 = new Semaphore(0);
+    private Semaphore ho1 = new Semaphore(0), ho2 = new Semaphore(0);
+    private Semaphore o = new Semaphore(1), h = new Semaphore(2);
+    private AtomicInteger cnt = new AtomicInteger(0);
+
+    public H2O() {
+
+    }
+
+    public void hydrogen(Runnable releaseHydrogen) throws InterruptedException {
+//        System.out.println("1");
+        boolean isFirst;
+        synchronized (cnt) {
+            isFirst = cnt.get() % 2 == 1 ? true : false;
+            cnt.incrementAndGet();
+        }
+        h.acquire();
+        if (isFirst) {
+            h1.release();
+            ho1.release();
+            h2.acquire();
+            o1.acquire();
+        } else {
+            h2.release();
+            ho2.release();
+            h1.acquire();
+            o2.acquire();
+        }
+        // releaseHydrogen.run() outputs "H". Do not change or remove this line.
+        releaseHydrogen.run();
+        h.release();
+    }
+
+    public void oxygen(Runnable releaseOxygen) throws InterruptedException {
+//        System.out.println(2);
+        o.acquire();
+        o1.release();
+        o2.release();
+        ho1.acquire();
+        ho2.acquire();
+        // releaseOxygen.run() outputs "O". Do not change or remove this line.
+        releaseOxygen.run();
+        o.release();
+    }
+}
+
+public class lc1117 {
+    public static void main(String[] args) throws InterruptedException {
+        Runnable h = new Runnable() {
+            @Override
+            public void run() {
+                System.out.print("H");
+            }
+        };
+        Runnable o = new Runnable() {
+            @Override
+            public void run() {
+                System.out.print("O");
+            }
+        };
+        H2O h2o = new H2O();
+        for (int i = 0; i < 2; ++i) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        h2o.hydrogen(h);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+        }
+        for (int i = 0; i < 1; ++i) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        h2o.oxygen(o);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+        }
+    }
+}
+```
+
+题解：
+
+```java
+class H2O {
+
+
+    private Semaphore hSema = new Semaphore(2);
+    private Semaphore oSema = new Semaphore(0);
+
+
+    public H2O() {
+
+    }
+
+    public void hydrogen(Runnable releaseHydrogen) throws InterruptedException {
+        hSema.acquire();
+        releaseHydrogen.run();
+        oSema.release();
+    }
+
+    public void oxygen(Runnable releaseOxygen) throws InterruptedException {
+        oSema.acquire(2);
+        releaseOxygen.run();
+        hSema.release(2);
+    }
+}
+```
+
+[更多办法](https://leetcode.cn/problems/building-h2o/solution/chang-you-duo-xian-cheng-zhi-h2osheng-ch-8f7g/)
+
+##### 1195\.交替打印字符串
+
+[题目](https://leetcode.cn/problems/fizz-buzz-multithreaded/)
+
+按序输出导致实际上每次只能同时运行一个线程。所以用一个变量表示当前应该输出哪个值，如果某个线程负责这个值就输出，否则就把自己的时间片让出去给别的线程。
+
+因为变量值要通知给多个线程，所以可以考虑使用原子变量，或者使用 volatile 都可以。因为只能同时运行一个线程，所以不原子性也没啥问题。
+
+原子变量：
+
+```java
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntConsumer;
+
+class FizzBuzz {
+    private int n;
+    private AtomicInteger cnt = new AtomicInteger(1);
+
+    public FizzBuzz(int n) {
+        this.n = n;
+    }
+
+    // printFizz.run() outputs "fizz".
+    public void fizz(Runnable printFizz) throws InterruptedException {
+        for (int i = 3; i <= n; i += 3) {
+            if (i % 5 != 0) {
+                while (cnt.get() != i) {
+                    Thread.yield();
+                }
+                printFizz.run();
+                cnt.incrementAndGet();
+            }
+        }
+    }
+
+    // printBuzz.run() outputs "buzz".
+    public void buzz(Runnable printBuzz) throws InterruptedException {
+        for (int i = 5; i <= n; i += 5) {
+            if (i % 3 != 0) {
+                while (cnt.get() != i) {
+                    Thread.yield();
+                }
+                printBuzz.run();
+                cnt.incrementAndGet();
+            }
+        }
+    }
+
+    // printFizzBuzz.run() outputs "fizzbuzz".
+    public void fizzbuzz(Runnable printFizzBuzz) throws InterruptedException {
+        for (int i = 15; i <= n; i += 15) {
+            while (cnt.get() != i) {
+                Thread.yield();
+            }
+            printFizzBuzz.run();
+            cnt.incrementAndGet();
+        }
+    }
+
+    // printNumber.accept(x) outputs "x", where x is an integer.
+    public void number(IntConsumer printNumber) throws InterruptedException {
+        for (int i = 1; i <= n; ++i) {
+            if (i % 5 != 0 && i % 3 != 0) {
+                while (cnt.get() != i) {
+                    Thread.yield();
+                }
+                printNumber.accept(i);
+                cnt.incrementAndGet();
+            }
+        }
+    }
+}
+```
+
+volatile:
+
+```java
+class FizzBuzz {
+    private int n;
+    private volatile int cnt = 1;
+
+    public FizzBuzz(int n) {
+        this.n = n;
+    }
+
+    // printFizz.run() outputs "fizz".
+    public void fizz(Runnable printFizz) throws InterruptedException {
+        for (int i = 3; i <= n; i += 3) {
+            if (i % 5 != 0) {
+                while (cnt != i) {
+                    Thread.yield();
+                }
+                printFizz.run();
+                ++cnt;
+            }
+        }
+    }
+
+    // printBuzz.run() outputs "buzz".
+    public void buzz(Runnable printBuzz) throws InterruptedException {
+        for (int i = 5; i <= n; i += 5) {
+            if (i % 3 != 0) {
+                while (cnt != i) {
+                    Thread.yield();
+                }
+                printBuzz.run();
+                ++cnt;
+            }
+        }
+    }
+
+    // printFizzBuzz.run() outputs "fizzbuzz".
+    public void fizzbuzz(Runnable printFizzBuzz) throws InterruptedException {
+        for (int i = 15; i <= n; i += 15) {
+            while (cnt != i) {
+                Thread.yield();
+            }
+            printFizzBuzz.run();
+            ++cnt;
+        }
+    }
+
+    // printNumber.accept(x) outputs "x", where x is an integer.
+    public void number(IntConsumer printNumber) throws InterruptedException {
+        for (int i = 1; i <= n; ++i) {
+            if (i % 5 != 0 && i % 3 != 0) {
+                while (cnt != i) {
+                    Thread.yield();
+                }
+                printNumber.accept(i);
+                ++cnt;
+            }
+        }
+    }
+}
+```
+
+[更多解法](https://leetcode.cn/problems/fizz-buzz-multithreaded/solution/chang-you-duo-xian-cheng-zhi-jiao-ti-da-eeurc/)
+
+更好的本地调试：
+
+```java
+public static void main(String[] args) {
+    Runnable printFizz = () -> {
+        System.out.printf("%s", "fizz");
+    };
+    Runnable printBuzz = () -> {
+        System.out.printf("%s", "buzz");
+    };
+    Runnable printFizzBuzz = () -> {
+        System.out.printf("%s", "fizzbuzz");
+    };
+    IntConsumer intConsumer = new IntConsumer();
+    FizzBuzz fb = new FizzBuzz(15);
+    new Thread(() -> {
+        try {
+            fb.fizz(printFizz);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }).start();
+    new Thread(() -> {
+        try {
+            fb.buzz(printBuzz);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }).start();
+    new Thread(() -> {
+        try {
+            fb.fizzbuzz(printFizzBuzz);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }).start();
+    new Thread(() -> {
+        try {
+            fb.number(intConsumer);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }).start();
+
+}
+
+
+public class IntConsumer {
+    public void accept(int i) {
+        System.out.printf("%d", i);
+    }
+}
+```
+
+同步量：
+
+```java
+class FizzBuzz {
+    private int n;
+
+    private Semaphore number = new Semaphore(1);
+    private Semaphore fizz = new Semaphore(0);
+    private Semaphore buzz = new Semaphore(0);
+    private Semaphore fizzbuzz = new Semaphore(0);
+
+
+    public FizzBuzz(int n) {
+        this.n = n;
+    }
+
+    // printFizz.run() outputs "fizz".
+    public void fizz(Runnable printFizz) throws InterruptedException {
+        for (int i = 1; i <= n; i++) {
+            if (i % 3 == 0 && i % 5 != 0) {
+                fizz.acquire();
+                printFizz.run();
+                number.release();
+            }
+        }
+    }
+
+    // printBuzz.run() outputs "buzz".
+    public void buzz(Runnable printBuzz) throws InterruptedException {
+        for (int i = 1; i <= n; i++) {
+            if (i % 3 != 0 && i % 5 == 0) {
+                buzz.acquire();
+                printBuzz.run();
+                number.release();
+            }
+        }
+    }
+
+    // printFizzBuzz.run() outputs "fizzbuzz".
+    public void fizzbuzz(Runnable printFizzBuzz) throws InterruptedException {
+        for (int i = 1; i <= n; i++) {
+            if (i % 3 == 0 && i % 5 == 0) {
+                fizzbuzz.acquire();
+                printFizzBuzz.run();
+                number.release();
+            }
+        }
+    }
+
+    // printNumber.accept(x) outputs "x", where x is an integer.
+    public void number(IntConsumer printNumber) throws InterruptedException {
+        for (int i = 1; i <= n; i++) {
+            number.acquire();
+            if (i % 3 != 0 && i % 5 != 0) {//开始打印
+                printNumber.accept(i);
+                number.release();
+            } else if (i % 3 == 0 && i % 5 != 0) {//fizz开始打印
+                fizz.release();
+            } else if (i % 3 != 0 && i % 5 == 0) {//buzz开始打印
+                buzz.release();
+            } else {
+                fizzbuzz.release();//fizzbuzz开始打印
+            }
+        }
+    }
+}
+```
+
+##### 1226\.哲学家进餐
+
+[题目](https://leetcode.cn/problems/the-dining-philosophers/)
+
+设 5 个信号量 $c$，$c_i$ 表示第 $i$ 根筷子是否空闲，初始有 $c_i=1$。如果写成下面的**错误**形式：
+
+```java
+c[i].acquire();
+c[(i + 1) % 5].acquire();
+
+pickLeftFork.run();
+pickRightFork.run();
+eat.run();
+putLeftFork.run();
+putRightFork.run();
+
+c[i].release();
+c[(i + 1) % 5].release();
+```
+
+会出现死锁问题，考虑：
+
+5 个哲学家都只执行完第一行代码(`c[i].acquire();`)就时间片到，进而导致每个哲学家都只拿了一根筷子，且等待别人拿了的另一根，满足死锁的四个条件：互斥、不可剥夺、请求和保持、循环等待。
+
+为了打破死锁，规定每个哲学家要么同时拿起两根筷子，要么一根也不拿(即拿起一双筷子原子化)，为了实现这样的目的，可以增设一个 mutex 信号量，即：五个哲学家里，每次只允许一个哲学家拿筷子，当有哲学家将要拿筷子时，任何其他哲学家不能拿筷子。
+
+因为拿到筷子的哲学家一定能吃，所以他拿的筷子一定会被释放，所以如果有另一位哲学家拿到一只筷子，他的等待时间是有限的，进而打破了死锁。完整代码：
+
+```java
+class DiningPhilosophers {
+    Semaphore c[] = new Semaphore[5], mutex = new Semaphore(1);
+
+    public DiningPhilosophers() {
+        for (int i = 0; i < 5; ++i) {
+            c[i] = new Semaphore(1);
+        }
+    }
+
+    // call the run() method of any runnable to execute its code
+    public void wantsToEat(int i, Runnable pickLeftFork, Runnable pickRightFork, Runnable eat,
+            Runnable putLeftFork, Runnable putRightFork) throws InterruptedException {
+        mutex.acquire();
+        c[i].acquire();
+        c[(i + 1) % 5].acquire();
+        pickLeftFork.run();
+        pickRightFork.run();
+        mutex.release();
+        eat.run();
+        putLeftFork.run();
+        putRightFork.run();
+        c[i].release();
+        c[(i + 1) % 5].release();
+    }
+}
+```
+
+> 思路参考：2023 王道计算机操作系统考研复习指导 P102-P103。
 
 
 

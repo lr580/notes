@@ -1806,6 +1806,17 @@ Arrays.sort(rs, (a,b)->{
 Integer xx[] = Arrays.copyOfRange(a2.toArray(), 0, a2.size(), Integer[].class); // Object[]转Integer[]
 ```
 
+###### toString
+
+`Arrays.toString`
+
+```java
+System.out.println(Arrays.toString(new int[] {1,1,4,5,1,4}));
+//[1, 1, 4, 5, 1, 4]
+```
+
+
+
 ###### stream
 
 是静态方法。传入一个数组参数，获得流。对流，可以使用方法 `mapToInt(方法)` ，方法是原流的方法，如 `Integer::valueOf` ，然后得到的值使用 `toArray()` 方法，可以将类数组转基本数据类型数组，如：
@@ -12886,7 +12897,88 @@ DK 1.6之前，synchronized 还是一个重量级锁，是一个效率比较低�
 
    重量级锁是指当有一个线程获取锁之后，其余所有等待获取该锁的线程都会处于阻塞状态。简言之，就是所有的控制权都交给了操作系统，由操作系统来负责线程间的调度和线程的状态变更。而这样会出现频繁地对线程运行状态的切换，线程的挂起和唤醒，从而消耗大量的系统资源。
 
+#### Semaphore
 
+```java
+import java.util.concurrent.Semaphore;
+```
+
+信号量：(类似PV)
+
+- acquire 是如果信号量为正整数时取走，信号量减一；否则阻塞直到信号量能用
+- release 是信号量加一
+
+如：
+
+```java
+class IntConsumer {
+    public void accept(int x) {
+        System.out.print(x);
+    }
+}
+class ZeroEvenOdd {
+    private int n;
+
+    // 默认 zero 有一个信号量可用
+    private Semaphore zero = new Semaphore(1);
+
+    // 默认 even 和 odd 没有可用信号量
+    private Semaphore even = new Semaphore(0);
+    private Semaphore odd = new Semaphore(0);
+
+    public ZeroEvenOdd(int n) {
+        this.n = n;
+    }
+
+    // printNumber.accept(x) outputs "x", where x is an integer.
+    public void zero(IntConsumer printNumber) throws InterruptedException {
+
+        for (int i = 1;i <= n; i++){
+
+            // 首次执行时， zero 有一个可用的信号量
+            zero.acquire();
+            printNumber.accept(0);
+            if(i % 2 == 1){
+                // 可以理解为 odd 增加一个信号量，这样 odd 可以继续走流程
+                odd.release();
+            }else{
+                // 可以理解为 even 增加一个信号量， 这样 even 可以继续走流程
+                even.release();
+            }
+        }
+    }
+
+    public void even(IntConsumer printNumber) throws InterruptedException {
+
+        for (int i = 2; i <= n;i += 2){
+
+            // 等待信号量，获取到了信号后，往下走
+            even.acquire();
+
+            printNumber.accept(i);
+
+            // 发送信号量给 zero
+            zero.release();
+        }
+
+    }
+
+    public void odd(IntConsumer printNumber) throws InterruptedException {
+
+        for (int i = 1; i <= n; i += 2){
+
+            // 等待信号量，获取到了信号后，往下走
+            odd.acquire();
+            printNumber.accept(i);
+
+            // 发送信号量给 zero
+            zero.release();
+        }
+    }
+}
+```
+
+然后三个线程执行同一个对象的这三个方法，能保证输出顺序是 01020304...
 
 ### 网络通信
 
