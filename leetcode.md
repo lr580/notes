@@ -469,6 +469,10 @@
 - 1130\.叶值的最小代价生成树
 
   区间DP / <u>单调栈</u>
+  
+- 2517\.礼盒的最大甜蜜度
+
+  二分答案+STL / <u>二分答案</u>
 
 
 
@@ -13159,6 +13163,73 @@ class Solution {
 ```
 
 
+
+##### 2517\.礼盒的最大甜蜜度
+
+[题目](https://leetcode.cn/problems/maximum-tastiness-of-candy-basket/)
+
+二分最大甜蜜度，然后每次贪心搜索有序集合里最小的下一个可选元素，复杂度 $O(n\log^2n)$。
+
+```java
+class Solution {
+    public int maximumTastiness(int[] price, int k) {
+        Integer[] a = Arrays.stream(price).boxed().toArray(Integer[]::new);
+        TreeSet<Integer> h = new TreeSet<>(Arrays.asList(a));
+        int lf = 1, rf = h.last(), ans = 0;
+        while (lf <= rf) {
+            int cf = (lf + rf) >> 1;
+            boolean ok = true;
+            for (int pr = h.first(), i = 1; i < k && ok; ++i) {
+                Integer v = h.ceiling(pr + cf);
+                if (null == v) {
+                    ok = false;
+                } else {
+                    pr = v;
+                }
+            }
+            if (ok) {
+                lf = cf + 1;
+                ans = cf;
+            } else {
+                rf = cf - 1;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+更优解：不用再二分套二分，直接遍历排序后原数组，当当前元素差大于甜蜜度时，更新 pr 和 cnt。
+
+```java
+class Solution {
+    public int maximumTastiness(int[] price, int k) {
+        Arrays.sort(price);
+        int left = 0, right = price[price.length - 1] - price[0];
+        while (left < right) {
+            int mid = (left + right + 1) / 2;
+            if (check(price, k, mid)) {
+                left = mid;
+            } else {
+                right = mid - 1;
+            }
+        }
+        return left;
+    }
+
+    public boolean check(int[] price, int k, int tastiness) {
+        int prev = Integer.MIN_VALUE / 2;
+        int cnt = 0;
+        for (int p : price) {
+            if (p - prev >= tastiness) {
+                cnt++;
+                prev = p;
+            }
+        }
+        return cnt >= k;
+    }
+}
+```
 
 
 
