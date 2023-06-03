@@ -473,6 +473,14 @@
 - 2517\.礼盒的最大甜蜜度
 
   二分答案+STL / <u>二分答案</u>
+  
+- 2559\.统计范围内的元音字符串数目
+
+  前缀和
+  
+- 1156\.单字符重复子串的最大长度
+
+  小模拟 / 滑动窗口
 
 
 
@@ -13227,6 +13235,140 @@ class Solution {
             }
         }
         return cnt >= k;
+    }
+}
+```
+
+
+
+##### 2559\.统计范围内的元音字符串数目
+
+[题目](https://leetcode.cn/problems/count-vowel-strings-in-ranges/)
+
+前缀和模板题。
+
+```java
+class Solution {
+    public int[] vowelStrings(String[] words, int[][] queries) {
+        int m = queries.length, n = words.length;
+        int s[] = new int[n + 1], q[] = new int[m];
+        Character v[] = new Character[] { 'a', 'e', 'i', 'o', 'u' };
+        HashSet<Character> vowel = new HashSet<>(Arrays.asList(v));
+        for (int i = 0; i < n; ++i) {
+            boolean ok = vowel.contains(words[i].charAt(0));
+            ok &= vowel.contains(words[i].charAt(words[i].length() - 1));
+            s[i + 1] += s[i] + (ok ? 1 : 0);
+        }
+        for (int i = 0; i < m; ++i) {
+            int l = queries[i][0], r = queries[i][1];
+            q[i] = s[r + 1] - s[l];
+        }
+        return q;
+    }
+}
+```
+
+
+
+##### 1156\.单字符重复子串的最大长度
+
+[题目](https://leetcode.cn/problems/swap-for-longest-repeated-character-substring/)
+
+小模拟：分类讨论。
+
+对每个字符，设其连续长度为 $cnt$，间隔长度为 $blo$。有几种情况：
+
+1. 不交换，取 $\max cnt$
+2. 交换一个拼接到最长 $cnt$ 去，当 $|cnt| \ge 2$ 时，取 $\max cnt+1$
+3. 如果 $blo$ 恰为 $1$，相邻两段合在一起，当 $blo_i=1$ 时取 $\max cnt_{i}+cnt_{i-1}$
+4. 如果除了这两段还有第三段，抽一个替换掉 $blo$ 取 $\max cnt_{i}+cnt_{i-1}+1$
+
+时间复杂度 $O(26n)$，空间复杂度 $O(n)$。
+
+```java
+class Solution {
+    @SuppressWarnings("unchecked")
+    public int maxRepOpt1(String text) {
+        int ans = 0;
+        for (int i = 0; i < 26; ++i) {
+            ArrayList<Integer> cnt = new ArrayList<>();
+            ArrayList<Integer> blo = new ArrayList<>();
+            char t = (char) ('a' + i);
+            int cn = 0, bl = 0;
+            for (int j = 0; j < text.length(); ++j) {
+                char s = text.charAt(j);
+                if (s == t) {
+                    if (cn++ == 0) {
+                        blo.add(bl);
+                        bl = 0;
+                    }
+                } else {
+                    if (cn > 0) {
+                        cnt.add(cn);
+                        cn = 0;
+                    }
+                    ++bl;
+                }
+            }
+            if (cn > 0) {
+                cnt.add(cn);
+            }
+            blo.add(bl);
+
+            int mx = 0;
+            for (int j = 0; j < cnt.size(); ++j) {
+                mx = Math.max(mx, cnt.get(j));
+            }
+            mx += cnt.size() > 1 ? 1 : 0;
+            for (int j = 1; j < cnt.size(); ++j) {
+                if (blo.get(j) == 1) {
+                    int x = cnt.get(j), y = cnt.get(j - 1);
+                    int s = x + y;
+                    s += cnt.size() > 2 ? 1 : 0;
+                    mx = Math.max(mx, s);
+                }
+            }
+            ans = Math.max(ans, mx);
+        }
+        return ans;
+    }
+}
+```
+
+优化：只遍历一次，滑动窗口。
+
+```java
+class Solution {
+    public int maxRepOpt1(String text) {
+        Map<Character, Integer> count = new HashMap<Character, Integer>();
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            count.put(c, count.getOrDefault(c, 0) + 1);
+        }
+
+        int res = 0;
+        for (int i = 0; i < text.length(); ) {
+            // step1: 找出当前连续的一段 [i, j)
+            int j = i;
+            while (j < text.length() && text.charAt(j) == text.charAt(i)) {
+                j++;
+            }
+            int curCnt = j - i;
+
+            // step2: 如果这一段长度小于该字符出现的总数，并且前面或后面有空位，则使用 curCnt + 1 更新答案
+            if (curCnt < count.getOrDefault(text.charAt(i), 0) && (j < text.length() || i > 0)) {
+                res = Math.max(res, curCnt + 1);
+            }
+
+            // step3: 找到这一段后面与之相隔一个不同字符的另一段 [j + 1, k)，如果不存在则 k = j + 1 
+            int k = j + 1;
+            while (k < text.length() && text.charAt(k) == text.charAt(i)) {
+                k++;
+            }
+            res = Math.max(res, Math.min(k - i, count.getOrDefault(text.charAt(i), 0)));
+            i = j;
+        }
+        return res;
     }
 }
 ```
