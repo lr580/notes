@@ -493,6 +493,10 @@
 - 2699\.修改图中的边权
 
   **Dijkstra序贪心** / **二分+最短路**
+  
+- 1170\.比较字符串最小字母出现频次
+
+  前缀和
 
 
 
@@ -13743,6 +13747,80 @@ class Solution {
 ```
 
 
+
+##### 1170\.比较字符串最小字母出现频次
+
+[题目](https://leetcode.cn/problems/compare-strings-by-frequency-of-the-smallest-character/)
+
+个人写法：前缀和、两次扫描求 f
+
+```java
+class Solution {
+    private int f(String s) {
+        byte t = 'z';
+        for (byte c : s.getBytes()) {
+            t = (byte) Math.min(c, t);
+        }
+        int cnt = 0;
+        for (byte c : s.getBytes()) {
+            cnt += c == t ? 1 : 0;
+        }
+        return cnt;
+    }
+
+    public int[] numSmallerByFrequency(String[] queries, String[] words) {
+        int cnt[] = new int[12], n = words.length, m = queries.length;
+        for (int i = 0; i < n; ++i) {
+            ++cnt[f(words[i])];
+        }
+        for (int i = 1; i < cnt.length; ++i) {
+            cnt[i] += cnt[i - 1];
+        }
+        int ans[] = new int[m];
+        for (int i = 0, t = cnt.length - 1; i < m; ++i) {
+            ans[i] = cnt[t] - cnt[f(queries[i])];
+        }
+        return ans;
+    }
+}
+```
+
+更优写法：后缀和、一次扫描
+
+```java
+class Solution {
+    public int[] numSmallerByFrequency(String[] queries, String[] words) {
+        int[] count = new int[12];
+        for (String s : words) {
+            count[f(s)]++;
+        }
+        for (int i = 9; i >= 1; i--) {
+            count[i] += count[i + 1];
+        }
+        int[] res = new int[queries.length];
+        for (int i = 0; i < queries.length; i++) {
+            String s = queries[i];
+            res[i] = count[f(s) + 1];
+        }
+        return res;
+    }
+
+    public int f(String s) {
+        int cnt = 0;
+        char ch = 'z';
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c < ch) {
+                ch = c;
+                cnt = 1;
+            } else if (c == ch) {
+                cnt++;
+            }
+        }
+        return cnt;
+    }
+}
+```
 
 
 
