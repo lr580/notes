@@ -8038,3 +8038,25 @@ with open('LaTeX2.md', 'w', encoding='utf8') as f:
 
 
 
+##### 批量修改后缀名
+
+GPT4：
+
+```python
+import os
+from pathlib import Path
+
+def change_file_extension(path, old_extension, new_extension):
+    for filepath in path.glob(f"*.{old_extension}"):
+        # 用新的扩展名替换旧的扩展名
+        new_filepath = filepath.with_suffix(f".{new_extension}")
+        # 对文件进行重命名
+        filepath.rename(new_filepath)
+
+# 设置路径为当前工作目录
+path = Path(os.getcwd())
+change_file_extension(path, 'jpg', 'gif')
+```
+
+
+

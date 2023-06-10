@@ -481,6 +481,18 @@
 - 1156\.单字符重复子串的最大长度
 
   小模拟 / 滑动窗口
+  
+- 2611\.老鼠和奶酪
+
+  排序 / 优先级队列
+  
+- 1240.铺瓷砖
+
+  **DFS**
+  
+- 2699\.修改图中的边权
+
+  **Dijkstra序贪心** / **二分+最短路**
 
 
 
@@ -13369,6 +13381,363 @@ class Solution {
             i = j;
         }
         return res;
+    }
+}
+```
+
+##### 2611\.老鼠和奶酪
+
+[题目](https://leetcode.cn/problems/mice-and-cheese/)
+
+个人做法：自定义排序后贪心。
+
+```java
+class Solution {
+    public int miceAndCheese(int[] reward1, int[] reward2, int k) {
+        int n = reward1.length, s = 0;
+        Integer a[] = new Integer[n];
+        for (int i = 0; i < n; ++i) {
+            a[i] = i;
+        }
+        Arrays.sort(a, (x, y) -> (reward1[y] - reward2[y]) - (reward1[x] - reward2[x]));
+        for (int i = 0; i < k; ++i) {
+            s += reward1[a[i]];
+        }
+        for (int i = k; i < n; ++i) {
+            s += reward2[a[i]];
+        }
+        return s;
+    }
+}
+```
+
+同样的思路，不同的实现：先让鸭脖2全部吃了，然后排序把前k优让它吐出来给鸭脖1吃。
+
+```java
+class Solution {
+    public int miceAndCheese(int[] reward1, int[] reward2, int k) {
+        int ans = 0;
+        int n = reward1.length;
+        int[] diffs = new int[n];
+        for (int i = 0; i < n; i++) {
+            ans += reward2[i];
+            diffs[i] = reward1[i] - reward2[i];
+        }
+        Arrays.sort(diffs);
+        for (int i = 1; i <= k; i++) {
+            ans += diffs[n - i];
+        }
+        return ans;
+    }
+}
+```
+
+思路是一样的，但是只动态维护前 k 个，多的直接踢了，使得时间 $O(n\log n)$ 优化成 $O(n\log k)$ 且空间 $O(n)$ 优化成 $O(k)$ 
+
+```java
+class Solution {
+    public int miceAndCheese(int[] reward1, int[] reward2, int k) {
+        int ans = 0;
+        int n = reward1.length;
+        PriorityQueue<Integer> pq = new PriorityQueue<Integer>();
+        for (int i = 0; i < n; i++) {
+            ans += reward2[i];
+            pq.offer(reward1[i] - reward2[i]);
+            if (pq.size() > k) {
+                pq.poll();
+            }
+        }
+        while (!pq.isEmpty()) {
+            ans += pq.poll();
+        }
+        return ans;
+    }
+}
+```
+
+##### 1240\.铺瓷砖
+
+[题目](https://leetcode.cn/problems/tiling-a-rectangle-with-the-fewest-squares/)
+
+设 $h(n,m)$ 是铺满矩形所需的正方形最少数目，有：$h(n,m)\le \max(n,m)$
+
+证明：
+
+1. 若 $n=m$ 显然 $h(n,m)=1$
+2. 若$n > m$，填一个 $m\times m$ 使得 $h(n,m)\le 1+h(n-m,m)$，每次最少让 $\max(n,m)$ 减少一，故证毕。
+
+爆搜：从 $(0,0)$ 开始从大到小地覆盖正方形，然后搜索右边的下一个位置
+
+```java
+class Solution {
+    int ans;
+
+    public int tilingRectangle(int n, int m) {
+        ans = Math.max(n, m);
+        boolean[][] rect = new boolean[n][m];
+        dfs(0, 0, rect, 0);
+        return ans;
+    }
+
+    public void dfs(int x, int y, boolean[][] rect, int cnt) {
+        int n = rect.length, m = rect[0].length;
+        if (cnt >= ans) {
+            return;
+        }        
+        if (x >= n) {
+            ans = cnt; 
+            return;
+        }
+        /* 检测下一行 */        
+        if (y >= m) {
+            dfs(x + 1, 0, rect, cnt); 
+            return;
+        }        
+        /* 如当前已经被覆盖，则直接尝试下一个位置 */
+        if (rect[x][y]) {
+            dfs(x, y + 1, rect, cnt);
+            return;
+        }
+    
+        for (int k = Math.min(n - x, m - y); k >= 1 && isAvailable(rect, x, y, k); k--) {
+            /* 将长度为 k 的正方形区域标记覆盖 */
+            fillUp(rect, x, y, k, true);
+            /* 跳过 k 个位置开始检测 */
+            dfs(x, y + k, rect, cnt + 1);
+            fillUp(rect, x, y, k, false);
+        }
+    }
+
+    public boolean isAvailable(boolean[][] rect, int x, int y, int k) {
+        for (int i = 0; i < k; i++) {
+            for (int j = 0; j < k; j++) {
+                if (rect[x + i][y + j]) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public void fillUp(boolean[][] rect, int x, int y, int k, boolean val) {
+        for (int i = 0; i < k; i++){
+            for (int j = 0; j < k; j++) {
+                rect[x + i][y + j] = val;
+            }
+        }
+    }
+}
+```
+
+
+
+##### 2699\.修改图中的边权
+
+[题目](https://leetcode.cn/problems/modify-graph-edge-weights/)
+
+无解的充要条件：
+
+1. 所有边赋为 $1$，如果仍然大于 $target$，因为增加边权不会让答案更小，故无解。
+2. 所有边赋为 $\infty$，若仍然小于 $target$，因为减少边权不会让答案更大，故无解。
+
+设在上述第一种情况跑出来的 $source$ 单源最短路是 $d_{i,0}$，当有解时，根据 dijkstra 的特性，只要按照 dijkstra 遍历顺序去修改边，就不会在修改后对已确定的最短路产生影响。
+
+所以在第一种情况下，再跑一遍 dijkstra，此时跑出的结果为 $d_{i,1}$，对可修改的边 $(u,v)$，设边权改为 $w$，则所求路径 $s\to \cdots\to x\to y\to\cdots\to t$ 由三部分组成：
+
+1. $d_{x,1}$ 即 $s\to\cdots\to x$
+
+2. $x\to y = w$
+
+3. $y\to\cdots\to t$，如果 $y$ 确实在最短路上，对所有边赋 $1$ 的最短路是 $d_{t,0}$，其在后半段的最短路长度可以直接路径相减，即 $d_{t,0}-d_{y,0}$。
+
+   如果 $y$ 不在最短路上，那么这次修改无效，可以直接忽略修改。
+
+要满足题意，即构造 $d_{x,1}+w+d_{t,0}-d_{y,0}=target$，即 $w=target-d_{t,0}+d_{y,0}-d_{x,1}$。
+
+因为是稠密图，所以暴力 dijkstra 比堆优化的更优，所以直接用暴力 dijkstra 即可。
+
+如何理解使用 $d_{?,0}$：
+
+- 实际上是一个贪心的过程，因为最初的图是能达到的最小图，所以接下来需要增大一些 $w$，并且尽可能地往大的去凑，肯定比凑小的不会更差。
+
+- 如果最短路必经只有 $w$，每个 $w$ 增长到某个特定值，就能在理想情况下只增它达到目标值，那么这个理想值就是后面的都不动(维持 $d_{t,0}-d_{y,0}$)，且前面动过的也不再动了，的情况下凑方程达到的值。
+
+- 如果 $w$ 是有一个上限的(即大到一定程度最短路就更改，而不再走 $w$)，考虑唯一的一条可变边是 $x\to y$，且唯一岔路是 $x\to p\to y$(总长度为 $10$)，那么显然只有 $1\le w\le 9$ 可选，即如果 $w$ 最大只能变成 $9$，否则最短路不生效。
+
+  这时候不妨设 $d_{x,1}=d_{x,0}$(因为前面没有可变的边) $=100$ 且 $d_{t,0}-d_{y,0}=100$，且后面也没有可变的边，若 $target=205$，显然算出 $w=5$，刚好凑够。
+
+  若 $target=222$，则任意 $w\ge 10$ 的结果都等价于这条边只贡献 $10$，那么我即使把 $w$ 拉到无穷，它也只对 $target$ 贡献 $10$(因为根本不走它了)，所以直接赋值即可，不需要考虑后效性之类的。
+
+  那么，因为 $w$ 的变动，会使得最短路改走，使得后续的 $d_{x,1}$ 增大。
+
+因此上述策略是正确的。
+
+```java
+class Solution {
+    public int[][] modifiedGraphEdges(int n, int[][] edges, int source, int destination, int target) {
+        List<int[]> g[] = new ArrayList[n];
+        Arrays.setAll(g, e -> new ArrayList<>());
+        for (int i = 0; i < edges.length; i++) {
+            int x = edges[i][0], y = edges[i][1];
+            g[x].add(new int[]{y, i});
+            g[y].add(new int[]{x, i}); // 建图，额外记录边的编号
+        }
+
+        var dis = new int[n][2];
+        for (int i = 0; i < n; i++)
+            if (i != source)
+                dis[i][0] = dis[i][1] = Integer.MAX_VALUE;
+
+        dijkstra(g, edges, destination, dis, 0, 0);
+        int delta = target - dis[destination][0];
+        if (delta < 0) // -1 全改为 1 时，最短路比 target 还大
+            return new int[][]{};
+
+        dijkstra(g, edges, destination, dis, delta, 1);
+        if (dis[destination][1] < target) // 最短路无法再变大，无法达到 target
+            return new int[][]{};
+
+        for (var e : edges)
+            if (e[2] == -1) // 剩余没修改的边全部改成 1
+                e[2] = 1;
+        return edges;
+    }
+
+    // 朴素 Dijkstra 算法
+    // 这里 k 表示第一次/第二次
+    private void dijkstra(List<int[]> g[], int[][] edges, int destination, int[][] dis, int delta, int k) {
+        int n = g.length;
+        var vis = new boolean[n];
+        for (; ; ) {
+            // 找到当前最短路，去更新它的邻居的最短路
+            // 根据数学归纳法，dis[x][k] 一定是最短路长度
+            int x = -1;
+            for (int i = 0; i < n; ++i)
+                if (!vis[i] && (x < 0 || dis[i][k] < dis[x][k]))
+                    x = i;
+            if (x == destination) // 起点 source 到终点 destination 的最短路已确定
+                return;
+            vis[x] = true; // 标记，在后续的循环中无需反复更新 x 到其余点的最短路长度
+            for (var e : g[x]) {
+                int y = e[0], eid = e[1];
+                int wt = edges[eid][2];
+                if (wt == -1)
+                    wt = 1; // -1 改成 1
+                if (k == 1 && edges[eid][2] == -1) {
+                    // 第二次 Dijkstra，改成 w
+                    int w = delta + dis[y][0] - dis[x][1];
+                    if (w > wt)
+                        edges[eid][2] = wt = w; // 直接在 edges 上修改
+                }
+                // 更新最短路
+                dis[y][k] = Math.min(dis[y][k], dis[x][k] + wt);
+            }
+        }
+    }
+}
+```
+
+
+
+二分+最短路：
+
+设可修改的边的权列表是 $w$，为书写方便令 $D=target$，则 $w$ 的所有可能性不超过 $O(D^2)$ 种，分别为：$[1,1,\cdots,1],[2,1,\cdots,1],\cdots,[D,1,\cdots,1],[D,2,\cdots,1],\cdots[D,D,\cdots,D]$ 种。
+
+注意到 $[1,D,\cdots,1]$ 这样的可能性不计，这是因为只用上述顺序在有解的情况下一定可以构造出，且每次增加总 $\sum w$ 为 $1$ 下，最多只增加 $1$ 的答案最短路长度。也就是说不需要指数级的所有可能性都枚举出来，只需要枚举所有可能性的一个特定 $D^2$ 子集就一定能覆盖到有解的情况。
+
+复杂度为 $O(2\log Dn^2)$。
+
+```java
+class Solution {
+    public int[][] modifiedGraphEdges(int n, int[][] edges, int source, int destination, int target) {
+        int k = 0;
+        for (int[] e : edges) {
+            if (e[2] == -1) {
+                ++k;
+            }
+        }
+
+        if (dijkstra(source, destination, construct(n, edges, 0, target)) > target) {
+            return new int[0][];
+        }
+        if (dijkstra(source, destination, construct(n, edges, (long) k * (target - 1), target)) < target) {
+            return new int[0][];
+        }
+
+        long left = 0, right = (long) k * (target - 1), ans = 0;
+        while (left <= right) {
+            long mid = (left + right) / 2;
+            if (dijkstra(source, destination, construct(n, edges, mid, target)) >= target) {
+                ans = mid;
+                right = mid - 1;
+            } else {
+                left = mid + 1;
+            }
+        }
+
+        for (int[] e : edges) {
+            if (e[2] == -1) {
+                if (ans >= target - 1) {
+                    e[2] = target;
+                    ans -= target - 1;
+                } else {
+                    e[2] = (int) (1 + ans);
+                    ans = 0;
+                }
+            }
+        }
+
+        return edges;
+    }
+
+    public long dijkstra(int source, int destination, int[][] adjMatrix) {
+        // 朴素的 dijkstra 算法
+        // adjMatrix 是一个邻接矩阵
+        int n = adjMatrix.length;
+        long[] dist = new long[n];
+        Arrays.fill(dist, Integer.MAX_VALUE / 2);
+        boolean[] used = new boolean[n];
+        dist[source] = 0;
+
+        for (int round = 0; round < n - 1; ++round) {
+            int u = -1;
+            for (int i = 0; i < n; ++i) {
+                if (!used[i] && (u == -1 || dist[i] < dist[u])) {
+                    u = i;
+                }
+            }
+            used[u] = true;
+            for (int v = 0; v < n; ++v) {
+                if (!used[v] && adjMatrix[u][v] != -1) {
+                    dist[v] = Math.min(dist[v], dist[u] + adjMatrix[u][v]);
+                }
+            }
+        }
+
+        return dist[destination];
+    }
+
+    public int[][] construct(int n, int[][] edges, long idx, int target) {
+        // 需要构造出第 idx 种不同的边权情况，返回一个邻接矩阵
+        int[][] adjMatrix = new int[n][n];
+        for (int i = 0; i < n; ++i) {
+            Arrays.fill(adjMatrix[i], -1);
+        }
+        for (int[] e : edges) {
+            int u = e[0], v = e[1], w = e[2];
+            if (w != -1) {
+                adjMatrix[u][v] = adjMatrix[v][u] = w;
+            } else {
+                if (idx >= target - 1) {
+                    adjMatrix[u][v] = adjMatrix[v][u] = target;
+                    idx -= (target - 1);
+                } else {
+                    adjMatrix[u][v] = adjMatrix[v][u] = (int) (1 + idx);
+                    idx = 0;
+                }
+            }
+        }
+        return adjMatrix;
     }
 }
 ```
