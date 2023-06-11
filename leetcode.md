@@ -497,6 +497,14 @@
 - 1170\.比较字符串最小字母出现频次
 
   前缀和
+  
+- 1171\.从链表中删去总和值为零的连续节点
+
+  前缀和 STL 链表 / <u>优化</u>
+  
+- 1483\.树节点的第k个祖先
+
+  树上k级祖先
 
 
 
@@ -13818,6 +13826,178 @@ class Solution {
             }
         }
         return cnt;
+    }
+}
+```
+
+##### 1171\.从链表中删去总和值为零的连续节点
+
+[题目](https://leetcode.cn/problems/remove-zero-sum-consecutive-nodes-from-linked-list/)
+
+究极暴力：先把链表转数组，有子段为零的条件为前缀和满足 $s_r-s_{l-1}=0$，所以维护前缀和哈希表，如果当前前缀和 $s_r$ 与之前某个 $s_{l-1}$ 相等，删掉 $[l,r]$。(因为遇到重复就删掉了，所以不需要考虑 map 重复键值问题)。这个过程是 $O(n)$ 的。每次执行这个过程会让长度减小，最多执行 $O(0.5n)$ 次这个过程，故总复杂度为 $O(n^2)$。做完后再转回链表。
+
+```java
+class Solution {
+    public ListNode removeZeroSumSublists(ListNode head) {
+        ArrayList<Integer> a = new ArrayList<>();
+        for (ListNode it = head; it != null; it = it.next) {
+            a.add(it.val);
+        }
+        for (;;) {
+            boolean del = false;
+            HashMap<Integer, Integer> h = new HashMap<>();
+            h.put(0, -1);
+            for (int i = 0, s = 0; i < a.size(); ++i) {
+                s += a.get(i);
+                if (h.containsKey(s)) {
+                    ArrayList<Integer> b = new ArrayList<>();
+                    int l = h.get(s);
+                    for (int j = 0; j < a.size(); ++j) {
+                        if (j <= l || j > i) {
+                            b.add(a.get(j));
+                        }
+                    }
+                    a = b;
+                    del = true;
+                    break;
+                }
+                h.put(s, i);
+            }
+            if (!del) {
+                break;
+            }
+        }
+        ListNode hd = new ListNode(), it = hd;
+        for (int v : a) {
+            it.next = new ListNode(v);
+            it = it.next;
+        }
+        return hd.next;
+    }
+}
+```
+
+题解：维护每个前缀和最右的位置，如果超过两个前缀和相等，最左的和最右的一删肯定可以解。如果没有相等的，就原地 TP。复杂度 $O(n)$。
+
+```java
+class Solution {
+    public ListNode removeZeroSumSublists(ListNode head) {
+        ListNode dummy = new ListNode(0);
+        dummy.next = head;
+        Map<Integer, ListNode> seen = new HashMap<>();
+        int prefix = 0;
+        for (ListNode node = dummy; node != null; node = node.next) {
+            prefix += node.val;
+            seen.put(prefix, node);
+        }
+        prefix = 0;
+        for (ListNode node = dummy; node != null; node = node.next) {
+            prefix += node.val;
+            node.next = seen.get(prefix).next;
+        }
+        return dummy.next;
+    }
+}
+```
+
+##### 1483\.树节点的第k个祖先
+
+[题目](https://leetcode.cn/problems/kth-ancestor-of-a-tree-node/)
+
+个人实现：
+
+```java
+
+class TreeAncestor {
+    private int m, fa[][], lg[], d[];
+    private ArrayList<Integer> e[];
+
+    private void dfs(int u, int f) {
+        fa[u][0] = f;
+        d[u] = d[f] + 1;
+        for (int i = 1, ie = lg[d[u]]; i <= ie; ++i) {
+            fa[u][i] = fa[fa[u][i - 1]][i - 1];
+//            System.out.println("fa[" + u + "][" + i + "]=" + fa[u][i]);
+        }
+        for (int v : e[u]) {
+            if (v != f) {
+                dfs(v, u);
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public TreeAncestor(int n, int[] parent) {
+        e = new ArrayList[n];
+        for (int i = 0; i < n; ++i) {
+            e[i] = new ArrayList<>();
+        }
+        for (int u = 1, v; u < n; ++u) {
+            v = parent[u];
+            e[u].add(v);
+            e[v].add(u);
+        }
+        m = (int) Math.ceil(Math.log(n)) + 1;
+        fa = new int[n][m];
+        lg = new int[n + 1];
+        d = new int[n];
+        for (int i = 1; i <= n; ++i) {
+            lg[i] = lg[i / 2] + 1;
+        }
+        dfs(0, 0);
+    }
+
+    public int getKthAncestor(int u, int k) {
+        if (d[u] <= k) {
+            return -1;
+        }
+//        System.out.println(u + " " + lg[k] + " " + k);
+        for (int i = lg[k], t = k; i >= 0; --i) {
+            if ((1 << i) <= t) {
+//                System.out.println("Jump " + (1 << i));
+                u = fa[u][i];
+                t -= 1 << i;
+            }
+        }
+        return u;
+    }
+}
+```
+
+官方实现：
+
+```java
+class TreeAncestor {
+    static final int LOG = 16;
+    int[][] ancestors;
+
+    public TreeAncestor(int n, int[] parent) {
+        ancestors = new int[n][LOG];
+        for (int i = 0; i < n; i++) {
+            Arrays.fill(ancestors[i], -1);
+        }
+        for (int i = 0; i < n; i++) {
+            ancestors[i][0] = parent[i];
+        }
+        for (int j = 1; j < LOG; j++) {
+            for (int i = 0; i < n; i++) {
+                if (ancestors[i][j - 1] != -1) {
+                    ancestors[i][j] = ancestors[ancestors[i][j - 1]][j - 1];
+                }
+            }
+        }            
+    }
+
+    public int getKthAncestor(int node, int k) {
+        for (int j = 0; j < LOG; j++) {
+            if (((k >> j) & 1) != 0) {
+                node = ancestors[node][j];
+                if (node == -1) {
+                    return -1;
+                }
+            }
+        }
+        return node;
     }
 }
 ```
