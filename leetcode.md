@@ -505,6 +505,14 @@
 - 1483\.树节点的第k个祖先
 
   树上k级祖先
+  
+- 2475\.数组中不等三元组的数目
+
+  枚举 / <u>排序+指针</u> / <u>STL</u>
+  
+- 1375\.二进制字符串前缀一致的次数
+
+  树状数组 / <u>思维</u>
 
 
 
@@ -13998,6 +14006,127 @@ class TreeAncestor {
             }
         }
         return node;
+    }
+}
+```
+
+##### 2475\.数组中不等三元组的数目
+
+[题目](https://leetcode.cn/problems/number-of-unequal-triplets-in-array/)
+
+暴力 $O(n^3)$
+
+```java
+class Solution {
+    public int unequalTriplets(int[] nums) {
+        int cnt = 0, n = nums.length;
+        for (int i = 0; i < n; ++i) {
+            for (int j = i + 1; j < n; ++j) {
+                for (int k = j + 1; k < n; ++k) {
+                    cnt += nums[i] != nums[j] && nums[j] != nums[k] && nums[i] != nums[k] ? 1 : 0;
+                }
+            }
+        }
+        return cnt;
+    }
+}
+```
+
+排序，维护相等区间 $[i,j)$，长度为 $j-i$，它左边的长度是 $i$，右边的长度是 $n-j$，故总个数为 $i(j-i)(n-j)$，复杂度 $O(n\log n)$
+
+```java
+class Solution {
+    public int unequalTriplets(int[] nums) {
+        Arrays.sort(nums);
+        int res = 0, n = nums.length;
+        for (int i = 0, j = 0; i < n; i = j) {
+            while (j < n && nums[j] == nums[i]) {
+                j++;
+            }
+            res += i * (j - i) * (n - j);
+        }
+        return res;
+    }
+}
+```
+
+哈希表：设当前元素有 $v$ 个，之前遍历过的总元素有 $t$ 个，则未遍历过的元素有 $n-t-v$ 个，即 $tv(n-t-v)$。复杂度 $O(n)$
+
+```java
+class Solution {
+    public int unequalTriplets(int[] nums) {
+        Map<Integer, Integer> count = new HashMap<>();
+        for (int x : nums) {
+            count.merge(x, 1, Integer::sum);
+        }
+        int res = 0, n = nums.length, t = 0;
+        for (Map.Entry<Integer, Integer> entry : count.entrySet()) {
+            res += t * entry.getValue() * (n - t - entry.getValue());
+            t += entry.getValue();
+        }
+        return res;
+    }
+}
+```
+
+##### 1375. 二进制字符串前缀一致的次数
+
+[题目](https://leetcode.cn/problems/number-of-times-binary-string-is-prefix-aligned/)
+
+树状数组：
+
+```java
+class Fenwick {
+    private int a[], n;
+
+    public Fenwick(int n) {
+        this.n = n;
+        a = new int[n + 1];
+    }
+
+    public void add(int i, int v) {
+        for (; i <= n; i += i & -i) {
+            a[i] += v;
+        }
+    }
+
+    public int query(int r) {
+        int res = 0;
+        for (; r > 0; r -= r & -r) {
+            res += a[r];
+        }
+        return res;
+    }
+
+    public int query(int l, int r) {
+        return query(r) - query(l - 1);
+    }
+}
+
+class Solution {
+    public int numTimesAllBlue(int[] flips) {
+        int n = flips.length, cnt = 0;
+        Fenwick t = new Fenwick(n);
+        for (int i = 0; i < n; ++i) {
+            t.add(flips[i], 1);
+            cnt += t.query(1, i + 1) == i + 1 ? 1 : 0;
+        }
+        return cnt;
+    }
+}
+```
+
+更优解：注意到当满足条件时，必然是 $[1,i]$ 全 $1$，换句话说其他位全 $0$，即 max 恰好为 $i$，所以维护 max 即可。
+
+```java
+class Solution {
+    public int numTimesAllBlue(int[] flips) {
+        int ans = 0, mx = 0, n = flips.length;
+        for (int i = 0; i < n; i++) {
+            mx = Math.max(mx, flips[i]);
+            if (mx == i + 1) ans++;
+        }
+        return ans;
     }
 }
 ```

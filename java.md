@@ -9881,16 +9881,34 @@ public class c1403 {
 不继承 Collection 。Map 接口提供了集合的常用方法，和下面方法：
 
 - put(K key, V value) 向集合中添加键值对(已有则覆盖)
+
 - putAll() 是集合版的 addAll
+
 - containsKey(K key) 如果有key返回true
+
 - containsValue(V value) 若存在key的value是参数返回true
+
 - get(K key) 存在返回对应value，否则 `null`
+
 - getOrDefault(K, V) 如果有就取，没有就返回 V
+
 - keySet() 返回key组成的Set集合
+
 - values() 返回集合值组成的Collection集合
+
 - celingKey(K key) 返回第一个大于等于key的键
+
 - celingKey(K key) 返回键值对
+
 - entrySet() 返回键值对数组用于遍历
+
+- merge(key, init, f) 如果key不存在将值设为 init, 否则与原有值通过f函数合并；求和频次使用如 `.merge("key", 1, Integer::sum)`，其中：
+
+  > ```java
+  > public static int sum(int a, int b) { //Integer::sum
+  >     return a + b;
+  > }
+  > ```
 
 Map 允许值对象是 `null` 且没有个数限制。
 
