@@ -2487,6 +2487,11 @@ System.out.println(x + y + v + w);
 9. valueOf(String str) 返回Integer
 10. parseInt(String str) 返回int
 
+位运算内置(静态方法)：
+
+1. bitCount(x) 统计 1 的个数
+2. lowestOneBit(x) lowbit
+
 如：
 
 ```java
@@ -10118,6 +10123,8 @@ public class c1608 {
   > 注: 返回 true 如果成功，否则报错；如果用 `offer` 方法，功能等效但如果不成功不报错而返回 false
 
 - `size()` 元素数
+
+普通队列用 linkedlist 即可
 
 下有 `PriorityQueue` 优先级队列(小根堆)，构造函数可以传一个对象，其类为 `Comparator<类名> cmp` 作参数作为比较依据来自定义，需要实现 `public int compare(对象, 对象)` ，前者大返回正数；小负数，相等 $0$
 

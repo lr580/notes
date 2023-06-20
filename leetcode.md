@@ -513,6 +513,30 @@
 - 1375\.二进制字符串前缀一致的次数
 
   树状数组 / <u>思维</u>
+  
+- 1177\.构建回文串检测
+
+  前缀和 / <u>前缀异或和</u>
+  
+- 1494\.并行课程 II
+
+  DFS+BFS / <u>子集枚举</u>
+  
+- 2481\.分割圆的最少切割次数
+
+  思维
+
+- 1254\.统计封闭岛屿的数目
+
+  BFS / DFS / 并查集
+  
+- 1262\.可被三整除的最大和
+
+  贪心+二维DP / <u>贪心</u> / <u>DP</u>
+  
+- 1595\.连通两组点的最小成本
+
+  **网络流** / **状压DP**
 
 
 
@@ -14131,7 +14155,1220 @@ class Solution {
 }
 ```
 
+##### 1177\.构建回文串检测
 
+[题目](https://leetcode.cn/problems/can-make-palindrome-from-substring/)
+
+一个子串重排后最少需要多少次修改能成为回文串？
+
+首先成对一定能消，所以每个字符出现次数 $\&1$。如果串长是奇数还能再减掉 $1$(回文中心)，最后每修改一次能消掉两个不相等的，故总最小修改次数为：
+$$
+\lceil\dfrac{(\sum_icnt_i\&1)-[len\&1]}{2}\rceil=\lfloor\dfrac{\sum_icnt_i\&1}2\rfloor
+$$
+使用前缀和维护 $26$ 个 $cnt$，总复杂度为 $O((n+m)|s|)$，代码为：
+
+```java
+class Solution {
+    public List<Boolean> canMakePaliQueries(String s, int[][] queries) {
+        int n = s.length(), cnt[][] = new int[26][n + 1];
+        for (int i = 0; i < n; ++i) {
+            int c = s.charAt(i) - 'a';
+            for (int j = 0; j < 26; ++j) {
+                cnt[j][i + 1] += cnt[j][i] + (c == j ? 1 : 0);
+            }
+        }
+        int m = queries.length;
+        Boolean ans[] = new Boolean[m];
+        for (int i = 0; i < m; ++i) {
+            int l = queries[i][0], r = queries[i][1], k = queries[i][2], t = 0;
+            for (int j = 0; j < 26; ++j) {
+                t += ((cnt[j][r + 1] - cnt[j][l]) % 2 == 1 ? 1 : 0);
+            }
+            t -= (r - l + 1) % 2 == 1 ? 1 : 0;
+            ans[i] = (t + 1) / 2 <= k;
+        }
+        return Arrays.asList(ans);
+    }
+}
+```
+
+优化：由于只关心每种字符出现次数的奇偶性，所以可以把前缀和压成一个 bit 位，低 $i$ 位表示第 $i$ 个字母出现次数的奇偶性。那么前缀异或 $s_r\oplus s_{l-1}$ 可以表明子段 $[l,r]$ 的奇偶性，优化成 $O((n+m)\lceil\dfrac{C}{64}\rceil)$，其中 $C=26$。
+
+```java
+class Solution {
+    public List<Boolean> canMakePaliQueries(String s, int[][] queries) {
+        int n = s.length();
+        var sum = new int[n + 1];
+        for (int i = 0; i < n; i++) {
+            int bit = 1 << (s.charAt(i) - 'a');
+            sum[i + 1] = sum[i] ^ bit;
+        }
+
+        var ans = new ArrayList<Boolean>(queries.length); // 预分配空间
+        for (var q : queries) {
+            int left = q[0], right = q[1], k = q[2];
+            int m = Integer.bitCount(sum[right + 1] ^ sum[left]);
+            ans.add(m / 2 <= k);
+        }
+        return ans;
+    }
+}
+```
+
+##### 1494\.并行课程II
+
+[题目](https://leetcode.cn/problems/parallel-courses-ii/)
+
+个人代码：完全暴力，复杂度为大约 $O(2^n C_n^k)$，虽然实际表现没这么差，BFS 尾部剪枝能卡过去
+
+```java
+class Solution {
+    public int minNumberOfSemesters(int n, int[][] relations, int k) {
+        int dp[] = new int[1 << n], t = (1 << n) - 1;
+        Arrays.fill(dp, Integer.MAX_VALUE);
+        @SuppressWarnings("unchecked")
+        ArrayList<Integer> e[] = new ArrayList[n + 1];
+        for (int i = 1; i <= n; ++i) {
+            e[i] = new ArrayList<>();
+        }
+        for (int i = 0; i < relations.length; ++i) {
+            int u = relations[i][0], v = relations[i][1];
+            e[v].add(u);
+        }
+        Queue<Integer> q = new LinkedList<>();
+        q.add(0);
+        dp[0] = 0;
+        while (!q.isEmpty()) {
+            int s = q.poll(), cnt = 0;
+//            System.out.println(s + " " + dp[s]);
+            if (s == t) {
+                break;
+            }
+            boolean vis[] = new boolean[n + 1];
+            for (int i = 0; i < n; ++i) {
+                vis[i + 1] = (s & (1 << i)) > 0;
+            }
+            boolean avail[] = new boolean[n + 1];
+            for (int u = 1; u <= n; ++u) {
+                boolean ok = true;
+                for (int v : e[u]) {
+                    if (!vis[v]) {
+                        ok = false;
+                        break;
+                    }
+                }
+                avail[u] = ok;
+//                System.out.print(avail[u] + ", ");
+                cnt += ok ? 1 : 0;
+            }
+//            System.out.println();
+            if (cnt <= k) {
+                int m = s;
+                for (int u = 1; u <= n; ++u) {
+                    if (avail[u]) {
+                        m |= 1 << (u - 1);
+                    }
+                }
+                if (dp[m] == Integer.MAX_VALUE) {
+                    dp[m] = dp[s] + 1;
+                    q.add(m);
+                }
+            } else {
+                ArrayList<Integer> a = new ArrayList<>();
+                for (int u = 1; u <= n; ++u) {
+                    if (avail[u]) {
+                        a.add(u);
+                    }
+                }
+                dfs(a, q, dp, k, -1, new int[k], s);
+            }
+            if (dp[t] != Integer.MAX_VALUE) {
+                break;
+            }
+        }
+        return dp[t];
+    }
+
+    private void dfs(ArrayList<Integer> a, Queue<Integer> q, int[] dp, int k, int pr, int[] c,
+            int s) {
+        if (k == 0) {
+            int m = s;
+            for (int i = 0; i < c.length; ++i) {
+                m |= 1 << (c[i] - 1);
+            }
+            if (dp[m] == Integer.MAX_VALUE) {
+                dp[m] = dp[s] + 1;
+                q.add(m);
+            }
+            return;
+        }
+        for (int i = pr + 1; i < a.size(); ++i) {
+            c[k - 1] = a.get(i);
+            dfs(a, q, dp, k - 1, i, c, s);
+        }
+    }
+}
+```
+
+
+
+题解：枚举子集。
+
+前置知识：[子集遍历](https://oi-wiki.org/math/binary-set/)
+
+对二进制状态(有 $k$ 个 $1$) $m$，按二进制大小降序遍历 $m$ 的所有 $2^k$ 个非空子集的方法是：
+
+```c++
+for (int s = m; s; s = (s - 1) & m)
+```
+
+对于共 $n$ 位的全体 $2^n$ 个二进制状态，遍历全体状态及其子集的代码为：
+
+```c++
+for (int m = 0; m < (1 << n); ++m)// 降序遍历 m 的非空子集
+  for (int s = m; s; s = (s - 1) & m)// s 是 m 的一个非空子集
+```
+
+总复杂度为 $O(3^n)$，若 $m$ 有 $k$ 个 $1$，则有 $2^k$ 个子集，共有 $C_n^k$ 个 $m$ 有 $k$ 个 $1$，根据二项式定理，有 $\sum_{k=0}^nC_n^k2^n=(1+2)^n=3^n$
+
+
+
+边集递推：对状态 $i$，设 $dp_i$ 是最少学期数，$need_i$ 是最小前置集合状态。对每条边 $u\to v$，初始设 $need_{2^v}=2^u$。且显然 $dp_0=0,need_0=0$。
+
+对 $need$ 的实际运算，考虑对 $i$ 找到任意一个子集 $sub$，那么集合减法有 $i\oplus sub$ 是不包含 $sub$ 的另一子集，显然有 $need_i=need_{i\oplus sub}|need_{sub}$。
+
+根据枚举子集，可以知道 $i\&(i-1)$ 一定是上一个子集，而上一个子集少掉的是最低位，即 lowbit $i\&(-i)$，故顺序枚举时，可以通过 $need_i=need_{i\&i-1}|need_{i\&-i}$ 正确处理掉所有的依赖关系。
+
+当前状态 $i$ 的 $need_i$ 一定是它的子集，故 $i\oplus need_i$ 就是当前没学可学的全体课程状态。然后所有 $need_i$ 的子集，对不超过 $k$ 的全体子集 $sub$，可以从没学 $sub$ 但其他都学了的这个子集推到 $i$，即 $dp_i=\min(dp_i,dp_{i\oplus sub})$。
+
+因为顺序枚举 $i$，所以子集一定都已经处理完了，根据上文分析复杂度为 $O(3^n)$。
+
+做一个剪枝优化，如果 $need_i|i\neq i$，即 $need_i$ 不是 $i$ 的子集，那么 $i$ 状态无效。注意显然不会影响正确性，即如不会出现一个 $3\to2\to1$ 的学习图无效的情况，因为这个图枚举 $4,6,7$ 的顺序是可以做到的。
+
+```java
+class Solution {
+    public int minNumberOfSemesters(int n, int[][] relations, int k) {
+        int[] dp = new int[1 << n];
+        Arrays.fill(dp, Integer.MAX_VALUE);
+        int[] need = new int[1 << n];
+        for (int[] edge : relations) {
+            need[(1 << (edge[1] - 1))] |= 1 << (edge[0] - 1);
+        }
+        dp[0] = 0;
+        for (int i = 1; i < (1 << n); ++i) {
+            need[i] = need[i & (i - 1)] | need[i & (-i)];
+            if ((need[i] | i) != i) { // i 中有任意一门课程的前置课程没有完成学习
+                continue;
+            }
+            int valid = i ^ need[i]; // 当前学期可以进行学习的课程集合
+            if (Integer.bitCount(valid) <= k) { // 如果个数小于 k，则可以全部学习，不再枚举子集
+                dp[i] = Math.min(dp[i], dp[i ^ valid] + 1);
+            } else { // 否则枚举当前学期需要进行学习的课程集合
+                for (int sub = valid; sub > 0; sub = (sub - 1) & valid) {
+                    if (Integer.bitCount(sub) <= k) {
+                        dp[i] = Math.min(dp[i], dp[i ^ sub] + 1);
+                    }
+                }
+            }
+        }
+        return dp[(1 << n) - 1];
+    }
+}
+```
+
+##### 2481\.分割圆的最少切割次数
+
+[题目](https://leetcode.cn/problems/minimum-cuts-to-divide-a-circle/)
+
+```c++
+return n == 1 ? 0 : (n % 2 == 0 ? n / 2 : n);
+```
+
+
+
+##### 1254\.统计封闭岛屿的数目
+
+[题目](https://leetcode.cn/problems/number-of-closed-islands/)
+
+个人解法：填多一个外圈全0，然后统计连通0的数目并-1(外圈)即为答案。
+
+```c++
+class Solution
+{
+public:
+    int closedIsland(vector<vector<int>> &grid)
+    {
+        int n = grid.size() + 1, m = grid[0].size() + 1;
+        vector<vector<bool>> a(n + 1, vector<bool>(m + 1, false));
+        for (int i = 1; i < n; ++i)
+        {
+            for (int j = 1; j < m; ++j)
+            {
+                a[i][j] = grid[i - 1][j - 1];
+            }
+        }
+        int cnt = 0;
+        static int dx[] = {-1, 0, 1, 0}, dy[] = {0, -1, 0, 1};
+        for (int i = 0; i <= n; ++i)
+        {
+            for (int j = 0; j <= m; ++j)
+            {
+                if (!a[i][j])
+                {
+                    
+                    ++cnt;
+                    queue<pair<int, int>> q;
+                    q.push({i, j});
+                    while (!q.empty())
+                    {
+                        auto pr = q.front();
+                        q.pop();
+                        a[pr.first][pr.second] = true;
+                        for (int k = 0; k < 4; ++k)
+                        {
+                            int nx = pr.first + dx[k];
+                            int ny = pr.second + dy[k];
+                            if (nx < 0 || ny < 0 || nx > n || ny > m || a[nx][ny])
+                            {
+                                continue;
+                            }
+                            q.push({nx, ny});
+                        }
+                    }
+                }
+            }
+        }
+        return cnt - 1;
+    }
+};
+```
+
+答案的 BFS：如果 BFS 途中碰到了临界边框那么这次不算答案。
+
+```c++
+class Solution {
+public:
+    static constexpr int dir[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    int closedIsland(vector<vector<int>>& grid) {
+        int m = grid.size();
+        int n = grid[0].size();
+        int ans = 0;
+                
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (grid[i][j] == 0) {
+                    queue<pair<int,int>> qu;
+                    grid[i][j] = 1;
+                    bool closed = true;
+
+                    qu.push(make_pair(i, j));
+                    while (!qu.empty()) {
+                        auto [cx, cy] = qu.front();
+                        qu.pop();
+                        if (cx == 0 || cy == 0 || cx == m - 1 || cy == n - 1) {
+                            closed = false;
+                        }
+                        for (int i = 0; i < 4; i++) {
+                            int nx = cx + dir[i][0];
+                            int ny = cy + dir[i][1];
+                            if (nx >= 0 && nx < m && ny >= 0 && ny < n && grid[nx][ny] == 0) {
+                                grid[nx][ny] = 1;
+                                qu.emplace(nx, ny);
+                            }
+                        }
+                    }
+                    if (closed) {
+                        ans++;
+                    }
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+> GPT4: `const`关键字声明的变量可以在运行时计算其值，而`constexpr`关键字声明的变量必须在编译时计算其值。这意味着`constexpr`的值必须是编译器可以在编译时知道的常量，而`const`的值可以在运行时确定。
+
+DFS 同理：
+
+```c++
+class Solution {
+public:
+    int closedIsland(vector<vector<int>>& grid) {
+        int ans = 0;
+        int m = grid.size();
+        int n = grid[0].size();
+
+        function<bool(int, int)> dfs = [&](int x, int y) -> bool {
+            if (x < 0 || y < 0 || x >= m || y >= n) {
+                return false;
+            }
+            if (grid[x][y] != 0) {
+                return true;
+            }
+            grid[x][y] = -1;
+            bool ret1 = dfs(x - 1, y);
+            bool ret2 = dfs(x + 1, y);
+            bool ret3 = dfs(x, y - 1);
+            bool ret4 = dfs(x, y + 1);
+            return ret1 && ret2 && ret3 && ret4;
+        };
+
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (grid[i][j] == 0 && dfs(i, j)) {
+                    ans++;
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+> 注意这个局部函数的语法写法
+
+显然也可以用并查集：
+
+> 注意内部类的语法(以及他的用 rank 的并查集写法不优、统计也不优)
+
+```c++
+class UnionFind {
+public:
+    UnionFind(int n) {
+        this->parent = vector<int>(n);
+        iota(parent.begin(), parent.end(), 0);
+        this->rank = vector<int>(n);
+    }
+
+    void uni(int x, int y) {
+        int rootx = find(x);
+        int rooty = find(y);
+        if (rootx != rooty) {
+            if (rank[rootx] > rank[rooty]) {
+                parent[rooty] = rootx;
+            } else if (rank[rootx] < rank[rooty]) {
+                parent[rootx] = rooty;
+            } else {
+                parent[rooty] = rootx;
+                rank[rootx]++;
+            }
+        }
+    }
+
+    int find(int x) {
+        if (parent[x] != x) {
+            parent[x] = find(parent[x]);
+        }
+        return parent[x];
+    }
+private:
+    vector<int> parent;
+    vector<int> rank;
+};
+
+class Solution {
+public:
+    int closedIsland(vector<vector<int>>& grid) {
+        int m = grid.size(), n = grid[0].size();
+        UnionFind uf(m * n);
+
+        for (int i = 0; i < m; i++) {
+            if (grid[i][0] == 0) {
+                uf.uni(i * n, 0);
+            }
+            if (grid[i][n - 1] == 0) {
+                uf.uni(i * n + n - 1, 0);
+            }
+        }
+        for (int j = 1; j < n - 1; j++) {
+            if (grid[0][j] == 0) {
+                uf.uni(j, 0);
+            }
+            if (grid[m - 1][j] == 0) {
+                uf.uni((m - 1) * n + j, 0);
+            }
+        }
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (grid[i][j] == 0) {
+                    if (i > 0 && grid[i - 1][j] == 0) {
+                        uf.uni(i * n + j, (i - 1) * n + j);
+                    }
+                    if (j > 0 && grid[i][j - 1] == 0) {
+                        uf.uni(i * n + j, i * n + j - 1);
+                    }
+                }
+            }
+        }
+
+        unordered_set<int> cnt;
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (grid[i][j] == 0) {
+                    cnt.emplace(uf.find(i * n + j));
+                }
+            }
+        }
+        int total = cnt.size();
+        if (cnt.count(uf.find(0))) {
+            total--;
+        }
+        return total;
+    }
+};
+```
+
+##### 1262\.可被三整除的最大和
+
+[题目](https://leetcode.cn/problems/greatest-sum-divisible-by-three/)
+
+> 错误解法：$O(n^2)$ DP，对每个 $n_1,n_2$(等价类长度)摁推；或者无脑贪心
+
+贪心缩数据+DP。正确性未经证明，仅供参考。可能是错误解法，但是能过题。
+
+首先将原数组划分为模 $3$ 的三个等价类：$a_0,a_1,a_2$，然后分别排序。
+
+$a_0$ 里都是 $3$ 的倍数直接全部都要，对 $a_1,a_2$，首先采用下述的玄学贪心：
+
+当数组长度 $|a_1|,|a_2|$ 都大于某个范围(这里设为 $12$)时，贪心地让最大的三个 $a_1$ 元素和三个 $a_2$ 元素拿走，显然仍然保持总和是 $3$ 的倍数。
+
+当 $|a_1|,|a_2|$ 有一方小于 $12$ 时，使用暴力 DP，对每个状态 $n_1,n_2$，走三个转移：$n_1-3,n_2;n_1,n_2-3;n_1-1,n_2-1$，即选三个最大 $a_1$ 或选三个最大 $a_2$ 或选一个最大 $a_1$ 和一个最大 $a_2$，复杂度为 $O(|a_1|\cdot |a_2|)\le 12(n-12)=O(12n)$。
+
+参考代码：
+
+```c++
+class Solution
+{
+public:
+    int maxSumDivThree(vector<int> &nums)
+    {
+        vector<int> a[3];
+        for (int v : nums)
+        {
+            a[v % 3].push_back(v);
+        }
+        for (int i = 0; i < 3; ++i)
+        {
+            sort(a[i].begin(), a[i].end());
+        }
+        int ans = 0;
+        for (int v : a[0])
+        {
+            ans += v;
+        }
+        int n2 = a[2].size(), n1 = a[1].size();
+        while (n1 >= 3 && n2 >= 3)
+        {
+            ans += a[1][n1 - 1] + a[1][n1 - 2] + a[1][n1 - 3];
+            ans += a[2][n2 - 1] + a[2][n2 - 2] + a[2][n2 - 3];
+            n1 -= 3, n2 -= 3;
+        }
+        map<pair<int, int>, int> h;
+        function<int(int, int)> dfs = [&](int n1, int n2)
+        {
+            if (h.find({n1, n2}) != h.end())
+            {
+                return h[{n1, n2}];
+            }
+            int res = 0;
+            if (n1 && n2)
+            {
+                res = max(res, dfs(n1 - 1, n2 - 1) + a[1][n1 - 1] + a[2][n2 - 1]);
+            }
+            if (n1 >= 3)
+            {
+                res = max(res, dfs(n1 - 3, n2) + a[1][n1 - 1] + a[1][n1 - 2] + a[1][n1 - 3]);
+            }
+            if (n2 >= 3)
+            {
+                res = max(res, dfs(n1, n2 - 3) + a[2][n2 - 1] + a[2][n2 - 2] + a[2][n2 - 3]);
+            }
+            h[{n1, n2}] = res;
+            return res;
+        };
+        ans += dfs(n1, n2);
+        return ans;
+    }
+};
+```
+
+正经算法：
+
+贪心+正向。设等价类余 $1,2$ 是 $b,c$。如果在 $b$ 选了 $cnt_b$ 个，$c$ 选了 $cnt_c$ 个，则总和为 $(cnt_b+2cnt_c)\bmod 3\equiv(cnt_b-cnt_c)\bmod 3$。
+
+等效于 $cnt_b\equiv cnt_c\mod 3$ 就行。
+
+$cnt_b$ 至少是 $|b|-2$。反证法：如果是 $|b|-3$ 或更小，可以三个三个地选完。故 $cnt_b\in \{|b|,|b|-1,|b|-2\},cnt_c\in \{|c|,|c|-1,|c|-2\}$，暴力枚举这九种情况即可。
+
+```c++
+class Solution {
+public:
+    int maxSumDivThree(vector<int>& nums) {
+        // 使用 v[0], v[1], v[2] 分别表示 a, b, c
+        vector<int> v[3];
+        for (int num: nums) {
+            v[num % 3].push_back(num);
+        }
+        sort(v[1].begin(), v[1].end(), greater<int>());
+        sort(v[2].begin(), v[2].end(), greater<int>());
+
+        int ans = 0;
+        int lb = v[1].size(), lc = v[2].size();
+        for (int cntb = lb - 2; cntb <= lb; ++cntb) {
+            if (cntb >= 0) {
+                for (int cntc = lc - 2; cntc <= lc; ++cntc) {
+                    if (cntc >= 0 && (cntb - cntc) % 3 == 0) {
+                        ans = max(ans, accumulate(v[1].begin(), v[1].begin() + cntb, 0) + accumulate(v[2].begin(), v[2].begin() + cntc, 0));
+                    }
+                }
+            }
+        }
+        return ans + accumulate(v[0].begin(), v[0].end(), 0); //0+sum(v区间)
+    }
+};
+```
+
+解法二：逆向贪心(丢弃法)
+
+如果全选后余 $1$，要么丢 $b$ 最小一个，要么丢 $c$ 最小两个。
+
+如果全选后余 $2$，要么丢 $b$ 最小两个，要么丢 $c$ 最小一个。
+
+```c++
+class Solution {
+public:
+    int maxSumDivThree(vector<int>& nums) {
+        // 使用 v[0], v[1], v[2] 分别表示 a, b, c
+        vector<int> v[3];
+        for (int num: nums) {
+            v[num % 3].push_back(num);
+        }
+        sort(v[1].begin(), v[1].end(), greater<int>());
+        sort(v[2].begin(), v[2].end(), greater<int>());
+        int tot = accumulate(nums.begin(), nums.end(), 0);
+        int remove = INT_MAX;
+
+        if (tot % 3 == 0) {
+            remove = 0;
+        }
+        else if (tot % 3 == 1) {
+            if (v[1].size() >= 1) {
+                remove = min(remove, v[1].end()[-1]);
+                //逆向范围元素的办法
+            }
+            if (v[2].size() >= 2) {
+                remove = min(remove, v[2].end()[-2] + v[2].end()[-1]);
+            }
+        }
+        else {
+            if (v[1].size() >= 2) {
+                remove = min(remove, v[1].end()[-2] + v[1].end()[-1]);
+            }
+            if (v[2].size() >= 1) {
+                remove = min(remove, v[2].end()[-1]);
+            }
+        }
+
+        return tot - remove;
+    }
+};
+```
+
+DP：设 $f(i,j)$ 表示前 $i(i\ge 1)$ 个数选的数的和余 $j$ 下和的最大值为 $f(i,j)$。
+
+对当前数，要么选要么不选：
+
+- 选，则 $f(i,j)=a_i+f(i-1,(j-a_j)\bmod 3)$
+- 不选，则 $f(i-1,j)$
+
+取最大值即可。初始值 $f(0,0)=0,f(0,j)=-\infty(j > 0)$。压掉 $i$，时间 $O(3n)$，空间 $O(3)$。
+
+```c++
+class Solution {
+public:
+    int maxSumDivThree(vector<int>& nums) {
+        vector<int> f = {0, INT_MIN, INT_MIN};
+        for (int num: nums) {
+            vector<int> g = f;
+            for (int i = 0; i < 3; ++i) {
+                g[(i + num % 3) % 3] = max(g[(i + num % 3) % 3], f[i] + num);
+            }
+            f = move(g);
+        }
+        return f[0];
+    }
+};
+```
+
+##### 1595\.连通两组点的最小成本
+
+[题目](https://leetcode.cn/problems/minimum-cost-to-connect-two-groups-of-points/)
+
+题目所求**不是最小权二分图最大匹配**，匹配是边端点两两不重的边集。题目所求为最小权边覆盖，即用边集覆盖所有的点。
+
+最小权边覆盖可以转化为最小权匹配。边覆盖=匹配+额外边。
+
+额外边是加了之后只多覆盖一个点的边，对不在匹配的每个点，选择最小的边，不会影响其他不在匹配的点。对邻接矩阵，二分图左边第 $i$ 个点的最优额外边是 $\min e_{i,:}$，右边第 $j$ 个点的最优额外边是 $\min e_{:,j}$。即分别为行列最小值。
+
+显然一种较差的解是每个店都直接选择最小的额外边，称为基本解。在基本解的前提下，引入匹配，每加入一条匹配边 $(u,v)$，首先去掉了两边的额外边，再加上这条边的边权，即 $e_{i,j}-\min e_{i,:}-\min e_{:,j}$。在费用网络流建立一个流量为 $1$，费用为上述值的边。然后源点跟左边、右边跟汇点都连流量为 $1$ 费用为 $0$ 的边，即求朴素的最小权匹配。
+
+使用 MCFN，复杂度为 $O(\min(n,m)^2\max(n,m))=O(n^3)$。
+
+> 一个包装的很好的网络流板子：
+>
+> 前置依赖：
+>
+> ```c++
+> namespace details {
+> 	inline unsigned int bsf32(uint32_t n) noexcept {
+> #if defined __GNUC__
+> 		return __builtin_ctz(n);
+> #elif defined _MSC_VER
+> 		unsigned long ans;
+> 		_BitScanForward(&ans, n);
+> 		return ans;
+> #elif
+> 		static constexpr unsigned char table[32] = {
+> 			0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
+> 			31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9,
+> 		};
+> 		return table[((n & -n) * 0x077CB531) >> 57];
+> #endif
+> 	}
+> 
+> 	inline unsigned int bsf64(uint64_t n) noexcept {
+> #if defined __GNUC__
+> 		return __builtin_ctzll(n);
+> #elif defined _MSC_VER
+> 		unsigned long ans;
+> 		_BitScanForward64(&ans, n);
+> 		return ans;
+> #elif
+> 		static constexpr unsigned char table[64] = {
+> 			0, 1, 56, 2, 57, 49, 28, 3, 61, 58, 42, 50, 38, 29, 17, 4,
+> 			62, 47, 59, 36, 45, 43, 51, 22, 53, 39, 33, 30, 24, 18, 12, 5,
+> 			63, 55, 48, 27, 60, 41, 37, 16, 46, 35, 44, 21, 52, 32, 23, 11,
+> 			54, 26, 40, 15, 34, 20, 31, 10, 25, 14, 19, 9, 13, 8, 7, 6,
+> 		};
+> 		return table[((n & -n) * 0x03f79d71b4ca8b09) >> 58];
+> #endif
+> 	}
+> 
+> 	inline unsigned int bsr32(uint32_t n) noexcept {
+> #if defined __GNUC__
+> 		return 31 - __builtin_clz(n);
+> #elif defined _MSC_VER
+> 		unsigned long ans;
+> 		_BitScanReverse(&ans, n);
+> 		return ans;
+> #elif
+> 		float t = n;
+> 		uint32_t ans;
+> 		memcpy(&ans, &t, sizeof(float));
+> 		return (ans >> 23 & 255) - 127;
+> #endif
+> 	}
+> 
+> 	inline unsigned int bsr64(uint64_t n) noexcept {
+> #if defined __GNUC__
+> 		return 63 - __builtin_clzll(n);
+> #elif defined _MSC_VER
+> 		unsigned long ans;
+> 		_BitScanReverse64(&ans, n);
+> 		return ans;
+> #elif
+> 		float t = n;
+> 		uint32_t ans;
+> 		memcpy(&ans, &t, sizeof(float));
+> 		return (ans >> 23 & 255) - 127;
+> #endif
+> 	}
+> 
+> 	inline unsigned int popcnt32(uint32_t n) noexcept {
+> #if defined __GNUC__
+> 		return __builtin_popcount(n);
+> #elif defined _MSC_VER
+> 		return __popcnt(n);
+> #elif
+> 		n -= ((n >> 1) & 0x55555555);
+> 		n = (n & 0x33333333) + ((n >> 2) & 0x33333333);
+> 		return ((((n >> 4) + n) & 0x0f0f0f0f) * 0x01010101) >> 24;
+> #endif
+> 	}
+> 
+> 	inline unsigned int popcnt64(uint64_t n) noexcept {
+> #if defined __GNUC__
+> 		return __builtin_popcountll(n);
+> #elif defined _MSC_VER
+> 		return __popcnt64(n);
+> #elif
+> 		n -= ((n >> 1) & 0x5555555555555555);
+> 		n = (n & 0x3333333333333333) + ((n >> 2) & 0x3333333333333333);
+> 		return ((((n >> 4) + n) & 0x0f0f0f0f0f0f0f0f) * 0x0101010101010101) >> 56;
+> #endif
+> 	}
+> 
+> 	inline unsigned int parity32(uint32_t n) noexcept {
+> #if defined __GNUC__
+> 		return __builtin_parity(n);
+> #elif defined _MSC_VER
+> 		return __popcnt(n) & 1;
+> #elif
+> 		n ^= n >> 1;
+> 		n ^= n >> 2;
+> 		n = (n & 0x11111111) * 0x11111111;
+> 		return (n >> 28) & 1;
+> #endif
+> 	}
+> 
+> 	inline unsigned int parity64(uint64_t n) noexcept {
+> #if defined __GNUC__
+> 		return __builtin_parityll(n);
+> #elif defined _MSC_VER
+> 		return __popcnt64(n) & 1;
+> #elif
+> 		n ^= n >> 1;
+> 		n ^= n >> 2;
+> 		n = (n & 0x1111111111111111) * 0x1111111111111111;
+> 		return (n >> 60) & 1;
+> #endif
+> 	}
+> 
+> 
+> 	template<typename I, bool B = 32 < std::numeric_limits<I>::digits>
+> 	struct _BitFuncImpl {
+> 		inline static unsigned int bsf(I n) noexcept { return bsf64(n); }
+> 		inline static unsigned int bsr(I n) noexcept { return bsr64(n); }
+> 		inline static unsigned int popcnt(I n) noexcept { return popcnt64(n); }
+> 		inline static unsigned int parity(I n) noexcept { return parity64(n); }
+> 	};
+> 
+> 	template<typename I>
+> 	struct _BitFuncImpl<I, false> {
+> 		inline static unsigned int bsf(I n) noexcept { return bsf32(n); }
+> 		inline static unsigned int bsr(I n) noexcept { return bsr32(n); }
+> 		inline static unsigned int popcnt(I n) noexcept { return popcnt32(n); }
+> 		inline static unsigned int parity(I n) noexcept { return parity32(n); }
+> 	};
+> 
+> 	template<typename I>
+> 	inline unsigned int bsf(I n) noexcept { return _BitFuncImpl<I>::bsf(n); }
+> 	template<typename I>
+> 	inline unsigned int bsr(I n) noexcept { return _BitFuncImpl<I>::bsr(n); }
+> 	template<typename I>
+> 	inline unsigned int popcnt(I n) noexcept { return _BitFuncImpl<I>::popcnt(n); }
+> 	template<typename I>
+> 	inline unsigned int parity(I n) noexcept { return _BitFuncImpl<I>::parity(n); }
+> }
+> 
+> template<typename E>
+> class Network {
+> public:
+>     using edge_type = E;
+>     using size_type = unsigned;
+> 
+> private:
+>     size_type n, m;
+>     size_type* pos;
+>     std::unique_ptr<edge_type[]> edges;
+> 
+> public:
+>     Network(std::unique_ptr<edge_type[]> edges, std::unique_ptr<size_type[]> spos, size_type n, size_type m)
+>         : n(n), m(m), pos(spos.release() + 1), edges(std::move(edges))
+>     {
+>         pos[-1] = 1;
+>     }
+> 
+>     Network(const Network& other) : n(other.n), m(other.m), pos(other.pos), edges(new edge_type[m]) {
+>         std::copy_n(other.edges.get(), m, edges.get());
+>         ++pos[-1];
+>     }
+> 
+>     ~Network() { if (--pos[-1] == 0) delete[] (pos - 1); }
+> 
+>     inline size_type order() const noexcept { return n; }
+>     inline size_type size() const noexcept { return m; }
+>     inline const size_type* raw_pos() const noexcept { return pos; }
+>     inline const edge_type* raw_edges() const noexcept { return edges.get(); }
+>     inline edge_type* raw_edges() noexcept { return edges.get(); }
+> };
+> 
+> template<typename F = int, typename C = int>
+> class MCFN {
+> public:
+>     using size_type = unsigned;
+> 
+> private:
+>     struct RawEdge {
+>         size_type from, to;
+>         F cap;
+>         C cost;
+>     };
+> 
+>     struct Edge {
+>     private:
+>         friend class MCFN;
+>         size_type _rev, _to;
+>         F _cap;
+>         C _cost;
+>         Edge(size_type rev, size_type to, F cap, C cost) : _rev(rev), _to(to), _cap(cap), _cost(cost) {}
+>     public:
+>         using flow_type = F;
+>         using cost_type = C;
+>         Edge() = default;
+>         inline size_type rev() const noexcept { return _rev; }
+>         inline size_type to() const noexcept { return _to; }
+>         inline flow_type residual() const noexcept { return _cap; }
+>         inline bool full() const noexcept { return _cap == 0; }
+>         inline void push(flow_type d) noexcept { _cap -= d; }
+>         inline cost_type cost() const noexcept { return _cost; }
+>     };
+> 
+>     std::vector<RawEdge> edges;
+>     std::vector<size_type> deg;
+> 
+> public:
+>     MCFN() noexcept = default;
+> 
+>     MCFN(size_type n) : deg(n, 0) {}
+> 
+>     void reserve(size_type n, size_type m) {
+>         edges.reserve(m);
+>         deg.reserve(n);
+>     }
+> 
+>     inline size_type add_vertex() {
+>         const size_type ans = deg.size();
+>         deg.push_back(0);
+>         return ans;
+>     }
+> 
+>     inline void add_edge(size_type from, size_type to, F cap, C cost) {
+>         if (cap <= 0) return;
+>         edges.emplace_back(RawEdge{from, to, cap, cost});
+>         ++deg[from];
+>         ++deg[to];
+>     }
+> 
+>     Network<Edge> prepare() const {
+>         using size_type = typename Network<Edge>::size_type;
+>         const size_type n = deg.size(), m = edges.size();
+>         std::unique_ptr<Edge[]> sorted_edges(new Edge[2 * m]);
+>         std::unique_ptr<size_type[]> spos(new size_type[n + 2]);
+>         const auto pos = spos.get() + 1;
+>         *std::partial_sum(deg.begin(), deg.end(), pos) = 2 * m;
+>         for (size_type i = m;i-- > 0;) {
+>             const RawEdge e = edges[i];
+>             const size_type u = e.from, v = e.to;
+>             const size_type rp = --pos[v], p = --pos[u];
+>             sorted_edges[p] = Edge(rp, v, e.cap, e.cost);
+>             sorted_edges[rp] = Edge(p, u, 0, -e.cost);
+>         }
+>         return Network<Edge>(std::move(sorted_edges), std::move(spos), n, 2 * m);
+>     }
+> };
+> ```
+>
+> 网络流算法：
+>
+> ```c++
+> template<typename F = int, typename C = int, typename G>
+> auto ssp(G&& g, std::size_t s, std::size_t t, bool nneg = false)
+> -> std::pair<
+>     typename std::common_type<F, typename std::remove_reference<G>::type::edge_type::flow_type>::type,
+>     typename std::common_type<C, typename std::remove_reference<G>::type::edge_type::cost_type>::type>
+> {
+>     using graph_type = typename std::remove_reference<G>::type;
+>     using size_type = typename graph_type::size_type;
+>     using edge_type = typename graph_type::edge_type;
+>     using flow_type = typename std::common_type<F, typename edge_type::flow_type>::type;
+>     using cost_type = typename std::common_type<C, typename edge_type::cost_type>::type;
+>     static constexpr size_type BIN_LEN = std::numeric_limits<cost_type>::digits;
+>     static constexpr cost_type INF = std::numeric_limits<cost_type>::max();
+>     struct ShortestPath {
+>         size_type pre;
+>         cost_type pot, dis;
+>     };
+>     struct ListNode {
+>         size_type prev, next;
+>     };
+>     const size_type n = g.order(), m = g.size();
+>     const bool use_heap = m / n <= n / std::min<size_type>(3 * details::bsr(n + 7) + 15, 64);
+>     const auto edges = g.raw_edges();
+>     const auto pos = g.raw_pos();
+>     std::vector<ShortestPath> sp(n);
+>     std::vector<bool> vis;
+>     const auto init = [&] {
+>         vis.assign(n, false);
+>         std::vector<size_type> q(n);
+>         size_type l = 0, r = 1;
+>         for (auto& e : sp)
+>             e.pot = INF;
+>         sp[s] = {0, 0};
+>         vis[s] = true;
+>         q[0] = s;
+>         while (l != r) {
+>             const size_type u = q[l];
+>             l = l + 1 != n ? l + 1 : 0;
+>             vis[u] = false;
+>             const size_type pu = sp[u].pre;
+>             const cost_type du = sp[u].pot;
+>             const auto start_edge = edges + pos[u];
+>             const auto end_edge = edges + pos[u + 1];
+>             for (auto i = start_edge;i != end_edge;++i) {
+>                 const edge_type e = *i;
+>                 if (e.full()) continue;
+>                 const size_type v = e.to();
+>                 const cost_type dv = sp[v].pot;
+>                 const cost_type ndv = du + e.cost();
+>                 if (ndv < dv) {
+>                     sp[v].pre = pu + 1;
+>                     sp[v].pot = ndv;
+>                     if (sp[v].pre >= n) throw std::invalid_argument("graph contains negative cycles.");
+>                     if (!vis[v]) {
+>                         q[r] = v;
+>                         vis[v] = true;
+>                         r = r + 1 != n ? r + 1 : 0;
+>                     }
+>                 }
+>             }
+>         }
+>     };
+>     if (!nneg) init();
+>     const cost_type pt = sp[t].pot;
+>     flow_type flow = 0;
+>     cost_type cost = 0;
+>     const auto augment = [&] {
+>         flow_type f = std::numeric_limits<flow_type>::max();
+>         for (size_type i = t;i != s;) {
+>             const edge_type e = edges[sp[i].pre];
+>             const flow_type r = edges[e.rev()].residual();
+>             if (r < f) f = r;
+>             i = e.to();
+>         }
+>         for (size_type i = t;i != s;) {
+>             auto& e = edges[sp[i].pre];
+>             edges[e.rev()].push(f);
+>             e.push(-f);
+>             i = e.to();
+>         }
+>         flow += f;
+>         const cost_type dt = sp[t].dis;
+>         for (auto& e : sp)
+>             if (e.dis < dt)
+>                 e.pot -= dt - e.dis;
+>         cost += cost_type(f) * (pt - sp[s].pot);
+>     };
+>     const auto flow_with_heap = [&] {
+>         std::vector<ListNode> list(n + BIN_LEN + 1);
+>         const auto dijkstra_with_heap = [&] {
+>             const auto radix_distance = [] (cost_type lhs, cost_type rhs) {
+>                 return lhs != rhs ? details::bsr(lhs ^ rhs) + 1 : 0;
+>             };
+>             const auto buk = list.data() + n;
+>             const auto insert_list = [&] (size_type idx, size_type v) {
+>                 const size_type rear = buk[idx].prev;
+>                 list[rear].next = v;
+>                 list[v].prev = rear;
+>                 buk[idx].prev = v;
+>                 list[v].next = idx + n;
+>             };
+>             cost_type top = 0;
+>             for (size_type i = 0;i <= n + BIN_LEN;++i)
+>                 list[i] = {i, i};
+>             list[s] = {n, n};
+>             buk[0] = {size_type(s), size_type(s)};
+>             for (auto& e : sp)
+>                 e.dis = INF;
+>             sp[s].dis = 0;
+>             while (true) {
+>                 size_type u = buk[0].next;
+>                 if (u == n) {
+>                     size_type idx = 1;
+>                     for (;idx <= BIN_LEN;++idx)
+>                         if (buk[idx].next < n)
+>                             break;
+>                     if (idx > BIN_LEN) break;
+>                     const size_type head = buk[idx].next;
+>                     top = sp[head].dis;
+>                     for (size_type i = head;(i = list[i].next) < n;)
+>                         if (sp[i].dis < top)
+>                             top = sp[i].dis;
+>                     for (size_type i = head;i < n;) {
+>                         const size_type j = list[i].next;
+>                         insert_list(radix_distance(top, sp[i].dis), i);
+>                         i = j;
+>                     }
+>                     buk[idx] = {idx + n, idx + n};
+>                     u = buk[0].next;
+>                 }
+>                 if (u == size_type(t)) return true;
+>                 const size_type next = list[u].next;
+>                 list[next].prev = n;
+>                 buk[0].next = next;
+>                 const cost_type pu = sp[u].pot;
+>                 const cost_type du = sp[u].dis;
+>                 const auto start_edge = edges + pos[u];
+>                 const auto end_edge = edges + pos[u + 1];
+>                 for (auto i = start_edge;i != end_edge;++i) {
+>                     const edge_type e = *i;
+>                     if (e.full()) continue;
+>                     const size_type v = e.to();
+>                     const cost_type pv = sp[v].pot;
+>                     const cost_type dv = sp[v].dis;
+>                     const cost_type ndv = e.cost() + pu - pv + du;
+>                     if (ndv < dv) {
+>                         const size_type new_idx = radix_distance(top, ndv);
+>                         if (new_idx != radix_distance(top, dv)) {
+>                             const size_type prev = list[v].prev;
+>                             const size_type next = list[v].next;
+>                             list[prev].next = next;
+>                             list[next].prev = prev;
+>                             insert_list(new_idx, v);
+>                         }
+>                         sp[v].dis = ndv;
+>                         sp[v].pre = e.rev();
+>                     }
+>                 }
+>             }
+>             return false;
+>         };
+>         while (dijkstra_with_heap())
+>             augment();
+>     };
+>     const auto flow_without_heap = [&] {
+>         std::vector<size_type> min_buk;
+>         const auto dijkstra_without_heap = [&] {
+>             vis.assign(n, false);
+>             min_buk = {size_type(s)};
+>             for (auto& e : sp)
+>                 e.dis = INF;
+>             sp[s].dis = 0;
+>             while (true) {
+>                 size_type u;
+>                 cost_type du;
+>                 if (!min_buk.empty()) {
+>                     u = min_buk.back();
+>                     min_buk.pop_back();
+>                     if (vis[u]) continue;
+>                     du = sp[u].dis;
+>                 } else {
+>                     du = INF;
+>                     for (size_type i = 0;i < n;++i)
+>                         if (!vis[i] && sp[i].dis < du)
+>                             du = sp[u = i].dis;
+>                     if (du == INF) break;
+>                 }
+>                 if (u == size_type(t)) return true;
+>                 vis[u] = true;
+>                 const cost_type pu = sp[u].pot;
+>                 const auto start_edge = edges + pos[u];
+>                 const auto end_edge = edges + pos[u + 1];
+>                 for (auto i = start_edge;i != end_edge;++i) {
+>                     const edge_type e = *i;
+>                     if (e.full()) continue;
+>                     const size_type v = e.to();
+>                     const cost_type pv = sp[v].pot;
+>                     const cost_type dv = sp[v].dis;
+>                     const cost_type ndv = e.cost() + pu - pv + du;
+>                     if (ndv < dv) {
+>                         sp[v].dis = ndv;
+>                         sp[v].pre = e.rev();
+>                         if (ndv == du) min_buk.push_back(v);
+>                     }
+>                 }
+>             }
+>             return false;
+>         };
+>         while (dijkstra_without_heap())
+>             augment();
+>     };
+>     if (use_heap)
+>         flow_with_heap();
+>     else
+>         flow_without_heap();
+>     return std::make_pair(flow, cost);
+> }
+> ```
+
+本题代码：
+
+```c++
+class Solution {
+public:
+    int connectTwoGroups(const vector<vector<int>>& cost) {
+        const int m = cost.size(), n = cost[0].size();
+        vector<int> row_min(m, INT_MAX);
+        vector<int> col_min(n, INT_MAX);
+        for (int i = 0;i < m;++i) {
+            for (int j = 0;j < n;++j) {
+                row_min[i] = min(row_min[i], cost[i][j]);
+                col_min[j] = min(col_min[j], cost[i][j]);
+            }
+        }
+        MCFN<int, int> mcfn(m + n + 2);
+        const int s = m + n, t = s + 1;
+        for (int i = 0;i < m;++i) {
+            for (int j = 0;j < n;++j)
+                mcfn.add_edge(i, m + j, 1, min(cost[i][j] - row_min[i] - col_min[j], 0));
+            mcfn.add_edge(s, i, 1, 0);
+        }
+        for (int i = 0;i < n;++i)
+            mcfn.add_edge(m + i, t, 1, 0);
+        return reduce(row_min.begin(), row_min.end(), 0) + reduce(col_min.begin(), col_min.end(), 0) + ssp(mcfn.prepare(), s, t).second;
+    }
+};
+```
+
+> GPT4: C++17 reduce 求前缀和
+>
+> `reduce` 是并行化算法，因此它可以在多核处理器上更有效地运行，这对于处理大数据集非常有用。
+>
+> 需要注意的是，`reduce` 的执行顺序是未指定的，因此，使用 `reduce` 的时候必须保证二元操作符是结合的，即 `binary_op(binary_op(a1, a2), a3) == binary_op(a1, binary_op(a2, a3))`。这样，不论 `reduce` 如何安排计算顺序，最终的结果都是一样的。
+
+劣解法：状压 DP
+
+设二进制数 $s$ 表示长为 $|n_2|$ 位状态，$dp_{i,s}$ 表示左边前 $i$ 个点与右边 $s$ 点集连接的最小成本。初始值 $dp{0,0}=0$，且无法连通的全体为 $dp_{0,s}=dp_{i,0}=\infty$。
+
+否则，转移方程为，设第 $i-1$ 个点与当前 $s$ 的第 $k$ 个点相连，$s_{-k}$ 是去掉第 $k$ 个点后的剩余点集二进制状态，则对成本，有其中一种情况：
+
+- 那么 $k$ 不需要再跟其他点相连，即 $dp_{i,s_{-k}}$ 能够满足其他点，$k$ 单独设 $e_{i-1,k}$
+- $i-1$ 不需要再跟其他点相连，即 $dp_{i-1,s}$ 和单独 $e_{i-1,k}$
+- 这两个点都不需要再与其他点相连 $dp_{i-1,s_{-k}}$ 和单独 $e_{i-1,k}$
+
+即 $dp_{i,s}=\min(\min(dp_{i,s_{-k}},dp_{i-1,s},dp_{i,s_{-k}})+e_{i-1,k})$
+
+可以压掉第一维度：
+
+```c++
+class Solution {
+public:
+    int connectTwoGroups(vector<vector<int>>& cost) {
+        int size1 = cost.size(), size2 = cost[0].size(), m = 1 << size2;
+        vector<int> dp1(m, INT_MAX / 2), dp2(m);
+        dp1[0] = 0;
+        for (int i = 1; i <= size1; i++) {
+            for (int s = 0; s < m; s++) {
+                dp2[s] = INT_MAX / 2;
+                for (int k = 0; k < size2; k++) {
+                    if ((s & (1 << k)) == 0) {
+                        continue;
+                    }
+                    dp2[s] = min(dp2[s], dp2[s ^ (1 << k)] + cost[i - 1][k]);
+                    dp2[s] = min(dp2[s], dp1[s] + cost[i - 1][k]);
+                    dp2[s] = min(dp2[s], dp1[s ^ (1 << k)] + cost[i - 1][k]);
+                }
+            }
+            dp1.swap(dp2);
+        }
+        return dp1[m - 1];
+    }
+};
+```
+
+时间 $O(nm2^m)$，空间 $O(2^m)$。
 
 > ### 力扣比赛
 >
