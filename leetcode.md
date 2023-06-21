@@ -537,6 +537,10 @@
 - 1595\.连通两组点的最小成本
 
   **网络流** / **状压DP**
+  
+- LCP41\.黑白翻转棋
+
+  模拟 / <u>BFS</u>
 
 
 
@@ -15369,6 +15373,298 @@ public:
 ```
 
 时间 $O(nm2^m)$，空间 $O(2^m)$。
+
+##### LCP41.黑白翻转棋
+
+[题目](https://leetcode.cn/problems/fHi6rV/)
+
+一种笨策略：枚举每个 `.` 尝试将其转化为 `X`，然后对转化后的棋盘，求出有多少个白色转黑色，取最大值返回，即：
+
+```c++
+int flipChess(mmap &chessboard)
+{
+    int ans = 0;
+    for (int i = 0; i < (int)chessboard.size(); ++i)
+    {
+        for (int j = 0; j < (int)chessboard[i].size(); ++j)
+        {
+            if (chessboard[i][j] == '.' )
+            {
+                chessboard[i][j] = 'X';
+                int v = check(chessboard); //求出有多少个白色转黑色
+                ans = max(ans, v);
+                chessboard[i][j] = '.';
+            }
+        }
+    }
+    return ans;
+}
+```
+
+下面我们来具体实现求白色转黑色数量的函数 `check`。使用如下思路：
+
+每一轮枚举横竖撇捺四个方向，对每个方向的每一次枚举(即每一横/每一竖/每一撇/每一捺)，先求出每个小黑子的位置，然后两两枚举相邻黑子，先检查相邻黑子间是否全都是白子，如果是，那么把这些白子全部变成黑子。
+
+如果在这一轮枚举中，全体横竖撇捺都没有任何白子变黑子，那么退出循环。否则，对变化后的新棋盘，重新进行上述枚举。
+
+在最坏情况下，设 $n=m$ 均为最大值，有 $O(nm)$ 次枚举，每次枚举横竖撇捺，都要对每个格子遍历 $O(1)$ 次，横竖撇捺共 $4$ 下，故每次枚举横竖撇捺有 $O(4mn)$ 次枚举。故总复杂度为 $O(4n^2m^2)=O(n^2m^2)$。
+
+因为共需要调用 $O(nm)$ 次 `check` 函数，故算法总复杂度为 $O(n^3m^3)$。
+
+以每一横为例，具体的一轮枚举为：
+
+```c++
+for (int i = 0; i < n; ++i)
+{
+	vector<int> x;
+	for (int j = 0; j < m; ++j)
+	{
+		if (a[i][j] == 'X')
+		{
+			x.push_back(j);
+		}
+	}
+    //这个两层循环是O(m)的,而不是O(m^2)
+	for (int j = 1; j < x.size(); ++j)
+	{
+		bool allo = true;
+		for (int k = x[j - 1] + 1; k < x[j] && allo; ++k)
+		{
+			allo &= a[i][j] == 'O';
+		}
+        for (int k = x[j - 1] + 1; k < x[j] && allo; ++k)
+        {
+            a[i][j] = 'X';
+            ++cnt;
+        }
+	}
+}
+```
+
+如果每一竖、撇、捺都复制粘贴一遍上述思路然后改改，代码很长，可维护性很差。考虑一种优雅的写法，统一地实现横竖撇捺的枚举。
+
+可以求出一种统一枚举横竖撇捺的实现为：
+
+```c++
+int n = a.size(), m = a[0].size();
+auto in = [&](int x, int y)
+{
+	return x >= 0 && y >= 0 && x < n && y < m;
+};
+constexpr int d[4][2] = {{0, 1}, {1, 0}, {1, 1}, {1, -1}};
+function<void(int &, int &)> nx[] = {
+	[](int &x, int &y)
+	{ x += 1, y = 0; },
+	[](int &x, int &y)
+	{ x = 0, y += 1; },
+	[&](int &x, int &y)
+	{ (x == 0 && y + 1 < m) ? (x = 0, y += 1) : (x += 1, y = 0); },
+	[&](int &x, int &y)
+	{ (x == 0 && y + 1 < m) ? (x = 0, y += 1) : (x += 1, y = m - 1); }};
+for (int h = 0; h < 4; ++h)
+{
+	for (int x0 = 0, y0 = 0; in(x0, y0); nx[h](x0, y0))
+	{
+		for (int x1 = x0, y1 = y0; in(x1, y1); x1 += d[h][0], y1 += d[h][1])
+		{
+			//具体每一格
+		}
+	}
+}
+```
+
+扼要地解释一下逻辑实现：
+
+- 最外层循环是控制当前是哪一种枚举，$h=1,2,3,4$ 分别是横、竖、主对角线(捺)、副对角线(撇)枚举
+
+- 中间层循环控制如何切换到下一横、下一竖、下一主对角线、下一副对角线；且最开始总是从 $(0,0)$ 为第一个横竖/对角线。
+
+  横竖很好理解，下一横就让竖坐标增一，横坐标清零；竖相反即可。下面重点讨论对角线。
+
+  因为对角线切换存在逻辑更改，例如，对 $3\times 5$ 矩阵，不妨这么定义每一条主对角线、副对角线(元素表示第几条对角线)：
+  $$
+  \pmatrix{
+  1&2&3&4&5\\
+  6&1&2&3&4\\
+  7&6&1&2&3
+  }
+  \quad
+  \pmatrix{
+  1&2&3&4&5\\
+  2&3&4&5&6\\
+  3&4&5&6&7
+  }
+  $$
+  那么每一个对角线的第一个元素不妨设为最上边的元素。可以发现主对角线的首元素移动规律为先往右、然后回到最左并往下；副对角线的首元素移动规律为先往右、然后直接往下。而切换移动规则的关键是当前元素位于第一行最右边，即 $x=0,y=m-1$。
+
+  综上，不难写出切换到下一横、下一竖、下一主对角线、下一副对角线的代码，可以定义四个匿名函数，按下标编成函数数组 `nx`(即 next)。
+
+  易得，上述逻辑下遍历完全部横竖/对角线的充要条件是第一次产生越界。使用函数 `in` 检查是否越界。
+
+- 最内层循环控制每一横、每一竖、每一主对角线、每一副对角线，可以使用类似 BFS 的增量数组控制每一次移动。遍历完当前横竖/对角线的充要条件是第一次产生越界。
+
+现在我们将 `check` 函数从横扩展到横竖撇捺，完整代码如下所示：
+
+```c++
+class Solution
+{
+    using mmap = vector<string>;
+    int check(mmap a)
+    {
+        int cnt = 0, n = a.size(), m = a[0].size();
+        auto in = [&](int x, int y)
+        {
+            return x >= 0 && y >= 0 && x < n && y < m;
+        };
+        constexpr int d[4][2] = {{0, 1}, {1, 0}, {1, 1}, {1, -1}};
+        function<void(int &, int &)> nx[] = {
+            [](int &x, int &y)
+            { x += 1, y = 0; },
+            [](int &x, int &y)
+            { x = 0, y += 1; },
+            [&](int &x, int &y)
+            { (x == 0 && y + 1 < m) ? (x = 0, y += 1) : (x += 1, y = 0); },
+            [&](int &x, int &y)
+            { (x == 0 && y + 1 < m) ? (x = 0, y += 1) : (x += 1, y = m - 1); }};
+
+        for (int bf = 0;;)
+        {
+            for (int h = 0; h < 4; ++h)
+            {
+                for (int x0 = 0, y0 = 0; in(x0, y0); nx[h](x0, y0))
+                {
+                    string s = "";
+                    vector<pair<int, int>> f;
+                    for (int x1 = x0, y1 = y0; in(x1, y1); x1 += d[h][0], y1 += d[h][1])
+                    {
+                        s += a[x1][y1];
+                        f.push_back({x1, y1});
+                    }
+                    vector<int> x;
+                    for (int i = 0; i < s.size(); ++i)
+                    {
+                        if (s[i] == 'X')
+                        {
+                            x.push_back(i);
+                        }
+                    }
+                    for (int i = 1; i < x.size(); ++i)
+                    {
+                        bool ok = true;
+                        for (int j = x[i - 1] + 1; j < x[i] && ok; ++j)
+                        {
+                            ok &= s[j] == 'O';
+                        }
+                        for (int j = x[i - 1] + 1; j < x[i] && ok; ++j)
+                        {
+                            auto [x1, y1] = f[j];
+                            a[x1][y1] = 'X';
+                            ++cnt;
+                        }
+                    }
+                }
+            }
+            if (bf == cnt)
+            {
+                break;
+            }
+            bf = cnt;
+        }
+        return cnt;
+    }
+
+public:
+    int flipChess(mmap &chessboard)
+    {
+        int ans = 0;
+        for (int i = 0; i < (int)chessboard.size(); ++i)
+        {
+            for (int j = 0; j < (int)chessboard[i].size(); ++j)
+            {
+                if (chessboard[i][j] == '.' )
+                {
+                    chessboard[i][j] = 'X';
+                    int v = check(chessboard);
+                    // cout << i << ' ' << j << ' ' << v << '\n';
+                    ans = max(ans, v);
+                    chessboard[i][j] = '.';
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+
+
+更优解法：
+
+BFS，对当前修改位置，八方向射线(横竖撇捺刚好)找到能去的下一个黑子，一路上的每个白子都入队。
+
+枚举每个修改位置，对每个位置都 BFS，且 BFS 内层射线复杂度是 $O(8\max(n,m))$，故总复杂度为 $O(n^2m^2\max(n,m))$。
+
+```c++
+class Solution {
+public:
+    const int dirs[8][2] = {
+        {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
+    };
+
+    bool judge(const vector<string>& chessboard, int x, int y, int dx, int dy) {
+        x += dx;
+        y += dy;
+        while (0 <= x && x < chessboard.size() && 0 <= y && y < chessboard[0].size()) {
+            if (chessboard[x][y] == 'X') {
+                return true;
+            } else if (chessboard[x][y] == '.') {
+                return false;
+            }
+            x += dx;
+            y += dy;
+        }
+        return false;
+    }
+
+    int bfs(vector<string> chessboard, int px, int py) {
+        int cnt = 0;
+        queue<pair<int, int>> q;
+        q.emplace(px, py);
+        chessboard[px][py] = 'X';
+        while (!q.empty()) {
+            pair<int, int> t = q.front();
+            q.pop();
+            for (int i = 0; i < 8; ++i) {
+                if (judge(chessboard, t.first, t.second, dirs[i][0], dirs[i][1])) {
+                    int x = t.first + dirs[i][0], y = t.second + dirs[i][1];
+                    while (chessboard[x][y] != 'X') {
+                        q.emplace(x, y);
+                        chessboard[x][y] = 'X';
+                        x += dirs[i][0];
+                        y += dirs[i][1];
+                        ++cnt;
+                    }
+                }
+            }
+        }
+        return cnt;
+    }
+
+    int flipChess(vector<string>& chessboard) {
+        int res = 0;
+        for (int i = 0; i < chessboard.size(); ++i) {
+            for (int j = 0; j < chessboard[0].size(); ++j) {
+                if (chessboard[i][j] == '.') {
+                    res = max(res, bfs(chessboard, i, j));
+                }
+            }
+        }
+        return res;
+    }
+};
+```
+
+
 
 > ### 力扣比赛
 >
