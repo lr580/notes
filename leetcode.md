@@ -541,6 +541,10 @@
 - LCP41\.黑白翻转棋
 
   模拟 / <u>BFS</u>
+  
+- 16\.19\.水域大小
+
+  BFS
 
 
 
@@ -15659,6 +15663,146 @@ public:
                 }
             }
         }
+        return res;
+    }
+};
+```
+
+##### 16\.19\.水域大小
+
+[题目](https://leetcode.cn/problems/pond-sizes-lcci/)
+
+我的 BFS 写法：
+
+```c++
+class Solution
+{
+public:
+    vector<int> pondSizes(vector<vector<int>> &land)
+    {
+        vector<int> ans;
+        int n = land.size(), m = land[0].size();
+        constexpr int dx[] = {-1, -1, 0, 1, 1, 1, 0, -1};
+        constexpr int dy[] = {0, -1, -1, -1, 0, 1, 1, 1};
+        for (int i = 0; i < n; ++i)
+        {
+            for (int j = 0; j < m; ++j)
+            {
+                if (land[i][j])
+                {
+                    continue;
+                }
+                int cnt = 0;
+                queue<pair<int, int>> q;
+                q.push({i, j});
+                while (!q.empty())
+                {
+                    auto [x, y] = q.front();
+                    q.pop();
+                    if (land[x][y])
+                    {
+                        continue;
+                    }
+                    land[x][y] = 1;
+                    ++cnt;
+                    for (int i = 0; i < 8; ++i)
+                    {
+                        int ax = x + dx[i], ay = y + dy[i];
+                        if (ax < 0 || ay < 0 || ax >= n || ay >= m || land[ax][ay])
+                        {
+                            continue;
+                        }
+                        q.push({ax, ay});
+                    }
+                }
+                ans.push_back(cnt);
+            }
+        }
+        sort(ans.begin(), ans.end());
+        return ans;
+    }
+};
+```
+
+题解的：
+
+```c++
+class Solution {
+public:
+    vector<int> pondSizes(vector<vector<int>>& land) {
+        int m = land.size(), n = land[0].size();
+        auto bfs = [&](int x, int y) -> int {
+            int res = 0;
+            queue<pair<int, int>> q;
+            q.push({x, y});
+            land[x][y] = -1;
+            while (!q.empty()) {
+                auto [x, y] = q.front();
+                q.pop();
+                res++;
+                for (int dx = -1; dx <= 1; dx++) {
+                    for (int dy = -1; dy <= 1; dy++) {
+                        if (dx == 0 && dy == 0) {
+                            continue;
+                        }
+                        if (x + dx < 0 || x + dx >= m || y + dy < 0 || y + dy >= n || land[x + dx][y + dy] != 0) {
+                            continue;
+                        }
+                        land[x + dx][y + dy] = -1;
+                        q.push({x + dx, y + dy});
+                    }
+                }
+            }
+            return res;
+        };
+
+        vector<int> res;
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (land[i][j] == 0) {
+                    res.push_back(bfs(i, j));
+                }
+            }
+        }
+        sort(res.begin(), res.end());
+        return res;
+    }
+};
+```
+
+DFS：
+
+```c++
+class Solution {
+public:
+    vector<int> pondSizes(vector<vector<int>>& land) {
+        int m = land.size(), n = land[0].size();
+        function<int(int, int)> dfs = [&](int x, int y) -> int {
+            if (x < 0 || x >= m || y < 0 || y >= n || land[x][y] != 0) {
+                return 0;
+            }
+            land[x][y] = -1;
+            int res = 1;
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dy = -1; dy <= 1; dy++) {
+                    if (dx == 0 && dy == 0) {
+                        continue;
+                    }
+                    res += dfs(x + dx, y + dy);
+                }
+            }
+            return res;
+        };
+
+        vector<int> res;
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (land[i][j] == 0) {
+                    res.push_back(dfs(i, j));
+                }
+            }
+        }
+        sort(res.begin(), res.end());
         return res;
     }
 };
