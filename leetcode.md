@@ -545,6 +545,10 @@
 - 16\.19\.水域大小
 
   BFS
+  
+- 1659\.最大化网格幸福感
+
+  <u>状压DP</u> / <u>轮廓线优化</u>
 
 
 
@@ -15803,6 +15807,432 @@ public:
             }
         }
         sort(res.begin(), res.end());
+        return res;
+    }
+};
+```
+
+##### 1659\.最大化网格幸福感
+
+[题目](https://leetcode.cn/problems/maximize-grid-happiness/)
+
+状压压缩代码详解+扩展到多次询问/求最优方案数
+
+状压压缩经典题，思路为：
+
+1. 设三进制状态 $s$ 表示一行，每一位为 $1$ 设为外向者，$2$ 为内向者，$0$ 为无人
+2. 设 $g_{i,j}$ 表示上一行状态为 $i$，当前行状态为 $j$ 下的最优解，预处理
+3. 设 $dp_{i,u,v,s}$ 表示前 $i$ 行共有 $u$ 个内向者和 $v$ 个外向者，第 $i$ 行状态为 $s$ 的最优解
+4. 答案即求 $\max_{i=0}^u\max_{j=0}^v\max_{s}dp_{m,i,j,s}$
+
+其中预处理 $g$ 的复杂度为 $O(3^m\cdot 3^m)=O(3^{2m})\approx6\times10^4$
+
+处理 $dp$ 的复杂度为 $O(nuv3^{2m})\approx 10^7$，空间复杂度为 $O(nuv3^m)\approx4\times 10^4$。
+
+具体思路见代码，有详细注释：
+
+```c++
+class Solution
+{
+public:
+    int getMaxGridHappiness(int m, int n, int introvertsCount, int extrovertsCount);
+};
+using ll = int;
+// 8=min(n*m,6)+2,245=3^5+2
+const ll maxn = 8, maxp = 245;
+ll g[maxp][maxp], dp[maxn][maxn][maxn][maxp];
+//, c[maxn][maxn][maxn][maxp]; (取得最优解的方案数)
+// uu:introvertsCount, vv:extrovertsCount
+int Solution::getMaxGridHappiness(int n, int m, int uu, int vv)
+{
+    // 3的幂的常数数组
+    constexpr ll n3[] = {1, 3, 9, 27, 81, 243, 729};
+    // 三进制状态的每一位,0表示无人,1是外向,2是内向
+    constexpr ll no = 0, in = 1, ou = 2;
+    // 单位为10,内向外向的基础得分
+    constexpr ll basein = 12, baseou = 4;
+    // 对单行的三进制状态i,有ins[i]个内向者和outs[i]个外向者
+    ll ins[maxp] = {}, ous[maxp] = {};
+    /* 设单位为10
+    ofs[0] 表示两个外向挨在一块对两人的总加成 2+2=4
+    ofs[1] 表示一内一外挨在一块 -3+2=-1
+    ofs[2] 表示两内向挨在一块对两人的总加成 -3-3=-6
+    */
+    constexpr ll ofs[5] = {4, -1, -6};
+
+    // g[i][j]:上一行状态为i,这一行为j是，j这一行的得分
+    memset(g, 0, sizeof g);
+    // 预处理在上一行影响下每一行所有状态的得分
+    for (ll i = 0; i < n3[m]; ++i)
+    {
+        // 先预处理不考虑上一行的本行得分
+        //  state=i当前状态;s是这一行得分,pre是上一格
+        ll st = i, s = 0, pre = no;
+        do // 逐位枚举这一行每个格子
+        {
+            ll now = st % 3; // 当前格子
+            if (now == in)
+            {
+                ++ins[i], s += basein;
+            }
+            else if (now == ou)
+            {
+                ++ous[i], s += baseou;
+            }
+            if (pre != no && now != no)
+            { // 左右两格挨在一起
+                s += ofs[(pre == in) + (now == in)];
+            }
+            pre = now, st /= 3;
+        } while (st);
+
+        // 预处理在上一行影响下的得分g[j][i]
+        for (ll j = 0; j < n3[m]; ++j)
+        {
+            g[j][i] += s; // 不考虑上一行的基础分
+            for (ll st1 = i, st2 = j, k = 0; k < m; ++k, st1 /= 3, st2 /= 3)
+            {
+                ll now = st1 % 3, pre = st2 % 3;
+                if (pre != no && now != no)
+                { // 上下两格挨在一起
+                    g[j][i] += ofs[(pre == in) + (now == in)];
+                }
+            }
+        }
+    }
+
+    // dp[i][u][v][now] 前i行共有u个内向者,v个外向者,第i行三进制状态为now下，前i行的总得分
+    memset(dp, 0xbf, sizeof dp); // 不是-infty的大负数
+    dp[0][0][0][0] = 0;          // 初态
+    for (ll i = 1; i <= n; ++i)
+    { // 当前第i行
+        for (ll u = 0; u <= uu; ++u)
+        { // 前i行有u个内向者
+            for (ll v = 0; v <= vv; ++v)
+            { // 前i行有v个外向者
+                for (ll now = 0; now < n3[m]; ++now)
+                { // 当前行状态
+                    if (ins[now] > u || ous[now] > v)
+                    {
+                        continue;
+                    }
+                    // 前i-1行有x个内向者和y个外向者
+                    ll x = u - ins[now], y = v - ous[now];
+                    for (ll pre = 0; pre < n3[m]; ++pre)
+                    { // 上一行状态
+                        if (dp[i - 1][x][y][pre] < 0)
+                        { // 不可能状态
+                            continue;
+                        }
+                        dp[i][u][v][now] = max(dp[i][u][v][now], dp[i - 1][x][y][pre] + g[pre][now]);
+                    }
+                }
+            }
+        }
+    }
+
+    // 有i个内向者j个外向者时的最优解
+    // 即a[i][j]=max(dp[n][i][j][now])
+    ll a[maxn][maxn] = {};
+    for (ll i = 0; i <= uu; ++i)
+    { // 内向者数目
+        for (ll j = 0; j <= vv; ++j)
+        { // 外向者数目
+            for (ll k = 0; k < n3[m]; ++k)
+            { // 第n行状态
+                a[i][j] = max(a[i][j], dp[n][i][j][k]);
+            }
+        }
+    }
+
+    ll ans = 0;
+    for (ll i = 0; i <= uu; ++i)
+    { // 内向者数目
+        for (ll j = 0; j <= vv; ++j)
+        { // 外向者数目
+            ans = max(ans, a[i][j]);
+        }
+    }
+    return ans * 10; // 基本单位10
+}
+```
+
+**扩展：**
+
+[多次询问题目](https://oj.socoding.cn/p/1397) (SCNUCPC2020A题)
+
+该题与本题的区别为：
+
+- 对同一个 $n,m$，有 $Q(Q\le 49)$ 次不同的 $u,v$ 询问
+- 每个询问不仅要求出最优解，还要求出取得最优解的方案数
+
+思路很接近，修改上述代码，即可得到：
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+typedef double db;
+typedef long long ln;
+typedef int ll;
+#define il inline
+#define rep(i,a,b) for(ll i=a;i<b;++i)
+#define repe(i,a,b) for(ll i=a;i<=b;++i)
+#define red(i,a,b) for(ll i=a;i>b;--i)
+#define rede(i,a,b) for(ll i=a;i>=b;--i)
+#define orep(i,a,b) for(i=a;i<b;++i)
+#define orepe(i,a,b) for(i=a;i<=b;++i)
+#define ored(i,a,b) for(i=a;i>b;--i)
+#define orede(i,a,b) for(i=a;i>=b;--i)
+inline ll read()
+{
+	char p = 0; ll r = 0, o = 0;
+	for (; p < '0' || p>'9'; o |= p == '-', p = getchar());
+	for (; p >= '0' && p <= '9'; r = (r << 1) + (r << 3) + (p ^ 48), p = getchar());
+	return o ? (~r) + 1 : r;
+}
+#define mn 245 //3^5
+#define mm 6
+#define big 0x7ffffffa
+ll g[mn][mn], in[mn], out[mn], n3[] = { 1,3,9,27,81,243,729 };
+//in[i] how many chino in state(i), out[i] likewise
+//g[i][j] 是上一行为i，下一行为j时下一行的分数
+ll ofs[5] = { 4,-1,-6 }, dp[8][8][8][mn], c[8][8][8][mn];
+//ofs[0] neighbor both cocas; [1]cocas x chino; [2] both chino
+ll a[8][8], b[8][8], n, m, q, u, v;
+signed main()
+{
+	n = read(), m = read(), q = read();
+	rep(i, 0, n3[m])
+	{
+		ll x = 0, y = 0, s = 0, st = i;
+		do 
+		{
+			y = st % 3;
+			if (y == 1) ++in[i], s += 12; //chino
+			else if (y == 2) ++out[i], s += 4; //cocoa
+			if (x && y) //neighbor in row
+				s += ofs[(x == 1) + (y == 1)];
+			x = y; //last y
+			st /= 3;
+		} while (st);
+		rep(pre, 0, n3[m])//upper line, likewise
+		{
+			g[pre][i] += s;
+			for (ll st1 = i, st2 = pre, j = 0; j < m; ++j, st1 /= 3, st2 /= 3)
+			{
+				x = st1 % 3, y = st2 % 3;
+				if (x && y) g[pre][i] += ofs[(x == 1) + (y == 1)];
+			}
+            cout << pre << ' ' << i << ' ' << g[pre][i] << '\n';
+		}
+	}
+	//rep(i, 0, 8) rep(j, 0, 8) rep(k, 0, 8) rep(h, 0, mn)
+	//	dp[i][j][k][h] = -1; //+1类问题；且这个负值必须大于max(g[i][j])
+	memset(dp, 0xbf, sizeof dp);//事实表明该函数比循环赋值快
+	dp[0][0][0][0] = 0, c[0][0][0][0] = 1;
+	repe(i, 1, n)
+		repe(u, 0, mm)//注意到mm不是到m；开到mm的原因是u,v不一定小于n,m
+			repe(v, 0, mm)
+				rep(now, 0, n3[m])
+				{
+					if (in[now] > u || out[now] > v) continue;
+					ll x = u - in[now], y = v - out[now];
+					//在这一行之前，chino和cocoa放了x和y棋子
+					rep(pre, 0, n3[m])
+					{
+						if (dp[i - 1][x][y][pre] < 0) continue;
+						if (dp[i][u][v][now] < dp[i - 1][x][y][pre] + g[pre][now])//有更优解
+							dp[i][u][v][now] = dp[i - 1][x][y][pre] + g[pre][now],
+							c[i][u][v][now] = c[i - 1][x][y][pre];
+						else if (dp[i][u][v][now] == dp[i - 1][x][y][pre] + g[pre][now])//最优解积累
+							c[i][u][v][now] += c[i - 1][x][y][pre];
+					}
+				}
+	repe(i, 0, mm)
+		repe(j, 0, mm)
+			rep(k, 0, n3[m])//求放棋为i,j时的最优解及其解法数
+				if (dp[n][i][j][k] > a[i][j])
+					a[i][j] = dp[n][i][j][k],
+					b[i][j] = c[n][i][j][k];
+				else if (dp[n][i][j][k] == a[i][j])
+					b[i][j] += c[n][i][j][k];
+	while (q--)
+	{
+		u = read(), v = read();
+		ll mx = 0, s = 0;
+		repe(i, 0, u)
+			repe(j, 0, v)//求在放棋数范围为[0,u],[0,v]下最优解及其个数
+				if (a[i][j] > mx) mx = a[i][j], s = b[i][j];
+				else if (a[i][j] == mx) s += b[i][j];
+		printf("%d %d\n", mx, s);
+	}
+	return 0;
+}
+```
+
+
+
+题解朴素状压，基本思路是一样的：
+
+```c++
+class Solution {
+private:
+    static constexpr int T = 243, N = 5, M = 6;
+    int n, m, tot;
+    int mask_bits[T][N];
+    int iv_count[T], ev_count[T];
+    int inner_score[T], inter_score[T][T];
+    int d[N][T][M + 1][M + 1];
+
+    // 邻居间的分数
+    static constexpr int score[3][3] = {
+        {0, 0, 0},
+        {0, -60, -10},
+        {0, -10, 40}
+    };
+
+public:
+    void init_data() {
+        // 计算行内分数
+        for (int mask = 0; mask < tot; mask++) {
+            int mask_tmp = mask;
+            for (int i = 0; i < n; i++) {
+                int x = mask_tmp % 3;
+                mask_bits[mask][i] = x;
+                mask_tmp /= 3;
+                if (x == 1) {
+                    iv_count[mask]++;
+                    inner_score[mask] += 120;
+                } else if (x == 2) {
+                    ev_count[mask]++;
+                    inner_score[mask] += 40;
+                }
+                if (i > 0) {
+                    inner_score[mask] += score[x][mask_bits[mask][i - 1]];
+                }
+            }
+        }
+        // 计算行间分数
+        for (int i = 0; i < tot; i++) {
+            for (int j = 0; j < tot; j++) {
+                inter_score[i][j] = 0;
+                for (int k = 0; k < n; k++) {
+                    inter_score[i][j] += score[mask_bits[i][k]][mask_bits[j][k]];
+                }
+            }
+        }
+    }
+
+    int getMaxGridHappiness(int m, int n, int introvertsCount, int extrovertsCount) {
+        this->n = n;
+        this->m = m;
+        // 状态总数为 3^n
+        this->tot = pow(3, n);
+
+        init_data();
+        // 记忆化搜索数组，初始化为 -1，表示未赋值
+        memset(d, -1, sizeof d);
+        return dfs(0, 0, introvertsCount, extrovertsCount);
+    }
+
+    int dfs(int row, int premask, int iv, int ev) {
+        if (row == m || (iv == 0 && ev == 0)) {
+            return 0;
+        }
+        // 如果该状态已经计算过答案，则直接返回
+        if (d[row][premask][iv][ev] != -1) {
+            return d[row][premask][iv][ev];
+        }
+        // 使用引用，简化代码
+        int& res = d[row][premask][iv][ev];
+        // 合法状态，初始值为 0
+        res = 0;
+        for (int mask = 0; mask < tot; mask++) {
+            // mask 包含的内向人数不能超过 iv ，外向人数不能超过 ev
+            if (iv_count[mask] > iv || ev_count[mask] > ev) {
+                continue;
+            }
+            res = max(res, dfs(row + 1, mask, iv - iv_count[mask], ev - ev_count[mask]) 
+                            + inner_score[mask] 
+                            + inter_score[premask][mask]);
+        }
+        return res;
+    }
+};
+```
+
+
+
+轮廓线优化：
+
+按行枚举每次需要枚举 $3^n$ 种状态。如果可以按位置行枚举，只需要 $3$ 种状态。
+
+设一维坐标 $pos=xm+y$，则当前元素 $h_{pos}$ 只需要根据左边状态和上边状态 $h_{pos-1}$ 和 $h_{pos-m}$ 更新相邻分数。即连续共 $[pos-m,pos-1]$ 有 $m$ 个位置保留记忆。设掩码为前 $m$ 个格子。状态更新为：
+$$
+mask=mask\bmod 3^{m-1}\times 3+h_{pos}
+$$
+定义 $dp_{pos,mask,u,v}$ 表示枚举到第 $pos$ 个格子，轮廓线为 $mask$，尚有 $u,v$ 个内外向者未放置。则时间复杂度压一个 $3^m$，多一个 $m$，即 $O(nmuv3^m)$。
+
+```c++
+class Solution {
+private:
+    static constexpr int T = 243, N = 5, M = 6;
+    int n, m, tot;
+    int p[N];
+    int d[N * N][T][M + 1][M + 1];
+
+    // 邻居间的分数
+    static constexpr int score[3][3] = {
+        {0, 0, 0},
+        {0, -60, -10},
+        {0, -10, 40}
+    };
+
+public:
+    int getMaxGridHappiness(int m, int n, int introvertsCount, int extrovertsCount) {
+        this->n = n;
+        this->m = m;
+        // 状态总数为 3^n
+        this->tot = pow(3, n);
+        p[0] = 1;
+        for (int i = 1; i < n; i++) {
+            p[i] = p[i - 1] * 3;
+        }
+        
+        // 记忆化搜索数组，初始化为 -1，表示未赋值
+        memset(d, -1, sizeof d);
+        return dfs(0, 0, introvertsCount, extrovertsCount);
+    }
+
+    int dfs(int pos, int mask, int iv, int ev) {
+        if (pos == n * m || (iv == 0 && ev == 0)) {
+            return 0;
+        }
+        int& res = d[pos][mask][iv][ev];
+        if (res != -1) {
+            return res;
+        }
+        res = 0;
+        int up = mask / p[n - 1], left = mask % 3;
+        // 若处于第一列，则左侧没有元素，将 left 置为 0
+        if (pos % n == 0) {
+            left = 0;
+        }
+        for (int i = 0; i < 3; i++) {
+            if ((i == 1 && iv == 0) || (i == 2 && ev == 0)) {
+                continue;
+            }
+            int next_mask = mask % p[n - 1] * 3 + i;
+            int score_sum = dfs(pos + 1, next_mask, iv - (i == 1), ev - (i == 2))
+                            + score[up][i]
+                            + score[left][i];
+            if (i == 1) {
+                score_sum += 120;
+            } else if (i == 2) {
+                score_sum += 40;
+            }
+            res = max(res, score_sum);
+        }
         return res;
     }
 };
