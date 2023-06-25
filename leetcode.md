@@ -549,6 +549,10 @@
 - 1659\.最大化网格幸福感
 
   <u>状压DP</u> / <u>轮廓线优化</u>
+  
+- 1401\.圆和矩形是否有重叠
+
+  计算几何 / <u>思维</u>
 
 
 
@@ -16237,6 +16241,188 @@ public:
     }
 };
 ```
+
+计算几何基础问题通用板子
+
+对本题，若有重叠，分为两种情况：
+
+1. 圆心在矩形内部，直接判断即可。
+2. 圆心在举行外部，将圆心 $P$ 与四条矩形线段 $AB,BC,CD,DA$ 分别求点到线段的距离，如果存在一个距离大于等于半径，则重叠。
+
+其中，点 $P$ 到线段 $AB$ 距离的公式为：
+$$
+d=\begin{cases}
+\dfrac{|\vec{AB}\times \vec{AP}|}{|AB|},& P投影在线段AB内\\
+|PA|,& P投影在射线AB后边\\
+|PB|,& P投影在射线AB前边，不在线段AB内
+\end{cases}
+$$
+直接套模板(完整模板和所有能解决的问题及其证明见下文)，得：
+
+```c++
+using db = double;
+#define cp const point &
+class point
+{
+public:
+    db x, y;
+    point(db x = 0, db y = 0) : x(x), y(y) {}
+    point operator+(cp p) const { return point(x + p.x, y + p.y); }
+    point operator-(cp p) const { return point(x - p.x, y - p.y); }
+    point operator*(const db &p) const { return point(x * p, y * p); }
+    point operator/(const db &p) const { return point(x * p, y * p); }
+    db norm() const { return x * x + y * y; }
+    db abs() const { return sqrt(norm()); }
+    friend db dot(cp a, cp b)
+    {
+        return a.x * b.x + a.y * b.y;
+    }
+    friend db cross(cp a, cp b)
+    {
+        return a.x * b.y - a.y * b.x;
+    }
+};
+db dis(cp a, cp b, cp p) // p到线段ab的距离
+{
+    if (dot(b - a, p - a) < 0.0)
+    {
+        return (p - a).abs();
+    }
+    if (dot(a - b, p - b) < 0.0)
+    {
+        return (p - b).abs();
+    }
+    return abs(cross(b - a, p - a)) / (b - a).abs();
+}
+class Solution
+{
+public:
+    bool checkOverlap(int radius, int xCenter, int yCenter, int x1, int y1, int x2, int y2)
+    {
+        if (x1 <= xCenter && xCenter <= x2 && y1 <= yCenter && yCenter <= y2)
+        { // 内含
+            return true;
+        }
+        point p = point(xCenter, yCenter);
+        point a = point(x1, y1), b = point(x2, y1), c = point(x2, y2), d = point(x1, y2);
+        if (dis(a, b, p) <= radius || dis(b, c, p) <= radius || dis(c, d, p) <= radius || dis(d, a, p) <= radius)
+        {
+            return true;
+        }
+        return false;
+    }
+};
+```
+
+完整基础计算几何模板(个人整理版)：
+
+- [计算几何课件](https://github.com/lr580/shannon_sources/blob/master/%E8%AF%BE%E4%BB%B6_%E8%AE%A1%E7%AE%97%E5%87%A0%E4%BD%95/%E8%AE%A1%E7%AE%97%E5%87%A0%E4%BD%95.md) (含证明)
+- [其他算法模板](https://github.com/lr580/algorithm_template)
+
+这份计算几何模板能解决：
+
+1. 点/向量
+
+   点积 差积 点旋转 向量平行/垂直 极坐标互换
+
+2. 线段/直线
+
+   1. 点到直线距离 点到线段距离
+   2. 线段是否相交 线段与直线是否相交 线段与线段距离 直线与线段距离
+   3. 直线交点 线段交点
+   4. 点到直线的投影 点关于直线的对称点 圆与直线交点 圆与圆的交点
+
+3. 多边形
+
+   面积 点是否在多边形内部(PIP)
+
+4. 极角排序(两种实现及其应用)
+
+5. 凸包(可求凸多边形直径)
+
+6. 面积估算
+
+   微分 蒙特卡洛 积分 二分/三分优化
+
+如有需要欢迎下载阅读。
+
+
+
+本题特化题解：
+
+思路一：
+
+沿着矩形一圈放圆心移动，可以得到一个圆角矩形，圆心只要在这个圆角矩形的范围内就重叠。则分为圆心在：中心、四个外边矩形、四个圆角(可抽象为点在圆内)，共九种情况，分类讨论即可：
+
+```c++
+class Solution {
+public:
+    long long distance(int ux, int uy, int vx, int vy) {
+        return (long long)pow(ux - vx, 2) + (long long)pow(uy - vy, 2);
+    }
+
+    bool checkOverlap(int radius, int xCenter, int yCenter, int x1, int y1, int x2, int y2) {
+        /* 圆心在矩形内部 */
+        if (x1 <= xCenter && xCenter <= x2 && y1 <= yCenter && yCenter <= y2) {
+            return true;
+        }
+        /* 圆心在矩形上部*/
+        if (x1 <= xCenter && xCenter <= x2 && y2 <= yCenter && yCenter <= y2 + radius) {
+            return true;
+        }
+        /* 圆心在矩形下部*/
+        if (x1 <= xCenter && xCenter <= x2 && y1 - radius <= yCenter && yCenter <= y1) {
+            return true;
+        }
+        /* 圆心在矩形左部*/
+        if (x1 - radius <= xCenter && xCenter <= x1 && y1 <= yCenter && yCenter <= y2) {
+            return true;
+        }
+        /* 圆心在矩形右部*/
+        if (x2 <= xCenter && xCenter <= x2 + radius && y1 <= yCenter && yCenter <= y2) {
+            return true;
+        }
+        /* 矩形左上角 */
+        if (distance(xCenter, yCenter, x1, y2) <= radius * radius)  {
+            return true;
+        }
+        /* 矩形左下角 */
+        if (distance(xCenter, yCenter, x1, y1) <= radius * radius) {
+            return true;
+        }
+        /* 矩形右上角 */
+        if (distance(xCenter, yCenter, x2, y2) <= radius * radius) {
+            return true;
+        }
+        /* 矩形右下角 */
+        if (distance(xCenter, yCenter, x1, y2) <= radius * radius) {
+            return true;
+        }
+        /* 无交点 */
+        return false;
+    }
+};
+```
+
+解法二：先求出只看x坐标圆心到矩形的最小距离 $x$，在求出只看y坐标的最小距离 $y$，那么圆心到矩形的最小距离就是 $\sqrt{x^2+y^2}$。两边平方消精度误差。
+
+```c++
+class Solution {
+public:
+    bool checkOverlap(int radius, int xCenter, int yCenter, int x1, int y1, int x2, int y2) {
+        long long dist = 0;
+        if (xCenter < x1 || xCenter > x2) {
+            dist += min(pow(x1 - xCenter, 2), pow(x2 - xCenter, 2));
+        }
+        if (yCenter < y1 || yCenter > y2) {
+            dist += min(pow(y1 - yCenter, 2), pow(y2 - yCenter, 2));
+        }
+        return dist <= radius * radius;
+    }
+};
+```
+
+
 
 
 
