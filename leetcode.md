@@ -553,6 +553,10 @@
 - 1401\.圆和矩形是否有重叠
 
   计算几何 / <u>思维</u>
+  
+- 2485\.找出中枢整数
+
+  数学
 
 
 
@@ -16421,6 +16425,50 @@ public:
     }
 };
 ```
+
+##### 2485\.找出中枢整数
+
+[题目](https://leetcode.cn/problems/find-the-pivot-integer/)
+
+等差数列公式 $\dfrac{n(a_1+a_n)}{2}$，解得 $x=\pm\sqrt{\dfrac{n^2+n}2}$。
+
+判断 $x$ 是否是整数，只需要判断求出来的 $x^2$ 是否等于开方前的数即可。
+
+```c++
+class Solution {
+public:
+    int pivotInteger(int n) {
+        int t = (n * n + n) / 2;
+        int x = sqrt(t);
+        if (x * x == t) {
+            return x;
+        }
+        return -1;
+    }
+};
+```
+
+个人实现：不判断整数，直接代回去看看是否有解。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution
+{
+public:
+    int pivotInteger(int n)
+    {
+        int x = round(sqrt((n * n + n) / 2));
+        if (x * (1 + x) == (n - x + 1) * (n + x))
+        {
+            return x;
+        }
+        return -1;
+    }
+};
+```
+
+
 
 
 
