@@ -557,6 +557,14 @@
 - 2485\.找出中枢整数
 
   数学
+  
+- 1186\.删除一次得到子数组最大和
+
+  **DP**
+  
+- 1681\.最小不兼容性
+
+  **状压DP+枚举子集**
 
 
 
@@ -16469,6 +16477,117 @@ public:
 ```
 
 
+
+##### 1186\.删除一次得到子数组最大和
+
+[题目](https://leetcode.cn/problems/maximum-subarray-sum-with-one-deletion/)
+
+设下标 $1$ 开始，前缀和为 $s$，即求：
+$$
+\max_{r=1}^n( s_r-\min_{l=1}^{r-1}(s_{l-1}+\min(0,\min_{i=l}^ra_i)))
+$$
+不能滑窗(+RMQ/multiset)。
+
+使用 DP：设 $dp_{i,k}$ 表示以 $i$ 结尾，删了 $k$ 次的非空子树组最大和。初始 $dp_{0,?}=0$，转移：
+$$
+dp_{i,0}=\max(dp_{i-1,0},0)+a_0,\quad dp_{i,1}=\max(dp_{i-1,1}+a_{i},dp_{i-1,0})
+$$
+答案：$\max dp$。
+
+在不删的情况下，即取最大 $s_r-\min s_{l-1}$，$dp_{i,0}$ 与之等价。
+
+在删的情况下，已经删了就不能删了；还没删就把当前 $a_i$ 给删了。
+
+```c++
+class Solution {
+public:
+    int maximumSum(vector<int>& arr) {
+        int dp0 = arr[0], dp1 = 0, res = arr[0];
+        for (int i = 1; i < arr.size(); i++) {
+            dp1 = max(dp0, dp1 + arr[i]);
+            dp0 = max(dp0, 0) + arr[i];
+            res = max(res, max(dp0, dp1));
+        }
+        return res;
+    }
+};
+```
+
+##### 1681\.最小不兼容性
+
+[题目](https://leetcode.cn/problems/minimum-incompatibility/)
+
+设 $dp_i$ 是二进制状态 $i$ 的答案，即求 $dp_{2^n-1}$ 的值。初始 $dp_0=0$，其余 $dp=\infty$。
+
+首先预处理所有子集，求出全体长为 $\dfrac nk$ 的且不含相等值的状态，计算它的值存为 $v_i$。
+
+枚举所有状态 $mask$，求出该状态尚未被分配元素的集合 $sub$，相等元素只保留最后出现的一个，遍历 $sub$ 的全体子集 $nxt$，有：
+$$
+dp_{mask|cnt}=\min_{nxt\ is\ valid}(dp_{mask}+v_{nxt})
+$$
+枚举子集，故复杂度为 $O(3^n)\approx1.4\times 10^7$，空间为 $O(2^n)$。
+
+```c++
+class Solution {
+public:
+    int minimumIncompatibility(vector<int>& nums, int k) {
+        int n = nums.size();
+        vector<int> dp(1 << n, INT_MAX);
+        dp[0] = 0;
+        int group = n / k;
+        unordered_map<int, int> values;
+
+        for (int mask = 1; mask < (1 << n); mask++) {
+            if (__builtin_popcount(mask) != group) {
+                continue;
+            }
+            int mn = 20, mx = 0;
+            unordered_set<int> cur;
+            for (int i = 0; i < n; i++) {
+                if (mask & (1 << i)) {
+                    if (cur.count(nums[i]) > 0) {
+                        break;
+                    }
+                    cur.insert(nums[i]);
+                    mn = min(mn, nums[i]);
+                    mx = max(mx, nums[i]);
+                }
+            }
+            if (cur.size() == group) {
+                values[mask] = mx - mn;
+            }
+        }
+
+        for (int mask = 0; mask < (1 << n); mask++) {
+            if (dp[mask] == INT_MAX) {
+                continue;
+            }
+            unordered_map<int, int> seen;
+            for (int i = 0; i < n; i++) {
+                if ((mask & (1 << i)) == 0) { //mask没有的全体不重元素
+                    seen[nums[i]] = i;
+                }
+            }
+            if (seen.size() < group) { //不同元素的个数
+                continue;
+            }
+            int sub = 0;
+            for (auto& pair : seen) {
+                sub |= (1 << pair.second);
+            }
+            int nxt = sub;
+            while (nxt > 0) {
+                if (values.count(nxt) > 0) { //在某个n/k子集里
+                    dp[mask | nxt] = min(dp[mask | nxt], dp[mask] + values[nxt]);
+                }
+                nxt = (nxt - 1) & sub;
+            }
+        }
+
+        return (dp[(1 << n) - 1] < INT_MAX) ? dp[(1 << n) - 1] : -1;
+    }
+};
+```
 
 
 
