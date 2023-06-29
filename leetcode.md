@@ -565,6 +565,10 @@
 - 1681\.最小不兼容性
 
   **状压DP+枚举子集**
+  
+- 1253\.重构2行二进制矩阵
+
+  构造
 
 
 
@@ -16590,6 +16594,100 @@ public:
 ```
 
 
+
+##### 1253\.重构2行二进制矩阵
+
+[题目](https://leetcode.cn/problems/reconstruct-a-2-row-binary-matrix/)
+
+个人：
+
+```c++
+class Solution
+{
+public:
+    vector<vector<int>> reconstructMatrix(int upper, int lower, vector<int> &colsum)
+    {
+        int s = 0, n = colsum.size();
+        for (auto x : colsum)
+        {
+            s += x;
+        }
+        vector<vector<int>> emp;
+        if (s != upper + lower)
+        {
+            return emp;
+        }
+        vector<vector<int>> r = vector(2, vector<int>(n, 0));
+        for (int i = 0; i < n; ++i)
+        {
+            if (colsum[i] == 2)
+            {
+                r[0][i] = r[1][i] = 1;
+                --upper, --lower;
+            }
+            // cout << upper << ' ' << lower << '\n';
+        }
+        for (int i = 0; i < n; ++i)
+        {
+            if (colsum[i] == 1)
+            {
+                if (upper > 0)
+                {
+                    r[0][i] = 1;
+                    --upper;
+                }
+                else
+                {
+                    r[1][i] = 1;
+                    --lower;
+                }
+            }
+        }
+        if (upper != 0 || lower != 0)
+        {
+            return emp;
+        }
+        return r;
+    }
+};
+```
+
+题解，只需要一次 for：
+
+```c++
+class Solution {
+public:
+    vector<vector<int>> reconstructMatrix(int upper, int lower, vector<int>& colsum) {
+        int n = colsum.size();
+        int sum = 0, two = 0;
+        for (int i = 0; i < n; ++i) {
+            if (colsum[i] == 2) {
+                ++two;
+            }
+            sum += colsum[i];
+        }
+        if (sum != upper + lower || min(upper, lower) < two) {
+            return {};
+        }
+        upper -= two;
+        lower -= two;
+        vector<vector<int>> res(2, vector<int>(n, 0));
+        for (int i = 0; i < n; ++i) {
+            if (colsum[i] == 2) {
+                res[0][i] = res[1][i] = 1;
+            } else if (colsum[i] == 1) {
+                if (upper > 0) {
+                    res[0][i] = 1;
+                    --upper;
+                } else {
+                    res[1][i] = 1;
+                }
+            }
+        }
+        return res;
+    }
+};
+```
 
 
 
