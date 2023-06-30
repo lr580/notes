@@ -569,6 +569,10 @@
 - 1253\.重构2行二进制矩阵
 
   构造
+  
+- 2490\.回环句
+
+  小模拟
 
 
 
@@ -16685,6 +16689,54 @@ public:
             }
         }
         return res;
+    }
+};
+```
+
+##### 2490\.回环句
+
+[题目](https://leetcode.cn/problems/circular-sentence/)
+
+个人实现：
+
+```c++
+class Solution
+{
+public:
+    bool isCircularSentence(string sentence)
+    {
+        stringstream ss(sentence);
+        vector<string> a;
+        string t;
+        while (ss >> t)
+        {
+            a.push_back(t);
+        }
+        int n = a.size(), ok = true;
+        for (int i = 0, j = (i + 1) % n; i < n; ++i, j = (j + 1) % n)
+        {
+            ok &= a[i].back() == *a[j].begin();
+        }
+        return ok;
+    }
+};
+```
+
+更优雅：
+
+```c++
+class Solution {
+public:
+    bool isCircularSentence(string sentence) {
+        if (sentence.back() != sentence.front()) {
+            return false;
+        }
+        for (int i = 0; i < sentence.size(); i++) {
+            if (sentence[i] == ' ' && sentence[i + 1] != sentence[i - 1]) {
+                return false;
+            } 
+        }
+        return true;
     }
 };
 ```
