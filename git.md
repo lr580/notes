@@ -828,13 +828,17 @@ git checkout solution.pdf
 
 点fork，在自己的账号下克隆了一个仓库，之后使用：
 
+```git
+git clone 仓库地址
+```
+
 ```bash
 git clone git@github.com:用户名/git仓库名
 ```
 
-> 会新建文件夹的，之后要cd之后才会进入
+> 会新建文件夹的，名字为仓库名字，之后要cd之后才会进入
 
-可以克隆到指定位置：
+可以克隆到指定位置，将会以指定目录为 clone 根目录：
 
 ```bash
 git clone 仓库地址 目录
@@ -1278,7 +1282,15 @@ fork的意义是把别人的仓库当前版本克隆一份到自己的仓库
 
 当有人发出 pull request 时，自己会收到邮件，打开对应的代码仓库，点击 pull request 栏目，可以选择相应的通过或拒绝别人的请求，然后可以留言，之后便通过了改变
 
+#### branch
 
+##### 删除分支
+
+如有个main先传了，然后传了个master。希望把main删了，因为先上的自动成了default。所以要到settings找到default branch，有多个branchs的情况下有个两箭头按钮，即switch，改了即可。然后codes点分支点view all branches把main删了。
+
+> 意思这样不会更新main分支的贡献者信息，contributors还在，如果要清空需要重开或其他办法。
+>
+> GPT4：GitHub的Contributors统计是根据在仓库中提交过的所有更改自动生成的，包括所有分支和历史版本。因此，一旦提交被推送到仓库，就无法从GitHub的用户界面中删除或编辑Contributors列表
 
 #### gist
 

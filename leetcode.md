@@ -573,6 +573,10 @@
 - 2490\.回环句
 
   小模拟
+  
+- 443\.两数相加II
+
+  模拟链表
 
 
 
@@ -16737,6 +16741,91 @@ public:
             } 
         }
         return true;
+    }
+};
+```
+
+##### 445\.两数相加II
+
+[题目](https://leetcode.cn/problems/add-two-numbers-ii/solution/)
+
+个人暴力：转array手撕高精度转回去
+
+```c++
+class Solution
+{
+public:
+    ListNode *addTwoNumbers(ListNode *l1, ListNode *l2)
+    {
+        auto toArray = [](ListNode *it)
+        {
+            vector<int> v;
+            for (; it; it = it->next)
+            {
+                v.push_back(it->val);
+            }
+            reverse(v.begin(), v.end());
+            return v;
+        };
+        vector<int> a = toArray(l1), b = toArray(l2);
+        int n = max(a.size(), b.size());
+        vector<int> r = vector<int>(n + 1, 0);
+        for (int i = 0, c = 0; i <= n; ++i)//<n的话进位不了
+        {
+            int sum = c;//不能够c+a[i]+b[i]小心越界飞
+            sum += i < a.size() ? a[i] : 0;
+            sum += i < b.size() ? b[i] : 0;
+            r[i] = sum % 10;
+            c = sum / 10;
+            // cout << r[i] << ' ' << c << '\n';
+        }
+        ListNode *head = new ListNode(), *ans = head;
+        while (r.size() > 1 && r.back() == 0)//size()>1否则0+0=empty
+        {
+            r.pop_back();
+        }
+        // for (int i = 0; i < r.size(); ++i)
+        for (int i = r.size() - 1; i >= 0; --i)
+        {
+            ListNode *it = new ListNode(r[i]);
+            head->next = it;
+            head = it;
+        }
+        return ans->next;
+    }
+};
+```
+
+答案：栈+反向建链
+
+```c++
+class Solution {
+public:
+    ListNode* addTwoNumbers(ListNode* l1, ListNode* l2) {
+        stack<int> s1, s2;
+        while (l1) {
+            s1.push(l1 -> val);
+            l1 = l1 -> next;
+        }
+        while (l2) {
+            s2.push(l2 -> val);
+            l2 = l2 -> next;
+        }
+        int carry = 0;
+        ListNode* ans = nullptr;
+        while (!s1.empty() or !s2.empty() or carry != 0) {
+            int a = s1.empty() ? 0 : s1.top();
+            int b = s2.empty() ? 0 : s2.top();
+            if (!s1.empty()) s1.pop();
+            if (!s2.empty()) s2.pop();
+            int cur = a + b + carry;
+            carry = cur / 10;
+            cur %= 10;
+            auto curnode = new ListNode(cur);
+            curnode -> next = ans;
+            ans = curnode;
+        }
+        return ans;
     }
 };
 ```
