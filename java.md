@@ -9474,7 +9474,7 @@ import java.util.*;
 - replaceAll(一元操作符) 类似 python 的 map 函数，语法为 `参数 -> 表达式` 
 - removeAll(Collection e) 只保留e没有的元素
 - retainAll(Collection e) 只保留e有的元素
-- clear()
+- clear(), 可能 O(n)
 - removeIf(一元操作符)
 - toArray()
 - forEach(一元函数) 以每个元素执行该函数
@@ -9612,6 +9612,9 @@ public class foreach {
 新方法：
 
 - get(int index) 指定索引的元素(索引从0开始)，越界报错 `IndexOutOfBoundsException`
+
+  注：即使构造方法给了 size，默认还是 0 个元素
+
 - set(int index, Object obj) 修改该索引对象为 obj
 
 Collections 静态操作：
@@ -9897,7 +9900,7 @@ public class c1403 {
 
 - getOrDefault(K, V) 如果有就取，没有就返回 V
 
-- keySet() 返回key组成的Set集合
+- keySet() 返回key组成的Set集合, O(1)
 
 - values() 返回集合值组成的Collection集合
 
@@ -9914,6 +9917,8 @@ public class c1403 {
   >     return a + b;
   > }
   > ```
+
+> clear On
 
 Map 允许值对象是 `null` 且没有个数限制。
 
@@ -10486,15 +10491,18 @@ Java 字符是 Unicode 编码，双字节。字符读取用 `Reader` ，方法�
 
 - `exists()` 该文件是否存在
 - `delete()` 删除该文件
+- `deleteOnExit()`
 - `createNewFile()` 新建该文件
 - `mkdir()` 创建路径指定的目录
 - `mkdirs()` 区别在于包括创建所必须的父目录
 - `getName()` 返回文件名(相对路径)
+- `getAbsolutePath()`
 - `canRead()` 是否可读
 - `canWrite()` 是否可写
 - `exists()` 是否存在
 - `length()` 返回 `long` ，文件内容长度(大小)，以字节为单位
 - `getAbsolutePath()` 返回绝对路径
+- `getAbsoluteFile()` 返回 File O(1)
 - `getParent()` 返回父路径(即使绝对路径有父路径，也可能会没有)
 - `isFile()` 文件是否存在
 - `isDirectory()` 是否是目录
@@ -10502,6 +10510,8 @@ Java 字符是 Unicode 编码，双字节。字符读取用 `Reader` ，方法�
 - `isHidden()` 是否隐藏文件
 - `lastModified()` 最后修改时间，`long`
 - `renameTo(File)` 重命名为新名字
+- `hashCode()` 根据文件路径做哈希，常用 `f.getAbsoluteFile().hashCode()`
+- `createTempFile(String prefix, String suffix)` 创建前缀(至少长3)，在系统的默认临时文件目录，退出时不会自动删除的临时文件
 
 **读文件**，创建输入流：
 
@@ -10690,6 +10700,32 @@ import java.nio.charset.Charset;//UTF-8文本文档读取使用
 File f = new File("data.txt");
 InputStreamReader fr = new InputStreamReader(new FileInputStream(f), Charset.forName("UTF-8"));
 BufferedReader bfr = new BufferedReader(fr);
+```
+
+###### 跳转读二进制
+
+`RandomAccessFile`
+
+读取某一块二进制数据：(MIT6.830)
+
+```java
+public Page readPage(PageId pid) { //pid看成int, page看成data
+    // DONE: some code goes here
+    long offset = pid.getPageNumber() * BufferPool.getPageSize();
+    byte[] data = new byte[BufferPool.getPageSize()];
+    try {
+        RandomAccessFile file = new RandomAccessFile(f, "r");
+        file.seek(offset);
+        for (int i = 0, n = BufferPool.getPageSize(); i < n; ++i) {
+            data[i] = file.readByte();
+        }
+        file.close();
+        return new HeapPage((HeapPageId) pid, data);
+    } catch (IOException e) {
+        //            e.printStackTrace();
+        return null;
+    }
+}
 ```
 
 

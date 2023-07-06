@@ -577,6 +577,10 @@
 - 443\.两数相加II
 
   模拟链表
+  
+- 2178\.拆分成最多数目的正偶数之和
+
+  贪心 构造
 
 
 
@@ -16826,6 +16830,60 @@ public:
             ans = curnode;
         }
         return ans;
+    }
+};
+```
+
+##### 2178\.拆分成最多数目的正偶数之和
+
+[题目](https://leetcode.cn/problems/maximum-split-of-positive-even-integers/)
+
+对于 $finalSum = \sum_{i=1}^n2i$ 的所有 $finalSum$ 该构造显然最优，然后对其他的，先找到唯一 $n$ 满足 $\sum_{i=1}^n2i\le finalSum < \sum_{i=1}^{n+1}2i$，然后把这个前 $n$ 项和的最后一项调大使得刚好凑够 $finalSum$ 即可。
+
+个人实现：
+
+ ```c++
+using ll = long long;
+class Solution
+{
+public:
+    vector<ll> maximumEvenSplit(ll s)
+    {
+        if (s % 2)
+        {
+            return {};
+        }
+        ll r = 0;
+        vector<ll> a;
+        for (ll i = 2; r + i <= s; i += 2)
+        {
+            r += i;
+            a.push_back(i);
+        }
+        ll last = a.back();
+        a.pop_back();
+        a.push_back(s - (r - last));
+        return a;
+    }
+};
+ ```
+
+优雅实现：
+
+```c++
+class Solution {
+public:
+    vector<long long> maximumEvenSplit(long long finalSum) {
+        vector<long long> res;
+        if (finalSum % 2 > 0) {
+            return res;
+        }
+        for (int i = 2; i <= finalSum; i += 2) {
+            res.push_back(i);
+            finalSum -= i;
+        }
+        res.back() += finalSum;
+        return res;
     }
 };
 ```
