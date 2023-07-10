@@ -2355,7 +2355,7 @@ public class ce08 {
 
 > 在Eclipse可以设置参数args
 >
-> 右击项目名字-run as - run configuration- 找到arguments(参数见换行隔开) 有待尝试
+> 右击项目名字-run as - run configuration- 找到arguments(参数换行或空格隔开)，然后点run即可，就可以设置args来运行主方法
 >
 
 事实上，由于主方法的静态性，可以在主方法建立一大堆本类的对象实例，调用它们自己的非静态成员。

@@ -581,6 +581,18 @@
 - 2178\.拆分成最多数目的正偶数之和
 
   贪心 构造
+  
+- 167\.两数之和 II - 输入有序数组
+
+  二分 / <u>双指针</u>
+  
+- 15\.三数之和
+
+  二分 / <u>双指针</u>
+  
+- 16\.最接近的三数之和
+
+  二分 / <u>双指针</u>
 
 
 
@@ -16884,6 +16896,321 @@ public:
         }
         res.back() += finalSum;
         return res;
+    }
+};
+```
+
+##### 167. 两数之和 II - 输入有序数组
+
+[题目](https://leetcode.cn/problems/two-sum-ii-input-array-is-sorted/)
+
+二分：
+
+```c++
+class Solution
+{
+public:
+    vector<int> twoSum(vector<int> &numbers, int target)
+    {
+        int n = numbers.size();
+        for (int i = 0; i < n; ++i)
+        {
+            auto j = lower_bound(numbers.begin() + i + 1, numbers.end(), target - numbers[i]);
+            if (j != numbers.end() && *j + numbers[i] == target)
+            {
+                return {1 + i, 1 + (int)distance(numbers.begin(), j)};
+            }
+        }
+        return {};
+    }
+};
+```
+
+题解写法二分：
+
+```c++
+class Solution {
+public:
+    vector<int> twoSum(vector<int>& numbers, int target) {
+        for (int i = 0; i < numbers.size(); ++i) {
+            int low = i + 1, high = numbers.size() - 1;
+            while (low <= high) {
+                int mid = (high - low) / 2 + low;
+                if (numbers[mid] == target - numbers[i]) {
+                    return {i + 1, mid + 1};
+                } else if (numbers[mid] > target - numbers[i]) {
+                    high = mid - 1;
+                } else {
+                    low = mid + 1;
+                }
+            }
+        }
+        return {-1, -1};
+    }
+};
+```
+
+双指针：
+
+初设 $i,j$ 是两端端点，若 $a_i+a_j < s$，则 $\forall j' < j,a_i+a_{j'} < s$，故剩余解空间里当前 $i$ 的所有 $(i,j)$ 都不必再搜索，故先不断右移 $i$，约等于删除一个元素后考虑子问题，直到 $a_i+a_j \ge s$，如果 $>s$，则同理 $\forall i' > i,a_{i'}+a_j > s,$，即当前 $j$ 的所有 $(i,j)$ 不必再搜索，考虑左移 $j$，直到再次 $\le s$。
+
+```c++
+class Solution {
+public:
+    vector<int> twoSum(vector<int>& numbers, int target) {
+        int low = 0, high = numbers.size() - 1;
+        while (low < high) {
+            int sum = numbers[low] + numbers[high];
+            if (sum == target) {
+                return {low + 1, high + 1};
+            } else if (sum < target) {
+                ++low;
+            } else {
+                --high;
+            }
+        }
+        return {-1, -1};
+    }
+};
+```
+
+##### 15\.三数之和
+
+[题目](https://leetcode.cn/problems/3sum/)
+
+二分优化最后一层枚举，$O(n^2\log n)$。
+
+```c++
+class Solution
+{
+public:
+    using node = tuple<int, int, int>;
+    vector<vector<int>> threeSum(vector<int> &nums)
+    {
+        sort(nums.begin(), nums.end());
+        set<node> ans;
+        int n = nums.size();
+        for (int i = 0; i < n; ++i)
+        {
+            for (int j = i + 1; j < n; ++j)
+            {
+                int w = -nums[i] - nums[j];
+                auto it = lower_bound(nums.begin() + j + 1, nums.end(), w);
+                if (it != nums.end() && *it == w)
+                {
+                    ans.insert({nums[i], nums[j], w});
+                }
+            }
+        }
+        vector<vector<int>> r;
+        for (node nd : ans)
+        {
+            auto [u, v, w] = nd;
+            r.push_back({u, v, w});
+        }
+        return r;
+    }
+};
+
+/* 反正TLE了
+class Solution
+{
+public:
+    using node = tuple<int, int, int>;
+    vector<vector<int>> threeSum(vector<int> &nums)
+    {
+        sort(nums.begin(), nums.end());
+        map<int, vector<int>> m;
+        set<node> ans;
+        int n = nums.size();
+        for (int i = 0; i < n; ++i)
+        {
+            m[nums[i]].push_back(i);
+            if (m[nums[i]].size() > 3)
+            {
+                m[nums[i]].erase(m[nums[i]].begin());
+            }
+        }
+        // for (auto it = m.begin(); it != m.end(); ++it)
+        // {
+        //     vector<int> &v = it->second;
+        //     sort(v.begin(), v.end());
+        //     reverse(v.begin(), v.end());
+        // }
+        vector<vector<int>> r;
+        // FFT可以优化这个for-for为O(nlogn)
+        for (int i = 0; i < n; ++i)
+        {
+            for (int j = i + 1; j < n; ++j)
+            {
+                int w = -(nums[i] + nums[j]);
+                for (auto k : m[w])
+                {
+                    if (k > j)
+                    {
+                        ans.insert({nums[i], nums[j], w});
+                        break;
+                    }
+                }
+            }
+        }
+        for (node nd : ans)
+        {
+            auto [u, v, w] = nd;
+            r.push_back({u, v, w});
+        }
+        return r;
+    }
+};
+*/
+```
+
+std 是排序后双指针：
+
+考虑子问题：对元素互异有序数组，找出所有 $x+y=z$  的 $(x,y)$ 对。设双指针在两边 $i=0,j=n-1$，对当前 $j$，若 $a_i+a_j > z$，则根据上一题可知，所有 $(i,j)$ 都不可能，故 $j$ 缩小，如果恰好 $a_i+a_j=z$ 就凑上去。左指针按枚举顺序增加即可。
+
+考虑剔除重复元素：①全部搞完去重；②与上一个答案对比去重；③对每次枚举 $i$，仅枚举比上一个 $a_i$ 大的最小 $i$。(考虑 $1+1=2$，不会去掉正确答案)。共 $O(n)$。
+
+同理，对 $x+y+z=0$，枚举 $z$(同 ③ 去重)，再重复上述过程即可。$O(n^2)$
+
+```c++
+class Solution {
+public:
+    vector<vector<int>> threeSum(vector<int>& nums) {
+        int n = nums.size();
+        sort(nums.begin(), nums.end());
+        vector<vector<int>> ans;
+        // 枚举 a
+        for (int first = 0; first < n; ++first) {
+            // 需要和上一次枚举的数不相同
+            if (first > 0 && nums[first] == nums[first - 1]) {
+                continue;
+            }
+            // c 对应的指针初始指向数组的最右端
+            int third = n - 1;
+            int target = -nums[first];
+            // 枚举 b
+            for (int second = first + 1; second < n; ++second) {
+                // 需要和上一次枚举的数不相同
+                if (second > first + 1 && nums[second] == nums[second - 1]) {
+                    continue;
+                }
+                // 需要保证 b 的指针在 c 的指针的左侧
+                while (second < third && nums[second] + nums[third] > target) {
+                    --third;
+                }
+                // 如果指针重合，随着 b 后续的增加
+                // 就不会有满足 a+b+c=0 并且 b<c 的 c 了，可以退出循环
+                if (second == third) {
+                    break;
+                }
+                if (nums[second] + nums[third] == target) {
+                    ans.push_back({nums[first], nums[second], nums[third]});
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+##### 16\.最接近的三数之和
+
+[题目](https://leetcode.cn/problems/3sum-closest/)
+
+二分优化枚举，找相等的相近数 $O(n^2\log n)$
+
+```c++
+class Solution
+{
+public:
+    int threeSumClosest(vector<int> &nums, int target)
+    {
+        sort(nums.begin(), nums.end());
+        int ans = -1e9, n = nums.size();
+        for (int i = 0; i < n; ++i)
+        {
+            for (int j = i + 1; j < n; ++j)
+            {
+                int v = target - nums[i] - nums[j];
+                int k = lower_bound(nums.begin() + j + 1, nums.end(), v) - nums.begin();
+                if (k - 1 > j)
+                {
+                    int w1 = nums[i] + nums[j] + nums[k - 1];
+                    if (abs(target - ans) > abs(target - w1))
+                    {
+                        ans = w1;
+                    }
+                }
+                if (k > j && k != n)
+                {
+                    int w2 = nums[i] + nums[j] + nums[k];
+                    if (abs(target - ans) > abs(target - w2))
+                    {
+                        ans = w2;
+                    }
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+答案：双指针 $O(n^2)$
+
+考虑子问题对 $x+y=z$ 凑最接近的，对 $i,j$，若 $a_i+a_j > z$，则所有 $j$ 的其他数对只会更差，故 $j$ 左移；同理，若 $a_i+a_j < z$，则所有 $i$ 的其他数对只会更差。故仿照上一题即可。
+
+```c++
+class Solution {
+public:
+    int threeSumClosest(vector<int>& nums, int target) {
+        sort(nums.begin(), nums.end());
+        int n = nums.size();
+        int best = 1e7;
+
+        // 根据差值的绝对值来更新答案
+        auto update = [&](int cur) {
+            if (abs(cur - target) < abs(best - target)) {
+                best = cur;
+            }
+        };
+
+        // 枚举 a
+        for (int i = 0; i < n; ++i) {
+            // 保证和上一次枚举的元素不相等
+            if (i > 0 && nums[i] == nums[i - 1]) {
+                continue;
+            }
+            // 使用双指针枚举 b 和 c
+            int j = i + 1, k = n - 1;
+            while (j < k) {
+                int sum = nums[i] + nums[j] + nums[k];
+                // 如果和为 target 直接返回答案
+                if (sum == target) {
+                    return target;
+                }
+                update(sum);
+                if (sum > target) { // 不 while 也行等下一轮
+                    // 如果和大于 target，移动 c 对应的指针
+                    int k0 = k - 1;
+                    // 移动到下一个不相等的元素
+                    while (j < k0 && nums[k0] == nums[k]) {
+                        --k0;
+                    }
+                    k = k0;
+                } else {
+                    // 如果和小于 target，移动 b 对应的指针
+                    int j0 = j + 1;
+                    // 移动到下一个不相等的元素
+                    while (j0 < k && nums[j0] == nums[j]) {
+                        ++j0;
+                    }
+                    j = j0;
+                }
+            }
+        }
+        return best;
     }
 };
 ```
