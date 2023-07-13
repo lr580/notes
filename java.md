@@ -233,6 +233,20 @@ alt+shift+y 自动拆行(即超过行宽自动换行，再按一次取消)
 
 恢复默认 window-perspective-reset perspective
 
+##### 编译
+
+右击 export , jar, 一路点，选好导出路径和主类即可。导出一个 `.jar`。
+
+查看当前 java 本机版本，用 `java -version` 在 1.8 或以下，否则用 `java --version`
+
+假设已有 `build.xml`，如果 java 版本不对，改改如：
+
+```xml
+<property name="sourceversion" value="8"/>
+```
+
+windows - show view - ant, 点 + add build files, 加了之后右击 run as ant build
+
 
 
 ### vscode
@@ -1189,7 +1203,7 @@ equals(x)或equalsIgnoreCase(x)
 
 ###### 字典序比较
 
-compareTo(x) 若相等返回$0$，大于返回正整数，小于返回负整数。数字大小是ascii码的差值，即首个不同的位置的自己的ascii\-x\.ascii。
+compareTo(x) 若相等返回$0$，大于返回正整数，小于返回负整数。数字大小是ascii码的差值，即首个不同的位置的自己的ascii\-x\.ascii。null 不可比较。
 
 ###### 大小写转换
 
@@ -15568,7 +15582,7 @@ public class c1701 {
 
 不可以强转整型。
 
-枚举可以看成是一个类，继承于 `java.lang.Enum` ，每个枚举类型成员都是枚举类型的一个实例，默认被  `final, public, static` 三重修饰。常用方法有：
+枚举可以看成是一个类，这意味着可以定义方法，继承于 `java.lang.Enum` ，每个枚举类型成员都是枚举类型的一个实例，默认被  `final, public, static` 三重修饰。常用方法有：
 
 - `values()` 数组形式返回枚举类型成员
 - `valueOf(String v)` 将普通字符串转枚举实例

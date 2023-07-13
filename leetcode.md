@@ -593,6 +593,10 @@
 - 16\.最接近的三数之和
 
   二分 / <u>双指针</u>
+  
+- 1911\. 最大子序列交替和
+
+  贪心 / <u>DP</u>
 
 
 
@@ -17211,6 +17215,86 @@ public:
             }
         }
         return best;
+    }
+};
+```
+
+##### 1911\. 最大子序列交替和
+
+[题目](https://leetcode.cn/problems/maximum-alternating-subsequence-sum/)
+
+思路：先找单调不减的最高值作第一个数，然后不断找接下来单调不增的最低值作减数、再接着找单调不减的最高值作被减数，找到时这两个数加入子序列中。
+
+```c++
+class Solution
+{
+public:
+    using ll = long long;
+    ll maxAlternatingSum(const vector<int> &nums)
+    {
+        constexpr int findlow = 0, findhigh = 1;
+        int status = findhigh, n = nums.size();
+        ll low = 0, high, ans = 0, prv = -1e9;
+        auto add = [&]()
+        { ans += high - low; };
+        for (int i = 0; i < n; ++i)
+        {
+            if (status == findhigh)
+            {
+                if (nums[i] >= prv)
+                {
+                    high = nums[i];
+                }
+                else
+                {
+                    status = findlow;
+                    add();
+                    low = nums[i];
+                }
+            }
+            else
+            {
+                if (nums[i] <= prv)
+                {
+                    low = nums[i];
+                }
+                else
+                {
+                    high = nums[i];
+                    status = findhigh;
+                }
+            }
+            prv = nums[i];
+        }
+        if (status == findhigh)
+        {
+            add();
+        }
+        return ans;
+    }
+};
+```
+
+设 $dp_{i,j}$ 是在前 $i$ 个数选子序列，且最后一个元素下标奇偶性为 $j$ 的答案。
+
+初始值为 $dp_{0,0}=nums_0,dp_{0,1}=0$
+
+则 $dp_{i,0}=\max(dp_{i-1,0},dp_{i-1,1}+nums_i)$
+
+且 $dp_{i,1}=\max(dp_{i-1,1},dp_{i-1,0}-nums_i)$
+
+答案为 $dp_{n,0/1}$ 的最大值。滚动一下。
+
+```c++
+class Solution {
+public:
+    long long maxAlternatingSum(vector<int>& nums) {
+        long long even = nums[0], odd = 0;
+        for (int i = 1; i < nums.size(); i++) {
+            even = max(even, odd + nums[i]);
+            odd = max(odd, even - nums[i]);
+        }
+        return even;
     }
 };
 ```
