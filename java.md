@@ -5160,6 +5160,8 @@ System.out.println("b"); //不输出
 
 #### try
 
+##### 常规
+
 格式为(try必须有，catch或finally可以没有)：
 
 ```java
@@ -5203,6 +5205,37 @@ try {
 > ```java
 > catch (InterruptedException | ExecutionException e)
 > ```
+
+##### resources
+
+JDK >= 1.7
+
+语法格式
+
+```java
+try ( 变量1定义初始化; 变量2定义初始化; .. ; 变量n) {
+} //其他同上
+```
+
+如：
+
+```java
+ConnectionFactory factory = new ConnectionFactory();
+try (
+    Connecton connection = factory.newConnection();
+    Channel channel = connection.createChannel()
+) {
+    //...
+} catch (Exception e) {
+    e.printStackTrace();
+}
+```
+
+采用try-with-resources写法，当try中代码执行结束（正常结束/异常结束）之后就会调用try()括号中对象的close()方法来关闭资源，本质是 finally 语法糖，要求有 AutoCloseable 接口
+
+支持赋值，如 `Connection c2 = c1` 传入 try，其中 `c1` 在 try 前初始化好
+
+对 JDK9，可以直接对 try 前初始化的对象，只传变量名，如 `try (c1; c2)`
 
 #### throw
 
