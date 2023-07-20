@@ -1010,6 +1010,16 @@ list(zip(*[((1, 1), False, 'd'), ((2, 2), True, 'e'), ((1, 3), False, 'f')]))
 
 可以用下划线在中间，如 `10_000_000` 表示 `10000000`。
 
+> int 最大长度受及其限制，如果不确定限制为多少，可以手动设置：(疑似 windows 不适用)
+>
+> ```python
+> import sys
+> sys.set_int_max_str_digits(10010)
+> str(int(num1)+int(num2)) # 高精度加法
+> ```
+
+
+
 #### float
 
 最大值是inf，即float('inf')可以这样获取到这个值。负也可以float('-inf')

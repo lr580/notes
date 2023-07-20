@@ -9679,6 +9679,12 @@ Collections 静态操作：
 - ArrayList 数组实现的，可变长，允许保存含 `null` 的元素，向指定位置插入或删除元素较慢，更常用
 - LinkedList 双向链表实现的，优点时集中插入删除快，但随机访问效率低，内存占用大
 
+获得并发类：
+
+```java
+public List<TransactionId> shares = Collections.synchronizedList(new ArrayList<>());
+```
+
 > 数组与 list 互转：[参考](https://blog.csdn.net/bitcarmanlee/article/details/71079468)
 >
 > - 数组转 list: `Arrays.asList(数组)`。注意对基本元素必须用如 Integer 数组而不是 int 数组
@@ -9813,6 +9819,12 @@ TreeSet 新方法：
 - ceiling(E) 不严格大于
 - lower(E) 返回严格小于 E 的最大元素
 - floor(E) 不严格小于
+
+获得并发集合：
+
+```java
+public Set<TransactionId> shares = ConcurrentHashMap.newKeySet();
+```
 
 重复元素去重举例：
 
@@ -9975,6 +9987,12 @@ Map 允许值对象是 `null` 且没有个数限制。
 
 - HashMap 基于哈希表，允许使用 null 值或键，需要保证键唯一性
 - TreeMap 实现了 `java.util.SortedMap` ，添加删除和定位性能不如前者，不允许键是 `null`
+
+并发：
+
+```java
+ConcurrentHashMap<PageId, Locks> pageLocks = new ConcurrentHashMap<>();
+```
 
 > 不需要排序优先考虑 `HashMap`, 性能最好。线程安全 `ConcurrentHashMap`，比 `Hashtable` 性能更好，put 时采用分段锁/CAS的加锁机制，后者 put/get 都做同步处理。
 >

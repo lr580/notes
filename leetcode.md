@@ -605,6 +605,22 @@
 - 18\.四数之和
 
   二分 / 双指针
+  
+- 834\.树中距离之和
+
+  树上DP
+  
+- 415\.字符串相加
+
+  高精度
+  
+- 1851\.包含每个查询的最小区间
+
+  离线 STL
+  
+- 918\.环形子数组的最大和
+
+  前缀和+可删堆 / <u>前缀和+单调队列</u> / <u>DP</u>
 
 
 
@@ -18223,6 +18239,360 @@ public:
             }
         }
         return quadruplets;
+    }
+};
+```
+
+##### 834\.树中距离之和
+
+[题目](https://leetcode.cn/problems/sum-of-distances-in-tree/)
+
+首先统计每个节点的子树的点数 $c_u$ 和所有儿子到它的距离和 $s_u$。
+
+对根节点，有 $dp_u=s_u$；对其他节点，设父节点为 $f$，则：
+
+- 它的子树的点距离和为 $s_u$ 不变
+- 除了子树的其他全体点共有 $n-c_u$ 个，这些点先到 $f$ 点的距离和为 $dp_f-s_u-c_u$，其中 $-s_u-c_u$ 是子树所有点往上走一格的距离和，即从 $dp_f$ 里减去 $u$ 子树的贡献。
+- 到 $f$ 点的除了子树的全体点再走一步到达 $u$，共 $n-c_u$ 个，贡献为 $1\times (n-c_u)$。
+
+故转移方程为：
+$$
+dp_u=s_u+dp_f+n-c_u-s_u-c_u=dp_f+n-2c_u
+$$
+
+ ```c++
+class Solution
+{
+    vector<vector<int>> g;
+    int n;
+    vector<int> s, c, dp;
+
+    int dfs(int u, int f)
+    {
+        int sum = 0, cnt = 1;
+        for (auto v : g[u])
+        {
+            if (v != f)
+            {
+                sum += dfs(v, u);
+                cnt += c[v];
+            }
+        }
+        c[u] = cnt, s[u] = sum;
+        return s[u] + c[u];
+    }
+
+    void dfs2(int u, int f)
+    {
+        dp[u] = s[u];
+        if (f != -1)
+        {
+            dp[u] += dp[f] + n - c[u] - s[u] - c[u];
+        }
+        for (auto v : g[u])
+        {
+            if (v != f)
+            {
+                dfs2(v, u);
+            }
+        }
+    }
+
+public:
+    vector<int> sumOfDistancesInTree(int n, vector<vector<int>> &edges)
+    {
+        this->n = n;
+        s.resize(n), c.resize(n), dp.resize(n), g.resize(n);
+        for (auto pr : edges)
+        {
+            int u = pr[0], v = pr[1];
+            g[u].push_back(v);
+            g[v].push_back(u);
+        }
+        dfs(0, -1);
+        dfs2(0, -1);
+        return dp;
+    }
+};
+ ```
+
+##### 415\.字符串相加
+
+[题目](https://leetcode.cn/problems/add-strings/)
+
+python 调库：
+
+```python
+import sys
+class Solution:
+    def addStrings(self, num1: str, num2: str) -> str:
+        sys.set_int_max_str_digits(10010)
+        return str(int(num1)+int(num2))
+```
+
+C++ 
+
+```c++
+class Solution {
+public:
+    string addStrings(string num1, string num2) {
+        int i = num1.length() - 1, j = num2.length() - 1, add = 0;
+        string ans = "";
+        while (i >= 0 || j >= 0 || add != 0) {
+            int x = i >= 0 ? num1[i] - '0' : 0;
+            int y = j >= 0 ? num2[j] - '0' : 0;
+            int result = x + y + add;
+            ans.push_back('0' + result % 10);
+            add = result / 10;
+            i -= 1;
+            j -= 1;
+        }
+        // 计算完以后的答案需要翻转过来
+        reverse(ans.begin(), ans.end());
+        return ans;
+    }
+};
+```
+
+##### 1851\.包含每个查询的最小区间
+
+[题目](https://leetcode.cn/problems/minimum-interval-to-include-each-query/)
+
+> 错误解：预处理每个询问，考虑过静态双链表然后不断删，必须开 vector 开静态数组炸空间，但是无法查找首个有效位置，set 维护首个位置会炸常数，vector 维护会 TLE。
+
+预处理，考虑对查询排序，变成增删两种命令，即 l 位置增，r+1 位置删，然后指针扫，维护当前所有区间长度的集合，每次取最小的。
+
+设值域 $m$，区间数 $n$，询问数 $q$，时间复杂度为 $O(m+n\log n+q)$，空间复杂度 $O(m)$。
+
+可以进行空间优化，当且仅当当前值域在询问里才保存，则时间复杂度不变，空间优化为 $O(q)$，优化意义不大故从略。
+
+```c++
+class Solution
+{
+    const int ADD = -1, DEL = 1;
+    using pr = pair<int, int>;
+
+public:
+    vector<int> minInterval(vector<vector<int>> &intervals, vector<int> &queries)
+    {
+        int vr = -1, m = queries.size();
+        auto len = [](const vector<int> &v) -> int
+        { return v[1] - v[0] + 1; };
+        vector<pr> cmd;
+        for (auto p : intervals)
+        {
+            vr = max(vr, p[1] + 1);
+            cmd.push_back({p[0], ADD * len(p)});
+            cmd.push_back({p[1] + 1, DEL * len(p)});
+        }
+        sort(cmd.begin(), cmd.end());
+        vector<int> ans(vr), res(m);
+        multiset<int> lens;
+        lens.insert(1e9);
+        for (int i = 0, j = 0, je = cmd.size(); i < vr; ++i)
+        {
+            ans[i] = 1e9;
+            while (j < je && cmd[j].first <= i)
+            {
+                int le = abs(cmd[j].second);
+                if (cmd[j].second < 0)
+                {
+                    lens.insert(le);
+                }
+                else
+                {
+                    lens.erase(lens.find(le));
+                }
+                ++j;
+            }
+            ans[i] = min(ans[i], *lens.begin());
+            ans[i] = ans[i] == 1e9 ? -1 : ans[i];
+        }
+        for (int i = 0; i < m; ++i)
+        {
+            res[i] = ans[queries[i]];
+        }
+        return res;
+    }
+};
+```
+
+题解：离线，查询按值排序，区间按左端点排序；对每个值，类似地维护区间的优先级队列，按区间长维护合法的每个区间。优化到 $O(n\log n)$
+
+```c++
+class Solution {
+public:
+    vector<int> minInterval(vector<vector<int>>& intervals, vector<int>& queries) {
+        vector<int> qindex(queries.size());
+        iota(qindex.begin(), qindex.end(), 0);
+        sort(qindex.begin(), qindex.end(), [&](int i, int j) -> bool {
+            return queries[i] < queries[j];
+        });
+        sort(intervals.begin(), intervals.end(), [](const vector<int> &it1, const vector<int> &it2) -> bool {
+            return it1[0] < it2[0];
+        });
+        priority_queue<vector<int>> pq;
+        vector<int> res(queries.size(), -1);
+        int i = 0;
+        for (auto qi : qindex) {
+            while (i < intervals.size() && intervals[i][0] <= queries[qi]) {
+                int l = intervals[i][1] - intervals[i][0] + 1;
+                pq.push({-l, intervals[i][0], intervals[i][1]});
+                i++;
+            }
+            while (!pq.empty() && pq.top()[2] < queries[qi]) {
+                pq.pop();
+            }
+            if (!pq.empty()) {
+                res[qi] = -pq.top()[0];
+            }
+        }
+        return res;
+    }
+};
+```
+
+##### 918\.环形子数组的最大和
+
+[题目](https://leetcode.cn/problems/maximum-sum-circular-subarray/)
+
+前缀和+可删堆。
+
+将环转化成二倍长的链，对前缀和 $s$，即求 $\max_{r=1}^{2n}(s_r-\min_{l=r-n}^{r-1}s_{l-1})$。
+
+扫描 $r$，使用可删堆维护长为 $n$ 的堆，每次当堆元素大于 $n$ 时就删掉一个，注意不一定是删堆顶，所以要用可删堆实现，用 multiset 等也行。
+
+复杂度取堆复杂度，即 $O(n\log n)$。
+
+```c++
+struct heap
+{
+    priority_queue<int, vector<int>, greater<int>> a, b;
+    void insert(int x) { a.push(x); }
+    void erase(int x) { b.push(x); }
+    int top()
+    {
+        while (!b.empty() && a.top() == b.top())
+        {
+            a.pop(), b.pop();
+        }
+        return a.top();
+    }
+    int pop()
+    {
+        int t = top();
+        a.pop();
+        return t;
+    }
+    int size() { return a.size() - b.size(); }
+};
+class Solution
+{
+public:
+    int maxSubarraySumCircular(vector<int> &nums)
+    {
+        int n = nums.size(), ans = -1e9;
+        vector<int> s(2 * n + 1);
+        for (int i = 0; i < 2 * n; ++i)
+        {
+            s[i + 1] = s[i] + (nums[i % n]);
+        }
+        heap q = heap();
+        q.insert(s[0]);
+        for (int r = 1, l = r - n; r <= 2 * n; ++r, ++l)
+        {
+            if (l > 0)
+            {
+                q.erase(s[l - 1]);
+            }
+            int sum = s[r] - q.top();
+            ans = max(ans, sum);
+            q.insert(s[r]);
+        }
+        return ans;
+    }
+};
+```
+
+官方优化：使用环转链，对自己的堆，改成单调队列(单调不减)
+
+```c++
+class Solution {
+public:
+    int maxSubarraySumCircular(vector<int>& nums) {
+        int n = nums.size();
+        deque<pair<int, int>> q;
+        int pre = nums[0], res = nums[0];
+        q.push_back({0, pre});
+        for (int i = 1; i < 2 * n; i++) {
+            while (!q.empty() && q.front().first < i - n) {
+                q.pop_front();
+            }
+            pre += nums[i % n];
+            res = max(res, pre - q.front().second);
+            while (!q.empty() && q.back().second >= pre) {
+                q.pop_back();
+            }
+            q.push_back({i, pre});
+        }
+        return res;
+    }
+};
+```
+
+官方解法：DP
+
+```c++
+class Solution {
+public:
+    int maxSubarraySumCircular(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> leftMax(n);
+        // 对坐标为 0 处的元素单独处理，避免考虑子数组为空的情况
+        leftMax[0] = nums[0];
+        int leftSum = nums[0];
+        int pre = nums[0];
+        int res = nums[0];
+        for (int i = 1; i < n; i++) { // 不考虑环的朴素最大
+            pre = max(pre + nums[i], nums[i]);
+            res = max(res, pre);
+            leftSum += nums[i];
+            leftMax[i] = max(leftMax[i - 1], leftSum);
+        }
+
+        // 从右到左枚举后缀，固定后缀，选择最大前缀
+        int rightSum = 0;
+        for (int i = n - 1; i > 0; i--) {
+            rightSum += nums[i];
+            res = max(res, rightSum + leftMax[i - 1]);
+        }
+        return res;
+    }
+};
+```
+
+优化：对第二种情况，即跨过环的，即求全长减去最小和。
+
+```c++
+class Solution {
+public:
+    int maxSubarraySumCircular(vector<int>& nums) {
+        int n = nums.size();
+        int preMax = nums[0], maxRes = nums[0];
+        int preMin = nums[0], minRes = nums[0];
+        int sum = nums[0];
+        for (int i = 1; i < n; i++) {
+            preMax = max(preMax + nums[i], nums[i]);
+            maxRes = max(maxRes, preMax);
+            preMin = min(preMin + nums[i], nums[i]);
+            minRes = min(minRes, preMin);
+            sum += nums[i];
+        }
+        if (maxRes < 0) {
+            return maxRes;
+        } else {
+            return max(maxRes, sum - minRes);
+        }
     }
 };
 ```
