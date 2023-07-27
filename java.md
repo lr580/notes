@@ -211,6 +211,12 @@ tab用四个空格而不是\t：首先 window-general-editor-text editor-勾选 
 
 限制格式化行宽：preferences-java-code style-formatter-edit-lien wrapping-maximum line width选一个自己喜欢的如60
 
+运行 junit 全部测试：右击包-run as-junit test；
+
+运行 junit 某类单一 test 方法：junit 4 右击特定方法 run as 即可。或先跑全部然后到junit test 视图即点特定一个右击 run
+
+普通项目转 maven - 右击 configure - convert to maven probject
+
 ##### 快捷
 
 右击菜单找source，能够依据提示看到许多快速生成，如构造函数、get和set。
@@ -247,7 +253,21 @@ alt+shift+y 自动拆行(即超过行宽自动换行，再按一次取消)
 
 windows - show view - ant, 点 + add build files, 加了之后右击 run as ant build
 
+### IDEA
 
+##### 快键
+
+ctrl+alt+s 设置
+
+ctrl+alt+l 格式化代码
+
+##### 其他
+
+装插件：设置-plugins-搜索安装即可
+
+背景图：设置-appearance-ui options-background image 可以选择和调透明度
+
+> 插件：Background Image Plus
 
 ### vscode
 
@@ -1849,6 +1869,8 @@ int dest[] = Arrays.stream(xx).mapToInt(Integer::valueOf).toArray();// Integer[]
 
 ##### 排序
 
+使用归并排序或 timsort(归并+插入+二分)
+
 结构体：以 height 逆序为例
 
 ```java
@@ -1905,7 +1927,13 @@ class Solution {
 }
 ```
 
+##### CharSequence
 
+被 `String`, `StringBuilder` 等实现的接口，没有 `Comparable` 但可以用静态方法 `compare`。如：
+
+```java
+Collections.sort(elements, CharSequence::compare);
+```
 
 ### 运算
 
@@ -2025,6 +2053,34 @@ null)。
 `System.out.print`，区别在于不输出换行。
 
 `System.out.printf` ，用法大体同 C/C++。
+
+###### 重定向
+
+在接下来的运行里，对该文件不断向尾部写入内容。下一次运行覆盖。
+
+```java
+PrintStream fileOut = null;
+try {
+    fileOut = new PrintStream(new FileOutputStream(System.currentTimeMillis() + ".txt"));
+} catch (FileNotFoundException e) {
+    e.printStackTrace();
+}
+System.setOut(fileOut);
+```
+
+下一次运行不覆盖：
+
+```java
+fileOut = new PrintStream(new FileOutputStream("output.txt", true));
+```
+
+取消重定向，下一次输出到屏幕：
+
+```java
+System.setOut(System.out);
+```
+
+
 
 ##### 输入
 
@@ -9690,6 +9746,8 @@ public List<TransactionId> shares = Collections.synchronizedList(new ArrayList<>
 > - 数组转 list: `Arrays.asList(数组)`。注意对基本元素必须用如 Integer 数组而不是 int 数组
 > - list 转数组：`.toArray()` 方法。默认返回Object数组，参数填 `new 类型[大小]` 以改变
 
+> `ArrayList` 有切片引用 `SubList`
+
 如：
 
 ```java
@@ -9806,6 +9864,8 @@ set会跳过重复数据。传入数据有重复值或可变元素改变了自�
 
 - HashSet 由 HashMap 支持，不保证迭代顺序不变，允许使用 `null`
 - TreeSet 实现了 `java.util.SortedSet` ，按递增顺序排序，不能 null
+  - `NavigableSet`
+
 
 TreeSet 新方法：
 
@@ -10793,7 +10853,11 @@ public Page readPage(PageId pid) { //pid看成int, page看成data
 }
 ```
 
+`setLength(0)` 可以清空文件。
 
+取指针位置 `long cur = raf.getFilePointer()`。
+
+强制将缓存区写入文件 `f.getChannel().force(true);`。
 
 
 

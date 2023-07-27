@@ -621,6 +621,10 @@
 - 918\.环形子数组的最大和
 
   前缀和+可删堆 / <u>前缀和+单调队列</u> / <u>DP</u>
+  
+- 1499\.满足不等式的最大值
+
+  单调队列 / 堆
 
 
 
@@ -18593,6 +18597,101 @@ public:
         } else {
             return max(maxRes, sum - minRes);
         }
+    }
+};
+```
+
+##### 1499\.满足不等式的最大值
+
+[题目](https://leetcode.cn/problems/max-value-of-equation/)
+
+按需枚举，对每个 $j$，即求 $y_i+y_j+x_j-x_i$，即对范围内的点，求 $y_i-x_i$ 的最大值，无脑维护单调不增队列即可。
+
+```c++
+class Solution
+{
+public:
+    int findMaxValueOfEquation(vector<vector<int>> &points, int k)
+    {
+        int n = points.size(), ans = -1e9;
+        deque<int> q;
+        auto val = [&](int i)
+        {
+            auto pr = points[i];
+            return pr[1] - pr[0];
+        };
+        for (int j = 0; j < n; ++j)
+        {
+            auto pr = points[j];
+            int xj = pr[0], yj = pr[1];
+            while (q.size() && points[q.front()][0] < xj - k)
+            {
+                q.pop_front();
+            }
+            if (q.size())
+            {
+                auto pr2 = points[q.front()];
+                int xi = pr2[0], yi = pr2[1];
+                ans = max(ans, yi + yj + xj - xi);
+            }
+            while (q.size() && val(j) > val(q.back()))
+            {
+                q.pop_back();
+            }
+            q.push_back(j);
+        }
+        return ans;
+    }
+};
+```
+
+常数比我低的实现：
+
+```c++
+class Solution {
+public:
+    using pii = pair<int, int>;
+    int findMaxValueOfEquation(vector<vector<int>>& points, int k) {
+        int res = INT_MIN;
+        deque<pii> qu;
+        for (auto &point : points) {
+            int x = point[0], y = point[1];
+            while (!qu.empty() && x - qu.front().second > k) {
+                qu.pop_front();
+            }
+            if (!qu.empty()) {
+                res = max(res, x + y + qu.front().first);
+            }
+            while (!qu.empty() && y - x >= qu.back().first) {
+                qu.pop_back();
+            }
+            qu.emplace_back(y - x, x);
+        }
+        return res;
+    }
+};
+```
+
+也可以用堆。可以不写对顶/可删堆：
+
+```c++
+class Solution {
+public:
+    using pii = pair<int, int>;
+    int findMaxValueOfEquation(vector<vector<int>>& points, int k) {
+        int res = INT_MIN;
+        priority_queue<pii, vector<pii>, greater<pii>> heap;
+        for (auto &point : points) {
+            int x = point[0], y = point[1];
+            while (!heap.empty() && x - heap.top().second > k) {
+                heap.pop();
+            }
+            if (!heap.empty()) {
+                res = max(res, x + y - heap.top().first);
+            }
+            heap.emplace(x - y, x);
+        }
+        return res;
     }
 };
 ```
