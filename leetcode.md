@@ -625,6 +625,14 @@
 - 1499\.满足不等式的最大值
 
   单调队列 / 堆
+  
+- 2050\.并行课程 III
+
+  拓扑 / 记忆化DFS
+  
+- 141\.环形链表
+
+  双指针 / 哈希表
 
 
 
@@ -18692,6 +18700,149 @@ public:
             heap.emplace(x - y, x);
         }
         return res;
+    }
+};
+```
+
+##### 2050\.并行课程III
+
+[题目](https://leetcode.cn/problems/parallel-courses-iii/)
+
+个人：拓扑排序 DP
+
+```c++
+class Solution
+{
+public:
+    int minimumTime(int n, vector<vector<int>> &relations, vector<int> &time)
+    {
+        vector<vector<int>> g(n + 1);
+        vector<int> dp(n + 1), ru(n + 1);
+        for (auto pr : relations)
+        {
+            int u = pr[0], v = pr[1];
+            ++ru[v];
+            g[u].push_back(v);
+        }
+        int ans = 0;
+        queue<int> q;
+        for (int i = 1; i <= n; ++i)
+        {
+            if (ru[i] == 0)
+            {
+                q.push(i);
+                dp[i] = time[i - 1];
+                ans = max(ans, dp[i]);
+            }
+        }
+        while (!q.empty())
+        {
+            int u = q.front();
+            q.pop();
+            for (auto v : g[u])
+            {
+                dp[v] = max(dp[v], time[v - 1] + dp[u]);
+                ans = max(ans, dp[v]);
+                if (--ru[v] == 0)
+                {
+                    q.push(v);
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+题解：记忆化搜索 DP
+
+```c++
+class Solution {
+public:
+    int minimumTime(int n, vector<vector<int>>& relations, vector<int>& time) {
+        int mx = 0;
+        vector<vector<int>> prev(n + 1);
+        for (auto &relation : relations) {
+            int x = relation[0], y = relation[1];
+            prev[y].emplace_back(x);
+        }
+        unordered_map<int, int> memo;
+        function<int(int)> dp = [&](int i) -> int {
+            if (!memo.count(i)) {
+                int cur = 0;
+                for (int p : prev[i]) {
+                    cur = max(cur, dp(p));
+                }
+                cur += time[i - 1];
+                memo[i] = cur;
+            }
+            return memo[i];
+        };
+
+        for (int i = 1; i <= n; i++) {
+            mx = max(mx, dp(i));
+        }
+        return mx;
+    }
+};
+```
+
+##### 141\.环形链表
+
+[题目](https://leetcode.cn/problems/linked-list-cycle/)
+
+可以哈希表做，略。
+
+个人快慢指针：
+
+```c++
+class Solution
+{
+public:
+    bool hasCycle(ListNode *head)
+    {
+        if(head==nullptr){return false;}//SPJ
+        ListNode *slow = head, *fast = head->next;
+        while (fast != nullptr)
+        {
+            if (fast == slow)
+            {
+                return true;
+            }
+            if (fast->next != nullptr && fast->next->next != nullptr)
+            {
+                fast = fast->next->next;
+                slow = slow->next;
+            }
+            else
+            {
+                break;
+            }
+        }
+        return false;
+    }
+};
+```
+
+题解快慢指针：
+
+```c++
+class Solution {
+public:
+    bool hasCycle(ListNode* head) {
+        if (head == nullptr || head->next == nullptr) {
+            return false;
+        }
+        ListNode* slow = head;
+        ListNode* fast = head->next;
+        while (slow != fast) {
+            if (fast == nullptr || fast->next == nullptr) {
+                return false;
+            }
+            slow = slow->next;
+            fast = fast->next->next;
+        }
+        return true;
     }
 };
 ```

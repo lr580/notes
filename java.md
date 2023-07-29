@@ -269,6 +269,8 @@ ctrl+alt+l 格式化代码
 
 > 插件：Background Image Plus
 
+自动换行(soft-wrap)：设置-editor-general-开 soft wrap, 格式加上 `;*.java`
+
 ### vscode
 
 #### 问题解决
@@ -4218,6 +4220,17 @@ public class c1704 {
 可以在定义模板处写 `<T extends 类型>` 表示必须实现或继承了这个接口/类。
 
 同理在创建时也可以用类型通配符，如 `<? extends 类型>`。普通方法参数也可以这么定义。甚至可以直接`<?>` 。但是使用了通配符的对象不能再次新建/改变成员(如`LinkedList`)，只能查询和删除。
+
+> ```java
+> class PriorityNode<E> {
+>     private final E element;
+>     public boolean equals(Object o) {
+>         //...
+>         PriorityNode<?> that = (PriorityNode<?>) o;
+>         return element.equals(that.element);
+>     }
+> }
+> ```
 
 也可以向上限制，用`<? super 类>` ，那么只接受该类或其父类。
 
@@ -9863,6 +9876,9 @@ set会跳过重复数据。传入数据有重复值或可变元素改变了自�
 实现类有：
 
 - HashSet 由 HashMap 支持，不保证迭代顺序不变，允许使用 `null`
+
+  哈希冲突不会覆盖元素，而是开散列表(大了转红黑树)
+
 - TreeSet 实现了 `java.util.SortedSet` ，按递增顺序排序，不能 null
   - `NavigableSet`
 
@@ -10000,6 +10016,72 @@ public class c1403 {
 ```
 
 > HashSet是基于HashMap实现的，默认构造函数是构建一个初始容量为16，负载因子为0.75 的HashMap。它封装了一个 HashMap 对象来存储所有的集合元素，所有放入 HashSet 中的集合元素实际上由 HashMap 的 key 来保存，而 HashMap 的 value 则存储了一个 PRESENT，它是一个静态的 Object 对象
+
+> hashset 元素按初始哈希分桶分块存储，即使后面该元素的哈希值改变了，也不会去挪动；查询时还要用到 equals，如：
+>
+> ```java
+> HashSet<ArrayList<String>> map2 = new HashSet<>();
+> ArrayList<String> aa = new ArrayList<>();
+> aa.add("abc");
+> map2.add(aa);
+> aa.add("abcd");
+> System.out.println(map2.contains(aa));//false
+> ```
+>
+> ```java
+> public static class Husky {
+>     public String name;
+> 
+>     public Husky(String name) {
+>         this.name = name;
+>     }
+> 
+>     @Override
+>     public int hashCode() {
+>         return name.length();
+>     }
+> 
+>     @Override
+>     public boolean equals(Object obj) {
+>         if (!(obj instanceof Husky)) {
+>             return false;
+>         }
+>         return name.equals(((Husky) obj).name);
+>     }
+> }
+> 
+> public static void main(String[] args) {
+>     HashMap<Husky, Integer> map = new HashMap<>();
+>     Husky a = new Husky("lilli");
+>     Husky b = new Husky("ahmed");
+>     map.put(a, 1);//永久存放桶5
+>     map.put(b, 2);//开散
+>     System.out.println(map.size());
+>     for (var k : map.keySet()) {
+>         System.out.println(k.name);
+>     }
+>     a.name += a.name;
+>     map.put(a, 3); //a,1 change; a,3 change;  存放在桶10
+>     System.out.println(map.size());//3
+>     for (var k : map.keySet()) {
+>         System.out.println(k.name);
+>     }
+>     map.put(b, 4);
+>     System.out.println(map.size());
+>     b.name += b.name;
+>     map.put(b, 5);
+>     System.out.println(map.size());                       // 4
+>     for (var k : map.keySet()) {
+>         System.out.println(k.name);
+>     }
+>     System.out.println(map.get(new Husky("lilli")));      // null
+>     System.out.println(map.get(new Husky("lillililli"))); // 3；找桶10
+>     //若不实现equals返回null
+>     System.out.println(map.get(a)); // 3
+> }
+> ```
+>
+> 
 
 
 
@@ -10256,11 +10338,16 @@ public class c1608 {
 
 普通队列用 linkedlist 即可
 
-下有 `PriorityQueue` 优先级队列(小根堆)，构造函数可以传一个对象，其类为 `Comparator<类名> cmp` 作参数作为比较依据来自定义，需要实现 `public int compare(对象, 对象)` ，前者大返回正数；小负数，相等 $0$
+下有 `PriorityQueue` 优先级队列(小根堆)，构造函数可以传一个对象，其类为 `Comparator<类名> cmp` 作参数作为比较依据来自定义，需要实现 `public int compare(对象, 对象)` ，前者大返回正数；小负数，相等 $0$。原理是数组实现
+
+- `contains` 直接遍历数组 线性复杂度
+- `remove(obj)` 先线性复杂度查找再删除
 
 ```java
 q = new PriorityQueue<Integer>((a, b) -> (b - a)); //大根堆 (可写为<>下同)
 q = new PriorityQueue<Integer>((a, b) -> (a - b)); //小根堆
+new PriorityQueue<>(Comparator.comparingDouble(PriorityNode::getPriority));
+//根据自定义类的取成员属性方法
 ```
 
 如：
@@ -10378,6 +10465,266 @@ class Solution {
     }
 }
 ```
+
+> 二元组实现二：
+>
+> ```java
+> package minpq;
+> 
+> import java.util.Objects;
+> 
+> /**
+>  * Represents the element-priority pair for use in {@link MinPQ} implementations.
+>  *
+>  * @param <E> the type of element represented by this node.
+>  * @see MinPQ
+>  */
+> class PriorityNode<E> {
+>     private final E element;
+>     private double priority;
+> 
+>     public PriorityNode(E element, double priority) {
+>         this.element = element;
+>         this.priority = priority;
+>     }
+> 
+>     public E getElement() {
+>         return element;
+>     }
+> 
+>     public double getPriority() {
+>         return priority;
+>     }
+> 
+>     public void setPriority(double priority) {
+>         this.priority = priority;
+>     }
+> 
+>     @Override
+>     public String toString() {
+>         return "PriorityNode{element=%s, priority=%s}".formatted(element, priority);
+>     }
+> 
+>     @Override
+>     public boolean equals(Object o) {
+>         if (this == o) {
+>             return true;
+>         }
+>         if (o == null || getClass() != o.getClass()) {
+>             return false;
+>         }
+>         PriorityNode<?> that = (PriorityNode<?>) o;
+>         return element.equals(that.element);
+>     }
+> 
+>     @Override
+>     public int hashCode() {
+>         return Objects.hash(element, priority); // not guaranteed to work in a hash table
+>     }
+> }
+> 
+> ```
+>
+> ```java
+> package minpq;
+> 
+> import java.util.Comparator;
+> import java.util.NoSuchElementException;
+> import java.util.PriorityQueue;
+> 
+> /**
+>  * {@link PriorityQueue} implementation of the {@link MinPQ} interface.
+>  *
+>  * @param <E> the type of elements in this priority queue.
+>  * @see MinPQ
+>  */
+> public class HeapMinPQ<E> implements MinPQ<E> {
+>     /**
+>      * {@link PriorityQueue} storing {@link PriorityNode} objects representing each element-priority pair.
+>      */
+>     private final PriorityQueue<PriorityNode<E>> pq;
+> 
+>     /**
+>      * Constructs an empty instance.
+>      */
+>     public HeapMinPQ() {
+>         pq = new PriorityQueue<>(Comparator.comparingDouble(PriorityNode::getPriority));
+>     }
+> 
+>     @Override
+>     public void add(E element, double priority) {
+>         if (contains(element)) {
+>             throw new IllegalArgumentException("Already contains " + element);
+>         }
+>         pq.add(new PriorityNode<>(element, priority));
+>     }
+> 
+>     @Override
+>     public boolean contains(E element) {
+>         return pq.contains(new PriorityNode<>(element, 0));
+>     }
+> 
+>     @Override
+>     public E peekMin() {
+>         if (isEmpty()) {
+>             throw new NoSuchElementException("PQ is empty");
+>         }
+>         return pq.peek().getElement();
+>     }
+> 
+>     @Override
+>     public E removeMin() {
+>         if (isEmpty()) {
+>             throw new NoSuchElementException("PQ is empty");
+>         }
+>         return pq.poll().getElement();
+>     }
+> 
+>     @Override
+>     public void changePriority(E element, double priority) {
+>         if (!contains(element)) {
+>             throw new NoSuchElementException("PQ does not contain " + element);
+>         }
+>         PriorityNode<E> node = new PriorityNode<>(element, priority);
+>         pq.remove(node);
+>         pq.add(node);
+>     }
+> 
+>     @Override
+>     public int size() {
+>         return pq.size();
+>     }
+> }
+> ```
+
+> 上述的哈希表优化实现：
+>
+> ```java
+> package minpq;
+> 
+> import java.util.*;
+> 
+> /**
+>  * Optimized binary heap implementation of the {@link MinPQ} interface.
+>  *
+>  * @param <E> the type of elements in this priority queue.
+>  * @see MinPQ
+>  */
+> public class OptimizedHeapMinPQ<E> implements MinPQ<E> {
+>     /**
+>      * {@link List} of {@link PriorityNode} objects representing the heap of element-priority pairs.
+>      */
+>     private final List<PriorityNode<E>> elements;
+>     /**
+>      * {@link Map} of each element to its associated index in the {@code elements} heap.
+>      */
+>     private final Map<E, Integer> elementsToIndex;
+> 
+>     /**
+>      * Constructs an empty instance.
+>      */
+>     public OptimizedHeapMinPQ() {
+>         elements = new ArrayList<>();
+>         elementsToIndex = new HashMap<>();
+>         elements.add(new PriorityNode<>(null, 0));
+>     }
+> 
+>     private boolean greater(int i, int j) {
+>         return elements.get(i).getPriority() > elements.get(j).getPriority();
+>     }
+> 
+>     private void swap(int i, int j) {
+>         PriorityNode<E> nodei = elements.get(i);
+>         PriorityNode<E> nodej = elements.get(j);
+>         elements.set(i, nodej);
+>         elements.set(j, nodei);
+>         elementsToIndex.put(nodei.getElement(), j);
+>         elementsToIndex.put(nodej.getElement(), i);
+>     }
+> 
+>     private void moveUp(int i) {
+>         for (; i > 1 && greater(i >> 1, i); i >>= 1) {
+>             swap(i, i >> 1);
+>         }
+>     }
+> 
+>     private void moveDown(int i) {
+>         int n = elements.size();
+>         for (int j; (i << 1) < n; i = j) {
+>             j = i << 1;//smaller son's index
+>             if (j + 1 < n && greater(j, j + 1)) {
+>                 ++j;
+>             }
+>             if (greater(j, i)) {
+>                 break;
+>             }
+>             swap(i, j);
+>         }
+>     }
+> 
+> 
+>     @Override
+>     public void add(E element, double priority) {
+>         if (contains(element)) {
+>             throw new IllegalArgumentException("Already contains " + element);
+>         }
+>         int n = elements.size();
+>         elementsToIndex.put(element, n);
+>         elements.add(new PriorityNode<>(element, priority));
+>         moveUp(n);
+>     }
+> 
+>     @Override
+>     public boolean contains(E element) {
+>         return elementsToIndex.containsKey(element);
+>     }
+> 
+>     @Override
+>     public E peekMin() {
+>         if (isEmpty()) {
+>             throw new NoSuchElementException("PQ is empty");
+>         }
+>         return elements.get(1).getElement();
+>     }
+> 
+>     @Override
+>     public E removeMin() {
+>         if (isEmpty()) {
+>             throw new NoSuchElementException("PQ is empty");
+>         }
+>         E answer = elements.get(1).getElement();
+>         remove(1);
+>         return answer;
+>     }
+> 
+>     private void remove(int i) {
+>         int n = elements.size();
+>         E ele = elements.get(i).getElement();
+>         swap(i, n - 1);
+>         elements.remove(n - 1);
+>         moveDown(i);
+>         elementsToIndex.remove(ele);
+>     }
+> 
+>     @Override
+>     public void changePriority(E element, double priority) {
+>         if (!contains(element)) {
+>             throw new NoSuchElementException("PQ does not contain " + element);
+>         }
+>         remove(elementsToIndex.get(element));
+>         add(element, priority);
+>     }
+> 
+>     @Override
+>     public int size() {
+>         return elements.size() - 1;
+>     }
+> }
+> ```
+
+
+
+
 
 > 为了应对不同的业务场景，BlockingQueue 提供了4 组不同的方法用于插入、移除以及对队列中的元素进行检查。如果请求的操作不能得到立即执行的话，每组方法的表现是不同的。这些方法如下：
 >
