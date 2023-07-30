@@ -633,6 +633,14 @@
 - 141\.环形链表
 
   双指针 / 哈希表
+  
+- 142\.环形链表II
+
+  <u>双指针</u> / 哈希表
+  
+- 143\.重排链表
+
+  <u>双指针</u> / 模拟 
 
 
 
@@ -18843,6 +18851,159 @@ public:
             fast = fast->next->next;
         }
         return true;
+    }
+};
+```
+
+##### 142\.环形链表II
+
+[题目](https://leetcode.cn/problems/linked-list-cycle-ii/)
+
+当然可以哈希表：
+
+```c++
+class Solution
+{
+public:
+    ListNode *detectCycle(ListNode *head)
+    {
+        set<ListNode *> s;
+        for (ListNode *now = head; now != nullptr; now = now->next)
+        {
+            if (s.find(now) != s.end())
+            {
+                return now;
+            }
+            s.insert(now);
+        }
+        return nullptr;
+    }
+};
+```
+
+快慢指针：
+
+设链表头部到环前的区间有 $a$ 个点(即从头结点走 $a$ 步恰好入环)，环长为 $b+c$ 个点，其中 $b$ 是进入环后继续走了多远到达相遇点。则快指针走过的距离为 $a+n(b+c)+b$，且慢指针走过的距离为 $a+b$，慢指针在相遇前不可能完整走完一圈，由追及问题易知。联立得：
+$$
+a+n(b+c)+b=2(a+b)
+$$
+解得 $a=c+(n-1)(b+c)$，也就是说，当慢指针走完残圈距离 $c$ 后再走若干圈，刚好能与从头开始走的等速度指针相遇。
+
+```c++
+class Solution {
+public:
+    ListNode *detectCycle(ListNode *head) {
+        ListNode *slow = head, *fast = head;
+        while (fast != nullptr) {
+            slow = slow->next;
+            if (fast->next == nullptr) {
+                return nullptr;
+            }
+            fast = fast->next->next;
+            if (fast == slow) {
+                ListNode *ptr = head;
+                while (ptr != slow) {
+                    ptr = ptr->next;
+                    slow = slow->next;
+                }
+                return ptr;
+            }
+        }
+        return nullptr;
+    }
+};
+```
+
+##### 143\.重排链表
+
+[题目](https://leetcode.cn/problems/reorder-list/)
+
+暴力：先转线性表，然后暴力改指针(题目要求必须用原地址，所以不能新建一个链表去代替它)
+
+```c++
+class Solution {
+public:
+    void reorderList(ListNode *head) {
+        if (head == nullptr) {
+            return;
+        }
+        vector<ListNode *> vec;
+        ListNode *node = head;
+        while (node != nullptr) {
+            vec.emplace_back(node);
+            node = node->next;
+        }
+        int i = 0, j = vec.size() - 1;
+        while (i < j) {
+            vec[i]->next = vec[j];
+            i++;
+            if (i == j) {
+                break;
+            }
+            vec[j]->next = vec[i];
+            j--;
+        }
+        vec[i]->next = nullptr;
+    }
+};
+```
+
+压空间复杂度的做法：
+
+1. 快慢指针法空间 $O(1)$ 找中间结点(奇数时哪边长无所谓)
+2. 转置后半部分，具体而言顺序遍历，将每个指向反向并返回最后一个点
+3. 归并合并前后部分，类似道理
+
+```c++
+class Solution {
+public:
+    void reorderList(ListNode* head) {
+        if (head == nullptr) {
+            return;
+        }
+        ListNode* mid = middleNode(head);
+        ListNode* l1 = head;
+        ListNode* l2 = mid->next;
+        mid->next = nullptr;
+        l2 = reverseList(l2);
+        mergeList(l1, l2);
+    }
+
+    ListNode* middleNode(ListNode* head) {
+        ListNode* slow = head;
+        ListNode* fast = head;
+        while (fast->next != nullptr && fast->next->next != nullptr) {
+            slow = slow->next;
+            fast = fast->next->next;
+        }
+        return slow;
+    }
+
+    ListNode* reverseList(ListNode* head) {
+        ListNode* prev = nullptr;
+        ListNode* curr = head;
+        while (curr != nullptr) {
+            ListNode* nextTemp = curr->next;
+            curr->next = prev;
+            prev = curr;
+            curr = nextTemp;
+        }
+        return prev;
+    }
+
+    void mergeList(ListNode* l1, ListNode* l2) {
+        ListNode* l1_tmp;
+        ListNode* l2_tmp;
+        while (l1 != nullptr && l2 != nullptr) {
+            l1_tmp = l1->next;
+            l2_tmp = l2->next;
+
+            l1->next = l2;
+            l1 = l1_tmp;
+
+            l2->next = l1;
+            l2 = l2_tmp;
+        }
     }
 };
 ```
