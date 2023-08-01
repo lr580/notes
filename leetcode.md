@@ -641,6 +641,8 @@
 - 143\.重排链表
 
   <u>双指针</u> / 模拟 
+  
+- 2681\.英雄的力量
 
 
 
@@ -19004,6 +19006,81 @@ public:
             l2->next = l1;
             l2 = l2_tmp;
         }
+    }
+};
+```
+
+##### 2681\.英雄的力量
+
+[题目](https://leetcode.cn/problems/power-of-heroes/)
+
+排序后为数组 $a$，即求：
+$$
+\begin{align}
+\sum_{i=1}^na_i^3&+\\
+a_2^2a_12^{2-1-1}&+\\
+a_3^2a_12^{3-1-1}&+a_3^2a_22^{3-2-1}&+\\
+\cdots&+\\
+a_n^2a_12^{n-1-1}&+a_n^2a_22^{n-2-1}&+\cdots&+a_n^2a_{n-1}2^{n-(n-1)-1}\\
+\end{align}
+$$
+上述计算复杂度为 $O(n^2)$，但是可以递推优化。
+
+考虑 $s_k=a_12^k+a_22^{k-1}+\cdots+a_{k-1}2^0$，
+
+则：$s_{k+1}=a_12^{k+1}+a_22^{k}+\cdots+a_{k-1}2^1+a_k=2s_k+a_k$。
+
+所以优化为 $O(n)$。
+
+```c++
+const int mod = 1e9 + 7;
+class Solution
+{
+public:
+    int sumOfPower(vector<int> &nums)
+    {
+        sort(nums.begin(), nums.end());
+        int ans = 0, n = nums.size(), s = 0;
+        for (auto v : nums)
+        {
+            ans = (ans + (1LL * v * v % mod * v % mod)) % mod;
+        }
+        for (int i = 1; i < n; ++i)
+        {
+            int pw = 1LL * nums[i] * nums[i] % mod;
+            s = (s * 2 % mod + nums[i - 1]) % mod;
+            ans = (ans + (1LL * s * pw) % mod) % mod;
+        }
+        return ans;
+    }
+};
+```
+
+题解：排序后设 $dp_i$ 表示以 $a_i$ 结尾全体子序列(而不是子串)的最小值之和，则有：
+$$
+dp_i=a_i+\sum_{j=0}^{i-1}dp_j
+$$
+使用前缀和优化枚举、并滚动数组优化，可以 $O(n)$ 时间、$O(1)$ 空间算 $dp$。
+
+则所求为 $\sum_{i=0}^{n-1}a_i^2dp_i$。
+
+```c++
+class Solution {
+public:
+    int sumOfPower(vector<int>& nums) {
+        int n = nums.size();
+        sort(nums.begin(), nums.end());
+        int dp = 0, preSum = 0; 
+        int res = 0, mod = 1e9 + 7;
+        for (int i = 0; i < n; i++) {
+            dp = (nums[i] + preSum) % mod;
+            preSum = (preSum + dp) % mod;
+            res = (int) ((res + (long long) nums[i] * nums[i] % mod * dp) % mod);
+            if (res < 0) {
+                res += mod;
+            }
+        }
+        return res;
     }
 };
 ```
