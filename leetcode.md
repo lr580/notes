@@ -644,6 +644,28 @@
   
 - 2681\.英雄的力量
 
+  DP / 数学
+
+- 822\.翻转卡片游戏
+
+  小模拟 STL
+  
+- 21\.合并两个有序链表
+
+  链表
+  
+- 980\.不同路径III
+
+  BFS / DFS
+  
+- 1749\.任意子数组和的绝对值的最大值
+
+  前缀和
+  
+- 1289\.下降路径最小和II
+
+  DP 前缀和
+
 
 
 ## 算法
@@ -19081,6 +19103,344 @@ public:
             }
         }
         return res;
+    }
+};
+```
+
+##### 822\.翻转卡片游戏
+
+[题目](https://leetcode.cn/problems/card-flipping-game)
+
+值无解当且仅当正反面都是它。
+
+个人：set
+
+```c++
+class Solution
+{
+public:
+    int flipgame(vector<int> &fronts, vector<int> &backs)
+    {
+        set<int> a, db;
+        for (auto v : fronts)
+        {
+            a.insert(v);
+        }
+        for (auto v : backs)
+        {
+            a.insert(v);
+        }
+        for (int i = 0, n = fronts.size(); i < n; ++i)
+        {
+            if (fronts[i] == backs[i])
+            {
+                db.insert(fronts[i]);
+            }
+        }
+        for (auto b : a)
+        {
+            if (db.find(b) == db.end())
+            {
+                return b;
+            }
+        }
+        return 0;
+    }
+};
+```
+
+std：unset
+
+```c++
+class Solution {
+public:
+    int flipgame(vector<int>& fronts, vector<int>& backs) {
+        int res = 3000, n = fronts.size();
+        unordered_set<int> same;
+        for (int i = 0; i < n; ++i) {
+            if (fronts[i] == backs[i]) {
+                same.insert(fronts[i]);
+            }
+        }
+        for (int &x : fronts) { // find min
+            if (x < res && same.count(x) == 0) {
+                res = x;
+            }
+        }
+        for (int &x : backs) {
+            if (x < res && same.count(x) == 0) {
+                res = x;
+            }
+        }
+        return res % 3000; //3000%3000=no sol
+    }
+};
+```
+
+##### 21\.合并两个有序链表
+
+[题目]()
+
+签略。递归和迭代：
+
+```c++
+class Solution {
+public:
+    ListNode* mergeTwoLists(ListNode* l1, ListNode* l2) {
+        if (l1 == nullptr) {
+            return l2;
+        } else if (l2 == nullptr) {
+            return l1;
+        } else if (l1->val < l2->val) {
+            l1->next = mergeTwoLists(l1->next, l2);
+            return l1;
+        } else {
+            l2->next = mergeTwoLists(l1, l2->next);
+            return l2;
+        }
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    ListNode* mergeTwoLists(ListNode* l1, ListNode* l2) {
+        ListNode* preHead = new ListNode(-1);
+
+        ListNode* prev = preHead;
+        while (l1 != nullptr && l2 != nullptr) {
+            if (l1->val < l2->val) {
+                prev->next = l1;
+                l1 = l1->next;
+            } else {
+                prev->next = l2;
+                l2 = l2->next;
+            }
+            prev = prev->next;
+        }
+
+        // 合并后 l1 和 l2 最多只有一个还未被合并完，我们直接将链表末尾指向未合并完的链表即可
+        prev->next = l1 == nullptr ? l2 : l1;
+
+        return preHead->next;
+    }
+};
+```
+
+
+
+##### 980\.不同路径III
+
+[题目](https://leetcode.cn/problems/unique-paths-iii/)
+
+个人思路：对路径记忆，做 BFS
+
+更优：路径可以状压(地图很小，自己还看错数据范围了) 时空 $O(rc2^{rc})$
+
+```c++
+class Solution {
+public:
+    int uniquePathsIII(vector<vector<int>>& grid) {
+        int r = grid.size(), c = grid[0].size();
+        int si = 0, sj = 0, st = 0;
+        unordered_map<int, int> memo;
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                if (grid[i][j] == 0 || grid[i][j] == 2) {
+                    st |= (1 << (i * c + j));
+                } else if (grid[i][j] == 1) {
+                    si = i, sj = j;
+                }
+            }
+        }
+
+        function<int(int ,int, int)> dp = [&](int i, int j, int st) -> int {
+            if (grid[i][j] == 2) {
+                if (st == 0) {
+                    return 1;
+                }
+                return 0;
+            }
+            int key = ((i * c + j) << (r * c)) + st;
+            if (!memo.count(key)) {
+                int res = 0;
+                vector<array<int, 2>> dir({{-1, 0}, {1, 0}, {0, -1}, {0, 1}});
+                for (auto &[di, dj] : dir) {
+                    int ni = i + di, nj = j + dj;
+                    if (ni >= 0 && ni < r && nj >= 0 && nj < c && (st & (1 << (ni * c + nj))) > 0) {
+                        res += dp(ni, nj, st ^ (1 << (ni * c + nj)));
+                    }
+                }
+                memo[key] = res;
+            }
+            return memo[key];
+        };
+        return dp(si, sj, st);
+    }
+};
+
+```
+
+DFS：时间 $O(4^{rc})$，空间取递归栈
+
+```c++
+class Solution {
+public:
+    int uniquePathsIII(vector<vector<int>>& grid) {
+        int r = grid.size(), c = grid[0].size();
+        int si = 0, sj = 0, n = 0;
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
+                if (grid[i][j] == 0) {
+                    n++;
+                 } else if (grid[i][j] == 1) {
+                    n++;
+                    si = i;
+                    sj = j;
+                 }
+            }
+        }
+
+        function<int(int, int, int)> dfs = [&](int i, int j, int n) -> int {
+            if (grid[i][j] == 2) {
+                if (n == 0) {
+                    return 1;
+                }
+                return 0;
+            }
+
+            int t = grid[i][j], res = 0;
+            grid[i][j] = -1;
+            vector<array<int, 2>> dir({{-1, 0}, {1, 0}, {0, -1}, {0, 1}});
+            for (auto &[di, dj] : dir) {
+                int ni = i + di;
+                int nj = j + dj;
+                if (ni >= 0 && ni < r && nj >= 0 && nj < c && \
+                   (grid[ni][nj] == 0 || grid[ni][nj] == 2)) {
+                    res += dfs(ni, nj, n - 1);
+                }
+            }
+            grid[i][j] = t;
+            return res;
+        };
+        return dfs(si, sj, n);
+    }
+};
+```
+
+##### 1749\.任意子数组的绝对值的最大值
+
+[题目](https://leetcode.cn/problems/maximum-absolute-sum-of-any-subarray)
+
+维护历史前缀和里最大最小值，以维护当前最小最大值。
+
+```c++
+class Solution
+{
+public:
+    int maxAbsoluteSum(vector<int> &nums)
+    {
+        int minl = 0, maxl = 0, minans = 2e9, maxans = -2e9, s = 0;
+        for (auto v : nums)
+        {
+            s += v;
+            minans = min(minans, s - maxl);
+            maxans = max(maxans, s - minl);
+            minl = min(minl, s);
+            maxl = max(maxl, s);
+        }
+        return max(-minans, maxans);
+    }
+};
+```
+
+##### 1289\.下降路径最小和II
+
+[题目](https://leetcode.cn/problems/minimum-falling-path-sum-ii/)
+
+无脑DP+前缀和优化，平方复杂度
+
+```c++
+class Solution
+{
+public:
+    int minFallingPathSum(vector<vector<int>> &grid)
+    {
+        int n = grid.size(), m = grid[0].size();
+        vector<vector<int>> dp(2, vector<int>(m, 1e9));
+        for (int i = 0; i < m; ++i)
+        {
+            dp[0][i] = grid[0][i];
+        }
+        for (int i = 1; i < n; ++i)
+        {
+            vector<int> minl(m, 1e9), minr(m, 1e9);
+            minl[0] = dp[(i - 1) & 1][0];
+            for (int j = 1; j < m; ++j)
+            {
+                minl[j] = min(minl[j - 1], dp[(i - 1) & 1][j]);
+            }
+            minr[m - 1] = dp[(i - 1) & 1][m - 1];
+            for (int j = m - 2; j >= 0; --j)
+            {
+                minr[j] = min(minr[j + 1], dp[(i - 1) & 1][j]);
+            }
+            for (int j = 0; j < m; ++j)
+            {
+                int now = 1e9;
+                if (j - 1 >= 0)
+                {
+                    now = min(now, minl[j - 1]);
+                }
+                if (j + 1 < m)
+                {
+                    now = min(now, minr[j + 1]);
+                }
+                dp[i & 1][j] = now + grid[i][j];
+            }
+        }
+        int ans = 1e9;
+        for (int i = 0; i < m; ++i)
+        {
+            ans = min(ans, dp[(n - 1) & 1][i]);
+        }
+        return ans;
+    }
+};
+```
+
+常数优化：思路2，找出最小值和次小值，当前是最小用次小，否则最小
+
+```c++
+class Solution {
+public:
+    int minFallingPathSum(vector<vector<int>>& grid) {
+        int n = grid.size();
+        int first_min_sum = 0;
+        int second_min_sum = 0;
+        int first_min_index = -1;
+        
+        for (int i = 0; i < n; i++) {
+            int cur_first_min_sum = INT_MAX;
+            int cur_second_min_sum = INT_MAX;
+            int cur_first_min_index = -1;
+            
+            for (int j = 0; j < n; j++) {
+                int cur_sum = (j != first_min_index ? first_min_sum : second_min_sum) + grid[i][j];
+                if (cur_sum < cur_first_min_sum) {
+                    cur_second_min_sum = cur_first_min_sum;
+                    cur_first_min_sum = cur_sum;
+                    cur_first_min_index = j;
+                } else if (cur_sum < cur_second_min_sum) {
+                    cur_second_min_sum = cur_sum;
+                }
+            }
+            first_min_sum = cur_first_min_sum;
+            second_min_sum = cur_second_min_sum;
+            first_min_index = cur_first_min_index;
+        }
+        return first_min_sum;
     }
 };
 ```

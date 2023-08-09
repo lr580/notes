@@ -9992,6 +9992,41 @@ public class Lab6_2 {
 
 ```
 
+结构体排序实例2：(同一个结构体多种比较依据)
+
+```java
+import java.util.Comparator;
+import java.util.TreeSet;
+
+public class PlacesDatabase {
+    public static class Node {
+        public double x, y;
+
+        public Node(double x, double y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        public double getX() {
+            return x;
+        }
+
+        public double getY() {
+            return y;
+        }
+    }
+
+    public TreeSet<Node> orderX, orderY;
+
+    public PlacesDatabase() {
+        orderX = new TreeSet<>(Comparator.comparingDouble(Node::getX));
+        orderY = new TreeSet<>(Comparator.comparingDouble(Node::getY));
+    }
+}
+```
+
+
+
 addAll 和 contains 示例：
 
 ```java
