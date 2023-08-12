@@ -906,6 +906,12 @@ git show-branch --all
 
 
 
+查看当前的分支是哪个分支：
+
+```sh
+git branch --show-current
+```
+
 
 
 #### 创建
