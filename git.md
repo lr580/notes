@@ -756,6 +756,8 @@ git pull 远程仓库名 远程分支名
 ```
 
 > 本质是 `git fetch` 加上 `git merge FERCH_HEAD`
+>
+> `git fetch 远程仓库名` 可以拉取特定一个远程仓库，或 `git fetch 远程仓库名 远程分支名`
 
 把远程仓库的分支合并到当前分支
 
@@ -890,7 +892,8 @@ git branch
 ```bash
 git branch --contains 50089 # 显示包含提交50089的分支
 git branch -a # 显示所有分支
-git branch -r # 显示所有原创分支
+git branch -r # 显示所有远程分支
+git branch #所有本地分支
 git branch --merged # 显示所有已合并到当前分支的分支
 git branch --no-merged # 显示所有未合并到当前分支的分支
 ```
@@ -955,7 +958,7 @@ git checkout -b devel origin/develop
 git merge 分支名
 ```
 
-把某个分支合并到当前分支
+把某个分支合并到当前分支，这个分支可以是远程的，如 fetch 后 `git merge origin/master`
 
 如果出现冲突，必须手动解决
 
@@ -973,7 +976,15 @@ git merge --no-ff -m "新commit描述" 分支名
 git merge origin/master
 ```
 
+如果分支历史不一样，可以加 `--allow-unrelated-histories`
 
+合并发生冲突，查看冲突的全部文件：
+
+```sh
+git status
+```
+
+打开对应文件，能看到冲突双方都被同时写了，自行保留哪个(用 vscode 的话可以一键式，如果 vscode 做不了，可以 chmod 一下)，一个个手动解决，解决完毕后：一个个 git add，然后 git commit
 
 #### 复制
 

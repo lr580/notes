@@ -326,7 +326,7 @@ $$
 \textit{1234567890 ABC abc}
 $$
 
-
+正体 mathrm $\mathrm{arccot}\ x$
 
 
 ### 字符

@@ -665,6 +665,10 @@
 - 1289\.下降路径最小和II
 
   DP 前缀和
+  
+- 88\.合并两个有序数组
+
+  双指针
 
 
 
@@ -19445,6 +19449,63 @@ public:
 };
 ```
 
+##### 88\.合并两个有序数组
+
+[题目](https://leetcode.cn/problems/merge-sorted-array)
+
+普通双指针，需要额外空间：
+
+```c++
+class Solution {
+public:
+    void merge(vector<int>& nums1, int m, vector<int>& nums2, int n) {
+        int p1 = 0, p2 = 0;
+        int sorted[m + n];
+        int cur;
+        while (p1 < m || p2 < n) {
+            if (p1 == m) {
+                cur = nums2[p2++];
+            } else if (p2 == n) {
+                cur = nums1[p1++];
+            } else if (nums1[p1] < nums2[p2]) {
+                cur = nums1[p1++];
+            } else {
+                cur = nums2[p2++];
+            }
+            sorted[p1 + p2 - 1] = cur;
+        }
+        for (int i = 0; i != m + n; ++i) {
+            nums1[i] = sorted[i];
+        }
+    }
+};
+```
+
+逆向双指针，从大到小，设初始指针 $p_1=m-1,p_2=n-1$，移动到左数组 $t=m+n-1$，显然，对 $p_1,p_2$，可以算出左右输出已经处理完的元素数目分别为 $m-p_1-1$ 和 $n-p_2-1$，即 tail 移动了 $m+n-p_1-p_2-2$ 次，当前左数组共有 $n+m$ 长度，其中 $n+m-p_1-1$ 个位置可用，可用位置与移动位置作差，可知 $t$ 永远不可能超过 $p_1$。
+
+```c++
+class Solution {
+public:
+    void merge(vector<int>& nums1, int m, vector<int>& nums2, int n) {
+        int p1 = m - 1, p2 = n - 1;
+        int tail = m + n - 1;
+        int cur;
+        while (p1 >= 0 || p2 >= 0) {
+            if (p1 == -1) {
+                cur = nums2[p2--];
+            } else if (p2 == -1) {
+                cur = nums1[p1--];
+            } else if (nums1[p1] > nums2[p2]) {
+                cur = nums1[p1--];
+            } else {
+                cur = nums2[p2--];
+            }
+            nums1[tail--] = cur;
+        }
+    }
+};
+```
+
 
 
 > ### 力扣比赛
@@ -19452,7 +19513,7 @@ public:
 
 #### 周赛327
 
-vp成绩：
+##### vp成绩：
 
 ![image-20230112173246572](img/image-20230112173246572.png)
 
