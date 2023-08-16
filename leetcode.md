@@ -669,6 +669,14 @@
 - 88\.合并两个有序数组
 
   双指针
+  
+- 833\.字符串中的查找与替换
+
+  模拟+双指针
+  
+- 1444\.切披萨的方案数
+
+  DP+二维前缀和
 
 
 
@@ -19502,6 +19510,236 @@ public:
             }
             nums1[tail--] = cur;
         }
+    }
+};
+```
+
+##### 833\.字符串中的查找与替换
+
+[题目](https://leetcode.cn/problems/find-and-replace-in-string)
+
+模拟：
+
+- 按 indices 重排序操作，复杂度 $O(m\log m)$
+- 双指针(原串, 操作数组)，如果匹配成功(最坏共匹配 $O(ml)$ 字符)，答案增加替换后的串，原串跳一个串长；否则，答案增加一个字符，原串跳一个字符，整体 $O(n+ml)$，考虑全换最坏空间 $O(ml)$
+
+```c++
+class Solution {
+public:
+    string findReplaceString(string s, vector<int>& indices, vector<string>& sources, vector<string>& targets) {
+        int n = s.size(), m = indices.size();
+
+        vector<int> ops(m);
+        iota(ops.begin(), ops.end(), 0);
+        sort(ops.begin(), ops.end(), [&](int i, int j) { return indices[i] < indices[j]; });
+
+        string ans;
+        int pt = 0;
+        for (int i = 0; i < n;) {
+            while (pt < m && indices[ops[pt]] < i) {
+                ++pt;
+            }
+            bool succeed = false;
+            while (pt < m && indices[ops[pt]] == i) {
+                if (s.substr(i, sources[ops[pt]].size()) == sources[ops[pt]]) {
+                    succeed = true;
+                    break;
+                }
+                ++pt;
+            }
+            if (succeed) {
+                ans += targets[ops[pt]];
+                i += sources[ops[pt]].size();
+            }
+            else {
+                ans += s[i];
+                ++i;
+            }
+        }
+        return ans;
+    }
+};
+
+```
+
+方案二：哈希表代替排序，看看每个 indices 是否有操作，有就做，复杂度优掉排序的
+
+```c++
+class Solution {
+public:
+    string findReplaceString(string s, vector<int>& indices, vector<string>& sources, vector<string>& targets) {
+        int n = s.size(), m = indices.size();
+
+        unordered_map<int, vector<int>> ops;
+        for (int i = 0; i < m; ++i) {
+            ops[indices[i]].push_back(i);
+        }
+
+        string ans;
+        for (int i = 0; i < n;) {
+            bool succeed = false;
+            if (ops.count(i)) {
+                for (int pt: ops[i]) {
+                    if (s.substr(i, sources[pt].size()) == sources[pt]) {
+                        succeed = true;
+                        ans += targets[pt];
+                        i += sources[pt].size();
+                        break;
+                    }
+                }
+            }
+            if (!succeed) {
+                ans += s[i];
+                ++i;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+##### 1444\.切披萨的方案数
+
+[题目](https://leetcode.cn/problems/number-of-ways-of-cutting-a-pizza)
+
+设 $dp_{k,r,c}$ 表示已经切了 $k$ 刀，最后一个披萨左上角为 $(r,c)$ 的方案数，答案为 $\sum_{r=1}^n\sum_{c=1}^mdp_{k-1,r,c}$。
+
+记二维前缀和 $s_{i,j}$ 表示苹果的数量，则可以在 $O(nm)$ 预处理后 $O(1)$ 计算一个矩形区域是否有苹果，记 $has(x_1,x_2,y_1,y_2)$ 表示矩形第 $[x_1,x_2]$ 行和第 $[y_1,y_2]$ 列子阵是否存在至少一个苹果。
+
+转移方程为：
+$$
+dp_{k,x_2,y_2}=\sum_{x_1=x_2\ or\ y_1=y_2} dp_{k-1,x_1,y_1}\\s.t.\ has(x_2,n,y_2,m)\ and\ has(x_1,x_3,y_1,y_3)
+$$
+其中将 $(x_1,y_1)$ 为左上角的子阵一刀切开为新旧两个子阵，使得新子阵的左上角为 $(x_2,y_2)$，原子阵的右下角为 $(x_3,y_3)$(可以分类讨论求得)。
+
+即对每个 $(x_2,y_2)$，枚举所有上一刀能切成它的状态。因此时间复杂度为 $O(knm(n+m))=O(kn^3)$。空间复杂度为 $O(knm)$，可以压成 $O(nm)$，这里懒得压。
+
+参考代码：
+
+```c++
+class Solution
+{
+public:
+    int ways(vector<string> &pizza, int k)
+    {
+        int n = pizza.size(), m = pizza[0].size();
+        vector<vector<int>> s(n + 1, vector<int>(m + 1, 0));
+        for (int i = 1; i <= n; ++i)
+        {
+            for (int j = 1; j <= m; ++j)
+            {
+                s[i][j] = s[i - 1][j] + s[i][j - 1] - s[i - 1][j - 1] + (pizza[i - 1][j - 1] == 'A');
+            }
+        }
+        auto has = [&](int x1, int x2, int y1, int y2)
+        {
+            return s[x2][y2] - s[x1 - 1][y2] - s[x2][y1 - 1] + s[x1 - 1][y1 - 1] > 0;
+        };
+
+        const int inpos = 0, mod = 1e9 + 7;
+        // dp[k][r][c] 切了k刀,最后一块左上角为(r,c)方案数
+        vector<vector<vector<int>>> dp(k, vector<vector<int>>(n + 1, vector<int>(m + 1, inpos)));
+        dp[0][1][1] = has(1, n, 1, m);
+        auto f = [&](int h, int x1, int x2, int y1, int y2)
+        {
+            if (!has(x2, n, y2, m))
+            {
+                return;
+            }
+            if (dp[h - 1][x1][y1] == inpos)
+            {
+                return;
+            }
+            int x3, y3;
+            if (x1 == x2)
+            {
+                x3 = n, y3 = y2 - 1;
+            }
+            else
+            {
+                x3 = x2 - 1, y3 = m;
+            }
+            if (!has(x1, x3, y1, y3))
+            {
+                return;
+            }
+            dp[h][x2][y2] += dp[h - 1][x1][y1];
+            dp[h][x2][y2] %= mod;
+        };
+        for (int h = 1; h <= k - 1; ++h)
+        {
+            for (int x2 = 1; x2 <= n; ++x2)
+            {
+                for (int y2 = 1; y2 <= m; ++y2)
+                {
+                    for (int x1 = x2, y1 = 1; y1 < y2; ++y1)
+                    {
+                        f(h, x1, x2, y1, y2);
+                    }
+                    for (int x1 = 1, y1 = y2; x1 < x2; ++x1)
+                    {
+                        f(h, x1, x2, y1, y2);
+                    }
+                }
+            }
+        }
+
+        int ans = 0;
+        for (int x = 1; x <= n; ++x)
+        {
+            for (int y = 1; y <= m; ++y)
+            {
+                ans += dp[k - 1][x][y];
+                ans %= mod;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+
+
+题解常数优化+实现简化：
+
+1. 优化前缀和判定，如果 $(x_1,x_3,y_1,y_3)$ 有苹果，意味着 $s_{x_2,y_2} > s_{x_1,y_1}$。
+2. 优化答案累积，在最后再切一刀，切成 $dp_{k,r,c}$，最后不用求和
+
+```c++
+class Solution {
+public:
+    int ways(vector<string>& pizza, int k) {
+        int m = pizza.size(), n = pizza[0].size(), mod = 1e9 + 7;
+        vector<vector<int>> apples(m + 1, vector<int>(n + 1));
+        vector<vector<vector<int>>> dp(k + 1, vector<vector<int>>(m + 1, vector<int>(n + 1)));
+
+        // 预处理
+        for (int i = m - 1; i >= 0; i--) {
+            for (int j = n - 1; j >= 0; j--) {
+                apples[i][j] = apples[i][j + 1] + apples[i + 1][j] - apples[i + 1][j + 1] + (pizza[i][j] == 'A');
+                dp[1][i][j] = apples[i][j] > 0;
+            }
+        }
+
+        for (int ki = 2; ki <= k; ki++) {
+            for (int i = 0; i < m; i++) {
+                for (int j = 0; j < n; j++) {
+                    // 水平方向切
+                    for (int i2 = i + 1; i2 < m; i2++) {
+                        if (apples[i][j] > apples[i2][j]) {
+                            dp[ki][i][j] = (dp[ki][i][j] + dp[ki - 1][i2][j]) % mod;
+                        }
+                    }
+                    // 垂直方向切
+                    for (int j2 = j + 1; j2 < n; j2++) {
+                        if (apples[i][j] > apples[i][j2]) {
+                            dp[ki][i][j] = (dp[ki][i][j] + dp[ki - 1][i][j2]) % mod;
+                        }
+                    }
+                }
+            }
+        }
+        return dp[k][0][0];
     }
 };
 ```
