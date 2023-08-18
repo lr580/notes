@@ -677,6 +677,10 @@
 - 1444\.切披萨的方案数
 
   DP+二维前缀和
+  
+- 1388\.3n 块披萨
+
+  **DP** / **反悔贪心**
 
 
 
@@ -19744,6 +19748,143 @@ public:
 };
 ```
 
+##### 1388\.3n块披萨
+
+[题目](https://leetcode.cn/problems/pizza-with-3n-slices/)
+
+不能区间 DP，无法从一个小区间递推出一个大区间。
+
+考虑是链时，设 $dp_{i,j}$ 表示从前 $i$ 个披萨选择了 $j$ 块，答案为 $dp_{n,\frac n3}$。初始状态：
+
+- $dp_{?,0}=0$
+- $dp_{0,1}=a_0$ (下标从 $0$ 算)
+- $dp_{1,1}=\max(a_0,a_1)$ 
+
+转移：$dp_{i,j}=\max(dp_{i-1,j},dp_{i-2,j-1}+a_i)$，即当前位置要么选要么不选。注意到最后答案是 $n,\frac n3$ 状态，所以隔一个选即可。一定要隔至少一个。
+
+上述转移是 $O(n^2)$ 的，无需优化，直接搞即可。
+
+考虑不是链，即有约束条件：不能同时选第一个、最后一个，所以对原问题求两次：删掉第一个数求 DP，删掉最后一个数求 DP。
+
+```c++
+class Solution {
+public:
+    int calculate(const vector<int>& slices) {
+        int N = slices.size(), n = (N + 1) / 3;
+        vector<vector<int>> dp(N, vector<int>(n + 1, INT_MIN));
+        dp[0][0] = 0;
+        dp[0][1] = slices[0];
+        dp[1][0] = 0;
+        dp[1][1] = max(slices[0], slices[1]);
+        for (int i = 2; i < N; i++) {
+            dp[i][0] = 0;
+            for (int j = 1; j <= n; j++) {
+                dp[i][j] = max(dp[i - 1][j], dp[i - 2][j - 1] + slices[i]);
+            }
+        }
+        return dp[N - 1][n];
+    }
+
+    int maxSizeSlices(vector<int>& slices) {
+        vector<int> v1(slices.begin() + 1, slices.end());
+        vector<int> v2(slices.begin(), slices.end() - 1);
+        int ans1 = calculate(v1);
+        int ans2 = calculate(v2);
+        return max(ans1, ans2);
+    }
+};
+```
+
+
+
+洛谷 P1792 种树 [题目](https://www.luogu.com.cn/problem/P1792)
+
+可以推知，如果选取的序号不相邻，总能找到一种操作方式。具体而言：对每个披萨，先选择它右边的披萨，然后每次总能找到一个有左边空闲的披萨，三个三个地删掉，直到删完。这也是上面解法合理性的证明。
+
+所以原题转化为选取 $\frac n3$ 个不相邻元素的最大值。
+
+贪心：每次选最大的，但显然样例就不行了，所以需要反悔。所以每次选完标记一下反悔的余地。具体而言，选择 $a_i$ 后，删掉 $a_{i-1},a_i,a_{i+1}$，然后再原本位置添加 $-a_{i}+a_{i-1}+a_{i+1}$，再次选择新节点相当于反悔 $a_i$ 然后同时选择 $a_{i-1},a_{i+1}$。
+
+即相当于删掉左右两点，自己点权修改，或者删三次插一次。使用静态双向链表+堆即可。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+vector<int> a; // used in struct, must global
+class Solution
+{
+public:
+    int solve(const vector<int> &slices, int k)
+    {
+        int n = slices.size();
+        vector<int> l(n, 0), r(n, 0);
+        a = slices;
+        for (int i = 0; i < n; ++i)
+        {
+            l[i] = (i - 1 + n) % n;
+            r[i] = (i + 1) % n;
+        }
+        auto remove = [&](int i)
+        {
+            r[l[i]] = r[i], l[r[i]] = l[i];
+        };
+        vector<bool> alive(n, true);
+        struct cmp
+        {
+            bool operator()(int l, int r)
+            {
+                return a[l] < a[r];
+            }
+        };
+        priority_queue<int, vector<int>, cmp> q;
+        for (int i = 0; i < n; ++i)
+        {
+            q.push(i);
+        }
+        int ans = 0;
+        for (int i = 0; i < k;)
+        {
+            int x = q.top();
+            q.pop();
+            if (!alive[x])
+            {
+                continue;
+            }
+            ++i;
+            ans += a[x];
+            alive[l[x]] = alive[r[x]] = false;
+            a[x] = a[l[x]] + a[r[x]] - a[x];
+            q.push(x);
+            remove(l[x]), remove(r[x]);
+        }
+        return ans;
+    }
+    int maxSizeSlices(const vector<int> &slices)
+    {
+        return solve(slices, slices.size() / 3);
+    }
+};
+signed main()
+{
+    ios::sync_with_stdio(false), cin.tie(0);
+    int n, m;
+    cin >> n >> m;
+    if (n < m * 2)
+    {
+        cout << "Error!";
+        return 0;
+    }
+    vector<int> a(n);
+    for (int i = 0; i < n; ++i)
+    {
+        cin >> a[i];
+    }
+    Solution s;
+    cout << s.solve(a, m);
+    return 0;
+}
+```
+
 
 
 > ### 力扣比赛
@@ -19751,7 +19892,7 @@ public:
 
 #### 周赛327
 
-##### vp成绩：
+**vp成绩**：
 
 ![image-20230112173246572](img/image-20230112173246572.png)
 
