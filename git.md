@@ -713,6 +713,10 @@ git push 远程主机名 本地分支名:远程分支名
 
 当且仅当本地名字和远程分支名字同名，可以省略冒号。如果远程分支不存在会新建。
 
+```sh
+git push origin master:notes #例子,本地master命名为远程notes
+```
+
 强制推送：`--force`
 
 删除远程的主机的一个分支：`--delete`
@@ -958,7 +962,7 @@ git checkout -b devel origin/develop
 git merge 分支名
 ```
 
-把某个分支合并到当前分支，这个分支可以是远程的，如 fetch 后 `git merge origin/master`
+把某个分支合并到当前分支，这个分支可以是远程的，如 fetch 后 `git merge remotes/origin/master`，其中 `remotes/` 指明远程。
 
 如果出现冲突，必须手动解决
 
@@ -1022,6 +1026,14 @@ git branch -m master master_copy # 本地分支改名
 git checkout 分支名 #或
 git switch 分支名
 ```
+
+回到切换前的分支
+
+```sh
+git checkout -
+```
+
+
 
 #### bug分支
 

@@ -23555,6 +23555,159 @@ int main()
 }
 ```
 
+#### CCPC2023网络赛热身赛
+
+原题：[2021CCPC女生赛](https://codeforces.com/gym/103389)，分别是K,B,H,J
+
+- A 签到
+- B 倍增
+- C 半平面交
+- D 树上DP
+
+##### 音乐游戏
+
+签。略。赛时忘了 getline 语法懒得去翻，所以写了 C 风格，然后 < 写成 <= debug 了五分钟左右：
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+signed main()
+{
+    int n;
+    char nth;
+    scanf("%d%c",&n,&nth);
+    int cnt = 0;
+    for(int h=0;h<n;++h){
+        char c;
+        for(int i=0;i<6;++i){
+            scanf("%c",&c);
+            if(c=='-'){
+                ++cnt;
+            }
+            //printf("[%c]",c);
+        }
+        //printf("Done %d %d\n", h,n);
+        if(h+1<n){
+            scanf("%c",&nth);
+        }
+    }
+    cout << cnt << '\n';
+    return 0;
+}
+```
+
+##### 攻防演练
+
+> 我的思路：通过暴力程序，找出未证明的规律，若一个串能找到 $t$ 个长为 $m$ 的 $A-M$ 的序列排列为子序列的串，那么答案为 $t+1$。例如对 $m=3$，`abcacb` 是 $k=3$，同理 `abbcaaaacacb` 也是 $k=3$，而 `abbcca` 只能是 $k=2$。然后发现对 $q$ 次询问做不到，我的复杂度无论如何只能 $O(nq)$。莫队不会回滚，ST/线段树/前缀和/DP 不会实现。
+
+预处理出在下标 $i$ 处<u>的下个位置</u>到后面出现的首个第 $j$ 个字母的下标 $nxt_{i,j}$，可以 $O(nm)$ 处理。
+
+定义 $f_{i,0}=\max_{j=0}^mnxt_{i,j}$，即包含 $A\sim M$ 的全体字符的子序列的最后一个字符所在。做倍增，定义 $f_{i,j}$ 表示包含 $2^j$ 个这样的子序列的最后一个字符所在，显然 $f_{i,j}=f_{f_{i,j-1},j-1}$。
+
+长为 $k+1$ 的任意串都不是 $s_{l,r}$ 的子序列时，那么长为 $k$ 的是子序列，这表明从 $l-1$ 开始跳 $k$ 次能跳到。所以在跳完不超过 $r$ 的情况下跑倍增不断跳，输出 $k+1$ 即可。
+
+暴力找出来的规律的具体原理：$k$ 长都匹配，即有长为 $k$ 的通配符。每个通配符具体到上面即一个 $f_{i,0}$ 的跨度
+
+[参考](https://blog.csdn.net/kaka03200/article/details/121098182)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+typedef pair<int, int> pii;
+typedef unsigned long long ull;
+const ll inf = 1e18;
+const int N = 2e5 + 10;
+const int M = 1e6 + 10;
+const double eps = 1e-8;
+const int mod = 998244353;
+
+#define fi first
+#define se second
+#define re register
+#define lowbit (-x&x)
+#define endl '\n'
+int n, m;
+char s[N];
+int nxt[N][26];
+int f[N][20];
+int pos[26];
+void solve() {
+    cin >> m >> n;
+    cin >> (s + 1);
+    for (int i = 0; i < 26; i++) nxt[n][i] = n + 1;
+    for (int i = n; i >= 1; i--) {
+        if (!pos[s[i]-'a']) nxt[i][s[i]-'a'] = n + 1;
+        else nxt[i][s[i]-'a'] = pos[s[i]-'a'];
+        pos[s[i]-'a'] = i;
+        for (int j = 0; j < m; j++) {
+            if (pos[j]) nxt[i-1][j] = pos[j];
+            else nxt[i-1][j] = n + 1;
+        }
+    }
+    for (int i = 0; i <= n; i++) {
+        int ma = 0;
+        for (int j = 0; j < m; j++) ma = max(ma, nxt[i][j]);
+        f[i][0] = ma;
+        for (int j = 0; j < 20; j++) f[n+1][j] = f[n][j] = n + 1;
+    }
+    for (int j = 1; j < 20; j++) {
+        for (int i = 0; i <= n; i++) {
+            f[i][j] = f[f[i][j-1]][j-1];
+//            if (!i) cout << f[i][j] << ' ' << f[i][j-1] << ' ' << j-1 << endl;
+        }
+    }
+    int q; cin >> q;
+    while (q--) {
+        int l, r; cin >> l >> r;
+        int ans = 0;
+        int now = l - 1;
+        for (int i = 19; ~i; i--) {
+            if (f[now][i] <= r) {
+                ans += (1 << i);
+                now = f[now][i];
+            }
+        }
+        printf("%d\n", ans+1);
+    }
+}
+signed main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+#ifdef ACM_LOCAL
+    freopen("input", "r", stdin);
+    freopen("output", "w", stdout);
+#endif
+
+#ifdef ACM_LOCAL
+    auto start = clock();
+#endif
+    int t = 1;
+//    cin >> t;
+    while (t--)
+        solve();
+#ifdef ACM_LOCAL
+    auto end = clock();
+    cerr << "Run Time: " << double(end - start) / CLOCKS_PER_SEC << "s" << endl;
+#endif
+    return 0;
+}
+```
+
+##### 4G网络
+
+[参考](https://codeforces.com/gym/103389/attachments/download/16594/2021CCPC%E5%A5%B3%E7%94%9F%E8%B5%9B%E9%A2%98%E8%A7%A3.pdf) 直接看官方题解，很清晰。超出能力不补。
+
+##### 最大权边独立集
+
+> 枚举位于答案边集的加入的边的数量 $t$，显然 $0\le t\le k$，因为独立集的定义故 $2t\le n$。加入 $t$ 条边等价于删掉 $2t$ 个点，则这 $t$ 条边贡献 $tp$，剩下的图再求一个最大权边独立集。
+>
+> 设 $f_{i,j,0}$ 表示 $i$ 为根的子树，子树删了 $j$ 个点，不能往上匹配时的答案，$1$ 是能网上匹配。枚举 $j$ 从 $0$ 到 $\min(size_x,k)$。
+>
+> 没有代码，看不懂 DP。
+
 
 
 #### 未分类
