@@ -685,6 +685,10 @@
 - 2337\.移动片段得到字符串
 
   贪心
+  
+- 849\.到最近的人的最大距离
+
+  枚举 / 链表/前缀和
 
 
 
@@ -19930,7 +19934,47 @@ public:
 };
 ```
 
+##### 849\.到最近的人的最大距离
 
+[题目]()
+
+我的做法时空 On，找 1：
+
+```c++
+class Solution
+{
+public:
+    int maxDistToClosest(vector<int> &seats)
+    {
+        int n = seats.size();
+        vector<int> r(n, 1e9);
+        for (int i = n - 1, last = 1e9; i >= 0; --i)
+        {
+            r[i] = last;
+            if (seats[i])
+            {
+                last = i;
+            }
+        }
+        int ans = 0;
+        for (int i = 0, l, last = -1e9; i < n; ++i)
+        {
+            l = last;
+            if (seats[i])
+            {
+                last = i;
+            }
+            else
+            {
+                ans = max(ans, min(i - l, r[i] - i));
+            }
+        }
+        return ans;
+    }
+};
+```
+
+更优解空间 O1，找 0，特判首尾段段长，中间段=除2上取整。略。
 
 > ### 力扣比赛
 >
