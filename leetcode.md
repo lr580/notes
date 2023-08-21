@@ -681,6 +681,10 @@
 - 1388\.3n 块披萨
 
   **DP** / **反悔贪心**
+  
+- 2337\.移动片段得到字符串
+
+  贪心
 
 
 
@@ -19883,6 +19887,47 @@ signed main()
     cout << s.solve(a, m);
     return 0;
 }
+```
+
+##### 2337\.移动片段得到字符串
+
+[题目](https://leetcode.cn/problems/move-pieces-to-obtain-a-string/)
+
+有解必须同时满足的充要条件：
+
+1. 去除所有 `_` 后两字符串 $s',t'$ 相等。显然。
+2. 若，$s_i=L$，这个 $L$ 在 $t$ 必须不能更右；同理若为 $R$，不能更左
+
+```c++
+class Solution
+{
+    // vector<int> a, b;
+public:
+    bool sameRelative(string s, string t)
+    {
+        int n = s.size(), i = 0, j = 0;
+        for (;;)
+        {
+            for (; i < n && s[i] == '_'; ++i)
+                ;
+            if (i == n)
+                break;
+            for (; j < n && t[j] == '_'; ++j)
+                ;
+            if (j == n || s[i] != t[j])
+                return false;
+            if (s[i] == 'L' && i < j)
+                return false;
+            if (s[i] == 'R' && i > j)
+                return false;
+            ++i, ++j;
+        }
+        for (; j < n && t[j] == '_'; ++j)
+            ;
+        return j == n;
+    }
+    bool canChange(string s, string t) {return sameRelative(s, t);}
+};
 ```
 
 
