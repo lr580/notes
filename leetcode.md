@@ -689,6 +689,18 @@
 - 849\.到最近的人的最大距离
 
   枚举 / 链表/前缀和
+  
+- 1782\.统计点对的数目
+
+  二分 / <u>双指针</u>
+  
+- 225\.汇总区间
+
+  小模拟
+  
+- 56\.合并区间
+
+  排序
 
 
 
@@ -19975,6 +19987,305 @@ public:
 ```
 
 更优解空间 O1，找 0，特判首尾段段长，中间段=除2上取整。略。
+
+##### 1782\.统计点对的数目
+
+[题目](https://leetcode.cn/problems/count-pairs-of-nodes/)
+
+设度数为 $d$，有 $c_{i,j}$ 条连接 $(i,j)$ 的边，即求满足下面不等式的 $(i,j)$ 数目：
+$$
+d_i+d_j-s_{i,j} > q
+$$
+对每个 $q$，枚举 $d_i$，忽略 $s_{i,j}$，放缩，查看有多少个 $d_i + d_j > q+s_{i,j}\ge q$，即二分看看有多少个  $j$ 满足 $> q-d_i$。
+
+之后，枚举每个 $s_{i,j}$，如果它在 $d_i+d_j > q$ 满足，但是在 $d_i+d_j-s_{i,j} > q$ 不满足，从答案删去。
+
+复杂度 $O(qn\log n+qm)$
+
+```c++
+class Solution
+{
+public:
+    vector<int> countPairs(int n, vector<vector<int>> &edges, vector<int> &queries)
+    {
+        vector<int> d(n + 1, 0);
+        map<pair<int, int>, int> c;
+        for (auto e : edges)
+        {
+            int u = e[0], v = e[1];
+            ++d[u], ++d[v];
+            ++c[make_pair(min(u, v), max(u, v))];
+        }
+        vector<int> ds = d;
+        sort(ds.begin(), ds.end());
+        // for(int i=0;i<=n;++i){
+        //     cout << ds[i] << " ";
+        // }
+        // cout << '\n';
+        vector<int> res;
+        for (auto q : queries)
+        {
+            int ans = n * (n - 1) / 2;
+            vector<int> val(n + 1);
+            int dels = 0;
+            for (int i = 1; i <= n; ++i)
+            {
+                int v = q - d[i];
+                auto j = upper_bound(ds.begin(), ds.end(), v) - ds.begin();
+                if(j>0) --j;
+                // ans -= j; // invalid (0,j]
+                dels += j;
+                auto ip = lower_bound(ds.begin(), ds.end(), d[i]) - ds.begin();
+                // cout << dels << '\n';
+                // ans += ip <= j; // i!=i
+                dels -= ip <= j;
+                // cout << i << " " << j << " " << ip << " " << v << " " << dels << '\n';
+                val[i] = j + 1; // valid [j+1,n]
+            }
+            ans -= dels / 2; // i > j, i < j
+            for (auto pr : c)
+            {
+                int u = pr.first.first, v = pr.first.second, s = pr.second;
+                // not included above
+                ans -= (d[u] + d[v] - s) <= q && d[u] + d[v] > q;
+                // cout << "Del " << u << " " << v << "\n";
+            }
+            res.push_back(ans);
+            // cout << "\n";
+        }
+        return res;
+    }
+};
+```
+
+更优实现：
+
+1. 按照排序后的 $d$ 的顺序枚举 $d$，二分时能去重，不用手动除二判和 $i=j$
+2. unmap 优化，不用自定义结构体做二维合一即可
+
+```c++
+class Solution {
+public:
+    vector<int> countPairs(int n, vector<vector<int>>& edges, vector<int>& queries) {
+        vector<int> degree(n);
+        unordered_map<int, int> cnt;
+        for (auto edge : edges) {
+            int x = edge[0] - 1, y = edge[1] - 1;
+            if (x > y) {
+                swap(x, y);
+            }
+            degree[x]++;
+            degree[y]++;
+            cnt[x * n + y]++;
+        }
+
+        vector<int> arr = degree;
+        vector<int> ans;
+        sort(arr.begin(), arr.end());
+        for (int bound : queries) {
+            int total = 0;
+            for (int i = 0; i < n; i++) {
+                int j = upper_bound(arr.begin() + i + 1, arr.end(), bound - arr[i]) - arr.begin();
+                total += n - j;
+            }
+            for (auto &[val, freq] : cnt) {
+                int x = val / n;
+                int y = val % n;
+                if (degree[x] + degree[y] > bound && degree[x] + degree[y] - freq <= bound) {
+                    total--;
+                }
+            }
+            ans.emplace_back(total);
+        }
+
+        return ans;
+    }
+};
+```
+
+优化：双指针
+
+- 因为 $d_i$ 递增枚举，所以满足的区间也是单调变化的，可以不用二分搜索，直接指针维护即可
+
+```c++
+class Solution {
+public:
+    vector<int> countPairs(int n, vector<vector<int>>& edges, vector<int>& queries) {
+        vector<int> degree(n);
+        unordered_map<int, int> cnt;
+        for (auto edge : edges) {
+            int x = edge[0] - 1, y = edge[1] - 1;
+            if (x > y) {
+                swap(x, y);
+            }
+            degree[x]++;
+            degree[y]++;
+            cnt[x * n + y]++;
+        }
+
+        vector<int> arr = degree;
+        vector<int> ans;
+        sort(arr.begin(), arr.end());
+        for (int bound : queries) {
+            int total = 0;
+            for (int i = 0, j = n - 1; i < n; i++) {
+                while (j > i && arr[i] + arr[j] > bound) {
+                    j--;
+                }
+                total += n - 1 - max(i, j);
+            }
+            for (auto &[val, freq] : cnt) {
+                int x = val / n;
+                int y = val % n;
+                if (degree[x] + degree[y] > bound && degree[x] + degree[y] - freq <= bound) {
+                    total--;
+                }
+            }
+            ans.emplace_back(total);
+        }
+
+        return ans;
+    }
+};
+```
+
+##### 225\.汇总区间
+
+[题目](https://leetcode.cn/problems/summary-ranges/description/)
+
+我的代码：
+
+```c++
+class Solution
+{
+public:
+    vector<string> summaryRanges(vector<int> &nums)
+    {
+        if (nums.size() == 0)
+            return {};
+        sort(nums.begin(), nums.end());
+        vector<string> ans;
+        int n = nums.size();
+        for (int i = 0, l = nums[0], r; i < n; ++i)
+        {
+            r = nums[i];
+            if (i + 1 == n || nums[i + 1] != r + 1)
+            {
+                if (l == r)
+                {
+                    ans.push_back(to_string(l));
+                }
+                else
+                {
+                    ans.push_back("" + to_string(l) + "->" + to_string(r));
+                }
+                if (i + 1 != n)
+                {
+                    l = nums[i + 1];
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+更优雅实现：
+
+- `move(x)` 将 `x` 剪切返回，执行后 `x` 为空，返回值为 `x` 的值。
+
+```c++
+class Solution {
+public:
+    vector<string> summaryRanges(vector<int>& nums) {
+        vector<string> ret;
+        int i = 0;
+        int n = nums.size();
+        while (i < n) {
+            int low = i;
+            i++;
+            while (i < n && nums[i] == nums[i - 1] + 1) {
+                i++;
+            }
+            int high = i - 1;
+            string temp = to_string(nums[low]);
+            if (low < high) {
+                temp.append("->");
+                temp.append(to_string(nums[high]));
+            }
+            ret.push_back(move(temp));
+        }
+        return ret;
+    }
+};
+```
+
+##### 56\.合并区间
+
+[题目](https://leetcode.cn/problems/merge-intervals/)
+
+我的实现：
+
+```c++
+class Solution
+{
+public:
+    using pr = vector<int>;
+    vector<vector<int>> merge(vector<vector<int>> &a)
+    {
+        sort(a.begin(), a.end(), [](pr l, pr r)
+             { return l[0] == r[0] ? l[1] < r[1] : l[0] < r[0]; });
+        vector<pr> ans;
+        int n = a.size();
+        for (int l = 0, r; l < n;)
+        {
+            pr no = a[l];
+            for (r = l + 1; r < n; ++r)
+            {
+                pr nw = a[r];
+                if (nw[0] > no[1])
+                {
+                    break;
+                }
+                no = {no[0], max(no[1], nw[1])};
+            }
+            ans.push_back(no);
+            l = r;
+        }
+        return ans;
+    }
+};
+```
+
+更优雅实现：
+
+- 不需要自定义比较依据，默认的依据就很对
+- 每次用上一个答案区间与当前区间对比即可
+
+```c++
+class Solution {
+public:
+    vector<vector<int>> merge(vector<vector<int>>& intervals) {
+        if (intervals.size() == 0) {
+            return {};
+        }
+        sort(intervals.begin(), intervals.end());
+        vector<vector<int>> merged;
+        for (int i = 0; i < intervals.size(); ++i) {
+            int L = intervals[i][0], R = intervals[i][1];
+            if (!merged.size() || merged.back()[1] < L) {
+                merged.push_back({L, R});
+            }
+            else {
+                merged.back()[1] = max(merged.back()[1], R);
+            }
+        }
+        return merged;
+    }
+};
+```
+
+
 
 > ### 力扣比赛
 >

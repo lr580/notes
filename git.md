@@ -717,6 +717,12 @@ git push 远程主机名 本地分支名:远程分支名
 git push origin master:notes #例子,本地master命名为远程notes
 ```
 
+> 如果不行，输入完整格式，如把本地当前分支推送到远程 `traps`，如果没有远程那个分支就新建：
+>
+> ```sh
+> git push origin HEAD:refs/heads/traps
+> ```
+
 强制推送：`--force`
 
 删除远程的主机的一个分支：`--delete`
