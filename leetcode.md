@@ -701,6 +701,14 @@
 - 56\.合并区间
 
   排序
+  
+- 57\.插入区间
+
+  小模拟
+  
+- 440\.字典序的第k小数字
+
+  DFS trie
 
 
 
@@ -20281,6 +20289,154 @@ public:
             }
         }
         return merged;
+    }
+};
+```
+
+##### 57\.插入区间
+
+[题目](https://leetcode.cn/problems/insert-interval)
+
+暴力：直接插入、排序、按上一道题处理。
+
+我的小模拟，写的很烂，wa 了不少：
+
+```c++
+class Solution
+{
+    using pr = vector<int>;
+
+public:
+    vector<vector<int>> insert(vector<vector<int>> &a, vector<int> &b)
+    {
+        vector<pr> ans;
+        //ans.push_back({-10,-10});
+        int n = a.size(), merged = false;
+        if(n&&b[1]<=a[0][0]){
+            ans.push_back(b);
+            merged = true;
+        }
+        for (int i = 0; i < n; ++i)
+        {
+            ans.push_back(a[i]);
+            pr &c = ans.back();
+            if (c[1] >= b[0] && b[1] >= c[0])
+            {
+                //cout << b[0] << " " << b[1] << " "  << c[0] << " " << c[1] << '\n';
+                c[0] = min(c[0], b[0]);
+                c[1] = max(c[1], b[1]);
+                merged = true;
+            }
+            if (ans.size() >= 2)
+            {
+                pr &d = ans[ans.size() - 2];
+                //cout << "? " << d[0] << " " << d[1] << " "  << c[0] << " " << c[1] << '\n';
+                if (d[1] >= c[0])
+                {
+                    //cout << "drop " << c[0] << " " << c[1] << '\n';
+                    d[0] = min(d[0], c[0]);
+                    d[1] = max(d[1], c[1]);
+                    ans.pop_back();
+                }
+                else if(!merged && d[1] < b[0] && b[1] < c[0]) {
+                    pr cc = c;
+                    ans.pop_back();
+                    ans.push_back(b);
+                    ans.push_back(cc);
+                    merged = true;
+                }
+            }
+        }
+        //ans.erase(ans.begin());
+        if (!merged) {
+            ans.push_back(b);
+        }
+        return ans;
+    }
+};
+```
+
+优雅实现：
+
+```c++
+class Solution {
+public:
+    vector<vector<int>> insert(vector<vector<int>>& intervals, vector<int>& newInterval) {
+        int left = newInterval[0];
+        int right = newInterval[1];
+        bool placed = false;
+        vector<vector<int>> ans;
+        for (const auto& interval: intervals) {
+            if (interval[0] > right) {
+                // 在插入区间的右侧且无交集
+                if (!placed) {
+                    ans.push_back({left, right});
+                    placed = true;                    
+                }
+                ans.push_back(interval);
+            }
+            else if (interval[1] < left) {
+                // 在插入区间的左侧且无交集
+                ans.push_back(interval);
+            }
+            else {
+                // 与插入区间有交集，计算它们的并集
+                left = min(left, interval[0]);
+                right = max(right, interval[1]);
+            }
+        }
+        if (!placed) {
+            ans.push_back({left, right});
+        }
+        return ans;
+    }
+};
+```
+
+##### 440\.字典序的第k小数字
+
+[题目](https://leetcode.cn/problems/k-th-smallest-in-lexicographical-order)
+
+暴力就遍历字典树，理论 $O(k)$。
+
+已知 $i$ 的子节点为 $10i+j(0\le j\le 9)$。当遍历到 $i$ 时，先序往后走 $k-i$ 步即可。设当前字典序第 $i$ 小节点是 $n_i$，如果它有右兄弟，则为 $n_{i+1}$。设 $i$ 为根的子树的节点数为 $f(i)$，则：
+
+- $f(n_i)\le k-i$，直接走右兄弟(或无兄弟回走，但实际不需要)，下一步还需要跳 $k-i-f(n_i)$ 个点
+- $f(n_i) >k-i$，走子树，顺序遍历每个直接子节点
+
+求 $f$，可以设子树是满10叉树，每一层最左最右为 $first,last$，然后每下一层都用原本的 $first,last$ 求新的，一直下到 $n$ 所在的层，该层节点数为 $\min(n, last)-first+1$。复杂度为 $O(\log n)$。
+
+在如此遍历时，不需要回走。走 $n_i$ 实际上最坏走 $O(10\log n)$ 次(每层乘以扇出)，故总复杂度为 $O(10\log^2 n)$。
+
+```c++
+class Solution {
+public:
+    int getSteps(int curr, long n) {
+        int steps = 0;
+        long first = curr;
+        long last = curr;
+        while (first <= n) {
+            steps += min(last, n) - first + 1;
+            first = first * 10;
+            last = last * 10 + 9;
+        }
+        return steps;
+    }
+
+    int findKthNumber(int n, int k) {
+        int curr = 1;
+        k--;
+        while (k > 0) {
+            int steps = getSteps(curr, n);
+            if (steps <= k) {
+                k -= steps;
+                curr++;
+            } else {
+                curr = curr*10;
+                k--;
+            }
+        }
+        return curr;
     }
 };
 ```
