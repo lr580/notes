@@ -708,7 +708,23 @@
   
 - 440\.字典序的第k小数字
 
-  DFS trie
+  **DFS+trie**
+  
+- 823\.带因子的二叉树
+
+  DP (+ <u>双指针优化</u>)
+
+- 446\.等差数列划分 II
+
+  **DP**
+
+- 1654\.到家的最少跳跃次数
+
+  <u>BFS</u>
+
+- 458\.可怜的小猪
+
+  思维+DP / <u>DP+组合数学</u> / <u>数学</u>
 
 
 
@@ -20441,7 +20457,291 @@ public:
 };
 ```
 
+##### 823\.带因子的二叉树
 
+[题目](https://leetcode.cn/problems/binary-trees-with-factors/)
+
+设 $s_i$ 是以第 $i$ 个数为根的子树的方案数，则答案为 $\sum s$。
+
+对每个数 $a_i$，枚举所有能组成它的因子对 $a_j,a_k$ 满足 $a_j\le a_k,a_ja_k=a_i$，则方案数为 $s_i=1+\sum s_js_k(1+[j\neq k])$，即两子不同排列乘二，相同只有一种。
+
+对 $a$ 排序，然后因为 $n$ 小 $a$ 大，直接枚举 $a$ 而不是枚举全体因子，故总复杂度为 $O(n^2)$。用 map 对 j 找 k。
+
+```c++
+const int mod = 1e9 + 7;
+using ll = long long;
+class Solution
+{
+public:
+    int numFactoredBinaryTrees(vector<int> &a)
+    {
+        int n = a.size();
+        sort(a.begin(), a.end());
+        map<int, int> ai;
+        for (int i = 0; i < n; ++i)
+        {
+            ai[a[i]] = i;
+        }
+        ll ans = 0;
+        vector<ll> s(n, 1); // 以a[i]为根的子树的方案数
+        for (int i = 0; i < n; ++i)
+        {
+            int v = a[i];
+            // for (int x = 2; x * x <= v; ++x)
+            for (int xi = 0; xi < i; ++xi)
+            {
+                int x = a[xi];
+                if (v % x == 0 && ai.find(v / x) != ai.end() && x <= v / x)
+                {
+                    int y = v / x;
+                    int yi = ai[y];
+                    s[i] = (s[i] + (s[xi] * s[yi] % mod * (x == y ? 1 : 2) % mod)) % mod;
+                }
+            }
+            ans = (ans + s[i]) % mod;
+        }
+        return ans;
+    }
+};
+```
+
+题解：优化使用双指针对 j 找 k：
+
+```c++
+class Solution {
+public:
+    int numFactoredBinaryTrees(vector<int>& arr) {
+        sort(arr.begin(), arr.end());
+        int n = arr.size();
+        vector<long long> dp(n);
+        long long res = 0, mod = 1e9 + 7;
+        for (int i = 0; i < n; i++) {
+            dp[i] = 1;
+            for (int left = 0, right = i - 1; left <= right; left++) {
+                while (right >= left && (long long)arr[left] * arr[right] > arr[i]) {
+                    right--;
+                }
+                if (right >= left && (long long)arr[left] * arr[right] == arr[i]) {
+                    if (right != left) {
+                        dp[i] = (dp[i] + dp[left] * dp[right] * 2) % mod;
+                    } else {
+                        dp[i] = (dp[i] + dp[left] * dp[right]) % mod;
+                    }
+                }
+            }
+            res = (res + dp[i]) % mod;
+        }
+        return res;
+    }
+};
+```
+
+##### 446\.等差数列划分 II
+
+[题目](https://leetcode.cn/problems/arithmetic-slices-ii-subsequence)
+
+设 $f_{i,d}$ 表示尾项为 $i$ 公差为 $d$ 的等差数列(项数 $\ge 2$)，枚举倒数第二项 $j$，同公差可以推过去，所以 $f_{j,d}$ 这一系列数列都满足条件，且还有额外的 $n=2$ 的数列 $(j,i)$ 也满足，故 $f_{i,d}\leftarrow f_{j,d}+1$。
+
+一个 $i$ 最多跟 $i-1$ 个前项形成公差，所以 $d$ 离散化后不超过 $n$ 项，故复杂度为 $O(n^2)$。
+
+```c++
+class Solution {
+public:
+    int numberOfArithmeticSlices(vector<int> &nums) {
+        int ans = 0;
+        int n = nums.size();
+        vector<unordered_map<long long, int>> f(n);
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < i; ++j) {
+                long long d = 1LL * nums[i] - nums[j];
+                auto it = f[j].find(d);
+                int cnt = it == f[j].end() ? 0 : it->second;
+                ans += cnt;
+                f[i][d] += cnt + 1;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+##### 1654\.到家的最少跳跃次数
+
+[题目](https://leetcode.cn/problems/minimum-jumps-to-reach-home)
+
+记录两个状态：当前位置、上一步到这一步是往前还是往后。
+
+必须记录两个状态，不能忽略上一个状态，不然会错。感觉也很合理，不证。
+
+假设跳到比 $x+b$ 还远的位置，若 $a\ge b$，不能连续后跳两次，则无论如何都回不到 $x$，故边界为 $x+b$。若 $a <b$，设 $f$ 是最大禁止下标，当要求次数最小时，考虑如下两条等长路径：
+
+![image.png](img/1644679382-RhIkpL-image.png)
+
+这意味着，可以通过修改操作顺序，在不连续两次往回的前提下，构造当前位置恒不超过 $\max(f+a+b,x)$ 的方案，即每次往前走要越界时马上往回走，可行范围是 $a+b$，之后就不受禁止影响了。
+
+证明：设 $f$ 开始是原点，对 $p=a+b$ 模意义下，从原点开始，只能选择 $+a$ 或 $-b$，对某个数 $x$，有 $x+a$ 不超 $a+b$ 时不变，超了就变成 $x-b$。对 $x-b$ 不超时就 $x-b$，超了就 $x+a$，所以从模意义证明了路径等效性。
+
+所以 BFS 即可：
+
+```c++
+class Solution {
+public:
+    int minimumJumps(vector<int>& forbidden, int a, int b, int x) {
+        // 最远距离 bound = max(F + a + b, x + b)
+        int F = *max_element(forbidden.begin(), forbidden.end()), bound = max(F + a + b, x + b);
+
+        int ban[bound + 1];
+        memset(ban, 0, sizeof(ban));
+        for(int f : forbidden) {
+            ban[f] = 1;
+        }
+
+        int dist[bound + 1][2]; // dist[i][0] - 上一次前跳, dist[i][1] - 上一次后跳
+        memset(dist, 0x3f, sizeof(dist));
+        dist[0][0] = 0;
+        queue<pair<int,int>> q({{0, 0}});
+        while(q.size()) {
+            auto [i, pre] = q.front(); q.pop();
+            if(i == x) {
+                return dist[i][pre];
+            }
+            if(pre == 0 && i-b >= 0 && !ban[i-b] && dist[i][pre] + 1 < dist[i-b][1]) {
+                dist[i-b][1] = dist[i][pre] + 1;
+                q.emplace(i-b, 1);
+            }
+            if(i+a <= bound && !ban[i+a] && dist[i][pre] + 1 < dist[i+a][0]) {
+                dist[i+a][0] = dist[i][pre] + 1;
+                q.emplace(i+a, 0);
+            }
+        }
+
+        return -1;
+    }
+};
+
+```
+
+##### 458\.可怜的小猪
+
+[题目](https://leetcode.cn/problems/poor-pigs/)
+
+> 样例2解释：猪1喝23,猪2喝24,刚好对应二进制状态。
+>
+> 样例3解释：给 60min 可以一头猪，只要只有1猪喝两桶，那么喝死了无法确定具体哪桶有毒所以还要多一头。
+
+设 $n$ 猪弄清 $m$ 桶需要的次数为 $t$，定义为 $f(n,m)$，则时间为 $die\times t$。
+
+1. $n=1$，$t=m-1$。一桶桶喝，喝到第 $i$ 桶死了就有毒。如果喝了前 $m-1$ 桶都没死，最后一桶肯定有毒。即 $f(1,m)=m-1$。
+
+2. $n=2$。
+
+   枚举所有不重合方案：第一轮猪a 喝前 $i$ 桶，猪b 喝后 $m-i$ 桶。
+
+   设一猪同时喝 $x$ 桶喝死了，另一猪一定不死，第二头猪分辨这 $x$ 桶，只能一桶桶喝。发现的最坏时间为第一头猪喝死喝一次，第二头猪喝倒数第二桶桶喝死喝 $x-1$ 次，共 $x-1+1$ 次。
+
+   - 第一次喝猪a喝死了，花费 $i$ 次。
+   - 第一次喝猪b喝死了，花费 $m-i$ 次。
+
+   故最坏喝 $\max(i,m-i)$ 次，显然取 $i=m\div 2$ 取整(上下取整均可)。即喝的次数为 $\lceil\dfrac m2\rceil$。
+
+   > 如果猪a 喝前 i 桶，猪b 喝后 $m-j(j <i)$ 桶，显然一定不更优。
+   >
+   > 如果猪a 喝任意 i 桶，可以等价于重排序为前 i 桶。
+
+   改进：跳过第一桶，猪a喝第二桶开始的 $i$ 桶，猪b喝后面全部，可以优化为 $\lceil\dfrac {m-1}2\rceil=\lfloor\dfrac m2\rfloor$。
+
+   但是这样的方案解释不了样例二，因为可以只喝一次。考虑两猪喝的桶有重叠。重叠桶数能且仅能是 1，因为如果重叠 2 桶，刚好有毒在这里，都死了分不出哪一桶。
+
+   归纳法：
+
+   - $m=1$ 显然零次，猪都不用了
+
+   - $m=2$ 显然一次
+
+   - $m=3$，不需要重叠，猪a喝2，猪b喝3，都没死就1，a死2，b死3，喝一次。即上文改进方案的例子。
+
+   - $m=4$，重叠，猪a喝23，猪b喝24，都死了2，都没死1，仅死a3，仅死b4，喝一次
+
+   - $m=5$，猪a 234，猪b 25，如果a死b活，第二轮b喝34，喝两次
+
+     可以认为子问题为 $2,n-1$。
+
+   - $m=6$，猪a 234，猪b 256，增讨b死a活a喝56，两次
+
+     子问题为两个 $2,n-1$ 的最大值。
+
+   - $m=7$，猪a 123,，猪b 145，都没死的话a6，两次。
+
+     子问题加一个 $2,n$。
+
+   - $m=8$，不变，都没死的话a6,b7，两次。
+
+     一子问题改为 $3,n$。
+
+   - $m=9$，如果不变， 6789 子问题要 1 次，所以还是两次。
+
+   也就是说，每次分配方案时，
+
+   > 设猪a 喝 $[1,x]$，猪b 喝 $\{1\}\cup [x+1,x+y-1]$，长度分别为 $x+y$，且剩下 $[x+y,m]$ (长为 $m-x-y$)没猪喝。设 $dp_{i}$ 表示 $n=2,m=i$ 最少喝几次。根据归纳，得出转移方程：
+   > $$
+   > dp_m=\min_{x,y,x+y\le m}(\max(x-2,y-2,dp_{m-x-y})+1)
+   > $$
+   > 第一次能判断出来当且仅当两猪死，否则，死猪a 判断 $[2,x]$，长为 $x-1$，化为 $n=1$ 子问题结论为 $f(1,x-1)=x-2$。死猪b 判断长为 $y-1$ 的 $[x+2,x+y-1]$，同理为 $f(1,y-1)=y-2$。否则，都活着，判断长为 $f(2,m-x-y+1)$。
+
+   重新整理，设猪a 喝 $[1,1+x]$，非重叠长 $x$，猪b 喝 $\{1\}\cup [1+x+1,1+x+y]$，非重叠长为 $y$，没猪喝 $[2+x+y,n]$，长 $z=n-x-y-1$。则：
+   $$
+   dp_m=\min(1+\max(x-1,y-1,dp_z))
+   $$
+   初始值 $dp_0=0$，可以写暴力 DP 验证：
+
+   ```python
+   m=100
+   dp = [0 for i in range(m+1)]
+   dp[2] = dp[3] = 1
+   for i in range(4, m+1):
+       dp[i] = m
+       for x in range(1, i+1):
+           for y in range(1, i+1):
+               if 1+x+y >= i:
+                   continue
+               z = i - (x+y+1)
+               dp[i] = min(dp[i], max(x-1,y-1,dp[z])+1)
+   for i in range(1,m+1):
+       print(i,dp[i])
+   ```
+
+   因此，可以暴力 $O(m^3)$ 求出 $f(2,m)$ 的值。观察值，可以得出规律：
+
+   $dp$ 递增，且有 $1$ 个值为 $0$，$3$ 个值为 $1$，$5$ 个值为 $2$，$\cdots$，$2i+1$ 个值为 $i$。等差数列求和，可知规律前 $n$ 项和是 $(i+1)^2$，故为 $dp_i=\lfloor\sqrt{i-1}\rfloor$。
+
+   即 $f(2,m)=\lfloor\sqrt{m-1}\rfloor$
+
+3. 根据数学直觉，不妨推测 $f(n,m)=\lfloor(m-1)^{\frac 1n}\rfloor$。
+
+   > 则对样例，求一下 $f(i,1000)$，得：
+   >
+   > ```python
+   > for i in range(1,7):
+   >     print(i, int(999**(1/i)))
+   > ```
+   >
+   > 符合样例一。
+
+因此，设最大容忍次数为 $t=\lfloor\dfrac{minutesToTest}{minutesToDie}\rfloor$，从小到大枚举 $n$，找到最小的满足 $f(n,m)\le t$ 的 $n$ 输出即可。
+
+```python
+class Solution:
+    def poorPigs(self, m: int, minutesToDie: int, minutesToTest: int) -> int:
+        if m == 1:
+            return 0
+        t = minutesToTest // minutesToDie
+        n = 1
+        while int((m-1)**(1 / n)) > t:
+            n += 1
+        return n
+```
+
+证明暂略，有空再补。
 
 > ### 力扣比赛
 >
