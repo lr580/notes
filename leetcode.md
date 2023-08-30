@@ -725,6 +725,10 @@
 - 458\.可怜的小猪
 
   思维+DP / <u>DP+组合数学</u> / <u>数学</u>
+  
+- 1761\.一个图中连通三元组的最小度数
+
+  枚举 / <u>bitset优化</u> / <u>排序+快速矩阵乘法</u>
 
 
 
@@ -20742,6 +20746,72 @@ class Solution:
 ```
 
 证明暂略，有空再补。
+
+> 官方题解通俗易懂，证明直接看官方题解。
+
+##### 1761\.一个图中连通三元组的最小度数
+
+[题目](https://leetcode.cn/problems/minimum-degree-of-a-connected-trio-in-a-graph)
+
+连通三元组的度数和为 $d_u+d_v+d_w-6$，$6$ 是三角形度数贡献和。要求满足 $vis_{u,v},vis_{u,w},vis_{u,w}$。直接暴力即可，时间 $O(n^3)$，空间 $O(n^2)$。
+
+```c++
+class Solution {
+    public:
+    int minTrioDegree(int n, vector<vector<int>>& edges) {
+        vector<int> d(n+1,0);
+        vector<vector<bool>> vis(n+1, vector<bool>(n+1,false));
+        for(auto pr :edges){
+            int u=pr[0],v=pr[1];
+            ++d[u],++d[v];
+            vis[u][v] = vis[v][u] = true;
+        }
+        int ans = 1e9;
+        for(int u=1;u<=n;++u) for(int v=u+1;v<=n;++v) for(int w=v+1;w<=n;++w) {
+            if(vis[u][v] && vis[u][w] && vis[v][w]) 
+                ans = min(ans, d[u]+d[v]+d[w]-6);
+        }
+        return ans == 1e9 ?-1:ans;
+    }
+};
+```
+
+bitset 优化：[参考](https://leetcode.cn/problems/minimum-degree-of-a-connected-trio-in-a-graph/solutions/603233/cbitsetgao-xiao-lin-jie-ju-zhen-lin-jie-0yctl/)
+
+```c++
+class Solution {
+public:
+    
+    int minTrioDegree(int n, vector<vector<int>>& edges) {
+        bitset<401>b[401];
+        for(auto&edge:edges){
+            int i=edge[0],j=edge[1];
+            b[i].set(j);
+            b[j].set(i);
+        }
+        int deg[401]={0};
+        for(int i=1;i<=n;i++)deg[i]=b[i].count();
+        int ans=INT_MAX;
+        for(int first=1;first<n-1;first++){
+            int second=first;//顺序枚举不重
+            //_Find_next找下一个1的位置
+            while((second=b[first]._Find_next(second))<n){
+                //核心提速点关键代码
+                auto join=b[first]&b[second];
+                int third=second;
+                while((third=join._Find_next(third))<=n){
+                    ans=min(ans,deg[first]+deg[second]+deg[third]-6);
+                }
+            }
+        }
+        return short(ans); //int(short(v)) -> INT_MAX to -1
+    }
+};
+```
+
+卡常：按度排序，对 $(i,j)$，找到最小排序后下标 $k$ 满足构成三角形。
+
+> 更优解法：快速矩阵乘法 [参考](https://zhuanlan.zhihu.com/p/344219746) 如快速 01 矩阵乘法
 
 > ### 力扣比赛
 >
