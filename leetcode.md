@@ -729,6 +729,14 @@
 - 1761\.一个图中连通三元组的最小度数
 
   枚举 / <u>bitset优化</u> / <u>排序+快速矩阵乘法</u>
+  
+- 2240\.买钢笔和铅笔的方案数
+
+  枚举 / <u>类欧几里得算法</u>
+  
+- 2511\.最多可以摧毁的敌人城堡数目
+
+  小模拟
 
 
 
@@ -20812,6 +20820,150 @@ public:
 卡常：按度排序，对 $(i,j)$，找到最小排序后下标 $k$ 满足构成三角形。
 
 > 更优解法：快速矩阵乘法 [参考](https://zhuanlan.zhihu.com/p/344219746) 如快速 01 矩阵乘法
+
+##### 2240\.买钢笔和铅笔的方案数
+
+[题目](https://leetcode.cn/problems/number-of-ways-to-buy-pens-and-pencils/)
+
+暴力枚举，$O(n)$：
+
+```c++
+class Solution {
+    using ll = long long;
+public:
+    ll waysToBuyPensPencils(int total, int cost1, int cost2) {
+        ll ans = 0;
+        for(int pen=0;pen*cost1<=total;++pen) {
+            ans += (total-pen*cost1)/cost2 + 1;
+        }
+        return ans;
+    }
+};
+```
+
+这个问题要求解的式子为：
+$$
+1+\lfloor\dfrac{total}{cost_1}\rfloor+\sum_{i=0}^{\lfloor total/cost_1\rfloor}\lfloor\dfrac{total-i\times cost_1}{cost_2}\rfloor
+$$
+其中 $\sum_{i=0}^n\lfloor\dfrac {ai+b}m\rfloor$ 套用类欧几里得算法 $O(\log n)$ 求解：[参考](https://oi-wiki.org/math/number-theory/euclidean/)
+
+```go
+func waysToBuyPensPencils(total, cost1, cost2 int) int64 {
+	n := total/cost1 + 1
+	return int64(n + floorSum(n, cost2, -cost1, total))
+}
+
+// 返回 sum(floor((a*i+b)/m)), i 从 0 到 n-1
+func floorSum(n, m, a, b int) (res int) {
+	if a < 0 {
+		a2 := a%m + m
+		res -= n * (n - 1) / 2 * ((a2 - a) / m)
+		a = a2
+	}
+	if b < 0 {
+		b2 := b%m + m
+		res -= n * ((b2 - b) / m)
+		b = b2
+	}
+	for {
+		if a >= m {
+			res += n * (n - 1) / 2 * (a / m)
+			a %= m
+		}
+		if b >= m {
+			res += n * (b / m)
+			b %= m
+		}
+		yMax := a*n + b
+		if yMax < m {
+			break
+		}
+		n = yMax / m
+		b = yMax % m
+		m, a = a, m
+	}
+	return
+}
+```
+
+##### 2511\.最多可以摧毁的敌人城堡数目
+
+[题目](https://leetcode.cn/problems/maximum-enemy-forts-that-can-be-captured)
+
+个人模拟，每个 0 只能被最多前后的一个 -1 访问故其实均摊 On：
+
+```c++
+class Solution
+{
+public:
+    int captureForts(vector<int> &a)
+    {
+        int n = a.size(), ans = 0;
+        for (int i = 0; i < n; ++i)
+        {
+            //cout << i << " q " << n << '\n';
+            if (a[i] != -1)
+                continue;
+            int cnt = 0, j = i - 1;
+            for (; j >= 0 && a[j] == 0; --j, ++cnt)
+                ;
+            if (j >= 0 && a[j] == 1)
+                ans = max(ans, cnt);
+            cnt = 0, j = i + 1;
+            for (; j < n && a[j] == 0; ++j, ++cnt)
+                ;
+            if (j < n && a[j] == 1)
+                ans = max(ans, cnt);
+            //cout << "Done " << i << '\n';
+        }
+        return ans;
+    }
+};
+```
+
+> 低级错误 `a[j] >=0` 和 `a[j] < n` 在 if 里，导致输出奇怪的东西且 RE，如：
+>
+> ```c
+> 0 q 9
+> 1 q 9
+> 2 q 9
+> 3 q 9
+> Done 3
+> 4 q 9
+> 5 q 9
+> 6 q 9
+> 7 q 9
+> 8 q 9
+> 0 q 4
+> 1 q 4
+> 2 q 4
+> 3 q 4
+> ```
+
+更优实现：
+
+```c++
+class Solution {
+public:
+    int captureForts(vector<int>& forts) {
+        int ans = 0;
+        int pre = -1; // 表示不存在
+        for (int i = 0; i < forts.size(); i++) {
+            if (forts[i]) {
+                if (pre >= 0 && forts[i] != forts[pre]) { // 一个是 1，另一个是 -1
+                    ans = max(ans, i - pre - 1);
+                }
+                pre = i;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+
+
+
 
 > ### 力扣比赛
 >

@@ -2559,7 +2559,7 @@ pageup pagedn 上下页   home 回到第一页
 
 > 具体小版本：(RHEL为例)`cat etc/redhat-release`
 
-查看CPU信息 `cat /proc/cpuinfo`
+查看CPU信息 `cat /proc/cpuinfo` ; `lscpu`
 
 查看内存信息 `cat /proc/meminfo`
 
@@ -2568,6 +2568,8 @@ pageup pagedn 上下页   home 回到第一页
 查看内核版本 `cat /proc/version`
 
 系统版本查看 `cat /etc/issue`
+
+ubuntu 版本查看 `lsb_release -a`
 
 
 
@@ -3174,12 +3176,29 @@ Linux 运行级别：
 -s 数字 每数字秒刷新一次(append输出)
 -b 　以Byte为单位显示内存使用情况
 -k 　以KB为单位显示内存使用情况
--m 　以MB为单位显示内存使用情况
+-m 　以MB为单位显示内存使用情况(下取整)
+-g   以GB
 -o 　不显示缓冲区调节列
 -V 　显示版本信息
 ```
 
+##### df
 
+查看硬盘空间大小
+
+```sh
+df -h #按好看的单位输出
+```
+
+##### du
+
+查看占用空间大小
+
+```sh
+du -sh .
+```
+
+`.` 是当前目录，`s` 是含子目录，`h` 是人类可读。
 
 #### 软件管理
 

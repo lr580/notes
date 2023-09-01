@@ -152,6 +152,8 @@ Git 可以理解 kdiff3，tkdiff，meld，xxdiff，emerge，vimdiff，gvimdiff�
 
 #### 生成
 
+如果本机没有密钥，将无法远程操作，可以先生成一个
+
 ```bash
 ssh-keygen -t rsa -C "邮箱"
 ```
