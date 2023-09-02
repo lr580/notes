@@ -737,6 +737,10 @@
 - 2511\.最多可以摧毁的敌人城堡数目
 
   小模拟
+  
+- 1921\.消灭怪物的最大数量
+
+  贪心
 
 
 
@@ -20961,7 +20965,36 @@ public:
 };
 ```
 
+##### 1921\.消灭怪物的最大数量
 
+[题目](https://leetcode.cn/problems/eliminate-maximum-number-of-monsters)
+
+按到达时间排序即可：
+
+```c++
+class Solution
+{
+public:
+    int eliminateMaximum(vector<int> &dist, vector<int> &speed)
+    {
+        int n = dist.size();
+        vector<int> a(n, 0);
+        for (int i = 0; i < n; ++i) // a[i]minute arrive
+        {
+            a[i] = (dist[i] + speed[i] - 1) / speed[i];
+        }
+        sort(a.begin(), a.end());
+        for (int i = 1; i <= n; ++i)
+        {
+            if (i > a[i-1])
+            {
+                return i - 1;
+            }
+        }
+        return n;
+    }
+};
+```
 
 
 
