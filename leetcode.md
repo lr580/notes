@@ -741,6 +741,10 @@
 - 1921\.消灭怪物的最大数量
 
   贪心
+  
+- 449\.序列化和反序列化二叉搜索树
+
+  小模拟
 
 
 
@@ -20992,6 +20996,65 @@ public:
             }
         }
         return n;
+    }
+};
+```
+
+##### 449\.序列化和反序列化二叉搜索树
+
+[题目](https://leetcode.cn/problems/serialize-and-deserialize-bst) vector 跟 deque 性能差不多
+
+```c++
+class Codec
+{
+    void dfs(TreeNode *u, string &s)
+    {
+        if (u == nullptr)
+        {
+            s += "n ";
+            return;
+        }
+        s += to_string(u->val) + " ";
+        dfs(u->left, s);
+        dfs(u->right, s);
+    }
+    
+    deque<string> a;
+    int i;
+
+    void dfs2(TreeNode *&t)
+    {
+        string s = a[i++];
+        if (s == "n")
+        {
+            return;
+        }
+        t = new TreeNode(stoi(s));
+        dfs2(t->left);
+        dfs2(t->right);
+    };
+
+public:
+    // Encodes a tree to a single string.
+    string serialize(TreeNode *root)
+    {
+        string s;
+        dfs(root, s);
+        return s;
+    }
+
+    // Decodes your encoded data to tree.
+    TreeNode *deserialize(string data)
+    {
+        stringstream ss(data);
+        a.clear();
+        i = 0;
+        string s;
+        while (ss >> s)
+            a.push_back(s);
+        TreeNode *t = nullptr;
+        dfs2(t);
+        return t;
     }
 };
 ```
