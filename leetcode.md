@@ -749,6 +749,10 @@
 - 2605\.从两个数字数组生成最小数字
 
   小模拟
+  
+- 1123\.最深叶节点的最近公共祖先
+
+  LCA / <u>DFS</u>
 
 
 
@@ -21110,7 +21114,145 @@ public:
 };
 ```
 
+##### 1123\.最深叶节点的最近公共祖先
 
+[题目](https://leetcode.cn/problems/lowest-common-ancestor-of-deepest-leaves)
+
+最近公共祖先 LCA 模板题(
+
+1. 可以使用倍增法求两点 LCA，$O(n\log n)$ 预处理和 $O(\log n)$ 单次查询 (下文采用
+
+   可以使用欧拉序上 RMQ 求两点 LCA $O(n\log n)$ 预处理和 $O(1)$ 单次查询
+
+   后者可以参见我的个人模板集 [here](https://github.com/lr580/algorithm_template)
+
+2. 多个节点的 LCA  $lca(a,b,c)=lca(lca(a,b),c)$，以此类推
+
+```c++
+class Solution
+{
+    const static int maxn = 1002, maxm = 13;
+    using node = TreeNode *;
+
+    vector<int> e[maxn];
+    node m[maxn];
+    int n, lg[maxn], fa[maxn][maxm], d[maxn], maxd;
+    void build(node no, node fa)
+    {
+        if (no == nullptr)
+            return;
+        m[no->val + 1] = no;
+        if (fa != nullptr)
+        {
+            int u = no->val + 1, v = fa->val + 1;
+            e[u].emplace_back(v);
+            e[v].emplace_back(u);
+            n = max({n, u, v});
+        }
+        build(no->left, no);
+        build(no->right, no);
+    }
+
+    void dfs(int u, int f)
+    {
+        fa[u][0] = f;
+        d[u] = d[f] + 1;
+        maxd = max(maxd, d[u]);
+        for (int i = 1; i <= lg[d[u]]; ++i)
+            fa[u][i] = fa[fa[u][i - 1]][i - 1];
+        for (auto v : e[u])
+            if (v != f)
+                dfs(v, u);
+    }
+
+    int lca(int u, int v)
+    {
+        if (d[u] < d[v])
+            swap(u, v);
+        while (d[u] > d[v])
+            u = fa[u][lg[d[u] - d[v]] - 1];
+        assert(d[u] == d[v]);
+        if (u == v)
+            return u;
+        for (int k = lg[d[u]] - 1; k >= 0; --k)
+        {
+            if (fa[u][k] != fa[v][k])
+                u = fa[u][k], v = fa[v][k];
+        }
+        return fa[u][0];
+    }
+
+public:
+    TreeNode *lcaDeepestLeaves(TreeNode *root)
+    {
+        n = 0, maxd = 0;
+        build(root, nullptr);
+        if (n <= 1)
+            return root;
+        // lg[i]=ceil(log2(i))
+        for (int i = 1; i <= n; ++i)
+            lg[i] = lg[i / 2] + 1;
+        dfs(root->val + 1, 0);
+        vector<int> a;
+        for (int i = 1; i <= n; ++i)
+            if (d[i] == maxd)
+                a.emplace_back(i);
+        for (int i = 1; i < a.size(); ++i)
+            a[0] = lca(a[0], a[i]);
+        return m[a[0]];
+    }
+};
+```
+
+题解：直接 DFS
+
+```c++
+class Solution {
+public:
+    TreeNode *lcaDeepestLeaves(TreeNode *root) {
+        TreeNode *ans = nullptr;
+        int max_depth = -1; // 全局最大深度
+        function<int(TreeNode*, int)> dfs = [&](TreeNode *node, int depth) {
+            if (node == nullptr) {
+                max_depth = max(max_depth, depth); // 维护全局最大深度
+                return depth;
+            }
+            int left_max_depth = dfs(node->left, depth + 1); // 获取左子树最深叶节点的深度
+            int right_max_depth = dfs(node->right, depth + 1); // 获取右子树最深叶节点的深度
+            if (left_max_depth == right_max_depth && left_max_depth == max_depth)
+                ans = node;
+            return max(left_max_depth, right_max_depth); // 当前子树最深叶节点的深度
+        };
+        dfs(root, 0);
+        return ans;
+    }
+};
+```
+
+写法二：
+
+```c++
+class Solution {
+    pair<int, TreeNode*> dfs(TreeNode *node) {
+        if (node == nullptr)
+            return {0, nullptr};
+        auto [left_height, left_lca] = dfs(node->left);
+        auto [right_height, right_lca] = dfs(node->right);
+        if (left_height > right_height) // 左子树更高
+            return {left_height + 1, left_lca};
+        if (left_height < right_height) // 右子树更高
+            return {right_height + 1, right_lca};
+        return {left_height + 1, node}; // 一样高
+    }
+
+public:
+    TreeNode *lcaDeepestLeaves(TreeNode *root) {
+        return dfs(root).second;
+    }
+};
+```
+
+只有左右一样高时自己有用，左比右高右全部作废，同理。
 
 > ### 力扣比赛
 >
