@@ -753,6 +753,18 @@
 - 1123\.最深叶节点的最近公共祖先
 
   LCA / <u>DFS</u>
+  
+- 2594\.修车的最少时间
+
+  二分 / STL
+  
+- 630\.课程表III
+
+  **贪心**
+  
+- 1462\.课程表IV
+
+  最短路(+bitset优化) / <u>快速矩阵乘法</u>
 
 
 
@@ -21253,6 +21265,356 @@ public:
 ```
 
 只有左右一样高时自己有用，左比右高右全部作废，同理。
+
+##### 2594\.修车的最少时间
+
+[题目](https://leetcode.cn/problems/minimum-time-to-repair-car)
+
+桶优化所有同能力工人，堆模拟，桶长 $m$，则复杂度 $O(c\log m)$。若 $O(c\log n)$ 还会 T
+
+```c++
+using ll = long long;
+struct worker
+{
+    int r, i, cnt;
+    ll sum;
+    worker(int r, int cnt) : r(r), i(0), cnt(cnt), sum(0LL) { next(); }
+    void next()
+    {
+        ++i;
+        sum = 1LL * r * i * i;
+    }
+    bool operator<(const worker &w) const
+    {
+        return sum > w.sum;
+    }
+};
+class Solution
+{
+public:
+    ll repairCars(vector<int> &ranks, int cars)
+    {
+        priority_queue<worker> q;
+        int bin[101] = {};
+        for (auto r : ranks)
+            ++bin[r];
+        for (int i = 1; i <= 100; ++i)
+            if (bin[i])
+                q.push({i, bin[i]});
+        ll ans = 0;
+        for (; cars;)
+        {
+            worker w = q.top();
+            q.pop();
+            ans = max(ans, w.sum);
+            cars -= w.cnt;
+            w.next();
+            q.push(w);
+        }
+        return ans;
+    }
+};
+```
+
+二分，$O(m\log (mc^2))$：
+
+```c++
+using ll = long long;
+class Solution
+{
+public:
+    ll repairCars(vector<int> &ranks, int cars)
+    {
+        int bin[101] = {};
+        for (auto r : ranks)
+            ++bin[r];
+        ll lf = 1, rf = 100LL * cars * cars, ans = rf;
+        while (lf <= rf)
+        {
+            ll cf = (lf + rf) >> 1;
+            ll cnt = 0;
+            for (int i = 1; i <= 100; ++i)
+            {
+                cnt += bin[i] * ll(sqrt(1.L * cf / i));
+            }
+            if (cnt >= cars)
+            {
+                ans = cf;
+                rf = cf - 1;
+            }
+            else
+            {
+                lf = cf + 1;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+##### 630\.课程表III
+
+[题目](https://leetcode.cn/problems/course-schedule-iii)
+
+对两课 $(t_1,d_1),(t_2,d_2)$，若 $d_1\le d_2$ 总是更优的，先学前再学后满足：
+$$
+\begin{cases}
+x+t_1\le d_1\\
+x+t_1+t_2\le d_2
+\end{cases}
+$$
+反过来：
+$$
+\begin{cases}
+x+t_2\le d_2\\
+x+t_1+t_2\le d_1
+\end{cases}
+$$
+若 $x+t_1+t_2\le d_1$ 则必然 $x+t_1+t_2\le d_2$，即如果能先学后者一定能先学前者，但反之不亦然，如 $(2,3),(5,100)$。
+
+因此，显然按 $d$ 排序一下，排序后：
+
+设遍历到 $(t_i,d_i)$，前 $i-1$ 选了 $k$ 门，满足：
+$$
+\begin{cases}
+t_{x1}&\le d_{x1}\\
+t_{x1}+t_{x2}&\le d_{x2}\\
+\cdots\\
+t_{x1}+t_{x2}+\cdots+t_{xk}&\le d_{xk}
+\end{cases}
+$$
+如果前 $k$ 门最优，即找不到任何选 $k+1$ 门的，也找不到总时长小于 $\sum t$ 的选 $k$ 门的，则：
+
+1. 若 $t_{x1}+t_{x2}+\cdots+t_{xk}+t_i\le d_{i}$，新方案最优，得到 $k+1$ 的最优
+
+   反证法：如果存在更优，在满足不等式下只考虑前 $i$ 门一定能选 $i$，更优的 $\sum t$ 更少，则与最优矛盾。所以不存在。
+
+2. 若 $t_{x1}+t_{x2}+\cdots+t_{xk}+t_i > d_{i}$，不能选 $i$，无论如何不存在能经由 $i$ 得到 $k+1$ 的最优解，反证法同理可知。
+
+   但是，可以丢掉一门，再选 $i$，可能会得到 $k$ 下更优。枚举所有可能性，在保持 $k$ 不变下，分析可知，丢掉 $t$ 最长的那门课最佳，其他同 $k$ 下不会更优。由此，能够动态地维护 $k$ 门的最优。丢了再换 $i$，设选了的最大时间为 $t_{xj}$，则用时减少量为 $t_{xj}-t_i$，其他该变量都不会更优。
+
+   显然，要换的前提是 $t_{xj} > t_i$，因此，原本 $t_{x1}+\cdots +t_{xk}\le d_{xk}$，且显然有 $t_{x1}+\cdots t_{xk}-t_{xj}+t_i\le d_{xk}$，而 $d_{xk}\le d_i$，故可换。
+
+所以，优先级队列维护即可
+
+```c++
+class Solution {
+public:
+    int scheduleCourse(vector<vector<int>>& courses) {
+        sort(courses.begin(), courses.end(), [](const auto& c0, const auto& c1) {
+            return c0[1] < c1[1];
+        });
+
+        priority_queue<int> q;
+        // 优先队列中所有课程的总时间
+        int total = 0;
+
+        for (const auto& course: courses) {
+            int ti = course[0], di = course[1];
+            if (total + ti <= di) {
+                total += ti;
+                q.push(ti);
+            }
+            else if (!q.empty() && q.top() > ti) {
+                total -= q.top() - ti;
+                q.pop();
+                q.push(ti);
+            }
+        }
+
+        return q.size();
+    }
+};
+```
+
+
+
+朴素 floyd 求可达的条件：`f[i][j]` 表示 i 是否可达 j
+
+```c++
+f[i][j] |= (f[i][k] & f[k][j]);
+```
+
+使用 bitset 优化为：
+
+```c
+for (ll k = 1; k <= n; ++k)
+    for (ll i = 1; i <= n; ++i)
+        if (f[i][k])
+            f[i] |= f[k];
+```
+
+因此时间复杂度为 $O(\dfrac{n^3}w)$，其中 $w$ 是操作系统位数如 $64$，空间复杂度为 $O(\dfrac{n^2}w)$。
+
+```c++
+class Solution
+{
+public:
+    vector<bool> checkIfPrerequisite(int n, vector<vector<int>> &prerequisites, vector<vector<int>> &queries)
+    {
+        bitset<101> d[n];
+        for (auto pr : prerequisites)
+        {
+            int u = pr[0], v = pr[1];
+            d[u][v] = 1;
+        }
+        for (int k = 0; k < n; ++k)
+        {
+            for (int i = 0; i < n; ++i)
+            {
+                if (d[i][k])
+                {
+                    d[i] |= d[k];
+                }
+            }
+        }
+        vector<bool> ans;
+        for (auto pr : queries)
+        {
+            int u = pr[0], v = pr[1];
+            ans.emplace_back(d[u][v]);
+        }
+        return ans;
+    }
+};
+```
+
+快速矩阵乘法，$O(\dfrac{n^3}{w\log n})$：[参考](https://leetcode.cn/problems/course-schedule-iv/solutions/1785578/chuan-di-bi-bao-gui-yue-dao-ju-zhen-chen-47yu/)
+
+```c++
+const int N=105,W=64,NL=3;
+typedef unsigned long long ull;
+struct Edge{
+	#define Mx 10005
+	int link[Mx],next[Mx],son[Mx],l;
+	void clear(){l=0;memset(son,0,sizeof(son));}
+	void addedge(int x,int y){
+		link[++l]=y;next[l]=son[x];son[x]=l;
+	}
+}e;
+int f[N],f1[N],in[N];
+void toposort(int n){
+	int h=0,t=0;
+	for (int i=0;i<n;++i)in[i]=0;
+	for (int i=0;i<n;++i)
+		for (int p=e.son[i];p;p=e.next[p])++in[e.link[p]];
+	for (int i=0;i<n;++i)if (!in[i])f[t++]=i;
+	while (h<t){
+		int i=f[h++];
+		for (int p=e.son[i];p;p=e.next[p]){
+			int j=e.link[p]; --in[j];
+			if (!in[j])f[t++]=j;
+		}
+	}
+	for (int i=0;i<n;++i)f1[f[i]]=i;
+}
+void bool_mat_mul1(int a[],int b[],int c[],int n){  //O(n^3/w)
+	static bitset<N> A[N],B[N];
+	for (int i=0;i<n;++i)A[i].reset(),B[i].reset();
+	for (int i=0;i<n;++i)
+		for (int j=0;j<n;++j)A[i][j]=a[i*n+j],B[i][j]=b[j*n+i];
+	for (int i=0;i<n;++i)
+		for (int j=0;j<n;++j)c[i*n+j]=(A[i]&B[j]).any();
+}
+void bool_mat_mul_bf(int a[],int b[],int c[],int n){
+	memset(c,0,n*n*sizeof(int));
+	for (int i=0;i<n;++i)
+		for (int k=0;k<n;++k)if (a[i*n+k]){
+			int *_b=b+k*n,*_c=c+i*n;
+			for (int j=0;j<n;++j)_c[j]|=_b[j];
+			//for (int *_b=b+k*n,*_c=c+i*n,*end=_b+n;_b!=end;*_c++|=*_b++);
+		}
+}
+void bool_mat_mul_word(int a[],int b[],int c[],int n){  //n<=W, O(n^3/w)
+	assert(n<=W);
+	static ull A[N],B[N];
+	memset(A,0,sizeof(ull)*n);
+	memset(B,0,sizeof(ull)*n);
+	for (int i=0;i<n;++i)
+		for (int j=0;j<n;++j){
+			A[i]|=(ull)a[i*n+j]<<j;
+			B[j]|=(ull)b[i*n+j]<<i;
+		}
+	for (int i=0;i<n;++i)
+		for (int j=0;j<n;++j)c[i*n+j]=(A[i]&B[j])>0;
+}
+void bool_mat_mul(int a[],int b[],int c[],int n){  //O(n^3/(w log n))
+	if (n<=4){bool_mat_mul_bf(a,b,c,n); return;}
+	if (n<=W){bool_mat_mul_word(a,b,c,n); return;}
+	static ull f[N/W+1][N/NL][N/W+1],B[N/NL][N],ans[N][N/W+1];
+	int L=max((int)floor(log2(max(n/W,1)))-1,1),n1=(n-1)/L+1,n2=(n-1)/W+1;
+	for (int i=0;i<(1<<L);++i)
+		for (int j=0;j<n1;++j)
+			memset(f[i][j],0,sizeof(ull)*n2);
+	for (int i=0;i<n;++i)memset(ans[i],0,sizeof(ull)*n2);
+	for (int i=0;i<n1;++i)
+		for (int j=0;j<n;++j){
+			B[i][j]=0; int l=min(L,n-i*L);
+			for (int k=0;k<l;++k)if (b[(i*L+k)*n+j])B[i][j]|=1ull<<k;
+		}
+	for (int I=0;I<(1<<L);++I)
+		for (int i=0;i<n1;++i)
+			for (int j=0;j<n;++j)
+				if (I&B[i][j])f[I][i][j/W]|=1ull<<j%W;
+	for (int i=0;i<n1;++i)
+		for (int j=0;j<n;++j){
+			ull x=0; int l=min(L,n-i*L);
+			for (int k=0;k<l;++k)if (a[j*n+(i*L+k)])x|=1ull<<k;
+			//for (int k=0;k<n2;++k)ans[j][k]|=f[x][i][k];
+			ull *startA=ans[j],*startB=f[x][i],*endA=ans[j]+n2;
+			while (startA!=endA)*startA++|=*startB++;
+		}
+	for (int i=0;i<n;++i)
+		for (int j=0;j<n;++j)c[i*n+j]=(ans[i][j/W]&(1LL<<j%W))>0;
+}
+void transitive_closure(int a[],int l,int r,int n){
+	static int b[N*N],c[N*N],d[N*N];
+	if (l+1==r)return;
+	int mid=(l+r+1)/2,n1=mid-l,n2=r-mid;
+	transitive_closure(a,l,mid,n);
+	transitive_closure(a,mid,r,n);
+	for (int i=0;i<n1;++i)
+		for (int j=0;j<n1;++j)b[i*n1+j]=a[(l+i)*n+(l+j)];
+	for (int i=0;i<n1;++i){
+		for (int j=0;j<n2;++j)c[i*n1+j]=a[(l+i)*n+(mid+j)];
+		if (n1>n2)c[i*n1+n2]=0;
+	}
+	bool_mat_mul_word(b,c,d,n1);  //bool_mat_mul
+	for (int i=0;i<n2;++i)
+		for (int j=0;j<n2;++j)c[i*n1+j]=a[(mid+i)*n+(mid+j)];
+	if (n1>n2){
+		for (int i=0;i<n2;++i)c[i*n1+n2]=0;
+		for (int i=0;i<n1;++i)c[n2*n1+i]=0;
+	}
+	bool_mat_mul_word(d,c,b,n1);
+	for (int i=0;i<n1;++i)
+		for (int j=0;j<n2;++j)a[(l+i)*n+(mid+j)]=b[i*n1+j];
+}
+int a[N*N];
+class Solution {
+public:
+	vector<bool> checkIfPrerequisite(int n, vector<vector<int>>& edges, vector<vector<int>>& q) {
+		int m=edges.size(),qnum=q.size();
+		vector<bool> ans(qnum);
+		for (int i=0;i<n;++i)memset(a,0,sizeof(int)*n*n);
+		e.clear();
+		for (int i=0;i<m;++i)e.addedge(edges[i][0],edges[i][1]);
+		toposort(n);
+		for (int i=0;i<n;++i)a[i*n+i]=1;
+		for (int i=0;i<n;++i)
+			for (int p=e.son[i];p;p=e.next[p]){
+				int j=e.link[p];
+				a[f1[i]*n+f1[j]]=1;
+			}
+		transitive_closure(a,0,n,n);
+		for (int i=0;i<qnum;++i)
+			ans[i]=a[f1[q[i][0]]*n+f1[q[i][1]]];
+		return ans;
+	}
+};
+```
+
+
 
 > ### 力扣比赛
 >

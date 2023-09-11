@@ -2022,6 +2022,39 @@ csvsimple 包 [官方文档](https://mirror.mwt.me/ctan/macros/latex/contrib/csv
 > Nanjing,17.45,1430.6,6.8482,2719.8,31.9
 > ```
 
+##### 跨行
+
+某一行中创建一个跨越多行的单元格
+
+```latex
+\multirow{行数}{宽度}{内容}
+```
+
+如：
+
+```latex
+\multirow{2}{*}{姓名}
+% * 是文本的宽度将自动调整，可以固定如 3cm
+```
+
+可以中括号可选参数，用于指定额外的垂直偏移量，正数是向上，如：
+
+```latex
+\multirow{3}{1in}[-1.5cm]{\includegraphics{avatar2.png}}
+```
+
+跨列：
+
+```latex
+\multicolumn{列数}{对齐方式}{内容}
+```
+
+对其方式可以写 `c,l,r` 的其中一个字母。
+
+```latex
+\multicolumn{2}{|c|}{跨越两列}
+```
+
 
 
 #### 图片
@@ -2034,7 +2067,7 @@ csvsimple 包 [官方文档](https://mirror.mwt.me/ctan/macros/latex/contrib/csv
 \graphicspath{{pic/}}
 ```
 
-引用图片(支持 `pdf, png, jpg, jpeg, bmp, eps`等，英文名，可以不加拓展名)，可以用参数 `[scale=倍数]` 放缩，或 `height,width,angle`，单位可以用 cm, pt, `\linewidth` 等，多个参数逗号隔开。
+引用图片(支持 `pdf, png, jpg, jpeg, bmp, eps`等，英文名，可以不加拓展名)，可以用参数 `[scale=倍数]` 放缩，或 `height,width,angle`，单位可以用 cm, pt, `\linewidth` 等，多个参数逗号隔开。不放缩就默认像素大小，也是唯一能调成像素单位大小的办法(参数单位没有像素)。
 
 > jpg 不兼容 `xetex`，疑似 gif 也不行。[单位参考](https://blog.csdn.net/jueshu/article/details/82385575)
 
@@ -2636,7 +2669,14 @@ latex 会自动给长单词跨行加 `-` 连接符。
 
 font awesome [参考](https://blog.csdn.net/zzq060143/article/details/89380160) [官网](https://fontawesome.com/icons) [参考2-k2d7](https://pan.baidu.com/s/1cK0wRS9GIAwgtaTW6y_F0w)
 
+##### 空格
 
+多个空格：
+
+- `\quad`, `\qquad`
+- `\hspace{1cm}`
+- `\hfill` 当前行若干个 fill 里平均分配空白，直到填满
+- `\phantom{1cm}`
 
 ### 数学公式
 

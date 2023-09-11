@@ -14,6 +14,7 @@ tempnouse/
 *.htm
 *.mhtml
 *.xmind
+*.lnk
 Python知识树.*
 !C学习笔记.md
 !算法笔记(重制).md
