@@ -765,6 +765,14 @@
 - 1462\.课程表IV
 
   最短路(+bitset优化) / <u>快速矩阵乘法</u>
+  
+- 2596\.检查骑士巡视方案
+
+  小模拟
+  
+- 886\.可能的二分法
+
+  二分图判定 DFS/<u>种类并查集</u>
 
 
 
@@ -21612,6 +21620,203 @@ public:
 		return ans;
 	}
 };
+```
+
+##### 2596\.检查骑士巡视方案
+
+[题目](https://leetcode.cn/problems/check-knight-tour-configuration)
+
+我的小模拟：
+
+```c++
+class Solution
+{
+    const int dx[8] = {-2, -1, 1, 2, 2, 1, -1, -2};
+    const int dy[8] = {1, 2, 2, 1, -1, -2, -2, -1};
+
+public:
+    bool checkValidGrid(vector<vector<int>> &grid)
+    {
+        int n = grid.size();
+        vector<pair<int, int>> p(n * n);
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; ++j)
+            {
+                p[grid[i][j]] = {i, j};
+            }
+        }
+        if (p[0] != make_pair(0, 0))
+        {
+            return false;
+        }
+        for (int i = 1; i < n * n; ++i)
+        {
+            int ax = p[i].first, ay = p[i].second;
+            int bx = p[i - 1].first, by = p[i - 1].second;
+            bool ok = false;
+            for (int j = 0; j < 8; ++j)
+            {
+                if (ax + dx[j] == bx && ay + dy[j] == by)
+                {
+                    ok = true;
+                    break;
+                }
+            }
+            if (!ok)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+};
+```
+
+更优实现：
+
+```python
+class Solution:
+    def checkValidGrid(self, grid: List[List[int]]) -> bool:
+        pos = [0] * (len(grid) ** 2)
+        for i, row in enumerate(grid):
+            for j, x in enumerate(row):
+                pos[x] = (i, j)  # 记录坐标
+        if pos[0] != (0, 0):  # 必须从左上角出发
+            return False
+        for (i, j), (x, y) in pairwise(pos):
+            dx, dy = abs(x - i), abs(y - j)  # 移动距离
+            if (dx != 2 or dy != 1) and (dx != 1 or dy != 2):  # 不合法
+                return False
+        return True
+```
+
+在 `itertools` 模块的文档中，提供了一个 `pairwise` 的配方
+
+```python
+for pair in pairwise([1, 2, 3, 4]):
+    print(pair)
+
+# 输出：
+# (1, 2)
+# (2, 3)
+# (3, 4)
+```
+
+##### 886\.可能的二分法
+
+[题目](https://leetcode.cn/problems/possible-bipartition)
+
+个人：
+
+```c++
+class Solution
+{
+    vector<vector<int>> e;
+    vector<int> c;
+
+    bool dfs(int u, int x)
+    {
+        c[u] = x;
+        bool ok = true;
+        for (auto v : e[u])
+        {
+            if (c[v] == x)
+            {
+                return false;
+            }
+            if (!c[v])
+            {
+                ok &= dfs(v, 3 - x);
+            }
+        }
+        return ok;
+    }
+
+public:
+    bool possibleBipartition(int n, vector<vector<int>> &dislikes)
+    {
+        e.resize(n);
+        c.resize(n);
+        for (auto &x : dislikes)
+        {
+            e[x[0] - 1].push_back(x[1] - 1);
+            e[x[1] - 1].push_back(x[0] - 1);
+        }
+        bool ok = true;
+        for (int i = 0; i < n; ++i)
+        {
+            if (!c[i])
+            {
+                ok &= dfs(i, 1);
+            }
+        }
+        return ok;
+    }
+};
+```
+
+同解法其他实现写法：
+
+```java
+class Solution {
+    int N = 2010, M = 2 * 10010;
+    int[] he = new int[N], e = new int[M], ne = new int[M], color = new int[N];
+    int idx;
+    void add(int a, int b) {
+        e[idx] = b;
+        ne[idx] = he[a];
+        he[a] = idx++;
+    }
+    boolean dfs(int u, int cur) {
+        color[u] = cur;
+        for (int i = he[u]; i != -1; i = ne[i]) {
+            int j = e[i];
+            if (color[j] == cur) return false;
+            if (color[j] == 0 && !dfs(j, 3 - cur)) return false;
+        }
+        return true;
+    }
+    public boolean possibleBipartition(int n, int[][] ds) {
+        Arrays.fill(he, -1);
+        for (int[] info : ds) {
+            int a = info[0], b = info[1];
+            add(a, b); add(b, a);
+        }
+        for (int i = 1; i <= n; i++) {
+            if (color[i] != 0) continue;
+            if (!dfs(i, 1)) return false;
+        }
+        return true;
+    }
+}
+```
+
+种类并查集：每个点建立反向点，对每一条边 $(u,v)$，并查集合并 $(u,v+n),(u+n,v)$，如果某条边 $(u,v)$ 在同一并查集则不能组成二分图。
+
+```java
+class Solution {
+    int[] p = new int[4010];
+    int find(int x) {
+        if (p[x] != x) p[x] = find(p[x]);
+        return p[x];
+    }
+    void union(int a, int b) {
+        p[find(a)] = p[find(b)];
+    }
+    boolean query(int a, int b) {
+        return find(a) == find(b);
+    }
+    public boolean possibleBipartition(int n, int[][] ds) {
+        for (int i = 1; i <= 2 * n; i++) p[i] = i;
+        for (int[] info : ds) {
+            int a = info[0], b = info[1];
+            if (query(a, b)) return false;
+            union(a, b + n); union(b, a + n);
+        }
+        return true;
+    }
+}
 ```
 
 
