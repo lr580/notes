@@ -773,6 +773,10 @@
 - 886\.可能的二分法
 
   二分图判定 DFS/<u>种类并查集</u>
+  
+- 198\.打家劫舍
+
+  DP
 
 
 
@@ -21817,6 +21821,81 @@ class Solution {
         return true;
     }
 }
+```
+
+##### 192\.打家劫舍
+
+[题目](https://leetcode.cn/problems/house-robber)
+
+个人：设 f 是当前这家投的最佳，g 是当前这家不偷
+
+```c++
+class Solution
+{
+public:
+    int rob(vector<int> &nums)
+    {
+        int n = nums.size();
+        if (n == 1)
+            return nums[0];
+        vector<int> f(n, 0), g(n, 0); // steal,no-steal
+        f[0] = g[1] = nums[0], f[1] = nums[1];
+        for (int i = 2; i < n; ++i)
+        {
+            f[i] = max(f[i - 2], g[i - 1]) + nums[i];
+            g[i] = max(f[i - 1], g[i - 1]);
+        }
+        return max(f[n - 1], g[n - 1]);
+    }
+};
+```
+
+题解：
+
+```c++
+class Solution {
+public:
+    int rob(vector<int>& nums) {
+        if (nums.empty()) {
+            return 0;
+        }
+        int size = nums.size();
+        if (size == 1) {
+            return nums[0];
+        }
+        vector<int> dp = vector<int>(size, 0);
+        dp[0] = nums[0];
+        dp[1] = max(nums[0], nums[1]);
+        for (int i = 2; i < size; i++) {
+            dp[i] = max(dp[i - 2] + nums[i], dp[i - 1]);
+        }
+        return dp[size - 1];
+    }
+};
+```
+
+滚动：
+
+```c++
+class Solution {
+public:
+    int rob(vector<int>& nums) {
+        if (nums.empty()) {
+            return 0;
+        }
+        int size = nums.size();
+        if (size == 1) {
+            return nums[0];
+        }
+        int first = nums[0], second = max(nums[0], nums[1]);
+        for (int i = 2; i < size; i++) {
+            int temp = second;
+            second = max(first + nums[i], second);
+            first = temp;
+        }
+        return second;
+    }
+};
 ```
 
 
