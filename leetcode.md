@@ -813,6 +813,10 @@
 - 460\.LFU 缓存
 
   <u>STL</u> / STL+链表
+  
+- 2251\.花期内花的数目
+
+  差分+离线+双指针 / <u>二分</u>
 
 
 
@@ -23041,6 +23045,135 @@ public:
     }
 };
 ```
+
+##### 2251\.花期内花的数目
+
+[题目](https://leetcode.cn/problems/number-of-flowers-in-full-bloom)
+
+离散化差分+双指针离线
+
+```c++
+class Solution
+{
+    using pii = pair<int, int>;
+
+public:
+    vector<int> fullBloomFlowers(vector<vector<int>> &flowers, vector<int> &people)
+    {
+        int n = flowers.size(), m = people.size();
+        vector<pii> q, a;
+        for (int i = 0; i < n; i++)
+        {
+            a.emplace_back(flowers[i][0], 1);
+            a.emplace_back(flowers[i][1] + 1, -1);
+        }
+        a.emplace_back(-1, 0);
+        a.emplace_back(1e9 + 10, 0);
+        for (int i = 0; i < m; ++i)
+        {
+            q.emplace_back(people[i], i);
+        }
+        sort(q.begin(), q.end());
+        sort(a.begin(), a.end());
+        int cnt = 0, qi = 0; // first q[] index undeal
+        vector<int> ans(m);
+        for (int i = 0; i <= 2 * n; ++i)
+        {
+            cnt += a[i].second;
+            while (qi < m && q[qi].first < a[i + 1].first)
+            {
+                // cout << a[i].first << " " << cnt << " " << q[qi].second << '\n';
+                ans[q[qi++].second] = cnt;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+其他写法：(主要注意 while 指针维护，比自己的优，挪动答案而不是挪动区间)
+
+```c++
+class Solution {
+public:
+    vector<int> fullBloomFlowers(vector<vector<int>> &flowers, vector<int> &people) {
+        map<int, int> diff;
+        for (auto &f : flowers) {
+            diff[f[0]]++;
+            diff[f[1] + 1]--;
+        }
+
+        int n = people.size();
+        vector<int> id(n);
+        iota(id.begin(), id.end(), 0); // id[i] = i
+        sort(id.begin(), id.end(), [&](int i, int j) { return people[i] < people[j]; });
+
+        auto it = diff.begin();
+        int sum = 0;
+        for (int i : id) {
+            while (it != diff.end() && it->first <= people[i])
+                sum += it++->second; // 累加不超过 people[i] 的差分值
+            people[i] = sum; // 从而得到这个时刻花的数量
+        }
+        return people;
+    }
+};
+```
+
+> Python 语法讲堂：
+>
+> `Counter` 是 Python 的 `collections` 模块中的一个类，用于计数可哈希对象。
+>
+> ```python
+> class Solution:
+>     def fullBloomFlowers(self, flowers: List[List[int]], people: List[int]) -> List[int]:
+>         diff = Counter()
+>         for start, end in flowers:
+>             diff[start] += 1
+>             diff[end + 1] -= 1
+>         times = sorted(diff.keys())
+> 
+>         j = s = 0
+>         for p, i in sorted(zip(people, range(len(people)))):
+>             while j < len(times) and times[j] <= p:
+>                 s += diff[times[j]]  # 累加不超过 people[i] 的差分值
+>                 j += 1
+>             people[i] = s  # 从而得到这个时刻花的数量
+>         return people
+> ```
+
+解法二：排序起始点和终点下标，对每个答案，二分找到在它之前有几个起始点和终止点，则起始数(即下标)-终止就是答案。
+
+```c++
+class Solution {
+public:
+    vector<int> fullBloomFlowers(vector<vector<int>> &flowers, vector<int> &people) {
+        int n = flowers.size();
+        vector<int> starts(n), ends(n);
+        for (int i = 0; i < n; i++) {
+            starts[i] = flowers[i][0];
+            ends[i] = flowers[i][1];
+        }
+        sort(starts.begin(), starts.end());
+        sort(ends.begin(), ends.end());
+
+        for (int &p: people)
+            p = (upper_bound(starts.begin(), starts.end(), p) - starts.begin()) -
+                (lower_bound(ends.begin(), ends.end(), p) - ends.begin());
+        return people;
+    }
+};
+```
+
+> python 语法讲堂：使用 `bisect` 模块，upper bound 和 lower bound 分别对应 `bisect_right` 和 `bisect_left`：
+>
+> ```python
+> class Solution:
+>     def fullBloomFlowers(self, flowers: List[List[int]], people: List[int]) -> List[int]:
+>         starts = sorted(s for s, _ in flowers)
+>         ends = sorted(e for _, e in flowers)
+>         return [bisect_right(starts, p) - bisect_left(ends, p) for p in people]
+> ```
 
 
 
