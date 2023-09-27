@@ -777,6 +777,42 @@
 - 198\.打家劫舍
 
   DP
+  
+- 213\.打家劫舍II
+
+  DP
+  
+- 337\.打家劫舍III
+
+  树上DP
+  
+- 2560\.打家劫舍IV
+
+  二分+DP / <u>二分+贪心</u>
+  
+- 2591\.将钱分给最多的儿童
+
+  贪心 / <u>DP</u>
+  
+- 2603\.收集树中金币
+
+  **拓扑排序** / **树上DP**
+  
+- 1993\.树上的操作
+
+  DFS / <u>DFS序+树状数组二分</u>
+  
+- 2582\.递枕头
+
+  数学
+  
+- 146\.LRU 缓存
+
+  STL / <u>STL+链表</u>
+
+- 460\.LFU 缓存
+
+  <u>STL</u> / STL+链表
 
 
 
@@ -21894,6 +21930,1114 @@ public:
             first = temp;
         }
         return second;
+    }
+};
+```
+
+##### 213\.打家劫舍II
+
+[题目](https://leetcode.cn/problems/house-robber-ii)
+
+保证环的条件：不同时偷第一和最后一家，即如果能(不是一定)偷第一家就把最后一家删了；能偷最后一家就把第一家删了。
+
+故设子问题 $[2,n]$ 和 $[1,n-1]$，这两个的更大者就是答案。
+
+```c++
+class Solution
+{
+    int solve(vector<int> &a)
+    {
+        int n = a.size();
+        if (n == 1)
+            return a[0];
+        vector<int> dp(n, 0);
+        dp[0] = a[0];
+        dp[1] = max(a[1], a[0]);
+        for (int i = 2; i < n; ++i)
+            dp[i] = max(dp[i - 2] + a[i], dp[i - 1]);
+        return dp[n - 1];
+    }
+
+public:
+    int rob(vector<int> &nums)
+    {
+        if (nums.size() == 1)
+            return nums[0];
+        int last = nums.back();
+        nums.pop_back();
+        int ans = solve(nums);
+        nums.erase(nums.begin());
+        nums.push_back(last);
+        ans = max(ans, solve(nums));
+        return ans;
+    }
+};
+```
+
+答案写法：
+
+```c++
+class Solution {
+public:
+    int robRange(vector<int>& nums, int start, int end) {
+        int first = nums[start], second = max(nums[start], nums[start + 1]);
+        for (int i = start + 2; i <= end; i++) {
+            int temp = second;
+            second = max(first + nums[i], second);
+            first = temp;
+        }
+        return second;
+    }
+
+    int rob(vector<int>& nums) {
+        int length = nums.size();
+        if (length == 1) {
+            return nums[0];
+        } else if (length == 2) {
+            return max(nums[0], nums[1]);
+        }
+        return max(robRange(nums, 0, length - 2), robRange(nums, 1, length - 1));
+    }
+};
+```
+
+##### 337\.打家劫舍III
+
+[题目]()
+
+个人：
+
+```c++
+class Solution
+{
+    // dp1:choose rob this, dp2: not rob this
+    void dfs(TreeNode *u, int &dp1, int &dp2)
+    {
+        if (u == nullptr)
+        {
+            dp1 = dp2 = 0;
+            return;
+        }
+        dp1 = u->val ,dp2 = 0;
+        int dp1l, dp1r, dp2l, dp2r;
+        dfs(u->left, dp1l, dp1r);
+        dfs(u->right, dp2l, dp2r);
+        dp1 += dp1r + dp2r;
+        dp2 += max(dp1l, dp1r) + max(dp2l, dp2r);
+    }
+
+public:
+    int rob(TreeNode *root)
+    {
+        int dp1, dp2;
+        dfs(root, dp1, dp2);
+        return max(dp1, dp2);
+    }
+};
+```
+
+其他写法：
+
+```c++
+struct SubtreeStatus {
+    int selected;
+    int notSelected;
+};
+
+class Solution {
+public:
+    SubtreeStatus dfs(TreeNode* node) {
+        if (!node) {
+            return {0, 0};
+        }
+        auto l = dfs(node->left);
+        auto r = dfs(node->right);
+        int selected = node->val + l.notSelected + r.notSelected;
+        int notSelected = max(l.selected, l.notSelected) + max(r.selected, r.notSelected);
+        return {selected, notSelected};
+    }
+
+    int rob(TreeNode* root) {
+        auto rootStatus = dfs(root);
+        return max(rootStatus.selected, rootStatus.notSelected);
+    }
+};
+```
+
+##### 2560\.打家劫舍 IV
+
+[题目](https://leetcode.cn/problems/house-robber-iv/)
+
+> 错误思路：反悔贪心，反悔时把隔壁两个亮了，每次把当前更新为邻居最大值，难以处理级联且无法证明正确性。
+
+二分答案+DP：
+
+```c++
+class Solution
+{
+public:
+    int minCapability(vector<int> &nums, int k)
+    {
+        int lf = *min_element(nums.begin(), nums.end());
+        int rf = *max_element(nums.begin(), nums.end());
+        int ans = rf, n = nums.size();
+        if (n == 1)
+        {
+            return nums[0];
+        }
+        vector<int> dp(n, 0);
+        while (lf <= rf)
+        {
+            int cf = (lf + rf) >> 1;
+            dp[0] = nums[0] <= cf;
+            dp[1] = nums[0] <= cf || nums[1] <= cf;
+            for (int i = 2; i < n; ++i)
+            {
+                dp[i] = max(dp[i - 1], dp[i - 2] + (nums[i] <= cf));
+            }
+            if (dp[n - 1] >= k)
+            {
+                rf = cf - 1;
+                ans = cf;
+            }
+            else
+            {
+                lf = cf + 1;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+其他写法：
+
+```c++
+class Solution {
+    bool check(vector<int> &nums, int k, int mx) {
+        int f0 = 0, f1 = 0;
+        for (int x: nums) {
+            if (x > mx) {
+                f0 = f1;
+            } else {
+                int tmp = f1;
+                f1 = max(f1, f0 + 1);
+                f0 = tmp;
+            }
+        }
+        return f1 >= k;
+    }
+
+public:
+    int minCapability(vector<int> &nums, int k) {
+        int left = 0, right = *max_element(nums.begin(), nums.end());
+        while (left + 1 < right) { // 开区间写法
+            int mid = left + (right - left) / 2;
+            (check(nums, k, mid) ? right : left) = mid;
+        }
+        return right;
+    }
+};
+```
+
+解法二：贪心。类似翻硬币，可以证明能偷就偷数量一定不会更差。如果更差，证明 2 大于 1 3。严格来说，能偷时因为 $dp_{i}=\max(dp_{i-1},dp_{i-2}+1)$，显然 $dp_i$ 单调不减，故 $\Delta dp \le 1$，即 $dp_{i-2}+1 \ge f_{i-1}$，所以后者一定不会更差，后者对应的策略是能偷就偷。
+
+```c++
+class Solution {
+    bool check(vector<int> &nums, int k, int mx) {
+        int cnt = 0, n = nums.size();
+        for (int i = 0; i < n; i++) {
+            if (nums[i] <= mx) {
+                cnt++; // 偷 nums[i]
+                i++; // 跳过下一间房子
+            }
+        }
+        return cnt >= k;
+    }
+
+public:
+    int minCapability(vector<int> &nums, int k) {
+        int left = 0, right = *max_element(nums.begin(), nums.end());
+        while (left + 1 < right) { // 开区间写法
+            int mid = left + (right - left) / 2;
+            (check(nums, k, mid) ? right : left) = mid;
+        }
+        return right;
+    }
+};
+```
+
+##### 2591\.将钱分给最多的儿童
+
+[题目](https://leetcode.cn/problems/distribute-money-to-maximum-children)
+
+分类讨论：
+
+- 先给每个人一块钱，如果给不了就无解
+- 否则恒有解，贪心地给尽可能多的孩子 7 元
+- 看看有多少个孩子没有给到 7 元
+  - 如果每个人都给了 7 元凑 8，但是钱还有多，多的钱全部给任意一个人，答案减一
+  - 如果只有一个人没凑够 8 元，且刚好给他 4 块，不合法，把他的一块钱给随便一个别的小孩(如果只有他一个人，特判或答案对 0 取 max)
+  - 如果有多个人没凑够，先把剩下的钱全部给其中一个人，如果刚好 4 元，可以再少给一块再给另外的没凑够的人，所以答案不变
+  - 其他情况，答案都不变
+
+```c++
+class Solution {
+public:
+    int distMoney(int money, int children) {
+		if(money < children) {
+			return -1;
+		}
+		money -= children;
+		int eights = min(children, money / 7);
+		int nos = children - eights;
+		int remains = money - 7 * eights;
+		if((remains == 3 && nos == 1) || (remains >= 1 && nos == 0)) {
+			return max(0,eights - 1);
+		}
+		return eights;
+    }
+};
+```
+
+DP: 前 i 人 j 元的答案，O(m^2c)
+
+```c++
+class Solution {
+public:
+    int distMoney(int M, int C) {
+        int f[C + 1][M + 1];
+        const int INF = 1e9;
+        for (int i = 0; i <= C; i++) for (int j = 0; j <= M; j++) f[i][j] = -INF;
+        f[0][0] = 0;
+        for (int i = 1; i <= C; i++) for (int j = 0; j <= M; j++) for (int k = 1; k <= j; k++) if (k != 4) {
+            int t = f[i - 1][j - k];
+            if (k == 8) t++;
+            f[i][j] = max(f[i][j], t);
+        }
+        return f[C][M] < 0 ? -1 : f[C][M];
+    }
+};
+```
+
+##### 2603\.收集树中金币
+
+[题目](https://leetcode.cn/problems/collect-coins-in-a-tree)
+
+拓扑排序可以剪枝：去掉所有没有金币的叶子。按照拓扑序可以保证枚举叶子节点。不断删点新的无金币叶子节点。
+
+显然，对一棵树，遍历一次回到原点的代价是 $2m$。对所有叶子都是金币的树，将其往内缩两格得到的子树边数就是答案。
+
+对叶子都是金币的树，删掉所有叶子，然后遍历新的叶子，将其再次删掉。
+
+```c++
+class Solution {
+public:
+    int collectTheCoins(vector<int> &coins, vector<vector<int>> &edges) {
+        int n = coins.size();
+        vector<vector<int>> g(n);
+        vector<int> deg(n);
+        for (auto &e: edges) {
+            int x = e[0], y = e[1];
+            g[x].push_back(y);
+            g[y].push_back(x); // 建图
+            deg[x]++;
+            deg[y]++; // 统计每个节点的度数（邻居个数）
+        }
+
+        int left_edges = n - 1; // 剩余边数
+        // 拓扑排序，去掉没有金币的子树
+        vector<int> q;
+        for (int i = 0; i < n; i++)
+            if (deg[i] == 1 && coins[i] == 0) // 没有金币的叶子
+                q.push_back(i);
+        while (!q.empty()) {
+            left_edges--; // 删除节点 x（到其父节点的边）
+            int x = q.back(); q.pop_back();
+            for (int y: g[x])
+                if (--deg[y] == 1 && coins[y] == 0) // 没有金币的叶子
+                    q.push_back(y);
+        }
+
+        // 再次拓扑排序
+        for (int i = 0; i < n; i++)
+            if (deg[i] == 1 && coins[i]) // 有金币的叶子（判断 coins[i] 是避免把没有金币的叶子也算进来）
+                q.push_back(i);
+        left_edges -= q.size(); // 删除所有叶子（到其父节点的边）
+        for (int x: q) // 遍历所有叶子
+            for (int y: g[x])
+                if (--deg[y] == 1) // y 现在是叶子了
+                    left_edges--; // 删除 y（到其父节点的边）
+        return max(left_edges * 2, 0);
+    }
+};
+```
+
+解法二：换根 DP
+
+> 错误思路：直接用重心或其周边(类菊花会T)当根。参考例子：
+>
+> ```
+> [1,0,0,1,0,0,1,0,0]
+> [[0,1],[0,2],[0,3],[1,4],[2,5],[4,6],[2,7],[5,8]]
+> ```
+
+设：
+
+- $f(u)$ 是只考虑 $u$ 子树的答案
+- $c(u,d)$ 是 $u$ 子树到 $u$ 距离 $\ge d$ 的节点个数 $(0\le d\le2)$
+- $f'(u)$ $u$ 只走父亲的答案
+- $c'(u)$ 只走父亲到 $u$ 距离 $>2$ 的节点数
+
+对 $u$ 为根，若 $c'(u)=0$ 则答案为 $f(u)$， 否则，加上那些点
+
+对儿子 $v$，递推 $f,c$：$c(u,d)=\sum_v c(v,d-1)$，且 $c(u,0)=c(u,1)+a_u$
+
+且 $f(u)=\sum_{c(v,2) > 0}2+f(u)$。
+
+换根时，设 $u$ 的父亲和爷爷分别是 $p,pp$，则 $pp$ 的距离从 $2$ 变 $3$，且所有 $p$ 的除了 $u$ 的子节点同理变 $3$，所有 $u$ 的子树，除去 $v$ 子树外，距离大于等于 $2$ 的点全部大于等于 $3$。即：
+$$
+c'(v)=c'(u)+a_{pp}+c_{p,1}-c_{p,2}-a_u+c(u,2)-c(v,1)
+$$
+同理，若 $c'(v)=0$，则 $f'(v)=0$，否则，$f'(v)$ 增加除了 $v$ 外的其他子树的答案
+
+```c++
+class Solution {
+public:
+    int collectTheCoins(vector<int>& coins, vector<vector<int>>& edges) {
+        // 因为要考虑当前节点的父节点的父节点
+        // 因此我们假设节点从 1 开始编号，并引入一个空节点 0 作为节点 1 的父节点
+        int n = coins.size();
+        int A[n + 1];
+        A[0] = 0;
+        for (int i = 1; i <= n; i++) A[i] = coins[i - 1];
+        vector<int> e[n + 1];
+        for (auto &edge : edges) {
+            e[edge[0] + 1].push_back(edge[1] + 1);
+            e[edge[1] + 1].push_back(edge[0] + 1);
+        }
+
+        // cnt 就是题解里的 c(u, d)，pa[u] 是 u 的父节点
+        int cnt[n + 1][3], f[n + 1], pa[n + 1];
+        memset(cnt, 0, sizeof(cnt));
+        memset(f, 0, sizeof(f));
+        memset(pa, 0, sizeof(pa));
+        function<void(int, int)> dfs1 = [&](int sn, int fa) {
+            pa[sn] = fa;
+            // 套用题解里的公式
+            for (int fn : e[sn]) if (fn != fa) {
+                dfs1(fn, sn);
+                for (int i = 1; i <= 2; i++) cnt[sn][i] += cnt[fn][i - 1];
+                if (cnt[fn][2]) f[sn] += f[fn] + 2;
+            }
+            cnt[sn][0] = cnt[sn][1] + A[sn];
+        };
+        dfs1(1, 0);
+        // 套用题解里的公式，计算空节点 0 的相关值
+        for (int i = 1; i <= 2; i++) cnt[0][i] += cnt[1][i - 1];
+        cnt[0][0] = cnt[0][1];
+
+        int ans = (n - 1) * 2;
+        // fdis 就是题解里的 f'(u)，fcnt 就是题解里的 c'(u)
+        function<void(int, int, int, int)> dfs2 = [&](int sn, int fa, int fdis, int fcnt) {
+            ans = min(ans, f[sn] + fdis);
+
+            for (int fn : e[sn]) if (fn != fa) {
+                // 套用题解里的公式
+                int nxtcnt = fcnt + A[pa[fa]] + (cnt[fa][1] - cnt[fa][2]) - A[sn] + (cnt[sn][2] - cnt[fn][1]);
+                
+                int nxtdis;
+                if (nxtcnt == 0) nxtdis = 0;
+                else {
+                    nxtdis = fdis + f[sn] + 2;
+                    // 为了去掉子树 v 的答案，我们得考虑子树 v 对子树 u 的答案是怎么影响的
+                    // 见 dfs1 里 f 值的计算方式
+                    if (cnt[fn][2]) nxtdis -= f[fn] + 2;
+                }
+
+                dfs2(fn, sn, nxtdis, nxtcnt);
+            }
+        };
+        dfs2(1, 0, 0, 0);
+
+        return ans;
+    }
+};
+```
+
+##### 1993\.树上的操作
+
+[题目](https://leetcode.cn/problems/operations-on-tree)
+
+个人模拟：
+
+```c++
+class LockingTree
+{
+    int n;
+    vector<vector<int>> g; // sons
+    vector<int> a;
+    vector<int> fa;
+
+    bool hasLock(int u)
+    {
+        bool ok = a[u] != 0;
+        for (auto v : g[u])
+        {
+            ok |= hasLock(v);
+        }
+        return ok;
+    }
+
+    void unlockAll(int u)
+    {
+        a[u] = 0;
+        for (auto v : g[u])
+        {
+            unlockAll(v);
+        }
+    }
+
+public:
+    LockingTree(vector<int> &parent)
+    {
+        n = parent.size();
+        g = vector<vector<int>>(n);
+        for (int i = 0; i < n; ++i)
+        {
+            int j = parent[i];
+            if (j != -1)
+            {
+                g[j].emplace_back(i);
+            }
+        }
+        a = vector<int>(n);
+        fa = parent;
+    }
+
+    bool lock(int num, int user)
+    {
+        if (a[num])
+            return false;
+        a[num] = user;
+        return true;
+    }
+
+    bool unlock(int num, int user)
+    {
+        if (a[num] != user)
+            return false;
+        a[num] = 0;
+        return true;
+    }
+
+    bool upgrade(int num, int user)
+    {
+        bool ok = true;
+        for (auto f = num; f != -1; f = fa[f])
+        {
+            ok &= (a[f] == 0);
+        }
+        ok &= hasLock(num);
+        if (ok)
+        {
+            unlockAll(num);
+            a[num] = user;
+        }
+        return ok;
+    }
+};
+
+/**
+ * Your LockingTree object will be instantiated and called as such:
+ * LockingTree* obj = new LockingTree(parent);
+ * bool param_1 = obj->lock(num,user);
+ * bool param_2 = obj->unlock(num,user);
+ * bool param_3 = obj->upgrade(num,user);
+ */
+```
+
+题解实现：
+
+```c++
+class LockingTree {
+public:
+    LockingTree(vector<int>& parent) {
+        int n = parent.size();
+        this->parent = parent;
+        this->lockNodeUser = vector<int>(n, -1);
+        this->children = vector<vector<int>>(n);
+        for (int i = 0; i < n; i++) {
+            int p = parent[i];
+            if (p != -1) {
+                children[p].emplace_back(i);
+            }
+        }
+    }
+    
+    bool lock(int num, int user) {
+        if (lockNodeUser[num] == -1) {
+            lockNodeUser[num] = user;
+            return true;
+        } 
+        return false;
+    }
+    
+    bool unlock(int num, int user) {
+        if (lockNodeUser[num] == user) {
+            lockNodeUser[num] = -1;
+            return true;
+        }
+        return false;
+    }
+    
+    bool upgrade(int num, int user) {
+        bool res = lockNodeUser[num] == -1 \
+                   && !hasLockedAncestor(num) \
+                   && checkAndUnlockDescendant(num);
+        if (res) {
+            lockNodeUser[num] = user;
+        }
+        return res;
+    }
+
+    bool hasLockedAncestor(int num) {
+        num = parent[num];
+        while (num != -1) {
+            if (lockNodeUser[num] != -1) {
+                return true;
+            }
+            num = parent[num];
+        }
+        return false;
+    }
+        
+    bool checkAndUnlockDescendant(int num) {
+        bool res = lockNodeUser[num] != -1;
+        lockNodeUser[num] = -1;
+        for (int child : children[num]) {
+            res |= checkAndUnlockDescendant(child);
+        }            
+        return res;
+    }
+        
+private:
+    vector<int> parent;
+    vector<int> lockNodeUser;
+    vector<vector<int>> children;
+};
+```
+
+没完全看懂，日后再看 [题目](https://leetcode.cn/problems/operations-on-tree/solutions/978755/dui-shu-jun-tan-fu-za-du-dfsxu-lie-he-sh-nte4/)
+
+对 DFS 序节点序列，维护两个树状数组：
+
+- up：
+- down：
+
+维护：
+
+- 加锁时给 DFS 对应子树 up 区间 +1，该节点 down +1
+
+- 解锁时给 DFS 对应子树 up 区间 -1，该节点 down -1
+
+- upgrade 有效：
+
+  - 节点到到根没有锁，单点查询 up 为 0
+  - 子树有锁，
+
+  
+
+```c++
+struct BIT : vector<int>{
+    BIT(int n = 0): vector<int>(n){}
+    void add(int p, int x) {
+        for (; p < (int)size(); p += p &- p) at(p) += x;
+    }
+    int sum(int p) {
+        int res = 0;
+        for (; p; p -= p & -p) res += at(p);
+        return res;
+    }
+    int query(int x) {
+        //find the smallest positive integer p such that sum(p) >= x
+        int L = 0, R = size();
+        while (L + 1 < R) {
+            int m = (L + R) >> 1;
+            if (at(m) < x) {
+                x -= at(m);
+                L = m;
+            }
+            else R = m;
+        }
+        return R;
+    }
+};
+class LockingTree {
+public:
+    vector<int> size, p, q, mark;
+    BIT down, up;
+    LockingTree(vector<int>& parent): size(parent.size()), p(parent.size()), q(parent.size() + 1), mark(parent.size(), -1), up(parent.size() + 1){ 
+        vector<vector<int>> children(parent.size());
+        for (int i = 1; i < (int)parent.size(); i += 1) children[parent[i]].push_back(i);
+        int timer = 0;
+        function<void(int)> dfs = [&](int u) {
+            size[u] = 1;
+            p[u] = timer += 1; // DFS 序
+            q[timer] = u;
+            for (int v : children[u]) {
+                dfs(v);
+                size[u] += size[v];
+            }
+        };
+        dfs(0);
+        int k = 1;
+        while (k <= (int)parent.size()) k <<= 1;
+        down.resize(k);
+    }
+    bool lock(int num, int user) {
+        if (mark[num] != -1) return false;
+        mark[num] = user;
+        down.add(p[num], 1);
+        up.add(p[num], 1);
+        up.add(p[num] + size[num], -1);
+        return true;
+    }
+    
+    bool unlock(int num, int user) {
+        if (mark[num] != user) return false;
+        mark[num] = -1;
+        down.add(p[num], -1);
+        up.add(p[num], -1);
+        up.add(p[num] + size[num], 1);
+        return true;
+    }
+    
+    bool upgrade(int num, int user) {
+        if (up.sum(p[num])) return false;
+        int L = down.sum(p[num] - 1), R = down.sum(p[num] + size[num] - 1);
+        if (L == R) return false;
+        for (int i = 0; i < R - L; i += 1) {
+            int k = down.query(L + 1);
+            mark[q[k]] = -1;
+            down.add(k, -1);
+            up.add(k, -1);
+            up.add(k + size[q[k]], 1);
+        }
+        lock(num, user);
+        return true;
+    }
+};
+```
+
+##### 2582\.递枕头
+
+[题目](https://leetcode.cn/problems/pass-the-pillow)
+
+个人：
+
+```python
+class Solution:
+    def passThePillow(self, n: int, time: int) -> int:
+        time %= 2*(n-1)
+        return 1+time if time <= n-1 else n-(time-(n-1))
+```
+
+其他实现：
+
+```python
+class Solution:
+    def passThePillow(self, n: int, time: int) -> int:
+        k, t = divmod(time, n - 1)
+        return n - t if k % 2 else 1 + t
+```
+
+##### 146\.LRU缓存
+
+[题目](https://leetcode.cn/problems/lru-cache/)
+
+个人：STL map 大法好
+
+```c++
+class LRUCache
+{
+    int n, cnt;
+    map<int, int> m;           // time->key
+    unordered_map<int, int> a; // key->val
+    unordered_map<int, int> t; // key->time
+public:
+    LRUCache(int capacity)
+    {
+        n = capacity, cnt = 0;
+    }
+
+    int get(int key)
+    {
+        if (a.find(key) == a.end())
+            return -1;
+        return a[key];
+    }
+
+    void put(int key, int value)
+    {
+        ++cnt;
+        if (a.find(key) != a.end())
+        {
+            int tt = t[key];
+            m.erase(tt);
+        }
+        if (m.size() == n)
+        {
+            int key = m.begin()->second;
+            m.erase(m.begin()), a.erase(key), t.erase(key);
+        }
+        t[key] = cnt, a[key] = value, m[cnt] = key;
+    }
+};
+```
+
+题解：双向链表。
+
+- 每次访问一个缓存，将它放到队首。维护链表长度 $\le n$，这样根据它在链表的下标，可以确定相对时间排序，溢出时，在最后的一定是被淘汰的。
+- 增加新元素直接放链表首部，如果修改一个元素，通过 map 查找该 key 对应的节点，将该节点挪动。
+
+```c++
+struct DLinkedNode {
+    int key, value;
+    DLinkedNode* prev;
+    DLinkedNode* next;
+    DLinkedNode(): key(0), value(0), prev(nullptr), next(nullptr) {}
+    DLinkedNode(int _key, int _value): key(_key), value(_value), prev(nullptr), next(nullptr) {}
+};
+
+class LRUCache {
+private:
+    unordered_map<int, DLinkedNode*> cache;
+    DLinkedNode* head;
+    DLinkedNode* tail;
+    int size;
+    int capacity;
+
+public:
+    LRUCache(int _capacity): capacity(_capacity), size(0) {
+        // 使用伪头部和伪尾部节点
+        head = new DLinkedNode();
+        tail = new DLinkedNode();
+        head->next = tail;
+        tail->prev = head;
+    }
+    
+    int get(int key) {
+        if (!cache.count(key)) {
+            return -1;
+        }
+        // 如果 key 存在，先通过哈希表定位，再移到头部
+        DLinkedNode* node = cache[key];
+        moveToHead(node);
+        return node->value;
+    }
+    
+    void put(int key, int value) {
+        if (!cache.count(key)) {
+            // 如果 key 不存在，创建一个新的节点
+            DLinkedNode* node = new DLinkedNode(key, value);
+            // 添加进哈希表
+            cache[key] = node;
+            // 添加至双向链表的头部
+            addToHead(node);
+            ++size;
+            if (size > capacity) {
+                // 如果超出容量，删除双向链表的尾部节点
+                DLinkedNode* removed = removeTail();
+                // 删除哈希表中对应的项
+                cache.erase(removed->key);
+                // 防止内存泄漏
+                delete removed;
+                --size;
+            }
+        }
+        else {
+            // 如果 key 存在，先通过哈希表定位，再修改 value，并移到头部
+            DLinkedNode* node = cache[key];
+            node->value = value;
+            moveToHead(node);
+        }
+    }
+
+    void addToHead(DLinkedNode* node) {
+        node->prev = head;
+        node->next = head->next;
+        head->next->prev = node;
+        head->next = node;
+    }
+    
+    void removeNode(DLinkedNode* node) {
+        node->prev->next = node->next;
+        node->next->prev = node->prev;
+    }
+
+    void moveToHead(DLinkedNode* node) {
+        removeNode(node);
+        addToHead(node);
+    }
+
+    DLinkedNode* removeTail() {
+        DLinkedNode* node = tail->prev;
+        removeNode(node);
+        return node;
+    }
+};
+```
+
+##### 460\.LFU缓存
+
+[题目](https://leetcode.cn/problems/lfu-cache)
+
+在 LRU 的基础上，设置 map 存储每个频率的头指针；均摊 $O(\log n)$ 瓶颈为 map。
+
+```c++
+struct node
+{
+    node *l, *r;
+    int v, cnt, key;
+    friend void del(node *a)
+    {
+        if (a->l)
+            a->l->r = a->r;
+        if (a->r)
+            a->r->l = a->l;
+        delete a;
+    }
+};
+class LFUCache
+{
+    int n;
+    unordered_map<int, node *> m; // key->node
+    map<int, node *> f;           // cnt,node(by LRU)
+
+    void remove(int key)
+    {
+        //cout << "remove " << key << '\n';
+        node *a = m[key];
+        int cnt = a->cnt;
+        del(a), m.erase(key);
+        if (f[cnt]->r == f[cnt])
+        {
+            // cout << "remove " << cnt << " " << f[cnt] << '\n';
+            delete f[cnt];
+            f.erase(cnt);
+        }
+    }
+
+    void append(int key, int val, int cnt)
+    {
+        //cout << "append " << key << " " << val << " " << cnt << '\n';
+        node *a = new node{nullptr, nullptr, val, cnt, key};
+        m[key] = a;
+        if (f.find(cnt) == f.end())
+        {
+            node *hd = new node{0, 0, 0, 0, 0};
+            hd->l = hd->r = hd;
+            f[cnt] = hd;
+            // cout << "append " << cnt << " " << f[cnt] << '\n';
+        }
+        node *hd = f[cnt];
+        a->l = hd, a->r = hd->r;
+        if (hd->r)
+            hd->r->l = a;
+        hd->r = a;
+    }
+
+public:
+    LFUCache(int capacity)
+    {
+        n = capacity;
+    }
+
+    int get(int key)
+    {
+        if (m.find(key) == m.end())
+            return -1;
+        node *a = m[key];
+        int val = a->v, cnt = a->cnt + 1;
+        remove(key);
+        append(key, val, cnt);
+        return val;
+    }
+
+    void put(int key, int value)
+    {
+        //cout << "put " << key << " " << value << '\n';
+        int cnt;
+        if (m.find(key) != m.end())
+        {
+            cnt = m[key]->cnt + 1;
+            remove(key);
+        }
+        else
+        {
+            cnt = 1;
+        }
+        if (m.size() == n)
+        {
+            // cout << f.begin()->second << '\n';
+            int key = f.begin()->second->l->key;
+            remove(key);
+        }
+        append(key, value, cnt);
+    }
+};
+```
+
+题解实现：
+
+- 自定义结构体比较依据，先 cnt 后时间戳，维护一个 set 做排序，用 unmap 做 key 到结构体映射
+
+```c++
+struct Node {
+    int cnt, time, key, value;
+
+    Node(int _cnt, int _time, int _key, int _value):cnt(_cnt), time(_time), key(_key), value(_value){}
+    
+    bool operator < (const Node& rhs) const {
+        return cnt == rhs.cnt ? time < rhs.time : cnt < rhs.cnt;
+    }
+};
+class LFUCache {
+    // 缓存容量，时间戳
+    int capacity, time;
+    unordered_map<int, Node> key_table;
+    set<Node> S;
+public:
+    LFUCache(int _capacity) {
+        capacity = _capacity;
+        time = 0;
+        key_table.clear();
+        S.clear();
+    }
+    
+    int get(int key) {
+        if (capacity == 0) return -1;
+        auto it = key_table.find(key);
+        // 如果哈希表中没有键 key，返回 -1
+        if (it == key_table.end()) return -1;
+        // 从哈希表中得到旧的缓存
+        Node cache = it -> second;
+        // 从平衡二叉树中删除旧的缓存
+        S.erase(cache);
+        // 将旧缓存更新
+        cache.cnt += 1;
+        cache.time = ++time;
+        // 将新缓存重新放入哈希表和平衡二叉树中
+        S.insert(cache);
+        it -> second = cache;
+        return cache.value;
+    }
+    
+    void put(int key, int value) {
+        if (capacity == 0) return;
+        auto it = key_table.find(key);
+        if (it == key_table.end()) {
+            // 如果到达缓存容量上限
+            if (key_table.size() == capacity) {
+                // 从哈希表和平衡二叉树中删除最近最少使用的缓存
+                key_table.erase(S.begin() -> key);
+                S.erase(S.begin());
+            }
+            // 创建新的缓存
+            Node cache = Node(1, ++time, key, value);
+            // 将新缓存放入哈希表和平衡二叉树中
+            key_table.insert(make_pair(key, cache));
+            S.insert(cache);
+        }
+        else {
+            // 这里和 get() 函数类似
+            Node cache = it -> second;
+            S.erase(cache);
+            cache.cnt += 1;
+            cache.time = ++time;
+            cache.value = value;
+            S.insert(cache);
+            it -> second = cache;
+        }
+    }
+};
+```
+
+解法二：均摊 $O(1)$
+
+- 节点存 key, val 和访问次数
+- 定义一个 unmap，用频率对应一个双向链表；再定义一个 unmap，用 key 对应一个双向链表节点(若链表用 list，则节点对应 iterator)
+- unmap 不支持 begin 有序查最小，所以需要维护
+  - 每次 get 增加频率时，最小频率最多变化 1，可以维护最小频率
+  - 每次 put 时，有新元素必然导致 min 变为 1，否则同上处理
+- 其他都是双向链表原理的操作，注意一下怎么存 iterator 即可
+
+```c++
+// 缓存的节点信息
+struct Node {
+    int key, val, freq;
+    Node(int _key,int _val,int _freq): key(_key), val(_val), freq(_freq){}
+};
+class LFUCache {
+    int minfreq, capacity;
+    unordered_map<int, list<Node>::iterator> key_table;
+    unordered_map<int, list<Node>> freq_table;
+public:
+    LFUCache(int _capacity) {
+        minfreq = 0;
+        capacity = _capacity;
+        key_table.clear();
+        freq_table.clear();
+    }
+    
+    int get(int key) {
+        if (capacity == 0) return -1;
+        auto it = key_table.find(key);
+        if (it == key_table.end()) return -1;
+        list<Node>::iterator node = it -> second;
+        int val = node -> val, freq = node -> freq;
+        freq_table[freq].erase(node);
+        // 如果当前链表为空，我们需要在哈希表中删除，且更新minFreq
+        if (freq_table[freq].size() == 0) {
+            freq_table.erase(freq);
+            if (minfreq == freq) minfreq += 1;
+        }
+        // 插入到 freq + 1 中
+        freq_table[freq + 1].push_front(Node(key, val, freq + 1));
+        key_table[key] = freq_table[freq + 1].begin();
+        return val;
+    }
+    
+    void put(int key, int value) {
+        if (capacity == 0) return;
+        auto it = key_table.find(key);
+        if (it == key_table.end()) {
+            // 缓存已满，需要进行删除操作
+            if (key_table.size() == capacity) {
+                // 通过 minFreq 拿到 freq_table[minFreq] 链表的末尾节点
+                auto it2 = freq_table[minfreq].back();
+                key_table.erase(it2.key);
+                freq_table[minfreq].pop_back();
+                if (freq_table[minfreq].size() == 0) {
+                    freq_table.erase(minfreq);
+                }
+            } 
+            freq_table[1].push_front(Node(key, value, 1));
+            key_table[key] = freq_table[1].begin();
+            minfreq = 1;
+        } else {
+            // 与 get 操作基本一致，除了需要更新缓存的值
+            list<Node>::iterator node = it -> second;
+            int freq = node -> freq;
+            freq_table[freq].erase(node);
+            if (freq_table[freq].size() == 0) {
+                freq_table.erase(freq);
+                if (minfreq == freq) minfreq += 1;
+            }
+            freq_table[freq + 1].push_front(Node(key, value, freq + 1));
+            key_table[key] = freq_table[freq + 1].begin();
+        }
     }
 };
 ```
