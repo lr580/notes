@@ -817,6 +817,14 @@
 - 2251\.花期内花的数目
 
   差分+离线+双指针 / <u>二分</u>
+  
+- 605\.种花问题
+
+  小模拟
+  
+- 466\.统计重复个数
+
+  <u>字符串模拟+思维</u>
 
 
 
@@ -23174,6 +23182,148 @@ public:
 >         ends = sorted(e for _, e in flowers)
 >         return [bisect_right(starts, p) - bisect_left(ends, p) for p in people]
 > ```
+
+##### 605\.种花问题
+
+[题目](https://leetcode.cn/problems/can-place-flowers)
+
+我的写法：
+
+```c++
+class Solution {
+public:
+    bool canPlaceFlowers(vector<int>& flowerbed, int n) {
+        int m = flowerbed.size(), cnt=0, last=-1;
+        for(int i=0;i<m;++i){
+            if(flowerbed[i]) {
+                if(last==-1) {
+                    cnt += (i-1 +1)/2;
+                }else{
+                cnt += (i-last-3+1)/2;
+                }
+                last=i;
+            }
+        }
+        if(last==-1) {
+            cnt += (m+1)/2;
+        }else{
+            cnt += (m-(last+2) + 1) / 2;
+        }
+        return cnt >= n;
+    }
+};
+```
+
+题解：
+
+```c++
+class Solution {
+public:
+    bool canPlaceFlowers(vector<int>& flowerbed, int n) {
+        int count = 0;
+        int m = flowerbed.size();
+        int prev = -1;
+        for (int i = 0; i < m; i++) {
+            if (flowerbed[i] == 1) {
+                if (prev < 0) {
+                    count += i / 2;
+                } else {
+                    count += (i - prev - 2) / 2;
+                }
+                if (count >= n) {
+                    return true;
+                }
+                prev = i;
+            }
+        }
+        if (prev < 0) {
+            count += (m + 1) / 2;
+        } else {
+            count += (m - prev - 1) / 2;
+        }
+        return count >= n;
+    }
+};
+```
+
+##### 466\.统计重复个数
+
+[题目](https://leetcode.cn/problems/count-the-repetitions)
+
+考虑 `abacab` 为 s2 和 `bacaba` 为 s1，在第一轮踩两个 s1 匹配一个 s2，之后每一轮踩一个 s1 匹配一个 s2。即：除去一开头后，有循环节关系。可以循环内多少个 s1 能换多少个 s2。复杂度取 $O(|s_1|\cdot|s_2|)$
+
+```c++
+class Solution {
+public:
+    int getMaxRepetitions(string s1, int n1, string s2, int n2) {
+        if (n1 == 0) {
+            return 0;
+        }
+        int s1cnt = 0, index = 0, s2cnt = 0;
+        // recall 是我们用来找循环节的变量，它是一个哈希映射
+        // 我们如何找循环节？假设我们遍历了 s1cnt 个 s1，此时匹配到了第 s2cnt 个 s2 中的第 index 个字符
+        // 如果我们之前遍历了 s1cnt' 个 s1 时，匹配到的是第 s2cnt' 个 s2 中同样的第 index 个字符，那么就有循环节了
+        // 我们用 (s1cnt', s2cnt', index) 和 (s1cnt, s2cnt, index) 表示两次包含相同 index 的匹配结果
+        // 那么哈希映射中的键就是 index，值就是 (s1cnt', s2cnt') 这个二元组
+        // 循环节就是；
+        //    - 前 s1cnt' 个 s1 包含了 s2cnt' 个 s2
+        //    - 以后的每 (s1cnt - s1cnt') 个 s1 包含了 (s2cnt - s2cnt') 个 s2
+        // 那么还会剩下 (n1 - s1cnt') % (s1cnt - s1cnt') 个 s1, 我们对这些与 s2 进行暴力匹配
+        // 注意 s2 要从第 index 个字符开始匹配
+        unordered_map<int, pair<int, int>> recall;
+        pair<int, int> pre_loop, in_loop;
+        while (true) {
+            // 我们多遍历一个 s1，看看能不能找到循环节
+            // 对新的一个 s1, 更新 s2 匹配情况
+            ++s1cnt; // 注意只有 s2 设 cnt 和 index, s1 仅 cnt
+            for (char ch: s1) {
+                if (ch == s2[index]) {
+                    index += 1;
+                    if (index == s2.size()) {
+                        ++s2cnt;
+                        index = 0;
+                    }
+                }
+            }
+            // 还没有找到循环节，所有的 s1 就用完了
+            if (s1cnt == n1) {
+                // 能匹配 s2cnt 个 s2，除以 n2
+                return s2cnt / n2;
+            }
+            // 出现了之前的 index，表示找到了循环节
+            if (recall.count(index)) {
+                // 踏入循环节时的记录
+                auto [s1cnt_prime, s2cnt_prime] = recall[index];
+                // 前 s1cnt' 个 s1 包含了 s2cnt' 个 s2
+                pre_loop = {s1cnt_prime, s2cnt_prime};
+                // 以后的每 (s1cnt - s1cnt') 个 s1 包含了 (s2cnt - s2cnt') 个 s2
+                in_loop = {s1cnt - s1cnt_prime, s2cnt - s2cnt_prime};
+                break;
+            } else {
+                recall[index] = {s1cnt, s2cnt};
+            }
+        }
+        // ans 存储的是 S1 包含的 s2 的数量，考虑的之前的 pre_loop 和 in_loop
+        int ans = pre_loop.second + (n1 - pre_loop.first) / in_loop.first * in_loop.second;
+        // S1 的末尾还剩下一些 s1，我们暴力进行匹配
+        // 不成循环节的残差
+        int rest = (n1 - pre_loop.first) % in_loop.first;
+        for (int i = 0; i < rest; ++i) {
+            for (char ch: s1) {
+                if (ch == s2[index]) {
+                    ++index;
+                    if (index == s2.size()) {
+                        ++ans;
+                        index = 0;
+                    }
+                }
+            }
+        }
+        // S1 包含 ans 个 s2，那么就包含 ans / n2 个 S2
+        return ans / n2;
+    }
+};
+```
 
 
 
