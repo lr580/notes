@@ -1465,6 +1465,23 @@ LaTeX 文章分为导言区和正文区。一篇文章中只能有一个正文�
 
 LaTeX文档类的基础三大件是article，book和report ，都不支持汉字排版。
 
+PPT排版：
+
+```tex
+\documentclass{beamer}
+```
+
+可以自定义文档类。后文介绍，这里从略。
+
+#### 中文支持
+
+> cmd 列出支持的汉字：
+>
+> ```sh
+> chcp 65001
+> fc-list :lang=zh
+> ```
+
 支持汉字：
 
 ```tex
@@ -1482,16 +1499,18 @@ LaTeX文档类的基础三大件是article，book和report ，都不支持汉字
 > ```tex
 > \PassOptionsToPackage{quiet}{fontspec} 
 > ```
+>
+> 或者：
+>
+> ```tex
+> \usepackage{xeCJK}
+> \setCJKsansfont{SimHei}
+> % \setCJKmainfont{SimSun}
+> ```
+>
+> `ctex`：在内部，`ctex` 宏包实际上依赖于 `xeCJK`（当使用 XeLaTeX 编译器时）来处理中文字符。因此，当你使用 `ctex` 时，你实际上也在使用 `xeCJK` 的功能。
 
-PPT排版：
-
-```tex
-\documentclass{beamer}
-```
-
-可以自定义文档类。后文介绍，这里从略。
-
-
+加粗支持：
 
 #### 宏包
 
@@ -1637,6 +1656,26 @@ geometry 宏包，如：
 \usepackage[a4paper,left=2.5cm,right=2.5cm,top=2cm,bottom=2cm]{geometry}
 ```
 
+> #### 忽略警告
+>
+> 忽略某个前缀的警告：
+>
+> ```tex
+> \usepackage{silence}
+> \WarningFilter{hyperref}{Option `pdfauthor'}
+> ```
+
+#### 自定义命令
+
+```tex
+\newcommand{\chinesedate}{%
+  \number\year 年
+  \number\month 月
+  \number\day 日%
+}
+\date{\chinesedate}
+```
+
 
 
 
@@ -1670,6 +1709,10 @@ geometry 宏包，如：
 ```
 
 > 也可以放到导言区，即代码块前，这样这些东西将作为封面。
+>
+> today 扩展：
+>
+> - `\number\year`, `\number\month`, `\number\day` 表示年月日
 
 摘要：
 
@@ -2174,7 +2217,7 @@ csvsimple 包 [官方文档](https://mirror.mwt.me/ctan/macros/latex/contrib/csv
 - `mdseries` 正常粗细，或 `textmd`
 - `bfseries` 加粗，或 `textbf`
 - `upshape` 直立，或 `textup`
-- `itshape` 斜体，或 `textit`
+- `itshape` 斜体，或 `textit` 特别注意中文字体是无斜体的(office是伪斜体)
 - `slshape` 斜体，或 `textsl`
 - `scshape` 字母大写小字号，若 `textsc`
 - `\em` 强调(带斜体)，也可 `\emph`
@@ -2901,6 +2944,8 @@ bm 宏包 `\bm{}` 对数学内容进行加粗。对数学公式里常规文本�
 
 使用 beamer。
 
+> 或 `\documentclass{ctexbeamer}`
+
 #### 基本概念
 
 每个 ppt 的 slide 的框架为：[参考](https://zhuanlan.zhihu.com/p/134659249) (外部元素)
@@ -2949,8 +2994,9 @@ beamer通过预定义了一些不同风格的页眉页脚和侧边栏和块。�
 如：
 
 ```tex
+\PassOptionsToPackage{quiet}{fontspec} % 忽略 ctex 警告
 \documentclass{beamer}
-\usepackage[UTF8]{ctex}
+\usepackage[UTF8]{ctex} % or \usepackage{xeCJK} 但后者警报多
 \begin{document}
 \begin{frame}
     \frametitle{我的第一个PPT}
@@ -2979,15 +3025,15 @@ frame 里使用 `\titlepage` 生成标题页(不算第一页)，在 item 里。�
 \institute{华南师范大学}
 \title{第一个PPT}
 \subtitle{求轻喷}
-\author{lr580}
-\date{2022年7月22日}
+\author{lr580} % 放 begin document 前防止报错
+\date{2022年7月22日} % 不 ctex 宏包就会是英文的
 \logo{\includegraphics[width=100pt]{a.jpg}} %右下
 \begin{frame}
     \titlepage
 \end{frame}
 ```
 
-> logo 每一页都会有。
+> logo 每一页都会有。author 位置[参考](https://blog.csdn.net/RobertChenGuangzhi/article/details/50604468)
 
 
 
@@ -3021,7 +3067,7 @@ frame 里使用 `\titlepage` 生成标题页(不算第一页)，在 item 里。�
 \section{新的开始}
 \begin{frame}
     \frametitle{第一章\ 新的开始}
-\end{frame}
+\end{frame} % 不要 23 行就 \begin{frame}{第一章\ 新的开始}
 \section{主城和弥明}
 \begin{frame}
     \frametitle{第二章\ 主城和弥明}
@@ -3053,7 +3099,7 @@ frame 里使用 `\titlepage` 生成标题页(不算第一页)，在 item 里。�
 
 > 跟后面的主题的页眉可能会冲突，表现为每一个 section 都多了一页
 
-疑似需要两次编译才能得到正确结果。
+需要两次编译才能得到正确结果。
 
 
 

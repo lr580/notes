@@ -825,6 +825,14 @@
 - 466\.统计重复个数
 
   <u>字符串模拟+思维</u>
+  
+- 2136\.全部开花的最早一天
+
+  贪心
+  
+- 472\.连接词
+
+  字符串哈希+DP / <u>trie+记忆化DFS</u>
 
 
 
@@ -23321,6 +23329,280 @@ public:
         }
         // S1 包含 ans 个 s2，那么就包含 ans / n2 个 S2
         return ans / n2;
+    }
+};
+```
+
+##### 2136\.全部开花的最早一天
+
+[题目](https://leetcode.cn/problems/earliest-possible-day-of-full-bloom)
+
+显然对一个种子，要么不播种，要么连续一些天都播种它，不会更差。
+
+对两个种子 $i,j$，播种天数为 $a$，生长为 $b$，若先 $i$ 后 $j$，总用时为：$a_i+a_j+\max(b_j,b_i-a_j)$
+
+反过来的用时为 $a_i+a_j+\max(b_i,b_j-a_i)$，所以自定义排序依据，看看两个 max 谁更小排在前边。
+
+```c++
+class Solution
+{
+    using pii = pair<int, int>;
+
+public:
+    int earliestFullBloom(vector<int> &plantTime, vector<int> &growTime)
+    {
+        int n = plantTime.size();
+        vector<pii> a(n);
+        for (int i = 0; i < n; ++i)
+        {
+            a[i] = {plantTime[i], growTime[i]};
+        }
+        sort(a.begin(), a.end(), [](pii &l, pii &r)
+             { return max(r.second, l.second - r.first) < max(l.second, r.second - l.first); });
+        int cnt = 0, ans = 0;
+        for (int i = 0; i < n; ++i)
+        {
+            //cout << a[i].first << ' ' << a[i].second << '\n';
+            cnt += a[i].first;
+            ans = max(ans, cnt + a[i].second);
+        }
+        return ans;
+    }
+};
+```
+
+证法二：$a_i+\max(b_i,a_j+b_j)$ 和 $a_j+\max(a_i+b_i,b_j)$ 比较。分类讨论，若 $b_i\ge b_j$，则 $a_i+b_i\ge b_j$，等价于 $a_i+\max(b_i,a_j+b_j)$ 与 $a_i+b_i+a_j$ 比较，显然由于 $a_j+b_j\le a_j+b_i$，无论左取哪个 max，都不会比右更大，即：如果按 $b$ 排序，先 $i$ 后 $j$ 必然不会更差。证毕。所以按 $b$ 排序即可。
+
+```c++
+class Solution {
+public:
+    int earliestFullBloom(vector<int> &plantTime, vector<int> &growTime) {
+        vector<int> id(plantTime.size());
+        iota(id.begin(), id.end(), 0); // id[i] = i
+        sort(id.begin(), id.end(), [&](int i, int j) { return growTime[i] > growTime[j]; });
+        int ans = 0, days = 0;
+        for (int i : id) {
+            days += plantTime[i]; // 累加生长天数
+            ans = max(ans, days + growTime[i]); // 更新最晚开花时间
+        }
+        return ans;
+    }
+};
+```
+
+##### 472\.连接词
+
+[题目](https://leetcode.cn/problems/concatenated-words)
+
+思路：按字符串长度排序，然后遍历每个字符串 $s_i$，记 $ok_{i,j}$ 表示 $s_i$ 长为 $j$ 的前缀能否被拼接。枚举 $s_i$ 的全体子串 $s_{i, k\cdots j}$，查看该子串是否是某个字符串 $s_{l}$，如果是，且 $ok_{k-1}$ 成立，则 $ok_j$ 也成立。若最终 $ok_{|s_i|}$ 成立，则纳入答案。
+
+使用字符串哈希优化查找子串是否在 $s_l$ 出现过。可以使用单哈希，怕数据卡哈希就用双哈希。下面分别给出参考代码。设字符串长度为 $m$，字符串个数为 $n$，时间复杂度为 $O(n\log n+nm^2)$，空间复杂度为 $O(nm)$。
+
+单哈希：
+
+```c++
+using ull = unsigned long long;
+const ull p = 31;
+class Solution
+{
+public:
+    vector<string> findAllConcatenatedWordsInADict(vector<string> &words)
+    {
+        sort(words.begin(), words.end(), [](string &a, string &b)
+             { return a.size() < b.size(); });
+        vector<ull> pw(32);
+        pw[0] = 1;
+        for (int i = 1; i < pw.size(); ++i)
+        {
+            pw[i] = pw[i - 1] * p;
+        }
+        int n = words.size();
+        vector<vector<ull>> h(n);
+        unordered_set<ull> s;
+        vector<string> ans;
+        for (int i = 0; i < n; ++i)
+        {
+            int m = words[i].size();
+            h[i].resize(m + 1, 0);
+            for (int j = 0; j < m; ++j)
+            { // 注意 +1, 保证 'a' 从 1 开始而不是从 0, 否则 "a"="aa"
+                h[i][j + 1] = h[i][j] * p + words[i][j] - 'a' + 1;
+            }
+
+            vector<bool> ok(m + 1, false);
+            ok[0] = true;
+            for (int j = 1; j <= m; ++j)
+            {
+                for (int k = 1; k <= j; ++k)
+                { // s[k..j] concat
+                    if (!ok[k - 1])
+                    {
+                        continue;
+                    }
+                    ull v = h[i][j] - h[i][k - 1] * pw[j - k + 1];
+                    if (s.find(v) != s.end())
+                    {
+                        ok[j] = true;
+                    }
+                }
+            }
+
+            s.insert(h[i][m]);
+            if (ok[m])
+            {
+                ans.emplace_back(words[i]);
+            }
+        }
+        return ans;
+    }
+};
+```
+
+双哈希：
+
+```c++
+using ull = unsigned long long;
+const ull p = 233, p2 = 31;
+class Solution
+{
+public:
+    vector<string> findAllConcatenatedWordsInADict(vector<string> &words)
+    {
+        sort(words.begin(), words.end(), [](string &a, string &b)
+             { return a.size() < b.size(); });
+        vector<ull> pw(32), pw2(32);
+        pw[0] = 1, pw2[0] = 1;
+        for (int i = 1; i < pw.size(); ++i)
+        {
+            pw[i] = pw[i - 1] * p;
+            pw2[i] = pw2[i - 1] * p2;
+        }
+        int n = words.size();
+        vector<vector<ull>> h(n), h2(n);
+        unordered_set<ull> s, s2;
+        vector<string> ans;
+        for (int i = 0; i < n; ++i)
+        {
+            int m = words[i].size();
+            h[i].resize(m + 1, 0);
+            h2[i].resize(m + 1, 0);
+            for (int j = 0; j < m; ++j)
+            {
+                h[i][j + 1] = h[i][j] * p + words[i][j];
+                h2[i][j + 1] = h2[i][j] * p2 + words[i][j] - 'a' + 1;
+            }
+
+            vector<bool> ok(m + 1, false);
+            ok[0] = true;
+            for (int j = 1; j <= m; ++j)
+            {
+                for (int k = 1; k <= j; ++k)
+                { // s[k..j] concat
+                    if (!ok[k - 1])
+                    {
+                        continue;
+                    }
+                    ull v = h[i][j] - h[i][k - 1] * pw[j - k + 1];
+                    ull v2 = h2[i][j] - h2[i][k - 1] * pw2[j - k + 1];
+                    if (s.find(v) != s.end() && s2.find(v2) != s2.end())
+                    {
+                        ok[j] = true;
+                    }
+                }
+            }
+
+            //assert(!(s.find(h[i][m]) != s.end() && s2.find(h2[i][m]) != s2.end())); // 检测哈希冲突
+            s.insert(h[i][m]);
+            s2.insert(h2[i][m]);
+
+            if (ok[m])
+            {
+                ans.emplace_back(words[i]);
+            }
+        }
+        return ans;
+    }
+};
+```
+
+题解：字典树+记忆化搜索
+
+- 按字符串长度排序，对每个字符串，如果它是复合的，加入答案集，否是基本元素，加入字典树。
+- 检查某个串是否可被组成，在字典树上遍历该串，如果走到了字典树终点，当前下标 ok，下一个下标继续同理 DFS 搜索。
+- 遍历字典树 $O(m)$，最坏情况每个位置遍历一次，时间复杂度 $O(n\log n+nm^2)$。字符串数目为 $c$，则空间复杂度 $O(nmc)$。
+
+避免哈希冲突，但是空间复杂度不更优。
+
+```c++
+struct Trie {
+    bool isEnd;
+    vector<Trie *> children;
+    Trie() {
+        this->children = vector<Trie *>(26, nullptr);
+        this->isEnd = false;
+    }
+};
+
+class Solution {
+public:
+    Trie * trie = new Trie();
+
+    vector<string> findAllConcatenatedWordsInADict(vector<string>& words) {
+        vector<string> ans;
+        sort(words.begin(), words.end(), [&](const string & a, const string & b){
+            return a.size() < b.size(); 
+        });
+        for (int i = 0; i < words.size(); i++) {
+            string word = words[i];
+            if (word.size() == 0) {
+                continue;
+            }
+            vector<int> visited(word.size(), 0);
+            if (dfs(word, 0, visited)) {
+                ans.emplace_back(word);
+            } else {
+                insert(word);
+            }
+        }
+        return ans;
+    }
+
+    bool dfs(const string & word, int start, vector<int> & visited) {
+        if (word.size() == start) {
+            return true;
+        }
+        if (visited[start]) {
+            return false;
+        }
+        visited[start] = true;
+        Trie * node = trie;
+        for (int i = start; i < word.size(); i++) {
+            char ch = word[i];
+            int index = ch - 'a';
+            node = node->children[index];
+            if (node == nullptr) {
+                return false;
+            }
+            if (node->isEnd) {
+                if (dfs(word, i + 1, visited)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    void insert(const string & word) {
+        Trie * node = trie;
+        for (int i = 0; i < word.size(); i++) {
+            char ch = word[i];
+            int index = ch - 'a';
+            if (node->children[index] == nullptr) {
+                node->children[index] = new Trie();
+            }
+            node = node->children[index];
+        }
+        node->isEnd = true;
     }
 };
 ```
