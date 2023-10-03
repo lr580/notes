@@ -833,6 +833,10 @@
 - 472\.连接词
 
   字符串哈希+DP / <u>trie+记忆化DFS</u>
+  
+- 479\.最大回文数乘积
+
+  <u>爆搜</u>
 
 
 
@@ -3415,6 +3419,130 @@ class Solution {
 ```
 
 [神仙题解 wqs二分](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-iv/solution/yi-chong-ji-yu-wqs-er-fen-de-you-xiu-zuo-x36r/)
+
+<u>若只有至多一次买卖，</u>等价于求 $\max _{1\le i < j\le n} p_j-p_i$。
+
+对每个 $j$，其 $a_i$ 必定在最小值处取得。即维护前缀 min $m_i=\min_{1\le k\le i} p_i$，等价于求 $\max _{1\le i\le n} p_i-m_i$，可以 $O(n)$ 实现。有可能不进行买卖(一直降价)，所以最终结果与 $0$ 取 max。复杂度 $O(n)$。
+
+<u>现在扩展到做两笔交易，</u>即求 $\max p_j-p_i+p_l-p_k, i < j < k < l$。
+
+跟一笔交易一样，先处理 $i,j$，然后对 $(j,n]$ 部分，反过来，即逆序枚举 $k$，寻找最大的 $p_l$。根据两次枚举 $j,k$ 可以分别求出前缀 max 答案 $lans$ 和后缀答案 $rans$，故答案为：$ans=\max_{i=1}^{n-1}lans_i+rans_{i+1}$。复杂度 $O(n)$。
+
+<u>现在再扩展到做 $k$ 笔交易，</u>设 $g_{i,j}$ 是对前 $j$ 天，已经买卖了前 $i-1$ 笔交易且买入了第 $i$ 笔交易下最低的总额，即 $\min a_{buy_k}+\sum_{k=1}^{i-1}a_{sell_k}-a_{buy_k},buy_k,sell_k\le j$
+
+设 $f_{i,j}$ 是对前 $j$ 天，已经买卖了前 $i$ 笔的最高利润。即 $\max\sum_{k=1}^ia_{sell_k}-a_{buy_k},,buy_k,sell_k\le j$
+
+递推方程为：
+$$
+f_{i,j}=\max(f_{i,j-1},p_j-g_{i,j-1})\\
+g_{i,j}=\min(g_{i,j-1},p_j-f_{i-1,j-1})
+$$
+因为要差价最大化，所以每次卖出前，让买入最小。对于新的一笔交易，将之前的交易得到的所有差价抽象等价为负的价格，即假设已经赚到的最大差价是 $c$，那么新一次买黄金的价格设为 $p-c$，即抽象成了这次买入额外降价了 $c$。
+
+将 $i$ 状态压缩，可以优化空间复杂度从 $O(nk)$ 到 $O(n)$。时间复杂度为 $O(nk)$。但是仍然无法过题。
+
+<u>考虑进一步优化。</u>
+
+我们使用一种称为 wqs二分(王钦石在2012国家集训队论文提出)的技巧，国外又称为 Alien Trick(由[IOI2016Aliens题目](https://ioinformatics.org/files/ioi2016problem6.pdf)得名)。
+
+设恰好完成 $k$ 次买卖时，最大收益是 $g_k$。设增量(/导数)为 $g'_k=g_k-g_{k-1}$那么可以得到一个结论，增量 $g'_k$ 一定单调不降(不严格单调递增)。根据反证法已知，如果存在递减的方案，可以交换递减时的两次交易，使其变为不递减的。
+
+当 $k$ 不断增大到最大 $n$($n$ 次交易即都当天买当天卖等价于 $0$ 次交易)时，$g_k$ 会降到 $0$，即 $g_0=g_n=0$，一阶导 $g'_k$ 单调递减，不难判断 $g$ 呈倒 U 型，如图所示：
+
+![188-1.png](img/1608989504-mwUFxM-188-1.png)
+
+我们的任务是求出 $g$ 数列(/离散函数)的最大值 $\max g$。用几何思路，考虑作直线与 $g$ 图像相切，设枚举了斜率为 $c(c > 0)$ 的直线，过所有点 $g_i(1\le i\le n)$ 作 $n$ 条直线，如图所示：(只画出了前五条)
+
+![188-2.png](img/1608989540-PmHiJI-188-2.png)
+
+由于 $c > 0$，所以 $y$ 截距最大的直线一定是相切的。设有斜率为 $c$ 过点 $(k,g_k)$ 的直线，不难计算得截距是 $b=g_k-kc$。回到要求的问题上，可以将截距抽象成进行了 $k$ 次买卖，净利润为 $g_k$，但每次卖出需要付手续费 $c$。
+
+下面考虑给定 $c$ 时，如何快速求出最大的截距。抽象为已知手续费 $c$，且不限交易次数，求出最大的含手续费利润 $b$。
+
+因为不限交易次数，考虑贪心，即只要能赚的钱不低于手续费就买卖一次。具体而言，维护最大利润 $sellp$，初始设为 $0$；持有一笔未卖出下的最大利润 $buyp$ 初始设为 $-p_1$。并维护取得这两个最值下的 $k$ 值为 $buycnt, sellcnt$。
+
+如果发现在上一笔交易后 $sellp$ 状态下选择买入 $p_i$ 比之前维护的 $buyp$ 更优，就买入 $p_i$ 更新 $buyp$。如果发现在当前卖出 $buyp$ 得到的 $sellp$ 比之前维护的 $sellp$ 更优就卖出 $p_i$ 更新 $sellp$。(具体参见代码)
+
+由此可以 $O(n)$ 计算出对固定的斜率 $c$ 得到的最大切线截距 $b=g_k-kc$ 及其 $k$ 值($sellcnt$)。那么设真的在 $k$ 取得 $\max g$，即 $sellp=b=g_k-kc\rightarrow g_k=sellp+kc$。 
+
+考虑到可能会有相等的情况，如图所示：
+
+![188-3.png](img/1608989616-qdGORt-188-3.png)
+
+而对答案 $\max g = b+gk$ 而言，$b$ 相等时要尽可能大的 $k$，所以在上述贪心时，在利润最大化的同时，应当再最大化交易次数。即只要不亏钱就买卖，而不是赚钱才买卖。
+
+而这道题交易次数是有限的，也就是说如果找到的 $sellcnt$ 是大于题目所要求的 $k$，是不能取的。
+
+对斜率范围 $(0,\infty)$ 而言，不难发现随着斜率的减少，取得切线的最大 $sellcnt$ 会越来越大，超过某个界限 $c'$ 后，总是会满足 $sellcnt > k$(即不符合题意)，在这之前则总是满足 $sellcnt \le k$，满足单调性。可以用这个条件来二分斜率 $c$，在 $g$ 未下降前，找到最大的 $sellcnt\le k$。比较显然的是，只要斜率 $c > 0$，随着斜率减小切线截距一定增大，故越小的斜率答案 $g$ 值一定最大。
+
+注意到斜率一定不会超过增量的最大值即 $\max p$，故二分上界取 $\max p$ 即可。而作图易得，取得同一点相切的斜率是一个范围，这个范围的边界一定是与增量折线斜率相等的，而增量相差 $1$ 下标，分母为 $1$，故折线斜率为整数，即二分只需要在整数范围内即可，不需要到实数范围。同时也易知，最小的增量一定是 $1$，即二分左边界是 $1$。
+
+特别地，如果题给的 $k$ 在 $g$ 单调递减时取得(即最高点 $k' < k,g_{k'} > g_k$)，也就是说不限次数地贪心得到的 $sellcnt < k$，那么此时也可以直接不限次数贪心求出 $\max g$，只要 $p_i > p_{i-1}$ 就可以前一天买今天卖。
+
+时间复杂度是 $O(n\log \max p)$。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+signed main()
+{
+    ll k, n;
+    cin >> n >> k;
+    vector<ll> p(n);
+    for (int i = 0; i < n; ++i)
+    {
+        cin >> p[i];
+    }
+    ll lf = 1, rf = *max_element(p.begin(), p.end());
+    ll ans = -1;
+    while (lf <= rf)
+    {
+        ll cf = (lf + rf) >> 1; // 斜率
+        ll buycnt = 0, sellcnt = 0;
+        ll buyp = -p[0], sellp = 0;
+        for (int i = 1; i < n; ++i) // 贪心
+        {
+            if (sellp - p[i] >= buyp)
+            {
+                buyp = sellp - p[i];
+                buycnt = sellcnt;
+            }
+            if (buyp + p[i] - cf >= sellp)
+            {
+                sellp = buyp + p[i] - cf;
+                sellcnt = buycnt + 1;
+            }
+        }
+        // cout << cf << ' ' << sellp << ' ' << sellcnt << '\n';
+        if (sellcnt >= k)
+        {
+            ans = sellp + k * cf; // 注意不是+sellcnt,是+k
+            lf = cf + 1;
+        }
+        else
+        {
+            rf = cf - 1;
+        }
+    }
+    if (ans == -1)
+    {
+        ans = 0;
+        for (int i = 1; i < n; ++i)
+        {
+            ans += max(p[i] - p[i - 1], 0LL);
+        }
+    }
+    cout << ans;
+    return 0;
+}
+/*
+8 3
+1 100 1 4 1 4 1 4
+*/
+```
+
+> 对于上面第三个的图的情况，设 $k$ 在红点中间，二分一定能找到该斜率，这是因为最高点前取得的任意增量对应的折线斜率都能被二分出来。考虑注释给的用例。
 
 
 
@@ -23603,6 +23731,39 @@ public:
             node = node->children[index];
         }
         node->isEnd = true;
+    }
+};
+```
+
+##### 479\.最大回文数乘积
+
+[题目](https://leetcode.cn/problems/largest-palindrome-product)
+
+从 $10^n-1$ 开始枚举回文数左半部分，设回文数为 $p$，从 $10^n-1$ 开始枚举 $x$，直到枚举到 $\lceil\sqrt p\rceil$，若 $p$ 能被 $x$ 整除，且 $\dfrac px$ 和 $x$ 都是 $n$ 位整数，则 $p$ 是答案。
+
+对长为 $2n$ 的回文数 $p$，$\lceil\sqrt p\rceil$ 必然是 $n$ 位数，从 $10^n-1$ 即 $n$ 位数上限枚举 $x$，则 $x$ 恒为 $n$ 位，且 可以讨论得知 $\dfrac px$ 也必然是 $n$ 位数。
+
+最坏情况仍然为 $O(10^{2n})$。鉴定为烂题。而且题解也没证明为什么 $2n$ 位一定有可以分解的解。
+
+```c++
+class Solution {
+public:
+    int largestPalindrome(int n) {
+        if (n == 1) {
+            return 9;
+        }
+        int upper = pow(10, n) - 1;
+        for (int left = upper;; --left) { // 枚举回文数的左半部分
+            long p = left;
+            for (int x = left; x > 0; x /= 10) {
+                p = p * 10 + x % 10; // 翻转左半部分到其自身末尾，构造回文数 p
+            }
+            for (long x = upper; x * x >= p; --x) {
+                if (p % x == 0) { // x 是 p 的因子
+                    return p % 1337;
+                }
+            }
+        }
     }
 };
 ```

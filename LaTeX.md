@@ -1447,7 +1447,25 @@ LaTeX 文章分为导言区和正文区。一篇文章中只能有一个正文�
 
 > 文档类是 `.cls`
 
+#### 长度单位
 
+1. `pt`：点，这是一个绝对长度单位。1 pt = 0.351 mm [参考](https://blog.csdn.net/robert_chen1988/article/details/52739825)
+2. `mm`：毫米。
+3. `cm`：厘米。1 厘米 (cm) 等于 28.453 点 (pt)。
+4. `in`：英寸，1英寸等于2.54厘米。
+5. `ex`：这是另一个相对长度单位，通常等于当前字体的小写字母 "x" 的高度。
+6. `pica`：等于12点。
+7. `sp`：这是一个非常小的长度，主要用于内部计算。1点等于65536 sp。
+8. `bp`：大点，1英寸有72大点。
+9. `dd`：Didot 点，主要用于欧洲的排版。1英寸有67.54 Didot 点。
+10. `cc`：Didot cicero，等于12 Didot 点。
+11. `pc`：pica，等于12点。
+
+这些单位中，`pt`、`mm`、`cm` 和 `in` 可能是最常用的。而 `em` 和 `ex` 由于是相对单位，常用于需要根据字体大小自适应的场合。
+
+**没有像素单位 `px`。**
+
+`em` 是一个相对长度单位，它的具体长度取决于当前字体的大小。在计算机排版中，`em` 的长度通常等于当前字体的点数大小。例如，对于 10pt 的字体，1em 将等于 10pt。它经常用于设置水平或垂直的空间，如缩进或行距。
 
 ### 导言区
 
@@ -1510,7 +1528,13 @@ PPT排版：
 >
 > `ctex`：在内部，`ctex` 宏包实际上依赖于 `xeCJK`（当使用 XeLaTeX 编译器时）来处理中文字符。因此，当你使用 `ctex` 时，你实际上也在使用 `xeCJK` 的功能。
 
-加粗支持：
+数学公式里中文需要 `\text`，一般需要 `amsmath` 宏包，如：
+
+```latex
+\[ \text{总分} = \cfrac {\text{你的} GPA}{\text{最高} GPA} \times 20 + \cfrac{\text{你的加分}}{\text{最高加分}} \times 80 \]
+```
+
+
 
 #### 宏包
 
@@ -1667,6 +1691,8 @@ geometry 宏包，如：
 
 #### 自定义命令
 
+无参数：
+
 ```tex
 \newcommand{\chinesedate}{%
   \number\year 年
@@ -1674,6 +1700,13 @@ geometry 宏包，如：
   \number\day 日%
 }
 \date{\chinesedate}
+```
+
+有参数：
+
+```latex
+\newcommand{\mytext}[1]{\hspace*{2em}#1\\}
+\mytext{这是一段文字}
 ```
 
 
@@ -1960,6 +1993,23 @@ geometry 宏包，如：
     \hline
 \end{tabular}
 ```
+
+> 为了使内容在表格中自动换行，可以使用 `p{width}` 列类型来指定列的宽度。当内容超过指定的宽度时，它会自动换行。
+>
+> ```latex
+> \begin{tabular}{|l|p{3.5cm}|p{3.5cm}|}
+>     \hline
+>     & \multicolumn{1}{c|}{\textbf{学硕}} & \multicolumn{1}{c|}{\textbf{专硕}} \\
+>     % multicolumn 办法让表头第一行标题居中
+>     \hline
+>     \multirow{2}{*}{\textbf{毕业要求}} & 一般是若干较高级别论文 & 一般是若干较低级别论文或专利 \\
+>     % 明知这里占两行，使用 multirow(需要宏包)垂直居中列标题
+>     \hline
+>     \multirow{2}{*}{\textbf{学制}} & \multirow{2}{*}{大部分 3 年} & 大部分 3 年，极少数 2-2.5 年 \\
+>     % 明知一行对两行可以 multirow 对齐
+>     \hline
+> \end{tabular}
+> ```
 
 使用 array 宏包时，可以进行整列修改，在参数里用前缀 `>{}` 和后缀 `<{}` 表示在头尾进行的修改。如 `\bfseries` 加粗：
 
@@ -2621,7 +2671,9 @@ signed main() /* 注释 */
 
 `par` 是分段，而 `\\` 是强制换行。前者会使得首行缩进生效，后者不会。
 
-左缩进 `\setlength{\leftskip}{大小}` 如 `10pt`。右缩进就 `\rightskip`。首行就 `\parindent`，如 `2em`。可以使用 `\indent` 开始一个段落的缩进。默认两字符。可多个 `\indent` 叠加。
+左缩进 `\setlength{\leftskip}{大小}` 如 `10pt`。右缩进就 `\rightskip`。首行就 `\parindent`，如 `2em`。可以使用 `\indent` 开始一个段落的缩进。默认两字符。可多个 `\indent` 叠加。如果 `\indent` 无效，如 PPT，可以尝试 `\hspace*{2em}`。
+
+> `\hspace` 命令用于插入水平空间。当它后面跟有 `*` 时，如 `\hspace*`，它表示在页面的开始或结束处也插入这个空间。如果不使用 `*`，那么在页面的开始或结束处的 `\hspace` 可能会被忽略。
 
 latex 会自动给长单词跨行加 `-` 连接符。
 
@@ -3092,9 +3144,15 @@ frame 里使用 `\titlepage` 生成标题页(不算第一页)，在 item 里。�
 ```
 
 - currentsection，只显示当前一节的目录结构；
-- currentsubsection，只显示当前一小节的目录结构；
+
+- currentsubsection，只显示当前一小节的目录结构；对应 `\AtBeginSubsection`
+
+  注意 `AtBeginSubsection` 不会包含 section，既要又要的还要再弄 `AtBeginSection`
+
 - hideallsubsections，目录中隐藏所有的小结；
+
 - hideothersubsections，隐藏当前节之外的所有小结；
+
 - pausesection，使目录按节逐段显示。
 
 > 跟后面的主题的页眉可能会冲突，表现为每一个 section 都多了一页
