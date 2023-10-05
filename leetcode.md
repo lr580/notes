@@ -838,6 +838,18 @@
 
   <u>爆搜</u>
 
+- 714\.买卖股票最佳时机含手续费
+
+  贪心/DP
+  
+- 309\.买卖股票最佳时期含冷冻期
+
+  DP
+
+- 480\.滑动窗口中位数
+
+  对顶堆+set / <u>对顶堆+pq</u>
+
 
 
 ## 算法
@@ -23764,6 +23776,348 @@ public:
                 }
             }
         }
+    }
+};
+```
+
+##### 714\.买卖股票最佳时机含手续费
+
+[题目](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-with-transaction-fee)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution
+{
+public:
+    int maxProfit(vector<int> &prices, int fee)
+    {
+        int n = prices.size();
+        int hold = -prices[0]; // 持有一笔未卖出的最大收益
+        int ans = 0;           // 买卖若干笔后最大收益
+        for (int i = 1; i < n; ++i)
+        {
+            if (hold <= ans - prices[i])
+            {   // 抛弃原持有，换一个更便宜的持有(7->6)
+                // ans-是考虑把历史买卖折算成负价格
+                hold = ans - prices[i];
+            }
+            if (hold + prices[i] - fee >= ans)
+            { // 卖掉当前最小持有
+                ans = hold + prices[i] - fee;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+实际上可以看成是之前版本类似题目 DP题解的简化。
+
+```c++
+class Solution {
+public:
+    int maxProfit(vector<int>& prices, int fee) {
+        int n = prices.size();
+        vector<vector<int>> dp(n, vector<int>(2));
+        dp[0][0] = 0, dp[0][1] = -prices[0];
+        for (int i = 1; i < n; ++i) {
+            dp[i][0] = max(dp[i - 1][0], dp[i - 1][1] + prices[i] - fee);
+            dp[i][1] = max(dp[i - 1][1], dp[i - 1][0] - prices[i]);
+        }
+        return dp[n - 1][0];
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    int maxProfit(vector<int>& prices, int fee) {
+        int n = prices.size();
+        int sell = 0, buy = -prices[0];
+        for (int i = 1; i < n; ++i) {
+            tie(sell, buy) = pair(max(sell, buy + prices[i] - fee), max(buy, sell - prices[i]));
+        }
+        return sell;
+    }
+};
+```
+
+##### 309\.买卖股票的最佳时机含冷冻期
+
+[题目](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-with-cooldown)
+
+我的解法：buy 是最低持有价(历史买卖折合负价格)，sel 是最高卖出总利润。可以压缩数组做到空间 O1，这里懒得实现了。
+
+```c++
+class Solution
+{
+public:
+    int maxProfit(vector<int> &prices)
+    {
+        int n = prices.size();
+        vector<int> sel(n, 0), buy(n, 0);
+        buy[0] = prices[0];
+        if (n >= 2)
+        {
+            buy[1] = min(prices[1], buy[0]);
+            sel[1] = max(0, prices[1] - buy[0]);
+        }
+        for (int i = 2; i < n; ++i)
+        {
+            buy[i] = min(buy[i - 1], -sel[i - 2] + prices[i]);
+            sel[i] = max(sel[i - 1], prices[i] - buy[i - 1]);
+        }
+        return sel[n - 1];
+    }
+};
+```
+
+题解：
+
+```c++
+class Solution {
+public:
+    int maxProfit(vector<int>& prices) {
+        if (prices.empty()) {
+            return 0;
+        }
+
+        int n = prices.size();
+        // f[i][0]: 手上持有股票的最大收益
+        // f[i][1]: 手上不持有股票，并且处于冷冻期中的累计最大收益
+        // f[i][2]: 手上不持有股票，并且不在冷冻期中的累计最大收益
+        vector<vector<int>> f(n, vector<int>(3));
+        f[0][0] = -prices[0];
+        for (int i = 1; i < n; ++i) {
+            f[i][0] = max(f[i - 1][0], f[i - 1][2] - prices[i]);
+            f[i][1] = f[i - 1][0] + prices[i];
+            f[i][2] = max(f[i - 1][1], f[i - 1][2]);
+        }
+        return max(f[n - 1][1], f[n - 1][2]);
+    }
+};
+```
+
+压一压：
+
+```c++
+class Solution {
+public:
+    int maxProfit(vector<int>& prices) {
+        if (prices.empty()) {
+            return 0;
+        }
+
+        int n = prices.size();
+        int f0 = -prices[0];
+        int f1 = 0;
+        int f2 = 0;
+        for (int i = 1; i < n; ++i) {
+            int newf0 = max(f0, f2 - prices[i]);
+            int newf1 = f0 + prices[i];
+            int newf2 = max(f1, f2);
+            f0 = newf0;
+            f1 = newf1;
+            f2 = newf2;
+        }
+
+        return max(f1, f2);
+    }
+};
+```
+
+##### 480\.滑动窗口中位数
+
+[题目](https://leetcode.cn/problems/sliding-window-median/)
+
+个人实现：使用 set(或 multiset，性能差别不大)维护。为了能够找出删哪个堆，需要加一个下标定位，并且需要用 set，可删堆没想到怎么判存在。
+
+```c++
+using node = pair<int, int>;
+struct dheap
+{
+    set<node> a, b;
+    void modify()
+    {
+        while (a.size() >= b.size() + 2)
+        {
+            auto v = a.rbegin();
+            b.insert(*v);
+            a.erase(--a.end());
+        }
+        while (a.size() < b.size())
+        {
+            auto v = b.begin();
+            a.insert(*v);
+            b.erase(b.begin());
+        }
+    }
+    void insert(node p)
+    {
+        if (a.empty())
+            a.insert(p);
+        else if (b.empty())
+            b.insert(p);
+        else if (*a.rbegin() < p)
+            b.insert(p);
+        else
+            a.insert(p);
+        modify();
+    }
+    void erase(node p)
+    {
+        if (a.find(p) != a.end())
+            a.erase(a.find(p));
+        else
+            b.erase(b.find(p));
+        modify();
+    }
+    double mid()
+    {
+        if (a.size() > b.size())
+            return (*a.rbegin()).first;
+        return 1. * (1LL * a.rbegin()->first + b.begin()->first) / 2;
+    }
+};
+class Solution
+{
+public:
+    vector<double> medianSlidingWindow(vector<int> &nums, int k)
+    {
+        int n = nums.size();
+        vector<double> ans;
+        dheap h;
+        for (int i = 0; i < k - 1; ++i)
+        {
+            h.insert({nums[i], i});
+        }
+        for (int l = 0, r = k - 1; r < n; ++l, ++r)
+        {
+            h.insert({nums[r], r});
+            ans.push_back(h.mid());
+            h.erase({nums[l], l});
+        }
+        return ans;
+    }
+};
+```
+
+题解优先级队列实现：
+
+- 两个 `pq`，一个 unmap `delayed` 记录每个元素需要删除的次数，延迟删除
+- 设置一个删堆方法 `prune`，不断取堆顶，如果堆顶在 unmap，更新并删除堆顶，直到堆顶不用删
+- 维护两个变量记录删掉延迟删除后的两堆大小，平衡堆、增删时记得维护
+- 插入时根据堆顶选择插入位置，对应维护堆大小；删除时看看堆顶大小决定减少哪个大小，从而成功维护了可删堆
+
+```c++
+class DualHeap {
+private:
+    // 大根堆，维护较小的一半元素
+    priority_queue<int> small;
+    // 小根堆，维护较大的一半元素
+    priority_queue<int, vector<int>, greater<int>> large;
+    // 哈希表，记录「延迟删除」的元素，key 为元素，value 为需要删除的次数
+    unordered_map<int, int> delayed;
+
+    int k;
+    // small 和 large 当前包含的元素个数，需要扣除被「延迟删除」的元素
+    int smallSize, largeSize;
+
+public:
+    DualHeap(int _k): k(_k), smallSize(0), largeSize(0) {}
+
+private:
+    // 不断地弹出 heap 的堆顶元素，并且更新哈希表
+    template<typename T>
+    void prune(T& heap) {
+        while (!heap.empty()) {
+            int num = heap.top();
+            if (delayed.count(num)) {
+                --delayed[num];
+                if (!delayed[num]) {
+                    delayed.erase(num);
+                }
+                heap.pop();
+            }
+            else {
+                break;
+            }
+        }
+    }
+
+    // 调整 small 和 large 中的元素个数，使得二者的元素个数满足要求
+    void makeBalance() {
+        if (smallSize > largeSize + 1) {
+            // small 比 large 元素多 2 个
+            large.push(small.top());
+            small.pop();
+            --smallSize;
+            ++largeSize;
+            // small 堆顶元素被移除，需要进行 prune
+            prune(small);
+        }
+        else if (smallSize < largeSize) {
+            // large 比 small 元素多 1 个
+            small.push(large.top());
+            large.pop();
+            ++smallSize;
+            --largeSize;
+            // large 堆顶元素被移除，需要进行 prune
+            prune(large);
+        }
+    }
+
+public:
+    void insert(int num) {
+        if (small.empty() || num <= small.top()) {
+            small.push(num);
+            ++smallSize;
+        }
+        else {
+            large.push(num);
+            ++largeSize;
+        }
+        makeBalance();
+    }
+
+    void erase(int num) {
+        ++delayed[num];
+        if (num <= small.top()) {
+            --smallSize;
+            if (num == small.top()) {
+                prune(small);
+            }
+        }
+        else {
+            --largeSize;
+            if (num == large.top()) {
+                prune(large);
+            }
+        }
+        makeBalance();
+    }
+
+    double getMedian() {
+        return k & 1 ? small.top() : ((double)small.top() + large.top()) / 2;
+    }
+};
+
+class Solution {
+public:
+    vector<double> medianSlidingWindow(vector<int>& nums, int k) {
+        DualHeap dh(k);
+        for (int i = 0; i < k; ++i) {
+            dh.insert(nums[i]);
+        }
+        vector<double> ans = {dh.getMedian()};
+        for (int i = k; i < nums.size(); ++i) {
+            dh.insert(nums[i]);
+            dh.erase(nums[i - k]);
+            ans.push_back(dh.getMedian());
+        }
+        return ans;
     }
 };
 ```
