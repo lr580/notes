@@ -1337,6 +1337,22 @@ fork的意义是把别人的仓库当前版本克隆一份到自己的仓库
 
 
 
+#### 2FA
+
+[官方指引](https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication)
+
+2FA 是 two factor authentication，提倡用户使用，见 [here](https://github.blog/2023-03-09-raising-the-bar-for-software-security-github-2fa-begins-march-13/)。在官方的 [这篇文章](https://github.blog/2022-05-04-software-security-starts-with-the-developer-securing-developer-accounts-with-2fa/)，提出使用 2FA 提高账号安全性。
+
+基于时间的一次性密码(Time-based One-time Password，简称TOTP)，由一系列 APP 生成，可以使用任意 TOTP app。
+
+按照官方指引操作即可。或参考 [here](https://blog.csdn.net/u013810234/article/details/133581026)，下载名为 authing 令牌的 TOTP app，然后用这个 app 扫 github 弹出的二维码。
+
+如果 TOTP app 不可用，需要使用恢复码，在下一步下载这下恢复码。格式为 10 个十六进制数用 `-` 隔开。可以从 [here](https://github.com/settings/auth/recovery-codes) 获取。
+
+到此为止，已经设置了 TOTP app。
+
+
+
 #### 其他
 
 empty 仓库不可以 fork
