@@ -850,6 +850,14 @@
 
   对顶堆+set / <u>对顶堆+pq</u>
 
+- 483\.最小好进制
+
+  二分+数学 / <u>数学</u>
+  
+- 488\.祖玛游戏
+
+  <u>爆搜</u>
+
 
 
 ## 算法
@@ -24121,6 +24129,344 @@ public:
     }
 };
 ```
+
+##### 483\.最小好进制
+
+[题目](https://leetcode.cn/problems/smallest-good-base/)
+
+必然有解，最坏情况为 $n=1\times (n-1)+1$ 即 $n-1$ 进制。
+
+注意到 $k$ 进制的 $1+k+k^2+\cdots+k^m=\dfrac{k^m-1}{k-1}$，即找到最小的 $k$，使得存在 $\dfrac{k^m-1}{k-1}=n$，即 $k^m=n(k-1)+1$。即 $\log_k(n(k-1)+1)$ 为整数，但该问题精度损失大，不可计算，且无法快速枚举 $k$。
+
+注意到 $n$ 的二进制长度不超过 $64$ 位，则有解的其他进制只会更短。可以考虑枚举 $m$，对已知 $n,m$，求解一元 $m$ 次方程 $k^m-nk+n-1=0$ 的解。注意到设 $f(x)=x^m-nx+n-1$，有 $f'(x)=(m-1)x^{m-1}-n$，且 $f''(x)>0$ 且 $f'(0)=-n<0$， 故 $f(x)$ 一定是单峰函数。对其求是否有整数零点即可。最小值在 $f'(x)=0$ 即 $x'=\sqrt[m-1]{\dfrac{n}{m-1}}$ 处解得，故 $k$ 的左零点如果存在，范围必然在 $[2,\lfloor x'\rfloor]$ 取得，右零点在 $[\lceil x'\rceil,n-1]$ 取得。分别二分。
+
+枚举次数为 $O(m\log n)$，其中每次枚举需要准确计算最坏高精度为 $n^m$，高精度乘法对 $p$ 位是 $O(p^2)$ 的，幂视为乘 $m$ 次，位数是 $O(m)$ 的，可以视为 $O(m^3)$ 单次计算，故总复杂度 $O(m^4\log n)$。实际可以运行通过。
+
+考虑高精度，使用 python。
+
+```python
+from math import ceil
+
+
+def f(x, n, m):
+    return x**m - n * x + n - 1
+
+
+class Solution:
+
+    def smallestGoodBase(self, n: str) -> str:
+        n = int(n)
+        ans = n - 1
+        for m in range(2, 65):
+            x0 = (n / (m - 1))**(1 / (m - 1))
+            lf, rf = 2, x0
+            while lf <= rf:
+                cf = (lf + rf) // 2
+                v = f(cf, n, m)
+                if v == 0:
+                    ans = min(ans, cf)
+                    break
+                elif v > 0:
+                    lf = cf + 1
+                else:
+                    rf = cf - 1
+            lf, rf = max(2, ceil(x0)), n - 1
+            while lf <= rf:
+                cf = (lf + rf) // 2
+                v = f(cf, n, m)
+                if v == 0:
+                    ans = min(ans, cf)
+                    break
+                elif v < 0:
+                    lf = cf + 1
+                else:
+                    rf = cf - 1
+        return str(ans)
+
+```
+
+
+
+题解：注意到 $k^m=kn-n+1 < kn$，即 $m < \log_k n$，即我观察到的 $m$ 枚举上限为 $64$ 的证明，实际上界 $60$ 而已即 $\log_210^{18}$。
+
+注意到 $n=k^0+k^1+\cdots+k^m >k^m$，且 $(k+1)^m$ 二项式展开，对系数放缩成 $1$，有 $(k+1)^m > k^0+k^1+\cdots +k^m=n$，即：$k^m <n < (k+)^m$，即 $k < \sqrt[m]n$ 且 $k>\sqrt[m]n-1$，即 $k=\lfloor\sqrt[m]n\rfloor$。
+
+可以求出 $\lfloor\sqrt[m]n\rfloor$，代回式子计算检查它是否为 $n$，如果是就是解。计算代价是对数级的。
+
+显然，$m$ 越大，$k$ 越小，所以从大到小枚举 $m$ 第一个算出来的就是答案。复杂度 $O(\log^2n)$
+
+```c++
+class Solution {
+public:
+    string smallestGoodBase(string n) {
+        long nVal = stol(n);
+        int mMax = floor(log(nVal) / log(2));
+        for (int m = mMax; m > 1; m--) {
+            int k = pow(nVal, 1.0 / m);
+            long mul = 1, sum = 1;
+            for (int i = 0; i < m; i++) {
+                mul *= k;
+                sum += mul;
+            }
+            if (sum == nVal) {
+                return to_string(k);
+            }
+        }
+        return to_string(nVal - 1);
+    }
+};
+```
+
+##### 488\.祖玛游戏
+
+[题目](https://leetcode.cn/problems/zuma-game)
+
+垃圾题，官方题解 C++ 复杂度不明了，需要剪枝/启发。
+
+不能贪心，考虑：
+
+```
+"RRWWRRBBRR WB" 
+RRWWRRBBRR -> RRWWRRBBRWR -> RRWWRRBBBRWR -> RRWWRRRWR -> RRWWWR -> RRR
+```
+
+我的未通过代码：
+
+```c++
+class Solution
+{
+    string simplify(string s)
+    {
+        bool modify = false;
+        string ss;
+        for (int i = 0, ie = s.size(); i < ie;)
+        {
+            if (i + 2 < ie && s[i] == s[i + 1] && s[i] == s[i + 2])
+            {
+                modify = true;
+                while (i + 1 < ie && s[i] == s[i + 1])
+                {
+                    ++i;
+                }
+                ++i;
+            }
+            else
+            {
+                ss += s[i++];
+            }
+        }
+        if (modify)
+        {
+            return simplify(ss);
+        }
+        return ss;
+    }
+
+    static const int ds = 5;
+    string d = "RYBGW";
+
+    bool isImpossible(string s, int *num)
+    { // astar
+        int cnt[5] = {}, ans = 0;
+        for (auto c : s)
+        {
+            for (int i = 0; i < ds; ++i)
+            {
+                cnt[i] += c == d[i];
+            }
+        }
+        for (int i = 0; i < ds; ++i)
+        {
+            if (num[i] < (3 - cnt[i] % 3) % 3)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    int toCode(int *r)
+    {
+        int sum = 0;
+        for (int i = 0; i < ds; ++i)
+        {
+            sum = sum * 10 + r[i];
+        }
+        return sum;
+    }
+
+    void fromCode(int c, int *r)
+    {
+        for (int i = ds - 1; i >= 0; --i, c /= 10)
+        {
+            r[i] = c % 10;
+        }
+    }
+
+    using state = pair<string, int>;
+    using pnode = pair<int, state>;
+    unordered_set<string> m;
+    priority_queue<pnode> q;
+
+public:
+    int findMinStep(string board, string hand)
+    {
+        int num[ds] = {};
+        for (auto c : hand)
+        {
+            for (int i = 0; i < ds; ++i)
+            {
+                num[i] += c == d[i];
+            }
+        }
+        q.push({0, {board, toCode(num)}});
+        while (!q.empty())
+        {
+            auto [cnt, pr] = q.top();
+            auto [s, c] = pr;
+            cnt = -cnt;
+            q.pop();
+            if (m.find(s) != m.end())
+            {
+                continue;
+            }
+            m.insert(s);
+
+            if (s == "")
+            {
+                return cnt;
+            }
+            int n = s.size();
+            fromCode(c, num);
+            if (isImpossible(s, num))
+            {
+                continue;
+            }
+            // cout << s << " " << cnt << " ";
+            // for (int i = 0; i < ds; ++i)
+            //     cout << d[i] << num[i] << " ";
+            // cout << '\n';
+
+            for (int i = 0; i <= n; ++i)
+            {
+                for (int j = 0; j < ds; ++j)
+                {
+                    if (num[j] == 0)
+                    {
+                        continue;
+                    }
+                    string s2 = s.substr(0, i) + d[j] + s.substr(i);
+                    string ss = simplify(s2);
+                    if (m.find(ss) != m.end())
+                    {
+                        continue;
+                    }
+
+                    --num[j];
+                    q.push({-(cnt + 1), {ss, toCode(num)}});
+                    ++num[j];
+                }
+            }
+        }
+        return -1;
+    }
+};
+```
+
+鉴于是剪枝/启发式题，直接贴代码了：
+
+```c++
+struct State {
+    string board;
+    string hand;
+    int step;
+    State(const string & board, const string & hand, int step) {
+        this->board = board;
+        this->hand = hand;
+        this->step = step;
+    }
+};
+
+class Solution {
+public:
+    string clean(const string & s) {
+        string res;
+        vector<pair<char, int>> st;
+        
+        for (auto c : s) {
+            while (!st.empty() && c != st.back().first && st.back().second >= 3) {
+                st.pop_back();
+            }
+            if (st.empty() || c != st.back().first) {
+                st.push_back({c,1});
+            } else {
+                st.back().second++;
+            }
+        }
+        if (!st.empty() && st.back().second >= 3) {
+            st.pop_back();
+        }
+        for (int i = 0; i < st.size(); ++i) {
+            for (int j = 0; j < st[i].second; ++j) {
+                res.push_back(st[i].first);
+            }
+        }
+        return res;
+    }
+
+    int findMinStep(string board, string hand) {
+        unordered_set<string> visited;
+        sort(hand.begin(), hand.end());
+
+        visited.insert(board + " " + hand);
+        queue<State> qu;
+        qu.push(State(board, hand, 0));
+        while (!qu.empty()) {
+            State curr = qu.front();
+            qu.pop();
+
+            for (int j = 0; j < curr.hand.size(); ++j) {
+                // 第 1 个剪枝条件: 当前选择的球的颜色和前一个球的颜色相同
+                if (j > 0 && curr.hand[j] == curr.hand[j - 1]) {
+                    continue;
+                }
+                for (int i = 0; i <= curr.board.size(); ++i) {
+                    // 第 2 个剪枝条件: 只在连续相同颜色的球的开头位置插入新球
+                    if (i > 0 && curr.board[i - 1] == curr.hand[j]) {
+                        continue;
+                    }
+
+                    // 第 3 个剪枝条件: 只在以下两种情况放置新球
+                    bool choose = false;
+                    //   第 1 种情况 : 当前球颜色与后面的球的颜色相同
+                    if (i < curr.board.size() && curr.board[i] == curr.hand[j]) {
+                        choose = true;
+                    }  
+                    //   第 2 种情况 : 当前后颜色相同且与当前颜色不同时候放置球
+                    if (i > 0 && i < curr.board.size() && curr.board[i - 1] == curr.board[i] && curr.board[i] != curr.hand[j]){
+                        choose = true;
+                    }
+                    if (choose) {
+                        string new_board = clean(curr.board.substr(0, i) + curr.hand[j] + curr.board.substr(i));
+                        string new_hand = curr.hand.substr(0, j) + curr.hand.substr(j + 1);
+                        if (new_board.size() == 0) {
+                            return curr.step + 1;
+                        }
+                        if (!visited.count(new_board + " " + new_hand)) {
+                            qu.push(State(new_board, new_hand, curr.step + 1));
+                            visited.insert(new_board + " " + new_hand);
+                        }
+                    }
+                }
+            }
+        }
+
+        return -1;  
+    }
+};
+```
+
+
 
 
 
