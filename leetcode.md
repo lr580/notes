@@ -857,6 +857,14 @@
 - 488\.祖玛游戏
 
   <u>爆搜</u>
+  
+- 901\.股票价格跨度
+
+  二分+线段树 / <u>单调栈</u>
+  
+- 493\.翻转对
+
+  红黑树 / <u>离散化+树状数组</u> / <u>归并排序</u>
 
 
 
@@ -24465,6 +24473,273 @@ public:
     }
 };
 ```
+
+##### 901\.股票价格跨度
+
+[题目](https://leetcode.cn/problems/online-stock-span)
+
+开一个线段树维护区间 max 值(可以动态插点，但我懒)，对每个 price，以它为右端点的区间，是否单调不降这一属性与区间长度单调，满足二分条件，故二分区间长度，线段树查询 max 值，如果不高于 price，该长度可行。时间复杂度 $O(n\log^2n)$，空间复杂度 $O(n)$。
+
+```c++
+const int top = 1e5 + 5, maxn = top << 2;
+#define mkcf int cf = (lf + rf) >> 1
+#define lfs p << 1
+#define rfs p << 1 | 1
+struct segtr
+{
+    int a[maxn];
+    void update(int p, int lf, int rf, int pos, int val)
+    {
+        if (lf == rf)
+        {
+            a[p] = val;
+            return;
+        }
+        mkcf;
+        if (pos <= cf)
+        {
+            update(lfs, lf, cf, pos, val);
+        }
+        else
+        {
+            update(rfs, cf + 1, rf, pos, val);
+        }
+        a[p] = max(a[lfs], a[rfs]);
+    }
+    int query(int p, int lf, int rf, int ql, int qr)
+    {
+        if (ql <= lf && rf <= qr)
+        {
+            return a[p];
+        }
+        int ans = 0;
+        mkcf;
+        if (ql <= cf)
+        {
+            ans = max(ans, query(lfs, lf, cf, ql, qr));
+        }
+        if (qr >= cf + 1)
+        {
+            ans = max(ans, query(rfs, cf + 1, rf, ql, qr));
+        }
+        return ans;
+    }
+};
+class StockSpanner
+{
+    segtr mx;
+    int n = 0;
+
+public:
+    StockSpanner() {}
+
+    int next(int price)
+    {
+        mx.update(1, 1, top, ++n, price);
+        int lf = 1, rf = n, ans = n;
+        //cout << price << '\n';
+        while (lf <= rf)
+        {
+            int cf = (lf + rf) >> 1;
+            //cout << cf << " " << mx.query(1, 1, top, n - cf + 1, n) << '\n';
+            if (mx.query(1, 1, top, n - cf + 1, n) <= price)
+            {
+                //cout << "good\n";
+                ans = cf;
+                lf = cf + 1; 
+            }
+            else
+            {
+                rf = cf - 1;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+单调栈：
+
+- 设元素表示一段单调不减的区间的右端点及区间长度，维护按右端点值严格单调递减的栈
+- 对每个新插入 price，如果它不引起弹栈，那么它独立构成长为 $1$ 的单调不减区间
+- 否则，每次弹栈它与弹栈区间长度合并，右端点仍是它
+
+```c++
+class StockSpanner {
+    Stack<Integer> prices, weights;
+
+    public StockSpanner() {
+        prices = new Stack();
+        weights = new Stack();
+    }
+
+    public int next(int price) {
+        int w = 1;
+        while (!prices.isEmpty() && prices.peek() <= price) {
+            prices.pop();
+            w += weights.pop();
+        }
+
+        prices.push(price);
+        weights.push(w);
+        return w;
+    }
+}
+```
+
+##### 493\.翻转对
+
+[题目](https://leetcode.cn/problems/reverse-pairs)
+
+`pb_ds` 库支持查询某个元素的排名的 set。逆序遍历 `nums`，将 $2nums_i$ 插入到该集合里，在插入前，查询该集合里最大的小于 $nums_i$ 的元素，它的排名(比它小的数的数目+它本身)就是对当前 $i$ 的所有翻转对的数量。
+
+考虑元素可能重复，set 会去重，所以用 $(nums_i,i)$ 二元组映射成 $10^5nums_i+i$ 构造不重、且仍满足大小比较的元素。
+
+set 是红黑树实现，复杂度为 $O(n\log n)$。
+
+```c++
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using ll = long long;
+
+class Solution
+{
+    ll toNode(int v, int i)
+    { // avoid repeat
+        return 1LL * v * 100000 + i;
+    }
+
+public:
+    int reversePairs(vector<int> &nums)
+    {
+        __gnu_pbds::tree<ll, __gnu_pbds::null_type, less<ll>, __gnu_pbds::rb_tree_tag, __gnu_pbds::tree_order_statistics_node_update> t;
+        int n = nums.size(), ans = 0;
+        for (int i = n - 1; i >= 0; --i)
+        {
+            auto obj = toNode(nums[i], 0);
+            int rnk = t.order_of_key(obj);
+            ans += rnk;
+            t.insert(toNode(nums[i] * 2, i));
+        }
+        return ans;
+    }
+};
+```
+
+解法一：离散化，然后计数存树状数组，查询取值在 $(2nums_i,+\infty)$ 的数目。
+
+```c++
+class BIT {
+private:
+    vector<int> tree;
+    int n;
+
+public:
+    BIT(int _n) : n(_n), tree(_n + 1) {}
+
+    static constexpr int lowbit(int x) {
+        return x & (-x);
+    }
+
+    void update(int x, int d) {
+        while (x <= n) {
+            tree[x] += d;
+            x += lowbit(x);
+        }
+    }
+
+    int query(int x) const {
+        int ans = 0;
+        while (x) {
+            ans += tree[x];
+            x -= lowbit(x);
+        }
+        return ans;
+    }
+};
+
+class Solution {
+public:
+    int reversePairs(vector<int>& nums) {
+        set<long long> allNumbers;
+        for (int x : nums) {
+            allNumbers.insert(x);
+            allNumbers.insert((long long)x * 2);
+        }
+        // 利用哈希表进行离散化
+        unordered_map<long long, int> values;
+        int idx = 0;
+        for (long long x : allNumbers) {
+            values[x] = ++idx;
+        }
+
+        int ret = 0;
+        BIT bit(values.size());
+        for (int i = 0; i < nums.size(); i++) {
+            int left = values[(long long)nums[i] * 2], right = values.size();
+            ret += bit.query(right) - bit.query(left);
+            bit.update(values[nums[i]], 1);
+        }
+        return ret;
+    }
+};
+```
+
+解法二：归并排序。对左区间的 $i$，双指针找到第一个满足 $nums_i\le 2nums_j$ 的 $j$，它之前的所有对都可以计数。
+
+```c++
+class Solution {
+public:
+    int reversePairsRecursive(vector<int>& nums, int left, int right) {
+        if (left == right) {
+            return 0;
+        } else {
+            int mid = (left + right) / 2;
+            int n1 = reversePairsRecursive(nums, left, mid);
+            int n2 = reversePairsRecursive(nums, mid + 1, right);
+            int ret = n1 + n2;
+
+            // 首先统计下标对的数量
+            int i = left;
+            int j = mid + 1;
+            while (i <= mid) {
+                while (j <= right && (long long)nums[i] > 2 * (long long)nums[j]) j++;
+                ret += (j - mid - 1);
+                i++;
+            }
+
+            // 随后合并两个排序数组
+            vector<int> sorted(right - left + 1);
+            int p1 = left, p2 = mid + 1;
+            int p = 0;
+            while (p1 <= mid || p2 <= right) {
+                if (p1 > mid) {
+                    sorted[p++] = nums[p2++];
+                } else if (p2 > right) {
+                    sorted[p++] = nums[p1++];
+                } else {
+                    if (nums[p1] < nums[p2]) {
+                        sorted[p++] = nums[p1++];
+                    } else {
+                        sorted[p++] = nums[p2++];
+                    }
+                }
+            }
+            for (int i = 0; i < sorted.size(); i++) {
+                nums[left + i] = sorted[i];
+            }
+            return ret;
+        }
+    }
+
+    int reversePairs(vector<int>& nums) {
+        if (nums.size() == 0) return 0;
+        return reversePairsRecursive(nums, 0, nums.size() - 1);
+    }
+};
+```
+
+
 
 
 

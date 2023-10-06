@@ -1349,7 +1349,7 @@ fork的意义是把别人的仓库当前版本克隆一份到自己的仓库
 
 如果 TOTP app 不可用，需要使用恢复码，在下一步下载这下恢复码。格式为 10 个十六进制数用 `-` 隔开。可以从 [here](https://github.com/settings/auth/recovery-codes) 获取。
 
-到此为止，已经设置了 TOTP app。
+到此为止，已经设置了 TOTP app。测试可以正常 commit。
 
 
 
