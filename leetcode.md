@@ -865,6 +865,10 @@
 - 493\.翻转对
 
   红黑树 / <u>离散化+树状数组</u> / <u>归并排序</u>
+  
+- 502\.IPO
+
+  贪心+STL
 
 
 
@@ -24739,7 +24743,84 @@ public:
 };
 ```
 
+##### 502\.IPO
 
+[题目](https://leetcode.cn/problems/ipo)
+
+每次贪心选利润最大的，然后更新能到达的利润最大的
+
+```c++
+class Solution
+{
+    using pr = pair<int, int>;
+
+public:
+    int findMaximizedCapital(int k, int w, vector<int> &profits, vector<int> &capital)
+    {
+        int n = profits.size();
+        vector<pr> a;
+        for (int i = 0; i < n; ++i)
+        {
+            a.push_back({capital[i], profits[i]});
+        }
+        sort(a.begin(), a.end());
+        int ai = 0;
+        multiset<int> avail;
+        auto updateAvail = [&]()
+        {
+            while (ai < n && a[ai].first <= w)
+            {
+                avail.insert(-a[ai].second);
+                ++ai;
+            }
+        };
+        updateAvail();
+        for (; avail.size() && k; --k)
+        {
+            auto p = avail.begin();
+            w -= *p;
+            avail.erase(avail.begin());
+            updateAvail();
+        }
+        return w;
+    }
+};
+```
+
+题解：pq
+
+```c++
+typedef pair<int,int> pii;
+
+class Solution {
+public:
+    int findMaximizedCapital(int k, int w, vector<int>& profits, vector<int>& capital) {
+        int n = profits.size();
+        int curr = 0;
+        priority_queue<int, vector<int>, less<int>> pq;
+        vector<pii> arr;
+
+        for (int i = 0; i < n; ++i) {
+            arr.push_back({capital[i], profits[i]});
+        }
+        sort(arr.begin(), arr.end());
+        for (int i = 0; i < k; ++i) {
+            while (curr < n && arr[curr].first <= w) {
+                pq.push(arr[curr].second);
+                curr++;
+            }
+            if (!pq.empty()) {
+                w += pq.top();
+                pq.pop();
+            } else {
+                break;
+            }
+        }
+
+        return w;
+    }
+};
+```
 
 
 
