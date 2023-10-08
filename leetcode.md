@@ -869,6 +869,14 @@
 - 502\.IPO
 
   贪心+STL
+  
+- 514\.自由之路
+
+  DP
+  
+- 2578\.最小和分割
+
+  <u>贪心</u> / 爆搜
 
 
 
@@ -24824,10 +24832,157 @@ public:
 
 
 
+##### 514\.自由之路
+
+[题目](https://leetcode.cn/problems/freedom-trail)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+const int inf = 1e9;
+class Solution
+{
+public:
+    int findRotateSteps(string ring, string key)
+    {
+        int m = ring.size(), n = key.size();
+        auto dist = [&](int i, int j)
+        {
+            if (i > j)
+            {
+                swap(i, j);
+            }
+            return min(j - i, m - j + i);
+        };
+        key = " " + key;
+        // dp[i][j] already finish top i chars, at position j
+        vector<vector<int>> dp(n + 1, vector<int>(m + 1, inf));
+        dp[0][0] = 0;
+        for (int i = 1; i <= n; ++i)
+        {
+            for (int j = 0; j < m; ++j)
+            {
+                if (dp[i - 1][j] == inf)
+                {
+                    continue;
+                }
+                for (int k = 0; k < m; ++k)
+                {
+                    if (key[i] != ring[k])
+                    {
+                        continue;
+                    }
+                    int v = 1 + dist(j, k) + dp[i - 1][j];
+                    dp[i][k] = min(dp[i][k], v);
+                }
+            }
+        }
+        int ans = inf;
+        for (int i = 0; i < m; ++i)
+        {
+            ans = min(ans, dp[n][i]);
+        }
+        return ans;
+    }
+};
+```
+
+题解实现：
+
+```c++
+class Solution {
+public:
+    int findRotateSteps(string ring, string key) {
+        int n = ring.size(), m = key.size();
+        vector<int> pos[26];
+        for (int i = 0; i < n; ++i) {
+            pos[ring[i] - 'a'].push_back(i);
+        }
+        vector<vector<int>> dp(m, vector<int>(n, 0x3f3f3f3f));
+        for (auto& i: pos[key[0] - 'a']) {
+            dp[0][i] = min(i, n - i) + 1;
+        }
+        for (int i = 1; i < m; ++i) {
+            for (auto& j: pos[key[i] - 'a']) {
+                for (auto& k: pos[key[i - 1] - 'a']) {
+                    dp[i][j] = min(dp[i][j], dp[i - 1][k] + min(abs(j - k), n - abs(j - k)) + 1);
+                }
+            }
+        }
+        return *min_element(dp[m - 1].begin(), dp[m - 1].end());
+    }
+};
+```
+
+##### 2578\.最小和分割
+
+[题目](https://leetcode.cn/problems/split-with-minimum-sum)
+
+二进制枚举：
+
+```c++
+class Solution
+{
+    int get(string s)
+    {
+        vector<int> v;
+        for (auto c : s)
+            v.emplace_back(c - '0');
+        sort(v.begin(), v.end());
+        int res = 0;
+        for (auto x : v)
+            res = res * 10 + x;
+        return res;
+    }
+
+public:
+    int splitNum(int num)
+    {
+        string a = to_string(num);
+        int n = a.size(), ans = num;
+        for (int i = 0; i < (1 << n); ++i)
+        {
+            string l, r;
+            for (int j = 0; j < n; ++j)
+            {
+                if ((i >> j) & 1)
+                    l += a[j];
+                else
+                    r += a[j];
+            }
+            ans = min(ans, get(l) + get(r));
+        }
+        return ans;
+    }
+};
+```
+
+题解：对字符串排序，奇数位放左边，偶数位放右边
+
+```python
+class Solution:
+    def splitNum(self, num: int) -> int:
+        s = sorted(str(num))
+        return int(''.join(s[::2])) + int(''.join(s[1::2]))
+```
+
+```c++
+class Solution {
+public:
+    int splitNum(int num) {
+        string s = to_string(num);
+        sort(s.begin(), s.end());
+        int a[2]{};
+        for (int i = 0; i < s.length(); i++)
+            a[i % 2] = a[i % 2] * 10 + s[i] - '0'; // 按照奇偶下标分组
+        return a[0] + a[1];
+    }
+};
+```
+
 
 
 > ### 力扣比赛
->
 
 #### 周赛327
 
