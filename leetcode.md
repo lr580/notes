@@ -877,6 +877,10 @@
 - 2578\.最小和分割
 
   <u>贪心</u> / 爆搜
+  
+- 2731\.移动机器人
+
+  思维 + 前缀和/<u>组合数学</u>
 
 
 
@@ -24976,6 +24980,92 @@ public:
         for (int i = 0; i < s.length(); i++)
             a[i % 2] = a[i % 2] * 10 + s[i] - '0'; // 按照奇偶下标分组
         return a[0] + a[1];
+    }
+};
+```
+
+##### 2731\.移动机器人
+
+[题目](https://leetcode.cn/problems/movement-of-robots)
+
+碰撞可以忽略，等价于相互交换。之后排序并用前缀和简化计算即可。
+
+```c++
+using ll = long long;
+const ll mod = 1e9 + 7;
+class Solution
+{
+public:
+    int sumDistance(vector<int> &nums, string s, int d)
+    {
+        int n = nums.size();
+        for (int i = 0; i < n; ++i)
+        {
+            nums[i] += (s[i] == 'L' ? -1 : 1) * d;
+        }
+        sort(nums.begin(), nums.end());
+        ll ans = 0, sum = 0;
+        for (ll i = 0; i < n; ++i)
+        {
+            ans += i * nums[i] - sum;
+            ans %= mod, ans += mod, ans %= mod;
+            sum += nums[i];
+        }
+        return ans % mod;
+    }
+};
+```
+
+另一种计数思路：乘法原理，对每一段距离 $d_i-d_{i-1}$，走过这段距离的区间的左范围是 $[0,i-1]$ 长为 $i$，右范围是 $[i,n-1]$ 长为 $n-i$，乘法原理得贡献为 $\sum _{i=1}^n i(n-i)(d_i-d_{i-1})$。
+
+```c++
+class Solution {
+public:
+    static constexpr int mod = 1e9 + 7;
+    int sumDistance(vector<int>& nums, string s, int d) {
+        int n = nums.size();
+        vector<long long> pos(n);
+        for (int i = 0; i < n; i++) {
+            if (s[i] == 'L') {
+                pos[i] = (long long) nums[i] - d;
+            } else {
+                pos[i] = (long long) nums[i] + d;
+            }
+        }
+        sort(pos.begin(), pos.end());
+        long long res = 0;
+        for (int i = 1; i < n; i++) {
+            res += 1ll * (pos[i] - pos[i - 1]) * i % mod * (n - i) % mod;
+            res %= mod;
+        }
+        return res;
+    }
+};
+```
+
+继续化简：
+$$
+\begin{align}
+&\sum _{i=1}^n i(n-i)(d_i-d_{i-1})\\
+=&\sum _{i=1}^n i(n-i)d_i - \sum_{i=0}^{n-1}(i+1)(n-(i+1))d_i\\
+=&\sum _{i=0}^n i(n-i)d_i - \sum_{i=0}^{n}(i+1)(n-(i+1))d_i\\
+=&\sum_{i=0}^n(2i+1-n)d_i
+\end{align}
+$$
+
+```c++
+class Solution {
+public:
+    int sumDistance(const vector<int>& nums, string s, int d) {
+        const int n = nums.size();
+        vector<int> pos(n);
+        for (int i = 0;i < n;++i)
+            pos[i] = nums[i] + d * (1 - 2 * (s[i] == 'L'));
+        ranges::sort(pos);
+        __int128 ans = 0;
+        for (int i = 0;i < n;++i)
+            ans += 1ll * (2 * i - n + 1) * pos[i];
+        return ans % 1000000007;
     }
 };
 ```
