@@ -881,6 +881,22 @@
 - 2731\.移动机器人
 
   思维 + 前缀和/<u>组合数学</u>
+  
+- 571\.超级洗衣机
+
+  **贪心**
+  
+- 546\.移除盒子
+
+  **DP**
+  
+- 786\.第k个最小的素数分数
+
+  排序 / <u>堆</u> / <u>二分+双指针</u>
+  
+- 552\.学生出勤记录II
+
+  DP / <u>矩阵快速幂</u>
 
 
 
@@ -25066,6 +25082,427 @@ public:
         for (int i = 0;i < n;++i)
             ans += 1ll * (2 * i - n + 1) * pos[i];
         return ans % 1000000007;
+    }
+};
+```
+
+##### 571\.超级洗衣机
+
+[题目](https://leetcode.cn/problems/super-washing-machines/)
+
+如果 $n$ 不被 $\sum$ 整除无解。否则，设 $a=a-\overline a$。
+
+设当前前缀和 $\sum a$，含义为，在之前结果已经操作完的情况下，新增 $a_i$ 这一位达到平衡需要的次数。即：
+
+- 忽略前面的移动，前面的洗衣机都移动完后，剩下 $\sum a$ 次需求(看符号入出)。新增 $a_i$ 后，得到的新 $\sum a$ 就是这一位给之前的 $\sum a$ 残余进行的移动。但是 $a_i$ 本身要走到平衡，最好情况也要耗费 $a_i$ 次，不然不可能得到最终结果，所以当前位的移动次数是 $\max(a_i,|\sum a_i|)$。负 $a_i$ 不用，即不加绝对值，是因为负的可以被两边给，实际上最坏是 $\lceil\dfrac{a_i}2\rceil$。
+
+```c++
+class Solution {
+    public int findMinMoves(int[] machines) {
+        // 先求出总和，然后判断是否能均分
+        int sum = 0;
+        int len = machines.length;
+        for (int i = 0; i < len; i++) {
+            sum += machines[i];
+        }
+        // 不能均分则返回 -1
+        if (sum%len != 0) {
+            return -1;
+        }
+
+        // res：最终结果，balance：当前位置到达平衡所需要移动的次数，avg：平均值
+        int res = 0, balance = 0, avg = sum / len;
+        for (int i = 0; i < len; i++) {
+            // 在前面位全部到达平均的前提下，当前位置达到平衡所需要切换的次数
+            balance += machines[i] - avg;
+            // 选出变化值最大的一次
+            // 仍要考虑machines[i]-avg是因为当前洗衣机可能衣服很多，是一个向两边输出衣服的角色
+            // 那么这时最大变化就是machines[i]-avg了
+            res = Math.max(res, Math.max(machines[i] - avg, Math.abs(balance)));
+        }
+        return res;
+    }
+}
+```
+
+##### 546\.移除盒子
+
+[题目](https://leetcode.cn/problems/remove-boxes)
+
+设 $f_{l,r,k}$ 表示移除 $[l,r]$ 内的元素，加上该区间右边等于 $a_r$ 的 $k$ 个元素的最大积分，即：假设 $r$ 往后的所有不等于 $a_r$ 的元素都被移除，$a_r$ 与后续所有相等 $k$ 个 $a_r$ 相连。转移方程为：
+$$
+f(l,r,k)=\max\begin{cases}
+f(l,r-1,0)+(k+1)^2\\
+\max_{i=l}^{r-1}(f(l,i,k+1)+f(i+1,r-1,0)),  a_i=a_r
+\end{cases}
+$$
+即，先把 $a_r$ 删了，再处理前边的。或者，如果 $a_i=a_r$，将 $[i+1,r-1]$ 这一段删了，然后变成 $f(l,i,k+1)$ 子问题。
+
+所求为 $f(0,n-1,0)$，记忆化搜索 DP 即可。复杂度为 $O(n^4)$。
+
+```c++
+class Solution {
+public:
+    int dp[100][100][100];
+
+    int removeBoxes(vector<int>& boxes) {
+        memset(dp, 0, sizeof dp);
+        return calculatePoints(boxes, 0, boxes.size() - 1, 0);
+    }
+
+    int calculatePoints(vector<int>& boxes, int l, int r, int k) {
+        if (l > r) {
+            return 0;
+        }
+        if (dp[l][r][k] == 0) {
+            dp[l][r][k] = calculatePoints(boxes, l, r - 1, 0) + (k + 1) * (k + 1);
+            for (int i = l; i < r; i++) {
+                if (boxes[i] == boxes[r]) {
+                    dp[l][r][k] = max(dp[l][r][k], calculatePoints(boxes, l, i, k + 1) + calculatePoints(boxes, i + 1, r - 1, 0));
+                }
+            }
+        }
+        return dp[l][r][k];
+    }
+};
+```
+
+一种常数优化：
+
+```c++
+class Solution {
+public:
+    int dp[100][100][100];
+
+    int removeBoxes(vector<int>& boxes) {
+        memset(dp, 0, sizeof dp);
+        return calculatePoints(boxes, 0, boxes.size() - 1, 0);
+    }
+
+    int calculatePoints(vector<int>& boxes, int l, int r, int k) {
+        if (l > r) {
+            return 0;
+        }
+        if (dp[l][r][k] == 0) {
+            int r1 = r, k1 = k;
+            while (r1 > l && boxes[r1] == boxes[r1 - 1]) {
+                r1--;
+                k1++;
+            }
+            dp[l][r][k] = calculatePoints(boxes, l, r1 - 1, 0) + (k1 + 1) * (k1 + 1);
+            for (int i = l; i < r1; i++) {
+                if (boxes[i] == boxes[r1]) {
+                    dp[l][r][k] = max(dp[l][r][k], calculatePoints(boxes, l, i, k1 + 1) + calculatePoints(boxes, i + 1, r1 - 1, 0));
+                }
+            }
+        }
+        return dp[l][r][k];
+    }
+};
+```
+
+##### 786\.第k个最小的素数分数
+
+[题目](https://leetcode.cn/problems/k-th-smallest-prime-fraction)
+
+显然可以暴力，$O(n^2\log n)$：
+
+```c++
+class Solution {
+public:
+    vector<int> kthSmallestPrimeFraction(vector<int>& arr, int k) {
+        int n = arr.size();
+        vector<pair<int, int>> frac;
+        for (int i = 0; i < n; ++i) {
+            for (int j = i + 1; j < n; ++j) {
+                frac.emplace_back(arr[i], arr[j]);
+            }
+        }
+        sort(frac.begin(), frac.end(), [&](const auto& x, const auto& y) {
+            return x.first * y.second < x.second * y.first;
+        });
+        return {frac[k - 1].first, frac[k - 1].second};
+    }
+};
+```
+
+可以优先队列+生成器思路，$O(k\log n)$，但最坏 $k=n^2$：
+
+```c++
+class Solution {
+public:
+    vector<int> kthSmallestPrimeFraction(vector<int>& arr, int k) {
+        int n = arr.size();
+        auto cmp = [&](const pair<int, int>& x, const pair<int, int>& y) {
+            return arr[x.first] * arr[y.second] > arr[x.second] * arr[y.first];
+        };
+        priority_queue<pair<int, int>, vector<pair<int, int>>, decltype(cmp)> q(cmp);
+        for (int j = 1; j < n; ++j) {
+            q.emplace(0, j);
+        }
+        for (int _ = 1; _ < k; ++_) {
+            auto [i, j] = q.top();
+            q.pop();
+            if (i + 1 < j) {
+                q.emplace(i + 1, j);
+            }
+        }
+        return {arr[q.top().first], arr[q.top().second]};
+    }
+};
+```
+
+二分实数 $a$，检查有几个分数小于它，直到恰有 $k$ 个小于。
+
+双指针，枚举分母，指针移动分子，找到对当前分母小于 $a$ 的最大分子。并记录找到的最大分数，即为第 $k$ 小。
+
+理论二分次数是两分数的差值，设 $m=\max a$，则 $\dfrac{a_i}{a_j}-\dfrac{a_k}{a_l} =\dfrac{a_ia_l-a_ja_k}{a_ja_l} >\dfrac1{a_ja_l}>\dfrac1{m^2}$，所以二分下限数量级是 $\log m^2$ 的。即复杂度为 $O(n\log m)$。
+
+```c++
+class Solution {
+public:
+    vector<int> kthSmallestPrimeFraction(vector<int>& arr, int k) {
+        int n = arr.size();
+        double left = 0.0, right = 1.0;
+        while (true) {
+            double mid = (left + right) / 2;
+            int i = -1, count = 0;
+            // 记录最大的分数
+            int x = 0, y = 1;
+            
+            for (int j = 1; j < n; ++j) {
+                while ((double)arr[i + 1] / arr[j] < mid) {
+                    ++i;
+                    if (arr[i] * y > arr[j] * x) {
+                        x = arr[i];
+                        y = arr[j];
+                    }
+                }
+                count += i + 1;
+            }
+
+            if (count == k) {
+                return {x, y};
+            }
+            if (count < k) {
+                left = mid;
+            }
+            else {
+                right = mid;
+            }
+        }
+    }
+};
+```
+
+##### 552\.学生出勤记录II
+
+[题目](https://leetcode.cn/problems/student-attendance-record-ii)
+
+设 $dp_{i,j,k,l}$ 表示只考虑前 $i$ 个字符，第 $i$ 个字符为 $j$，第 $i-1$ 个字符为 $k$，一共有 $l$ 个 $A$ 的答案数。初始枚举所有 $i=2$ 有效情况并转移即可。
+
+时间复杂度为 $O(3^3\cdot 2\cdot n)$，空间复杂度为 $O(3^2\cdot2\cdot n)$。
+
+```c++
+using ll = long long;
+const ll mod = 1e9 + 7;
+const string S = "ALP";
+class Solution
+{
+    static const ll A = 0, L = 1, P = 2;
+    int toId(int j, int k, int l)
+    { // now char, last char, num of A
+        return j + k * 3 + l * 3 * 3;
+    }
+    void fromId(int id, int &j, int &k, int &l)
+    {
+        j = id % 3, k = id / 3 % 3, l = id / 9 % 3;
+    }
+
+public:
+    int checkRecord(int n)
+    {
+        if (n <= 2)
+        {
+            return n == 1 ? 3 : 8;
+        }
+        vector<vector<ll>> dp(n + 1, vector<ll>(3 * 3 * 2, 0));
+        dp[2][toId(A, P, 1)] = 1;
+        dp[2][toId(P, A, 1)] = 1;
+        dp[2][toId(L, P, 0)] = 1;
+        dp[2][toId(P, L, 0)] = 1;
+        dp[2][toId(A, L, 1)] = 1;
+        dp[2][toId(L, A, 1)] = 1;
+        dp[2][toId(P, P, 0)] = 1;
+        dp[2][toId(L, L, 0)] = 1;
+        for (int i = 3; i <= n; ++i)
+        {
+            // now is A
+            for (int j = L; j <= P; ++j)
+            {
+                for (int k = L; k <= P; ++k)
+                {
+                    (dp[i][toId(A, j, 1)] += dp[i - 1][toId(j, k, 0)]) %= mod;
+                }
+            }
+
+            // now is L
+            for (int j = A; j <= P; ++j)
+            {
+                for (int k = A; k <= P; ++k)
+                {
+                    if (j == L && k == L)
+                    {
+                        continue;
+                    }
+                    for (int l = 0; l <= 1; ++l)
+                    {
+                        (dp[i][toId(L, j, l)] += dp[i - 1][toId(j, k, l)]) %= mod;
+                    }
+                }
+            }
+
+            for (int j = A; j <= P; ++j)
+            {
+                for (int k = A; k <= P; ++k)
+                {
+                    for (int l = 0; l <= 1; ++l)
+                    {
+                        (dp[i][toId(P, j, l)] += dp[i - 1][toId(j, k, l)]) %= mod;
+                    }
+                }
+            }
+        }
+        ll ans = 0;
+        for (int i = 0; i < 3 * 3 * 2; ++i)
+        {
+            ans += dp[n][i];
+        }
+        return ans % mod;
+    }
+};
+```
+
+更优的状态设计：考虑将 $j,k$ 简化为当前位置往前连续的 $j$ 的数量：
+
+```c++
+class Solution {
+public:
+    static constexpr int MOD = 1'000'000'007;
+
+    int checkRecord(int n) {
+        vector<vector<vector<int>>> dp(n + 1, vector<vector<int>>(2, vector<int>(3)));  // 长度，A 的数量，结尾连续 L 的数量
+        dp[0][0][0] = 1;
+        for (int i = 1; i <= n; i++) {
+            // 以 P 结尾的数量
+            for (int j = 0; j <= 1; j++) {
+                for (int k = 0; k <= 2; k++) {
+                    dp[i][j][0] = (dp[i][j][0] + dp[i - 1][j][k]) % MOD;
+                }
+            }
+            // 以 A 结尾的数量
+            for (int k = 0; k <= 2; k++) {
+                dp[i][1][0] = (dp[i][1][0] + dp[i - 1][0][k]) % MOD;
+            }
+            // 以 L 结尾的数量
+            for (int j = 0; j <= 1; j++) {
+                for (int k = 1; k <= 2; k++) {
+                    dp[i][j][k] = (dp[i][j][k] + dp[i - 1][j][k - 1]) % MOD;
+                }
+            }
+        }
+        int sum = 0;
+        for (int j = 0; j <= 1; j++) {
+            for (int k = 0; k <= 2; k++) {
+                sum = (sum + dp[n][j][k]) % MOD;
+            }
+        }
+        return sum;
+    }
+};
+```
+
+显然可以滚动：
+
+```c++
+class Solution {
+public:
+    static constexpr int MOD = 1'000'000'007;
+
+    int checkRecord(int n) {
+        int dp[2][3];  // A 的数量，结尾连续 L 的数量
+        memset(dp, 0, sizeof(dp));
+        dp[0][0] = 1;
+        for (int i = 1; i <= n; i++) {
+            int dpNew[2][3];  // A 的数量，结尾连续 L 的数量
+            memset(dpNew, 0, sizeof(dpNew));
+            // 以 P 结尾的数量
+            for (int j = 0; j <= 1; j++) {
+                for (int k = 0; k <= 2; k++) {
+                    dpNew[j][0] = (dpNew[j][0] + dp[j][k]) % MOD;
+                }
+            }
+            // 以 A 结尾的数量
+            for (int k = 0; k <= 2; k++) {
+                dpNew[1][0] = (dpNew[1][0] + dp[0][k]) % MOD;
+            }
+            // 以 L 结尾的数量
+            for (int j = 0; j <= 1; j++) {
+                for (int k = 1; k <= 2; k++) {
+                    dpNew[j][k] = (dpNew[j][k] + dp[j][k - 1]) % MOD;
+                }
+            }
+            memcpy(dp, dpNew, sizeof(dp));
+        }
+        int sum = 0;
+        for (int j = 0; j <= 1; j++) {
+            for (int k = 0; k <= 2; k++) {
+                sum = (sum + dp[j][k]) % MOD;
+            }
+        }
+        return sum;
+    }
+};
+```
+
+矩阵快速幂加速 DP 递推：对上述状态 $j,k$ 压缩为 $3j+k$，得到复杂度为 $O(6^3\log n)$ 的解法。
+
+```c++
+class Solution {
+public:
+    static constexpr int MOD = 1'000'000'007;
+
+    vector<vector<long>> pow(vector<vector<long>> mat, int n) {
+        vector<vector<long>> ret = {{1, 0, 0, 0, 0, 0}};
+        while (n > 0) {
+            if ((n & 1) == 1) {
+                ret = multiply(ret, mat);
+            }
+            n >>= 1;
+            mat = multiply(mat, mat);
+        }
+        return ret;
+    }
+
+    vector<vector<long>> multiply(vector<vector<long>> a, vector<vector<long>> b) {
+        int rows = a.size(), columns = b[0].size(), temp = b.size();
+        vector<vector<long>> c(rows, vector<long>(columns));
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < columns; j++) {
+                for (int k = 0; k < temp; k++) {
+                    c[i][j] += a[i][k] * b[k][j];
+                    c[i][j] %= MOD;
+                }
+            }
+        }
+        return c;
+    }
+
+    int checkRecord(int n) {
+        vector<vector<long>> mat = {{1, 1, 0, 1, 0, 0}, {1, 0, 1, 1, 0, 0}, {1, 0, 0, 1, 0, 0}, {0, 0, 0, 1, 1, 0}, {0, 0, 0, 1, 0, 1}, {0, 0, 0, 1, 0, 0}};
+        vector<vector<long>> res = pow(mat, n);
+        long sum = accumulate(res[0].begin(), res[0].end(), 0ll);
+        return (int)(sum % MOD);
     }
 };
 ```

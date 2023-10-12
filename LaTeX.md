@@ -2773,6 +2773,10 @@ font awesome [参考](https://blog.csdn.net/zzq060143/article/details/89380160) 
 - `\hfill` 当前行若干个 fill 里平均分配空白，直到填满
 - `\phantom{1cm}`
 
+##### 作者贡献符号
+
+一作 `\dag`，二作 `\ddag`，其他 $\S$，通讯作者 $\ast$。全都是上标，如 $lr580^*$
+
 ### 数学公式
 
 ```tex
