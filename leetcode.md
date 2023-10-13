@@ -897,6 +897,14 @@
 - 552\.学生出勤记录II
 
   DP / <u>矩阵快速幂</u>
+  
+- 1488\.避免洪水泛滥
+
+  贪心+STL
+  
+- 564\.寻找最近的回文数
+
+  思维/贪心+小模拟
 
 
 
@@ -25506,6 +25514,193 @@ public:
     }
 };
 ```
+
+##### 1488\.避免洪水泛滥
+
+[题目](https://leetcode.cn/problems/avoid-flood-in-the-city)
+
+每次将要发洪水时，找到离上次发洪水最早(而不是最晚)不下雨可用的一天，这天用来把该湖抽了
+
+选最早而不是最晚的依据是，考虑如 `[1,0,2,3,0,1,2]`，越晚越有可能发更多洪水，则后面有空的天应该留给更晚的洪水。
+
+```c++
+class Solution
+{
+public:
+    vector<int> avoidFlood(vector<int> &rains)
+    {
+        int n = rains.size();
+        vector<int> ans(n, -1);
+        set<int> q;      // days to pump
+        map<int, int> s; // latest rained day
+        for (int i = 0; i < n; ++i)
+        {
+            if (rains[i] == 0)
+            {
+                q.insert(i);
+                continue;
+            }
+            if (s.find(rains[i]) != s.end())
+            {
+                auto it = q.upper_bound(s[rains[i]]);
+                if (it == q.end())
+                {
+                    return {};
+                }
+                ans[*it] = rains[i];
+                q.erase(it);
+            }
+            s[rains[i]] = i;
+        }
+        for (auto v : q)
+        {
+            ans[v] = 580;
+        }
+        return ans;
+    }
+};
+/*
+[1,2,3,0,0,4,0,4,2,3]
+[1,0,2,3,0,1,2]
+*/
+```
+
+##### 564\.寻找最近的回文数
+
+[题目](https://leetcode.cn/problems/find-the-closest-palindrome)
+
+用当前字符串的左部对称到右部构造出一个回文串，然后不断增加最小位直到它大于原串；不断减小最小位直到它小于原串。处理好进位等情况，小模拟即可。可以直观发现，只需要增减几次便可得到答案。
+
+```c++
+using ll = long long;
+using i128 = __int128;
+struct Pali
+{
+    ll left, d;
+    string getStr() const
+    {
+        string l = to_string(left);
+        string r = l.substr(0, l.size() - (d % 2));
+        reverse(r.begin(), r.end());
+        return l + r;
+    }
+    i128 get() const { return stoll(getStr()); };
+    bool operator<(const Pali &o) const { return get() < o.get(); }
+    void add()
+    {
+        ll newVal = left + 1, oldD = d;
+        d += to_string(newVal).size() != to_string(left).size();
+        left = newVal;
+        if (oldD % 2 && d != oldD)
+        {
+            left /= 10;
+        }
+    }
+    void del()
+    {
+        ll newVal = left - 1, oldD = d;
+        d -= to_string(newVal).size() != to_string(left).size();
+        left = newVal;
+        if (left == 0 && d == 2)
+        {
+            left = 9, d = 1;
+        }
+        else if (oldD % 2 == 0 && oldD != d)
+        {
+            left = left * 10 + 9;
+        }
+    }
+};
+class Solution
+{
+public:
+    string nearestPalindromic(string n)
+    {
+        ll v = stoll(n.substr(0, (n.size() + 1) / 2));
+        Pali ansl, ansr;
+        i128 a = stoll(n), dl, dr;
+        for (Pali l{v, (ll)n.size()};; l.add())
+        {
+            // cout << l.getStr() << '\n';
+            if (a < l.get())
+            {
+                ansl = l, dl = l.get() - a;
+                break;
+            }
+        }
+        for (Pali r{v, (ll)n.size()};; r.del())
+        {
+            // cout << r.getStr() << '\n';
+            if (r.get() < a)
+            {
+                ansr = r, dr = a - r.get();
+                break;
+            }
+        }
+        return dr <= dl ? ansr.getStr() : ansl.getStr();
+    }
+};
+```
+
+考虑 $n$ 是 `6799`，如果原串左部对折过去的值 $n'$ 本来是 `6776`，即：对折过去的值在不等于原值的情况下，一定是大于/小于它的差值最小的值，即：
+
+1. 设 $n' < n$，则所有小于 $n$ 的回文串里，$n'$ 最大
+2. 设 $n' > n$，则所有大于 $n$ 的回文串里，$n'$ 最小
+
+> 证明：对偶数位 $n$ 而言，$n' > n$ 的充要条件是，对 $n=\overline{n_1n_2\cdots n_d}$，满足：
+> $$
+> \exists 1\le j\le \dfrac d2,n_j > n_{d-j+1},\forall j<k\le\dfrac d2,n_k=n_{d-k+1}
+> $$
+
+证明：
+
+- 对大于的情况，如果把左部减少一，显然左部会小于原数，从而 $n' > n$ 不再成立，所以当大于时它一定是首个大于的。
+- 对小于的情况，如果把左部增加一，显然左部会大于原数，从而 $n' < n$ 不再成立，所以当小于时它一定是首个大于的。
+
+因此，$n'\neq n$ 的情况下，$n'$ 要么是比它大的差值最小的，要么是比它小的差值最小的。
+
+假设 $n'$ 是最大小于的，如 $n$ 是 `12345678`，显然 $n'$ 是 `12344321`，根据上文分析， $n'$ 的下一个回文数一定是最小大于的。同理，$n'$ 是最小大于时，它的上一个一定是最大小于的。因此，只需要取遍下面五种情况，一定能得到最值：
+
+- $n'$，$n'$ 的上一个回文数，$n'$ 的下一个回文数
+
+可以不特判回文数上下一个进位，则只需要把 $999\cdots$ 和 $100\cdots001$ 这两种情况增加进去即可。
+
+ ```c++
+using ULL = unsigned long long;
+
+class Solution {
+public:
+    vector<ULL> getCandidates(const string& n) {
+        int len = n.length();
+        vector<ULL> candidates = {
+            (ULL)pow(10, len - 1) - 1,
+            (ULL)pow(10, len) + 1,
+        };
+        ULL selfPrefix = stoull(n.substr(0, (len + 1) / 2));
+        for (int i : {selfPrefix - 1, selfPrefix, selfPrefix + 1}) {
+            string prefix = to_string(i);
+            string candidate = prefix + string(prefix.rbegin() + (len & 1), prefix.rend());
+            candidates.push_back(stoull(candidate));
+        }
+        return candidates;
+    }
+
+    string nearestPalindromic(string n) {
+        ULL selfNumber = stoull(n), ans = -1;
+        const vector<ULL>& candidates = getCandidates(n);
+        for (auto& candidate : candidates) {
+            if (candidate != selfNumber) {
+                if (ans == -1 ||
+                    llabs(candidate - selfNumber) < llabs(ans - selfNumber) ||
+                    llabs(candidate - selfNumber) == llabs(ans - selfNumber) && candidate < ans) {
+                    ans = candidate;
+                }
+            }
+        }
+        return to_string(ans);
+    }
+};
+ ```
 
 
 
