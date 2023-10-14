@@ -905,6 +905,10 @@
 - 564\.寻找最近的回文数
 
   思维/贪心+小模拟
+  
+- 137\.只出现一次的数字II
+
+  STL / <u>位运算</u>
 
 
 
@@ -25701,6 +25705,31 @@ public:
     }
 };
  ```
+
+##### 137\.只出现一次的数字II
+
+[题目](https://leetcode.cn/problems/single-number-ii)
+
+对每个位，非答案贡献 3 次，答案贡献 1 次，故答案有无这个位取决于该位的累加次数模 3 是否余 1。复杂度 $O(n\log\max a)$。
+
+```c++
+class Solution {
+public:
+    int singleNumber(vector<int>& nums) {
+        int ans = 0;
+        for (int i = 0; i < 32; ++i) {
+            int total = 0;
+            for (int num: nums) {
+                total += ((num >> i) & 1);
+            }
+            if (total % 3) {
+                ans |= (1 << i);
+            }
+        }
+        return ans;
+    }
+};
+```
 
 
 
