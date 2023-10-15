@@ -909,6 +909,10 @@
 - 137\.只出现一次的数字II
 
   STL / <u>位运算</u>
+  
+- 260\.只出现一次的数字III
+
+  STL / <u>位运算</u>
 
 
 
@@ -25727,6 +25731,38 @@ public:
             }
         }
         return ans;
+    }
+};
+```
+
+##### 260\.只出现一次的数字III
+
+[题目](https://leetcode.cn/problems/single-number-iii)
+
+先求一个异或和 $x=x_1\oplus x_2$，显然 $x\neq 0$，否则 $x_1,x_2$ 出现两次。使用 lowbit 求出 $x$ 最低位，显然，如果 $x$ 是 `INT_MIN`，则 lowbit 就是它本身，即 $\overline{1000\cdots}$，否则用树状数组那一套来搞。搞出来之后，lowbit 一定只属于 $x_1$ 或 $x_2$，不妨规定 lowbit 为 1 时 $x_1$ 拿这一位，$x_2$ 不拿这一位。
+
+对每个原数，lowbit 位也要么为 1 要么为 0。可以将原数分为两组，显然 $x_1,x_2$ 不在同一组，而其他数，无论它在哪一组，它连续出现两次，组内异或和都会抵消，因此，直接把 lowbit 位 1 的所有数，即 $x_1$ 加上一部分其他数异或起来一定是 $x_1$，同理剩下的异或起来一定是 $x_2$。
+
+```c++
+class Solution {
+public:
+    vector<int> singleNumber(vector<int>& nums) {
+        int xorsum = 0;
+        for (int num: nums) {
+            xorsum ^= num;
+        }
+        // 防止溢出
+        int lsb = (xorsum == INT_MIN ? xorsum : xorsum & (-xorsum));
+        int type1 = 0, type2 = 0;
+        for (int num: nums) {
+            if (num & lsb) {
+                type1 ^= num;
+            }
+            else {
+                type2 ^= num;
+            }
+        }
+        return {type1, type2};
     }
 };
 ```
