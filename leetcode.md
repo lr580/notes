@@ -913,6 +913,10 @@
 - 260\.只出现一次的数字III
 
   STL / <u>位运算</u>
+  
+- 2652\.倍数求和
+
+  容斥
 
 
 
@@ -25763,6 +25767,29 @@ public:
             }
         }
         return {type1, type2};
+    }
+};
+```
+
+##### 2652\.倍数求和
+
+[题目](https://leetcode.cn/problems/sum-multiples)
+
+```c++
+class Solution
+{
+    int n;
+    int sum(int n) { return n * (n + 1) / 2; }
+    int ss(int v) { return sum(n / v) * v; }
+
+public:
+    int sumOfMultiples(int n)
+    {
+        this->n = n;
+        int ans = ss(3) + ss(5) + ss(7);
+        ans -= ss(3 * 5) + ss(3 * 7) + ss(5 * 7);
+        ans += ss(3 * 5 * 7);
+        return ans;
     }
 };
 ```
