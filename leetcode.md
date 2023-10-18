@@ -917,6 +917,10 @@
 - 2652\.倍数求和
 
   容斥
+  
+- 1726\.同积元素
+
+  STL
 
 
 
@@ -25790,6 +25794,34 @@ public:
         ans -= ss(3 * 5) + ss(3 * 7) + ss(5 * 7);
         ans += ss(3 * 5 * 7);
         return ans;
+    }
+};
+```
+
+##### 1726\.同积元素
+
+[题目](https://leetcode.cn/problems/tuple-with-same-product)
+
+unmap 400ms map 1200ms
+
+```c++
+class Solution
+{
+public:
+    int tupleSameProduct(vector<int> &nums)
+    {
+        unordered_map<int, int> m;
+        int n = nums.size(), ans = 0;
+        for (int i = 0; i < n; ++i)
+        {
+            for (int j = i + 1; j < n; ++j)
+            {
+                int s = nums[i] * nums[j];
+                ans += m[s];
+                ++m[s];
+            }
+        }
+        return ans * 8;
     }
 };
 ```
