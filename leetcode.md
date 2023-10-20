@@ -152,7 +152,7 @@
 
 - 239\.滑动窗口最大值
 
-  滑动窗口+(对顶堆 / <u>堆</u>)
+  滑动窗口+(对顶堆 / <u>堆</u> / <u>单调队列</u>) / <u>ST表/分块</u>
 
 - 273\.整数转英文表示
 
@@ -921,6 +921,10 @@
 - 1726\.同积元素
 
   STL
+  
+- 2316\.统计无向图中无法相互到达点对数
+
+  DFS
 
 
 
@@ -4336,7 +4340,7 @@ class Solution {
 }
 ```
 
-
+甚至还可以 ST 表思想分块。
 
 ##### 273\.整数转英文表示
 
@@ -4773,7 +4777,7 @@ class Codec {
 
 ##### 301\.删除无效的括号
 
-[题目]()
+[题目](https://leetcode.cn/problems/remove-invalid-parentheses/)
 
 无聊的DFS爆搜题。复杂度 $O(m2^m)$ 其中 $m=20$。
 
@@ -14116,7 +14120,7 @@ class Solution {
 
 - 如果 $w$ 是有一个上限的(即大到一定程度最短路就更改，而不再走 $w$)，考虑唯一的一条可变边是 $x\to y$，且唯一岔路是 $x\to p\to y$(总长度为 $10$)，那么显然只有 $1\le w\le 9$ 可选，即如果 $w$ 最大只能变成 $9$，否则最短路不生效。
 
-  这时候不妨设 $d_{x,1}=d_{x,0}$(因为前面没有可变的边) $=100$ 且 $d_{t,0}-d_{y,0}=100$，且后面也没有可变的边，若 $target=205$，显然算出 $w=5$，刚好凑够。
+  这时候不妨设 $d_{x,1}=d_{x,0}$(因为前面没                                               有可变的边) $=100$ 且 $d_{t,0}-d_{y,0}=100$，且后面也没有可变的边，若 $target=205$，显然算出 $w=5$，刚好凑够。
 
   若 $target=222$，则任意 $w\ge 10$ 的结果都等价于这条边只贡献 $10$，那么我即使把 $w$ 拉到无穷，它也只对 $target$ 贡献 $10$(因为根本不走它了)，所以直接赋值即可，不需要考虑后效性之类的。
 
@@ -15320,7 +15324,7 @@ public:
 
 额外边是加了之后只多覆盖一个点的边，对不在匹配的每个点，选择最小的边，不会影响其他不在匹配的点。对邻接矩阵，二分图左边第 $i$ 个点的最优额外边是 $\min e_{i,:}$，右边第 $j$ 个点的最优额外边是 $\min e_{:,j}$。即分别为行列最小值。
 
-显然一种较差的解是每个店都直接选择最小的额外边，称为基本解。在基本解的前提下，引入匹配，每加入一条匹配边 $(u,v)$，首先去掉了两边的额外边，再加上这条边的边权，即 $e_{i,j}-\min e_{i,:}-\min e_{:,j}$。在费用网络流建立一个流量为 $1$，费用为上述值的边。然后源点跟左边、右边跟汇点都连流量为 $1$ 费用为 $0$ 的边，即求朴素的最小权匹配。
+显然一种较差的解是每个点都直接选择最小的额外边，称为基本解。在基本解的前提下，引入匹配，每加入一条匹配边 $(u,v)$，首先去掉了两边的额外边，再加上这条边的边权，即 $e_{i,j}-\min e_{i,:}-\min e_{:,j}$。在费用网络流建立一个流量为 $1$，费用为上述值的边。然后源点跟左边、右边跟汇点都连流量为 $1$ 费用为 $0$ 的边，即求朴素的最小权匹配。
 
 使用 MCFN，复杂度为 $O(\min(n,m)^2\max(n,m))=O(n^3)$。
 
@@ -22760,12 +22764,12 @@ private:
 };
 ```
 
-没完全看懂，日后再看 [题目](https://leetcode.cn/problems/operations-on-tree/solutions/978755/dui-shu-jun-tan-fu-za-du-dfsxu-lie-he-sh-nte4/)
+ [题目](https://leetcode.cn/problems/operations-on-tree/solutions/978755/dui-shu-jun-tan-fu-za-du-dfsxu-lie-he-sh-nte4/)
 
 对 DFS 序节点序列，维护两个树状数组：
 
-- up：
-- down：
+- up：区间的锁数目，因为子树区间一加一减，所以等效于它和它往上的根有几个锁
+- down：同理，但是不解除区间右端点，等效于它和它往前 DFN加起来几个锁
 
 维护：
 
@@ -22776,8 +22780,9 @@ private:
 - upgrade 有效：
 
   - 节点到到根没有锁，单点查询 up 为 0
-  - 子树有锁，
-
+  - 子树有锁，因为 up 会结束时减，对非最后一个子树，难以用 up 查询锁数目，所以使用 down 查询区间起止，如果锁数目无变化就是无锁
+  - 之后，对每个锁，对 down，找到最小有多一个锁的下标，在树状数组二分，即 log 单次查询，然后套用解锁函数
+  
   
 
 ```c++
@@ -25822,6 +25827,102 @@ public:
             }
         }
         return ans * 8;
+    }
+};
+```
+
+##### 2316\.统计无向图中无法相互到达点对数
+
+[题目](https://leetcode.cn/problems/count-unreachable-pairs-of-nodes-in-an-undirected-graph)
+
+我的实现：
+
+```c++
+using ll = long long;
+class Solution
+{
+    vector<vector<int>> g;
+    vector<bool> vis;
+    vector<int> cnt;
+    ll ans = 0, m = 0;
+
+    void dfs(int u)
+    {
+        vis[u] = true;
+        ++cnt[m];
+        for (auto &v : g[u])
+        {
+            if (!vis[v])
+            {
+
+                dfs(v);
+            }
+        }
+    }
+
+public:
+    ll countPairs(int n, vector<vector<int>> &edges)
+    {
+        g = vector<vector<int>>(n, vector<int>());
+        for (auto &pr : edges)
+        {
+            int u = pr[0], v = pr[1];
+            g[u].emplace_back(v);
+            g[v].emplace_back(u);
+        }
+        vis = vector<bool>(n, false);
+        cnt = vector<int>(n + 1, 0);
+        for (int i = 0; i < n; ++i)
+        {
+            if (!vis[i])
+            {
+                ++m;
+                dfs(i);
+            }
+        }
+        for (int i = 1; i <= m; ++i)
+        {
+            ans += 1LL * cnt[i] * (n - cnt[i]);
+        }
+        return ans / 2;
+    }
+};
+```
+
+优雅实现：
+
+```c++
+class Solution {
+public:
+    long long countPairs(int n, vector<vector<int>> &edges) {
+        vector<vector<int>> g(n);
+        for (auto &e: edges) {
+            int x = e[0], y = e[1];
+            g[x].push_back(y);
+            g[y].push_back(x); // 建图
+        }
+
+        vector<int> vis(n);
+        function<int(int)> dfs = [&](int x) -> int {
+            vis[x] = true; // 避免重复访问同一个点
+            int size = 1;
+            for (int y: g[x]) {
+                if (!vis[y]) {
+                    size += dfs(y);
+                }
+            }
+            return size;
+        };
+
+        long long ans = 0;
+        for (int i = 0, total = 0; i < n; i++) {
+            if (!vis[i]) { // 未访问的点：说明找到了一个新的连通块
+                int size = dfs(i);
+                ans += (long) size * total;
+                total += size;
+            }
+        }
+        return ans;
     }
 };
 ```
