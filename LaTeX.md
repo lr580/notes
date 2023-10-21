@@ -169,6 +169,8 @@ toc 即 tableofcontents
 
 暂时无法实现页码
 
+需要文本的目录，可以先导出为 docx，然后在 docx 里复制。
+
 
 
 #### 页眉页脚

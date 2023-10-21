@@ -925,6 +925,10 @@
 - 2316\.统计无向图中无法相互到达点对数
 
   DFS
+  
+- 1402\.做菜顺序
+
+  贪心 / <u>贪心+前缀和</u> / <u>DP</u>
 
 
 
@@ -25926,6 +25930,71 @@ public:
     }
 };
 ```
+
+##### 1402\.做菜顺序
+
+[题目](https://leetcode.cn/problems/reducing-dishes)
+
+根据直觉，贪心排序后枚举所有可能后缀。
+
+```c++
+class Solution
+{
+public:
+    int maxSatisfaction(vector<int> &a)
+    {
+        sort(a.begin(), a.end());
+        int ans = 0, n = a.size();
+        for (int i = 0; i < n; ++i)
+        {
+            int s = 0;
+            for (int j = i, c = 1; j < n; ++j, ++c)
+            {
+                s += a[j] * c;
+            }
+            ans = max(ans, s);
+        }
+        return ans;
+    }
+};
+```
+
+排序。若 $x<y$，如果都做，先做 $x$ 是 $x+2y$，否则是 $2x+y$，作差易得直接排序对这种情况更优。先这样排序。 
+
+解法一：DP。设 $dp_{i,j}$ 表示前 $i$ 道选 $j$ 道最大值。选与不选，分别：
+$$
+dp_{i,j}=\max(dp_{i-1,j-1}+i a_j, dp_{i-1,j})
+$$
+则答案为 $\max dp_{n,i}$。
+
+解法二：贪心。
+
+本来只有一道最好的菜 $s_0$，对差一点的新菜 $s_1$ 选比不选更好当且仅当 $2s_0+s_1 > s_0$ 即 $s_1+s_0 > 0$。
+
+如果又多了一个更差的 $s_2$，同理，选他当且仅当 $s_2+2s_1+3s_0 > s_1+2s_0$。以此类推，可以知道，在排序好的前提下，逆序遍历，直到 $\sum$ 不满足了就不继续选了。复杂度优化到 $O(n\log n)$ 取排序。
+
+故，每次选的增量是前缀和，如果前缀和(增量)不再正就不增了，因为排序后再选新的前缀和不会更好。
+
+```c++
+class Solution {
+public:
+    int maxSatisfaction(vector<int>& satisfaction) {
+        sort(satisfaction.begin(), satisfaction.end(), greater<int>());
+        int presum = 0, ans = 0;
+        for (int si: satisfaction) {
+            if (presum + si > 0) {
+                presum += si;
+                ans += presum;
+            } else {
+                break;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+严格证明：排序不等式。顺序和最大，所以固定选的菜数目时一定是排序的最好的。最后再同上分析。即对固定选择 $k$ 的数量，顺序和最好。具体 $k$ 如何定看上面分析。
 
 
 
