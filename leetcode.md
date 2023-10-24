@@ -932,7 +932,11 @@
   
 - 1155\.掷骰子等于目标和的方法数
 
-  DP / 分治MTT
+  DP / 分治 MTT
+  
+- 2698\.求一个整数的惩罚数
+
+  爆搜
 
 
 
@@ -26058,6 +26062,90 @@ private:
 ```
 
 还可以求 $(x+x^2+\cdots +x^k)^n$ 的 $x^{target}$ 的系数。因为 $10^9+7$ 不能直接分治 NTT，可以考虑做 MTT。NTT 复杂度是 $O(nk\log^2 nk)$。
+
+##### 2698\.求一个整数的惩罚数
+
+[题目](https://leetcode.cn/problems/find-the-punishment-number-of-an-integer)
+
+我的二进制枚举：
+
+```c++
+class Solution
+{
+public:
+    int punishmentNumber(int n)
+    {
+        int ans = 0;
+        for (int i = 1; i <= n; ++i)
+        {
+            string s = to_string(i * i);
+            int m = s.size();
+            bool ok = false;
+            for (int j = 0; j < (1 << m); ++j)
+            {
+                int sum = 0, cnt = 0;
+                for (int k = 0, v = j; k < m; ++k, v >>= 1)
+                {
+                    cnt = cnt * 10 + s[k] - '0';
+                    if (v & 1) // split after it
+                    {
+                        sum += cnt;
+                        cnt = 0;
+                    }
+                }
+                sum += cnt;
+                if (sum == i)
+                {
+                    ok = true;
+                    break;
+                }
+            }
+            if (ok)
+            {
+                ans += i * i;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+题解 DFS：
+
+```c++
+int PRE_SUM[1001];
+
+int init = []() {
+    for (int i = 1; i <= 1000; i++) {
+        string s = to_string(i * i);
+        int n = s.length();
+        function<bool(int, int)> dfs = [&](int p, int sum) -> bool {
+            if (p == n) { // 递归终点
+                return sum == i; // i 符合要求
+            }
+            int x = 0;
+            for (int j = p; j < n; j++) { // 枚举分割出从 s[p] 到 s[j] 的子串
+                x = x * 10 + s[j] - '0'; // 子串对应的整数值
+                if (dfs(j + 1, sum + x)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        PRE_SUM[i] = PRE_SUM[i - 1] + (dfs(0, 0) ? i * i : 0);
+    }
+    return 0;
+}();
+
+class Solution {
+public:
+    int punishmentNumber(int n) {
+        return PRE_SUM[n];
+    }
+};
+```
+
+
 
 > ### 力扣比赛
 
