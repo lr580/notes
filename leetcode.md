@@ -929,6 +929,10 @@
 - 1402\.做菜顺序
 
   贪心 / <u>贪心+前缀和</u> / <u>DP</u>
+  
+- 1155\.掷骰子等于目标和的方法数
+
+  DP / 分治MTT
 
 
 
@@ -25996,7 +26000,64 @@ public:
 
 严格证明：排序不等式。顺序和最大，所以固定选的菜数目时一定是排序的最好的。最后再同上分析。即对固定选择 $k$ 的数量，顺序和最好。具体 $k$ 如何定看上面分析。
 
+##### 1155\.掷骰子等于目标和的方法数
 
+[题目](https://leetcode.cn/problems/number-of-dice-rolls-with-target-sum/)
+
+个人实现 DP：
+
+```c++
+using ll = long long;
+const ll mod = 1e9 + 7;
+class Solution
+{
+public:
+    int numRollsToTarget(int n, int k, int t)
+    {
+        vector<vector<ll>> dp(n + 1, vector<ll>(t + 1, 0));
+        dp[0][0] = 1;
+        for (int i = 1; i <= n; ++i)
+        {
+            for (int j = 0; j <= t; ++j)
+            {
+                for (int l = 1; j + l <= t && l <= k; ++l)
+                {
+                    (dp[i][j + l] += dp[i - 1][j]) %= mod;
+                }
+            }
+        }
+        return dp[n][t];
+    }
+};
+```
+
+答案压压乐：
+
+```c++
+class Solution {
+public:
+    int numRollsToTarget(int n, int k, int target) {
+        vector<int> f(target + 1);
+        f[0] = 1;
+        for (int i = 1; i <= n; ++i) {
+            for (int j = target; j >= 0; --j) {
+                f[j] = 0;
+                for (int x = 1; x <= k; ++x) {
+                    if (j - x >= 0) {
+                        f[j] = (f[j] + f[j - x]) % mod;
+                    }
+                }
+            }
+        }
+        return f[target];
+    }
+
+private:
+    static constexpr int mod = 1000000007;
+};
+```
+
+还可以求 $(x+x^2+\cdots +x^k)^n$ 的 $x^{target}$ 的系数。因为 $10^9+7$ 不能直接分治 NTT，可以考虑做 MTT。NTT 复杂度是 $O(nk\log^2 nk)$。
 
 > ### 力扣比赛
 
