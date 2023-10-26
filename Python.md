@@ -5085,8 +5085,14 @@ np.sort(arr)
 逻辑运算，对每个元素操作，返回真值矩阵，如：
 
 ```python
+arr>0 # 返回 bool 数组
+arr[arr>0] #用该布尔值数组筛选
+arr[~(arr>0)] # 取补
+arr[(arr >= l) & (arr <= r)] # 同时满足两个条件
 np.random.uniform(low=0.0, high=1.0, size=(5,5))>0.5
 ```
+
+
 
 转置：
 
