@@ -161,7 +161,8 @@ pipreqs ./ --encoding=utf8
 pip install -r requirement.txt
 ```
 
-
+> 如果里面任意一项输入不正确，如版本找不到，全部都不会安装，不会弹 error 直接结束。
+>
 
 ### 编译
 
@@ -387,6 +388,93 @@ ctrl+shift+p 打开 `settings.json` (一般可能在用户文件夹的 `AppData\
 },
 ```
 
+### conda
+
+#### 安装
+
+anaconda 安装可以去官方，或者 miniconda [here](https://anaconda.org.cn/anaconda/)
+
+作用：隔离环境，一个项目一个 py 版本及其对应的包。避免项目间污染。
+
+环境变量放 PATH，找到自己的安装路径加入：[参考](https://blog.csdn.net/m0_57383947/article/details/127823940)
+
+```sh
+D:\APP\Anaconda
+D:\APP\Anaconda\Scripts
+D:\APP\Anaconda\Library\bin
+```
+
+> 如果 PATH 太长，可以参考这个解决方案 [here](https://www.cnblogs.com/yigiuwoligiao/p/12910690.html)，把原 PATH 末尾不带分号写成 `Path1`，然后 `PATH` 添加 `%Path1%;其他路径`。
+>
+> update: 疑似不行，后面再说。
+
+检查安装完毕：
+
+```sh
+conda -V # 或 conda --version
+```
+
+镜像：
+
+```sh
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+conda config --set show_channel_urls yes
+conda install numpy # 测试镜像
+```
+
+
+
+#### 使用
+
+新建环境：
+
+```sh
+conda create -n 环境名如lr5801 python=3.8
+```
+
+- `-n` 指定环境的名字
+
+> 预装包：
+>
+> ```sh
+> conda create -n myenv python=3.8 numpy pandas
+> ```
+
+列出全部环境：
+
+```sh
+conda env list # or conda info --envs
+```
+
+删除环境：
+
+```sh
+conda env remove --name 环境名称
+```
+
+激活环境：(后续操作不会影响其他环境；每次使用前激活)
+
+```sh
+conda activate 环境名
+```
+
+之后可以装包。(如 `pip install -r requirements.txt`)
+
+激活后 sh 会有前缀，如 `dsc80` 环境：
+
+> ```sh
+> (dsc80) D:\_lr580\program\practice\szq\dsc80\2\dsc80-2023-fa>
+> ```
+
+取消激活：
+
+```sh
+conda deactivate
+```
+
+vscode 调用 conda 环境：ctrl+shift+p 输入 python，选择：选择编译器，选刚刚的环境，对 jupyter ipynb 同理。
+
 
 
 ### 其他
@@ -447,7 +535,7 @@ while True:
         if not x:#没有!x的表达
             break
     except:
-        pass
+        pass # ... 也行
 ```
 
 > 注意在python2有raw_input而python3没有。
@@ -1092,6 +1180,12 @@ isalpha() 等方法判断该字符串是否每个字符都是特定范围的
 
 ```python
 'αBc'.isalpha() == True
+```
+
+同理，注意到 isdigit() 会判断特殊字符是不是数字，如：
+
+```python
+'²'.isdigit() == True
 ```
 
 
@@ -2116,7 +2210,13 @@ print(type(l) == tuple)  #子类不算
 print(isinstance(l, tuple))  #子类算
 ```
 
+##### all
 
+是否全为 true
+
+##### any
+
+是否有 true
 
 
 
@@ -3437,6 +3537,29 @@ print(res.groupdict())
 
 直接将匹配结果直接转为字典模式，方便使用。
 
+#### pathlib
+
+打开某个路径的文件：
+
+```python
+from pathlib import Path
+data_dir = Path('.vscode') # data_dir = Path('.') 当前路径
+file_path = data_dir / 'launch.json'
+with open(file_path, 'r', encoding='utf8') as f:
+    print(f.readlines())
+```
+
+没有就下载：
+
+```python
+# Download Israeli COVID vaccinations data from the ☁️
+if not pathlib.Path(data_dir / 'israel.csv').exists():
+    urllib.request.urlretrieve(
+        'https://f000.backblazeb2.com/file/dsc-data/covid-israel/israel.csv',
+        data_dir / 'israel.csv'
+    )
+```
+
 
 
 #### datetime
@@ -4657,6 +4780,46 @@ get 得到所显示的值
 
 记得先 `clipboard_clear()`
 
+### ipywidgets
+
+在 jupyter 创建交互的工具
+
+```python
+from ipywidgets import widgets, interact, FloatSlider
+```
+
+创建一个交互下拉选择框，以某列的值作为下拉选项，每次只筛选出数据里列值为它的行，然后对这些行另两列做绘图，使用：
+
+```python
+import plotly.express as px
+def plot_cases(country):
+    country_only = vacs[vacs['Country_Region'] == country]
+    fig = px.line(country_only, x='Date', y='Doses_admin', title=f"'Doses_admin' column for {country}")
+    fig.show()
+    
+
+dropdown_cases = widgets.Dropdown(options=np.sort(vacs['Country_Region'].unique()), value=DEFAULT)
+
+def dropdown_cases_handler(change):
+    if change['name'] == 'value' and (change['new'] != change['old']):
+        clear_output()
+        display(dropdown_cases)
+        plot_cases(change['new'])
+        
+display(dropdown_cases)
+plot_cases(DEFAULT)
+dropdown_cases.observe(dropdown_cases_handler)
+```
+
+其中：清除 Jupyter 笔记本的单元格输出区域
+
+```python
+from IPython.display import clear_output
+clear_output()
+```
+
+
+
 
 
 ## 远程处理
@@ -4937,6 +5100,12 @@ arr.transpose()
 np.random.choice([1,2,3,4,5],size=10,p=[0.05,0.05,0.2,0.3,0.4])
 ```
 
+随机打乱：
+
+```python
+np.random.permutation(x) # np.random.shuffle(x) # 有细节差别
+```
+
 
 
 ##### 下标
@@ -5058,7 +5227,26 @@ sumVert = ((255-img)//255).sum(axis=0)
 sumHori = ((255-img)//255).sum(axis=1)
 ```
 
-排序：`np.sort`
+排序：`np.sort`，不会改变传入的参数。除非使用对象的 `.sort` 方法
+
+求差分：
+
+```python
+a = np.array([1, 2, 4, 7, 11])
+diff_a = np.diff(a)
+print(diff_a)  # 输出: [1 2 3 4]
+diff_a_2 = np.diff(a, n=2) #二阶差分
+print(diff_a_2)  # 输出: [1 1 1]
+```
+
+求百分位数，如 97th 百分位数表示一个数，在一组数据中有 97% 的数据小于或等于该值，而有 3% 的数据大于该值，即分位数。
+
+```python
+data = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+percentile_97 = np.percentile(data, 97) # 9.73
+```
+
+
 
 
 
@@ -6145,9 +6333,17 @@ plot(x, [f(x), 2 * x - 3], 'x', 'f(x)', legend=['f(x)', 'Tangent line (x=1)'])
 ```python
 import pandas as pd
 audiometric = pd.read_csv('audiometric.csv')
+# 可以试图直接 print 或交互下直接写变量名输出，等于 head5+tail5
+# 会输出有几行、几列；返回值是 DataFrame
 ```
 
 > 可以读 `.tsv`，加参数 `sep='\t'`
+>
+> 增加参数，指定某一列的读入类型：
+>
+> ```python
+> dtype={"fips": str}
+> ```
 
 其 `.shape` 依次是行数(不含表头)、列数。是独有的类型。
 
@@ -6187,6 +6383,21 @@ data = pd.read_excel('pca_data.xlsx',index_col=0)
 
 
 
+使用 dict (key: string, value: list of int / string) 构造。
+
+```python
+data = {
+    'City': ['London', 'London', 'Paris', 'Paris', 'Berlin', 'Berlin'],
+    'Date': ['2021-01-01', '2021-01-02', '2021-01-01', '2021-01-02', '2021-01-01', '2021-01-02'],
+    'Temperature': [8.0, 7.1, 5.5, 6.2, 0.0, 2.3]
+}
+df = pd.DataFrame(data)
+```
+
+
+
+复制：`df_copy = pd.DataFrame(df)`
+
 ##### 写入
 
 [参考](https://blog.csdn.net/m0_46419189/article/details/123111493)
@@ -6211,17 +6422,19 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 > ```python
 > merge_list = []
 > for i in matches:
->     # 读取风机这部分数据
->     data_df = pd.read_csv(os.path.join(data_dir, i), index_col=False, keep_default_na=False)
->     merge_list.append(data_df)
-> if len(merge_list) > 0:
->     all_data = pd.concat(merge_list,axis=0,ignore_index=True).fillna(".")
->     all_data.to_csv(os.path.join(data_dir, data_basename.split('-')[0]+ '.csv'),index=False) 
+>        # 读取风机这部分数据
+>        data_df = pd.read_csv(os.path.join(data_dir, i), index_col=False, keep_default_na=False)
+>        merge_list.append(data_df)
+>     if len(merge_list) > 0:
+>            all_data = pd.concat(merge_list,axis=0,ignore_index=True).fillna(".")
+>            all_data.to_csv(os.path.join(data_dir, data_basename.split('-')[0]+ '.csv'),index=False) 
 > ```
 
 
 
 ##### 基本操作
+
+列名字符串区分大小写。默认每列同一个数据类型。
 
 创建两行数据：
 
@@ -6240,9 +6453,17 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 
 取单独元素 `.at[行号, 列str]`
 
-转 numpy(丢失表头)：`.to_numpy()`，转列表 `.tolist()`
+转 numpy(丢失表头)：`.to_numpy()`，转列表 `.tolist()`，转 set 直接 `set(df[])`
 
 简要统计 `.describe()`
+
+取所有列(含下表列) `df.columns`，取指定列，可以 for 和取下标，得 str
+
+取行下标范围 `df.index` 有属性 `start,step,stop`，其中 stop 是第一个越界
+
+> 如果是聚合下标，见下文。
+
+取每列数据类型 `df.dtypes`，取指定列的 `df[col].dtype`。
 
 用列值进行 01 分类：`get_dummies`
 
@@ -6267,9 +6488,57 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 
 取 `.values` 可以转化为 np array。然后可以丢进 tensor。
 
+##### series
+
+遍历某个 list，将每个元素(str 如 `20-30`)作为上下界作用于某列进行筛选，然后筛选完了求平均值或其他返回一元值的操作
+
+```python
+def effectiveness(df):
+    vaccinated_data = df[df['Vaccinated'] == True]
+    unvaccinated_data = df[df['Vaccinated'] == False]
+    p_V = vaccinated_data['Severe Sickness'].mean()
+    p_U = unvaccinated_data['Severe Sickness'].mean()
+    return 1 - (p_V / p_U)
+
+AGE_GROUPS = [
+    '12-15',
+// ...
+    '80-89',
+    '90-'
+]
+
+def stratified_effectiveness(df):    
+    def get_effectiveness(age_range):
+        age_range = age_range.split('-')
+        if age_range[-1] == '':
+            age_range[-1] = '999'
+        age_range = [int(i) for i in age_range]
+        left, right = age_range
+        rows = df[(df['Age'] >= left) & (df['Age'] <= right)]
+        return effectiveness(rows)
+    
+    result = pd.Series(AGE_GROUPS).map(get_effectiveness)
+    # 如果不加 index，默认 index 为 0 开始的整数，加了就指定为该字符串
+    result.index = AGE_GROUPS
+    return result
+```
+
 
 
 ##### 数据处理
+
+取某列等于特定值的数据：
+
+```python
+country_only = vacs[vacs['Country_Region'] == country]
+```
+
+> 单点修改：
+>
+> ```python
+> # 使用条件索引来找到第一列('A')为'abc'的值，并将其替换为'def'
+> df.loc[df['A'] == 'abc', 'A'] = 'def'
+> ```
 
 清理冗余数据：
 
@@ -6278,11 +6547,265 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 df.drop_duplicates(subset = ['DATATIME'],keep='first',inplace=True)
 ```
 
+取列去重，返回 `np.ndarray`
+
+```python
+vacs['Country_Region'].unique()
+```
+
+对该列每个元素应用某函数，返回值就地赋值 `df[col].apply(函数)`，例子见下文字符串处理。
+
+插入一个二分类列，表示某一列是否为 `np.nan`。
+
+```python
+israel.assign(null_age=israel['Age'].isna()) # isna() 返回布尔列
+```
+
+删掉有 nan 的行，或指定列有 nan 的行：
+
+```python
+df.dropna()
+df.dropna(axis=1) #的列，而不是的行
+df.dropna(subset=['B'])
+```
+
+取取值范围在区间内的列：
+
+```python
+rows = df[(df['Age'] >= left) & (df['Age'] <= right)]
+```
 
 
 
+##### groupby
 
-### seaborn
+```python
+import pandas as pd
+
+data = {
+    'City': ['London', 'London', 'Paris', 'Paris', 'Berlin', 'Berlin'],
+    'Date': ['2021-01-01', '2021-01-02', '2021-01-01', '2021-01-02', '2021-01-01', '2021-01-02'],
+    'Temperature': [8.0, 7.1, 5.5, 6.2, 0.0, 2.3],
+    'Rainfall': [5.0, 6.7, 15.3, 10.1, 0.0, 13.1]
+}
+
+df = pd.DataFrame(data)
+print(df)
+```
+
+聚合函数：(数值函数会忽略字符串列，把 `groupby` 列当成下表列)
+
+```python
+grouped_df = df.groupby('City').mean()
+```
+
+双聚合因子和双聚合函数：
+
+```python
+grouped_df = df.groupby(['City', 'Date']).agg({'Temperature': 'max', 'Rainfall': 'sum'})
+print(grouped_df)
+```
+
+怎么用这个结果看聚合索引。
+
+自定义聚合函数：
+
+```python
+def coefficient_of_variation(series):
+    return series.std() / series.mean()
+result = df.groupby('City')['Temperature'].agg(coefficient_of_variation)
+print(result)
+```
+
+多列：
+
+```python
+result = df.groupby('City').agg({
+    'Temperature': coefficient_of_variation,
+    'Rainfall': 'max'
+})
+```
+
+聚合后自定义列名：
+
+```python
+df.groupby('City').agg(
+    Temp_Coef_Var=('Temperature', coefficient_of_variation),
+    Max_Rainfall=('Rainfall', 'max')
+)
+```
+
+
+
+##### 聚合索引
+
+生成跟上面 group by 双索引一样的数据：
+
+```python
+# 创建示例数据
+data = {
+    'Temperature': [0.0, 2.3, 8.0, 7.1, 5.5, 6.2],
+    'Rainfall': [0.0, 13.1, 5.0, 6.7, 15.3, 10.1]
+}
+
+# 创建多层索引
+arrays = [
+    ['Berlin', 'Berlin', 'London', 'London', 'Paris', 'Paris'],
+    ['2021-01-01', '2021-01-02', '2021-01-01', '2021-01-02', '2021-01-01', '2021-01-02']
+]
+index = pd.MultiIndex.from_arrays(arrays, names=('City', 'Date'))
+
+# 创建DataFrame
+df = pd.DataFrame(data, index=index)
+
+```
+
+聚合索引，输出一行：
+
+```python
+print(grouped_df.loc[('Berlin', '2021-01-01')])
+```
+
+指定行的指定列：(`numpy.float64` 可以强转 float)
+
+```python
+print(grouped_df.loc[('Berlin', '2021-01-01'), 'Temperature'])
+```
+
+此时 `df.index`：
+
+- `df.index.nlevels` int 有几个聚合
+
+- `df.index.get_level_values(-1)` 取全体特定一列的行下标值
+
+  再取最后一行的最后一列下标 `df.index.get_level_values(-1)[-1]`
+
+  可以用 for 遍历，把两个 -1 变成 i,j 即可
+
+
+
+##### 字符串处理
+
+对某一列，`.str` 是 Pandas 中用于对字符串列进行操作的属性
+
+1. 提取子字符串：使用 `.str` 属性的 `extract()` 方法可以提取满足正则表达式模式的子字符串。例如，`df['Column'].str.extract('(\d+)')` 可以提取列 "Column" 中的数字部分。
+2. 字符串查找和匹配：`.str` 属性提供了许多方法，如 `contains()`（检查字符串是否包含某个子字符串）、`startswith()`（检查字符串是否以某个子字符串开头）和 `endswith()`（检查字符串是否以某个子字符串结尾）等，用于查找和匹配字符串。
+3. 字符串替换：使用 `replace()` 方法可以将字符串中的指定子字符串替换为另一个字符串。
+4. 字符串分割和连接：`.str` 属性还提供了用于字符串分割和连接的方法，例如 `split()`（将字符串拆分为列表）和 `join()`（将列表中的字符串连接成一个字符串）。
+5. 大小写转换：使用 `lower()` 和 `upper()` 方法可以将字符串转换为小写或大写。
+6. 字符串长度：使用 `len()` 方法可以获取字符串的长度。
+
+如，取所有数字并连接，原地保存：
+
+```python
+data = {'ColumnName': ['abc123', 'def456', 'ghi789']}
+df = pd.DataFrame(data)
+df['ColumnName'] = df['ColumnName'].str.extract('(\d+)').astype(int)
+print(df)
+```
+
+第一列 `-` 设为 `NaN`，其他列转 bool：
+
+```python
+res['Age'] = res['Age'].replace('-', np.nan).astype(float)
+res['Vaccinated'] = res['Vaccinated'].astype(bool)
+```
+
+逐列综合处理：百分号转整数，其他情况去掉 `, _` 等划分长整数的字符，根据是否有小数点转换为整数或浮点数，去掉单位，对字符串。如果无数字。不操作。
+
+```python
+# 创建一个示例DataFrame
+data = {
+    'col1': ['10%', '20%', '30%'],
+    'col2': ['123abc', '456def', '789ghi'],
+    'col3': ['1.23', '4.56', '7.89xyz'],
+    'col4': [10, 20, 30]  # 这列是整数，不会被修改
+}
+
+df = pd.DataFrame(data)
+
+# 定义一个函数，对单个字符串进行处理
+def process_string(s):
+    if '%' in s:
+        return float(s.strip('%')) * 0.01
+    elif '.' in s:
+        return float(''.join(filter(lambda x: x.isdigit() or x == '.', s)))
+    else:
+        return int(''.join(filter(str.isdigit, s)))
+
+# 对DataFrame的每一列应用这个函数
+for col in df.columns:
+    if df[col].dtype == 'O':  # 'O'表示对象，通常是字符串
+        if df[col].str.contains('\d').all():
+        	df[col] = df[col].apply(process_string)
+
+print(df)
+# 注意 ² 会 isdight，如果单位有奇怪的特殊字符建议重写isdight
+```
+
+##### 拼接
+
+concat：
+
+```python
+pd.concat(objs, axis=0, join='outer', ignore_index=False)
+```
+
+- `objs`: 要连接的 Pandas 数据结构的序列，可以是 DataFrame 或 Series 的列表。
+- `axis`: 指定连接的轴，0 表示按行连接，1 表示按列连接。
+- `join`: 指定连接的方式，可以是 `'inner'`（交集）、`'outer'`（并集）或其他选项。
+- `ignore_index`: 如果为 True，将重新生成索引，如果为 False，则保留原始索引。
+
+如：
+
+```python
+df1 = pd.DataFrame({'A': ['A0', 'A1'], 'B': ['B0', 'B1']})
+df2 = pd.DataFrame({'A': ['A2', 'A3'], 'B': ['B2', 'B3']})
+result = pd.concat([df1, df2], axis=0, ignore_index=True)
+print(result) # df1+df2
+```
+
+```python
+df1 = pd.DataFrame({'A': ['A0', 'A1'], 'B': ['B0', 'B1']})
+df2 = pd.DataFrame({'C': ['C0', 'C1'], 'D': ['D0', 'D1']})
+result = pd.concat([df1, df2], axis=1)
+print(result) # A0,B0,C0,D0 为一行，另一个为一行
+```
+
+##### 连表
+
+merge：
+
+```python
+pd.merge(left, right, how='inner', on=None, left_on=None, right_on=None)
+```
+
+- `left` 和 `right`: 要连接的两个 DataFrame。
+
+- `how`: 连接方式，可以是 `'inner'`（内连接，交集）、`'outer'`（外连接，并集）、`'left'`（左连接）、`'right'`（右连接）等。
+
+  outer 会把不存在的数字值设为 `NaN`
+
+- `on`: 指定用于连接的列名，如果 `left` 和 `right` 都具有相同的列名，可以简单地使用 `on`。
+
+- `left_on` 和 `right_on`: 如果要连接的列在左右两个 DataFrame 中具有不同的列名，可以使用这两个参数来分别指定左右的列名。
+
+如：
+
+```python
+df1 = pd.DataFrame({'key': ['A', 'B', 'C', 'D'], 'value': [1, 2, 3, 4]})
+df2 = pd.DataFrame({'key': ['B', 'D', 'E', 'F'], 'value': [5, 6, 7, 8]})
+print(pd.merge(df1, df2, on='key', how='inner'))
+print(pd.merge(df1, df2, on='key', how='outer'))
+
+df1 = pd.DataFrame({'key1': ['A', 'B', 'C', 'D'], 'value': [1, 2, 3, 4]})
+df2 = pd.DataFrame({'key2': ['B', 'D', 'E', 'F'], 'value': [5, 6, 7, 8]})
+print(pd.merge(df1, df2, left_on='key1', right_on='key2', how='inner'))
+```
+
+
+
+> ### seaborn
 
 
 
@@ -6430,7 +6953,50 @@ wb.save('99mul.xlsx')
 
 > 更多内容：如字体、边框填充、超链接、excel公式、合并单元格，暂时用不上，这里不做笔记，需要用时见[这里](https://blog.csdn.net/liyuanjinglyj/article/details/87895700)
 
+### plotly
 
+#### 折线图
+
+要求用到 pandas 的 `DataFrame`，以 `vacs` 为例，绘制以某列为横坐标，另一列为纵坐标(不只是起标题作用，而是真的用来选择数据)：
+
+```python
+import plotly.express as px
+def plot_cases(country):
+    country_only = vacs[vacs['Country_Region'] == country]
+    fig = px.line(country_only, x='Date', y='Doses_admin', title=f"'Doses_admin' column for {country}")
+    fig.show()
+```
+
+#### 等值线图
+
+[文档](https://plotly.com/python/choropleth-maps/)
+
+画一张世界地图：
+
+```python
+def draw_choropleth(tots, pops_fixed):
+    df = pd.merge(tots, pops_fixed, left_on = 'Country_Region', right_on= 'Country (or dependency)', how = 'inner')
+    df['Doses Per Person'] = df['Doses_admin'] / df['Population in 2023'] / 1000
+
+    # df['Country (or dependency)'] = df['Country (or dependency)'].apply(lambda x: f"<b>{x}</b>") # no need, already bold
+    fig = px.choropleth(
+        df,
+        locations = 'ISO',
+        color = 'Doses Per Person',
+        labels = {'unemp':'Doses Per Person'},
+        hover_name = 'Country (or dependency)',
+        color_continuous_scale = ["lightgreen", "darkgreen"], 
+        # locationmode = 'ISO-3', # default
+    )
+    fig.update_layout(
+        margin={"r":0,"t":0,"l":0,"b":0},
+        title="COVID Vaccine Doses Per Person"
+    )
+    # fig.update_geos(projection_type="mercator")
+    return fig
+```
+
+`ISO` 是三个字母的国家编号。再补充。
 
 ## 图像处理
 
@@ -6743,7 +7309,7 @@ print("最优解为：\n",x.value)
 
 [更多例题参考](https://blog.csdn.net/abc1234564546/article/details/126263264)
 
-
+## 文件处理
 
 ## 文本处理
 
