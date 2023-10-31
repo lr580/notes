@@ -374,6 +374,17 @@ import random
 
 
 
+对 `import` 本地文件，当其更新时，不必重新运行 `ipynb`：
+
+```python
+%load_ext autoreload
+%autoreload 2
+```
+
+
+
+
+
 #### vscode
 
 常见问题：
@@ -5221,6 +5232,18 @@ np.random.normal(mean, sigma, image.shape).astype(dtype=np.float32
 np.random.uniform(low=0.0, high=1.0, size=(5,5))
 ```
 
+随机数组，每个数概率不同：(下例数组长为 100)
+
+```python
+np.random.choice([0, 1], 100, p=[0.98, 0.02])
+```
+
+二项分布：size是多少个同样的次数实验，返回每个元素是进行这么多次试验成功了几次的整形数组形状是size，每个元素表示一次平行的次数次试验
+
+```python
+np.random.binomial(实验次数,成功率, size)
+```
+
 
 
 ##### 数组运算
@@ -6478,13 +6501,13 @@ print(x)
 pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 ```
 
-取一列：`[列名str]`。取行区间`[起:止]` (切片语法同 python)。用下标取就 `iloc[]`。
+取一列：`[列名str]`。取行区间`[起:止]` (切片语法同 python)。用下标取就 `iloc[]`
 
-取单独元素 `.at[行号, 列str]`
+取单独元素 `.at[行号, 列str]` 或 `.loc`
 
 转 numpy(丢失表头)：`.to_numpy()`，转列表 `.tolist()`，转 set 直接 `set(df[])`
 
-简要统计 `.describe()`
+简要统计 `.describe()` 形状 `.shape`
 
 取所有列(含下表列) `df.columns`，取指定列，可以 for 和取下标，得 str
 
@@ -6518,6 +6541,26 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 取 `.values` 可以转化为 np array。然后可以丢进 tensor。
 
 ##### series
+
+取某一列：
+
+```python
+data = {'A': [1, 2, 3],
+        'B': [4, 5, 6]}
+df = pd.DataFrame(data)
+series = df['A'].squeeze()
+series.loc[1]
+df.loc[1, 'A'] #等价
+```
+
+应用：使用 boolean series 筛选元素：
+
+```python
+w=df.apply(lambda x:x[0]>3, axis=1)
+df[w]
+```
+
+
 
 遍历某个 list，将每个元素(str 如 `20-30`)作为上下界作用于某列进行筛选，然后筛选完了求平均值或其他返回一元值的操作
 
@@ -6582,7 +6625,11 @@ df.drop_duplicates(subset = ['DATATIME'],keep='first',inplace=True)
 vacs['Country_Region'].unique()
 ```
 
+> 去重数目 `nunique()`
+
 对该列每个元素应用某函数，返回值就地赋值 `df[col].apply(函数)`，例子见下文字符串处理。
+
+每行处理：`apply(f, axis=1)`，例子见字符串处理。
 
 插入一个二分类列，表示某一列是否为 `np.nan`。
 
@@ -6622,20 +6669,23 @@ df = pd.DataFrame(data)
 print(df)
 ```
 
-聚合函数：(数值函数会忽略字符串列，把 `groupby` 列当成下表列)
+聚合函数：(数值函数会忽略字符串列，把 `groupby` 列当成下标列)
 
 ```python
 grouped_df = df.groupby('City').mean()
 ```
 
-双聚合因子和双聚合函数：
+其他聚合函数，如 min, max, sum, size(计数),count
 
-```python
-grouped_df = df.groupby(['City', 'Date']).agg({'Temperature': 'max', 'Rainfall': 'sum'})
-print(grouped_df)
-```
-
-怎么用这个结果看聚合索引。
+> 双聚合因子和双聚合函数：
+>
+> ```python
+> grouped_df = df.groupby(['City', 'Date']).agg({'Temperature': 'max', 'Rainfall': 'sum'})
+> print(grouped_df)
+> ```
+>
+> 怎么用这个结果看聚合索引。
+>
 
 自定义聚合函数：
 
@@ -6724,7 +6774,24 @@ print(grouped_df.loc[('Berlin', '2021-01-01'), 'Temperature'])
 5. 大小写转换：使用 `lower()` 和 `upper()` 方法可以将字符串转换为小写或大写。
 6. 字符串长度：使用 `len()` 方法可以获取字符串的长度。
 
-如，取所有数字并连接，原地保存：
+如，检查是否两列不区分大小写包含某串：
+
+```python
+def bhbe_col(heroes):
+    def check(row):
+        return 'blue' in row['Eye color'].lower() and 'blond' in row['Hair color'].lower()
+    return heroes.apply(check, axis=1)
+```
+
+> 或：
+>
+> ```python
+> is_blond = heroes['Hair color'].str.contains('blond', case=False, na=False)
+> is_blue_eyed = heroes['Eye color'].str.contains('blue', case=False, na=False)
+>     return is_blond & is_blue_eyed
+> ```
+
+取所有数字并连接，原地保存：
 
 ```python
 data = {'ColumnName': ['abc123', 'def456', 'ghi789']}
@@ -6771,6 +6838,8 @@ for col in df.columns:
 print(df)
 # 注意 ² 会 isdight，如果单位有奇怪的特殊字符建议重写isdight
 ```
+
+
 
 ##### 拼接
 
@@ -6830,6 +6899,123 @@ print(pd.merge(df1, df2, on='key', how='outer'))
 df1 = pd.DataFrame({'key1': ['A', 'B', 'C', 'D'], 'value': [1, 2, 3, 4]})
 df2 = pd.DataFrame({'key2': ['B', 'D', 'E', 'F'], 'value': [5, 6, 7, 8]})
 print(pd.merge(df1, df2, left_on='key1', right_on='key2', how='inner'))
+```
+
+##### 行列重构
+
+将普通列设为索引或将索引退回成普通列：
+
+```python
+data = {'Name': ['Alice', 'Bob', 'Charlie'],
+        'Age': [25, 30, 35]} #初始0-2索引，2个普通列
+df = pd.DataFrame(data)
+# 设置索引为 'Name' 列，删掉初始索引
+df.set_index('Name', inplace=True)
+# 使用 reset_index 重置索引，归还初始状态
+df_reset = df.reset_index()
+print(df_reset)
+```
+
+可以设置 `reset_index(drop=1)`，顺手把原本的索引列即上例 name 删了
+
+增加一些没有的列 id 对应的值，填补缺省值：
+
+```python
+rainfall = pd.Series([45, 32, 64, 28], index=[2019, 2020, 2021, 2022], name='Rainfall')
+new_years = [2018, 2019, 2020, 2021, 2022, 2023]
+# 插入不存在的列，其值设为 NaN, 数据类型转 float
+rainfall_reindexed = rainfall.reindex(new_years)
+# 不转类型，设 0
+rainfall_reindexed = rainfall.reindex(new_years, fill_value=0)
+```
+
+删列：
+
+```python
+df = pd.DataFrame({
+    'A': [1, 2, 3],
+    'B': [4, 5, 6],
+    'C': [7, 8, 9],
+})
+df2 = df.drop(columns=['A', 'B']) # 不改变 df
+df.drop(columns=['A', 'B'], inplace=True) # 改变
+df3 = df[['C']] # 只要 C 列
+```
+
+
+
+#### 时间
+
+##### 类型
+
+转换成对应数据类型：
+
+```python
+pd.to_datetime(df[列]) #比如本来是字符串2022-01-29 18:24:07
+```
+
+检测转换：
+
+```python
+df['date_column'].dtype == 'datetime64[ns]'
+```
+
+##### dt属性
+
+一些常用的 `.dt` 方法和属性：
+
+1. `.dt.year`：返回日期时间中的年份。
+2. `.dt.month`：返回日期时间中的月份（1 到 12）。
+3. `.dt.day`：返回日期时间中的日（1 到 31）。
+4. `.dt.hour`：返回日期时间中的小时（0 到 23）。
+5. `.dt.minute`：返回日期时间中的分钟（0 到 59）。
+6. `.dt.second`：返回日期时间中的秒（0 到 59）。
+7. `.dt.microsecond`：返回日期时间中的微秒（0 到 999999）。
+8. `.dt.weekday`：返回日期时间对应的星期几，星期一为 0，星期日为 6。
+9. `.dt.week`：返回日期时间所在年份的周数。
+10. `.dt.strftime(format)`：将日期时间对象格式化为字符串，可以自定义日期时间的输出格式，例如 `'%Y-%m-%d %H:%M:%S'`。
+11. `.dt.date`：返回日期时间中的日期部分。
+12. `.dt.time`：返回日期时间中的时间部分。
+13. `.dt.to_period(freq)`：将日期时间对象转换为指定频率（如天、月、年等）的 Period 对象。
+
+例子，对同 id 的每组计数 $[4PM,8PM)$ 的时间
+
+```python
+def prime_time_logins(login):
+    df = login # login.copy()
+    df['hour'] = pd.to_datetime(df['Time']).dt.hour
+    res = df[(df['hour'] >= 16) & (df['hour'] < 20)]
+    res = res.groupby('Login Id').agg({"Time":'size'}) #.size()
+    # 当前: Login Id 为索引, 无名列为 count
+    res = res.reindex(df['Login Id'].unique(), fill_value=0)
+    #在上面的基础上补全了为0的缺省(<16 | >=20的login id)
+
+    # .size() 的话重命名
+    # res = res.reset_index(name="Time").set_index('Login Id')
+    return res
+```
+
+##### 时间运算
+
+时间相差：
+
+```python
+# pd.Timestamp('2023-01-31') 置一个时间
+timestamp1 = pd.Timestamp('2023-01-01 22:00:00')
+timestamp2 = pd.Timestamp('2023-01-02 03:00:00')
+(timestamp2 - timestamp1).days #0
+```
+
+时间下取整(时分秒归零)：
+
+```python
+timestamp1.normalize()
+```
+
+取天的跨度(而不是简单的小时差)：
+
+```python
+(timestamp2.normalize() - timestamp1.normalize()).days
 ```
 
 
