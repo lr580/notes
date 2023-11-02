@@ -1290,6 +1290,8 @@ index(x)返回从左到右第一个出现的x元素的下标，如果找不到�
 
 count(x)统计有多少个x元素，找不到返回0
 
+`*`一个整数复制重复这么多次，空集乘是自身；乘 0 得空集
+
 #### tuple
 
 元组，是定义之后不可以修改的列表：
@@ -1344,6 +1346,10 @@ s={1,2,3,1,2,4}#初始化
 s=set([1,2,3,4,5,2])
 s=set()#空字典
 ```
+
+- `discard(u)` 删除值为 u 的元素，如无忽略；返回 None
+- `pop()` 任意删除元素并返回；空集报错
+- `add(u)` 插入元素，已有忽略；返回 None
 
 ##### 运算
 
@@ -1408,6 +1414,8 @@ a[:21:5] #[0,5,10,15,20]
 可以随便越界，如：`"123"[-12321312321:155555]=="123"`
 
 ### 对象
+
+#### 基本概念
 
 自定义数据类型，即类。其变量是实例，有成员属性和成员函数(方法)。
 
@@ -1487,7 +1495,9 @@ def do(self):
 a.do()
 ```
 
+#### __属性
 
+`__len__` 方法如果定义了，可以用内置函数 `len()`。通常都是 O(1) 的。
 
 ## 运算
 
@@ -3043,6 +3053,20 @@ __import__('a')
 
 ### 常用标准库
 
+#### collection
+
+集合类
+
+> 栈用 list 即可
+
+##### deque
+
+构造函数 `deque()` 或传入一个 list 等代表初始元素
+
+`if` 该 deque 变量本身返回它是否为空
+
+`pop, popleft` 方法删除右端和左端并返回，`append, appendleft` 插入。
+
 #### math
 
 常数pi和e，意义同数学
@@ -3088,7 +3112,9 @@ choice(数组) #返回数组内随机一个元素,dict要key是整数,返回valu
 
 #### sys
 
-##### main参数
+递归栈深度：`sys.setrecursionlimit(10000)`
+
+main参数
 
 `sys.argv` 得到数组，第一个元素是输入的执行本程序名，后面是输入的参数
 
@@ -4026,6 +4052,62 @@ for py in f:
 
 ```python
 print(glob.escape('?[]*.py'))
+```
+
+#### typing
+
+类型检查，提出警告但不报错。3.5+
+
+常见的：
+
+- `List, Tuple, Set, Dict`，如 `Dict[str, int]`
+
+- `Any`
+
+- 函数返回值 `def add(x: int, y: int) -> int`
+
+- `Union` 是可以取里面几种的一种作输入如 `Union[int, str]`
+
+  类比 rust，`Optional` 是 `Union` 特况，表示还可以是 `None`
+
+- `Callable` 可调用对象如函数
+
+例如：
+
+```python
+from typing import List
+def f(a: List[int]) -> int:
+    print(sum(a))
+```
+
+> 具体使用：安装第三方库
+>
+> ```
+> pip install mypy
+> ```
+>
+> 执行：
+>
+> ```sh
+> mypy code.py
+> ```
+
+自定义类：
+
+```python
+"""
+# Definition for a Node.
+class Node:
+    def __init__(self, val: int = 0, left: 'Node' = None, right: 'Node' = None, next: 'Node' = None):
+        self.val = val
+        self.left = left
+        self.right = right
+        self.next = next
+"""
+
+class Solution:
+    def connect(self, root: 'Node') -> 'Node':
+        ...
 ```
 
 
@@ -5242,6 +5324,38 @@ np.random.choice([0, 1], 100, p=[0.98, 0.02])
 
 ```python
 np.random.binomial(实验次数,成功率, size)
+```
+
+##### 组合数学
+
+阶乘：
+
+```python
+permutation = np.math.factorial(n) / np.math.factorial(n - k)
+print("排列:", permutation) # n 个选 k 个
+
+# 计算组合
+combination = np.math.factorial(n) / (np.math.factorial(k) * np.math.factorial(n - k))
+print("组合:", combination)
+```
+
+二项分布：
+
+```python
+import numpy as np
+
+# 模拟二项分布
+n = 10  # 试验的次数
+p = 0.5  # 每次试验成功的概率
+k = 4  # 成功的次数
+simulated_probability = np.random.binomial(n, p, size=10000).tolist().count(k) / 10000
+print("模拟概率:", simulated_probability)
+
+# 计算二项分布概率
+from scipy.special import comb
+
+probability = comb(n, k) * (p ** k) * ((1 - p) ** (n - k))
+print("计算概率:", probability)
 ```
 
 

@@ -937,6 +937,26 @@
 - 2698\.求一个整数的惩罚数
 
   爆搜
+  
+- 274\.H指数
+
+  二分答案 / 排序 / 计数排序+后缀和
+  
+- 275\.H指数II
+
+  二分答案
+
+- 2127\.参加会议的最多员工数
+
+  **拓扑排序**(内向基环树)
+
+- 117\. 填充每个节点的下一个右侧节点指针 II
+
+  DFS / <u>BFS层序</u>
+
+- 2003\.每棵子树内缺失的最小基因值
+
+  树上启发式合并+STL / <u>树上启发式合并</u> / <u>DFS</u>
 
 
 
@@ -26141,6 +26161,546 @@ class Solution {
 public:
     int punishmentNumber(int n) {
         return PRE_SUM[n];
+    }
+};
+```
+
+##### 274\.H指数
+
+二分答案：
+
+```python
+class Solution:
+    def hIndex(self, citations: List[int]) -> int:
+        n = len(citations)
+        lf, rf, ans = 0, n, 0
+        while lf <= rf:
+            cf = (lf + rf) >> 1
+            cnt = sum([i >= cf for i in citations])
+            if cnt >= cf:
+                ans, lf = cf, cf + 1
+            else:
+                rf = cf - 1
+        return ans
+```
+
+解法二：排序，找到最大下标。
+
+```python
+class Solution:
+    def hIndex(self, citations: List[int]) -> int:
+        sorted_citation = sorted(citations, reverse = True)
+        h = 0; i = 0; n = len(citations)
+        while i < n and sorted_citation[i] > h:
+            h += 1
+            i += 1
+        return h
+```
+
+解法三：计数排序+后缀和
+
+```python
+class Solution:
+    def hIndex(self, citations: List[int]) -> int:
+        n = len(citations); tot = 0
+        counter = [0] * (n+1)
+        for c in citations:
+            if c >= n:
+                counter[n] += 1
+            else:
+                counter[c] += 1
+        for i in range(n, -1, -1):
+            tot += counter[i]
+            if tot >= i:
+                return i
+        return 0
+```
+
+##### 275\.H指数II
+
+[题目](https://leetcode.cn/problems/h-index-ii)
+
+```python
+class Solution:
+    def hIndex(self, citations: List[int]) -> int:
+        n = len(citations)
+        lf, rf, ans = 1, n, 0
+        while lf <= rf:
+            cf = (lf + rf) >> 1
+            if citations[n - cf] >= cf:
+                ans, lf = cf, cf + 1
+            else:
+                rf = cf - 1
+        return ans
+```
+
+##### 2127\.参加会议的最多员工数
+
+[题目]()
+
+每个连通分量内，最多一个环，故每个连通分量为内向基环树(定义为树加一条边成环的图)。
+
+1. 若环长 $\ge 3$，一种方案为取环。
+2. 若环长为 $2$，方案为从一叶走到该环一点，另一叶走到该环一点
+
+注意到最长链是不能作为答案的，因为头和尾不连，尾(无出度点)不满足出席条件。
+
+先拓扑排序，使得图只剩下若干个环，并 DP 记录到达环该点的叶最大距离。然后对每个环，如果情况一遍历环求环长，情况二输出 DP 和即可。
+
+```python
+class Solution:
+    def maximumInvitations(self, favorite: List[int]) -> int:
+        n = len(favorite)
+        # 统计入度，便于进行拓扑排序
+        indeg = [0] * n
+        for i in range(n):
+            indeg[favorite[i]] += 1
+        
+        used = [False] * n
+        f = [1] * n
+        q = deque(i for i in range(n) if indeg[i] == 0)
+        
+        while q:
+            u = q.popleft()
+            used[u] = True
+            v = favorite[u]
+            # 状态转移
+            f[v] = max(f[v], f[u] + 1)
+            indeg[v] -= 1
+            if indeg[v] == 0:
+                q.append(v)
+        
+        # ring 表示最大的环的大小
+        # total 表示所有环大小为 2 的「基环内向树」上的最长的「双向游走」路径之和
+        ring = total = 0
+        for i in range(n):
+            if not used[i]:
+                j = favorite[i]
+                # favorite[favorite[i]] = i 说明环的大小为 2
+                if favorite[j] == i:
+                    total += f[i] + f[j]
+                    used[i] = used[j] = True
+                # 否则环的大小至少为 3，我们需要找出环
+                else:
+                    u = i
+                    cnt = 0
+                    while True:
+                        cnt += 1
+                        u = favorite[u]
+                        used[u] = True
+                        if u == i:
+                            break
+                    ring = max(ring, cnt)
+        
+        return max(ring, total)
+```
+
+##### 117. 填充每个节点的下一个右侧节点指针 II
+
+[题目](https://leetcode.cn/problems/populating-next-right-pointers-in-each-node-ii/)
+
+DFS 构造出每层从左到右分别有哪些节点，然后逐层遍历
+
+```python
+class Solution:
+    def dfs(self, root: 'Node', d: int):
+        if root is None:
+            return
+        if self.a.__len__() == d:
+            self.a.append([])
+        self.a[d].append(root)
+        self.dfs(root.left, d + 1)
+        self.dfs(root.right, d + 1)
+    def connect(self, root: 'Node') -> 'Node':
+        self.a = []  #模拟每层
+        self.dfs(root, 0)
+        for i in range(len(self.a)):
+            for j in range(len(self.a[i]) - 1):
+                self.a[i][j].next = self.a[i][j + 1]
+        return root
+```
+
+题解：BFS
+
+- 每一轮 BFS 当前 queue 大小 n 是当前层的点数，对每一轮分别处理
+
+```c++
+class Solution {
+public:
+    Node* connect(Node* root) {
+        if (!root) {
+            return nullptr;
+        }
+        queue<Node*> q;
+        q.push(root);
+        while (!q.empty()) {
+            int n = q.size();
+            Node *last = nullptr;
+            for (int i = 1; i <= n; ++i) {
+                Node *f = q.front();
+                q.pop();
+                if (f->left) {
+                    q.push(f->left);
+                }
+                if (f->right) {
+                    q.push(f->right);
+                }
+                if (i != 1) {
+                    last->next = f;
+                }
+                last = f;
+            }
+        }
+        return root;
+    }
+};
+```
+
+可以压缩空间，对当前层，初始化下一层首节点，遍历点的左右时，左可以更新为下一层首节点，并且维护上一个遍历的值(右时为左，左时为上个的右)，让它指向当前遍历的。然后因为上一层被维护过了，所以 next 可以拿来搞层内从左到右遍历，能够连续。
+
+```c++
+class Solution {
+public:
+    Node* connect(Node* root) {
+        if (!root) {
+            return nullptr;
+        }
+        queue<Node*> q;
+        q.push(root);
+        while (!q.empty()) {
+            int n = q.size();
+            Node *last = nullptr;
+            for (int i = 1; i <= n; ++i) {
+                Node *f = q.front();
+                q.pop();
+                if (f->left) {
+                    q.push(f->left);
+                }
+                if (f->right) {
+                    q.push(f->right);
+                }
+                if (i != 1) {
+                    last->next = f;
+                }
+                last = f;
+            }
+        }
+        return root;
+    }
+};
+```
+
+```python
+class Solution:
+    def connect(self, root: 'Node') -> 'Node':
+        if not root:
+            return None
+        start = root
+        while start:
+            self.last = None
+            self.nextStart = None
+            p = start
+            while p:
+                if p.left:
+                    self.handle(p.left)
+                if p.right:
+                    self.handle(p.right)
+                p = p.next
+            start = self.nextStart
+        return root
+
+    def handle(self, p):
+        if self.last:
+            self.last.next = p
+        if not self.nextStart:
+            self.nextStart = p
+        self.last = p
+```
+
+##### 2003\.每棵子树内缺失的最小基因值
+
+[题目](https://leetcode.cn/problems/smallest-missing-genetic-value-in-each-subtree/)
+
+我的思路：
+
+- 使用树上启发式合并顺序枚举，可以 $O(n\log n)$ 得到每个子树的状态
+
+  树上启发式顺序枚举的模板参见洛谷或 [oi wiki](https://oi-wiki.org/graph/dsu-on-tree/)
+
+- 状态的维护，使用 map + set：
+
+  - map 维护当前状态每个基因出现的次数
+
+    set 维护当前不存在的所有基因
+
+  - 查询就输出 set 首元素
+
+  - 插入时，如果尚未出现过该基因，set 将它删了；否则只维护 map
+
+  - 删除时。如果删后 map 不再存在该元素，set 插入它
+
+  - 该维护是 $O(\log n)$ 单次的，故总复杂度为 $O(n\log^2n)$
+
+不够优，继续优化该思路：
+
+- 使用 unmap 代替 map
+
+- 使用 cnt 整型代替 set，初始值为 1
+
+  - 查询输出 cnt
+
+  - 删除时，如果删后不再出现，cnt 与它取最小值，$O(1)$
+
+  - 插入时，如果首次出现且恰为 cnt，不断自增 cnt 使其不再出现位置，单次最坏 $O(n)$，但均摊 $O(1)$
+
+    考虑一种极端情况，unmap 有下面元素各出现一次：`1 3 4 ... n`，
+
+    插入 2，则此次复杂度为 $O(n)$，然后不断增删 2，能够卡 $O(n)$
+
+    但是，考虑到本来的结构是树，且插入与删除互逆，大概率不会出现这样情况，故可以认为平均表现就是 $O(1)$
+
+因此，优化到平均表现为 $O(n\log n)$ 的解法。
+
+参考代码：
+
+```c++
+class Solution
+{
+    vector<int> a, ans;
+    vector<vector<int>> g;
+
+    struct Mex
+    {
+        int cnt = 1;
+        unordered_map<int, int> m;
+        int mex() { return cnt; }
+        void add(int x)
+        {
+            ++m[x];
+            if (x == cnt)
+            {
+                while (m[cnt] > 0)
+                    ++cnt;
+            }
+        }
+        void del(int x)
+        {
+            if (--m[x] == 0)
+            {
+                m.erase(x);
+                cnt = min(cnt, x);
+            }
+        }
+    } mex;
+
+    vector<int> siz, dfn, lf, rf, big;
+    int cnt;
+    void dfs1(int u, int fa)
+    {
+        siz[u] = 1, lf[u] = ++cnt;
+        dfn[cnt] = u;
+        for (auto &v : g[u])
+        {
+            if (v != fa)
+            {
+                dfs1(v, u);
+                siz[u] += siz[v];
+                if (siz[big[u]] < siz[v])
+                {
+                    big[u] = v;
+                }
+            }
+        }
+        rf[u] = cnt;
+    }
+
+    void dfs2(int u, int fa, bool save)
+    {
+        for (auto &v : g[u])
+        {
+            if (v != fa && v != big[u])
+            {
+                dfs2(v, u, false);
+            }
+        }
+        if (big[u])
+        {
+            dfs2(big[u], u, true);
+        }
+        for (auto &v : g[u])
+        {
+            if (v != fa && v != big[u])
+            {
+                for (int j = lf[v]; j <= rf[v]; ++j)
+                {
+                    mex.add(a[dfn[j]]);
+                }
+            }
+        }
+        mex.add(a[u]);
+        ans[u - 1] = mex.mex();
+        if (!save)
+        {
+            for (int j = lf[u]; j <= rf[u]; ++j)
+            {
+                mex.del(a[dfn[j]]);
+            }
+        }
+    }
+
+public:
+    vector<int> smallestMissingValueSubtree(vector<int> &parents, vector<int> &nums)
+    {
+        int n = parents.size(), m = n + 1;
+        g.resize(m), a.resize(m);
+        for (int u = 1; u <= n; ++u)
+        {
+            int v = parents[u - 1] + 1;
+            if (v != 0)
+            {
+                g[u].emplace_back(v);
+                g[v].emplace_back(u);
+            }
+            a[u] = nums[u - 1];
+        }
+        cnt = 0;
+        siz.resize(m), dfn.resize(m);
+        lf.resize(m), rf.resize(m), big.resize(m);
+        mex = Mex();
+        ans.resize(n);
+        dfs1(1, 0);
+        dfs2(1, 0, false);
+        return ans;
+    }
+};
+```
+
+题解启发式合并：
+
+- 直接暴力合并每个子树到父，但如果子树比目前维护到的父累积更大，进行交换而不是合并。则总 $O(n\log n)$。
+- 注意到父只会比子更劣，所以对子暴力求 mex，然后父顺着子的记录暴力，均摊是 $O(1)$
+- 因此做到了不删的优化
+
+```c++
+class Solution {
+public:
+    vector<int> smallestMissingValueSubtree(vector<int>& parents, vector<int>& nums) {
+        int n = parents.size();
+        vector<vector<int>> children(n);
+        for (int i = 1; i < n; i++) {
+            children[parents[i]].push_back(i);
+        }
+
+        vector<int> res(n, 1);
+        vector<unordered_set<int>> geneSet(n);
+        function<int(int)> dfs = [&](int node) -> int {
+            geneSet[node].insert(nums[node]);
+            for (auto child : children[node]) {
+                res[node] = max(res[node], dfs(child));
+                if (geneSet[node].size() < geneSet[child].size()) {
+                    geneSet[node].swap(geneSet[child]);
+                }
+                geneSet[node].merge(geneSet[child]);
+            }
+            while (geneSet[node].count(res[node]) > 0) {
+                res[node]++;
+            }
+            return res[node];
+        };
+        dfs(0);
+        return res;
+    }
+};
+```
+
+```python
+class Solution:
+    def smallestMissingValueSubtree(self, parents: List[int], nums: List[int]) -> List[int]:
+        n = len(parents)
+        children = [[] for _ in range(n)]
+        for i in range(1, n):
+            children[parents[i]].append(i)
+
+        res = [1 for _ in range(n)]
+        def dfs(node):
+            geneSet = {nums[node]}
+            for child in children[node]:
+                childGeneSet, y = dfs(child)
+                res[node] = max(res[node], y)
+                if len(childGeneSet) > len(geneSet):
+                    geneSet, childGeneSet = childGeneSet, geneSet
+                geneSet.update(childGeneSet)
+            while res[node] in geneSet:
+                res[node] += 1
+            return geneSet, res[node]
+        
+        dfs(0)
+        return res
+```
+
+注意到一个重要提示：元素值互不相同。则节点分为两类：
+
+1. 该点子树含 1
+2. 该点子树不含 1
+
+第二类所有节点直接输出 1。
+
+具体而言：
+
+1. 先找到 1 所在点
+
+2. DFS 1 所在点的子树，维护该子树的基因集合
+
+3. 暴力求出 1 所在点的子树 mex 值，这三步加起来是 $O(n)$ 的
+
+   注意到，1 子树的所有子孙的 mex 都是 1，所以不用求
+
+4. 1 所在点往上跳一次父亲，对父亲子树继续 DFS(不重复访问所有 DFS 过的点)，求出父亲的 mex
+
+   同理注意到，父亲的其他子树的所有子孙都是 1，也不用求
+
+5. 不断跳到根，均摊 $O(n)$ 求出全部答案
+
+```c++
+class Solution {
+public:
+    vector<int> smallestMissingValueSubtree(vector<int>& parents, vector<int>& nums) {
+        int n = parents.size();
+        vector<vector<int>> children(n);
+        for (int i = 1; i < n; i++) {
+            children[parents[i]].push_back(i);
+        }
+
+        unordered_set<int> geneSet;
+        vector<int> visited(n, 0);
+        function<void(int)> dfs = [&](int node) {
+            if (visited[node]) {
+                return;
+            }
+            visited[node] = 1;
+            geneSet.insert(nums[node]);
+            for (auto child : children[node]) {
+                dfs(child);
+            }
+        };
+
+        vector<int> res(n, 1);
+        int iNode = 1, node = -1; //1是哪个点
+        for (int i = 0; i < n; i++) {
+            if (nums[i] == 1) {
+                node = i;
+                break;
+            }
+        }
+        while (node != -1) {
+            dfs(node);
+            while (geneSet.count(iNode)) {
+                iNode++;
+            }
+            res[node] = iNode;
+            node = parents[node];
+        }
+        return res;
     }
 };
 ```
