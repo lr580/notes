@@ -957,6 +957,10 @@
 - 2003\.每棵子树内缺失的最小基因值
 
   树上启发式合并+STL / <u>树上启发式合并</u> / <u>DFS</u>
+  
+- 421\.数组中两个数的最大异或值
+
+  <u>01trie</u> / <u>STL</u>
 
 
 
@@ -26701,6 +26705,108 @@ public:
             node = parents[node];
         }
         return res;
+    }
+};
+```
+
+##### 421\.数组中两个数的最大异或值
+
+[题目](https://leetcode.cn/problems/maximum-xor-of-two-numbers-in-an-array)
+
+将每个数 $x$ 插入到 01trie，然后从高到低在 01trie 上：对 $x$ 当前位，如果当前能走到与它相反的节点就走这个节点，否则走另一个节点(01trie 至少有 $x$ 本身所以一定能找到值)，最后得到的一定是对 $x$ 异或最大的 $y$。维护 $x\oplus y$ 最大值即可。
+
+时空复杂度 $O(nm)$。
+
+```java
+class Solution {
+    class Node {
+        Node[] ns = new Node[2];
+    }
+    Node root = new Node();
+    void add(int x) {
+        Node p = root;
+        for (int i = 31; i >= 0; i--) {
+            int u = (x >> i) & 1;
+            if (p.ns[u] == null) p.ns[u] = new Node();
+            p = p.ns[u];
+        }
+    }
+    int getVal(int x) {
+        int ans = 0;
+        Node p = root;
+        for (int i = 31; i >= 0; i--) {
+            int a = (x >> i) & 1, b = 1 - a;
+            if (p.ns[b] != null) {
+                ans |= (b << i);
+                p = p.ns[b];
+            } else {
+                ans |= (a << i);
+                p = p.ns[a];
+            }
+        }
+        return ans;
+    }
+    public int findMaximumXOR(int[] nums) {
+        int ans = 0;
+        for (int i : nums) {
+            add(i);
+            int j = getVal(i);
+            ans = Math.max(ans, i ^ j);
+        }
+        return ans;
+    }
+}
+```
+
+不优的思路二：
+
+- 从高到低枚举答案每一位，先假设答案这一位能取 $1$
+- 将从当前位和更高位组成的全体二进制存 set
+- 枚举截断到从当前位和更高位的全体二进制，看看它异或当前答案后的结果能否在 set 找到，如果能，证明对当前数，存在另一个数，能让他异或后得到答案
+- 如果能，这一位保留 1，否则这一位设 0
+- 将当前位留存，再次假设下一位为 1，得到更长的答案去搞
+
+```c++
+class Solution {
+private:
+    // 最高位的二进制位编号为 30
+    static constexpr int HIGH_BIT = 30;
+
+public:
+    int findMaximumXOR(vector<int>& nums) {
+        int x = 0;
+        for (int k = HIGH_BIT; k >= 0; --k) {
+            unordered_set<int> seen;
+            // 将所有的 pre^k(a_j) 放入哈希表中
+            for (int num: nums) {
+                // 如果只想保留从最高位开始到第 k 个二进制位为止的部分
+                // 只需将其右移 k 位
+                seen.insert(num >> k);
+            }
+
+            // 目前 x 包含从最高位开始到第 k+1 个二进制位为止的部分
+            // 我们将 x 的第 k 个二进制位置为 1，即为 x = x*2+1
+            int x_next = x * 2 + 1;
+            bool found = false;
+            
+            // 枚举 i
+            for (int num: nums) {
+                if (seen.count(x_next ^ (num >> k))) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (found) {
+                x = x_next;
+            }
+            else {
+                // 如果没有找到满足等式的 a_i 和 a_j，那么 x 的第 k 个二进制位只能为 0
+                // 即为 x = x*2
+                x = x_next - 1;
+            }
+        }
+        return x;
     }
 };
 ```
