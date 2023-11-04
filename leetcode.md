@@ -961,6 +961,10 @@
 - 421\.数组中两个数的最大异或值
 
   <u>01trie</u> / <u>STL</u>
+  
+- 187\.重复的DNA序列
+
+  STL / <u>STL+滑动窗口</u>
 
 
 
@@ -26809,6 +26813,65 @@ public:
         return x;
     }
 };
+```
+
+##### 187\.重复的DNA序列
+
+[题目](https://leetcode.cn/problems/repeated-dna-sequences)
+
+```python
+from typing import *
+class Solution:
+    def findRepeatedDnaSequences(self, s: str) -> List[str]:
+        n = s.__len__()
+        h = set()
+        ans = set()
+        for i in range(n-9):
+            t = s[i:i+10]
+            if t in h:
+                ans.append(t)
+            h.add(t)
+        return list(ans)
+```
+
+更优雅：
+
+```python
+L = 10
+class Solution:
+    def findRepeatedDnaSequences(self, s: str) -> List[str]:
+        ans = []
+        cnt = defaultdict(int)
+        for i in range(len(s) - L + 1):
+            sub = s[i : i + L]
+            cnt[sub] += 1
+            if cnt[sub] == 2:
+                ans.append(sub)
+        return ans
+```
+
+解法二：一个字符 2 位，10 个字符 20 位，可以用一个整型表示子串。使用滑动窗口维护整型，做卡常优化，卡掉长度复杂度：
+
+```python
+L = 10
+bin = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
+
+class Solution:
+    def findRepeatedDnaSequences(self, s: str) -> List[str]:
+        n = len(s)
+        if n <= L:
+            return []
+        ans = []
+        x = 0
+        for ch in s[:L - 1]:
+            x = (x << 2) | bin[ch]
+        cnt = defaultdict(int)
+        for i in range(n - L + 1):
+            x = ((x << 2) | bin[s[i + L - 1]]) & ((1 << (L * 2)) - 1)
+            cnt[x] += 1
+            if cnt[x] == 2:
+                ans.append(s[i : i + L])
+        return ans
 ```
 
 

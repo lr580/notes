@@ -3059,6 +3059,17 @@ __import__('a')
 
 > 栈用 list 即可
 
+##### defaultdict
+
+提供了一个默认值，用于在尝试访问字典中不存在的键时自动创建条目。这样，就不需要检查键是否存在于字典中。
+
+```python
+d = defaultdict(int) # 默认值 0
+d = defaultdict(list) # 空列表
+```
+
+
+
 ##### deque
 
 构造函数 `deque()` 或传入一个 list 等代表初始元素
