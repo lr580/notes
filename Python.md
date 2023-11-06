@@ -2232,6 +2232,13 @@ min(-1,1,key=abs) #-1
 min(1,-1,key=abs) #1
 ```
 
+default 参数：防止空数组异常
+
+```python
+max([-1,-2],default=0) # -1
+max([],default=0) #0
+```
+
 ##### pow
 
 还有 `pow(a,b,p)`，可以求模意义整数快速幂。
@@ -3938,6 +3945,8 @@ from itertools import *
 
   `product(iterable1, iterable2, ...)` 多个集合笛卡尔积
 
+  对 dict 使用，等价于对 keys 使用
+
 - 排列 `permutaions(iterable, m = len)`
 
 - 组合 `combinations(iterable, m)` 
@@ -3945,6 +3954,15 @@ from itertools import *
 - 带自身重复的组合(每个元素可以选无限次) `combinations_with_replacement()`
 
 例：
+
+```python
+list1 = [1, 2]
+list2 = [3, 4]
+cartesian_product = list(itertools.product(list1, list2))
+# 输出: [(1, 3), (1, 4), (2, 3), (2, 4)]
+cartesian_product = list(itertools.product(list1, repeat=3))
+# 输出: [(1, 1, 1), (1, 1, 2), (1, 2, 1), (1, 2, 2), (2, 1, 1), (2, 1, 2), (2, 2, 1), (2, 2, 2)]
+```
 
 ```python
 for i in product('1234', repeat=2):

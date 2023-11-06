@@ -965,6 +965,14 @@
 - 187\.重复的DNA序列
 
   STL / <u>STL+滑动窗口</u>
+  
+- 318\.最大单词长度乘积
+
+  位运算
+
+- 229\.多数元素II
+
+  STL / <u>摩尔投票</u>
 
 
 
@@ -26873,6 +26881,147 @@ class Solution:
                 ans.append(s[i : i + L])
         return ans
 ```
+
+##### 318\.最长单词长度乘积
+
+[题目](https://leetcode.cn/problems/maximum-product-of-word-lengths)
+
+我的位运算：
+
+```python
+class Solution:
+    def maxProduct(self, words: List[str]) -> int:
+        n = words.__len__()
+        b = [0] * n
+        for i in range(n):
+            for c in words[i]:
+                b[i] |= 1 << (ord(c) - ord('a'))
+        ans = 0
+        for i in range(n):
+            for j in range(i):
+                s = b[i] ^ b[j]
+                if (s & b[i] == b[i]) and (s & b[j] == b[j]):
+                    ans = max(ans, len(words[i]) * len(words[j]))
+        return ans
+```
+
+更优位运算逻辑：直接按位与不为零。
+
+```python
+class Solution:
+    def maxProduct(self, words: List[str]) -> int:
+        masks = [reduce(lambda a, b: a | (1 << (ord(b) - ord('a'))), word, 0) for word in words]
+        return max((len(x[1]) * len(y[1]) for x, y in product(zip(masks, words), repeat=2) if x[0] & y[0] == 0), default=0)
+```
+
+常数优化：对相同掩码的全体字符串，只要最长的长度。然后 for 掩码即可：
+
+```python
+class Solution:
+    def maxProduct(self, words: List[str]) -> int:
+        masks = defaultdict(int)
+        for word in words:
+            mask = reduce(lambda a, b: a | (1 << (ord(b) - ord('a'))), word, 0)
+            masks[mask] = max(masks[mask], len(word))
+        return max((masks[x] * masks[y] for x, y in product(masks, repeat=2) if x & y == 0), default=0)
+```
+
+##### 229\.多数元素II
+
+[题目](https://leetcode.cn/problems/majority-element-ii)
+
+可以用 dict 存次数然后取取所有满足的即可：
+
+```python
+class Solution:
+    def majorityElement(self, nums: List[int]) -> List[int]:
+        cnt = {}
+        ans = []
+        for v in nums:
+            if v in cnt:
+                cnt[v] += 1
+            else:
+                cnt[v] = 1
+        for item in cnt.keys():
+            if cnt[item] > len(nums)//3:
+                ans.append(item)
+        return ans
+```
+
+摩尔投票：可以证明这样的元素最多两个
+
+> 回顾最基本的摩尔投票：
+>
+> ```python
+> class Solution:
+>     def majorityElement(self, nums: List[int]) -> int:
+>         count = 0
+>         candidate = None
+>         for num in nums:
+>             if count == 0:
+>                 candidate = num
+>             count += (1 if num == candidate else -1)
+>         return candidate
+> ```
+
+扩展到本题的摩尔投票：
+
+```python
+class Solution:
+    def majorityElement(self, nums: List[int]) -> List[int]:
+        ans = []
+        element1, element2 = 0, 0
+        vote1, vote2 = 0, 0
+
+        for num in nums:
+            # 如果该元素为第一个元素，则计数加1
+            if vote1 > 0 and num == element1:
+                vote1 += 1
+            # 如果该元素为第二个元素，则计数加1
+            elif vote2 > 0 and num == element2:
+                vote2 += 1
+            # 选择第一个元素
+            elif vote1 == 0:
+                element1 = num
+                vote1 += 1
+            # 选择第二个元素
+            elif vote2 == 0:
+                element2 = num
+                vote2 += 1
+            # 如果三个元素均不相同，则相互抵消1次
+            else:
+                vote1 -= 1
+                vote2 -= 1
+
+        cnt1, cnt2 = 0, 0
+        for num in nums:
+            if vote1 > 0 and num == element1:
+                cnt1 += 1
+            if vote2 > 0 and num == element2:
+                cnt2 += 1        
+        # 检测元素出现的次数是否满足要求
+        if vote1 > 0 and cnt1 > len(nums) / 3:
+            ans.append(element1)
+        if vote2 > 0 and cnt2 > len(nums) / 3:
+            ans.append(element2)
+
+        return ans
+```
+
+> 有一个对摩尔投票法非常形象的比喻：多方混战。
+>
+> 首先要知道，在任何数组中，出现次数大于该数组长度1/3的值最多只有两个。
+>
+> 我们把这道题比作一场多方混战，战斗结果一定只有最多两个阵营幸存，其他阵营被歼灭。数组中的数字即代表某士兵所在的阵营。
+>
+> 我们维护两个潜在幸存阵营A和B。我们遍历数组，如果遇到了属于A或者属于B的士兵，则把士兵加入A或B队伍中，该队伍人数加一。继续遍历。
+>
+> 如果遇到了一个士兵既不属于A阵营，也不属于B阵营，这时有两种情况：
+>
+> 1. A阵营和B阵营都还有活着的士兵，那么进行一次厮杀，参与厮杀的三个士兵全部阵亡：A阵营的一个士兵阵亡，B阵营的一个士兵阵亡，这个不知道从哪个阵营来的士兵也阵亡。继续遍历。
+> 2. A阵营或B阵营已经没有士兵了。这个阵营暂时从地球上消失了。那么把当前遍历到的新士兵算作新的潜在幸存阵营，这个新阵营只有他一个人。继续遍历。
+>
+> 大战结束，最后A和B阵营就是初始人数最多的阵营。判断一下A，B的人数是否超过所有人数的三分之一就行了。
 
 
 
