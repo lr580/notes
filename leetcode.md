@@ -973,6 +973,10 @@
 - 229\.多数元素II
 
   STL / <u>摩尔投票</u>
+  
+- 2586\. 统计范围内的元音字符串数
+
+  签到
 
 
 
@@ -27022,6 +27026,29 @@ class Solution:
 > 2. A阵营或B阵营已经没有士兵了。这个阵营暂时从地球上消失了。那么把当前遍历到的新士兵算作新的潜在幸存阵营，这个新阵营只有他一个人。继续遍历。
 >
 > 大战结束，最后A和B阵营就是初始人数最多的阵营。判断一下A，B的人数是否超过所有人数的三分之一就行了。
+
+##### 2586\. 统计范围内的元音字符串数
+
+[题目](https://leetcode.cn/problems/count-the-number-of-vowel-strings-in-range/)
+
+我的 py：
+
+```python
+class Solution:
+    def vowelStrings(self, words: List[str], left: int, right: int) -> int:
+        ans, ch = 0, 'aeoiu'
+        for i in range(left, right+1):
+            ans += words[i][0] in ch and words[i][-1] in ch
+        return ans
+```
+
+题解的 py：
+
+```python
+class Solution:
+    def vowelStrings(self, words: List[str], left: int, right: int) -> int:
+        return sum(s[0] in "aeiou" and s[-1] in "aeiou" for s in words[left:right+1])
+```
 
 
 

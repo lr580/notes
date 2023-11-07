@@ -381,7 +381,17 @@ import random
 %autoreload 2
 ```
 
+> 如果没有这个，因为每次会在 `__pycache__` 里读取第一次编译好的字节码，所以不会实时更新。
+>
 
+##### 查阅帮助
+
+在Jupyter Notebook中，你可以在一个对象、方法、函数或变量后面加上一个问号（?），以调用内置的帮助系统。这将显示该对象的文档字符串（docstring），其中通常包含了关于该对象的描述、使用方法和参数信息等。
+
+```python
+from scipy.stats import ks_2samp
+ks_2samp?
+```
 
 
 
@@ -1318,6 +1328,8 @@ y={}#空字典
 ```
 
 调用错误的值返回KeyError
+
+`in .keys()` 是 O1 的
 
 ##### 方法
 
@@ -5299,7 +5311,7 @@ rows, cols = img1.shape
 
 #### 常规运算
 
-##### 普通运算
+##### 普通
 
 点乘：`a*b`
 
@@ -5317,7 +5329,15 @@ $\lg(k)$
 np.log(k)
 ```
 
-##### 随机数库
+两数是否在某个阈值内相近：(绝对误差)
+
+```
+np.isclose(a,b,atol=k)
+```
+
+
+
+##### 随机
 
 随机整数：获取$[a,b)$内的随机整数。
 
@@ -5341,12 +5361,14 @@ np.random.normal(mean, sigma, image.shape).astype(dtype=np.float32
 
 ```python
 np.random.uniform(low=0.0, high=1.0, size=(5,5))
+np.random.uniform(0,1) #取一个
 ```
 
 随机数组，每个数概率不同：(下例数组长为 100)
 
 ```python
 np.random.choice([0, 1], 100, p=[0.98, 0.02])
+np.random.choice(a=range(10), p=bin_probs) #取一个[0,10),概率各不用
 ```
 
 二项分布：size是多少个同样的次数实验，返回每个元素是进行这么多次试验成功了几次的整形数组形状是size，每个元素表示一次平行的次数次试验
@@ -5389,7 +5411,7 @@ print("计算概率:", probability)
 
 
 
-##### 数组运算
+##### 数组
 
 均值：
 
@@ -5441,9 +5463,60 @@ data = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 percentile_97 = np.percentile(data, 97) # 9.73
 ```
 
+##### 统计
 
 
 
+#### 其他运算
+
+##### histogram
+
+`np.histogram` 是 NumPy 库中的一个函数，用于计算一维数据的直方图。直方图是一种展示数据分布的图表，其中数据被分组成不同的“桶”或“箱”，每个桶包含了一定范围内的数据点数量。
+
+`np.histogram` 函数接受以下参数：
+
+- `a`：输入的数据，一维数组。
+
+- ```
+  bins
+  ```
+
+  ：可以是以下几种：
+
+  - 整数：表示要使用的箱子的数量。
+  - 序列：指定每个箱子边界的数组。
+  - 字符串：一种用于计算最佳箱子数量的方法（例如，'auto', 'fd', 'doane', 'scott', 'stone', 'rice', 'sturges' 或 'sqrt'）。
+
+- `range`：形式为 `(min, max)`，用来指定要包括在直方图中的数据范围。如果没有提供，就使用所有数据的最小值和最大值。
+
+- `normed` 或 `density`：这个参数在不同版本的 NumPy 中可能有所不同。在旧版本中可能是 `normed`，在新版本中是 `density`。如果设置为 `True`，直方图会被归一化，使得箱子下的面积（或箱子的总高度）等于1。
+
+- `weights`：每个数据点的权重数组，这允许每个数据点对直方图的贡献进行加权。
+
+- `cumulative`：如果为 `True`，则计算直方图的累积分布，这意味着每个箱子中的计数是该箱子和所有较小箱子中的计数的总和。
+
+函数返回两个数组：
+
+- `hist`：每个箱子中的计数或者权重总和。
+- `bin_edges`：一个数组，其长度比 `hist` 多1，表示箱子的边界。
+
+下面是一个简单的例子：
+
+```
+data = np.random.randn(1000)
+hist, bin_edges = np.histogram(data, bins=10, range=(-3, 3), density=False)
+```
+
+在这个例子中，我们生成了1000个标准正态分布的随机数，然后计算了这些数据的直方图，将数据分成了10个箱子，范围从-3到3。`density=False` 意味着我们在每个箱子中得到的是计数，而不是概率密度。
+
+```python
+hist, bin_edges = np.histogram(observed_values, bins=10)
+bin_probs = hist / hist.sum()# 计算每个bin的概率（面积）
+```
+
+
+
+如果你想要绘制直方图，可以使用 Matplotlib 库的 `plt.hist` 函数，它会自动计算直方图并且还会绘制出来。
 
 #### 输出配置
 
@@ -6646,6 +6719,8 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 
 取一列：`[列名str]`。取行区间`[起:止]` (切片语法同 python)。用下标取就 `iloc[]`
 
+> 如，取前两列外的每一列：`df.iloc[:, 2:]`
+
 取单独元素 `.at[行号, 列str]` 或 `.loc`
 
 转 numpy(丢失表头)：`.to_numpy()`，转列表 `.tolist()`，转 set 直接 `set(df[])`
@@ -6662,8 +6737,45 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 
 用列值进行 01 分类：`get_dummies`
 
-将 nan 用一个值替换，如：`x.fillna(x.mean())`，如：
+取 `.values` 可以转化为 np array。然后可以丢进 tensor。
 
+##### nan/null
+
+判断当前元素是否是 null(如 `datetime` 的 coerce)：`pd.notnull(x)`。
+
+或对立含义 `isnull`。
+
+去掉 nan 行：`dropna()`。
+
+`isna()`：(反义 `notna`)
+
+```python
+israel['Age'].isna() # isna() 返回布尔列
+```
+
+可以拿来筛选 NaN：
+
+```python
+df1 = df[df['credit_card_number'].notnull()]
+df2 = df[~df['credit_card_number'].notnull()]
+```
+
+两个 series：
+
+```python
+A = pd.Series([1, np.nan, 3, np.nan, 5])
+B = pd.Series([10, 20, 30, 40, 50])
+B[A.dropna().index]
+B[A[A.isna()].index]
+```
+
+将 nan 用一个值/一些值替换，如：`x.fillna(x.mean())`，如：
+
+> ```python
+> heights_mcar.fillna(heights_mcar['child'].mean())
+> child_imputed.loc[child.isnull()] = imputed_values # 等长度的 serial / numpy 数组
+> ```
+>
 > 数据：
 >
 > ```csv
@@ -6681,7 +6793,7 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 > print(row2)
 > ```
 
-取 `.values` 可以转化为 np array。然后可以丢进 tensor。
+
 
 ##### series
 
@@ -6702,6 +6814,10 @@ df.loc[1, 'A'] #等价
 w=df.apply(lambda x:x[0]>3, axis=1)
 df[w]
 ```
+
+
+
+转回 data frame：`.to_frame()`
 
 
 
@@ -6770,9 +6886,7 @@ vacs['Country_Region'].unique()
 
 > 去重数目 `nunique()`
 
-对该列每个元素应用某函数，返回值就地赋值 `df[col].apply(函数)`，例子见下文字符串处理。
 
-每行处理：`apply(f, axis=1)`，例子见字符串处理。
 
 插入一个二分类列，表示某一列是否为 `np.nan`。
 
@@ -6793,6 +6907,28 @@ df.dropna(subset=['B'])
 ```python
 rows = df[(df['Age'] >= left) & (df['Age'] <= right)]
 ```
+
+##### apply
+
+对该列每个元素应用某函数，返回值就地赋值 `df[col].apply(函数)`，例子见下文字符串处理。
+
+每行处理：`apply(f, axis=1)`，例子见字符串处理。f 参数是列，不是标量。
+
+> `name=`，对两列操作，固定第二列，则 `f` 传多一个列，且参数名为 `name`(关键字参数)
+
+如，每列与第二列进行运算，返回结果 series(原列名，且只有一行返回值)：
+
+```python
+def verify_child(heights):
+    def calc(child, father):
+        return stats.ks_2samp(father[child.dropna().index],father[child[child.isna()].index])[1]
+    father = heights.iloc[:,1]
+    p_values = heights.iloc[:,2:].apply(calc, father=father)
+    print(p_values)
+    return p_values
+```
+
+`stats` 是 scipy 的。
 
 
 
@@ -6903,6 +7039,21 @@ print(grouped_df.loc[('Berlin', '2021-01-01'), 'Temperature'])
   再取最后一行的最后一列下标 `df.index.get_level_values(-1)[-1]`
 
   可以用 for 遍历，把两个 -1 变成 i,j 即可
+
+##### transform
+
+通过 groupby 算得某个值，然后按未 groupby 地将这个值返回给组内每个行：
+
+```python
+df = pd.DataFrame({
+    'City': ['New York', 'New York', 'New York', 'San Francisco', 'San Francisco', 'Los Angeles', 'Los Angeles'],
+    'Store': ['A', 'B', 'C', 'A', 'B', 'A', 'B'],
+    'Sales': [100, 200, 300, 400, 500, 600, 700]
+})
+def calculate_mean(sales):
+    return sales.mean()
+df['City_Average'] = df.groupby('City')['Sales'].transform(calculate_mean)
+```
 
 
 
@@ -7046,6 +7197,12 @@ print(pd.merge(df1, df2, left_on='key1', right_on='key2', how='inner'))
 
 ##### 行列重构
 
+将默认列名重秘名为其他列名：
+
+```python
+.rename(columns={0: 'p-value'})
+```
+
 将普通列设为索引或将索引退回成普通列：
 
 ```python
@@ -7085,6 +7242,79 @@ df.drop(columns=['A', 'B'], inplace=True) # 改变
 df3 = df[['C']] # 只要 C 列
 ```
 
+##### 透视表
+
+对数据：
+
+```python
+data = {
+    'Name': ['Alice', 'Bob', 'Charlie', 'Diana', 'Eva', 'Frank'],
+    'Gender': ['Female', 'Male', 'Male', 'Female', 'Female', 'Male'],
+    'Test_Score': [88, 90, 85, 95, 78, 75],
+    'Study_Group': ['A', 'B', 'A', 'B', 'A', 'B']
+}
+```
+
+```python
+pivot_table = df.pivot_table(index='Gender', columns='Study_Group', values='Test_Score', aggfunc='mean')
+```
+
+以 `Gender` 为索引，以 `Study_Group` 所有不同的取值为列，对 `Test_Score` 列，使用 group by，聚合函数是 `mean`。得到新的数据表。并且，删掉 `Name` 列。可以用 `.apply` 代替 `aggfunc`。
+
+#### 其他运算
+
+##### 随机
+
+打乱某列，其他列不变：
+
+```python
+df['B'] = np.random.permutation(df['B'])
+```
+
+
+
+##### diff
+
+对列差分：
+
+```python
+diffs = pivot_table.diff(axis=1)
+```
+
+则第一列变成 NaN，第二列变成第二列减第一列……
+
+##### qcut
+
+根据样本分位数对数据进行分箱。这意味着 `qcut` 会尽量按照数据的分布将数据分成几个具有相同数量的数据点的桶（bins）
+
+```python
+data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+result = pd.qcut(data, 4)
+```
+
+将分类新建一个列存储：
+
+```python
+df = pd.DataFrame({
+    'Income': [55000, 48000, 90000, 120000, 29000, 32000, 76000, 40000, 54000, 150000],
+    'Age': [25, 30, 35, 40, 45, 50, 55, 60, 65, 70]
+})
+df['Income Quartile'] = pd.qcut(df['Income'], 4, labels=['Q1', 'Q2', 'Q3', 'Q4'])
+grouped = df.groupby('Income Quartile')
+age_summary = grouped['Age'].agg(['mean', 'min', 'max'])
+```
+
+分类，求各类平均值，然后求加权平均值：
+
+```python
+def cond_single_imputation(new_heights):
+    df = new_heights.copy()
+    df['father_cat'] = pd.qcut(df['father'], q=4)
+    child_mean = df.groupby('father_cat')['child'].transform('mean')
+    df['child'] = df['child'].fillna(child_mean)
+    return df['child']
+```
+
 
 
 #### 时间
@@ -7102,6 +7332,12 @@ pd.to_datetime(df[列]) #比如本来是字符串2022-01-29 18:24:07
 ```python
 df['date_column'].dtype == 'datetime64[ns]'
 ```
+
+默认参数：
+
+- `errors='raise'`（默认）：如果遇到无法解析为日期的字符串，会引发一个`ValueError`。
+- `errors='ignore'`：如果遇到无法解析为日期的字符串，原始数据将不会被修改，也不会引发错误。
+- `errors='coerce'`：如果遇到无法解析为日期的字符串，那些无法解析的字符串将会被设置为`NaT`（Not a Time），这是Pandas中用于表示缺失日期数据的特殊类型。
 
 ##### dt属性
 
@@ -7161,11 +7397,32 @@ timestamp1.normalize()
 (timestamp2.normalize() - timestamp1.normalize()).days
 ```
 
+岁数：(粗略计算)
 
+```python
+df[rowname] = pd.to_datetime(df[rowname], errors='coerce')
+# 25-Sep-1982 -> 正常； NaN -> NaT
+```
 
-> ### seaborn
+#### 绘图
 
+##### 直方图
 
+直接选一列然后 `.hist()` 即可。
+
+```python
+df1['age'].hist()
+```
+
+##### 柱状图
+
+以 series(带列名)为例：
+
+```python
+to_frame().rename(columns={0: 'p-value'}).plot(kind='barh', width=800, height=400)
+```
+
+`kind='barh'`指定了图表的类型为水平条形图（horizontal bar chart）。
 
 
 
@@ -7539,7 +7796,36 @@ plt.show()
 
 [官网](https://scipy.org/)
 
-#### 线性规划
+#### 统计
+
+##### KS测试
+
+ Kolmogorov-Smirnov (KS) 测试。KS 测试是一种非参数检验，用于确定两个样本是否可能来自同一分布。它衡量两个累积分布函数（CDF）之间的最大差异，并提供一个统计量来表征这一差异的显著性。
+
+输入两个序列数据如列表、numpy 数组。
+
+返回两个值：
+
+- `statistic` 是 KS 统计量，即两个 CDF 之间的最大差异。
+- `p_value` 是与观察到的统计量相对应的 p 值。如果 p 值很小（通常小于显著性水平，如 0.05），我们可以拒绝原假设，即两个样本来自同一分布。
+
+```python
+from scipy.stats import ks_2samp
+statistic, p_value = ks_2samp(data1, data2)
+ks_2samp(data1, data2).statistic # 只要一个结果
+```
+
+如对 dataframe：
+
+```python
+observed_ks = ks_2samp(data.loc[data['group'] == 'A', 'data'], data.loc[data['group'] == 'B', 'data']).statistic
+```
+
+
+
+#### 优化
+
+##### 线性规划
 
 例求解：
 $$
@@ -7566,7 +7852,7 @@ print(r.x)
 
 
 
-#### 非线性规划
+##### 非线性规划
 
 例求解：[文档](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html#scipy.optimize.minimize)
 $$
@@ -8581,7 +8867,46 @@ import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 ```
 
+#### robots.txt
 
+##### 基本概念
+
+[解释文档](https://moz.com/learn/seo/robotstxt)
+
+在网站根目录下的 `robots.txt`(大小写敏感，不可 `Robots.TXT` 等)，全员可看。子域名可以独立。
+
+遵循 robots exclusion protocol (REP) 协议，指示爬虫怎么爬。(建议性规约)
+
+- 空行：隔开不同的爬虫主体
+- `#` 注释
+- `Disallow: 路径` 可以含通配符如 `*?$`(以什么结尾)
+- `Allow: 路径`
+- `Crawl-delay: 数字毫秒`
+
+> 参考样例：
+>
+> ```plain
+> # See http://www.linkedin.com/legal/crawling-terms.
+> 
+> User-agent: Googlebot
+> Disallow: /addContacts*
+> Allow: /settings/loid-email-unsubscribe*
+> Allow: /help/
+> 
+> User-agent: Applebot
+> Disallow: /addContacts*
+> Allow: /help/
+> 
+> User-agent: *
+> Disallow: /
+> ```
+>
+> ```
+> User-agent: *
+> Allow: /
+> ```
+
+爬虫程序爬取前首先读 `robots.txt`。
 
 #### 示例
 
