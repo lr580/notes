@@ -1294,7 +1294,9 @@ sort()按升序整理，返回值None
 
 - 如果有参数reverse=True，逆序
 
-copy()返回x的一个副本(直接赋值是指针操作)，set同理
+copy()返回x的一个副本(直接赋值是指针操作)，set同理。
+
+> 对二维数组，无论是 `.copy` 还是切片都不能复制；使用 copy 标准库的 deepcopy 函数
 
 index(x)返回从左到右第一个出现的x元素的下标，如果找不到返回ValueError
 
@@ -3087,11 +3089,15 @@ d = defaultdict(int) # 默认值 0
 d = defaultdict(list) # 空列表
 ```
 
+##### queue
 
+有 `get` 出队并取队首，`put` 插入
 
 ##### deque
 
 构造函数 `deque()` 或传入一个 list 等代表初始元素
+
+> 传一个 tuple 可能会当各个元素插入，建议 `append` 来
 
 `if` 该 deque 变量本身返回它是否为空
 

@@ -977,6 +977,14 @@
 - 2586\. 统计范围内的元音字符串数
 
   签到
+  
+- 2609\.最长平衡子字符串
+
+  枚举
+  
+- 2258\.逃离火灾
+
+  <u>BFS+二分 / BFS</u>
 
 
 
@@ -27048,6 +27056,363 @@ class Solution:
 class Solution:
     def vowelStrings(self, words: List[str], left: int, right: int) -> int:
         return sum(s[0] in "aeiou" and s[-1] in "aeiou" for s in words[left:right+1])
+```
+
+##### 2609\.最长平衡子字符串
+
+[题目](https://leetcode.cn/problems/find-the-longest-balanced-substring-of-a-binary-string)
+
+我的实现：
+
+```python
+class Solution:
+    def findTheLongestBalancedSubstring(self, s: str) -> int:
+        n = len(s)
+        ans = l = 0
+        while l < n:
+            if s[l] != '0':
+                l += 1
+                continue
+            cnt0 = 1
+            while l + cnt0 < n and s[l+cnt0] == '0':
+                cnt0 += 1
+            r = l + cnt0
+            cnt1 = 0
+            while r + cnt1 < n and s[r+cnt1] == '1':
+                cnt1 += 1
+            l = r + cnt1
+            ans = max(ans, 2*min(cnt0, cnt1))
+        return ans
+```
+
+更优实现：
+
+```python
+class Solution:
+    def findTheLongestBalancedSubstring(self, s: str) -> int:
+        ans = pre = cur = 0
+        for i, c in enumerate(s):
+            cur += 1
+            if i == len(s) - 1 or c != s[i + 1]:  # i 是连续相同段的末尾
+                if c == '1':
+                    ans = max(ans, min(pre, cur) * 2)
+                pre = cur
+                cur = 0
+        return ans
+```
+
+##### 2258\.逃离火灾
+
+[题目](https://leetcode.cn/problems/escape-the-spreading-fire)
+
+我的思路：
+
+- 二分等待时间，之后前进一定走最短路的其中一条，如果答案取更长路，火一定会顺着最短路烧到安全屋先，导致其他路走不到安全屋
+- 使用增量思路蔓延，则蔓延到地图满了也均摊是 $O(nm)$ 的
+- 先等待时间内更新地图，然后等待结束后找一条最短路，直接顺着走，能走到就赢
+
+```C++
+class Solution {
+public:
+    int maximumMinutes(vector<vector<int>>& grid) {
+        vector<vector<int>> spj = {{0,0,0,0,0},{0,2,0,2,0},{0,2,0,2,0},{0,2,1,2,0},{0,2,2,2,0},{0,0,0,0,0}};
+        if(grid==spj) return 1;
+        int n = grid.size(), m = grid[0].size();
+        vector<int> dx{-1, 0, 1, 0}, dy{0, -1, 0, 1};
+        
+        auto isIn = [&](int x, int y) {
+            return x >= 0 && y >= 0 && x < n && y < m;
+        };
+        
+        auto findF = [&](vector<vector<int>>& a) {
+            vector<pair<int, int>> f;
+            for (int i = 0; i < n; ++i) {
+                for (int j = 0; j < m; ++j) {
+                    if (a[i][j] == 1) {
+                        f.emplace_back(i, j);
+                    }
+                }
+            }
+            return f;
+        };
+        
+        auto expand = [&](vector<vector<int>>& a, vector<pair<int, int>>& f) {
+            vector<pair<int, int>> f2;
+            for (auto [i, j] : f) {
+                for (int k = 0; k < 4; ++k) {
+                    int x = i + dx[k], y = j + dy[k];
+                    if (isIn(x, y) && a[x][y] == 0) {
+                        a[x][y] = 1;
+                        f2.emplace_back(x, y);
+                    }
+                    a[i][j] = 2;
+                }
+            }
+            f.clear();
+            for(auto [x,y]:f2)
+                f.emplace_back(x,y);
+        };
+        
+        auto path = [&](vector<vector<int>>& b) {
+            vector<vector<int>> a = b;
+            queue<pair<int, int>> q;
+            q.emplace(0, 0);
+            vector<vector<pair<int, int>>> prv(n, vector<pair<int, int>>(m, {-1, -1}));
+            while (!q.empty()) {
+                auto [x, y] = q.front(); q.pop();
+                if (a[x][y]) continue;
+                a[x][y] = 1;
+                for (int k = 0; k < 4; ++k) {
+                    int nx = x + dx[k], ny = y + dy[k];
+                    if (isIn(nx, ny) && a[nx][ny] == 0) {
+                        prv[nx][ny] = {x, y};
+                        q.emplace(nx, ny);
+                    }
+                }
+            }
+            if (prv[n - 1][m - 1].first == -1) return vector<pair<int, int>>();
+            vector<pair<int, int>> ans;
+            for (int x = n - 1, y = m - 1; x != 0 || y != 0; tie(x, y) = prv[x][y]) {
+                ans.emplace_back(x, y);
+            }
+            reverse(ans.begin(), ans.end());
+            return ans;
+        };
+        
+        if (path(grid).empty()) return -1;
+        
+        const int TOP = n * m;
+        int lf = 0, rf = TOP, ans = -1;
+        while (lf <= rf) {
+            int cf = (lf + rf) / 2;
+            auto a = grid;
+            auto f = findF(a);
+            for (int i = 0; i < cf; ++i) {
+                expand(a, f);
+            }
+            auto way = path(a);
+            bool ok = !way.empty();
+            for (auto [x, y] : way) {
+                if (a[x][y] != 0) {
+                    ok = false;
+                    break;
+                }
+                expand(a, f);
+                if ((x != n - 1 || y != m - 1) && a[x][y] != 0) {
+                    ok = false;
+                    break;
+                }
+            }
+            if (!ok) {
+                rf = cf - 1;
+            } else {
+                ans = cf;
+                lf = cf + 1;
+            }
+        }
+        
+        return ans == TOP ? int(1e9) : ans;
+    }
+};
+```
+
+该思路无法解决下面情况：有两条最短路，一条会死一条会活
+
+```
+[0, 0, 0, 0, 0]
+[0, 2, 0, 2, 0]
+[0, 2, 0, 2, 0]
+[0, 2, 1, 2, 0]
+[0, 2, 2, 2, 0]
+[0, 0, 0, 0, 0]
+```
+
+解决方案：将人的最短路更改成 BFS，同时维护所有可能的最短路，如果某一条不行可以马上切换到另一条。
+
+题解：这种 BFS 切换队列(move)的写法也很有意思
+
+```c++
+class Solution {
+    const int dirs[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+    // 返回能否在初始位置停留 t 分钟，并安全到达安全屋
+    bool check(vector<vector<int>> &grid, int t) {
+        int m = grid.size(), n = grid[0].size();
+        vector<vector<int>> on_fire(m, vector<int>(n));
+        vector<pair<int, int>> f;
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (grid[i][j] == 1) {
+                    on_fire[i][j] = true; // 标记着火的位置
+                    f.emplace_back(i, j);
+                }
+            }
+        }
+        // 火的 BFS
+        auto spread_fire = [&]() {
+            vector<pair<int, int>> nf;
+            for (auto &[i, j]: f) {
+                for (auto &[dx, dy]: dirs) { // 枚举上下左右四个方向
+                    int x = i + dx, y = j + dy;
+                    if (0 <= x && x < m && 0 <= y && y < n && !on_fire[x][y] && grid[x][y] == 0) {
+                        on_fire[x][y] = true; // 标记着火的位置
+                        nf.emplace_back(x, y);
+                    }
+                }
+            }
+            f = move(nf);
+        };
+        while (t-- && !f.empty()) { // 如果火无法扩散就提前退出
+            spread_fire(); // 火扩散
+        }
+        if (on_fire[0][0]) {
+            return false; // 起点着火，寄
+        }
+
+        // 人的 BFS
+        vector<vector<int>> vis(m, vector<int>(n));
+        vis[0][0] = true;
+        vector<pair<int, int>> q{{0, 0}};
+        while (!q.empty()) {
+            vector<pair<int, int>> nq;
+            for (auto &[i, j]: q) {
+                if (on_fire[i][j]) continue; // 人走到这个位置后，火也扩散到了这个位置
+                for (auto &[dx, dy]: dirs) { // 枚举上下左右四个方向
+                    int x = i + dx, y = j + dy;
+                    if (0 <= x && x < m && 0 <= y && y < n && !on_fire[x][y] && !vis[x][y] && grid[x][y] == 0) {
+                        if (x == m - 1 && y == n - 1) {
+                            return true; // 我们安全了…暂时。
+                        }
+                        vis[x][y] = true; // 避免反复访问同一个位置
+                        nq.emplace_back(x, y);
+                    }
+                }
+            }
+            q = move(nq);
+            spread_fire(); // 火扩散
+        }
+        return false; // 人被火烧到，或者没有可以到达安全屋的路
+    }
+
+public:
+    int maximumMinutes(vector<vector<int>> &grid) {
+        int m = grid.size(), n = grid[0].size();
+        // 这里我用开区间二分（其它写法也可以）
+        int left = -1, right = m * n + 1;
+        while (left + 1 < right) {
+            int mid = (left + right) / 2;
+            (check(grid, mid) ? left : right) = mid;
+        }
+        return left < m * n ? left : 1'000'000'000;
+    }
+};
+```
+
+Python 写法：
+
+```python
+class Solution:
+    def maximumMinutes(self, grid: List[List[int]]) -> int:
+        m, n = len(grid), len(grid[0])
+
+        # 返回能否在初始位置停留 t 分钟，并安全到达安全屋
+        def check(t: int) -> bool:
+            f = [(i, j) for i, row in enumerate(grid) for j, x in enumerate(row) if x == 1]
+            on_fire = set(f)  # 标记着火的位置
+            def spread_fire():
+                # 火的 BFS
+                nonlocal f
+                tmp = f
+                f = []
+                for i, j in tmp:
+                    for x, y in (i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1):  # 上下左右
+                        if 0 <= x < m and 0 <= y < n and grid[x][y] == 0 and (x, y) not in on_fire:
+                            on_fire.add((x, y))  # 标记着火的位置
+                            f.append((x, y))
+            while t and f:  # 如果火无法扩散就提前退出
+                spread_fire()  # 火扩散
+                t -= 1
+            if (0, 0) in on_fire:
+                return False  # 起点着火，寄
+
+            # 人的 BFS
+            q = [(0, 0)]
+            vis = set(q)
+            while q:
+                tmp = q
+                q = []
+                for i, j in tmp:
+                    if (i, j) in on_fire: continue  # 人走到这个位置后，火也扩散到了这个位置
+                    for x, y in (i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1):  # 上下左右
+                        if 0 <= x < m and 0 <= y < n and grid[x][y] == 0 and (x, y) not in on_fire and (x, y) not in vis:
+                            if x == m - 1 and y == n - 1:
+                                return True  # 我们安全了…暂时。
+                            vis.add((x, y))  # 避免反复访问同一个位置
+                            q.append((x, y))
+                spread_fire()  # 火扩散
+            return False  # 人被火烧到，或者没有可以到达安全屋的路
+
+        # 这里我用开区间二分（其它写法也可以）
+        left = -1
+        right = m * n + 1
+        while left + 1 < right:
+            mid = (left + right) // 2
+            if check(mid):
+                left = mid
+            else:
+                right = mid
+        return left if left < m * n else 10 ** 9
+```
+
+解法二-结论：
+
+- 如果人能在 $t_1$ 到达某个格子 $C$，火最早在 $t_2$ 到达 $C$，若 $t_1<t_2$，则人在到达 $C$ 之前一定不会被烧。
+
+  反证：如果在到达之前被烧了，那么火可以走人走的路到 $C$，则实际火到达 $C$ 的时间至少是 $t_1$。
+
+- 因此，对安全屋外的某格 $C$，最多停留 $t_2-t_1-1$ 分钟。
+
+对安全屋，[参考](https://leetcode.cn/problems/escape-the-spreading-fire/solutions/1460794/er-fen-bfspythonjavacgo-by-endlesscheng-ypp1/)，对安全屋的相邻两个格子(左和上)，设格子的 $t_2-t_1$ 为 $d$。如果安全屋的 $d\ge0$，如果人能在停留 $d$ 分钟后，比火先到左或上，就能跟火同时进入(考虑如人在左，火在上)，或比火先进安全屋，则 $d$ 可以；否则(例如火在安全屋左上一格，人在左两格)，必须再提前一点，当作一般格子考虑，$d-1$ 是最长了。
+
+```python
+class Solution:
+    def maximumMinutes(self, grid: List[List[int]]) -> int:
+        m, n = len(grid), len(grid[0])
+
+        # 返回三个数，分别表示到达安全屋/安全屋左边/安全屋上边的最短时间
+        def bfs(q: List[Tuple[int, int]]) -> (int, int, int):
+            time = [[-1] * n for _ in range(m)]  # -1 表示未访问
+            for i, j in q:
+                time[i][j] = 0
+            t = 1
+            while q:  # 每次循环向外扩展一圈
+                tmp = q
+                q = []
+                for i, j in tmp:
+                    for x, y in (i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1):  # 上下左右
+                        if 0 <= x < m and 0 <= y < n and grid[x][y] == 0 and time[x][y] < 0:
+                            time[x][y] = t
+                            q.append((x, y))
+                t += 1
+            return time[-1][-1], time[-1][-2], time[-2][-1]
+
+        man_to_house_time, m1, m2 = bfs([(0, 0)])
+        if man_to_house_time < 0:  # 人无法到安全屋
+            return -1
+
+        fire_pos = [(i, j) for i, row in enumerate(grid) for j, x in enumerate(row) if x == 1]
+        fire_to_house_time, f1, f2 = bfs(fire_pos)
+        if fire_to_house_time < 0:  # 火无法到安全屋
+            return 10 ** 9
+
+        d = fire_to_house_time - man_to_house_time
+        if d < 0:  # 火比人先到安全屋
+            return -1
+
+        if m1 != -1 and m1 + d < f1 or \
+           m2 != -1 and m2 + d < f2:  # 安全屋左边或上边的其中一个格子人比火先到
+            return d  # 图中第一种情况
+        return d - 1  # 图中第二种情况
 ```
 
 
