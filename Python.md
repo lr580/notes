@@ -3103,6 +3103,29 @@ d = defaultdict(list) # 空列表
 
 `pop, popleft` 方法删除右端和左端并返回，`append, appendleft` 插入。
 
+##### counter
+
+记录数的频次可以用 Counter ，传入一个列表，输出元组列表，依次表示数字和频次，用 `.most_common()` 方法转元素列表，输入参数表示取多少个。如果想要按大小取，可以先对传入的列表排序
+
+例如：求第一个可以拆分为 12 种平方数和的数字
+
+```python
+s=list(i**2 for i in range(1,1000))
+t=[]
+for i in range(len(s)):
+    for j in range(i,len(s)):
+        t.append(s[i]+s[j])
+t.sort()
+from collections import Counter
+s2=Counter(t).most_common(80)
+for i in range(80):
+    if s2[i][1]==12:
+        print(s2[i][0])
+        break
+```
+
+
+
 #### math
 
 常数pi和e，意义同数学
@@ -4003,26 +4026,7 @@ print(comb(5, [i for i in range(6)])) # C(n, m)
 
 
 
-#### collections
 
-记录数的频次可以用 Counter ，传入一个列表，输出元组列表，依次表示数字和频次，用 `.most_common()` 方法转元素列表，输入参数表示取多少个。如果想要按大小取，可以先对传入的列表排序
-
-例如：求第一个可以拆分为 12 种平方数和的数字
-
-```python
-s=list(i**2 for i in range(1,1000))
-t=[]
-for i in range(len(s)):
-    for j in range(i,len(s)):
-        t.append(s[i]+s[j])
-t.sort()
-from collections import Counter
-s2=Counter(t).most_common(80)
-for i in range(80):
-    if s2[i][1]==12:
-        print(s2[i][0])
-        break
-```
 
 
 
@@ -4157,7 +4161,53 @@ class Solution:
         ...
 ```
 
+#### bisect
 
+二分库
+
+- `bisect_left(arr, v)` 第一个 $\ge v$ 的最小下标，对应 lower bound
+
+  ```python
+  a=[2,3,3,6,6,6]
+  bisect_left(a,0) #0
+  bisect_left(a,2) #0
+  bisect_left(a,3) #1
+  bisect_left(a,4) #1
+  bisect_left(a,6) #3
+  bisect_left(a,7) #6
+  bisect_left([],0) #0
+  ```
+
+- `bisect_right(arr, v)` 第一个 $> v$ 的最小下标，对应 upper bound
+
+  ```python
+  a=[2,3,3,6,6,6]
+  bisect_right(a,0) #0
+  bisect_right(a,2) #1
+  ```
+
+  支持 `lo,hi` 参数，代表区间 [lo,hi)。返回的下标仍然相对 arr 首元素。
+
+  ```python
+  a=[2,3,3,6,6,6]
+  bisect_left(a,0,3,5) #3
+  bisect_left(a,100,3,5) #5
+  ```
+
+  3.10 之前，不支持自定义比较依据。之后可以 `key=`:
+
+  ```python
+  a = [6, 6, 6, 3, 3, 2]
+  bisect_left(a,-6,key=lambda x:-x) #找6, 返回0
+  bisect_left(a,-5,key=lambda x:-x) #找5, 返回3
+  bisect_left(a,-1,key=lambda x:-x) #找1, 返回6
+  bisect_right(a,-7,key=lambda x:-x) #0
+  bisect_right(a,-6,key=lambda x:-x) #3
+  ```
+
+- `insort_left(arr, v)` 将 `v` 插入到 `arr`，返回 None，保持有序，插入到相同元素的左
+
+- `insort_right(arr, v)` 将 `v` 插入到 `arr`，返回 None，保持有序，插入到相同元素的右
 
 #### hashlib
 

@@ -985,6 +985,10 @@
 - 2258\.逃离火灾
 
   <u>BFS+二分 / BFS</u>
+  
+- 2300\.咒语和药水的成功对数
+
+  双指针 / 二分
 
 
 
@@ -27413,6 +27417,56 @@ class Solution:
            m2 != -1 and m2 + d < f2:  # 安全屋左边或上边的其中一个格子人比火先到
             return d  # 图中第一种情况
         return d - 1  # 图中第二种情况
+```
+
+##### 2300\.咒语和药水的成功对数
+
+[题目](https://leetcode.cn/problems/successful-pairs-of-spells-and-potions)
+
+我的双指针：
+
+```python
+class Solution:
+    def successfulPairs(self, spells: List[int], potions: List[int], success: int) -> List[int]:
+        n,m=len(spells),len(potions)
+        a=[(spells[i],i) for i in range(n)]
+        a.sort()
+        potions.append(int(1e9)+1)
+        potions.sort()
+        r=m # first satisfied
+        ans=[0 for i in range(n)]
+        for i in range(n):
+            while r>=0 and a[i][0] * potions[r] >= success:
+                r -= 1
+            ans[a[i][1]] = m-r-1
+        return ans
+```
+
+题解写法：
+
+```python
+class Solution:
+    def successfulPairs(self, spells: List[int], potions: List[int], success: int) -> List[int]:
+        res = [0] * len(spells)
+        idx = [i for i in range(len(spells))]
+        idx.sort(key = lambda x: spells[x])
+        potions.sort(key = lambda x : -x)
+        j = 0
+        for p in idx:
+            v = spells[p]
+            while j < len(potions) and potions[j] * v >= success:
+                j += 1
+            res[p] = j
+        return res
+```
+
+二分写法：
+
+```python
+class Solution:
+    def successfulPairs(self, spells: List[int], potions: List[int], success: int) -> List[int]:
+        potions.sort()
+        return [len(potions) - bisect.bisect_right(potions, (success - 1) // i) for i in spells]
 ```
 
 
