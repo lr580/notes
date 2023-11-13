@@ -625,7 +625,22 @@ print('123\
 
 ##### 格式法
 
-> 使用format占位，不常用，故略，详见其他资料
+使用format占位
+
+```python
+i=1
+r=f'i={i}' #1
+i,j=5,2
+f'i2={i*i},j={j}' #'i2=25,j=2'
+```
+
+格式：
+
+```python
+f'{6:02d},{1/3:+.6f}' #前导零，带符号小数；指数就e，同理
+```
+
+
 
 ### 文件I/O
 
@@ -1304,6 +1319,8 @@ count(x)统计有多少个x元素，找不到返回0
 
 `*`一个整数复制重复这么多次，空集乘是自身；乘 0 得空集
 
+> 判断某元素不在 list: `x not in arr` 或 `not x in arr`
+
 #### tuple
 
 元组，是定义之后不可以修改的列表：
@@ -1332,6 +1349,8 @@ y={}#空字典
 调用错误的值返回KeyError
 
 `in .keys()` 是 O1 的
+
+`[]` 与 `get()` 的区别，前者查无 `KeyError`，后者返回 None。`get(key, default)` 可以规定查无返回什么。
 
 ##### 方法
 
@@ -1512,6 +1531,25 @@ a.do()
 #### __属性
 
 `__len__` 方法如果定义了，可以用内置函数 `len()`。通常都是 O(1) 的。
+
+#### 装饰器
+
+##### property
+
+内置装饰器，用于将一个类方法转换为属性。这样，可以像访问属性那样访问这个方法，而不需要在方法名后面加括号。
+
+```python
+class Circle:
+    def __init__(self, radius):
+        self.radius = radius
+    @property
+    def area(self):
+        return 3.14159 * self.radius ** 2
+circle = Circle(5)
+print(circle.area)  # 输出: 78.53975
+```
+
+
 
 ## 运算
 
@@ -3095,7 +3133,7 @@ d = defaultdict(list) # 空列表
 
 ##### deque
 
-构造函数 `deque()` 或传入一个 list 等代表初始元素
+构造函数 `deque()` 或传入一个 list 等可迭代代表初始元素
 
 > 传一个 tuple 可能会当各个元素插入，建议 `append` 来
 
@@ -4993,46 +5031,6 @@ get 得到所显示的值
 
 记得先 `clipboard_clear()`
 
-### ipywidgets
-
-在 jupyter 创建交互的工具
-
-```python
-from ipywidgets import widgets, interact, FloatSlider
-```
-
-创建一个交互下拉选择框，以某列的值作为下拉选项，每次只筛选出数据里列值为它的行，然后对这些行另两列做绘图，使用：
-
-```python
-import plotly.express as px
-def plot_cases(country):
-    country_only = vacs[vacs['Country_Region'] == country]
-    fig = px.line(country_only, x='Date', y='Doses_admin', title=f"'Doses_admin' column for {country}")
-    fig.show()
-    
-
-dropdown_cases = widgets.Dropdown(options=np.sort(vacs['Country_Region'].unique()), value=DEFAULT)
-
-def dropdown_cases_handler(change):
-    if change['name'] == 'value' and (change['new'] != change['old']):
-        clear_output()
-        display(dropdown_cases)
-        plot_cases(change['new'])
-        
-display(dropdown_cases)
-plot_cases(DEFAULT)
-dropdown_cases.observe(dropdown_cases_handler)
-```
-
-其中：清除 Jupyter 笔记本的单元格输出区域
-
-```python
-from IPython.display import clear_output
-clear_output()
-```
-
-
-
 
 
 ## 远程处理
@@ -6650,6 +6648,8 @@ plot(x, [f(x), 2 * x - 3], 'x', 'f(x)', legend=['f(x)', 'Tangent line (x=1)'])
 
 ##### 读入
 
+###### csv
+
 读 csv: (二维表，行间空行隔开，列间单半角逗号隔开，第一行是表头不算作实际数据)
 
 > [数据集出处](https://faculty.sdu.edu.cn/qiang2chen2/zh_CN/jxzy/545776/content/1793.htm#jxzy)
@@ -6697,7 +6697,7 @@ sns.heatmap(round(audiometric.corr(), 2),annot=True)
 plt.show()
 ```
 
-
+###### excel
 
 也可以读 excel，默认第一行是表头，没有列头。如果要列头加默认参数如：[参考](https://blog.csdn.net/qq_18351157/article/details/124865696)
 
@@ -6705,7 +6705,7 @@ plt.show()
 data = pd.read_excel('pca_data.xlsx',index_col=0)
 ```
 
-
+###### 构造
 
 使用 dict (key: string, value: list of int / string) 构造。
 
@@ -6718,9 +6718,22 @@ data = {
 df = pd.DataFrame(data)
 ```
 
+或反过来：
 
+```python
+pd.DataFrame([{'name':'lr580','value':580},{'name':'lr581','value':581}])
+```
 
 复制：`df_copy = pd.DataFrame(df)`
+
+只有列名的空表：
+
+```python
+columns = ['id', 'by', 'text', 'parent', 'time']
+pd.DataFrame(columns=columns)
+```
+
+
 
 ##### 写入
 
@@ -7202,7 +7215,7 @@ pd.concat(objs, axis=0, join='outer', ignore_index=False)
 - `objs`: 要连接的 Pandas 数据结构的序列，可以是 DataFrame 或 Series 的列表。
 - `axis`: 指定连接的轴，0 表示按行连接，1 表示按列连接。
 - `join`: 指定连接的方式，可以是 `'inner'`（交集）、`'outer'`（并集）或其他选项。
-- `ignore_index`: 如果为 True，将重新生成索引，如果为 False，则保留原始索引。
+- `ignore_index`: 如果为 True，将重新生成索引，如果为 False，则保留原始索引。(即如 0,1,2, ..., 0,1,2)
 
 如：
 
@@ -7317,6 +7330,17 @@ pivot_table = df.pivot_table(index='Gender', columns='Study_Group', values='Test
 
 以 `Gender` 为索引，以 `Study_Group` 所有不同的取值为列，对 `Test_Score` 列，使用 group by，聚合函数是 `mean`。得到新的数据表。并且，删掉 `Name` 列。可以用 `.apply` 代替 `aggfunc`。
 
+##### 查询
+
+满足某个字符串 eval 表达式的所有行：
+
+```python
+w=pd.DataFrame([{'name':'lr580','value':580},{'name':'lr581','value':581}])
+w.query('value >= 581')
+```
+
+
+
 #### 其他运算
 
 ##### 随机
@@ -7369,6 +7393,39 @@ def cond_single_imputation(new_heights):
     child_mean = df.groupby('father_cat')['child'].transform('mean')
     df['child'] = df['child'].fillna(child_mean)
     return df['child']
+```
+
+##### one-hot
+
+```python
+tags = quotes['tags'].str.split(',') #每行的某列转list
+def encode(tag_list):
+    return pd.Series({k: 1 for k in tag_list})
+tags.apply(encode)
+
+#原地某个字符串列转多个one hot
+quotes_full = pd.concat([quotes, tags.apply(encode)], axis=1).drop(columns='tags')
+quotes_full.head()
+```
+
+##### 日期
+
+返回某个月的最后一天(字符串)：
+
+```python
+year=2020
+month=2
+start_date = f"{year}-{month:02d}-01"
+pd.date_range(start_date, periods=1, freq='M').strftime('%Y-%m-%d').tolist()[0] #'2020-02-29'
+```
+
+##### 时间戳
+
+默认按毫秒算，如果按秒的时间戳，要加默认参数：
+
+```python
+pd.Timestamp(1541014179, unit='s')
+pd.Timestamp(1541014179000)
 ```
 
 
@@ -8574,15 +8631,13 @@ plt.show()
 
 
 
-### paddle
-
-
-
 
 
 ## 网络
 
 ### requests
+
+#### 基本
 
 get 请求：
 
@@ -8614,6 +8669,212 @@ import requests
 pam = {"username":"name1"}
 print(requests.get('http://127.0.0.1:8080/',params=pam).text)
 print(requests.post('http://127.0.0.1:8080/submit',json=pam).text)
+```
+
+如果返回值是长得像 json 的(如 `{ ... }` 的纯字符串，即完全 json 格式，无 html 格式的)，可以考虑转化为数据结构(如 dict)如：
+
+ ```python
+ response.json() #dict
+ ```
+
+
+
+#### session提速
+
+多个请求，可以创建会话。原理是复用 TCP。可以至少快几倍。
+
+```python
+session = requests.Session()
+session.get(url) # 多个url
+```
+
+#### 代理
+
+```python
+proxies = {
+    'http': 'http://10.10.1.10:3128',
+    'https': 'http://10.10.1.10:1080',
+}
+response = requests.get(url, proxies=proxies)
+```
+
+`socks5h` 与 `socks5` 的区别在于，`socks5h` 会让代理服务器来处理域名解析，而 `socks5` 则是在本地解析。需要：`pip install pysocks`。
+
+### bs
+
+beautiful soup 版本 4 和 3 区别很大。这里按 4 版本来。
+
+```python
+import bs4
+```
+
+#### 基本
+
+##### 构造
+
+传入一个网页 HTML 字符串，返回解析
+
+```python
+html_string = '''
+<html>
+    <body>
+      <div id="content">
+        <h1>Heading here</h1>
+        <p>My First paragraph</p>
+        <p>My <em>second</em> paragraph</p>
+        <hr>
+      </div>
+      <div id="nav">
+        <ul>
+          <li>item 1</li>
+          <li>item 2</li>
+          <li>item 3</li>
+        </ul>
+      </div>
+    </body>
+</html>
+'''.strip()
+soup = bs4.BeautifulSoup(html_string)
+# 类型为bs4.BeautifulSoup
+print(soup.text) #str,标签全部退散，含\n代替
+# '\n\n\nHeading here\nMy First paragraph\nMy second paragraph\n\n\n\n\nitem 1\nitem 2\nitem 3\n\n\n\n'
+```
+
+第 20 行，可以固定解析器：`features='lxml'`
+
+##### 遍历
+
+DFS 遍历 soup：
+
+```python
+for child in soup.descendants:
+    if isinstance(child, str):
+        continue
+    print(child.name)
+'''html
+body
+div...'''
+```
+
+##### 查询
+
+找到第一个满足条件的标签实例：(`bs4.element.Tag`)
+
+```python
+soup.find(tag)
+soup.find(name=None, attrs={}, recursive=True, text=None)
+```
+
+找所有：(list)
+
+```python
+soup.find_all(tag)
+```
+
+print 输出 tag 返回 HTML 格式显示(不含多余空白)
+
+```python
+soup.find('div')
+soup.find('div', attrs={'id': 'nav'})
+soup.find_all('div', attrs={'class': 'quote'})
+# 包含该 class
+divs = soup.find_all('div', class_='quote') #与上面等价
+#同时包含两个class(不区分大小写，不区分顺序)
+soup.find('p',class_=['Four','star-rating'])
+#有序，区分大小写，与原文完全一致
+soup.find('p',class_='star-rating Four')
+
+#找直接儿子加：recursive=False
+```
+
+找到并输出文本：
+
+```python
+[x.text for x in soup.find_all('li')]
+```
+
+##### 基本属性
+
+```python
+p = soup.find('div')
+print(p.text) #str
+print(p.attrs) #dict(str: str), 如{'id': 'content'}
+```
+
+取 attrs 的某个属性 value：(查无则 None)
+
+```python
+p.get('id') #'content'
+```
+
+多个 class 返回 str 列表：
+
+```python
+soup.find('p').get('class') #['star-rating', 'Four']
+```
+
+
+
+#### 例子
+
+##### div列表
+
+考虑：[quote](https://quotes.toscrape.com/)
+
+先下载网页：
+
+```python
+def download_page(i):
+    url = f'https://quotes.toscrape.com/page/{i}'
+    request = requests.get(url)
+    return bs4.BeautifulSoup(request.text)
+```
+
+然后观察 F12 得到要求的东西的格式编写一个获取每个列表：
+
+```python
+def process_quote(div):
+    quote = div.find('span', class_='text').text
+    author = div.find('small', class_='author').text
+    author_url = 'https://quotes.toscrape.com' + div.find('a').get('href')
+    tags = div.find('meta', class_='keywords').get('content')
+    
+    return {'quote': quote, 'author': author, 'author_url': author_url, 'tags': tags}
+```
+
+组装成 data frame：
+
+```python
+def process_page(divs):
+    return pd.DataFrame([process_quote(div) for div in divs])
+```
+
+连在一起：
+
+```python
+def make_quote_df(n):
+    '''Returns a DataFrame containing the quotes on the first n pages of https://quotes.toscrape.com/.'''
+    dfs = []
+    for i in range(1, n + 1):
+        # Download page n and create a BeautifulSoup object.
+        soup = download_page(i)
+        
+        # Create DataFrame using the information in that page.
+        divs = soup.find_all('div', class_='quote')
+        df = process_page(divs)
+        
+        # Append DataFrame to dfs.
+        dfs.append(df)
+        
+    # Stitch all DataFrames together.
+    return pd.concat(dfs).reset_index(drop=True)
+```
+
+使用：
+
+```python
+quotes = make_quote_df(3)
+quotes.head()
 ```
 
 
@@ -9296,6 +9557,62 @@ isOnly456 = minLen >= 4 and maxLen <= 6
 
 isFullerene = is3Regular and is3Connected and isPlanar and isOnly456
 print(isFullerene)
+```
+
+## 其他
+
+### ipywidgets
+
+##### 交互
+
+在 jupyter 创建交互的工具
+
+```python
+from ipywidgets import widgets, interact, FloatSlider
+```
+
+创建一个交互下拉选择框，以某列的值作为下拉选项，每次只筛选出数据里列值为它的行，然后对这些行另两列做绘图，使用：
+
+```python
+import plotly.express as px
+def plot_cases(country):
+    country_only = vacs[vacs['Country_Region'] == country]
+    fig = px.line(country_only, x='Date', y='Doses_admin', title=f"'Doses_admin' column for {country}")
+    fig.show()
+    
+
+dropdown_cases = widgets.Dropdown(options=np.sort(vacs['Country_Region'].unique()), value=DEFAULT)
+
+def dropdown_cases_handler(change):
+    if change['name'] == 'value' and (change['new'] != change['old']):
+        clear_output()
+        display(dropdown_cases)
+        plot_cases(change['new'])
+        
+display(dropdown_cases)
+plot_cases(DEFAULT)
+dropdown_cases.observe(dropdown_cases_handler)
+```
+
+其中：清除 Jupyter 笔记本的单元格输出区域
+
+```python
+from IPython.display import clear_output
+clear_output()
+```
+
+##### HTML渲染
+
+```python
+from IPython.display import HTML
+HTML('<h1>Hell word！</h1>')
+```
+
+##### 图片渲染
+
+```python
+from IPython.display import Image, display
+display(Image('https://datascience.ucsd.edu/wp-content/uploads/2022/09/Ery-Arias-Castro-Web.jpg'))
 ```
 
 
