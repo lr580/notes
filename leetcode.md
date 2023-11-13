@@ -989,6 +989,14 @@
 - 2300\.咒语和药水的成功对数
 
   双指针 / 二分
+  
+- 715\.Range 模块
+
+  <u>动态开点线段树 / STL模拟</u>
+  
+- 765\.情侣牵手
+
+  贪心 / <u>BFS(连通分量)</u>
 
 
 
@@ -27467,6 +27475,333 @@ class Solution:
     def successfulPairs(self, spells: List[int], potions: List[int], success: int) -> List[int]:
         potions.sort()
         return [len(potions) - bisect.bisect_right(potions, (success - 1) // i) for i in spells]
+```
+
+##### 715\.Range 模块
+
+[题目](https://leetcode.cn/problems/range-module)
+
+动态开点线段树模板题，强制在线维护：
+
+- 将区间 $[l,r)$ 的所有点染色。
+- 将区间 $[l,r)$ 的所有点取消染色。
+- 查询区间 $[l,r)$ 是否每个点都被染色。
+
+其中操作数 $q=10^4$，值域 $n=10^9$。
+
+本质：懒开点的线段树，即仍然构造值域为 $[1,n]$ 的普通线段树。但是对所有节点，只有需要访问时，才使用内存分配给该点。对大部分不需要访问的点不开内存。
+
+点数估计：可以考虑走大约 $2q\log n$；如果 $q>n$，最坏点数约 $2n-1$。
+
+- 最坏：全部点都开满了退化为普通线段树。即 $n+\dfrac n2+\dfrac n4+\cdots+1$。
+- 每次询问最坏开点：一共有 $\log n$ 层，考虑每层分裂成左右两个，故 $2\log n$ 单次。
+
+与一般线段树的主要区别：(考虑数组而非指针实现)
+
+- 根节点表示整个值域 $[1,n]$，编号为 $1$(编号 $0$ 模拟空指针故不用)
+- 维护两个成员 `ls,rs`，表示左右子节点编号
+- 在 pushdown 操作里，如果要访问当前 `ls,rs` 编号的点不存在，则新建该点
+
+参考 C++ 代码：
+
+```c++
+using ll = long long;
+class RangeModule
+{
+    constexpr static ll inf = 1e9;
+    constexpr static ll maxn = 60 * 1e4; // log(inf)*q
+    struct node
+    {
+        ll ls, rs, sum, laz;
+    } t[maxn] = {};
+    int cnt = 1;
+#define cll const ll &
+#define mkcf ll cf = (lf + rf) >> 1
+    void pushdown(int r, cll lf, cll rf)
+    {
+        if (!t[r].ls)
+            t[r].ls = ++cnt;
+        if (!t[r].rs)
+            t[r].rs = ++cnt;
+        if (!t[r].laz)
+            return;
+        if (t[r].laz == 1)
+        {
+            mkcf;
+            t[t[r].ls].sum = (cf - lf + 1); // len-len/2
+            t[t[r].rs].sum = rf - cf;       // len/2
+        }
+        else
+        {
+            t[t[r].ls].sum = t[t[r].rs].sum = 0;
+        }
+        t[t[r].ls].laz = t[t[r].rs].laz = t[r].laz;
+        t[r].laz = 0;
+    }
+    void pushup(int r)
+    {
+        t[r].sum = t[t[r].ls].sum + t[t[r].rs].sum;
+    }
+    void update(int r, ll lf, ll rf, cll lc, cll rc, cll v)
+    {
+        if (lc <= lf && rf <= rc)
+        {
+            t[r].sum += (v == 1) * (rf - lf + 1);
+            t[r].laz = v;
+            return;
+        }
+        pushdown(r, lf, rf);
+        mkcf;
+        if (lc <= cf)
+            update(t[r].ls, lf, cf, lc, rc, v);
+        if (rc >= cf + 1)
+            update(t[r].rs, cf + 1, rf, lc, rc, v);
+        pushup(r);
+    }
+    ll query(int r, ll lf, ll rf, cll lc, cll rc)
+    {
+        if (lc <= lf && rf <= rc)
+            return t[r].sum;
+        pushdown(r, lf, rf);
+        ll res = 0;
+        mkcf;
+        if (lc <= cf)
+            res += query(t[r].ls, lf, cf, lc, rc);
+        if (rc >= cf + 1)
+            res += query(t[r].rs, cf + 1, rf, lc, rc);
+        return res;
+    }
+
+public:
+    RangeModule() {}
+
+    void addRange(int left, int right)
+    {
+        update(1, 1, inf, left, right - 1, 1);
+    }
+
+    bool queryRange(int left, int right)
+    {
+        return query(1, 1, inf, left, right - 1) == right - left;
+    }
+
+    void removeRange(int left, int right)
+    {
+        update(1, 1, inf, left, right - 1, -1);
+    }
+};
+```
+
+解法二：
+
+- 维护区间 map 即 `intervals[l]=r`，不重叠地表示每个区间
+
+- 插入区间时，找到已有最大 $\le left$ 的左端点，若有这样的区间 $[l,r]$：
+
+  - 若 $r\ge right$，则当前要插入的新区间完全被包含，直接返回
+  - 若 $r< left$，则不会产生新的重叠，暂且按下不表
+  - 否则，与上一个区间重叠，将当前 $left=l$ 取走 map，删掉上一个区间
+
+  之后，不断查看它往下的的区间，直到 $l>right$ 为止，把这些区间的 $right=r$ 维护最值，并删掉取走的区间
+
+  然后插入这个融合的新区间
+
+- 删除区间，同理先找到上一个区间：
+
+  - $r\ge right$，新区间完全被包含：
+    - 如果 $l=left$，上一个区间不用要了
+    - 否则上一个区间的右改成 $r=left$
+    - 如果 $r\neq right$，新增区间 $[right,r)$，否则忽视
+    - 不用再往下干了，直接返回
+  - $r > left$，不完全包含：
+    - 若 $l=left$，上一个区间被完全包含删去
+    - 否则，上一个区间截断到 $[l,left)$
+
+  之后，不断找到往下的，完全包含直接删，不完全包含就 break 掉并维护最后一个截断的，原本删掉，新修改为 $right=r$。
+
+- 查询，直接找到上一个区间 $[l,r]$，如果找得到而且 $right\le r$ 就完全包含
+
+```c++
+class RangeModule {
+public:
+    RangeModule() {}
+    
+    void addRange(int left, int right) {
+        auto it = intervals.upper_bound(left);
+        if (it != intervals.begin()) {
+            auto start = prev(it);
+            if (start->second >= right) {
+                return;
+            }
+            if (start->second >= left) {
+                left = start->first;
+                intervals.erase(start);
+            }
+        }
+        while (it != intervals.end() && it->first <= right) {
+            right = max(right, it->second);
+            it = intervals.erase(it);
+        }
+        intervals[left] = right;
+    }
+    
+    bool queryRange(int left, int right) {
+        auto it = intervals.upper_bound(left);
+        if (it == intervals.begin()) {
+            return false;
+        }
+        it = prev(it);
+        return right <= it->second;
+    }
+    
+    void removeRange(int left, int right) {
+        auto it = intervals.upper_bound(left);
+        if (it != intervals.begin()) {
+            auto start = prev(it);
+            if (start->second >= right) {
+                int ri = start->second;
+                if (start->first == left) {
+                    intervals.erase(start);
+                }
+                else {
+                    start->second = left;
+                }
+                if (right != ri) {
+                    intervals[right] = ri;
+                }
+                return;
+            }
+            else if (start->second > left) {
+                if (start->first == left) {
+                    intervals.erase(start);
+                }
+                else {
+                    start->second = left;
+                }
+            }
+        }
+        while (it != intervals.end() && it->first < right) {
+            if (it->second <= right) {
+                it = intervals.erase(it);
+            }
+            else {
+                intervals[right] = it->second;
+                intervals.erase(it);
+                break;
+            }
+        }
+    }
+
+private:
+    map<int, int> intervals;
+};
+```
+
+##### 765\.情侣牵手
+
+[题目](https://leetcode.cn/problems/couples-holding-hands)
+
+贪心：
+
+- 先将 $row$ 做变换 $row_i=\lfloor \dfrac{row_i}2\rfloor$ 即做成组号数组
+- 每两个两个地遍历一轮 row，如果能找到满足 $(a,b)$ 对 $(a,b)$，对他俩交换，能一次满足两组。
+- 否则，任意找到一个不满足的，直接交换一次使他满足。
+- 没有比这种策略更优的。
+
+直接暴力实现，每次贪心 $O(n)$，最坏贪心 $\dfrac n2$ 次，故 $O(n^2)$。
+
+```python
+class Solution:
+    def minSwapsCouples(self, row: List[int]) -> int:
+        n,ans = len(row)//2,0
+        for i in range(0,n*2):
+            row[i] //= 2
+        def check():
+            for i in range(0,n*2,2):
+                if row[i]!=row[i+1]:
+                    return False
+            return True
+        while not check():
+            ans += 1
+            pr = dict()
+            ok = False
+            for i in range(0,n*2,2):
+                a,b = sorted((row[i],row[i+1]))
+                if (a,b) in pr:
+                    j = pr[(a,b)]
+                    row[i]=row[i+1]=a
+                    row[j]=row[j+1]=b
+                    ok = True
+                    break
+                pr[(a,b)]=i
+            if ok:
+                continue
+            k=-1
+            for i in range(0,n*2,2):
+                if row[i]!=row[i+1]:
+                    k=i
+                    break
+            v=row[k]
+            for i in range(k+1,n*2,2):
+                if row[i]==v:
+                    row[i]=row[k+1]
+                    row[k+1]=v
+                    ok=True
+                    break
+                elif row[i+1]==v:
+                    row[i+1]=row[k+1]
+                    row[k+1]=v
+                    ok=True
+                    break
+            assert ok
+        return ans
+```
+
+解法二：设 $(a,b)$ 连边，则形成每个点度数必为 $2$ 的无向图，其中，对每个有 $k$ 个点，则需要交换 $k-1$ 次。求连通分量及其点数即可，直接 BFS。
+
+```c++
+class Solution {
+public:
+    int minSwapsCouples(vector<int>& row) {
+        int n = row.size();
+        int tot = n / 2;
+        
+        vector<vector<int>> graph(tot);
+        for (int i = 0; i < n; i += 2) {
+            int l = row[i] / 2;
+            int r = row[i + 1] / 2;
+            if (l != r) {
+                graph[l].push_back(r);
+                graph[r].push_back(l);
+            }
+        }
+        vector<int> visited(tot, 0);
+        int ret = 0;
+        for (int i = 0; i < tot; i++) {
+            if (visited[i] == 0) {
+                queue<int> q;
+                visited[i] = 1;
+                q.push(i);
+                int cnt = 0;
+
+                while (!q.empty()) {
+                    int x = q.front();
+                    q.pop();
+                    cnt += 1;
+
+                    for (int y: graph[x]) {
+                        if (visited[y] == 0) {
+                            visited[y] = 1;
+                            q.push(y);
+                        }
+                    }
+                }
+                ret += cnt - 1;
+            }
+        }
+        return ret;
+    }
+};
 ```
 
 
