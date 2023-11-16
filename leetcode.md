@@ -997,6 +997,14 @@
 - 765\.情侣牵手
 
   贪心 / <u>BFS(连通分量)</u>
+  
+- 1334\.阈值距离内邻居最少的城市
+
+  最短路
+  
+- 2760\.最长奇偶子数组
+
+  滑动窗口 / DP
 
 
 
@@ -27802,6 +27810,108 @@ public:
         return ret;
     }
 };
+```
+
+##### 1334\.阈值距离内邻居最少的城市
+
+[题目](https://leetcode.cn/problems/find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance)
+
+多种最短路对比：本题点数 $n$，边数 $m=O(n^2)$
+
+- 全源最短 Floyd $O(n^3)$
+- 朴素 Dijkstra 单次 $O(n^2+m)$，多次 $O(n(n^2+m))=O(n^3)$
+- 优先级队列(堆)优化 Dijkstra 单次 $O(m\log m)=O(2n^2\log n)$，多次 $O(n^3\log n)$
+- Bellman-Ford / SPFA 单次 $O(nm)=O(n^3)$，多次 $O(n^4)$
+- 堆/栈优化 SPFA 最坏指数复杂度
+- Johnson 全源最短路 $O(nm\log m)=O(n^3\log n)$
+
+综上所述，Floyd 最优。(好写，常数比多次朴素 Dijkstra 更好)
+
+```python
+class Solution:
+    def findTheCity(self, n: int, edges: List[List[int]], distanceThreshold: int) -> int:
+        f = [[1e9 if i!=j else 0 for i in range(n)] for j in range(n)]
+        for u,v,w in edges:
+            f[u][v] = f[v][u] = w #简单图
+        for k in range(n):
+            for i in range(n):
+                for j in range(n):
+                    f[i][j] = min(f[i][j], f[i][k] + f[k][j])
+        ansi, ansn = 0, n+1
+        for u in range(n):
+            cnt = sum([f[u][v] <= distanceThreshold for v in range(n)])
+            if cnt <= ansn:
+                ansi,ansn=u,cnt
+        return ansi
+```
+
+##### 2760\.最长奇偶子数组
+
+[题目](https://leetcode.cn/problems/longest-even-odd-subarray-with-threshold)
+
+我的滑动窗口：
+
+```python
+class Solution:
+    def longestAlternatingSubarray(self, nums: List[int], threshold: int) -> int:
+        n, ans, l = len(nums), 0, 0
+        def update(l,r):
+            nonlocal ans
+            if (r-l+1)%2==1: #r%2==l%2
+                if nums[r]%2==0:
+                    ans=max(ans,r-l+1)
+                else:
+                    ans=max(ans,r-l)
+            else:
+                if nums[r]%2==0:
+                    ans=max(ans,r-l)
+                else:
+                    ans=max(ans,r-l+1)
+        for r in range(n):
+            if nums[r] > threshold:
+                l = r + 1
+            if l <= r:
+                if l==r or nums[r-1]%2!=nums[r]%2:
+                    update(l,r)
+                else:
+                    l=r
+        return ans
+```
+
+题解更优写法：(分段枚举)
+
+```python
+class Solution:
+    def longestAlternatingSubarray(self, nums: List[int], threshold: int) -> int:
+        n, ans, i = len(nums), 0, 0
+        while i < n:
+            if nums[i] % 2 != 0 or nums[i] > threshold:
+                i += 1
+                continue
+            j, cur = i + 1, nums[i] % 2
+            while j < n:
+                if nums[j] > threshold or nums[j] % 2 == cur: break
+                cur, j = nums[j] % 2, j + 1
+            ans = max(ans, j - i)
+            i = j
+        return ans
+```
+
+DP：
+
+```python
+class Solution:
+    def longestAlternatingSubarray(self, nums: List[int], threshold: int) -> int:
+        res, dp = 0, 0
+        for l in range(len(nums) - 1, -1, -1):
+            if nums[l] > threshold:
+                dp = 0
+            elif l == len(nums) - 1 or nums[l] % 2 != nums[l + 1] % 2:
+                dp = dp + 1
+            else:
+                dp = 1
+            res = dp if nums[l] % 2 == 0 and dp > res else res
+        return res
 ```
 
 

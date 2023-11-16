@@ -34,8 +34,6 @@ py -0p
 
 
 
-
-
 ### 第三方库
 
 > linux 无 pip：(gpt)
@@ -393,7 +391,9 @@ from scipy.stats import ks_2samp
 ks_2samp?
 ```
 
+##### 导出
 
+以 vscode 预览 jupyter 为例，`...` 里找到导出直接导出即可。
 
 #### vscode
 
@@ -6648,6 +6648,8 @@ plot(x, [f(x), 2 * x - 3], 'x', 'f(x)', legend=['f(x)', 'Tangent line (x=1)'])
 
 ##### 读入
 
+支持 `read_csv`, `read_excel`, `read_html`, `read_json`。
+
 ###### csv
 
 读 csv: (二维表，行间空行隔开，列间单半角逗号隔开，第一行是表头不算作实际数据)
@@ -6699,11 +6701,21 @@ plt.show()
 
 ###### excel
 
+需要：
+
+```
+pip install openpyxl
+```
+
 也可以读 excel，默认第一行是表头，没有列头。如果要列头加默认参数如：[参考](https://blog.csdn.net/qq_18351157/article/details/124865696)
 
 ```python
 data = pd.read_excel('pca_data.xlsx',index_col=0)
 ```
+
+`header=n` 跳过前 n 行，第 n+1 行作为表名。(疑似不能和 `skiprows=n` 混用)
+
+
 
 ###### 构造
 
@@ -6739,6 +6751,8 @@ pd.DataFrame(columns=columns)
 
 [参考](https://blog.csdn.net/m0_46419189/article/details/123111493)
 
+###### csv
+
 ```python
 with pd.ExcelWriter("pca_result.xlsx") as writer:
     data.to_excel(writer, index=True) #单个表单
@@ -6767,7 +6781,19 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 >            all_data.to_csv(os.path.join(data_dir, data_basename.split('-')[0]+ '.csv'),index=False) 
 > ```
 
+###### md
 
+`.to_markdown(index=False)`。
+
+> 可能需要：
+>
+> ```
+> pip install tabulate
+> ```
+
+不加 `index=False` 的话会有第一列是没表头的代表索引。
+
+返回值 str，如：`'|    |   A |   C |\n|---:|----:|----:|\n|  0 |   1 |   4 |\n|  1 |   2 |   3 |\n|  2 |   3 |   5 |'`
 
 ##### 基本操作
 
@@ -6861,6 +6887,13 @@ B[A[A.isna()].index]
 > row2 = row2.fillna(row2.mean())
 > print(row2)
 > ```
+
+`combine_first` 可以在有缺失时转为别的值，如：
+
+```python
+df['OUTAGE.START.TIME'] = pd.to_timedelta(df['OUTAGE.START.TIME'], errors='coerce')
+df['OUTAGE.START.DATE'] = df['OUTAGE.START.DATE'].combine_first(pd.Timestamp(0))
+```
 
 
 
@@ -7266,7 +7299,7 @@ print(pd.merge(df1, df2, left_on='key1', right_on='key2', how='inner'))
 
 ##### 行列重构
 
-将默认列名重秘名为其他列名：
+将默认列名重命名为其他列名：
 
 ```python
 .rename(columns={0: 'p-value'})
@@ -7309,6 +7342,8 @@ df = pd.DataFrame({
 df2 = df.drop(columns=['A', 'B']) # 不改变 df
 df.drop(columns=['A', 'B'], inplace=True) # 改变
 df3 = df[['C']] # 只要 C 列
+df = df.drop(0) # 删第一行
+df = df.drop(df.columns[0], axis=1) # 删第一列
 ```
 
 ##### 透视表
@@ -7517,6 +7552,27 @@ df[rowname] = pd.to_datetime(df[rowname], errors='coerce')
 # 25-Sep-1982 -> 正常； NaN -> NaT
 ```
 
+##### 日期时间组合
+
+合并日期列和时间列：
+
+```python
+df['OUTAGE.START.DATE'] = pd.to_datetime(df['OUTAGE.START.DATE'], errors='coerce')
+from datetime import datetime, timedelta
+def time_to_timedelta(time_obj):
+    if pd.isnull(time_obj):
+        return pd.NaT
+    return timedelta(hours=time_obj.hour, minutes=time_obj.minute, seconds=time_obj.second)
+df['OUTAGE.START.TIME'] = df['OUTAGE.START.TIME'].apply(lambda x: time_to_timedelta(datetime.strptime(str(x), '%H:%M:%S').time()) if pd.notnull(x) else pd.NaT)
+
+df['OUTAGE.START'] = pd.NaT
+for index, row in df.iterrows():
+    if pd.notnull(row['OUTAGE.START.DATE']) and pd.notnull(row['OUTAGE.START.TIME']):
+        df.at[index, 'OUTAGE.START'] = row['OUTAGE.START.DATE'] + row['OUTAGE.START.TIME']
+```
+
+
+
 #### 绘图
 
 ##### 直方图
@@ -7683,7 +7739,11 @@ wb.save('99mul.xlsx')
 
 ### plotly
 
-#### 折线图
+交互良好的数据图。
+
+#### 常用图
+
+##### 折线图
 
 要求用到 pandas 的 `DataFrame`，以 `vacs` 为例，绘制以某列为横坐标，另一列为纵坐标(不只是起标题作用，而是真的用来选择数据)：
 
@@ -7695,7 +7755,7 @@ def plot_cases(country):
     fig.show()
 ```
 
-#### 等值线图
+##### 等值线图
 
 [文档](https://plotly.com/python/choropleth-maps/)
 
@@ -7725,6 +7785,27 @@ def draw_choropleth(tots, pops_fixed):
 ```
 
 `ISO` 是三个字母的国家编号。再补充。
+
+#### 导出
+
+##### HTML
+
+设 `fig` 是 plotly Figure 对象，或 `.plot`(`pd.options.plotting.backend = "plotly"`)，则支持方法 `write.html`，如：
+
+```python
+fig.write_html('file-name.html', include_plotlyjs='cdn')
+```
+
+- 如果不 include，那么会把整个库源码搞到 HTML 里
+
+接下来可以使用内嵌的办法，将其加载，例如：
+
+```html
+<iframe src="assets/file-name.html" width=800 height=600 frameBorder=0></iframe>
+<!-- 建议可以更改长宽，不要更改frameBorder -->
+```
+
+
 
 ## 图像处理
 
