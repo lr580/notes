@@ -55,6 +55,7 @@ pip install 第三方库名
 
 ```bash
 pip install requests-html
+pip install plotly pandas # 一次装两个
 ```
 
 可以加上调用国内镜像的选项，加快下载速度：
@@ -6795,6 +6796,8 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 
 返回值 str，如：`'|    |   A |   C |\n|---:|----:|----:|\n|  0 |   1 |   4 |\n|  1 |   2 |   3 |\n|  2 |   3 |   5 |'`
 
+同理有 `.to_latex`
+
 ##### 基本操作
 
 列名字符串区分大小写。默认每列同一个数据类型。
@@ -6841,6 +6844,10 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 或对立含义 `isnull`。
 
 去掉 nan 行：`dropna()`。
+
+```python
+df.dropna(subset=['Column1']) # 不加就任意一行 NA 就删
+```
 
 `isna()`：(反义 `notna`)
 
@@ -7016,6 +7023,20 @@ rows = df[(df['Age'] >= left) & (df['Age'] <= right)]
 
 每行处理：`apply(f, axis=1)`，例子见字符串处理。f 参数是列，不是标量。
 
+> 如：对固定三个取值(或 NA)的字符串转化为整型：
+>
+> ```python
+> def convert_climate(s):
+>     if 'normal' == s:
+>         return 1
+>     if 'cold' == s:
+>         return 2
+>     if 'warm' == s:
+>         return 3
+>     return 0
+> df['OUTAGE.CLIMATE.CATEGORY'] = df['CLIMATE.CATEGORY'].apply(convert_climate)
+> ```
+
 > `name=`，对两列操作，固定第二列，则 `f` 传多一个列，且参数名为 `name`(关键字参数)
 
 如，每列与第二列进行运算，返回结果 series(原列名，且只有一行返回值)：
@@ -7056,7 +7077,19 @@ print(df)
 grouped_df = df.groupby('City').mean()
 ```
 
-其他聚合函数，如 min, max, sum, size(计数),count
+同一列两个运算：
+
+```python
+stat_df = df.groupby('U.S._STATE')['OUTAGE.DURATION'].agg(['mean', 'count'])
+```
+
+其他聚合函数，如 min, max, sum, size(计数),count, var(方差), median(中位数)
+
+分位数：
+
+```python
+q1 = df2.groupby('U.S._STATE')['OUTAGE.DURATION'].quantile(0.25)
+```
 
 > 双聚合因子和双聚合函数：
 >
@@ -7235,6 +7268,18 @@ print(df)
 # 注意 ² 会 isdight，如果单位有奇怪的特殊字符建议重写isdight
 ```
 
+##### 排序
+
+```python
+data = {'Name': ['Alice', 'Bob', 'Charlie', 'David'],
+        'Age': [24, 42, 35, 29]}
+df = pd.DataFrame(data)
+sorted_df = df.sort_values(by='Age')
+print(sorted_df)
+avg_df.sort_values() # series 排序，升序
+avg_df.sort_values(ascending = False) # 降序
+```
+
 
 
 ##### 拼接
@@ -7305,6 +7350,12 @@ print(pd.merge(df1, df2, left_on='key1', right_on='key2', how='inner'))
 .rename(columns={0: 'p-value'})
 ```
 
+也可以考虑诸如 `df.columns = df.iloc[4]`
+
+```python
+count_df.columns = ['U.S._STATE', 'count'] # 重命名各列
+```
+
 将普通列设为索引或将索引退回成普通列：
 
 ```python
@@ -7357,6 +7408,7 @@ data = {
     'Test_Score': [88, 90, 85, 95, 78, 75],
     'Study_Group': ['A', 'B', 'A', 'B', 'A', 'B']
 }
+df=pd.DataFrame(data)
 ```
 
 ```python
@@ -7443,24 +7495,26 @@ quotes_full = pd.concat([quotes, tags.apply(encode)], axis=1).drop(columns='tags
 quotes_full.head()
 ```
 
-##### 日期
+##### value_counts
 
-返回某个月的最后一天(字符串)：
+对某列操作，返回一个 series，索引是每个值，数值是该值出现频次。并且按照降序排列。
 
 ```python
-year=2020
-month=2
-start_date = f"{year}-{month:02d}-01"
-pd.date_range(start_date, periods=1, freq='M').strftime('%Y-%m-%d').tolist()[0] #'2020-02-29'
+data = {'fruit': ['apple', 'banana', 'orange', 'apple', 'banana', 'apple']}
+df = pd.DataFrame(data)
+print(df['fruit'].value_counts())
 ```
 
-##### 时间戳
+##### crosstable
 
-默认按毫秒算，如果按秒的时间戳，要加默认参数：
+可以生成 2x2 表，分别表示某行是否为何值，某列是否为何值四种情况的取值：
 
 ```python
-pd.Timestamp(1541014179, unit='s')
-pd.Timestamp(1541014179000)
+df = pd.DataFrame({
+    'col1': [np.nan, 2, 3, np.nan, 5, 6,np.nan],
+    'col2': [1, np.nan, 3, 4, 5, np.nan,np.nan]
+})
+table = pd.crosstab(df[col1].isna(), df[col2].isna()) #2,2,2,1
 ```
 
 
@@ -7522,6 +7576,26 @@ def prime_time_logins(login):
     return res
 ```
 
+##### 日期
+
+返回某个月的最后一天(字符串)：
+
+```python
+year=2020
+month=2
+start_date = f"{year}-{month:02d}-01"
+pd.date_range(start_date, periods=1, freq='M').strftime('%Y-%m-%d').tolist()[0] #'2020-02-29'
+```
+
+##### 时间戳
+
+默认按毫秒算，如果按秒的时间戳，要加默认参数：
+
+```python
+pd.Timestamp(1541014179, unit='s')
+pd.Timestamp(1541014179000)
+```
+
 ##### 时间运算
 
 时间相差：
@@ -7569,6 +7643,14 @@ df['OUTAGE.START'] = pd.NaT
 for index, row in df.iterrows():
     if pd.notnull(row['OUTAGE.START.DATE']) and pd.notnull(row['OUTAGE.START.TIME']):
         df.at[index, 'OUTAGE.START'] = row['OUTAGE.START.DATE'] + row['OUTAGE.START.TIME']
+```
+
+简短：
+
+```python
+df['OUTAGE.START.DATE'] = pd.to_datetime(df['OUTAGE.START.DATE'])
+df['OUTAGE.START.TIME'] = pd.to_timedelta(df['OUTAGE.START.TIME'].astype(str))
+df['OUTAGE.START'] = df['OUTAGE.START.DATE'] + df['OUTAGE.START.TIME']
 ```
 
 
@@ -7743,6 +7825,47 @@ wb.save('99mul.xlsx')
 
 #### 常用图
 
+##### 直方图
+
+对某列绘制分布图：
+
+```python
+fig = px.histogram(df, x='OUTAGE.DURATION', title = 'abc')
+```
+
+##### 柱状图
+
+频次统计：(打横的一条条，即横坐标是频次，纵坐标是值)
+
+```python
+# 不改变，直接输出原编号
+count_df = df['U.S._STATE'].value_counts()
+fig = px.bar(count_df, x='U.S._STATE', title = 'Distribution of Outage\'s U.S. State')
+# 改变编号为排名
+count_df = df['your_column'].value_counts().reset_index()
+count_df.columns = ['your_column', 'count']
+fig = px.bar(count_df, x='your_column', y='count', 
+             title='Your Column Value Counts')
+fig.show()
+```
+
+打竖的：
+
+```python
+fig = px.bar(count_df, y='U.S._STATE', title = 'Distribution of Outage\'s U.S. State')
+fig.update_layout(xaxis_title='Outage U.S. State', yaxis_title='counts')
+```
+
+一行三列的条形图，即每行对三个条(列是 cold, warm, normal)：
+
+```python
+fig = px.bar(pivot_table, title = 'Average Outage Duration of Different Climate Category of Different States')
+fig.update_layout(xaxis_title='U.S. State', yaxis_title='Average Outage Duration')
+fig.show()
+```
+
+
+
 ##### 折线图
 
 要求用到 pandas 的 `DataFrame`，以 `vacs` 为例，绘制以某列为横坐标，另一列为纵坐标(不只是起标题作用，而是真的用来选择数据)：
@@ -7754,6 +7877,70 @@ def plot_cases(country):
     fig = px.line(country_only, x='Date', y='Doses_admin', title=f"'Doses_admin' column for {country}")
     fig.show()
 ```
+
+双折线：
+
+```python
+stat_df = df.groupby('U.S._STATE')['OUTAGE.DURATION'].agg(['mean', 'count'])
+stat_df = stat_df.sort_values(by='mean')
+fig = px.line(stat_df, title = 'Average Outage Duration of Different States')
+fig.update_layout(xaxis_title='U.S. State')
+fig.show()
+```
+
+```python
+df2 = df.copy()
+df2.dropna(subset=['OUTAGE.DURATION'])
+df2['OUTAGE.DURATION'] = df2['OUTAGE.DURATION'].astype(float)
+stat_df = df2.groupby('U.S._STATE')['OUTAGE.DURATION'].agg(['mean', 'median'])
+stat_df = stat_df.sort_values(by='mean')
+q1 = df2.groupby('U.S._STATE')['OUTAGE.DURATION'].quantile(0.25)
+q3 = df2.groupby('U.S._STATE')['OUTAGE.DURATION'].quantile(0.75)
+stat_df = pd.merge(stat_df, q1, on='U.S._STATE')
+stat_df = pd.merge(stat_df, q3, on='U.S._STATE')
+stat_df.columns = ['mean', 'median', 'Q1', 'Q3']
+fig = px.line(stat_df, title = 'Average Outage Duration of Different States')
+fig.update_layout(xaxis_title='U.S. State')
+fig.show()
+```
+
+
+
+##### 散点图
+
+```python
+data2 = {
+    'x': [1, 2, 3, 4, 5],
+    'y': [2, 1, 4, 3, 5],
+    'group': ['A', 'B', 'A', 'B', 'A']
+}
+df2 = pd.DataFrame(data2)
+
+# 使用 Plotly Express 创建散点图
+fig = px.scatter(df2, x='x', y='y', color='group',
+                 size=[10, 20, 30, 40, 50], 
+                 hover_data=['x', 'y'])
+fig.show()
+```
+
+##### 箱形图
+
+box plot
+
+1. **箱体**：箱体的上下边界分别表示数据的第三四分位数 (Q3) 和第一四分位数 (Q1)。箱体的长度，即四分位距 (IQR)，是数据分布的主要部分。
+2. **中位数**：箱体内的一条线表示数据的中位数（第二四分位数）。
+3. **触须（Whiskers）**：箱体外的两条线（触须）延伸到数据点的范围内。通常，它们延伸到 Q1 - 1.5 * IQR 和 Q3 + 1.5 * IQR。超出这个范围的点通常被视为异常值。
+4. **异常值**：通常用不同的标记（如点）表示，这些是远离其他数据的值。
+
+```python
+data2 = {'Group': ['A', 'B', 'C', 'A', 'B', 'C'],
+        'Value': [1, 2, 3, 4, 2, 5]}
+df2 = pd.DataFrame(data2)
+fig = px.box(df2, x='Group', y='Value')
+fig.show()
+```
+
+
 
 ##### 等值线图
 
@@ -7785,6 +7972,20 @@ def draw_choropleth(tots, pops_fixed):
 ```
 
 `ISO` 是三个字母的国家编号。再补充。
+
+#### 图表属性
+
+行列标题，表名(左上角)：
+
+```python
+fig.update_layout(
+   xaxis_title='X轴标签',
+   yaxis_title='Y轴标签',
+   title='图表标题'
+)
+```
+
+
 
 #### 导出
 
