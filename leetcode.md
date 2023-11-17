@@ -1005,6 +1005,10 @@
 - 2760\.最长奇偶子数组
 
   滑动窗口 / DP
+  
+- 2736\.最大和查询
+
+  **权值树状数组 / 单调栈 / 归并排序**
 
 
 
@@ -27912,6 +27916,198 @@ class Solution:
                 dp = 1
             res = dp if nums[l] % 2 == 0 and dp > res else res
         return res
+```
+
+##### 2736\.最大和查询
+
+[题目](https://leetcode.cn/problems/maximum-sum-queries/)
+
+> 思路一：二维莫队。复杂度为 $O(n^2q^{\frac 34})$，故不能过题。
+>
+> 思路二：整体二分。即使考虑离散化+二维树状数组，也需要 $O((n^2+q)\log^3n)$，故也不行。
+>
+> 思路三：K-D Tree。建树 $O(n\log n)$，查询可能卡到 $O(qn)$，也无法设计二分答案，因为难以查询 $x+y\ge C$ 的值，故也不行。
+>
+> 思路四：二维树状数组/线段树。离散化，维护 $x+y$ 最值并区间查询。时间 $O(n^2+q)\log^2n$，空间 $O(n^2)$。
+>
+> ~~全都歪了。~~
+
+解法：树状数组。
+
+- 离散化。并将点和询问都按 $x$ 逆序排序。
+- 对每个询问，枚举所有 $x\ge qx$ 的点，将其插入到权值树状数组里，下标点表示离散化的 $y$ 值，维护 $x+y$ 的最大值。之后，查询 $[qy,+\infty)$ 的最值。
+- 通过枚举顺序解决了 $x$ 的问题，再通过树状数组解决了 $y$ 的问题。
+
+```c++
+class Solution {
+public:
+    int sz;
+    vector<int> tr;
+    int lowbit(int x) {
+        return x & -x;
+    }
+    void add(int a, int b) {
+        for (int i = a; i <= sz; i += lowbit(i)) tr[i] = max(tr[i], b);
+    }
+    int query(int x) {
+        int ans = -1;
+        for (int i = x; i > 0; i -= lowbit(i)) ans = max(ans, tr[i]);
+        return ans;
+    }
+    vector<int> maximumSumQueries(vector<int>& nums1, vector<int>& nums2, vector<vector<int>>& queries) {
+        int n = nums1.size(), m = queries.size();
+        // 构建新的 nums 和 nq
+        vector<vector<int>> nums(n, vector<int>(2));
+        vector<vector<int>> nq(m, vector<int>(3));
+        for (int i = 0; i < n; i++) {
+            nums[i][0] = nums1[i]; nums[i][1] = nums2[i];
+        }
+        for (int i = 0; i < m; i++) {
+            nq[i][0] = queries[i][0]; nq[i][1] = queries[i][1]; nq[i][2] = i;
+        }
+        
+        // 对要添加到树状数组的 nums[i][1] 和 nq[i][1] 进行离散化（构建映射字典, 将原值映射到 [0, m - 1])
+        unordered_set<int> set;
+        for (auto& x : nums) set.insert(x[1]);
+        for (auto& q : nq) set.insert(q[1]);
+        vector<int> list(set.begin(), set.end());
+        sort(list.begin(), list.end());
+        sz = list.size();
+        map<int, int> map;
+        for (int i = 0; i < sz; i++) map[list[i]] = i;
+        
+        // 调整询问顺序, 解决其中一维限制
+        sort(nums.begin(), nums.end(), [](const vector<int>& a, const vector<int>& b) {
+            return a[0] > b[0];
+        });
+        sort(nq.begin(), nq.end(), [](const vector<int>& a, const vector<int>& b) {
+            return a[0] > b[0];
+        });
+        
+        tr.resize(sz + 10, -1);
+        
+        vector<int> ans(m);
+        int idx = 0;
+        for (auto& q : nq) {
+            int x = q[0], y = q[1], i = q[2];
+            // 扫描所有满足 nums[idx][0] >= x 的数对, 添加到树状数组中（其中离散值作为位置信息, 数对和作为值信息）
+            while (idx < n && nums[idx][0] >= x) {
+                add(sz - map[nums[idx][1]], nums[idx][0] + nums[idx][1]);
+                idx++;
+            }
+            ans[i] = query(sz - map[y]); // 查询树状数组中的最值
+        }
+        return ans;
+    }
+};
+```
+
+解法：单调栈二分。
+
+- 按 x 逆序排序点集和询问。将所有满足 $x\ge qx$ 的点，插入到按 $x+y$ 单调递减的栈里
+
+- 每次在栈上对 $y$ 二分，维护栈上保持 $y$ 升序
+
+  每次遍历的 $x$ 一定更小，所以如果 $y$ 也更小(不能升序)，则 $x+y$ 一定不优，砍掉
+
+```c++
+class Solution {
+public:
+    vector<int> maximumSumQueries(vector<int> &nums1, vector<int> &nums2, vector<vector<int>> &queries) {
+        vector<pair<int, int>> a(nums1.size());
+        for (int i = 0; i < nums1.size(); i++) {
+            a[i] = {nums1[i], nums2[i]};
+        }
+        sort(a.begin(), a.end(),
+             [](auto &a, auto &b) { return a.first > b.first; });
+
+        vector<int> qid(queries.size());
+        iota(qid.begin(), qid.end(), 0);
+        sort(qid.begin(), qid.end(),
+             [&](int i, int j) { return queries[i][0] > queries[j][0]; });
+
+        vector<int> ans(queries.size());
+        vector<pair<int, int>> st;
+        int j = 0;
+        for (int i: qid) {
+            int x = queries[i][0], y = queries[i][1];
+            for (; j < a.size() && a[j].first >= x; j++) { // 下面只需关心 a[j].second
+                while (!st.empty() && st.back().second <= a[j].first + a[j].second) { // a[j].second >= st.back().first
+                    st.pop_back();
+                }
+                if (st.empty() || st.back().first < a[j].second) {
+                    st.emplace_back(a[j].second, a[j].first + a[j].second);
+                }
+            }
+            auto it = lower_bound(st.begin(), st.end(), y,
+                          [](const auto &p, int val) { return p.first < val; });
+            ans[i] = it != st.end() ? it->second : -1;
+        }
+        return ans;
+    }
+};
+```
+
+
+
+解法：归并排序。
+
+将 $(-num1,-1,-num2)$ 三元组序列和询问 $(-q1,i,-q2)$ 序列连接并排序。注意修改在排序之前($-1<i$)。
+
+对第二维($i$)跑归并排序，必然有第一维满足升序。设归并排序得到左数组 $L$ 和右数组 $R$，在合并过程中：
+
+- 两个元素被合并到一个序列之前，一定是按照 $x$ 排序的，$L$ 发生的修改，会影响所有 $x$ 比它大的查询，所以这个点的 $x+y$ 存一下
+
+- 遍历到右侧元素归并入数组时，所有比它大的 $x$ 的 $L$ 已经进去了，所以在 $\ge x$ 下的最值可以作为答案
+
+- 现在考虑 $y$，再按 $y$ 决定谁进入合并后的数组。
+
+  例如，按照降序排序两个坐标(相反数做到了)，使得有 $x=[4,3,2,1]$。 
+
+  $y$ 是无序的，设为 $[1,3,2,4]$。
+
+  则，第一次有 $L_1 < R_1$(第一第三个元素)，则会让 $R$ 进去(因为相反数)……
+
+故若第二维 $L_i<R_j$(比较依据：看第三维、然后看第二维、然后第一维；其实就是看第三维即 $y$)
+
+```python
+class Solution:
+    def maximumSumQueries(
+        self, nums1: List[int], nums2: List[int], queries: List[List[int]]
+    ) -> List[int]:
+        n = len(nums1)
+        q = len(queries)
+        a = sorted(
+            [(-nums1[i], -1, -nums2[i]) for i in range(n)]
+            + [(-queries[i][0], i, -queries[i][1]) for i in range(q)]
+        )
+        ans = [-1] * q
+
+        def rec(l, r):
+            m = (l + r) // 2
+            if l + 1 == r: # n == 1
+                return [(a[m][2], a[m][1], a[m][0])]
+            L = rec(l, m)
+            R = rec(m, r)
+            res = []
+            i = 0
+            j = 0
+            pre = -1
+            while i < len(L) or j < len(R):
+                if j == len(R) or (i != len(L) and L[i] < R[j]):
+                    if L[i][1] < 0:
+                        pre = max(pre, -L[i][0] - L[i][2])
+                    res.append(L[i])
+                    i += 1
+                else:
+                    if R[j][1] >= 0:
+                        ans[R[j][1]] = max(ans[R[j][1]], pre)
+                    res.append(R[j])
+                    j += 1
+            return res
+
+        rec(0, len(a))
+        return ans
 ```
 
 
