@@ -1009,6 +1009,10 @@
 - 2736\.最大和查询
 
   **权值树状数组 / 单调栈 / 归并排序**
+  
+- 689\.三个无重叠子数组的最大和
+
+  **滑动窗口+前缀和 /前缀和 / DP**
 
 
 
@@ -28109,6 +28113,180 @@ class Solution:
         rec(0, len(a))
         return ans
 ```
+
+##### 689\.三个无重叠子数组的最大和
+
+[题目](https://leetcode.cn/problems/maximum-sum-of-3-non-overlapping-subarrays)
+
+如果只有一个窗口显然朴素滑窗就行。
+
+两个子数组：同时滑，具体而言：
+
+- 枚举 $[0,k-1]$ 和 $[k,2k-1]$。当第一次积累完完整的前缀和时：
+- 维护见过的第一个窗的最大值 $maxSum1$ 及其下标
+- 如果当前第二个窗的值+历史最大第一个窗的值更优，更新答案
+
+> ```python
+> class Solution:
+>     def maxSumOfTwoSubarrays(self, nums: List[int], k: int) -> List[int]:
+>         ans = []
+>         sum1, maxSum1, maxSum1Idx = 0, 0, 0
+>         sum2, maxSum12 = 0, 0
+>         for i in range(k, len(nums)):
+>             sum1 += nums[i - k]
+>             sum2 += nums[i]
+>             if i >= k * 2 - 1:
+>                 if sum1 > maxSum1:
+>                     maxSum1 = sum1
+>                     maxSum1Idx = i - k * 2 + 1
+>                 if maxSum1 + sum2 > maxSum12:
+>                     maxSum12 = maxSum1 + sum2
+>                     ans = [maxSum1Idx, i - k + 1]
+>                 sum1 -= nums[i - k * 2 + 1]
+>                 sum2 -= nums[i - k + 1]
+>         return ans
+> ```
+
+再将上面的扩展到三个子数组，当第一次积累完完整的前缀和时：
+
+- 维护最左窗口的最大值 $maxSum1$
+- 紧接着维护前二个窗口的最大值
+- 同理维护前三个窗口的最大值
+
+```python
+class Solution:
+    def maxSumOfThreeSubarrays(self, nums: List[int], k: int) -> List[int]:
+        ans = []
+        sum1, maxSum1, maxSum1Idx = 0, 0, 0
+        sum2, maxSum12, maxSum12Idx = 0, 0, ()
+        sum3, maxTotal = 0, 0
+        for i in range(k * 2, len(nums)):
+            sum1 += nums[i - k * 2]
+            sum2 += nums[i - k]
+            sum3 += nums[i]
+            if i >= k * 3 - 1:
+                if sum1 > maxSum1:
+                    maxSum1 = sum1
+                    maxSum1Idx = i - k * 3 + 1
+                if maxSum1 + sum2 > maxSum12:
+                    maxSum12 = maxSum1 + sum2
+                    maxSum12Idx = (maxSum1Idx, i - k * 2 + 1)
+                if maxSum12 + sum3 > maxTotal:
+                    maxTotal = maxSum12 + sum3
+                    ans = [*maxSum12Idx, i - k + 1]
+                sum1 -= nums[i - k * 3 + 1]
+                sum2 -= nums[i - k * 2 + 1]
+                sum3 -= nums[i - k + 1]
+        return ans。
+```
+
+DP：设 $f_{i,j}$ 为只考虑前 $i$ 个数，凑 $j$ 个子数组的最大值，所求 $f_{n-1,3}$。
+$$
+f_{i,j}=\max(f_{i-1,j},f_{i-k,j-1}+s_i-s_{i-k})
+$$
+但是该 DP 只能输出字典序最大的方案。将其转为对 $\overline a$ 操作，可以得到字典序最小方案；或者逆序 DP 也行。
+
+逆序：先找到对某个状态 $f_{i,j}$，第一个不是通过 $f_{i-1,j}$ 取得该状态的下标 $i$(即最小 max 函数第二项 $\le$ 第一项的下标)。因为逆序 DP，所以 $i$ 越小 $j$ 越大，先找 $j=3$，然后一直找到 $j=1$ 即可。
+
+```java
+class Solution {
+    public int[] maxSumOfThreeSubarrays(int[] nums, int k) {
+        int n = nums.length;
+        long[] sum = new long[n + 1];
+        for (int i = 1; i <= n; i++) sum[i] = sum[i - 1] + nums[i - 1];
+        long[][] f = new long[n + 10][4];
+        for (int i = n - k + 1; i >= 1; i--) {
+            for (int j = 1; j < 4; j++) {
+                f[i][j] = Math.max(f[i + 1][j], f[i + k][j - 1] + sum[i + k - 1] - sum[i - 1]);
+            }
+        }
+        int[] ans = new int[3];
+        int i = 1, j = 3, idx = 0;
+        while (j > 0) {
+            if (f[i + 1][j] > f[i + k][j - 1] + sum[i + k - 1] - sum[i - 1]) {
+                i++;
+            } else {
+                ans[idx++] = i - 1;
+                i += k; j--;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+翻转数组：那么翻转后字典序最大，就是原本字典序最小的。
+
+```c++
+class Solution {
+    public int[] maxSumOfThreeSubarrays(int[] nums, int k) {
+        int n = nums.length;
+        reverse(nums);
+        long[] sum = new long[n + 1];
+        for (int i = 1; i <= n; i++) sum[i] = sum[i - 1] + nums[i - 1];
+        long[][] f = new long[n + 10][4];
+        for (int i = k; i <= n; i++) {
+            for (int j = 1; j < 4; j++) {
+                f[i][j] = Math.max(f[i - 1][j], f[i - k][j - 1] + sum[i] - sum[i - k]);
+            }
+        }
+        int[] ans = new int[3];
+        int i = n, j = 3, idx = 0;
+        while (j > 0) {
+            if (f[i - 1][j] > f[i - k][j - 1] + sum[i] - sum[i - k]) {
+                i--;
+            } else {
+                ans[idx++] = n - i;
+                i -= k; j--;
+            }
+        }
+        return ans;
+    }
+    void reverse(int[] nums) {
+        int n = nums.length;
+        int l = 0, r = n - 1;
+        while (l < r) {
+            int c = nums[l];
+            nums[l++] = nums[r];
+            nums[r--] = c;
+        }
+    }
+}
+```
+
+其他思路：先按只有一个子数组处理前后缀最值。接下来：枚举中间数组的下标 $i$，然后加上前后 $pre_i-1,suf_{i+k}$。
+
+```python
+class Solution:
+    def maxSumOfThreeSubarrays(self, nums: List[int], k: int) -> List[int]:
+        n = len(nums)
+        s = list(accumulate(nums, initial=0))
+        pre = [[] for _ in range(n)]
+        suf = [[] for _ in range(n)]
+        t = idx = 0
+        for i in range(n - k + 1):
+            if (cur := s[i + k] - s[i]) > t:
+                pre[i + k - 1] = [cur, i]
+                t, idx = pre[i + k - 1]
+            else:
+                pre[i + k - 1] = [t, idx]
+        t = idx = 0
+        for i in range(n - k, -1, -1):
+            if (cur := s[i + k] - s[i]) >= t:
+                suf[i] = [cur, i]
+                t, idx = suf[i]
+            else:
+                suf[i] = [t, idx]
+        t = 0
+        ans = []
+        for i in range(k, n - 2 * k + 1):
+            if (cur := s[i + k] - s[i] + pre[i - 1][0] + suf[i + k][0]) > t:
+                ans = [pre[i - 1][1], i, suf[i + k][1]]
+                t = cur
+        return ans
+```
+
+
 
 
 

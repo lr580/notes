@@ -1590,6 +1590,16 @@ a,b,c=1,3,5 #注意没有先后顺序，不同于C，所以不可以a,b,c=1,a,b
 
 支持位运算且优先级、符号与C相同
 
+海象运算符(3.8 Walrus Operator)，允许类似 C 语言的 `if((c=getchar)!=EOF)`
+
+```python
+if (z:=5) > 6: #注意括号
+    print('666')
+print(z) # if不成立z也赋值
+```
+
+
+
 #### 逻辑运算
 
 用标识符表示与或非，如果用符号其实代表位运算
@@ -4032,6 +4042,8 @@ from itertools import *
 - 组合 `combinations(iterable, m)` 
 
 - 带自身重复的组合(每个元素可以选无限次) `combinations_with_replacement()`
+
+- 前缀和 `list(accumulate(nums, initial=0))`  (增加首元素0,即对 [0]+nums 叠，长度加一；不加该参数长度不变原地叠)
 
 例：
 

@@ -412,6 +412,93 @@ VMware-打开虚拟机，点击那个 vmx 即可。
 
 
 
+### wsl
+
+#### 安装
+
+> 参考后端-docker-安装
+
+打开 powershell ，列举可安装版本：
+
+```bash
+wsl -l -o
+```
+
+可以安装一个 Linux，如：
+
+```bash
+wsl --install -d Ubuntu-20.04
+```
+
+设置管理员密码：
+
+```bash
+sudo passwd root
+```
+
+关闭：
+
+```bash
+wsl --shutdown
+```
+
+然后迁移到D盘，使用类似的方法：
+
+```bat
+mklink /j  "C:\Users\lr580\AppData\Local\Packages\CanonicalGroupLimited.Ubuntu20.04onWindows_79rhkp1fndgsc" "D:\Temps\wsl\CanonicalGroupLimited.Ubuntu20.04onWindows_79rhkp1fndgsc"
+```
+
+然后右击设置权限为完全控制。 [参考教程](https://www.cnblogs.com/itkingyw/p/12736358.html)
+
+要卸载的话可以在菜单搜索 Ubuntu，直接右击卸载
+
+检查安装的版本是 WSL 1还是2，输入：
+
+```bash
+wsl -l -v
+```
+
+关闭特定，如：
+
+```bash
+wsl -t Ubuntu-20.04
+```
+
+要启动的话，直接菜单搜索点击即可，或者：
+
+```sh
+wsl -d Ubuntu-20.04 # 特定的某个 wsl 分发版本名字
+```
+
+管理员下 powershell 输入指令：[参考文献](https://docs.microsoft.com/zh-cn/windows/wsl/install-manual#step-4---download-the-linux-kernel-update-package)
+
+```bat
+dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+```
+
+下载文献里的安装包 `.msi` ，大约16MB，安装，重启
+
+对 WSL 1更新到 WSL 2： [参考文献](https://docs.microsoft.com/zh-cn/windows/wsl/install)
+
+```bash
+wsl --set-version Ubuntu-20.04 2
+```
+
+如果提示`转换完成。` 就成功了
+
+设置默认版本：
+
+```bash
+wsl --set-default-version 2
+```
+
+#### 使用
+
+文件资源管理器 `\\wsl$` 可以打开文件。
+
+
+
 ### 装软件
 
 #### 常用软件安装流程
