@@ -1013,6 +1013,10 @@
 - 689\.三个无重叠子数组的最大和
 
   **滑动窗口+前缀和 /前缀和 / DP**
+  
+- 53\.最大子数组和
+
+  前缀和 / DP / <u>分治</u>
 
 
 
@@ -28284,6 +28288,71 @@ class Solution:
                 ans = [pre[i - 1][1], i, suf[i + k][1]]
                 t = cur
         return ans
+```
+
+##### 53\.最大子数组和
+
+[题目](https://leetcode.cn/problems/maximum-subarray)
+
+一眼前缀和：
+
+```python
+class Solution:
+    def maxSubArray(self, nums: List[int]) -> int:
+        s,ans,minl=list(accumulate(nums)),-1e9,0
+        for r in s:
+            ans=max(ans,r-minl)
+            minl=min(minl,r)
+        return ans
+```
+
+也可以直接 DP：
+
+```python
+class Solution {
+public:
+    int maxSubArray(vector<int>& nums) {
+        int pre = 0, maxAns = nums[0];
+        for (const auto &x: nums) {
+            pre = max(pre + x, x);
+            maxAns = max(maxAns, pre);
+        }
+        return maxAns;
+    }
+};
+```
+
+分治：
+
+```python
+class Solution {
+public:
+    struct Status {
+        int lSum, rSum, mSum, iSum;
+    };
+
+    Status pushUp(Status l, Status r) {
+        int iSum = l.iSum + r.iSum;
+        int lSum = max(l.lSum, l.iSum + r.lSum);
+        int rSum = max(r.rSum, r.iSum + l.rSum);
+        int mSum = max(max(l.mSum, r.mSum), l.rSum + r.lSum);
+        return (Status) {lSum, rSum, mSum, iSum};
+    };
+
+    Status get(vector<int> &a, int l, int r) {
+        if (l == r) {
+            return (Status) {a[l], a[l], a[l], a[l]};
+        }
+        int m = (l + r) >> 1;
+        Status lSub = get(a, l, m);
+        Status rSub = get(a, m + 1, r);
+        return pushUp(lSub, rSub);
+    }
+
+    int maxSubArray(vector<int>& nums) {
+        return get(nums, 0, nums.size() - 1).mSum;
+    }
+};
 ```
 
 

@@ -410,6 +410,8 @@ ctrl+shift+p 打开 `settings.json` (一般可能在用户文件夹的 `AppData\
 },
 ```
 
+格式化：pylint, autopep8 等插件
+
 ### conda
 
 #### 安装
@@ -557,7 +559,7 @@ while True:
         if not x:#没有!x的表达
             break
     except:
-        pass # ... 也行
+        pass # ... 也行；对变量也可以 ... 如 x=...
 ```
 
 > 注意在python2有raw_input而python3没有。
@@ -626,7 +628,9 @@ print('123\
 
 ##### 格式法
 
-使用format占位
+使用 format 占位
+
+f 格式：(3.6+)
 
 ```python
 i=1
@@ -635,10 +639,25 @@ i,j=5,2
 f'i2={i*i},j={j}' #'i2=25,j=2'
 ```
 
-格式：
+format 方法/函数：
+
+```python
+"{} {}".format(value1, value2)  # 同上理
+"{1}, {0}".format('世界', '你好') # "你好, 世界" 位置参数
+"{year}年{month}月".format(year=2023, month=4) # "2023年4月" 关键字参数
+"{:%Y-%m-%d}".format(datetime(2023, 4, 1)) # "2023-04-01"
+"{data[year]}年".format(data={'year': 2023}) # "2023年"
+"{0[0]}和{0[1]}".format(['苹果', '香蕉']) # "苹果和香蕉"
+```
+
+更多格式：
 
 ```python
 f'{6:02d},{1/3:+.6f}' #前导零，带符号小数；指数就e，同理
+"{:>10}".format("测试") # 右对齐，总宽度为10
+"{:->10}".format("测试") #空格使用字符 - 补全
+"{:<10}".format("测试") # 左对齐
+"{{{}年}}".format(2023) # "{2023年}"#双大括号转义
 ```
 
 
@@ -1167,6 +1186,8 @@ print(-float('-inf')/9-9) #是inf
 
 `b''` 二进制字符串(只能有ASACII)，type 为 bytes
 
+`f''` 格式化(占位符用, 3.6+)
+
 ##### 函数
 
 ord()将长度为1的str转化为ASCII码(中文等则拓展的码),chr()将其逆向
@@ -1205,7 +1226,11 @@ replace(a,b)将str中所有的子字符串a替换为子字符串b，如果没有
 
 replace(a,b,c)将上述操作至多替换c次
 
-center(总长) 返回居中显示的str，左右补足空白
+center(总长) 返回居中显示的str，左右补足空白；同理有 ljust 左对齐, rjust
+
+```python
+'1'.center(4,'-') # 第二个参数默认空格，结果 '-1--'
+```
 
 join(字符串为元素的iterable) 以原字符串为分割符，穿插插入得到结果，如
 
@@ -1225,6 +1250,21 @@ isalpha() 等方法判断该字符串是否每个字符都是特定范围的
 '²'.isdigit() == True
 ```
 
+translate：单字符替换
+
+```python
+trans = str.maketrans('abc', '123') #或任意str对象如''.maketrans
+result = "abcde".translate(trans) # 结果: "123de"
+```
+
+title: 每个单词首字母大写；capitalize 只第一个单词首字母大写
+
+```python
+'123 abc def'.capitalize() # 不变;若 title 则 a->A, d->D
+```
+
+expandtabs 将 \t 转化 7 个空格，可以调为 n-1 个
+
 
 
 #### None
@@ -1234,6 +1274,8 @@ isalpha() 等方法判断该字符串是否每个字符都是特定范围的
 ```python
 type(None)
 ```
+
+> `x=...` 会导致得到单例对象 `Ellipsis` 省略，可用于 np 多维切片缺省维度。
 
 #### complex
 
@@ -1310,6 +1352,8 @@ sort()按升序整理，返回值None
 
 - 如果有参数reverse=True，逆序
 
+- `sorted` 内置函数不改变传入的参数，返回排序后的新 list
+
 copy()返回x的一个副本(直接赋值是指针操作)，set同理。
 
 > 对二维数组，无论是 `.copy` 还是切片都不能复制；使用 copy 标准库的 deepcopy 函数
@@ -1349,7 +1393,7 @@ y={}#空字典
 
 调用错误的值返回KeyError
 
-`in .keys()` 是 O1 的
+`in .keys()` 是时空 O1 的
 
 `[]` 与 `get()` 的区别，前者查无 `KeyError`，后者返回 None。`get(key, default)` 可以规定查无返回什么。
 
@@ -1382,7 +1426,11 @@ s=set()#空字典
 ```
 
 - `discard(u)` 删除值为 u 的元素，如无忽略；返回 None
+
+  `remove(u)` 如无报错，返回 None
+
 - `pop()` 任意删除元素并返回；空集报错
+
 - `add(u)` 插入元素，已有忽略；返回 None
 
 ##### 运算
@@ -1413,6 +1461,18 @@ discard 删除，找不到忽略
 update(set) 批量插入
 
 copy() 副本
+
+##### frozenset
+
+一旦创建，集合中的元素就不能被更改。
+
+由于其不可变性，`frozenset` 可以被用作字典的键或者另一个集合的元素。
+
+```python
+fs = frozenset([1, 2, 3, 4])
+```
+
+
 
 #### 切片
 
@@ -1548,6 +1608,37 @@ class Circle:
         return 3.14159 * self.radius ** 2
 circle = Circle(5)
 print(circle.area)  # 输出: 78.53975
+```
+
+##### dataclass
+
+3.7 开始。自动生成特定方法，如`__init__()`、`__repr__()`和`__eq__()`，从而简化数据类的创建
+
+```python
+from dataclasses import dataclass
+@dataclass
+class Point:
+    x: int
+    y: int
+p = Point(1, 2)
+print(p)  # 输出: Point(x=1, y=2)
+```
+
+- 默认值和类型提示：你可以为数据类的字段提供默认值。
+- 不可变数据类：通过设置`frozen`参数为`True`，你可以使得数据类的实例不可变。
+- 排序支持：通过设置`order`参数，可以让数据类支持比较操作（如`<`, `<=`, `>`, `>=`）。
+
+```python
+@dataclass(order=True, frozen=True)
+class Point: # 比较依据类似 pair
+    x: int = 0
+    y: int = 0
+# p1.x+=1 炸因为 frozen 禁止这样
+p1 = Point(1, 2)
+p2 = Point(1, 2)
+p3 = Point(0, 1)
+print(p1 == p2)  # True
+print(p1 < p3)   # False
 ```
 
 
@@ -3152,25 +3243,34 @@ d = defaultdict(list) # 空列表
 
 `pop, popleft` 方法删除右端和左端并返回，`append, appendleft` 插入。
 
+
+
 ##### counter
 
 记录数的频次可以用 Counter ，传入一个列表，输出元组列表，依次表示数字和频次，用 `.most_common()` 方法转元素列表，输入参数表示取多少个。如果想要按大小取，可以先对传入的列表排序
 
-例如：求第一个可以拆分为 12 种平方数和的数字
-
 ```python
-s=list(i**2 for i in range(1,1000))
-t=[]
-for i in range(len(s)):
-    for j in range(i,len(s)):
-        t.append(s[i]+s[j])
-t.sort()
-from collections import Counter
-s2=Counter(t).most_common(80)
-for i in range(80):
-    if s2[i][1]==12:
-        print(s2[i][0])
-        break
+data = ['apple', 'banana', 'apple', 'orange', 'banana', 'apple']
+counter = Counter(data)
+print(counter)  # 输出: Counter({'apple': 3, 'banana': 2, 'orange': 1})
+
+more_data = ['apple', 'banana']
+counter.update(more_data)
+print(counter)  # 输出: Counter({'apple': 4, 'banana': 3, 'orange': 1})
+
+print(counter['apple'])  # 输出: 4
+
+for item, count in counter.most_common(2):
+    print(item, count)  # 输出: apple 4, banana 3
+
+print(list(counter.elements()))  # 输出: ['apple', 'apple', 'apple', 'apple', 'banana', 'banana', 'banana', 'orange']
+# 同 dict 理有 items(key,val), keys
+
+counter1 = Counter(a=3, b=1)
+counter2 = Counter(a=1, b=2)
+
+print(counter1 + counter2)  # 相加: Counter({'a': 4, 'b': 3})
+print(counter1 - counter2)  # 相减: Counter({'a': 2})
 ```
 
 
@@ -3413,6 +3513,8 @@ filecmp.cmp(路径1,路径2) #返回True如果相同
 即regex(regular expression),正则表达式库
 
 > 事实上python的re库是残缺的，并未支持完全的re功能
+>
+> [cheat-table](https://dsc80.com/resources/other/berkeley-regex-reference.pdf) [re官方文档](https://docs.python.org/3/library/re.html) [官方2](https://docs.python.org/3/howto/regex.html) [在线测试网站](https://regex101.com/)
 
 ##### 正则表达式语法
 
@@ -3530,7 +3632,11 @@ f('[\u0800-\u4e00]{1,}|[^\x20-\x7f]{1,}','何を言おう;分かってるのそ�
 f(r'\([^\(\)]{1,}?\)','(())+(3k)-()*(1+2(3)+4(5(6)7))')
 #['(3k)', '(3)', '(6)'] 不含嵌套括号的非空括号，含嵌套建议DFS
 
+#r"^(NY-\d{2}-[A-Z]{3}-\d{4}|[A-Z]{2}-\d{2}-(SAN|LAX)-\d{4})$"
+#NY开头；或中间为SAN或LAN
 
+#网址匹配
+re.findall(r'http[s]?://\S+', tweet)
 ```
 
 分组：
@@ -3544,6 +3650,8 @@ f('([CHNO])(\d*)','CH3')
 f('(([CHNO])(\d*))','CH3')
 #[('C', 'C', ''), ('H3', 'H', '3')] 两组匹配，各三个分组
 ```
+
+##### compile
 
 
 
@@ -3879,6 +3987,8 @@ print(calendar.month(2021,6))
 #### time
 
 import time
+
+当前时间戳 `time.time()`
 
 （2）创造延迟
 
@@ -6678,11 +6788,21 @@ audiometric = pd.read_csv('audiometric.csv')
 
 > 可以读 `.tsv`，加参数 `sep='\t'`
 >
+> 可以读 `.txt`
+>
 > 增加参数，指定某一列的读入类型：
 >
 > ```python
 > dtype={"fips": str}
 > ```
+
+不含表头：`header=None`
+
+不含表头，已知有若干列，分配列名：
+
+```python
+pd.read_csv(fp, names=['id', 'name', 'date', 'text'])
+```
 
 其 `.shape` 依次是行数(不含表头)、列数。是独有的类型。
 
@@ -6830,6 +6950,8 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 取一列：`[列名str]`。取行区间`[起:止]` (切片语法同 python)。用下标取就 `iloc[]`
 
 > 如，取前两列外的每一列：`df.iloc[:, 2:]`
+>
+> 取特定若干列：`df[['text', 'num_hashtags']]`
 
 取单独元素 `.at[行号, 列str]` 或 `.loc`
 
@@ -6850,6 +6972,8 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 取 `.values` 可以转化为 np array。然后可以丢进 tensor。
 
 ##### nan/null
+
+常量：`pd.NA`。
 
 判断当前元素是否是 null(如 `datetime` 的 coerce)：`pd.notnull(x)`。
 
@@ -6918,6 +7042,12 @@ df['OUTAGE.START.DATE'] = df['OUTAGE.START.DATE'].combine_first(pd.Timestamp(0))
 
 ##### series
 
+直接构造：
+
+```python
+tweets = pd.Series(["This is a tweet #example", "Another tweet #test #example", "No hashtag here"])
+```
+
 取某一列：
 
 ```python
@@ -6936,7 +7066,8 @@ w=df.apply(lambda x:x[0]>3, axis=1)
 df[w]
 ```
 
-
+> 对 dataframe 只在 只有一列时转换，否则不转换：`.squeeze('columns')`
+>
 
 转回 data frame：`.to_frame()`
 
@@ -7204,82 +7335,6 @@ df['City_Average'] = df.groupby('City')['Sales'].transform(calculate_mean)
 
 
 
-##### 字符串处理
-
-对某一列，`.str` 是 Pandas 中用于对字符串列进行操作的属性
-
-1. 提取子字符串：使用 `.str` 属性的 `extract()` 方法可以提取满足正则表达式模式的子字符串。例如，`df['Column'].str.extract('(\d+)')` 可以提取列 "Column" 中的数字部分。
-2. 字符串查找和匹配：`.str` 属性提供了许多方法，如 `contains()`（检查字符串是否包含某个子字符串）、`startswith()`（检查字符串是否以某个子字符串开头）和 `endswith()`（检查字符串是否以某个子字符串结尾）等，用于查找和匹配字符串。
-3. 字符串替换：使用 `replace()` 方法可以将字符串中的指定子字符串替换为另一个字符串。
-4. 字符串分割和连接：`.str` 属性还提供了用于字符串分割和连接的方法，例如 `split()`（将字符串拆分为列表）和 `join()`（将列表中的字符串连接成一个字符串）。
-5. 大小写转换：使用 `lower()` 和 `upper()` 方法可以将字符串转换为小写或大写。
-6. 字符串长度：使用 `len()` 方法可以获取字符串的长度。
-
-如，检查是否两列不区分大小写包含某串：
-
-```python
-def bhbe_col(heroes):
-    def check(row):
-        return 'blue' in row['Eye color'].lower() and 'blond' in row['Hair color'].lower()
-    return heroes.apply(check, axis=1)
-```
-
-> 或：
->
-> ```python
-> is_blond = heroes['Hair color'].str.contains('blond', case=False, na=False)
-> is_blue_eyed = heroes['Eye color'].str.contains('blue', case=False, na=False)
->     return is_blond & is_blue_eyed
-> ```
-
-取所有数字并连接，原地保存：
-
-```python
-data = {'ColumnName': ['abc123', 'def456', 'ghi789']}
-df = pd.DataFrame(data)
-df['ColumnName'] = df['ColumnName'].str.extract('(\d+)').astype(int)
-print(df)
-```
-
-第一列 `-` 设为 `NaN`，其他列转 bool：
-
-```python
-res['Age'] = res['Age'].replace('-', np.nan).astype(float)
-res['Vaccinated'] = res['Vaccinated'].astype(bool)
-```
-
-逐列综合处理：百分号转整数，其他情况去掉 `, _` 等划分长整数的字符，根据是否有小数点转换为整数或浮点数，去掉单位，对字符串。如果无数字。不操作。
-
-```python
-# 创建一个示例DataFrame
-data = {
-    'col1': ['10%', '20%', '30%'],
-    'col2': ['123abc', '456def', '789ghi'],
-    'col3': ['1.23', '4.56', '7.89xyz'],
-    'col4': [10, 20, 30]  # 这列是整数，不会被修改
-}
-
-df = pd.DataFrame(data)
-
-# 定义一个函数，对单个字符串进行处理
-def process_string(s):
-    if '%' in s:
-        return float(s.strip('%')) * 0.01
-    elif '.' in s:
-        return float(''.join(filter(lambda x: x.isdigit() or x == '.', s)))
-    else:
-        return int(''.join(filter(str.isdigit, s)))
-
-# 对DataFrame的每一列应用这个函数
-for col in df.columns:
-    if df[col].dtype == 'O':  # 'O'表示对象，通常是字符串
-        if df[col].str.contains('\d').all():
-        	df[col] = df[col].apply(process_string)
-
-print(df)
-# 注意 ² 会 isdight，如果单位有奇怪的特殊字符建议重写isdight
-```
-
 ##### 排序
 
 ```python
@@ -7528,6 +7583,116 @@ df = pd.DataFrame({
 })
 table = pd.crosstab(df[col1].isna(), df[col2].isna()) #2,2,2,1
 ```
+
+##### idxmax
+
+```python
+df = pd.DataFrame({'A': [1, 2, 3], 'B': [3, 2, 1]})
+
+# 找到每列的最大值的索引
+max_index = df.idxmax()
+print(max_index) #A:2, B:0
+
+# 找到每行的最大值的索引
+max_index_row = df.idxmax(axis=1) #0:B,1:A,2:A
+print(max_index_row)
+```
+
+#### 字符串
+
+##### .str
+
+对某一列，`.str` 是 Pandas 中用于对字符串列进行操作的属性
+
+1. 提取子字符串：使用 `.str` 属性的 `extract()` 方法可以提取满足正则表达式模式的子字符串。例如，`df['Column'].str.extract('(\d+)')` 可以提取列 "Column" 中的数字部分。
+2. 字符串查找和匹配：`.str` 属性提供了许多方法，如 `contains()`（检查字符串是否包含某个子字符串）、`startswith()`（检查字符串是否以某个子字符串开头）和 `endswith()`（检查字符串是否以某个子字符串结尾）等，用于查找和匹配字符串。
+3. 字符串替换：使用 `replace()` 方法可以将字符串中的指定子字符串替换为另一个字符串。
+4. 字符串分割和连接：`.str` 属性还提供了用于字符串分割和连接的方法，例如 `split()`（将字符串拆分为列表）和 `join()`（将列表中的字符串连接成一个字符串）。
+5. 大小写转换：使用 `lower()` 和 `upper()` 方法可以将字符串转换为小写或大写。
+6. 字符串长度：使用 `len()` 方法可以获取字符串的长度。
+
+如，检查是否两列不区分大小写包含某串：
+
+```python
+def bhbe_col(heroes):
+    def check(row):
+        return 'blue' in row['Eye color'].lower() and 'blond' in row['Hair color'].lower()
+    return heroes.apply(check, axis=1)
+```
+
+> 或：
+>
+> ```python
+> is_blond = heroes['Hair color'].str.contains('blond', case=False, na=False)
+> is_blue_eyed = heroes['Eye color'].str.contains('blue', case=False, na=False)
+>  return is_blond & is_blue_eyed
+> ```
+
+取所有数字并连接，原地保存：
+
+```python
+data = {'ColumnName': ['abc123', 'def456', 'ghi789']}
+df = pd.DataFrame(data)
+df['ColumnName'] = df['ColumnName'].str.extract('(\d+)').astype(int)
+print(df)
+```
+
+第一列 `-` 设为 `NaN`，其他列转 bool：
+
+```python
+res['Age'] = res['Age'].replace('-', np.nan).astype(float)
+res['Vaccinated'] = res['Vaccinated'].astype(bool)
+```
+
+逐列综合处理：百分号转整数，其他情况去掉 `, _` 等划分长整数的字符，根据是否有小数点转换为整数或浮点数，去掉单位，对字符串。如果无数字。不操作。
+
+```python
+# 创建一个示例DataFrame
+data = {
+    'col1': ['10%', '20%', '30%'],
+    'col2': ['123abc', '456def', '789ghi'],
+    'col3': ['1.23', '4.56', '7.89xyz'],
+    'col4': [10, 20, 30]  # 这列是整数，不会被修改
+}
+
+df = pd.DataFrame(data)
+
+# 定义一个函数，对单个字符串进行处理
+def process_string(s):
+    if '%' in s:
+        return float(s.strip('%')) * 0.01
+    elif '.' in s:
+        return float(''.join(filter(lambda x: x.isdigit() or x == '.', s)))
+    else:
+        return int(''.join(filter(str.isdigit, s)))
+
+# 对DataFrame的每一列应用这个函数
+for col in df.columns:
+    if df[col].dtype == 'O':  # 'O'表示对象，通常是字符串
+        if df[col].str.contains('\d').all():
+        	df[col] = df[col].apply(process_string)
+
+print(df)
+# 注意 ² 会 isdight，如果单位有奇怪的特殊字符建议重写isdight
+```
+
+正则表达式：
+
+```python
+def hashtag_list(tweet_text):
+    regex_pattern = r"#([a-zA-Z0-9]+)"
+    hashtag_series = tweet_text.apply(lambda tweet: re.findall(regex_pattern, tweet))
+    return hashtag_series
+tweets = pd.Series(["This is a tweet #example", "Another tweet #test #example", "No hashtag here"])
+hashtag_series = hashtag_list(tweets)
+'''
+0          [example]
+1    [test, example]
+2                 []'''
+all_hashtags = [hashtag for sublist in tweet_lists for hashtag in sublist]
+```
+
+
 
 
 
