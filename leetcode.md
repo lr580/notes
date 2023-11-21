@@ -1017,6 +1017,10 @@
 - 53\.最大子数组和
 
   前缀和 / DP / <u>分治</u>
+  
+- 2216\.美化数组的最少删除数
+
+  小模拟+贪心+DP / 贪心
 
 
 
@@ -28355,7 +28359,141 @@ public:
 };
 ```
 
+##### 2216\.美化数组的最少删除数
 
+[题目](https://leetcode.cn/problems/minimum-deletions-to-make-array-beautiful/)
+
+分成两部分问题。首先可以发现，对所有连续相等长度 $\ge3$ 的段，无论如何必须先删到长度为 $2$。所以先求出每个段长，然后统计出这部分答案，删掉，然后重新得到一个新的子数组。
+
+接下来，可以得到若干长为 $1$ 的子段和若干长为 $2$ 的子段；长为 $1$ 的子段单独为一段；将长为 $2$ 的相邻子段连起来合成一段，然后计算每个连续长为 $2$ 的起始下标的奇偶性。对长为 $1$ 的段，用 None 代替，得到一个新数组 $a$。考虑样例二的规律，对每个长为 $2$ 的子段和如 `a,a,b,b,a,a,c,c,...`，如果起始下标是偶数，删掉起始位置可以所有满足美丽；否则，不用管；问题转化为：
+
+给定数组 $a$ 仅有 None, 1, 0 三种元素组成，可以删掉任意多个元素，每次删掉当前元素后往下的元素 1 变 0 且 0 变 1，问删掉最少几次能够让 a 没有 1。可以用 DP/分类讨论递推来做。
+
+最后，如果删剩的长度不是偶数，删最后一个元素凑够偶数长度。
+
+```python
+class Solution:
+    def minDeletion(self, nums: List[int]) -> int:
+        ans = 0
+        segs = []
+        cnt = 1
+        n = len(nums)
+        for i in range(n):
+            if i+1==n or nums[i]!=nums[i+1]:
+                segs.append(cnt)
+                cnt=1
+            else:
+                cnt+=1
+
+        for v in segs:
+            ans += max(0, v-2)
+        
+        a = []
+        idx = 0
+        n = len(segs)
+        for i in range(n):
+            if segs[i] >= 2:
+                if i==0 or segs[i-1]<2:
+                    a.append(1-idx%2)
+            else:
+                a.append(None)
+            idx += min(2, segs[i])
+            
+        print(a)
+        '''
+        子问题:对a(元素为1,0,None)可删掉任意一个元素，使得该元素后面所有1->0,0->1,使得a没有任何1,最少删几次,如a=[None, 0, None, 1, None, 0]
+        '''
+        n = len(a)
+        # dp[i][j] 只考虑前i个元素,删了是否奇数次
+        dp = [[0,0] for i in range(n)]
+        
+        inf = int(1e9)
+        if a[0] == None:
+            dp[0] = [0,1]
+        elif a[0] == 1:
+            dp[0] = [inf, 1]
+        else:
+            dp[0] = [0, inf]
+        for i in range(1,n):
+            if a[i] == None:
+                dp[i] = [dp[i-1][0], dp[i-1][1]]
+                if dp[i][0] == inf:
+                    dp[i][0] = dp[i-1][1] + 1
+                elif dp[i][1] == inf:
+                    dp[i][1] = dp[i-1][0] + 1
+            elif a[i] == 1:
+                if dp[i-1][1] == inf:
+                    dp[i] = [dp[i-1][0] + 1, inf]
+                elif dp[i-1][0] == inf: # a[i]->0
+                    dp[i] = [inf, dp[i-1][1]]
+                else:
+                    way01 = dp[i-1][0] + 1
+                    way11 = dp[i-1][1]
+                    dp[i] = [inf, min(way01, way11)]
+            else:
+                if dp[i-1][1] == inf:
+                    dp[i] = [dp[i-1][0], inf]
+                elif dp[i-1][0] == inf:
+                    dp[i] = [dp[i-1][1]+1, inf]
+                else:
+                    way00 = dp[i-1][0]
+                    way10 = dp[i-1][1] + 1
+                    dp[i] = [min(way00, way10), inf]
+                    
+            if dp[i] == [inf,inf]:
+                raise Exception()
+        ans += min(dp[n-1])
+                
+        if (len(nums)-ans)%2 != 0:
+            ans += 1
+        return ans
+```
+
+贪心：
+
+- 如果当前位置不满足，后面的全部操作都不会让当前操作满足，所以当前必删
+- 特判长度不为偶数时搞多一个
+
+```python
+class Solution:
+    def minDeletion(self, nums: List[int]) -> int:
+        n, cnt = len(nums), 0
+        for i in range(n):
+            if (i - cnt) % 2 == 0 and i + 1 < n and nums[i] == nums[i + 1]:
+                cnt += 1
+        return cnt + 1 if (n - cnt) % 2 != 0 else cnt
+```
+
+对于上文提到的 None，删掉 None 导致奇偶翻转，跟直接需要的时候再删，没有本质区别，所以可以忽略不计。
+
+其他模拟：
+
+- 如果当前结果集是偶数长度，当前连续段缩减到只有一个元素丢进去
+- 如果奇数，可以放一个或两个元素进去
+
+```go
+func minDeletion(a []int) (ans int) {
+	odd := false // 栈大小的奇偶性
+	for i, n := 0, len(a); i < n; {
+		start := i
+		// 注意这里的 i 和外层循环的 i 是同一个变量，因此时间复杂度为 O(n)
+		for i < n && a[i] == a[start] { i++ }
+		l := i - start // 连续相同元素个数
+		if !odd { // 只能放一个元素
+			ans += l - 1
+			odd = true
+		} else if l == 1 {
+			odd = false
+		} else { // 放两个元素，奇偶性不变
+			ans += l - 2
+		}
+	}
+	if odd { // 栈大小必须为偶数
+		ans++
+	}
+	return
+}
+```
 
 
 
