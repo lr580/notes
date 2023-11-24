@@ -287,7 +287,7 @@ $\overline{abc}\quad\underline{abc}\quad\widehat{abc}\quad\widetilde{abc}\quad\o
 
 $\overset{abc}{def}$ $\underset{abc}{def}$
 
-$\tilde{abc},\widetilde{abc},\widetilde{abcd}$
+$\tilde{abc},\widetilde{abc},\widetilde{abcd}$, $\dot a$
 
 #### 字号大小
 

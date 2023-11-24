@@ -1033,6 +1033,10 @@
 - 2824\.统计和小于目标的下标对数目
 
   二分 / 双指针
+  
+- 1457\.二叉树中的伪回文路径
+
+  DFS(+位运算优化)
 
 
 
@@ -28623,6 +28627,80 @@ class Solution:
     def countPairs(self, nums: List[int], target: int) -> int:
         nums.sort()
         return sum(bisect_left(nums, target - nums[i], 0, i) for i in range(1, len(nums)))
+```
+
+##### 1457\.二叉树中的伪回文路径
+
+[题目](https://leetcode.cn/problems/pseudo-palindromic-paths-in-a-binary-tree)
+
+$O(nm)$ 写法($n$ 点数，$m$ 值域范围)，716ms：
+
+```python
+class Solution:
+    def pseudoPalindromicPaths (self, root: Optional[TreeNode]) -> int:
+        ans, cnt = 0, [0 for i in range(10)]
+        def dfs(p):
+            if not p: return
+            nonlocal ans
+            cnt[p.val] += 1
+            if not p.left and not p.right:
+                ans += sum([1 for i in cnt if i % 2]) <= 1
+            dfs(p.left)
+            dfs(p.right)
+            cnt[p.val] -= 1
+        dfs(root)
+        return ans
+```
+
+$O(n)$ 写法，直接维护奇数数目，668ms：
+
+```python
+class Solution:
+    def pseudoPalindromicPaths (self, root: Optional[TreeNode]) -> int:
+        ans, cnt, odds = 0, [0 for i in range(10)], 0
+        def dfs(p):
+            if not p: return
+            nonlocal ans, odds
+            odds += 1 if cnt[p.val] % 2 == 0 else -1
+            cnt[p.val] += 1
+            if not p.left and not p.right:
+                ans += odds <= 1
+            dfs(p.left)
+            dfs(p.right)
+            odds += -1 if cnt[p.val] % 2 == 1 else 1
+            cnt[p.val] -= 1
+        dfs(root)
+        return ans
+```
+
+更优：直接二进制状态记录每个值奇偶性，使用 $x\&(x-1)$ 清除最低位 $1$ 其他不变。
+
+```java
+class Solution {
+    int ans = 0;
+    public int pseudoPalindromicPaths (TreeNode root) {
+        if (root == null) return 0;
+        int nums = 0;
+        dfs(root, nums);
+        return ans;
+    }
+
+    public void dfs(TreeNode root, int temp) {
+        int n = temp ^ (1 << root.val);
+        if (root.left == null && root.right == null) {
+            if (n == 0 || (n & (n - 1)) == 0) {
+                ++ans;
+            }
+            return;
+        }
+        if (root.left != null) {
+            dfs(root.left, n);
+        }
+        if (root.right != null) {
+            dfs(root.right, n);
+        }
+    }
+}
 ```
 
 

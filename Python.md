@@ -3304,7 +3304,7 @@ int(degrees(asin(0.5)))
 
 #### random
 
-无需置随机数种子
+无需置随机数种子，也可置，可非 int 如 `random.seed(time.time())`
 
 ##### randint
 
@@ -3990,7 +3990,7 @@ print(calendar.month(2021,6))
 
 import time
 
-当前时间戳 `time.time()`
+当前时间戳 `time.time()` (float,小数点后六位，整数部分是秒)
 
 （2）创造延迟
 
