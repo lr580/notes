@@ -287,6 +287,8 @@ $\overline{abc}\quad\underline{abc}\quad\widehat{abc}\quad\widetilde{abc}\quad\o
 
 $\overset{abc}{def}$ $\underset{abc}{def}$
 
+$\tilde{abc},\widetilde{abc},\widetilde{abcd}$
+
 #### 字号大小
 
 $\tiny1\scriptsize2\small4\normalsize5\large6\Large7\LARGE8\huge9\Huge0$

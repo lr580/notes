@@ -1021,6 +1021,18 @@
 - 2216\.美化数组的最少删除数
 
   小模拟+贪心+DP / 贪心
+  
+- 2304\.网格中的最小路径代价
+
+  最短路 / DP
+  
+- 1410\.HTML实体解析器
+
+  STL
+  
+- 2824\.统计和小于目标的下标对数目
+
+  二分 / 双指针
 
 
 
@@ -28493,6 +28505,124 @@ func minDeletion(a []int) (ans int) {
 	}
 	return
 }
+```
+
+##### 2304\.网格中的最小路径代价
+
+[题目](https://leetcode.cn/problems/minimum-path-cost-in-a-grid)
+
+我的 DP：
+
+```python
+class Solution:
+    def minPathCost(self, grid: List[List[int]], moveCost: List[List[int]]) -> int:
+        n,m=len(grid),len(grid[0])
+        dp=[[grid[i][j] for j in range(m)] for i in range(n)]
+        for i in range(1,n):
+            for j in range(m):
+                mi = 1e9
+                for k in range(m):
+                    mi = min(mi, dp[i-1][k]+moveCost[grid[i-1][k]][j])
+                dp[i][j] = mi + grid[i][j]
+        return min(dp[-1])
+```
+
+可以压空间的逆序 DP。之所以要逆序，是因为需要用的 grid 不能被修改。
+
+```python
+class Solution:
+    def minPathCost(self, grid: List[List[int]], moveCost: List[List[int]]) -> int:
+        m, n = len(grid), len(grid[0])
+        for i in range(m - 2, -1, -1):
+            for j in range(n):
+                grid[i][j] += min(g + c for g, c in zip(grid[i + 1], moveCost[grid[i][j]]))
+        return min(grid[0])
+```
+
+可以跑最短路，但不会更优。
+
+##### 1410\.HTML实体解析器
+
+[题目](https://leetcode.cn/problems/html-entity-parser)
+
+手写模拟效率低下，664ms。
+
+```python
+class Solution:
+    def entityParser(self, text: str) -> str:
+        n = len(text)
+        m = {'&quot;':'"',"&apos;":"'","&amp;":"&","&gt;":">","&lt;":"<","&frasl;":"/"}
+        s = ""
+        i = 0
+        while i < n:
+            ok = False
+            for raw in m:
+                t = text[i:i+len(raw)]
+                if t == raw:
+                    s += m[raw]
+                    i += len(raw)
+                    ok = True
+                    break
+            if not ok:
+                s += text[i]
+                i += 1
+        return s
+```
+
+注意必须把 \& 最后处理，考虑例子：`"&amp;gt;"`。效率 60ms：
+
+```python
+class Solution:
+    def entityParser(self, text: str) -> str:
+        n = len(text)
+        m = {'&quot;':'"',"&apos;":"'","&gt;":">","&lt;":"<","&frasl;":"/","&amp;":"&"}
+        for k in m:
+            text = text.replace(k, m[k])
+        return text
+```
+
+##### 2824\.统计和小于目标的下标对数目
+
+[题目](https://leetcode.cn/problems/count-pairs-whose-sum-is-less-than-target)
+
+我的双指针：
+
+```python
+class Solution:
+    def countPairs(self, nums: List[int], target: int) -> int:
+        nums.sort()
+        ans, r, n = 0, len(nums), len(nums)
+        nums.append(2e9)
+        for l in range(n):
+            while r >= 0 and nums[l] + nums[r] >= target:
+                r -= 1
+            ans += max(0, r - l)
+        return ans
+```
+
+题解的双指针：
+
+```python
+class Solution:
+    def countPairs(self, nums: List[int], target: int) -> int:
+        nums.sort()
+        i, j = 0, len(nums) - 1
+        res = 0
+        while i < j:
+            while i < j and nums[i] + nums[j] >= target:
+                j -= 1
+            res += j - i
+            i += 1
+        return res
+```
+
+反正复杂度一样，感觉不如二分：
+
+```python
+class Solution:
+    def countPairs(self, nums: List[int], target: int) -> int:
+        nums.sort()
+        return sum(bisect_left(nums, target - nums[i], 0, i) for i in range(1, len(nums)))
 ```
 
 

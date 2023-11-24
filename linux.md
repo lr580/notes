@@ -421,13 +421,13 @@ VMware-打开虚拟机，点击那个 vmx 即可。
 打开 powershell ，列举可安装版本：
 
 ```bash
-wsl -l -o
+wsl -l -o # wsl --list --online
 ```
 
 可以安装一个 Linux，如：
 
 ```bash
-wsl --install -d Ubuntu-20.04
+wsl --install -d Ubuntu-20.04 #如果已有，不干扰创建一个新的
 ```
 
 设置管理员密码：
@@ -496,6 +496,18 @@ wsl --set-default-version 2
 #### 使用
 
 文件资源管理器 `\\wsl$` 可以打开文件。
+
+#### 常用指令
+
+##### 重命名
+
+```sh
+wsl --list
+wsl --terminate <原名称>
+wsl --set-version <原名称> 2
+wsl --unregister <原名称>
+wsl --import scnuoj-test <安装路径> <原安装文件路径>
+```
 
 
 

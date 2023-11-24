@@ -8464,6 +8464,18 @@ print('x=', x)
 - `bound` 是 `min, max` 二元组。
 - [返回值](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.OptimizeResult.html#scipy.optimize.OptimizeResult)的 x 是取得最值的参数(np array)，还有布尔值 success 和对应字符串 message
 
+### sympy
+
+##### 求导
+
+```python
+import sympy as sp
+x = sp.symbols('x')
+function = sp.log(x) / x
+derivative = sp.diff(function, x)
+print(derivative)
+```
+
 
 
 ### cvxpy
