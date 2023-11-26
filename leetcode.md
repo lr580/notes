@@ -1037,6 +1037,10 @@
 - 1457\.二叉树中的伪回文路径
 
   DFS(+位运算优化)
+  
+- 828\.统计子串中的唯一字符
+
+  组合数学
 
 
 
@@ -28701,6 +28705,42 @@ class Solution {
         }
     }
 }
+```
+
+##### 828\.统计子串中的唯一字符
+
+[题目](https://leetcode.cn/problems/count-unique-characters-of-all-substrings-of-a-given-string)
+
+我的写法：
+
+```python
+class Solution:
+    def uniqueLetterString(self, s: str) -> int:
+        ans, pos, n = 0, [[-1] for i in range(26)], len(s)
+        for i in range(n):
+            pos[ord(s[i]) - ord('A')].append(i)
+        for i in range(26):
+            pos[i].append(n)
+        for c in range(26):
+            for i in range(1, len(pos[c]) - 1):
+                ans += (pos[c][i] - pos[c][i - 1]) * (pos[c][i + 1] - pos[c][i])
+        return ans
+```
+
+题解写法：
+
+```python
+class Solution:
+    def uniqueLetterString(self, s: str) -> int:
+        index = collections.defaultdict(list)
+        for i, c in enumerate(s):
+            index[c].append(i)
+        res = 0
+        for arr in index.values():
+            arr = [-1] + arr + [len(s)]
+            for i in range(1, len(arr) - 1):
+                res += (arr[i] - arr[i - 1]) * (arr[i + 1] - arr[i])
+        return res
 ```
 
 
