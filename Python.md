@@ -483,6 +483,8 @@ conda env remove --name 环境名称
 conda activate 环境名
 ```
 
+> 对 windows，要在命令提示符，不能在 powershell。
+
 之后可以装包。(如 `pip install -r requirements.txt`)
 
 激活后 sh 会有前缀，如 `dsc80` 环境：
@@ -2420,6 +2422,12 @@ print(isinstance(l, tuple))  #子类算
 ##### all
 
 是否全为 true
+
+注意到多维不能直接用：
+
+```python
+all([[True,True],[True,False,True]]) # True
+```
 
 ##### any
 
@@ -5518,6 +5526,12 @@ np.isclose(a,b,atol=k)
 
 ##### 随机
 
+种子：
+
+```python
+np.random.seed(23)
+```
+
 随机整数：获取$[a,b)$内的随机整数。
 
 ```python
@@ -5533,7 +5547,7 @@ np.random.choice(a,k)
 高斯分布，如：
 
 ```python
-np.random.normal(mean, sigma, image.shape).astype(dtype=np.float32
+np.random.normal(mean, sigma, image.shape).astype(dtype=np.float32)
 ```
 
 均匀分布：
@@ -6880,6 +6894,22 @@ columns = ['id', 'by', 'text', 'parent', 'time']
 pd.DataFrame(columns=columns)
 ```
 
+只有行号的：
+
+```python
+pd.DataFrame(index=diamonds.index)
+```
+
+各列 assign 传入：
+
+```python
+x = np.arange(1, 101) + np.random.normal(0, 0.5, 100)
+y = 2 * ((x + np.random.normal(0, 1, 100)) ** 2) + np.abs(x) * np.random.normal(0, 30, 100)
+df_1 = pd.DataFrame().assign(x=x, y=y)
+```
+
+
+
 
 
 ##### 写入
@@ -7184,6 +7214,21 @@ rows = df[(df['Age'] >= left) & (df['Age'] <= right)]
 
 > `name=`，对两列操作，固定第二列，则 `f` 传多一个列，且参数名为 `name`(关键字参数)
 
+> 将每个分类值按顺序转化为整数：(ordinal encoding)
+>
+> ```python
+> def ordinal_encode(column, order):
+>     return column.apply(lambda x: order.index(x))
+> def create_ordinal(df):
+>     cut_order = ['Fair', 'Good', 'Very Good', 'Premium', 'Ideal']
+>     color_order = ['J', 'I', 'H', 'G', 'F', 'E', 'D']
+>     df['ordinal_cut'] = ordinal_encode(df['cut'], cut_order)
+>     df['ordinal_color'] = ordinal_encode(df['color'], color_order)
+>     return df[['ordinal_cut', 'ordinal_color']]
+> ```
+
+
+
 如，每列与第二列进行运算，返回结果 series(原列名，且只有一行返回值)：
 
 ```python
@@ -7351,9 +7396,7 @@ avg_df.sort_values(ascending = False) # 降序
 
 
 
-##### 拼接
-
-concat：
+##### concat
 
 ```python
 pd.concat(objs, axis=0, join='outer', ignore_index=False)
@@ -7378,11 +7421,12 @@ df1 = pd.DataFrame({'A': ['A0', 'A1'], 'B': ['B0', 'B1']})
 df2 = pd.DataFrame({'C': ['C0', 'C1'], 'D': ['D0', 'D1']})
 result = pd.concat([df1, df2], axis=1)
 print(result) # A0,B0,C0,D0 为一行，另一个为一行
+''' A   B   C   D
+0  A0  B0  C0  D0
+1  A1  B1  C1  D1'''
 ```
 
-##### 连表
-
-merge：
+##### merge
 
 ```python
 pd.merge(left, right, how='inner', on=None, left_on=None, right_on=None)
@@ -7553,6 +7597,8 @@ def cond_single_imputation(new_heights):
 
 ##### one-hot
 
+独热编码；nominal encoding 的一种。
+
 ```python
 tags = quotes['tags'].str.split(',') #每行的某列转list
 def encode(tag_list):
@@ -7564,6 +7610,27 @@ quotes_full = pd.concat([quotes, tags.apply(encode)], axis=1).drop(columns='tags
 quotes_full.head()
 ```
 
+写法二(多个列 one hot)：
+
+```python
+def one_hot_encode(df, column):
+    """辅助函数，用于为单个列生成独热编码"""
+    unique_values = df[column].unique()
+    for value in unique_values:
+        # 创建新列，名称符合 'one_hot_<col>_<val>' 格式
+        df[f'one_hot_{column}_{value}'] = df[column].apply(lambda x: 1 if x == value else 0)
+    return df[[col for col in df.columns if col.startswith(f'one_hot_{column}_')]]
+def create_one_hot(diamonds):
+    one_hot_df = pd.DataFrame(index=diamonds.index)  # 初始化一个空的 DataFrame
+    # 对每个需要编码的列生成独热编码
+    for column in ['cut', 'color', 'clarity']:
+        one_hot_encoded_cols = one_hot_encode(diamonds, column)
+        one_hot_df = pd.concat([one_hot_df, one_hot_encoded_cols], axis=1)
+    return one_hot_df
+```
+
+
+
 ##### value_counts
 
 对某列操作，返回一个 series，索引是每个值，数值是该值出现频次。并且按照降序排列。
@@ -7571,7 +7638,9 @@ quotes_full.head()
 ```python
 data = {'fruit': ['apple', 'banana', 'orange', 'apple', 'banana', 'apple']}
 df = pd.DataFrame(data)
-print(df['fruit'].value_counts())
+print(df['fruit'].value_counts()) # 'pandas.core.series.Series'
+print(df.value_counts(normalize=True)) # float64, 出现百分比
+df.value_counts(normalize=True)['apple'] # 当 dict 用
 ```
 
 ##### crosstable
@@ -7856,26 +7925,6 @@ to_frame().rename(columns={0: 'p-value'}).plot(kind='barh', width=800, height=40
 
 
 
-### pygal
-
-```python
-import pygal
-from random import randint,choice
-dice=list(range(1,7))
-res,fr=[],[]
-for i in range(1000):
-    res.append(choice(dice))
-for i in range(1,7):
-    fr.append(res.count(i))
-grap=pygal.Bar()
-grap.title='Dice'
-grap.x_labels=[str(i) for i in dice]
-grap.x_title='Result'
-grap.y_title='Frequency'
-grap.add('D6',fr) #图例
-grap.render_to_file('dice.svg') #生成可用浏览器打开的图表文件
-```
-
 
 
 ### openpyxl
@@ -8102,6 +8151,20 @@ fig = px.scatter(df2, x='x', y='y', color='group',
 fig.show()
 ```
 
+最小二乘法拟合一个散点图，绘制拟合直线：
+
+```python
+np.random.seed(23)
+x = np.arange(1, 101) + np.random.normal(0, 0.5, 100)
+y = 2 * ((x + np.random.normal(0, 1, 100)) ** 2) + np.abs(x) * np.random.normal(0, 30, 100)
+df_1 = pd.DataFrame().assign(x=x, y=y)
+
+px.scatter(df_1, x='x', y='y', trendline="ols", trendline_color_override="red")
+# ols Ordinary Least Squares 普通最小二乘法
+```
+
+
+
 ##### 箱形图
 
 box plot
@@ -8183,6 +8246,38 @@ fig.write_html('file-name.html', include_plotlyjs='cdn')
 ```html
 <iframe src="assets/file-name.html" width=800 height=600 frameBorder=0></iframe>
 <!-- 建议可以更改长宽，不要更改frameBorder -->
+```
+
+##### 图片
+
+```sh
+pip install -U kaleido # --upgrade
+```
+
+```python
+fig.write_image("residual_plot.png")
+```
+
+支持 `.png, .jpg, .svg, .pdf` 等。其中 SVG 是矢量图。
+
+### pygal
+
+```python
+import pygal
+from random import randint,choice
+dice=list(range(1,7))
+res,fr=[],[]
+for i in range(1000):
+    res.append(choice(dice))
+for i in range(1,7):
+    fr.append(res.count(i))
+grap=pygal.Bar()
+grap.title='Dice'
+grap.x_labels=[str(i) for i in dice]
+grap.x_title='Result'
+grap.y_title='Frequency'
+grap.add('D6',fr) #图例
+grap.render_to_file('dice.svg') #生成可用浏览器打开的图表文件
 ```
 
 
@@ -8463,6 +8558,51 @@ print('x=', x)
 
 - `bound` 是 `min, max` 二元组。
 - [返回值](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.OptimizeResult.html#scipy.optimize.OptimizeResult)的 x 是取得最值的参数(np array)，还有布尔值 success 和对应字符串 message
+
+### sklearn
+
+##### 线性回归
+
+```python
+import pandas as pd
+import numpy as np
+import plotly.express as px
+from sklearn.linear_model import LinearRegression
+
+# 示例数据
+np.random.seed(23)
+x = np.random.rand(100) * 10
+y = 2.5 * x + np.random.randn(100) * 2
+
+# 线性回归模型拟合
+model = LinearRegression()
+model.fit(x.reshape(-1, 1), y)
+
+# 计算残差
+y_pred = model.predict(x.reshape(-1, 1))
+residuals = y - y_pred
+
+# 创建DataFrame
+df = pd.DataFrame({'x': x, 'Residuals': residuals})
+
+# 绘制残差图
+fig = px.scatter(df, x='x', y='Residuals', title='Residual Plot')
+fig.show()
+```
+
+写法二：
+
+```python
+def create_residual_plot(df, x, y):
+    df = df.copy()
+    model = LinearRegression()
+    model.fit(df[[x]], df[y])
+    df['pred'] = model.predict(df[[x]])
+    df[f'{y} residuals'] = df[y] - model.predict(df[[x]])
+    return px.scatter(df, x='pred', y=f'{y} residuals', trendline='ols', trendline_color_override='red')
+```
+
+
 
 ### sympy
 

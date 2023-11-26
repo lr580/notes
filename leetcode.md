@@ -1041,6 +1041,10 @@
 - 828\.统计子串中的唯一字符
 
   组合数学
+  
+- 907\.子数组的最小值之和
+
+  单调栈 / 单调栈+DP
 
 
 
@@ -28742,6 +28746,89 @@ class Solution:
                 res += (arr[i] - arr[i - 1]) * (arr[i + 1] - arr[i])
         return res
 ```
+
+##### 907\.子数组的最小值之和
+
+[题目](https://leetcode.cn/problems/sum-of-subarray-minimums)
+
+求每个数往左第一个比他小的数的下标，往右第一个比它小的数下标，夹这里边全体区间都贡献。为了不重不漏，两边不等号不一样。不妨取左边是不严格单调递增栈，右边是逆序遍历下严格单调递增栈。
+
+我的单调栈：
+
+```python
+class Solution:
+    def sumSubarrayMins(self, arr: List[int]) -> int:
+        arr, lp, rp = [-1] + arr + [-1], [None], []
+        n, ans, l, r = len(arr), 0, [0], [len(arr) - 1]
+        for i in range(1,n-1):
+            while arr[l[-1]]>arr[i]: l.pop()
+            lp.append(l[-1]+1)
+            l.append(i)
+        for i in range(n-2,0,-1):
+            while arr[r[-1]]>=arr[i]: r.pop()
+            rp.append(r[-1]-1)
+            r.append(i)
+        rp = [None] + list(reversed(rp))
+        for i in range(1,n-1):
+            ans += (rp[i] - i + 1) * (i - lp[i] + 1) * arr[i]
+        return ans%(int(1e9)+7)
+```
+
+题解写法：
+
+```python
+MOD = 10 ** 9 + 7
+
+class Solution:
+    def sumSubarrayMins(self, arr: List[int]) -> int:
+        n = len(arr)
+        monoStack = []
+        left = [0] * n
+        right = [0] * n
+        for i, x in enumerate(arr):
+            while monoStack and x <= arr[monoStack[-1]]:
+                monoStack.pop()
+            left[i] = i - (monoStack[-1] if monoStack else -1)
+            monoStack.append(i)
+        monoStack = []
+        for i in range(n - 1, -1, -1):
+            while monoStack and arr[i] < arr[monoStack[-1]]:
+                monoStack.pop()
+            right[i] = (monoStack[-1] if monoStack else n) - i
+            monoStack.append(i)
+        ans = 0
+        for l, r, x in zip(left, right, arr):
+            ans = (ans + l * r * x) % MOD
+        return ans
+```
+
+DP： $s_{i,j}$ 表示子数组最小值。则拆分，若 $j\ge i-k+1$ 时最小值为 $arr_i$，则 $j<i-k+1$ 时一定比 $arr_i$ 小，可以顺推为 $s_{j,i-k}$
+$$
+\sum_{j=0}^is_{j,i}=\sum_{j=0}^{i-k}s_{j,i}+\sum_{j=i-k+1}^is_{j.i}=
+\sum_{j=0}^{i-k}s_{j,i-k}+k\cdot arr_i
+$$
+定义 $dp_i=\sum_{j=0}^is_{j,i}$，则 $dp_i=dp_{i-k}+k\cdot arr_i$。使用单调栈维护 $k$ 值。
+
+```python
+MOD = 10 ** 9 + 7
+
+class Solution:
+    def sumSubarrayMins(self, arr: List[int]) -> int:
+        n = len(arr)
+        monoStack = []
+        dp = [0] * n
+        ans = 0
+        for i, x in enumerate(arr):
+            while monoStack and arr[monoStack[-1]] > x:
+                monoStack.pop()
+            k = i - monoStack[-1] if monoStack else i + 1
+            dp[i] = k * x + (dp[i - k] if monoStack else 0)
+            ans = (ans + dp[i]) % MOD
+            monoStack.append(i)
+        return ans
+```
+
+
 
 
 

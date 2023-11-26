@@ -54,6 +54,18 @@ git config --global --unset http.proxy
 git config --global --unset https.proxy
 ```
 
+忽略证书错误：
+
+```sh
+git config --global http.sslVerify "false"
+```
+
+增加缓存：
+
+```sh
+git config --global http.postBuffer 524288000 #500MB
+```
+
 
 
 
