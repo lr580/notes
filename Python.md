@@ -1337,7 +1337,7 @@ append在尾部添加一个元素
 
 pop(i)删除下标i的元素，其余元素往前顶来补充，不填i代表最后元素，越界报错IndexError
 
-remove(p)删除元素p，从头到尾，每次只删除一个，找不到报错ValueError
+remove(p)删除元素p，从头到尾，每次只删除一个，找不到报错ValueError；原地修改，返回 None
 
 insert(i,p)在i处插入元素p，原i的元素往后推
 
@@ -2084,6 +2084,31 @@ def toGrey(img):
 
 ### 参数
 
+#### 执行顺序
+
+从左到右，Java 也是；C/C++ 未定义
+
+```python
+def f():
+    print('call f')
+    return 1
+def g():
+    print('call g')
+    return 2
+print(f(),g())
+def h(x,y):
+    return x+y
+print(h(f(),g()))
+'''call f
+call g
+1 2
+call f
+call g
+3'''
+```
+
+
+
 **位置参数**就是一般的参数，与C等语言一样，从略。
 
 #### 全局变量
@@ -2404,6 +2429,16 @@ max([],default=0) #0
 ##### hash
 
 返回 object 的十进制数字散列值。
+
+```python
+hash('hello') #5943034673097449129
+hash(1) #1
+hash(-0.0) #0
+hash('A') #8832457150969917233
+hash(True) #1
+```
+
+
 
 #### 判断函数
 
@@ -3252,6 +3287,42 @@ d = defaultdict(list) # 空列表
 `if` 该 deque 变量本身返回它是否为空
 
 `pop, popleft` 方法删除右端和左端并返回，`append, appendleft` 插入。
+
+##### priorityqueue
+
+`queue.PriorityQueue`类是一个线程安全的优先级队列实现。它提供了以下几个常用方法：
+
+1. **构造函数** - `PriorityQueue(maxsize=0)`：创建一个优先级队列。`maxsize`指定队列可以容纳的最大元素数目。如果`maxsize`小于或等于0，队列大小是无限的。
+2. **`put(item, block=True, timeout=None)`**：将`item`放入队列中。如果队列已满，则阻塞，直到有空间可用，除非指定了`timeout`。
+3. **`get(block=True, timeout=None)`**：从队列中移除并返回一个元素。如果队列为空，则阻塞，直到有元素可用，除非指定了`timeout`。
+4. **`qsize()`**：返回队列中大约的元素数量。
+5. **`empty()`**：如果队列为空，则返回`True`。
+6. **`full()`**：如果队列已满，则返回`True`。
+
+```python
+from queue import PriorityQueue
+pq = PriorityQueue()
+pq.put((2, '任务2'))
+pq.put((1, '任务1'))
+pq.put((3, '任务3'))
+while not pq.empty(): #while pq 不行，这样会死循环
+    print(pq.get())
+'''(1, '任务1')
+(2, '任务2')
+(3, '任务3')'''
+```
+
+或者用另一个标准库：(输出同上；不线程安全，轻量)
+
+```python
+import heapq
+heap = []
+heapq.heappush(heap, (2, '任务2'))
+heapq.heappush(heap, (1, '任务1'))
+heapq.heappush(heap, (3, '任务3'))
+while heap:
+    print(heapq.heappop(heap))
+```
 
 
 
@@ -5347,6 +5418,10 @@ np.logspace(a,b,k)
 np.linspace(a,b,k)
 ```
 
+##### 类型
+
+查看：`.dtype`
+
 ##### 变换
 
 插入：
@@ -5365,8 +5440,6 @@ h=np.insert(np.eye(5),1,values=np.ones(5),axis=0)  #values形状会随axis不同
 
 - rival 返回值是原数组的引用(原数组不被扁平化，修改返回值数组也会修改原数组)
 - flatten 返回值是原数组的副本，互不干扰
-
-
 
 ##### 形变
 
@@ -5394,7 +5467,7 @@ output = np.uint8(output * 255)
 np.array([1, 2, 3, 4])[:,np.newaxis]
 ```
 
-
+变成一维并返回：`.flatten()`
 
 ##### 运算
 
@@ -5710,6 +5783,21 @@ bin_probs = hist / hist.sum()# 计算每个bin的概率（面积）
 
 
 如果你想要绘制直方图，可以使用 Matplotlib 库的 `plt.hist` 函数，它会自动计算直方图并且还会绘制出来。
+
+##### 错误处理
+
+如 $\dfrac{2z}{x+y}$
+
+```python
+def depth_percentage(arr):
+    x, y, z = arr[:, 0], arr[:, 1], arr[:, 2]
+    with np.errstate(divide='ignore', invalid='ignore'):
+        depth_pct = 100 * (2 * z) / (x + y)
+        depth_pct[np.isinf(depth_pct)] = np.nan  # 将无限值替换为nan
+    return depth_pct
+```
+
+
 
 #### 输出配置
 
@@ -6984,6 +7072,13 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 > 如，取前两列外的每一列：`df.iloc[:, 2:]`
 >
 > 取特定若干列：`df[['text', 'num_hashtags']]`
+>
+> 取特定类型的类：
+>
+> ```python
+> df.select_dtypes(include=[np.number])
+> df.select_dtypes(include=[np.number]).columns.tolist()
+> ```
 
 取单独元素 `.at[行号, 列str]` 或 `.loc`
 
@@ -6991,7 +7086,7 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 
 简要统计 `.describe()` 形状 `.shape`
 
-取所有列(含下表列) `df.columns`，取指定列，可以 for 和取下标，得 str
+取所有列(含下表列) `df.columns`，取指定列，可以 for 和取下标，得 str，可以 `.tolist()`
 
 取行下标范围 `df.index` 有属性 `start,step,stop`，其中 stop 是第一个越界
 
@@ -7002,6 +7097,8 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 用列值进行 01 分类：`get_dummies`
 
 取 `.values` 可以转化为 np array。然后可以丢进 tensor。
+
+> `df[col].values.shape` 是一维；`df[[col]].values.shape` 是二维(前者算 series 转；后者算一列 df 转，故第二维为 1)
 
 ##### nan/null
 
@@ -7141,6 +7238,8 @@ def stratified_effectiveness(df):
 
 
 ##### 数据处理
+
+可以直接两列运算：`df[new_col_name] = df[col1] * df[col2]`
 
 取某列等于特定值的数据：
 
@@ -8561,7 +8660,9 @@ print('x=', x)
 
 ### sklearn
 
-##### 线性回归
+#### 线性回归
+
+##### 回归
 
 ```python
 import pandas as pd
@@ -8579,7 +8680,7 @@ model = LinearRegression()
 model.fit(x.reshape(-1, 1), y)
 
 # 计算残差
-y_pred = model.predict(x.reshape(-1, 1))
+y_pred = model.predict(x.reshape(-1, 1)) # <class 'numpy.ndarray'>
 residuals = y - y_pred
 
 # 创建DataFrame
@@ -8597,9 +8698,114 @@ def create_residual_plot(df, x, y):
     df = df.copy()
     model = LinearRegression()
     model.fit(df[[x]], df[y])
-    df['pred'] = model.predict(df[[x]])
+    df['pred'] = model.predict(df[[x]]) 
     df[f'{y} residuals'] = df[y] - model.predict(df[[x]])
     return px.scatter(df, x='pred', y=f'{y} residuals', trendline='ols', trendline_color_override='red')
+```
+
+##### 统计量
+
+评估依据：RMSE(root mean squared error，均方根误差) $\sqrt{\dfrac{\sum_{i=1}^n(y_i-\hat y_i)^2}n}$，在 least squares regression 使用该 argmin。值越小表示预测的准确性越高。
+
+$R^2$ coefficient of determination，测定系数，取值 0\~1。取 `model.score`；值越高表示模型的解释能力越强。
+
+```python
+from sklearn.metrics import r2_score, mean_squared_error
+def get_R2_and_RMSE(df1, col1, df2, col2):
+    X = df1[[col1]]
+    y = df2[col2]
+    lr = LinearRegression()
+    lr.fit(X, y)  # X is a DataFrame of training data; y is a Series of prices
+    r2 = lr.score(X, y)  # R-squared
+    yh = lr.predict(X) # predicted prices
+    '''rmse = 0 # check by hand writing
+    n = y.shape[0]
+    for i in range(n):
+        rmse += (yh[i]-y[i])**2
+    rmse = (rmse/n) ** 0.5
+    print('check rmse: ', rmse)'''
+    return (r2_score(y, yh), # the same as lr.score; (yh, h) not same
+        mean_squared_error(yh, y, squared=False))
+```
+
+##### 多元回归
+
+```python
+col1 = diamonds.select_dtypes(include=[np.number]).columns.tolist()
+df1 = diamonds[col1]
+X = pd.concat([df1, out_q4], axis=1) #多个 pd 列
+y = diamonds['price']
+lr = LinearRegression()
+lr.fit(X,y)
+y_pred = lr.predict(X)
+print(mean_squared_error(y, y_pred, squared=False))
+```
+
+#### 数据转换
+
+##### bool值
+
+`>1` 为 1.0, 否则 0.0：
+
+```python
+from sklearn.preprocessing import Binarizer
+def transform_carat(self, data):
+    binarizer = Binarizer(threshold=1)  # 创建Binarizer对象，阈值设置为1
+    return binarizer.transform(data[['carat']].values)  # 转换并返回结果
+```
+
+##### 分位数
+
+下面例子，数据将被映射到100个等分的区间中
+
+```python
+from sklearn.preprocessing import QuantileTransformer
+import pandas as pd
+import numpy as np
+
+# 示例数据
+data = {
+    'carat': [0.5, 0.7, 0.9, 1.1, 1.3],
+    'price': [1500, 2500, 3500, 4500, 5500]
+}
+diamonds = pd.DataFrame(data)
+
+# 创建 TransformDiamonds 类
+class TransformDiamonds(object):
+    def __init__(self, diamonds):
+        self.data = diamonds
+
+    def transform_to_quantiles(self, data):
+        transformer = QuantileTransformer(n_quantiles=100)
+        transformer.fit(self.data[['carat']])
+        return transformer.transform(data[['carat']]).flatten()
+
+# 实例化 TransformDiamonds 类
+transformer = TransformDiamonds(diamonds)
+
+# 新数据进行转换
+new_data = pd.DataFrame({'carat': [0.6, 0.8, 1.0]})
+transformed_carats = transformer.transform_to_quantiles(new_data)
+
+# 打印结果
+transformed_carats # array([0.125, 0.375, 0.625])
+# 如果丢原数据，返回：[0.   0.25 0.5  0.75 1.  ]
+```
+
+##### 自定义
+
+求 $100\%\cdot\dfrac{2z}{x+y}$
+
+```python
+def transform_to_depth_pct(self, data):
+        def depth_percentage(arr):
+            x, y, z = arr[:, 0], arr[:, 1], arr[:, 2]
+            with np.errstate(divide='ignore', invalid='ignore'):
+                depth_pct = 100 * (2 * z) / (x + y)
+                depth_pct[np.isinf(depth_pct)] = np.nan  # 将无限值替换为nan
+            return depth_pct
+        transformer = FunctionTransformer(depth_percentage)
+        return transformer.transform(data[['x', 'y', 'z']].values)
 ```
 
 

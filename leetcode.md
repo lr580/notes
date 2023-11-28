@@ -1045,6 +1045,10 @@
 - 907\.子数组的最小值之和
 
   单调栈 / 单调栈+DP
+  
+- 1670\.设计前中后队列
+
+  STL
 
 
 
@@ -28826,6 +28830,51 @@ class Solution:
             ans = (ans + dp[i]) % MOD
             monoStack.append(i)
         return ans
+```
+
+##### 1670\.设计前中后队列
+
+[题目](https://leetcode.cn/problems/design-front-middle-back-queue)
+
+```python
+class FrontMiddleBackQueue:
+    def __init__(self):
+        self.l, self.r = deque(), deque() #(front)l->r(rear)
+        
+    def _balance(self):
+        while len(self.l) > len(self.r) + 1:
+            self.r.appendleft(self.l.pop())
+        while len(self.l) < len(self.r):
+            self.l.append(self.r.popleft())
+
+    def pushFront(self, val: int) -> None:
+        self.l.appendleft(val)
+        self._balance()
+
+    def pushMiddle(self, val: int) -> None:
+        if len(self.l) == len(self.r) + 1:
+            self.r.appendleft(self.l.pop())
+        self.l.append(val)
+        self._balance()
+
+    def pushBack(self, val: int) -> None:
+        self.r.append(val)
+        self._balance()
+
+    def popFront(self) -> int:
+        val = self.l.popleft() if self.l else -1
+        self._balance()
+        return val
+
+    def popMiddle(self) -> int:
+        val = self.l.pop() if self.l else -1
+        self._balance()
+        return val
+
+    def popBack(self) -> int:
+        val = self.r.pop() if self.r else (self.l.pop() if self.l else -1)
+        self._balance()
+        return val
 ```
 
 
