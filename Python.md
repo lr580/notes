@@ -1335,7 +1335,7 @@ b=[1,False,[3,4,5],'996']
 
 append在尾部添加一个元素
 
-pop(i)删除下标i的元素，其余元素往前顶来补充，不填i代表最后元素，越界报错IndexError
+pop(i)删除下标i的元素并返回，其余元素往前顶来补充，不填i代表最后元素，越界报错IndexError
 
 remove(p)删除元素p，从头到尾，每次只删除一个，找不到报错ValueError；原地修改，返回 None
 
@@ -3263,7 +3263,7 @@ __import__('a')
 
 集合类
 
-> 栈用 list 即可
+> 栈用 list 即可；没有 TreeSet 要考虑第三方库
 
 ##### defaultdict
 
@@ -8822,6 +8822,15 @@ derivative = sp.diff(function, x)
 print(derivative)
 ```
 
+##### 积分
+
+```python
+from sympy import symbols, integrate, sin
+x = symbols('x')
+integral = integrate(sin(x)**3, x)
+print(integral)
+```
+
 
 
 ### cvxpy
@@ -10238,6 +10247,28 @@ requests.post('http://127.0.0.1:52580/',data={'name':'yym'}).text
 >
 
 > `PySNMP` 模块可以实现 SNMP 功能
+
+## 数据结构
+
+### sortedcontainers
+
+#### SortedSet
+
+与 set 差不多用法
+
+```python
+from sortedcontainers import SortedSet
+s = SortedSet([3, 1, 1, 5, 4, 2]) # 会去重掉多余的 1
+s.add(6) # 返回 None
+s.discard(3) # 返回 None
+assert 6 in s # in 操作
+print(s[2])  # 输出排序后的第三个元素
+for element in s:
+    print(element) # 1,2,4,5,6
+s2 = SortedSet([5, 6, 7])
+print(s | s2)  # 并集
+print(s & s2)  # 交集
+```
 
 
 

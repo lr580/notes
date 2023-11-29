@@ -1049,6 +1049,10 @@
 - 1670\.设计前中后队列
 
   STL
+  
+- 2336\.无限集中的最小数字
+
+  STL
 
 
 
@@ -28875,6 +28879,54 @@ class FrontMiddleBackQueue:
         val = self.r.pop() if self.r else (self.l.pop() if self.l else -1)
         self._balance()
         return val
+```
+
+##### 2336\.无限集中的最小数字
+
+[题目](https://leetcode.cn/problems/smallest-number-in-infinite-set)
+
+我的带修很烦的二分：
+
+```python
+class SmallestInfiniteSet:
+    def __init__(self):
+        self.s = [i for i in range(1, 1001)]
+    def popSmallest(self) -> int:
+        return self.s.pop(0)
+    def addBack(self, num: int) -> None:
+        idx = bisect_left(self.s, num)
+        if idx < len(self.s) and self.s[idx] == num:
+            return
+        insort_left(self.s, num)
+```
+
+使用第三方库维护 tree set：
+
+```python
+from sortedcontainers import SortedSet
+
+class SmallestInfiniteSet:
+    def __init__(self):
+        self.thres = 1
+        self.s = SortedSet()
+
+    def popSmallest(self) -> int:
+        s_ = self.s
+
+        if not s_:
+            ans = self.thres
+            self.thres += 1
+            return ans
+        
+        ans = s_[0]
+        s_.pop(0)
+        return ans
+
+    def addBack(self, num: int) -> None:
+        s_ = self.s
+
+        if num < self.thres:
+            s_.add(num)
 ```
 
 
