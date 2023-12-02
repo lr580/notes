@@ -1806,6 +1806,8 @@ for i in ((1,2),(3,4)):#此时i是tuple
     print(i[0]*i[1])
 ```
 
+range 传非正整数返回空的。
+
 ##### 列表生成表达式
 
 外括号决定生成的是列表、元组还是集合。以列表为例：
@@ -3395,6 +3397,12 @@ randint(a，b) #返回区间[a,b]内随机整数
 
 ```python
 choice(数组) #返回数组内随机一个元素,dict要key是整数,返回value
+```
+
+加权，多次：
+
+```python
+random.choices(list(self.mdl.index), weights=self.mdl.values, k=M)
 ```
 
 
@@ -7200,6 +7208,8 @@ df[w]
 
 转回 data frame：`.to_frame()`
 
+取某个值：`get(index, default=None)`
+
 
 
 遍历某个 list，将每个元素(str 如 `20-30`)作为上下界作用于某列进行筛选，然后筛选完了求平均值或其他返回一元值的操作
@@ -7372,7 +7382,7 @@ grouped_df = df.groupby('City').mean()
 stat_df = df.groupby('U.S._STATE')['OUTAGE.DURATION'].agg(['mean', 'count'])
 ```
 
-其他聚合函数，如 min, max, sum, size(计数),count, var(方差), median(中位数)
+其他聚合函数，如 min, max, sum, size(计数),count, var(方差), median(中位数), nunique(不同值的数目)。这些聚合函数也可以直接对原表或子表使用，如 `df.min()`
 
 分位数：
 
@@ -7767,6 +7777,10 @@ print(max_index) #A:2, B:0
 max_index_row = df.idxmax(axis=1) #0:B,1:A,2:A
 print(max_index_row)
 ```
+
+##### 去重
+
+`.nunique()` 返回每列有几个不同的值的数目
 
 #### 字符串
 

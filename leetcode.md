@@ -1057,6 +1057,10 @@
 - 1657\.确定两个字符串是否接近
 
   STL
+  
+- 1423\.可获得的最大点数
+
+  <u>滑动窗口</u> / <u>后缀数组</u>
 
 
 
@@ -28958,6 +28962,27 @@ class Solution:
 class Solution:
     def closeStrings(self, word1: str, word2: str) -> bool:
         return Counter(word1).keys() == Counter(word2).keys() and sorted(Counter(word1).values()) == sorted(Counter(word2).values())
+```
+
+##### 1423\.可获得的最大点数
+
+[题目](https://leetcode.cn/problems/maximum-points-you-can-obtain-from-cards)
+
+个人思路：参见做过的某道题，贪心模拟，如果前后相等，做后缀数组取排序，构造 $s+(/-)\infty+\overline s$ 的串跑后缀数组。没跑通，不想思考了。
+
+题解思路：反面思考，滑动长为 $n-k$ 的未删除段，选最小的。
+
+```python
+class Solution:
+    def maxScore(self, cardPoints: List[int], k: int) -> int:
+        n = len(cardPoints)
+        windowSize = n - k
+        s = sum(cardPoints[:windowSize])
+        minSum = s
+        for i in range(windowSize, n):
+            s += cardPoints[i] - cardPoints[i - windowSize]
+            minSum = min(minSum, s)
+        return sum(cardPoints) - minSum
 ```
 
 
