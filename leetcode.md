@@ -1053,6 +1053,10 @@
 - 2336\.无限集中的最小数字
 
   STL
+  
+- 1657\.确定两个字符串是否接近
+
+  STL
 
 
 
@@ -28930,6 +28934,31 @@ class SmallestInfiniteSet:
 ```
 
 
+
+##### 1657\.确定两个字符串是否接近
+
+[题目](https://leetcode.cn/problems/determine-if-two-strings-are-close)
+
+我的：
+
+```python
+class Solution:
+    def closeStrings(self, word1: str, word2: str) -> bool:
+        def count(s):
+            d = defaultdict(int)
+            for i in s:
+                d[i] += 1
+            return sorted(d.values())
+        return count(word1) == count(word2) and set(word1) == set(word2)
+```
+
+题解的：
+
+```python
+class Solution:
+    def closeStrings(self, word1: str, word2: str) -> bool:
+        return Counter(word1).keys() == Counter(word2).keys() and sorted(Counter(word1).values()) == sorted(Counter(word2).values())
+```
 
 
 
