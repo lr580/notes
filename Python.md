@@ -5739,6 +5739,18 @@ percentile_97 = np.percentile(data, 97) # 9.73
 
 ##### 统计
 
+###### 方差
+
+```python
+import numpy as np
+# 创建一个简单的数据集
+data = np.array([1, 2])
+# 使用 NumPy 计算标准差，默认 ddof=0（总体标准差）
+numpy_std_population = np.std(data) # 即分母 N
+# 使用 NumPy 计算标准差，设置 ddof=1（样本标准差）
+numpy_std_sample = np.std(data, ddof=1) # 即分母 N-1
+```
+
 
 
 #### 其他运算
@@ -6996,6 +7008,12 @@ pd.DataFrame(columns=columns)
 pd.DataFrame(index=diamonds.index)
 ```
 
+全为 NaN 的：(各列类型 object)
+
+```python
+pd.DataFrame(columns=['train_err', 'test_err'], index=range(1, 21))
+```
+
 各列 assign 传入：
 
 ```python
@@ -7004,9 +7022,11 @@ y = 2 * ((x + np.random.normal(0, 1, 100)) ** 2) + np.abs(x) * np.random.normal(
 df_1 = pd.DataFrame().assign(x=x, y=y)
 ```
 
+从 numpy: (行列名都是 0 开始的数字) (同理传 (1,n) 的给 `df[]=` 可以赋整列)
 
-
-
+```python
+pd.DataFrame(np.array([[1,2],[3,4],[5,6]]))
+```
 
 ##### 写入
 
@@ -7090,7 +7110,9 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 
 取单独元素 `.at[行号, 列str]` 或 `.loc`
 
-转 numpy(丢失表头)：`.to_numpy()`，转列表 `.tolist()`，转 set 直接 `set(df[])`
+转 numpy(丢失表头)：`.to_numpy()`，转列表 `.tolist()`，转 set 直接 `set(df[])`，
+
+转字典 `to_dict()`，key 是列(str 或多索引就 tuple，见聚合索引), value 是 dict(行index: 值)
 
 简要统计 `.describe()` 形状 `.shape`
 
@@ -7107,6 +7129,8 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 取 `.values` 可以转化为 np array。然后可以丢进 tensor。
 
 > `df[col].values.shape` 是一维；`df[[col]].values.shape` 是二维(前者算 series 转；后者算一列 df 转，故第二维为 1)
+
+列赋值，可以直接把 numpy (1,n) shape 的赋值
 
 ##### nan/null
 
@@ -7305,7 +7329,7 @@ rows = df[(df['Age'] >= left) & (df['Age'] <= right)]
 
 对该列每个元素应用某函数，返回值就地赋值 `df[col].apply(函数)`，例子见下文字符串处理。
 
-每行处理：`apply(f, axis=1)`，例子见字符串处理。f 参数是列，不是标量。
+每行处理：`apply(f, axis=1)`，更多例子见字符串处理。f 参数是列，不是标量。
 
 > 如：对固定三个取值(或 NA)的字符串转化为整型：
 >
@@ -7351,6 +7375,10 @@ def verify_child(heights):
 ```
 
 `stats` 是 scipy 的。
+
+
+
+逐行+传多几个参数，考虑例子：以第一列为分组变量，对其他列进行标准化(减方差除均值)
 
 
 
@@ -7431,6 +7459,26 @@ df.groupby('City').agg(
 
 ##### 聚合索引
 
+多列多聚合函数导致的：
+
+```python
+data2 = {
+    'group': ['A', 'B', 'A', 'B', 'A'],
+    'x': [1, 2, 3, 4, 5],
+    'y': [2, 1, 4, 3, 5]
+}
+df=pd.DataFrame(data2)
+df.groupby('group').agg(['mean','std']).to_dict()
+'''      x                   y          
+      mean       std      mean       std
+group                                   
+A      3.0  2.000000  3.666667  1.527525
+B      3.0  1.414214  2.000000  1.414214'''
+# {('x', 'mean'): {'A': 3.0, 'B': 3.0}, ('x', 'std'): {'A': 2.0, 'B': 1.4142135623730951}, ('y', 'mean'): {'A': 3.6666666666666665, 'B': 2.0}, ('y', 'std'): {'A': 1.5275252316519468, 'B': 1.4142135623730951}}
+```
+
+
+
 生成跟上面 group by 双索引一样的数据：
 
 ```python
@@ -7473,6 +7521,8 @@ print(grouped_df.loc[('Berlin', '2021-01-01'), 'Temperature'])
   再取最后一行的最后一列下标 `df.index.get_level_values(-1)[-1]`
 
   可以用 for 遍历，把两个 -1 变成 i,j 即可
+
+
 
 ##### transform
 
@@ -7738,6 +7788,23 @@ def create_one_hot(diamonds):
     return one_hot_df
 ```
 
+写法三：scipy (创建多个新的列)
+
+```python
+from sklearn.preprocessing import OneHotEncoder
+import pandas as pd
+data = {
+    'group': ['A', 'B', 'C', 'A', 'B', 'C', 'A', 'B', 'C', 'A']
+}
+df = pd.DataFrame(data)
+encoder = OneHotEncoder(sparse=False)
+encoded_data = encoder.fit_transform(df[['group']]) #numpy.ndarray(float)
+columns = encoder.get_feature_names_out(['group']) #list(str)
+encoded_df = pd.DataFrame(encoded_data, columns=columns)
+result_df = pd.concat([df, encoded_df], axis=1)
+result_df.head()  # 展示前几行以检查结果
+```
+
 
 
 ##### value_counts
@@ -7781,6 +7848,42 @@ print(max_index_row)
 ##### 去重
 
 `.nunique()` 返回每列有几个不同的值的数目
+
+##### 方差
+
+1. **NumPy**: 当使用 NumPy 的 `std` 函数时，默认情况下，它使用的是分母 N（这是总体标准差的计算方式）。但是，你可以通过设置 `ddof`（Delta Degrees of Freedom）参数为 1 来改用 N−1 作为分母，这样计算的是样本标准差。例如，`numpy.std(a, ddof=1)`。
+2. **Pandas**: 在 Pandas 中，`DataFrame.std()` 或 `Series.std()` 函数默认使用的是分母 N−1（样本标准差的计算方式）。这是因为 Pandas 通常用于处理样本数据，而不是整个总体。如果你想计算总体标准差，需要设置 `ddof=0`。
+
+```python
+import numpy as np
+import pandas as pd
+
+# 创建一个简单的数据集
+data = np.array([1, 2, 3, 4, 5])
+
+# 使用 NumPy 计算标准差，默认 ddof=0（总体标准差）
+numpy_std_population = np.std(data)
+
+# 使用 NumPy 计算标准差，设置 ddof=1（样本标准差）
+numpy_std_sample = np.std(data, ddof=1)
+
+# 将相同的数据集转换为 Pandas Series
+data_series = pd.Series(data)
+
+# 使用 Pandas 计算标准差，默认 ddof=1（样本标准差）
+pandas_std_sample = data_series.std()
+
+# 使用 Pandas 计算标准差，设置 ddof=0（总体标准差）
+pandas_std_population = data_series.std(ddof=0)
+
+# 打印结果
+print("NumPy Population Std:", numpy_std_population)
+print("NumPy Sample Std:", numpy_std_sample)
+print("Pandas Sample Std:", pandas_std_sample)
+print("Pandas Population Std:", pandas_std_population)
+```
+
+
 
 #### 字符串
 
@@ -7874,6 +7977,26 @@ hashtag_series = hashtag_list(tweets)
 1    [test, example]
 2                 []'''
 all_hashtags = [hashtag for sublist in tweet_lists for hashtag in sublist]
+```
+
+```python
+import pandas as pd
+
+# 定义函数
+def extract_title(df):
+    titles = df['Name'].str.extract(r'([A-Za-z]+)\.', expand=False)
+    print(titles)
+    return pd.DataFrame(titles)
+
+# 创建一个包含一些示例姓名的DataFrame
+data = {'Name': ['Mr. John Smith', 'Dr. Alice Jones', 'Miss Emily Brown']}
+df = pd.DataFrame(data)
+
+# 使用函数提取标题
+titles_df = extract_title(df)
+
+# 显示结果
+print(titles_df)
 ```
 
 
@@ -8342,6 +8465,41 @@ fig.update_layout(
 
 
 
+#### 子图
+
+> 例子：
+
+> ```python
+> from plotly.subplots import make_subplots
+> import plotly.graph_objects as go
+> np.random.seed(9) # For reproducibility
+> 
+> tree = tree_reg_perf(galton)
+> knn = knn_reg_perf(galton)
+> hyp = np.arange(1, 21)
+> 
+> fig = make_subplots(rows=1, cols=2, subplot_titles=('Error vs. Tree Depth<br>for Decision Tree Regressor',
+>                                                     'Error vs. k (# Neighbors)<br>for k-NN Regressor'))
+> 
+> fig.add_trace(
+>     go.Scatter(x=hyp, y=tree.iloc[:, 0], line=dict(color='blue'), name='Training Error'),
+>     row=1, col=1).add_trace(go.Scatter(x=hyp, y=tree.iloc[:, 1], line=dict(color='red'), name='Testing Error'), 
+>                             row=1, col=1)
+> 
+> fig.add_trace(
+>     go.Scatter(x=hyp, y=knn.iloc[:, 0], line=dict(color='blue'), name='Training Error', showlegend=False),
+>     row=1, col=2).add_trace(go.Scatter(x=hyp, y=knn.iloc[:, 1], line=dict(color='red'),  name='Testing Error',
+>                                        showlegend=False), row=1, col=2)
+> 
+> fig.update_layout(height=450, width=975)
+> fig.update_xaxes(title_text='Tree Depth', row=1, col=1, tickvals=np.arange(1,21,2))
+> fig.update_xaxes(title_text='k (# Neighbors)', row=1, col=2, tickvals=np.arange(1,21,2))
+> 
+> fig.show()
+> ```
+
+
+
 #### 导出
 
 ##### HTML
@@ -8674,6 +8832,12 @@ print('x=', x)
 
 ### sklearn
 
+安装：
+
+```shell
+pip install scikit-learn -i https://pypi.tuna.tsinghua.edu.cn/simple/
+```
+
 #### 线性回归
 
 ##### 回归
@@ -8755,6 +8919,85 @@ y_pred = lr.predict(X)
 print(mean_squared_error(y, y_pred, squared=False))
 ```
 
+##### 非线性
+
+先转线性。
+
+```python
+def simple_pipeline(data): # data: pandas DataFrame
+    # 定义对 'c2' 进行对数变换的处理
+    log_transformer = FunctionTransformer(np.log, validate=True)
+
+    # 创建管道，首先对 'c2' 进行对数变换，然后应用线性回归
+    pipeline = Pipeline([
+        ('log_scale', log_transformer),
+        ('linear_regression', LinearRegression())
+    ])
+
+    # 在数据的 'c2' 列和目标变量 'y' 上拟合管道
+    X = data[['c2']]
+    y = data['y']
+    pipeline.fit(X, y)
+
+    # 使用管道对数据进行预测
+    predictions = pipeline.predict(X)
+    return pipeline, predictions
+```
+
+> 综合例子：
+>
+> - c1 列对 group 列分类，各列分别求标准放缩，然后 c2 求对数放缩，且 group 求 one hot 后，对这些列做回归
+>
+> 管道写法：
+>
+> ```python
+> from sklearn.metrics import mean_squared_error, r2_score
+> from sklearn.pipeline import make_pipeline
+> from math import sqrt
+> pipeline = make_pipeline(
+>     ColumnTransformer([
+>         ('group_scale', StdScalerByGroup(), ['group', 'c1']),
+>         ('log_scale', FunctionTransformer(np.log, validate=True), ['c2']),
+>         ('one_hot', OneHotEncoder(), ['group'])
+>     ]),
+>     LinearRegression()
+> ) #StdScalerByGroup() 在下文数据转化定义的自定义类
+> data = q1_data.copy()
+> # 拟合管道并对数据进行预测
+> X = data[['group', 'c1', 'c2']]  # 包含所有需要的列
+> y = data['y']  # 使用 'c1' 作为目标变量进行测试
+> pipeline.fit(X, y)
+> predictions = pipeline.predict(X)
+> 
+> # 计算RMSE和R2
+> rmse = sqrt(mean_squared_error(y, predictions))
+> r2 = r2_score(y, predictions)
+> ```
+>
+> 非管道：
+>
+> ```python
+> from sklearn.metrics import r2_score, mean_squared_error
+> def get_R2_and_RMSE(y, yh):#y_real, y_predict
+>     return (r2_score(y,yh), mean_squared_error(y, yh, squared=False))
+> scalar = StdScalerByGroup().fit(q1_data.iloc[:,:2])
+> c1group = scalar.transform(q1_data.iloc[:,:2])
+> df = q1_data.copy()
+> df['c1'] = c1group
+> df['c2'] = FunctionTransformer(np.log, validate=True).transform(df[['c2']].values)
+> 
+> encoder = OneHotEncoder(sparse=False)
+> cols = encoder.fit_transform(df[['group']])
+> col_names = encoder.get_feature_names_out(['group'])
+> df = pd.concat([df, pd.DataFrame(cols, columns=col_names)], axis=1)
+> X = df[['c1','c2','group_A','group_B','group_C']]
+> y = df['y']
+> lr = LinearRegression()
+> lr.fit(X,y)
+> yh = lr.predict(X)
+> print(get_R2_and_RMSE(y, yh))
+> ```
+
 #### 数据转换
 
 ##### bool值
@@ -8822,7 +9065,413 @@ def transform_to_depth_pct(self, data):
         return transformer.transform(data[['x', 'y', 'z']].values)
 ```
 
+> ```python
+> log_transformer = FunctionTransformer(np.log, validate=True)
+> ```
+>
+> 当 `validate=True` 时：
+>
+> 1. **输入验证**：`FunctionTransformer` 将检查输入数据是否是二维数组（或类似数组的结构）。这是因为 Scikit-Learn 的大多数模型和转换器都期望输入数据是二维的。
+> 2. **数据转换**：如果输入数据不是浮点数类型的数组，它将被转换为浮点数。这种转换是必要的，因为 Scikit-Learn 的模型通常需要浮点数输入。
+> 3. **处理稀疏矩阵**：如果输入数据是稀疏矩阵，`FunctionTransformer` 也会适当地处理它。在某些情况下，这可能涉及将稀疏矩阵转换为密集矩阵，尤其是如果转换函数不支持稀疏矩阵的话。
 
+pandas:
+
+```python
+def extract_title(df):
+    titles = df['Name'].str.extract(r'([A-Za-z]+)\.', expand=False)
+    return pd.DataFrame(titles)
+```
+
+
+
+##### 管道
+
+一个 Pipeline 由一系列步骤组成，每个步骤都是一个元组，包含两个元素：
+
+1. 步骤名称：一个字符串，用于标识步骤。
+2. 转换器或估计器：可以是任何 Scikit-Learn 转换器（如 `StandardScaler`, `PCA`）或估计器（如 `LinearRegression`, `RandomForestClassifier`）。
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.linear_model import LogisticRegression
+# 创建一个 Pipeline
+pipe = Pipeline([
+    ('scaler', StandardScaler()),   # 第一步：标准化
+    ('pca', PCA(n_components=2)),   # 第二步：PCA 降维
+    ('classifier', LogisticRegression())  # 第三步：逻辑回归分类器
+])
+# 使用 Pipeline
+# 假设 X_train 和 y_train 是我们的训练数据
+pipe.fit(X_train, y_train)
+# 对新数据进行预测
+y_pred = pipe.predict(X_test)
+```
+
+取管道步骤：`pipe.steps[-1][1]` (取最后一步)；取步骤名 `[-1][0]`。(steps 本身是 list-二元tuple)
+
+##### 独热
+
+单独例子参见 pandas - 其他运算 - ont-hot
+
+```python
+import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
+
+# 示例数据
+data = {
+    'age': [25, 32, 47, 51],
+    'gender': ['male', 'female', 'female', 'male'],
+    'income': [40000, 50000, 30000, 45000]
+}
+df = pd.DataFrame(data)
+
+# 定义 ColumnTransformer
+column_transformer = ColumnTransformer(
+    transformers=[
+        ('cat', OneHotEncoder(), ['gender'])  # 对分类列进行独热编码
+    ],
+    remainder='passthrough'  # 其他列不变
+)
+
+# 应用 ColumnTransformer
+transformed_data = column_transformer.fit_transform(df) #numpy.ndarray
+
+# 将转换后的数据转换为 DataFrame 并打印
+transformed_df = pd.DataFrame(transformed_data, columns=column_transformer.get_feature_names_out()) #第二个参数是list(str)
+print(transformed_df)
+'''
+   cat__gender_female  cat__gender_male  remainder__age  remainder__income      
+0                 0.0               1.0            25.0            40000.0'''
+```
+
+##### 多列变换
+
+```python
+import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+
+# 示例数据
+data = {
+    'age': [25, 32, 47, 51],
+    'gender': ['male', 'female', 'female', 'male'],
+    'income': [40000, 50000, 30000, 45000]
+}
+df = pd.DataFrame(data)
+
+# 定义 ColumnTransformer
+column_transformer = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), ['age', 'income']),  # 对数值列进行标准化
+        ('cat', OneHotEncoder(), ['gender'])           # 对分类列进行独热编码
+    ]
+)
+
+# 创建一个 Pipeline
+pipeline = Pipeline([
+    ('transformer', column_transformer),
+    ('classifier', LogisticRegression())
+])
+
+# 假设 X 和 y 是我们的特征和标签
+X = df.drop('income', axis=1)
+y = df['income']
+
+# 使用 Pipeline
+pipeline.fit(X, y)
+# 拟合前：
+'''cat__gender_female  cat__gender_male  num__age  num__income
+0                 0.0               1.0 -1.292419    -0.169031'''
+```
+
+##### 标准缩放
+
+StandardScaler $Z=\dfrac{X-\mu}\sigma$；显然 $\sigma=\sqrt{\dfrac{\sum(X_i-\mu)^2}{n}} $
+
+这意味着转换后的数据将围绕 0 居中，具有单位标准差。例子见上。
+
+参数：`with_mean=False`，因此它不会对数据进行均值中心化，但会除以标准差进行缩放。
+
+分列标准缩放：
+
+```python
+from sklearn.base import BaseEstimator, TransformerMixin
+
+class StdScalerByGroup(BaseEstimator, TransformerMixin):
+
+    def __init__(self):
+        pass
+
+    def fit(self, X, y=None):
+        # X might not be a pandas DataFrame (e.g. a np.array)
+        df = pd.DataFrame(X)
+
+        # Compute and store the means/standard-deviations for each column (e.g. 'c1' and 'c2'), 
+        # for each group (e.g. 'A', 'B', 'C').  
+        # (Our solution uses a dictionary)
+        self.grps_ = df.groupby(df.columns[0]).agg(['mean', 'std']).to_dict()
+        
+        return self
+
+    def transform(self, X, y=None):
+        try:
+            getattr(self, "grps_")
+        except AttributeError:
+            raise RuntimeError("You must fit the transformer before tranforming the data!")
+        
+        df = pd.DataFrame(X)
+        # Hint: Define a helper function here!
+        def standardize(row, column, group):
+            mean = self.grps_[(column, 'mean')][group]
+            std = self.grps_[(column, 'std')][group]
+            if std == 0:
+                return row
+            return (row - mean) / std
+
+        for col in df.columns[1:]:
+            df[col] = df.apply(lambda row: standardize(row[col], col, row[df.columns[0]]), axis=1)
+
+        return df.iloc[:, 1:]
+```
+
+##### 缺失值填充
+
+pipeline:
+
+```python
+('impute', SimpleImputer(strategy='most_frequent')),
+```
+
+
+
+#### 数据处理
+
+##### 训练集划分
+
+```python
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+# 示例数据
+X = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])  # 特征
+y = np.array([1, 2, 3, 4])                      # 标签
+
+# 使用 train_test_split 分割数据
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
+'''[[1 2]
+ [7 8]
+ [3 4]] [[5 6]] [1 4 2] [3] # 每次随机'''
+```
+
+也可以传 data frame
+
+随机数生成器的种子，默认参数 `random_state`，如设置为某个整数
+
+#### 机器学习
+
+##### 决策树回归
+
+decision tree regressor
+
+原理：基于同叶的均值。
+
+```python
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+# 示例数据
+X = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])  # 特征
+y = np.array([1.5, 3.5, 5.5, 7.5])             # 连续型目标变量
+
+# 分割数据为训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
+
+# 创建 DecisionTreeRegressor 模型
+regressor = DecisionTreeRegressor()
+
+# 拟合模型
+regressor.fit(X_train, y_train)
+
+# 进行预测
+y_pred = regressor.predict(X_test)
+
+# y_pred 现在包含了对 X_test 的预测值
+print(y_train, y_pred)
+#如：[3.5 5.5 1.5] [5.5]
+```
+
+可以设置决策树模型的最大树高：`DecisionTreeRegressor(max_depth=20)`
+
+误差衡量：
+
+```python
+def tree_reg_perf(galton):
+    from sklearn.model_selection import train_test_split
+    from sklearn.tree import DecisionTreeRegressor
+    def rmse(y_true, y_pred):
+        return np.sqrt(np.mean((y_true - y_pred) ** 2))
+    X_train, X_test, y_train, y_test = train_test_split(galton.drop('childHeight', axis=1), galton['childHeight'], test_size=0.25)
+    results = pd.DataFrame(columns=['train_err', 'test_err'], index=range(1, 21))
+    for depth in range(1, 21):
+        tree = DecisionTreeRegressor(max_depth=depth)
+        tree.fit(X_train, y_train)
+
+        train_pred = tree.predict(X_train)
+        test_pred = tree.predict(X_test)
+        results.loc[depth, 'train_err'] = rmse(y_train, train_pred)
+        results.loc[depth, 'test_err'] = rmse(y_test, test_pred)
+    return results
+```
+
+##### K近邻回归
+
+k-nearest neighbors regressor。基于最近 k 个观测点的最公共欧氏距离
+
+对决策树回归的误差衡量例子，把 `tree=` 行换成：`knn = KNeighborsRegressor(n_neighbors=k)`。
+
+##### 随机森林
+
+以经典泰坦尼克号存活预测数据为例 [kaggle](https://www.kaggle.com/c/titanic)
+
+参数代表树的数量，这里是 100。
+
+```python
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, FunctionTransformer
+from sklearn.impute import SimpleImputer
+
+# 特征工程函数
+def extract_title(df):
+    titles = df['Name'].str.extract('([A-Za-z]+)\.', expand=False)
+    return pd.DataFrame(titles)
+
+def standardize_age(df):
+    df['Age'] = df.groupby('Pclass')['Age'].transform(lambda x: (x - x.mean()) / x.std())
+    return df
+
+# 构建模型的函数
+def titanic_model(titanic):
+    # 特征提取
+    feature_engineering = ColumnTransformer(
+        transformers=[
+            ('title', FunctionTransformer(extract_title, validate=False), ['Name']),
+            ('age', StdScalerByGroup(), ['Pclass','Age'])
+            # 该自定义类见上文 数据转换-标准缩放
+            #('age', FunctionTransformer(standardize_age, validate=False), ['Age', 'Pclass'])
+        ],
+        remainder='passthrough')
+
+    # 定义模型
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+
+    # 构建管道
+    pipeline = Pipeline(steps=[
+        ('feature_engineering', feature_engineering),
+        ('one_hot', OneHotEncoder(handle_unknown='ignore')),
+        ('impute', SimpleImputer(strategy='most_frequent')),
+        ('scale', StandardScaler(with_mean=False)),
+        ('model', model)
+    ])
+
+    # 训练模型
+    pipeline.fit(titanic.drop('Survived', axis=1), titanic['Survived'])
+
+    return pipeline
+```
+
+跑准确率：
+
+```python
+from sklearn.model_selection import train_test_split
+X = titanic.drop(columns = 'Survived')
+y = titanic['Survived']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.35)
+pre = titanic_model(titanic)
+(pre.predict(X_test)==y_test).mean()
+```
+
+#### 主成分分析
+
+[参考](https://blog.csdn.net/weixin_46277779/article/details/125533173)
+
+数据标准化：
+
+```python
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+data = pd.read_csv('audiometric.csv')
+scalar = StandardScaler()
+scalar.fit(data)
+X = scalar.transform(data) #numpy.ndarray
+```
+
+> 标准化即 $x=\dfrac{x-\mu}{s}$，其中分母是标准差即 $s=\sqrt{\dfrac{1}{n}\sum(x_i-u)^2}$。[参考](https://zhuanlan.zhihu.com/p/50751333)
+
+主成分拟合：
+
+```python
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+model = PCA()
+model.fit(X)
+# 每个主成分能解释的方差
+print(model.explained_variance_)
+# 每个主成分能解释的方差的百分比
+print(model.explained_variance_ratio_)
+# 可视化
+plt.plot(model.explained_variance_ratio_, 'o-')
+plt.xlabel('Principal Component')
+plt.ylabel('Proportion of Variance Explained')
+plt.title('PVE')
+plt.show()
+# 查看出每个主成分占的贡献百分比
+```
+
+```python
+# 百分比前缀和
+plt.plot(model.explained_variance_ratio_.cumsum(), 'o-')
+plt.xlabel('Principal Component')
+plt.ylabel('Cumulative Proportion of Variance Explained')
+plt.axhline(0.9, color='k', linestyle='--', linewidth=1) # 虚线横线
+plt.title('Cumulative PVE')
+plt.show()
+```
+
+```python
+#主成分核载矩阵
+print(model.components_)
+columns = ['PC' + str(i) for i in range(1, 9)]
+pca_loadings = pd.DataFrame(model.components_, columns=data.columns, index=columns)
+print(pca_loadings) #与上面一样，只是转成了 pd
+```
+
+绘图展示主成分的成分：
+
+```python
+fig, ax = plt.subplots(2, 2)
+plt.subplots_adjust(hspace=1, wspace=0.5)   
+for i in range(1, 5): #只要前四个
+    ax = plt.subplot(2, 2, i)
+    ax.plot(pca_loadings.T['PC' + str(i)], 'o-')
+    ax.axhline(0, color='k', linestyle='--', linewidth=1)
+    ax.set_xticks(range(8))
+    ax.set_xticklabels(audiometric.columns, rotation=30)
+    ax.set_title('PCA Loadings for PC' + str(i))
+plt.show()
+```
+
+对样本求主成分得分
 
 ### sympy
 
@@ -9388,90 +10037,6 @@ d2l.plt.legend()
 ```python
 torch.set_printoptions(2)  # 精简输出精度
 ```
-
-
-
-### sklearn
-
-安装：
-
-```shell
-pip install scikit-learn -i https://pypi.tuna.tsinghua.edu.cn/simple/
-```
-
-#### 主成分分析
-
-[参考](https://blog.csdn.net/weixin_46277779/article/details/125533173)
-
-数据标准化：
-
-```python
-import pandas as pd
-from sklearn.preprocessing import StandardScaler
-data = pd.read_csv('audiometric.csv')
-scalar = StandardScaler()
-scalar.fit(data)
-X = scalar.transform(data) #numpy.ndarray
-```
-
-> 标准化即 $x=\dfrac{x-\mu}{s}$，其中分母是标准差即 $s=\sqrt{\dfrac{1}{n}\sum(x_i-u)^2}$。[参考](https://zhuanlan.zhihu.com/p/50751333)
-
-主成分拟合：
-
-```python
-from sklearn.decomposition import PCA
-import matplotlib.pyplot as plt
-model = PCA()
-model.fit(X)
-# 每个主成分能解释的方差
-print(model.explained_variance_)
-# 每个主成分能解释的方差的百分比
-print(model.explained_variance_ratio_)
-# 可视化
-plt.plot(model.explained_variance_ratio_, 'o-')
-plt.xlabel('Principal Component')
-plt.ylabel('Proportion of Variance Explained')
-plt.title('PVE')
-plt.show()
-# 查看出每个主成分占的贡献百分比
-```
-
-```python
-# 百分比前缀和
-plt.plot(model.explained_variance_ratio_.cumsum(), 'o-')
-plt.xlabel('Principal Component')
-plt.ylabel('Cumulative Proportion of Variance Explained')
-plt.axhline(0.9, color='k', linestyle='--', linewidth=1) # 虚线横线
-plt.title('Cumulative PVE')
-plt.show()
-```
-
-```python
-#主成分核载矩阵
-print(model.components_)
-columns = ['PC' + str(i) for i in range(1, 9)]
-pca_loadings = pd.DataFrame(model.components_, columns=data.columns, index=columns)
-print(pca_loadings) #与上面一样，只是转成了 pd
-```
-
-绘图展示主成分的成分：
-
-```python
-fig, ax = plt.subplots(2, 2)
-plt.subplots_adjust(hspace=1, wspace=0.5)   
-for i in range(1, 5): #只要前四个
-    ax = plt.subplot(2, 2, i)
-    ax.plot(pca_loadings.T['PC' + str(i)], 'o-')
-    ax.axhline(0, color='k', linestyle='--', linewidth=1)
-    ax.set_xticks(range(8))
-    ax.set_xticklabels(audiometric.columns, rotation=30)
-    ax.set_title('PCA Loadings for PC' + str(i))
-plt.show()
-```
-
-对样本求主成分得分
-
-
 
 
 

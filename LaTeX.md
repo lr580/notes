@@ -571,7 +571,7 @@ $\bigcap_1^{n}P$  $\bigcup P$
 
 $\wedge\vee\cap\cup$
 
-$\supseteq\ \supset\ \nsupseteq\ \subseteq\ \subset\ \nsubseteq$
+$\supseteq\ \supset\ \nsupseteq\ \subseteq\ \subset\ \nsubseteq\ \subsetneq$
 
 例如：
 $$

@@ -1061,6 +1061,14 @@
 - 1423\.可获得的最大点数
 
   <u>滑动窗口</u> / <u>后缀数组</u>
+  
+- 1038\.从二叉搜索树到更大和树
+
+  DFS / <u>Morris遍历</u>
+  
+- 2477\.到达首都的最少油耗
+
+  DFS / 有根树拓扑排序
 
 
 
@@ -28983,6 +28991,151 @@ class Solution:
             s += cardPoints[i] - cardPoints[i - windowSize]
             minSum = min(minSum, s)
         return sum(cardPoints) - minSum
+```
+
+##### 1038\.从二叉搜索树到更大和树
+
+[题目](https://leetcode.cn/problems/binary-search-tree-to-greater-sum-tree)
+
+个人：
+
+```python
+class Solution:
+    def bstToGst(self, root: TreeNode) -> TreeNode:
+        s = 0
+        def dfs(p):
+            if p == None:
+                return
+            dfs(p.right)
+            nonlocal s
+            s += p.val
+            p.val = s
+            dfs(p.left)
+        dfs(root)
+        return root
+```
+
+更短的写法：
+
+```python
+class Solution:
+    def bstToGst(self, root: TreeNode) -> TreeNode:
+        def dfs(root: TreeNode):
+            nonlocal total
+            if root:
+                dfs(root.right)
+                total += root.val
+                root.val = total
+                dfs(root.left)
+        total = 0
+        dfs(root)
+        return root
+```
+
+Morris 遍历：非递归 O(1) 空间中序遍历。
+
+核心思想是利用树的大量空闲指针，实现空间开销的极限缩减。其反序中序遍历规则总结如下：
+
+1. 如果当前节点的右子节点为空，处理当前节点，并遍历当前节点的左子节点；
+2. 如果当前节点的右子节点不为空，找到当前节点右子树的最左节点（该节点为当前节点中序遍历的前驱节点）；
+
+   - 如果最左节点的左指针为空，将最左节点的左指针指向当前节点，遍历当前节点的右子节点；
+   - 如果最左节点的左指针不为空，将最左节点的左指针重新置为空（恢复树的原状），处理当前节点，并将当前节点置为其左节点；
+3. 重复步骤 1 和步骤 2，直到遍历结束。
+
+```python
+class Solution:
+    def bstToGst(self, root: TreeNode) -> TreeNode:
+        def getSuccessor(node: TreeNode) -> TreeNode:
+            succ = node.right
+            while succ.left and succ.left != node:
+                succ = succ.left
+            return succ
+        
+        total = 0
+        node = root
+
+        while node:
+            if not node.right:
+                total += node.val
+                node.val = total
+                node = node.left
+            else:
+                succ = getSuccessor(node)
+                if not succ.left:
+                    succ.left = node
+                    node = node.right
+                else:
+                    succ.left = None
+                    total += node.val
+                    node.val = total
+                    node = node.left
+        return roota
+```
+
+##### 2477\.到达首都的最少油耗
+
+[题目](https://leetcode.cn/problems/minimum-fuel-cost-to-report-to-the-capital)
+
+解法一：DFS: 400ms
+
+```python
+from typing import *
+class Solution:
+    def minimumFuelCost(self, roads: List[List[int]], seats: int) -> int:
+        n,ans=len(roads),0
+        g=[[] for i in range(n+1)]
+        for u,v in roads:
+            g[u].append(v)
+            g[v].append(u)
+        def dfs(u,f):
+            s=1
+            for v in g[u]:
+                if v!=f:
+                    s+=dfs(v,u)
+            if u:
+                nonlocal ans
+                ans += (s-1)//seats+1
+            return s
+        dfs(0,0)
+        return ans
+```
+
+解法二：拓扑排序(更不优 600ms)
+
+```python
+class Solution:
+    def minimumFuelCost(self, roads: List[List[int]], seats: int) -> int:
+        n = len(roads)
+        in_degree = [0] * (n + 1)
+        graph = [[] for _ in range(n + 1)]
+        ans = 0
+
+        for u, v in roads:
+            graph[u].append(v)
+            graph[v].append(u)
+            in_degree[v] += 1
+            in_degree[u] += 1
+
+        queue = deque()
+        for i in range(1, n + 1):
+            if in_degree[i] == 1:
+                queue.append(i)
+        dp = [1 for i in range(n+1)]
+        while queue:
+            u = queue.popleft()
+            print(u, dp[u])
+            if u:
+                ans += (dp[u] - 1) // seats + 1
+            else:
+                continue
+            for v in graph[u]:
+                dp[v] += dp[u]
+                in_degree[v] -= 1
+                in_degree[u] -= 1
+                if in_degree[v] == 1:
+                    queue.append(v)
+        return ans
 ```
 
 
