@@ -5606,6 +5606,8 @@ ssh-copy-id 目标ID
 scp -r scnuoj@10.191.65.243:/var/www/scnuoj/next/judge/data/1577/ .
 ```
 
+> 对 `scp -r root@174.136.237.70:/root/ .` 会传到本地 `./root/`
+
 上传：
 
 ```bash
