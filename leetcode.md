@@ -1069,6 +1069,10 @@
 - 2477\.到达首都的最少油耗
 
   DFS / 有根树拓扑排序
+  
+- 2646\.最小化旅行的价格总和
+
+  LCA + 树上DP
 
 
 
@@ -29137,6 +29141,274 @@ class Solution:
                     queue.append(v)
         return ans
 ```
+
+##### 2646\.最小化旅行的价格总和
+
+[题目](https://leetcode.cn/problems/minimize-the-total-price-of-the-trips)
+
+朴素LCA+树上DP (可以倍增LCA+树上前缀和，点数太小了故从略)
+
+```python
+class Solution:
+    def minimumTotalPrice(self, n: int, edges: List[List[int]], price: List[int], trips: List[List[int]]) -> int:
+        e = [[] for i in range(n)]
+        for u,v in edges:
+            e[u].append(v)
+            e[v].append(u)
+        fa,d = [0 for i in range(n)],[0 for i in range(n)]
+        def findF(u, f):
+            fa[u]=f
+            d[u]=d[f]+1
+            for v in e[u]:
+                if v != f:
+                    findF(v,u)
+        findF(0,0)
+        
+        # 懒得用 LCA 优化的最近公共祖先；也懒得树上前缀和
+        cnt = [0 for i in range(n)] # 每个点被路径访问多少次
+        for u,v in trips:
+            if d[u]<d[v]:
+                u,v=v,u
+            while d[u]>d[v]:
+                cnt[u]+=1
+                u=fa[u]
+            while u!=v:
+                cnt[u]+=1
+                cnt[v]+=1
+                u=fa[u]
+                v=fa[v]
+            cnt[u]+=1
+        
+        INF = 1e9
+        dp = [[INF,INF] for i in range(n)] #dp[i,j]->当前子树i是否减半(j)的最小价格和
+        def dfs(u,f):
+            dp[u][True] = price[u] // 2 * cnt[u]
+            dp[u][False] = price[u] * cnt[u]
+            for v in e[u]:
+                if v!=f:
+                    dfs(v,u)
+                    dp[u][True] += dp[v][False]
+                    dp[u][False] += min(dp[v])
+        dfs(0,0)
+        return min(dp[0])
+```
+
+其他思路：直接从 u 点出发 DFS 到 v 点，路上全部++。如下：
+
+> ```python
+> class Solution:
+>  def minimumTotalPrice(self, n: int, edges: List[List[int]], price: List[int], trips: List[List[int]]) -> int:
+>      g = [[] for _ in range(n)]
+>      for x, y in edges:
+>          g[x].append(y)
+>          g[y].append(x)
+> 
+>      cnt = [0] * n
+>      for start, end in trips:
+>          def dfs(x: int, fa: int) -> bool:
+>              if x == end:
+>                  cnt[x] += 1
+>                  return True  # 找到 end
+>              for y in g[x]:
+>                  if y != fa and dfs(y, x):
+>                      cnt[x] += 1  # x 是 end 的祖先节点，也就在路径上
+>                      return True
+>              return False  # 未找到 end
+>          dfs(start, -1)
+> 
+>      # 类似 337. 打家劫舍 III
+>      def dfs(x: int, fa: int) -> (int, int):
+>          not_halve = price[x] * cnt[x]  # x 不变
+>          halve = not_halve // 2  # x 减半
+>          for y in g[x]:
+>              if y != fa:
+>                  nh, h = dfs(y, x)  # 计算 y 不变/减半的最小价值总和
+>                  not_halve += min(nh, h)  # x 不变，那么 y 可以不变或者减半，取这两种情况的最小值
+>                  halve += nh  # x 减半，那么 y 只能不变
+>          return not_halve, halve
+>      return min(dfs(0, -1))
+> ```
+
+
+
+Tarjan 离线求 LCA：[参考](https://oi-wiki.org/graph/lca/#tarjan-%E7%AE%97%E6%B3%95)
+
+- 原图、每个查询组成一张图，一条边转两条有向边，建两个图
+
+- 对原图建立并查集，对 $u$ 每个未访问点 $v$，先递归 tarjan，后并在一起
+
+- 遍历当前点 $u$ 的询问邻接矩阵，如果 $v$ 访问了，该询问的 LCA 为 $v$ 并查集的根
+
+  参考：
+
+  ```c++
+  void tarjan(int u) {
+      parent[u] = u;
+      visited[u] = 1;
+  
+      for (int i = head[u]; i != -1; i = edge[i].next) {
+          Edge& e = edge[i];
+          if (!visited[e.toVertex]) {
+              tarjan(e.toVertex);
+              parent[e.toVertex] = u;
+          }
+      }
+  
+      for (int i = queryHead[u]; i != -1; i = queryEdge[i].next) {
+          Edge& e = queryEdge[i];
+          if (visited[e.toVertex]) {
+              queryEdge[i ^ 1].LCA = e.LCA = find(e.toVertex);
+          }
+      }
+  }
+  ```
+
+```python
+class Solution:
+    def minimumTotalPrice(self, n: int, edges: List[List[int]], price: List[int], trips: List[List[int]]) -> int:
+        g = [[] for _ in range(n)]
+        for x, y in edges:
+            g[x].append(y)
+            g[y].append(x)
+
+        qs = [[] for _ in range(n)]
+        for s, e in trips:
+            qs[s].append(e)  # 路径端点分组
+            if s != e:
+                qs[e].append(s)
+
+        # 并查集模板
+        root = list(range(n))
+        def find(x: int) -> int:
+            if x != root[x]:
+                root[x] = find(root[x])
+            return root[x]
+
+        diff = [0] * n
+        father = [0] * n
+        color = [0] * n
+        def tarjan(x: int, fa: int) -> None:
+            father[x] = fa
+            color[x] = 1  # 递归中
+            for y in g[x]:
+                if color[y] == 0:  # 未递归
+                    tarjan(y, x)
+                    root[y] = x  # 相当于把 y 的子树节点全部 merge 到 x
+            for y in qs[x]:
+                # color[y] == 2 意味着 y 所在子树已经遍历完
+                # 也就意味着 y 已经 merge 到它和 x 的 lca 上了
+                # 此时 find(y) 就是 x 和 y 的 lca
+                if y == x or color[y] == 2:
+                    diff[x] += 1
+                    diff[y] += 1
+                    lca = find(y)
+                    diff[lca] -= 1
+                    if father[lca] >= 0:
+                        diff[father[lca]] -= 1
+            color[x] = 2  # 递归结束
+        tarjan(0, -1)
+
+        def dfs(x: int, fa: int) -> (int, int, int):
+            not_halve, halve, cnt = 0, 0, diff[x]
+            for y in g[x]:
+                if y != fa:
+                    nh, h, c = dfs(y, x)  # 计算 y 不变/减半的最小价值总和
+                    not_halve += min(nh, h)  # x 不变，那么 y 可以不变，可以减半，取这两种情况的最小值
+                    halve += nh  # x 减半，那么 y 只能不变
+                    cnt += c  # 自底向上累加差分值
+            not_halve += price[x] * cnt  # x 不变
+            halve += price[x] * cnt // 2  # x 减半
+            return not_halve, halve, cnt
+        return min(dfs(0, -1)[:2])
+```
+
+```c++
+class Solution {
+public:
+    int find(vector<int> &uf, int i) {
+        if (uf[i] == i) {
+            return i;
+        }
+        uf[i] = find(uf, uf[i]);
+        return uf[i];
+    }
+
+    int minimumTotalPrice(int n, vector<vector<int>> &edges, vector<int> &price, vector<vector<int>> &trips) {
+        vector<vector<int>> next(n);
+        for (auto &edge : edges) {
+            next[edge[0]].push_back(edge[1]);
+            next[edge[1]].push_back(edge[0]);
+        }
+
+        vector<vector<int>> query(n);
+        for (auto &trip : trips) {
+            query[trip[0]].push_back(trip[1]);
+            if (trip[0] != trip[1]) {
+                query[trip[1]].push_back(trip[0]);
+            }
+        }
+
+        vector<int> uf(n), visited(n), diff(n), parent(n);
+        function<void(int, int)> tarjan = [&](int node, int p) {
+            parent[node] = p;
+            uf[node] = node;
+            for (int child : next[node]) {
+                if (child == p) {
+                    continue;
+                }
+                tarjan(child, node);
+                uf[child] = node;
+            }
+            for (int node1 : query[node]) {
+                if (node != node1 && !visited[node1]) {
+                    continue;
+                }
+                int lca = find(uf, node1);
+                diff[node]++;
+                diff[node1]++;
+                diff[lca]--;
+                if (parent[lca] >= 0) {
+                    diff[parent[lca]]--;
+                }
+            }
+            visited[node] = 1;
+        };
+        tarjan(0, -1);
+
+        vector<int> count(n);
+        function<int(int, int)> dfs = [&](int node, int p) -> int {
+            count[node] = diff[node];
+            for (int child : next[node]) {
+                if (child == p) {
+                    continue;
+                }
+                count[node] += dfs(child, node);
+            }
+            return count[node];
+        };
+        dfs(0, -1);
+
+        function<pair<int, int>(int, int)> dp = [&](int node, int p) -> pair<int, int> {
+            pair<int, int> res = {
+                price[node] * count[node], price[node] * count[node] / 2
+            };
+            for (int child : next[node]) {
+                if (child == p) {
+                    continue;
+                }
+                auto [x, y] = dp(child, node);
+                res.first += min(x, y); // node 没有减半，因此可以取子树的两种情况的最小值
+                res.second += x; // node 减半，只能取子树没有减半的情况
+            }
+            return res;
+        };
+        auto [x, y] = dp(0, -1);
+        return min(x, y);
+    }
+};
+```
+
+
 
 
 

@@ -1808,6 +1808,20 @@ for i in ((1,2),(3,4)):#此时i是tuple
 
 range 传非正整数返回空的。
 
+可以 for-else，触发条件是 for 里没执行过 break：(continue 不管)
+
+```python
+for x in range(n + 1):
+    y = m - x
+    if 2 * x + 4 * y == n and x >= 0 and y >= 0:
+        print(f'Chicken={x} Rabbit={y}')
+        break
+else:
+    print("No solution!")
+```
+
+
+
 ##### 列表生成表达式
 
 外括号决定生成的是列表、元组还是集合。以列表为例：
@@ -9493,6 +9507,26 @@ x = symbols('x')
 integral = integrate(sin(x)**3, x)
 print(integral)
 ```
+
+##### 求和
+
+```python
+from sympy import symbols, summation
+n, i, j = symbols('n i j')
+print(summation(i,1,n))
+print(summation(summation(j,(j,1,i)),(i,1,n))) #n**3/6 + n**2/2 + n/3
+print(summation(summation(j,(j,1,i)),(i,1,n)).simplify()) # n*(n**2 + 3*n + 2)/6
+```
+
+##### 化简
+
+提取公因式等。
+
+```python
+(i**2*j-i*j*j).simplify() # i*j*(i - j)
+```
+
+
 
 
 
