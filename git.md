@@ -701,6 +701,12 @@ git switch main
 >
 > 
 
+#### 修改
+
+```sh
+git remote set-url 远程仓库名 新URL(https或ssh)
+```
+
 
 
 #### 删除

@@ -1186,7 +1186,7 @@ print(-float('-inf')/9-9) #是inf
 
 `r''` 代表里面的转义符一律当普通字符。
 
-`b''` 二进制字符串(只能有ASACII)，type 为 bytes
+`b''` 二进制字符串(只能有ASACII)，type 为 bytes 
 
 `f''` 格式化(占位符用, 3.6+)
 
@@ -1507,7 +1507,28 @@ a[:21:5] #[0,5,10,15,20]
 "abcde"[slice(2)] #'ab'
 ```
 
-可以随便越界，如：`"123"[-12321312321:155555]=="123"`
+可以随便越界，如：`"123"[-12:15]=="123"`
+
+#### bytes
+
+##### 基本
+
+`b'字符串'` 创建如 `b'abc'`。只能包含 ASCII 码(取值 0-255)，如 `b'你好'` 报错。
+
+字符串的 `.encode()` 获得 bytes；其 `.decode()` 获得 str。默认参数是 `'utf8'`。
+
+>  如可以 `'你好'.encode()` 和 `b'\xe4\xbd\xa0\xe5\xa5\xbd'.decode()` 和 `'你好'.encode('gbk').decode('gbk')` 编码解码不一致格式可能会报错。
+
+支持取下标，输出每个的 ASCII 码；支持 len，切片
+
+##### bytearray
+
+```python
+bytearray([65,66]) # 也可以 bytearray(b'AB')
+bytearray("你好", "utf-8") #第二个参数必填
+```
+
+可以 append, pop 等常用 list 的操作。通过 `bytes` 函数转 bytes。
 
 ### 对象
 
@@ -1671,7 +1692,8 @@ print(p1 < p3)   # False
 
 ```python
 27//7
-5.9//1.2
+5.9//1.2 #4.0
+2.1//2 #1.0
 ```
 
 赋值语句可以连等号，也可以分步连等：
@@ -7111,9 +7133,11 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 
 取一列：`[列名str]`。取行区间`[起:止]` (切片语法同 python)。用下标取就 `iloc[]`
 
-> 如，取前两列外的每一列：`df.iloc[:, 2:]`
+> 如，取前两列外的每一列：`df.iloc[:, 2:]`；取定值 `.iloc[0]['A']`
 >
-> 取特定若干列：`df[['text', 'num_hashtags']]`
+> 取特定若干列：`df[['text', 'num_hashtags']]`；取一列是 series，这样取多列还是 df 类型。
+>
+> 若干行+若干列举例：`print(df.iloc[:5][['DURATION', 'AFFECTED']])`
 >
 > 取特定类型的类：
 >
@@ -7122,7 +7146,9 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 > df.select_dtypes(include=[np.number]).columns.tolist()
 > ```
 
-取单独元素 `.at[行号, 列str]` 或 `.loc`
+取单独元素 `.at[行号, 列str]` 或 `.loc[]`，可以取和赋值
+
+> loc 和 iloc 的区别在于，对行 loc 是下标值作索引，iloc 是第几个下标
 
 转 numpy(丢失表头)：`.to_numpy()`，转列表 `.tolist()`，转 set 直接 `set(df[])`，
 
@@ -7154,7 +7180,7 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 
 或对立含义 `isnull`。
 
-去掉 nan 行：`dropna()`。
+去掉 nan 行：`dropna()`。(返回去掉的 df，不修改原有的)
 
 ```python
 df.dropna(subset=['Column1']) # 不加就任意一行 NA 就删
@@ -7469,6 +7495,42 @@ df.groupby('City').agg(
 )
 ```
 
+##### filter
+
+对 df 使用，如取特定几列：
+
+```python
+data = {
+    'A': [1, 2, 3],
+    'B': [4, 5, 6],
+    'C': [7, 8, 9],
+    'D': [10, 11, 12]
+}
+df = pd.DataFrame(data)
+df.filter(items=['B', 'C'])
+```
+
+对 groupby 后的 `DataFrameGroupBy` 使用，返回原 df 格式(不分组)：传入一个函数，对每个 group 的子 dataframe 返回一个布尔值代表保留不保留该组
+
+- 如果确定每个 group 只有一个元素：
+
+```python
+df.groupby('A').filter(lambda df:df['B']>4) # 删一列
+```
+
+- 否则，必须再将多个元素转化为标量：
+
+```python
+df.loc[2,'A']=2
+df.groupby('A').filter(lambda df:df['B'].min()>=5) #如果>5则返回空
+```
+
+- 联合条件记得两边都加括号，不然会寄：
+
+```python
+df.groupby('A').filter(lambda df:(df['B'].min()>=5) & (df.shape[0] > 1))
+```
+
 
 
 ##### 聚合索引
@@ -7705,11 +7767,11 @@ pivot_table = df.pivot_table(index='Gender', columns='Study_Group', values='Test
 
 ##### 查询
 
-满足某个字符串 eval 表达式的所有行：
+满足某个字符串 eval 表达式的所有行：(返回 DataFrame)
 
 ```python
 w=pd.DataFrame([{'name':'lr580','value':580},{'name':'lr581','value':581}])
-w.query('value >= 581')
+w.query('value >= 581') #相等就 ==
 ```
 
 
@@ -7819,7 +7881,35 @@ result_df = pd.concat([df, encoded_df], axis=1)
 result_df.head()  # 展示前几行以检查结果
 ```
 
-
+> 如果要获得 pipeline 里的列名：
+>
+> ```python
+> column_transformer = ColumnTransformer(
+>     transformers=[
+>         ('climate_category', ClimateCategoryTransformer(), ['CLIMATE.CATEGORY']),
+>         ('state_one_hot', OneHotEncoder(), ['U.S._STATE']),
+>     ],
+>     remainder='passthrough'  # 保留 OUTAGE.START.DATE 和 OUTAGE.START.TIME
+> )
+> pipeline = Pipeline(steps=[('transform', column_transformer)])
+> 
+> transformed_data = pipeline.fit_transform(df)
+> 
+> # 获取 ColumnTransformer 中的 transformers
+> column_transformers = pipeline.named_steps['transform'].named_transformers_
+> 
+> # 获取 OneHotEncoder 生成的列名
+> one_hot_column_names = column_transformers['state_one_hot'].get_feature_names_out()
+> 
+> # 将 OneHotEncoder 的列名与 ClimateCategoryTransformer 和其他保留列的列名结合
+> dynamic_column_names = ['Climate_Category'] + list(one_hot_column_names) + ['Outage_Start_Date', 'Outage_Start_Time', 'Other_Column']
+> 
+> # 创建带有动态列名的 DataFrame
+> dynamic_transformed_df = pd.DataFrame(transformed_data, columns=dynamic_column_names)
+> print(dynamic_transformed_df)
+> ```
+>
+> 
 
 ##### value_counts
 
@@ -8909,7 +8999,7 @@ def get_R2_and_RMSE(df1, col1, df2, col2):
     lr = LinearRegression()
     lr.fit(X, y)  # X is a DataFrame of training data; y is a Series of prices
     r2 = lr.score(X, y)  # R-squared
-    yh = lr.predict(X) # predicted prices
+    yh = lr.predict(X) # predicted prices, yh is numpyarray
     '''rmse = 0 # check by hand writing
     n = y.shape[0]
     for i in range(n):
@@ -9097,6 +9187,34 @@ def extract_title(df):
     return pd.DataFrame(titles)
 ```
 
+如果要用管道，自定义一个类：如三个字符串常量分别转数值
+
+```python
+from sklearn.base import BaseEstimator, TransformerMixin
+class ClimateCategoryTransformer(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        return self
+
+    '''def transform(self, X):
+        mapping = {'cold': 0, 'normal': 1, 'warm': 2}
+        return np.array([mapping[item] for item in X]).reshape(-1, 1)'''
+
+    def transform(self, X): 
+        mapping = {'cold': 0, 'normal': 1, 'warm': 2}
+        # 由于 X 是 DataFrame 列，我们需要用 .iloc[:, 0] 获取实际的 Series 数据
+        return np.array([mapping[item] for item in X.iloc[:, 0]]).reshape(-1, 1)
+
+
+# 列转换
+column_transformer = ColumnTransformer(
+    transformers=[
+        ('climate_category', ClimateCategoryTransformer(), ['CLIMATE.CATEGORY']),
+        ('state_one_hot', OneHotEncoder(), ['U.S._STATE']),
+    ],
+    remainder='passthrough'
+)
+```
+
 
 
 ##### 管道
@@ -9125,6 +9243,15 @@ y_pred = pipe.predict(X_test)
 ```
 
 取管道步骤：`pipe.steps[-1][1]` (取最后一步)；取步骤名 `[-1][0]`。(steps 本身是 list-二元tuple)
+
+对管道 fit 会修改，如果不想污染，可以管道拷贝：
+
+```python
+from sklearn.base import clone
+copied_pipeline = clone(original_pipeline)
+```
+
+
 
 ##### 独热
 
@@ -9164,6 +9291,8 @@ print(transformed_df)
 
 ##### 多列变换
 
+按照参数顺序生成结果列的顺序。
+
 ```python
 import pandas as pd
 from sklearn.compose import ColumnTransformer
@@ -9185,6 +9314,9 @@ column_transformer = ColumnTransformer(
         ('num', StandardScaler(), ['age', 'income']),  # 对数值列进行标准化
         ('cat', OneHotEncoder(), ['gender'])           # 对分类列进行独热编码
     ]
+    #如果有别的列，相对顺序保留：
+    #,remainder='passthrough'
+    #否则，不填，默认remainder='drop'
 )
 
 # 创建一个 Pipeline
@@ -9203,6 +9335,22 @@ pipeline.fit(X, y)
 '''cat__gender_female  cat__gender_male  num__age  num__income
 0                 0.0               1.0 -1.292419    -0.169031'''
 ```
+
+对 dataframe，取某一步的列名，参见 `pandas-其他运算-ont hot`。
+
+转换部分，保留部分，其他丢弃，使用 passthrough 转换器。
+
+```python
+column_transformer = ColumnTransformer(
+    transformers=[
+        ('scale', StandardScaler(), ['A', 'B']),  # 应用 StandardScaler 到列 A 和 B
+        ('passthrough', 'passthrough', ['C'])     # 保留列 C
+    ],
+    remainder='drop'  # 抛弃所有未被明确指定的列，即列 D
+)
+```
+
+
 
 ##### 标准缩放
 
@@ -9262,6 +9410,30 @@ pipeline:
 ('impute', SimpleImputer(strategy='most_frequent')),
 ```
 
+##### 非线性变换
+
+工作原理是将每个特征的分布映射到均匀分布或正态分布，这是通过排序和赋予相应的分位数值来实现的。
+
+```python
+from sklearn.preprocessing import QuantileTransformer
+import numpy as np
+data = np.array([[1], [2], [3], [4], [1000]])  # 极端的偏斜数据
+scaler = QuantileTransformer(output_distribution='normal')#设为正态分布
+transformed_data = scaler.fit_transform(data)
+print(transformed_data)
+'''[[-5.19933758]
+ [-0.67448975]
+ [ 0.        ]
+ [ 0.67448975]
+ [ 5.19933758]]'''
+#如果第四行不设参数：均匀分布
+'''[[0.  ]
+ [0.25]
+ [0.5 ]
+ [0.75]
+ [1.  ]]'''
+```
+
 
 
 #### 数据处理
@@ -9286,6 +9458,33 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
 也可以传 data frame
 
 随机数生成器的种子，默认参数 `random_state`，如设置为某个整数
+
+##### 时间
+
+pandas 的 datetime 和 timedelta 分别转实数：
+
+```python
+class DateToOrdinalTransformer(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        self.base_date = pd.to_datetime('1900-01-01')
+        return self
+
+    def transform(self, X):
+        return ((pd.to_datetime(X.iloc[:, 0]) - self.base_date).dt.days).values.reshape(-1, 1)
+
+class TimeToMinutesTransformer(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return (X.iloc[:, 0].dt.total_seconds() / 60).values.reshape(-1, 1)
+```
+
+
+
+##### 数据类型
+
+pipeline 处理结果如果 0 多，可能会转换为 `<class 'scipy.sparse._csr.csr_matrix'>`，需要转化为 numpy 数组才能传 pandas。可以使用 `.toarray()` 方法传。
 
 #### 机器学习
 
@@ -9323,6 +9522,8 @@ print(y_train, y_pred)
 
 可以设置决策树模型的最大树高：`DecisionTreeRegressor(max_depth=20)`
 
+随机数种子：`random_state=580`
+
 误差衡量：
 
 ```python
@@ -9348,6 +9549,10 @@ def tree_reg_perf(galton):
 
 k-nearest neighbors regressor。基于最近 k 个观测点的最公共欧氏距离
 
+```python
+from sklearn.neighbors import KNeighborsRegressor
+```
+
 对决策树回归的误差衡量例子，把 `tree=` 行换成：`knn = KNeighborsRegressor(n_neighbors=k)`。
 
 ##### 随机森林
@@ -9355,6 +9560,14 @@ k-nearest neighbors regressor。基于最近 k 个观测点的最公共欧氏距
 以经典泰坦尼克号存活预测数据为例 [kaggle](https://www.kaggle.com/c/titanic)
 
 参数代表树的数量，这里是 100。
+
+回归器：
+
+```python
+from sklearn.ensemble import RandomForestRegressor
+```
+
+分类器：
 
 ```python
 import pandas as pd
@@ -9414,6 +9627,68 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.35)
 pre = titanic_model(titanic)
 (pre.predict(X_test)==y_test).mean()
 ```
+
+##### SVM
+
+支持向量机 Support Vector Machine 监督学习进行二元分类。一个例子参见 `辅助功能-超参选择`。
+
+参数：
+
+- `C` 是一个正则化参数，用于控制误差和模型复杂度之间的权衡。它决定了模型对于分类错误的容忍度。
+
+  - 高值：赋予高值意味着模型将尝试最大限度地减少训练误差，这可能导致模型过拟合，即在训练数据上表现良好，但在未见数据上表现不佳。
+  - 低值：较低的 `C` 值会增加对误分类的容忍度，可能导致欠拟合，即模型在训练数据和未见数据上都表现不佳。
+
+- `gamma` 参数仅适用于 'rbf'（径向基函数）、'poly'（多项式）和 'sigmoid' 核。
+
+  作用：`gamma` 定义了单个训练样本的影响力，即影响范围。它与决策边界的平滑程度密切相关。
+
+  高值与低值
+
+  - 高值：较高的 `gamma` 值会导致更紧密的决策边界，可能导致过拟合。
+  - 低值：较低的 `gamma` 值会导致更宽松的决策边界，可能导致欠拟合。
+
+- kernel 核函数。作用：核函数用于在高维空间中寻找最优分隔平面。基本思想是将原始数据映射到一个高维空间，在这个空间中数据可能更容易被线性分割。
+
+  - `linear`：线性核函数，适用于线性可分数据。
+  - `rbf`：径向基函数（高斯核），适用于非线性数据，是SVM中最常用的核。
+  - `poly`：多项式核函数，可以表示数据之间的更复杂的关系。
+  - `sigmoid`：Sigmoid核，类似于神经网络。
+
+二元回归使用 SVR：
+
+```python
+from sklearn.svm import SVR
+```
+
+
+
+#### 辅助功能
+
+##### 超参选择
+
+`GridSearchCV` 用于执行超参数的穷举搜索。它的目的是通过自动化的方式找到最优的参数组合，从而改进机器学习模型的性能。
+
+```python
+from sklearn import datasets
+from sklearn.model_selection import GridSearchCV
+from sklearn.svm import SVC
+iris = datasets.load_iris() # 经典数据集
+X = iris.data
+y = iris.target
+param_grid = {
+    'C': [0.1, 1, 10, 100],  # SVM正则化参数的候选值
+    'gamma': [1, 0.1, 0.01, 0.001],  # 核函数的参数
+    'kernel': ['rbf', 'linear']  # 核函数的类型
+}
+svc = SVC()
+grid_search = GridSearchCV(svc, param_grid, refit=True, verbose=2, cv=5)
+grid_search.fit(X, y)
+print("最佳参数组合: ", grid_search.best_params_)
+print("最佳模型得分: ", grid_search.best_score_)
+```
+
+
 
 #### 主成分分析
 
