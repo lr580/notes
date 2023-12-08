@@ -7210,6 +7210,9 @@ B[A[A.isna()].index]
 
 将 nan 用一个值/一些值替换，如：`x.fillna(x.mean())`，如：
 
+- fill 了会把 object 转成 fill 的数据类型
+- 可对一个列使用如 `df['MW'] = df['MW'].fillna(0)`
+
 > ```python
 > heights_mcar.fillna(heights_mcar['child'].mean())
 > child_imputed.loc[child.isnull()] = imputed_values # 等长度的 serial / numpy 数组
@@ -7314,6 +7317,10 @@ def stratified_effectiveness(df):
 ##### 数据处理
 
 可以直接两列运算：`df[new_col_name] = df[col1] * df[col2]`
+
+```python
+df['COLUMN'] = df['DURATION'] * np.log(df['AFFECTED'] + 1)
+```
 
 取某列等于特定值的数据：
 
@@ -7952,6 +7959,8 @@ print(max_index_row)
 ##### 去重
 
 `.nunique()` 返回每列有几个不同的值的数目
+
+`.unique()` 返回 `numpy.ndarray` 代表不同取值
 
 ##### 方差
 
@@ -9289,6 +9298,42 @@ print(transformed_df)
 0                 0.0               1.0            25.0            40000.0'''
 ```
 
+可以设置 categories 如 `[['1', '2', '3']]`，避免训练集测试集维度不一样。
+
+```python
+from sklearn.preprocessing import OneHotEncoder
+categories = [['类别1', '类别2', '类别3']]
+encoder = OneHotEncoder(categories=categories)
+
+train_data = [['类别1'], ['类别2']]
+encoder.fit(train_data)
+train_encoded = encoder.transform(train_data).toarray()
+
+test_data = [['类别3']]
+test_encoded = encoder.transform(test_data).toarray()
+print("训练数据编码:", train_encoded)
+print("测试数据编码:", test_encoded)
+```
+
+pandas 多列：categories 传二维数组
+
+```python
+import pandas as pd
+from sklearn.preprocessing import OneHotEncoder
+data = {
+    'Feature1': ['A', 'B', 'C', 'A'],
+    'Feature2': ['X', 'Y', 'X', 'Z']
+}
+df = pd.DataFrame(data)
+encoder = OneHotEncoder(categories=[['A', 'B', 'C'], ['X', 'Y', 'Z']])
+encoded_data = encoder.fit_transform(df[['Feature1', 'Feature2']]).toarray()
+encoded_df = pd.DataFrame(encoded_data, columns=encoder.get_feature_names(['Feature1', 'Feature2']))
+final_df = df.join(encoded_df)
+print(final_df)
+```
+
+
+
 ##### 多列变换
 
 按照参数顺序生成结果列的顺序。
@@ -9335,6 +9380,8 @@ pipeline.fit(X, y)
 '''cat__gender_female  cat__gender_male  num__age  num__income
 0                 0.0               1.0 -1.292419    -0.169031'''
 ```
+
+
 
 对 dataframe，取某一步的列名，参见 `pandas-其他运算-ont hot`。
 
@@ -9545,6 +9592,18 @@ def tree_reg_perf(galton):
     return results
 ```
 
+1. **`criterion`**：用于测量分割质量的函数。对于分类树（`DecisionTreeClassifier`），常见的选择有 `"gini"`（基尼不纯度）和 `"entropy"`（信息增益）。对于回归树（`DecisionTreeRegressor`），常用的是 `"mse"`（均方误差）和 `"friedman_mse"`。
+2. **`splitter`**：选择分割节点的策略。可以是 `"best"`（选择最佳分割）或 `"random"`（随机分割）。
+3. **`max_depth`**：树的最大深度。这个参数可以用来控制过拟合，因为更深的树会学习到数据中的细节和噪声。
+4. **`min_samples_split`**：分割内部节点所需的最小样本数。这可以是整数（最小样本量）或浮点数（代表百分比）。
+5. **`min_samples_leaf`**：在叶节点上所需的最小样本数。这同样可以是整数或浮点数。
+6. **`min_weight_fraction_leaf`**：叶节点所需的样本权重总和的最小加权分数。
+7. **`max_features`**：寻找最佳分割时要考虑的特征数量。可以是整数、浮点数、字符串（如 `"auto"`、`"sqrt"` 或 `"log2"`）或 `None`。
+8. **`random_state`**：控制随机性的种子。它在参数为 `"random"` 时选择分割器，或者在选择特征进行分割时。
+9. **`max_leaf_nodes`**：最大叶节点数。
+10. **`min_impurity_decrease`**：如果分割导致不纯度的减少大于或等于这个值，则该分割将会发生。
+11. **`class_weight`**：类别权重，用于处理不平衡的分类问题。
+
 ##### K近邻回归
 
 k-nearest neighbors regressor。基于最近 k 个观测点的最公共欧氏距离
@@ -9628,6 +9687,23 @@ pre = titanic_model(titanic)
 (pre.predict(X_test)==y_test).mean()
 ```
 
+1. **`n_estimators`**：森林中树的数量。更多的树可以增加模型的稳定性和性能，但同时也会增加计算成本。
+2. **`criterion`**：衡量分割质量的函数。对于分类问题，常见的选择包括 `"gini"` 和 `"entropy"`；对于回归问题，通常使用 `"mse"`（均方误差）或 `"mae"`（平均绝对误差）。
+3. **`max_depth`**：树的最大深度。深度较大的树可以捕获更复杂的模式，但可能会导致过拟合。
+4. **`min_samples_split`**：分割内部节点所需的最小样本数。
+5. **`min_samples_leaf`**：叶节点上所需的最小样本数。
+6. **`min_weight_fraction_leaf`**：叶节点所需的样本权重总和的最小加权分数。
+7. **`max_features`**：寻找最佳分割时要考虑的特征数量。这个参数控制在每个分割点时要随机选择多少特征进行考虑。常见选项包括 `"auto"`、`"sqrt"`、`"log2"` 或自定义数值。
+8. **`max_leaf_nodes`**：最大叶节点数。
+9. **`min_impurity_decrease`**：如果分割导致不纯度的减少大于或等于这个值，则该分割将会发生。
+10. **`bootstrap`**：是否在构建树时使用引导样本（即抽样替换）。默认是 `True`。
+11. **`oob_score`**：是否使用袋外样本来估计泛化精度。
+12. **`n_jobs`**：拟合和预测时并行运行的作业数。例如，`-1` 表示使用所有处理器。
+13. **`random_state`**：控制随机性的种子。
+14. **`verbose`**：在拟合和预测时控制详细程度。
+15. **`warm_start`**：设置为 `True` 时，将在现有模型上添加更多的树，而不是从头开始建立一个新模型。
+16. **`class_weight`**：用于分类的类别权重。
+
 ##### SVM
 
 支持向量机 Support Vector Machine 监督学习进行二元分类。一个例子参见 `辅助功能-超参选择`。
@@ -9686,6 +9762,74 @@ grid_search = GridSearchCV(svc, param_grid, refit=True, verbose=2, cv=5)
 grid_search.fit(X, y)
 print("最佳参数组合: ", grid_search.best_params_)
 print("最佳模型得分: ", grid_search.best_score_)
+```
+
+`refit`: 当设置为 `True` 时，一旦找到最佳参数组合，它会用这些参数重新拟合整个数据集。
+
+`verbose`: 这个参数控制函数运行时的详细程度。而 `0` 会使得模型在静默模式下运行，不打印任何信息。
+
+`cv`: 这代表交叉验证（Cross-Validation）的折数。在这个例子中，它被设置为 `5`，意味着用于评估不同参数组合性能的数据将被分成 5 份。在每一轮网格搜索中，其中的 4 份用于训练模型，剩下的 1 份用于测试模型。
+
+使用训练集、测试集代替交叉验证：
+
+```python
+from sklearn.model_selection import train_test_split, GridSearchCV, PredefinedSplit
+from sklearn.svm import SVC
+from sklearn.datasets import load_iris
+import numpy as np
+
+# 加载数据并分割成训练集和测试集
+iris = load_iris()
+X_train, X_test, y_train, y_test = train_test_split(iris.data, iris.target, test_size=0.3, random_state=42)
+
+# 合并训练集和测试集，以便于在 GridSearchCV 中使用
+X = np.concatenate((X_train, X_test))
+y = np.concatenate((y_train, y_test))
+
+# 创建一个指示数据是属于训练集还是测试集的数组
+# 训练集标记为 -1，测试集标记为 0
+test_fold = np.concatenate((
+    -np.ones(X_train.shape[0]), # 训练集
+    np.zeros(X_test.shape[0])   # 测试集
+))
+
+# 使用 PredefinedSplit 来使用训练集进行交叉验证
+ps = PredefinedSplit(test_fold)
+
+# 设置参数网格
+param_grid = {
+    'C': [0.1, 1, 10, 100],
+    'gamma': [1, 0.1, 0.01, 0.001],
+    'kernel': ['rbf', 'linear']
+}
+
+# 创建SVC模型并进行网格搜索
+svc = SVC()
+grid_search = GridSearchCV(svc, param_grid, cv=ps, refit=True, verbose=2)
+grid_search.fit(X, y)
+
+# 输出最佳参数和在训练集上的得分
+print("最佳参数组合: ", grid_search.best_params_)
+print("最佳模型在训练集的得分: ", grid_search.best_score_)
+
+# 使用最佳参数在测试集上评估模型
+best_model = grid_search.best_estimator_
+test_score = best_model.score(X_test, y_test)
+print("模型在测试集的得分: ", test_score)
+```
+
+对管道：
+
+```python
+test_pipeline = Pipeline(steps=[
+    # 其他步骤...
+    ('a', DecisionTreeRegressor(random_state=SEED)) 
+])
+
+# 定义要测试的 max_depth 值
+param_grid = {
+    'a__max_depth': [5, 10, 15, 20, 25, 30]
+}
 ```
 
 

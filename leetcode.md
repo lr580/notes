@@ -1073,6 +1073,14 @@
 - 2646\.最小化旅行的价格总和
 
   LCA + 树上DP
+  
+- 2008\.出租车的最大盈利
+
+  DP
+  
+- 2048\.下一个更大的数值平衡数
+
+  爆搜  / <u>枚举</u> / 打表+二分
 
 
 
@@ -29409,6 +29417,93 @@ public:
 ```
 
 
+
+##### 2008\.出租车的最大盈利
+
+[题目](https://leetcode.cn/problems/maximum-earnings-from-taxi)
+
+```python
+class Solution:
+    def maxTaxiEarnings(self, n: int, rides: List[List[int]]) -> int:
+        dp = [0] * (n+1)
+        prv = [[] for i in range(n+1)]
+        for u,v,w in rides:
+            prv[v].append((u,w))
+        for u in range(1,n+1):
+            dp[u]=dp[u-1]
+            for v,w in prv[u]:
+                dp[u] = max(dp[u], dp[v]+u-v+w)
+        return dp[n]
+```
+
+##### 2048\.下一个更大的数值平衡数
+
+[题目](https://leetcode.cn/problems/next-greater-numerically-balanced-number)
+
+二进制枚举套 DFS 爆搜打表并对表二分，击败 100%(Python 32ms)
+
+预处理算出所有可能的 $10^6$ 内(和第一个超过 $10^6$) 的数值平衡数。
+
+一个暴力枚举的思路为：
+
+- 只枚举数位 $1,2,3,4,5$，二进制枚举全体数位的组合，共 $2^5-1$ 种组合情况
+- 对每个组合，设计数数组 $cnt$ 表示每位还剩几个没使用，暴力 DFS 枚举所有 $6$ 位数以内的计数组合情况，因为最多 $5$ 种数位，共 $6$ 位，故复杂度为 $O(5^6)$
+- 特判 $666666$ 这个数值平衡数
+- 枚举的所有答案去重并排序，在答案里二分即可找到所求值
+
+总复杂度：$O(2^5 5^6)=5\times 10^5$，可以暴力打出。将答案存储为常量数组。
+
+打表程序：
+
+```python
+from bisect import *
+class Solution:
+    def nextBeautifulNumber(self, n: int) -> int:
+        m = {666666}
+        N = 5
+        for i in range(1,2**N):
+            cnt = [0 for i in range(N+1)]
+            for j in range(N):
+                if (i>>j)&1:
+                    cnt[j+1] = j+1
+            def dfs(a, v):
+                if sum(a) == 0:
+                    m.add(v)
+                if v >= 999999:
+                    return
+                for i in range(1,N+1):
+                    if a[i]:
+                        b = a[:]
+                        b[i] -= 1
+                        dfs(b, v * 10 + i)
+            dfs(cnt,0)
+        m = sorted(list(m))
+        return m[bisect_right(m,n)]
+```
+
+结论：(100% 击败)
+
+```python
+from bisect import *
+class Solution:
+    def nextBeautifulNumber(self, n: int) -> int:
+        m = [1, 22, 122, 212, 221, 333, 1333, 3133, 3313, 3331, 4444, 14444, 22333, 23233, 23323, 23332, 32233, 32323, 32332, 33223, 33232, 33322, 41444, 44144, 44414, 
+44441, 55555, 122333, 123233, 123323, 123332, 132233, 132323, 132332, 133223, 
+133232, 133322, 155555, 212333, 213233, 213323, 213332, 221333, 223133, 223313, 223331, 224444, 231233, 231323, 231332, 232133, 232313, 232331, 233123, 233132, 233213, 233231, 233312, 233321, 242444, 244244, 244424, 244442, 312233, 312323, 312332, 313223, 313232, 313322, 321233, 321323, 321332, 322133, 322313, 
+322331, 323123, 323132, 323213, 323231, 323312, 323321, 331223, 331232, 331322, 332123, 332132, 332213, 332231, 332312, 332321, 333122, 333212, 333221, 422444, 424244, 424424, 424442, 442244, 442424, 442442, 444224, 444242, 444422, 515555, 551555, 555155, 555515, 555551, 666666, 1224444]
+        return m[bisect_right(m,n)]
+```
+
+更优的枚举思路：直接枚举 $10^6$ 内的每一个数(可以 while 出第一个超的或手算)，判断每个数的数位是不是满足数值平衡数。
+
+```python
+class Solution:
+    def nextBeautifulNumber(self, n: int) -> int:
+        for i in range(n + 1, 1224445):
+            count = Counter(str(i))
+            if all(count[d] == int(d) for d in count):
+                return i
+```
 
 
 
