@@ -1081,6 +1081,10 @@
 - 2048\.下一个更大的数值平衡数
 
   爆搜  / <u>枚举</u> / 打表+二分
+  
+- 1631\.最小体力消耗路径
+
+  最小生成树+DFS / 二分+BFS / <u>并查集</u> / <u>最短路</u>
 
 
 
@@ -29503,6 +29507,176 @@ class Solution:
             count = Counter(str(i))
             if all(count[d] == int(d) for d in count):
                 return i
+```
+
+##### 1631\.最小体力消耗路径
+
+[题目](https://leetcode.cn/problems/path-with-minimum-effort)
+
+对二维地图建图(四方向连边，边权为高度差)，跑任意最小生成树算法构建树，然后在树上从左上角点 DFS 到右下角点，并维护最大边。
+
+- 使用 Kruscal 算法(堆优化)，点数 $n=row\cdot column=10^4$，边数为 $m=4n$，复杂度为 $O(m\log m)$
+
+```python
+class Solution:
+    def minimumEffortPath(self, heights: List[List[int]]) -> int:
+        n,m = len(heights), len(heights[0])
+        fa = [[(i,j) for j in range(m) for i in range(n)]]
+        def findFa(x,y):
+            print(x,y)
+            while (x,y) != fa[x][y]:
+                x,y = fa[x][y]
+            return (x,y)
+        e=[]
+        for ui in range(n):
+            for uj in range(m):
+                for dx,dy in ((-1,0),(1,0),(0,1),(0,-1)):
+                    vi,vj=ui+dx,uj+dy
+                    if 0<=vi<n and 0<=vj<m:
+                        w=abs(heights[ui][uj]-heights[vi][vj])
+                        e.append((w,(ui,uj),(vi,vj)))
+        e.sort()
+        e2=[[[]]*m]*n
+        suc = 0
+        for w,(ui,uj),(vi,vj) in e:
+            fui,fuj = findFa(ui,uj)
+            fvi,fvj = findFa(vi,vj)
+            if (fui,fuj) != (fvi,fvj):
+                fa[fui][fuj] = (fvi,fvj)
+                e2[ui][uj].append((vi,vj,w))
+                e2[vi][vj].append((ui,uj,w))
+                suc += 1
+                if suc == n*m-1:
+                    break
+        ans = -1
+        def dfs(ui, uj, cnt, fi, fj):
+            nonlocal ans
+            if (ui,uj)==0 or ans!=-1:
+                ans=cnt
+                return
+            for vi,vj,w in e2[ui][uj]:
+                if (vi,vj)!=(fi,fj):
+                    dfs(vi,vj,cnt+w,ui,uj)
+        dfs(n-1,m-1,0,n-1,m-1)
+        return ans
+```
+
+其他思路-解法二：二分答案+BFS
+
+```python
+class Solution:
+    def minimumEffortPath(self, heights: List[List[int]]) -> int:
+        m, n = len(heights), len(heights[0])
+        left, right, ans = 0, 10**6 - 1, 0
+
+        while left <= right:
+            mid = (left + right) // 2
+            q = collections.deque([(0, 0)])
+            seen = {(0, 0)}
+            
+            while q:
+                x, y = q.popleft()
+                for nx, ny in [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]:
+                    if 0 <= nx < m and 0 <= ny < n and (nx, ny) not in seen and abs(heights[x][y] - heights[nx][ny]) <= mid:
+                        q.append((nx, ny))
+                        seen.add((nx, ny))
+            
+            if (m - 1, n - 1) in seen:
+                ans = mid
+                right = mid - 1
+            else:
+                left = mid + 1
+        
+        return ans
+```
+
+解法三：直接并查集，按边权排序合并，直到左上右下连通取边值
+
+```python
+# 并查集模板
+class UnionFind:
+    def __init__(self, n: int):
+        self.parent = list(range(n))
+        self.size = [1] * n
+        self.n = n
+        # 当前连通分量数目
+        self.setCount = n
+    
+    def findset(self, x: int) -> int:
+        if self.parent[x] == x:
+            return x
+        self.parent[x] = self.findset(self.parent[x])
+        return self.parent[x]
+    
+    def unite(self, x: int, y: int) -> bool:
+        x, y = self.findset(x), self.findset(y)
+        if x == y:
+            return False
+        if self.size[x] < self.size[y]:
+            x, y = y, x
+        self.parent[y] = x
+        self.size[x] += self.size[y]
+        self.setCount -= 1
+        return True
+    
+    def connected(self, x: int, y: int) -> bool:
+        x, y = self.findset(x), self.findset(y)
+        return x == y
+
+class Solution:
+    def minimumEffortPath(self, heights: List[List[int]]) -> int:
+        m, n = len(heights), len(heights[0])
+        edges = list()
+        for i in range(m):
+            for j in range(n):
+                iden = i * n + j
+                if i > 0:
+                    edges.append((iden - n, iden, abs(heights[i][j] - heights[i - 1][j])))
+                if j > 0:
+                    edges.append((iden - 1, iden, abs(heights[i][j] - heights[i][j - 1])))
+        
+        edges.sort(key=lambda e: e[2])
+
+        uf = UnionFind(m * n)
+        ans = 0
+        for x, y, v in edges:
+            uf.unite(x, y)
+            if uf.connected(0, m * n - 1):
+                ans = v
+                break
+        
+        return ans
+```
+
+解法四：最短路。由于：
+
+- max 运算满足交换律和结合律
+- 每个点到自己的路径为 $0$，且边权都 $\ge 0$，故满足三角不等式 $0\le max(w, dis)$
+
+所以 Dijkstra 可以求路径长度由 max 定义的的最长路。
+
+```python
+class Solution:
+    def minimumEffortPath(self, heights: List[List[int]]) -> int:
+        m, n = len(heights), len(heights[0])
+        q = [(0, 0, 0)]
+        dist = [0] + [float("inf")] * (m * n - 1)
+        seen = set()
+
+        while q:
+            d, x, y = heapq.heappop(q)
+            iden = x * n + y
+            if iden in seen:
+                continue
+            if (x, y) == (m - 1, n - 1):
+                break
+            
+            seen.add(iden)
+            for nx, ny in [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]:
+                if 0 <= nx < m and 0 <= ny < n and max(d, abs(heights[x][y] - heights[nx][ny])) <= dist[nx * n + ny]:
+                    dist[nx * n + ny] = max(d, abs(heights[x][y] - heights[nx][ny]))
+                    heapq.heappush(q, (dist[nx * n + ny], nx, ny))
+        return dist[m * n - 1]
 ```
 
 

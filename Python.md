@@ -1168,11 +1168,15 @@ list(zip(*[((1, 1), False, 'd'), ((2, 2), True, 'e'), ((1, 3), False, 'f')]))
 
 #### float
 
-最大值是inf，即float('inf')可以这样获取到这个值。负也可以float('-inf')
+最大值是inf，即float('inf')可以这样获取到这个值。负也可以float('-inf')；可以参与比较
 
 ```python
 print(-float('-inf')/9-9) #是inf
 ```
+
+非无穷的最小值/最大值：`sys.float_info.min`, `.max`，最小正差异 `.epsilon`。
+
+
 
 #### bool
 
@@ -3359,7 +3363,7 @@ heapq.heappush(heap, (2, '任务2'))
 heapq.heappush(heap, (1, '任务1'))
 heapq.heappush(heap, (3, '任务3'))
 while heap:
-    print(heapq.heappop(heap))
+    print(heapq.heappop(heap)) #1,2,3
 ```
 
 
