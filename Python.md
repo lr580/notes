@@ -5643,7 +5643,7 @@ np.isclose(a,b,atol=k)
 
 ##### 随机
 
-种子：
+种子：(设置了之后，pandas 的一些方法也会固定下来)
 
 ```python
 np.random.seed(23)
@@ -7793,6 +7793,20 @@ w.query('value >= 581') #相等就 ==
 df['B'] = np.random.permutation(df['B'])
 ```
 
+固定随机数种子：以 permutation test 为例：
+
+```python
+def permutation_test(model, df, col, val, rounds=500):
+    observed = diff_of_R2(model, df, col, val)
+    simulated = np.zeros(rounds)
+    df2 = df.copy()
+    for _ in range(rounds):
+        df2[col] = df[col].sample(frac=1,random_state=SEED+_).reset_index(drop=True)
+        simulated[_] = diff_of_R2(model, df2, col, val)
+    p_value = np.mean(simulated >= observed)
+    return observed, p_value
+```
+
 
 
 ##### diff
@@ -8579,6 +8593,34 @@ fig.update_layout(
 
 
 #### 子图
+
+训练集与测试集的误差，两张子图，每张图两个折线：
+
+```python
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+titles = (('Prediction on Train Data', 'Prediction on Test Data'))
+fig = make_subplots(rows=1, cols=2, subplot_titles=titles)
+fig.add_trace(
+    go.Scatter(x=list(range(len(y_train))),
+               y=y_train.to_numpy(), name='train_real',mode='markers'),row=1,col=1
+)
+fig.add_trace(
+    go.Scatter(x=list(range(len(y_train_pred))),
+               y=y_train_pred, name='train_pred',mode='markers'),row=1,col=1
+)
+fig.add_trace(
+    go.Scatter(x=list(range(len(y_test))),
+               y=y_test.to_numpy(), name='test_real',mode='markers'),row=1,col=2
+)
+fig.add_trace(
+    go.Scatter(x=list(range(len(y_test_pred))),
+               y=y_test_pred, name='test_pred',mode='markers'),row=1,col=2
+)
+fig.show()
+```
+
+- mode='markers' 是散点，不然折线
 
 > 例子：
 
@@ -9759,14 +9801,14 @@ param_grid = {
 }
 svc = SVC()
 grid_search = GridSearchCV(svc, param_grid, refit=True, verbose=2, cv=5)
-grid_search.fit(X, y)
+grid_search.fit(X, y) # 本来的 svc 不会被 refit, 但这个会
 print("最佳参数组合: ", grid_search.best_params_)
 print("最佳模型得分: ", grid_search.best_score_)
 ```
 
 `refit`: 当设置为 `True` 时，一旦找到最佳参数组合，它会用这些参数重新拟合整个数据集。
 
-`verbose`: 这个参数控制函数运行时的详细程度。而 `0` 会使得模型在静默模式下运行，不打印任何信息。
+`verbose`: 这个参数控制函数运行时的详细程度。而 `0` 会使得模型在静默模式下运行，不打印任何信息。3 时会输出每个的 score。
 
 `cv`: 这代表交叉验证（Cross-Validation）的折数。在这个例子中，它被设置为 `5`，意味着用于评估不同参数组合性能的数据将被分成 5 份。在每一轮网格搜索中，其中的 4 份用于训练模型，剩下的 1 份用于测试模型。
 
@@ -9792,6 +9834,8 @@ test_fold = np.concatenate((
     -np.ones(X_train.shape[0]), # 训练集
     np.zeros(X_test.shape[0])   # 测试集
 ))
+X = pd.concat([X_train, X_test])
+y = pd.concat([y_train, y_test]) # 不然因为打乱了 told 对不上 Xy
 
 # 使用 PredefinedSplit 来使用训练集进行交叉验证
 ps = PredefinedSplit(test_fold)
