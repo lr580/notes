@@ -1084,7 +1084,11 @@
   
 - 1631\.最小体力消耗路径
 
-  最小生成树+DFS / 二分+BFS / <u>并查集</u> / <u>最短路</u>
+  最小生成树+DFS / 二分+BFS / <u>并查集</u> / 最短路
+  
+- 2454\.下一个更大元素IV
+
+  ST表+二分 / <u>单调栈</u>
 
 
 
@@ -29677,6 +29681,111 @@ class Solution:
                     dist[nx * n + ny] = max(d, abs(heights[x][y] - heights[nx][ny]))
                     heapq.heappush(q, (dist[nx * n + ny], nx, ny))
         return dist[m * n - 1]
+```
+
+个人：
+
+```python
+from heapq import heappush, heappop
+class Solution:
+    def minimumEffortPath(self, heights: List[List[int]]) -> int:
+        n,m = len(heights), len(heights[0])
+        vis = [[False for i in range(m)] for i in range(n)]
+        d = [[1e9 for i in range(m)] for i in range(n)]
+        d[0][0] = 0
+        q = []
+        heappush(q, (0, 0, 0))
+        while q:
+            w0,ui,uj = heappop(q)
+            if vis[ui][uj]:
+                continue
+            vis[ui][uj] = True
+            for dx,dy in ((0,1),(0,-1),(1,0),(-1,0)):
+                vi,vj=ui+dx,uj+dy
+                if vi < 0 or vi >= n or vj < 0 or vj >= m:
+                    continue
+                w = abs(heights[ui][uj] - heights[vi][vj])
+                if d[vi][vj] > max(d[ui][uj], w):
+                    d[vi][vj] = max(d[ui][uj], w)
+                    heappush(q, (d[vi][vj], vi, vj))
+        return d[n-1][m-1]
+```
+
+切忌浅拷贝：
+
+```python
+vis = [[False] * m] * n
+d = [[1e9] * m] * n
+```
+
+##### 2454\.下一个更大元素IV
+
+[题目](https://leetcode.cn/problems/next-greater-element-iv/)
+
+使用 ST 表维护任意子区间最大值查询。对每个位置 $i$，首先二分出最小的下标 $k$ 满足 $[i+1,k]$ 内最大值大于 $nums_i$，即恰好 $nums_k > nums_i$，然后再同理二分找到最小下标 $[k+1,j]$。
+
+ST 表预处理时空复杂度为 $O(n\log n)$；二分时间复杂度为 $O(n\log n)$。
+
+```python
+from math import ceil,log
+class Solution:
+    def secondGreaterElement(self, nums: List[int]) -> List[int]:
+        n = len(nums)
+        
+        mlg = ceil(log(n,2)+1)
+        lg = [0] * (n+1)
+        for i in range(2,n+1):
+            lg[i]=lg[i//2]+1
+        st = [[0 for j in range(mlg)] for i in range(n)]
+        for i in range(n):
+            st[i][0]=nums[i]
+        for j in range(1,mlg):
+            i=0
+            while i+(1<<j)-1<n:
+                st[i][j] = max(st[i][j-1], st[i+(1<<(j-1))][j-1])
+                i+=1
+        def query(l,r):
+            p=lg[r-l+1]
+            return max(st[l][p],st[r-(1<<p)+1][p])
+        
+        def minIndex(minl, v):
+            lf,rf,ans=minl, n-1,-1
+            while lf<=rf:
+                cf=(lf+rf)>>1
+                if query(minl,cf)>v:
+                    ans=cf
+                    rf=cf-1
+                else:
+                    lf=cf+1
+            return ans
+        res=[-1]*n
+        for i in range(n):
+            i1, i2 = minIndex(i+1, nums[i]), -1
+            if i1!=-1:
+                i2 = minIndex(i1+1, nums[i])
+                if i2!=-1:
+                    res[i]=nums[i2]
+        return res
+```
+
+单调栈：
+
+```python
+class Solution:
+    def secondGreaterElement(self, nums: List[int]) -> List[int]:
+        ans = [-1] * len(nums)
+        s = []
+        t = []
+        for i, x in enumerate(nums):
+            while t and nums[t[-1]] < x:
+                ans[t.pop()] = x  # t 栈顶的下下个更大元素是 x
+            j = len(s) - 1
+            while j >= 0 and nums[s[j]] < x:
+                j -= 1  # s 栈顶的下一个更大元素是 x
+            t += s[j + 1:]  # 把从 s 弹出的这一整段元素加到 t
+            del s[j + 1:]  # 弹出一整段元素
+            s.append(i)  # 当前元素（的下标）加到 s 栈顶
+        return ans
 ```
 
 

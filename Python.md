@@ -1362,7 +1362,9 @@ sort()按升序整理，返回值None
 
 copy()返回x的一个副本(直接赋值是指针操作)，set同理。
 
-> 对二维数组，无论是 `.copy` 还是切片都不能复制；使用 copy 标准库的 deepcopy 函数
+> 对二维数组，无论是 `.copy` 还是切片还是乘法都不能复制；使用 copy 标准库的 deepcopy 函数
+>
+> 切忌诸如：`vis = [[False] * m] * n`，这样会导致浅拷贝
 
 index(x)返回从左到右第一个出现的x元素的下标，如果找不到返回ValueError
 
@@ -1371,6 +1373,8 @@ count(x)统计有多少个x元素，找不到返回0
 `*`一个整数复制重复这么多次，空集乘是自身；乘 0 得空集
 
 > 判断某元素不在 list: `x not in arr` 或 `not x in arr`
+
+直接使用 del 可以删除一个下标/切片区间，并让后面元素顶上，如 `del s[1:]`
 
 #### tuple
 
@@ -9378,6 +9382,25 @@ final_df = df.join(encoded_df)
 print(final_df)
 ```
 
+删除一些列：drop 参数
+
+1. `None`（默认）：不丢弃任何列。这意味着每个类别将会被转换成一个新的列。
+2. `'first'`：对于每个特征，丢弃每个类别中的第一个。这样可以减少一个特征的维度，帮助避免多重共线性。
+3. `'if_binary'`：只有当特征是二元的（即只有两个类别）时，才会丢弃第一个。这是处理二元特征的一种有效方法。
+4. 数组：可以指定一个数组来选择性地丢弃每个特征的某个类别。数组的长度必须与特征的数量相匹配。
+
+```python
+from sklearn.preprocessing import OneHotEncoder
+data = [['B', 'Y'], ['C', 'X'],['A', 'X']]
+encoder = OneHotEncoder(drop='first') # 删除每个特征字典序最小的列
+encoded_data = encoder.fit_transform(data).toarray()
+print(encoded_data)
+'''[[1. 0. 1.] 
+ [0. 1. 0.] 
+ [0. 0. 0.]]'''
+print(encoder.get_feature_names())#['x0_B' 'x0_C' 'x1_Y']
+```
+
 
 
 ##### 多列变换
@@ -9956,6 +9979,8 @@ plt.show()
 
 ### sympy
 
+#### 符号运算
+
 ##### 求导
 
 ```python
@@ -9993,7 +10018,16 @@ print(summation(summation(j,(j,1,i)),(i,1,n)).simplify()) # n*(n**2 + 3*n + 2)/6
 (i**2*j-i*j*j).simplify() # i*j*(i - j)
 ```
 
+#### 数值运算
 
+##### 解方程
+
+```python
+from sympy import symbols, Eq, solve
+alpha = symbols('alpha')
+equation = Eq(alpha**2 + (1 - alpha)**2, 0.65) #a^2+(1-a^2)=0.65
+alpha_values = solve(equation, alpha) # list of float
+```
 
 
 
