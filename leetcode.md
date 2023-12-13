@@ -1089,6 +1089,10 @@
 - 2454\.下一个更大元素IV
 
   ST表+二分 / <u>单调栈</u>
+  
+- 2132\.用邮票贴满网格图
+
+  二维前缀和差分
 
 
 
@@ -29770,6 +29774,11 @@ class Solution:
 
 单调栈：
 
+- 先维护严格单调递减栈 $s$
+- 在每次弹栈过程中，把弹出来的元素插入到列表内 $t$
+- 在维护 $s$ 之前，若 $t$ 有东西，将 $t$ 也维护成严格单调递减栈，则 $t$ 每个在这阶段扔出去的元素，它的下下个元素刚好是当前元素
+- 依据：所有入 $t$ 的元素都是刚好被一个后面的数严格大于的，当它再被大于时，它的答案就确定了
+
 ```python
 class Solution:
     def secondGreaterElement(self, nums: List[int]) -> List[int]:
@@ -29786,6 +29795,76 @@ class Solution:
             del s[j + 1:]  # 弹出一整段元素
             s.append(i)  # 当前元素（的下标）加到 s 栈顶
         return ans
+```
+
+##### 2132\.用邮票贴满网格图
+
+[题目](https://leetcode.cn/problems/stamping-the-grid)
+
+枚举每个位置能不能贴邮票左上角，能贴就贴。
+
+我的实现：
+
+```python
+class Solution:
+    def possibleToStamp(self, grid: List[List[int]], h: int, w: int) -> bool:
+        n,m,cnt1=len(grid),len(grid[0]),0
+        s=[[0 for i in range(m+1)] for j in range(n+1)]
+        a=[[0 for i in range(m+2)] for j in range(n+2)]
+        for i in range(1,1+n):
+            for j in range(1,1+m):
+                s[i][j]=s[i-1][j]+s[i][j-1]-s[i-1][j-1]+grid[i-1][j-1]
+                cnt1+=grid[i-1][j-1]
+        for i in range(1,1+n-h+1):
+            for j in range(1,1+m-w+1):
+                x,y=i+h-1,j+w-1
+                cnt=s[x][y]-s[i-1][y]-s[x][j-1]+s[i-1][j-1]
+                if cnt==0:
+                    a[i][j]+=1
+                    a[i][y+1]-=1
+                    a[x+1][j]-=1
+                    a[x+1][y+1]+=1
+        cnt0=0
+        for i in range(1,1+n):
+            for j in range(1,1+m):
+                a[i][j]+=a[i-1][j]+a[i][j-1]-a[i-1][j-1]
+                cnt0+=a[i][j]>0
+        return cnt0+cnt1==n*m
+```
+
+题解实现：
+
+```python
+class Solution:
+    def possibleToStamp(self, grid: List[List[int]], stampHeight: int, stampWidth: int) -> bool:
+        m, n = len(grid), len(grid[0])
+
+        # 1. 计算 grid 的二维前缀和
+        s = [[0] * (n + 1) for _ in range(m + 1)]
+        for i, row in enumerate(grid):
+            for j, v in enumerate(row):
+                s[i + 1][j + 1] = s[i + 1][j] + s[i][j + 1] - s[i][j] + v
+
+        # 2. 计算二维差分
+        # 为方便第 3 步的计算，在 d 数组的最上面和最左边各加了一行（列），所以下标要 +1
+        d = [[0] * (n + 2) for _ in range(m + 2)]
+        for i2 in range(stampHeight, m + 1):
+            for j2 in range(stampWidth, n + 1):
+                i1 = i2 - stampHeight + 1
+                j1 = j2 - stampWidth + 1
+                if s[i2][j2] - s[i2][j1 - 1] - s[i1 - 1][j2] + s[i1 - 1][j1 - 1] == 0:
+                    d[i1][j1] += 1
+                    d[i1][j2 + 1] -= 1
+                    d[i2 + 1][j1] -= 1
+                    d[i2 + 1][j2 + 1] += 1
+
+        # 3. 还原二维差分矩阵对应的计数矩阵（原地计算）
+        for i, row in enumerate(grid):
+            for j, v in enumerate(row):
+                d[i + 1][j + 1] += d[i + 1][j] + d[i][j + 1] - d[i][j]
+                if v == 0 and d[i + 1][j + 1] == 0:
+                    return False
+        return True
 ```
 
 

@@ -1284,6 +1284,30 @@ plugins:
 
 本地部署参考 [here](https://jekyllrb.com/docs/installation/) 和 [here](https://docs.github.com/en/pages/setting-up-a-github-pages-site-with-jekyll/testing-your-github-pages-site-locally-with-jekyll)
 
+#### 数学公式支持
+
+在 md 开头加上：[参考](https://www.jianshu.com/p/aa359b3aef0c) [参考2](https://stackoverflow.com/questions/26275645/how-to-support-latex-in-github-pages)
+
+```html
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script> 
+MathJax = {
+  tex: {
+    inlineMath: [['$', '$']],
+    processEscapes: true
+  }
+};
+</script>
+```
+
+格式要求：
+
+- 行内公式只能用 `$`，不能用 `$$`
+- 多行公式，源码在 `$$` 前后要有空行
+
+> 行内绝对值疑似会被当成表格符号，如果出错了记得注意一下
+
 #### 例子
 
 ##### README.md

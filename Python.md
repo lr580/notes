@@ -1068,6 +1068,8 @@ bool仅对于None,空字符，空数组，空数字(虚数实部虚部均0)返�
 
 显然其他各种类型强转都是类似的道理，如str,bool,list,tuple
 
+一个类型可以强转它自己，如 `str('1')`
+
 #### len
 
 对字符串统计长度，注意中文等特殊符号算一个字符，也可以被下标索引。
@@ -1184,7 +1186,9 @@ print(-float('-inf')/9-9) #是inf
 
 #### str
 
-字符串
+字符串。
+
+不可以取下标修改如 `s[i]='x'`
 
 字符串有加法连接和乘法重复。
 
@@ -1222,7 +1226,7 @@ reduce(lambda x,y:x+y,list(filter(str.strip,'\n _1\n\t 1\n  \n')))
 
 如果只去除左边或右边，使用lstrip或rstrip方法。
 
-split(str)分割文本，返回list，如果分割失败，返回只有自身为元素的一元list。分割后结果不含分割符，如果分割符在头尾或连续出现，分割结果含空字符。
+split(str)分割文本，返回list，如果分割失败，返回只有自身为元素的一元list。分割后结果不含分割符，如果分割符在头尾或连续出现，分割结果含空字符。不填参数用连续空白字符分割
 
 find(str)查找从左到右出现的第一个str，并返回该str首元素的下标，如果没找到返回-1
 
@@ -1255,6 +1259,8 @@ isalpha() 等方法判断该字符串是否每个字符都是特定范围的
 ```python
 '²'.isdigit() == True
 ```
+
+- 还有 isnumeric() 方法，区别在于该方法会把简繁中文、罗马数字也算数字
 
 translate：单字符替换
 
@@ -1620,9 +1626,37 @@ def do(self):
 a.do()
 ```
 
+#### 静态成员
+
+```python
+class Number:
+    version = "v1.0"
+    def __init__(self, v):
+        self.v = v
+a = Number(1)
+b = Number(2)
+print(a.v, b.v, a.version, b.version, Number.version)
+```
+
+
+
 #### __属性
 
 `__len__` 方法如果定义了，可以用内置函数 `len()`。通常都是 O(1) 的。
+
+`__doc__` 属性，可以输出函数文档，也可以对库函数等使用，且 help 函数会用到，如：
+
+```python
+def square(num):
+    '''Return the square value of the input number.
+    The input number must be integer.'''
+    return num ** 2
+print(square.__doc__)
+'''
+Return the square value of the input number.
+    The input number must be integer.
+''' #注意会有顶格indent
+```
 
 #### 装饰器
 
@@ -2680,6 +2714,17 @@ print(vars(obj))
 
 返回全局变量。与 `vars` 格式类似。
 
+##### help
+
+输出 `__doc__`(带点装饰)，如：
+
+```python
+def square(num):
+    '''Return the square value of the input number.'''
+    return num ** 2
+help(square)
+```
+
 #### 对象函数
 
 `setattr, hasattr, delattr` 等。
@@ -2941,6 +2986,19 @@ for x in it:
 #### yield
 
 yield 相当于手动 return，下次从 return 处继续执行，返回4，res是None [参考](https://blog.csdn.net/qq_41554005/article/details/119940983)
+
+```python
+def f():
+    yield 1
+f1 = f()
+print(next(f1)) #1
+try:
+    print(next(f1))
+except StopIteration:
+    print('stop') #走这里
+for v in f():
+    print(v) #1
+```
 
 ```python
 def fun_yield():
@@ -4512,6 +4570,31 @@ hashlib.md5(b'aba').hexdigest()
 def md5(path):
     with open(path,'rb') as f:
         return hashlib.md5(f.read()).hexdigest()
+```
+
+#### operator
+
+可以用作排序依据：
+
+```python
+from operator import itemgetter
+people = [('张三', 30), ('李四', 25), ('王五', 40)]
+# 使用 itemgetter(1) 来获取每个元组的第二个元素，即年龄
+sorted_people = sorted(people, key=itemgetter(1))
+print(sorted_people)
+#多关键字：itemgetter(1,0)
+```
+
+```python
+from operator import attrgetter
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+people = [Person('张三', 30), Person('李四', 25), Person('王五', 40)]
+sorted_people = sorted(people, key=attrgetter('age'))
+for person in sorted_people:
+    print(person.name, person.age)
 ```
 
 
