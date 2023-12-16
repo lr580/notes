@@ -1093,6 +1093,14 @@
 - 2132\.用邮票贴满网格图
 
   二维前缀和差分
+  
+- 2415\.反转二叉树的奇数层
+
+  DFS(<u>+优化</u>)
+  
+- 2276\.统计区间中的整数数目
+
+  动态开点线段树 / <u>STL(珂朵莉树)</u>
 
 
 
@@ -29865,6 +29873,207 @@ class Solution:
                 if v == 0 and d[i + 1][j + 1] == 0:
                     return False
         return True
+```
+
+##### 2415\.反转二叉树的奇数层
+
+[题目](https://leetcode.cn/problems/reverse-odd-levels-of-binary-tree)
+
+我的实现：先转层序存储
+
+```python
+class Solution:
+    def reverseOddLevels(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
+        l=[]
+        def dfs(u,d):
+            if not u:
+                return
+            if len(l)==d:
+                l.append([])
+            l[d].append(u)
+            dfs(u.left,d+1)
+            dfs(u.right,d+1)
+        dfs(root,0)
+        for i in range(1,len(l),2):
+            l[i]=list(reversed(l[i]))
+        for i in range(len(l)-1):
+            for j in range(len(l[i])):
+                l[i][j].left = l[i+1][j*2]
+                l[i][j].right = l[i+1][j*2+1]
+        return l[0][0]
+```
+
+题解：
+
+```python
+class Solution:
+    def reverseOddLevels(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
+        q, level = [root], 0
+        while q[0].left:
+            q = list(chain.from_iterable((node.left, node.right) for node in q))
+            if level == 0:
+                for i in range(len(q) // 2):
+                    x, y = q[i], q[len(q) - 1 - i]
+                    x.val, y.val = y.val, x.val
+            level ^= 1
+        return root
+```
+
+传入两个参数代表当前的左右一对，进行 DFS
+
+```python
+class Solution:
+    def reverseOddLevels(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
+        def dfs(node1: Optional[TreeNode], node2: Optional[TreeNode], is_odd_level: bool) -> None:
+            if node1 is None: return
+            if is_odd_level: node1.val, node2.val = node2.val, node1.val
+            dfs(node1.left, node2.right, not is_odd_level)
+            dfs(node1.right, node2.left, not is_odd_level)
+        dfs(root.left, root.right, True)
+        return root
+```
+
+##### 2276\.统计区间中的整数数目
+
+[题目](https://leetcode.cn/problems/count-integers-in-intervals)
+
+动态开点线段树。
+
+- 注意力扣对全局变量多个测试点共用，所以如果使用全局需要初始化。
+- 如果不初始化/清理，就要每次开静态，如果都开 1e5 测试点一多就炸，考虑 vector。
+- 可以剪枝，如果某个区间放问过了，不再往下，否则会 WA。(该区间的一个子区间 pushup 可能会使答案变小)
+
+```c++
+using ll = long long;
+#define cll const ll &
+struct SegTree
+{
+    constexpr static ll inf = 1e9, maxn = 60 * 1e5;
+    vector<ll> ls{0, 0}, rs{0, 0}, sum{0, 0};
+    ll cnt = 1;
+    ll upcnt()
+    {
+        ls.push_back(0);
+        rs.push_back(0);
+        sum.push_back(0);
+        return ++cnt;
+    }
+    void update(ll r, ll lf, ll rf, cll lc, cll rc)
+    {
+        if (lc <= lf && rf <= rc)
+        {
+            sum[r] = rf - lf + 1;
+            return;
+        }
+        if (sum[r] == rf - lf + 1)
+        { // prune
+            return;
+        }
+        if (!ls[r])
+            ls[r] = upcnt();
+        if (!rs[r])
+            rs[r] = upcnt();
+        ll cf = (lf + rf) >> 1;
+        if (lc <= cf)
+            update(ls[r], lf, cf, lc, rc);
+        if (rc >= cf + 1)
+            update(rs[r], cf + 1, rf, lc, rc);
+        sum[r] = sum[ls[r]] + sum[rs[r]];
+    }
+};
+class CountIntervals
+{
+    SegTree t;
+
+public:
+    CountIntervals() {}
+    void add(int left, int right) { t.update(1, 1, t.inf, left, right); }
+    int count() { return t.sum[1]; }
+};
+```
+
+其他写法：
+
+```c++
+class CountIntervals {
+    CountIntervals *left = nullptr, *right = nullptr;
+    int l, r, cnt = 0;
+
+public:
+    CountIntervals() : l(1), r(1e9) {}
+
+    CountIntervals(int l, int r) : l(l), r(r) {}
+
+    void add(int L, int R) { // 为方便区分变量名，将递归中始终不变的入参改为大写（视作常量）
+        if (cnt == r - l + 1) return; // 当前节点已被完整覆盖，无需执行任何操作
+        if (L <= l && r <= R) { // 当前节点已被区间 [L,R] 完整覆盖，不再继续递归
+            cnt = r - l + 1;
+            return;
+        }
+        int mid = (l + r) / 2;
+        if (left == nullptr) left = new CountIntervals(l, mid); // 动态开点
+        if (right == nullptr) right = new CountIntervals(mid + 1, r); // 动态开点
+        if (L <= mid) left->add(L, R);
+        if (mid < R) right->add(L, R);
+        cnt = left->cnt + right->cnt;
+    }
+
+    int count() { return cnt; }
+};
+```
+
+```python
+class CountIntervals:
+    __slots__ = 'left', 'right', 'l', 'r', 'cnt'
+
+    def __init__(self, l=1, r=10 ** 9):
+        self.left = self.right = None
+        self.l, self.r, self.cnt = l, r, 0
+
+    def add(self, l: int, r: int) -> None:
+        if self.cnt == self.r - self.l + 1: return  # self 已被完整覆盖，无需执行任何操作
+        if l <= self.l and self.r <= r:  # self 已被区间 [l,r] 完整覆盖，不再继续递归
+            self.cnt = self.r - self.l + 1
+            return
+        mid = (self.l + self.r) // 2
+        if self.left is None: self.left = CountIntervals(self.l, mid)  # 动态开点
+        if self.right is None: self.right = CountIntervals(mid + 1, self.r)  # 动态开点
+        if l <= mid: self.left.add(l, r)
+        if mid < r: self.right.add(l, r)
+        self.cnt = self.left.cnt + self.right.cnt
+
+    def count(self) -> int:
+        return self.cnt
+```
+
+珂朵莉树：
+
+- 维护不重的区间，找到新加区间覆盖的所有旧区间，将这些旧区间删了，并更新查询区间的左右值为可能半覆盖的新值
+
+  每个区间最多增删一次，每次操作对数，故均摊 $O(\log n)$
+
+```c++
+class CountIntervals {
+    map<int, int> m;
+    int cnt = 0; // 所有区间长度和
+
+public:
+    CountIntervals() {}
+
+    void add(int left, int right) {
+        // 遍历所有被 [left,right] 覆盖到的区间（部分覆盖也算）
+        for (auto it = m.lower_bound(left); it != m.end() && it->second <= right; m.erase(it++)) {
+            int l = it->second, r = it->first;
+            left = min(left, l);   // 合并后的新区间，其左端点为所有被覆盖的区间的左端点的最小值
+            right = max(right, r); // 合并后的新区间，其右端点为所有被覆盖的区间的右端点的最大值
+            cnt -= r - l + 1;
+        }
+        cnt += right - left + 1;
+        m[right] = left; // 所有被覆盖到的区间与 [left,right] 合并成一个新区间
+    }
+
+    int count() { return cnt; }
+};
 ```
 
 

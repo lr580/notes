@@ -224,6 +224,8 @@ pyinstaller.exe 路径 -F
 第二行告诉python解释器，本程序使用utf-8编码，防止中文乱码'''
 ```
 
+第一行可能会导致 windows 编译出错
+
 #### 帮助
 
 ##### help
@@ -1198,6 +1200,8 @@ print(-float('-inf')/9-9) #是inf
 
 `f''` 格式化(占位符用, 3.6+)
 
+> `u''` unicode 字符串 (python2 里 type 不一样)， py3 里与一般字符串等价
+
 ##### 函数
 
 ord()将长度为1的str转化为ASCII码(中文等则拓展的码),chr()将其逆向
@@ -1588,7 +1592,7 @@ class ...(...):
     __repr__=__str__
 ```
 
-继承单一父类时，可以用super方法调用父类的初始化函数等内容。
+继承单一父类时，可以用super方法调用父类的初始化函数等内容。同名函数可覆盖
 
 ```python
 class person(object):
@@ -1609,7 +1613,15 @@ b=chum('李四',9,'鲨人')
 print(a,b) #注意由于chum的repr未赋值，故与person同
 ```
 
-可以考虑动态添加方法：
+可以考虑动态添加成员属性和方法：
+
+```python
+class x:
+    ...
+y = x()
+y.a=1 # 只有 y 实例有 a
+print(y.a)
+```
 
 ```python
 def add_to_class(Class):  #这是一个装饰器
@@ -1626,7 +1638,11 @@ def do(self):
 a.do()
 ```
 
-#### 静态成员
+
+
+#### 静态
+
+静态属性：
 
 ```python
 class Number:
@@ -1636,6 +1652,16 @@ class Number:
 a = Number(1)
 b = Number(2)
 print(a.v, b.v, a.version, b.version, Number.version)
+```
+
+静态方法：
+
+```python
+class American(object):
+    @staticmethod
+    def printNationality():
+        print('USA')
+American.printNationality()
 ```
 
 
@@ -1657,6 +1683,28 @@ Return the square value of the input number.
     The input number must be integer.
 ''' #注意会有顶格indent
 ```
+
+##### slot
+
+不要为类使用字典来存储实例属性的特殊属性，好处是减少内存占用
+
+```python
+class Point:
+    __slots__ = ['x', 'y'] #中括号可以不要(tuple)
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+p = Point(1, 2)
+p.z = 3  # 抛出 AttributeError，因为 'z' 不在 __slots__ 中
+```
+
+注意：
+
+1. **继承**：如果一个类继承了使用了 `__slots__` 的类，子类也需要定义 `__slots__`。如果不这样做，子类会自动创建字典来存储属性，这可能会抵消使用 `__slots__` 带来的好处。
+2. **实例字典**：使用 `__slots__` 后，实例不再有 `__dict__` 属性（存储一个对象的所有属性，键值对）。这意味着不能再使用 `getattr()`、`setattr()` 和 `delattr()` 函数以动态的方式操作属性。
+3. **弱引用**：如果你的类需要支持弱引用（通过 `weakref` 模块），那么你需要在 `__slots__` 中包含 `'__weakref__'`。
+
+对比 dict: 虽然可以直接操作 `__dict__`，但这并不是访问或修改属性的推荐方式。通常，直接使用点操作符（`.`）是更好的选择，因为这样可以触发相关的属性访问方法（如 `__get__`、`__set__` 和 `__delete__`）。
 
 #### 装饰器
 
@@ -2079,6 +2127,39 @@ if not a:
     raise ValueError('a为0')
 ```
 
+```python
+try:
+    raise RuntimeError('something went wrong')
+except RuntimeError as e:
+    print(e) # something went wrong
+```
+
+#### 类
+
+##### 常用方法
+
+Python中的每个异常都是一个类，这些类都继承自内置的 `BaseException` 类。下面是一些常用的属性和方法，以及它们的简要说明：
+
+1. **属性**:
+   - `args`: 异常类的构造函数接收的参数元组。通常包含错误消息或其他详细信息。
+   - `__cause__`: 表示异常链中的直接原因。在使用 `raise ... from ...` 语法时设置。
+   - `__context__`: 自动设置，用于存储异常链中的上下文。
+   - `__traceback__`: 包含一个 traceback 对象，记录了异常发生时的调用堆栈信息。
+2. **方法**:
+   - `with_traceback(traceback)`: 这个方法可以用于设置异常的 `__traceback__` 属性，并返回修改后的异常对象。这通常用于异常处理和重新引发异常。
+
+##### 自定义类
+
+```python
+class MyError(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+try:
+    raise MyError('test my error')
+except MyError as e:
+    print(e)
+```
+
 
 
 ### 文件读写
@@ -2164,6 +2245,18 @@ def toGrey(img):
 
 ### 参数
 
+**位置参数**就是一般的参数，与C等语言一样，从略。
+
+可以 `*` 传参，如：
+
+```python
+def f(a,b):
+    print(a,b)
+f(*map(int,input().split()))
+```
+
+
+
 #### 执行顺序
 
 从左到右，Java 也是；C/C++ 未定义
@@ -2188,8 +2281,6 @@ call g
 ```
 
 
-
-**位置参数**就是一般的参数，与C等语言一样，从略。
 
 #### 全局变量
 
@@ -2568,6 +2659,17 @@ list(map(abs,[-3,3,6,8,-6.7]))
 
 iterable自身不会被该函数改变。
 
+可以直接赋值，如：
+
+```python
+a,b=map(int,input().split())
+def f(a,b):
+    print(a,b)
+f(*map(int,input().split()))
+```
+
+
+
 ##### reduce
 
 该函数不是内建函数(但常用性堪比内建函数)，载入：
@@ -2624,6 +2726,14 @@ sorted([0,5,5.1,-9]) #[-9,0,5,5.1]
 ```
 
 iterable自身不会被该函数改变。
+
+##### reversed
+
+返回的不是原类型，需要转：
+
+```python
+list(reversed([1, 2, 3]))
+```
 
 #### 控制函数
 
@@ -3507,6 +3617,18 @@ choice(数组) #返回数组内随机一个元素,dict要key是整数,返回valu
 random.choices(list(self.mdl.index), weights=self.mdl.values, k=M)
 ```
 
+##### randrange
+
+```python
+# 从 0 到 9 中随机选择一个数字
+num = random.randrange(10)
+# 从 5 到 50 中随机选择一个数字
+
+num = random.randrange(5, 51)
+# 从 0 到 100 中以 5 为步长随机选择一个数字（例如 0, 5, 10, ..., 95, 100）
+num = random.randrange(0, 101, 5)
+```
+
 
 
 #### sys
@@ -3939,7 +4061,19 @@ s = re.sub(r'\bzhi yin\b', 'ji', s)
 s = re.sub('#', 'zhi yin', s)
 ```
 
+##### match
 
+match 是从开始位置匹配。
+
+匹配并获取分组：下标从 1 开始算。匹配失败返回 None。组下标越界会报错。
+
+```python
+import re
+emailAddress = input()
+pat2 = r'(\w+)@(\w+)\.(\w+)'
+r2 = re.match(pat2,emailAddress)
+print(r2.group(1) if r2 else '-1')
+```
 
 
 
@@ -4374,6 +4508,22 @@ for i in combinations_with_replacement("abcd", 3):
 from scipy.special import comb, perm
 print(perm(5, 2)) # A(n, m) 返回 double
 print(comb(5, [i for i in range(6)])) # C(n, m)
+```
+
+连接多个迭代器：
+
+```python
+from itertools import chain
+list1 = [1, 2, 3]
+list2 = [4, 5, 6]
+list3 = [7, 8, 9]
+for item in chain.from_iterable([list1, list2, list3]):
+    print(item)
+```
+
+```python
+# 层序遍历模板
+q = list(chain.from_iterable((node.left, node.right) for node in q))
 ```
 
 
