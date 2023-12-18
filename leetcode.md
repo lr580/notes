@@ -1101,6 +1101,14 @@
 - 2276\.统计区间中的整数数目
 
   动态开点线段树 / <u>STL(珂朵莉树)</u>
+  
+- 746\.使用最小花费爬楼梯
+
+  DP
+  
+- 162\.寻找峰值
+
+  枚举 / <u>二分</u>
 
 
 
@@ -30074,6 +30082,168 @@ public:
 
     int count() { return cnt; }
 };
+```
+
+##### 746\.使用最小花费爬楼梯
+
+[题目](https://leetcode.cn/problems/min-cost-climbing-stairs/)
+
+我的：
+
+```python
+class Solution:
+    def minCostClimbingStairs(self, cost: List[int]) -> int:
+        n = len(cost)
+        dp = [cost[0],cost[1]]+[0] * (n-1)
+        cost.append(0)
+        for i in range(2,n+1):
+            dp[i]=min(dp[i-1],dp[i-2])+cost[i]
+        return min(dp[n-1],dp[n])
+```
+
+题解：
+
+```python
+class Solution:
+    def minCostClimbingStairs(self, cost: List[int]) -> int:
+        n = len(cost)
+        dp = [0] * (n + 1)
+        for i in range(2, n + 1):
+            dp[i] = min(dp[i - 1] + cost[i - 1], dp[i - 2] + cost[i - 2])
+        return dp[n]
+```
+
+```python
+class Solution:
+    def minCostClimbingStairs(self, cost: List[int]) -> int:
+        n = len(cost)
+        prev = curr = 0
+        for i in range(2, n + 1):
+            nxt = min(curr + cost[i - 1], prev + cost[i - 2])
+            prev, curr = curr, nxt
+        return curr
+```
+
+##### 162\.寻找峰值
+
+[题目](https://leetcode.cn/problems/find-peak-element)
+
+我的暴力：
+
+```python
+from typing import *
+class Solution:
+    def findPeakElement(self, nums: List[int]) -> int:
+        n = len(nums)
+        nums = [-1e18] + nums + [-1e18]
+        for i in range(1,n+1):
+            if nums[i] > nums[i-1] and nums[i] > nums[i+1]:
+                return i-1
+        return -1
+```
+
+题解的暴力：因为元素各不相同，最大值一定满足，找最大值即可。
+
+```python
+class Solution:
+    def findPeakElement(self, nums: List[int]) -> int:
+        idx = 0
+        for i in range(1, len(nums)):
+            if nums[i] > nums[idx]:
+                idx = i
+        return idx
+```
+
+题解暴力2，随机一个位置：
+
+- 如果当前比左右大，直接返回当前
+- 如果左 < 当前 < 右，右移当前
+- 如果左 > 当前 > 右，左移当前
+- 否则左 > 当前 < 右，任意移动，不妨规定往右
+
+则化简为：
+
+- 当前 < 右，往右
+- 当前 > 右，往左
+
+```python
+class Solution:
+    def findPeakElement(self, nums: List[int]) -> int:
+        n = len(nums)
+        idx = random.randint(0, n - 1)
+        # 辅助函数，输入下标 i，返回 nums[i] 的值
+        # 方便处理 nums[-1] 以及 nums[n] 的边界情况
+        def get(i: int) -> int:
+            if i == -1 or i == n:
+                return float('-inf')
+            return nums[i]
+        while not (get(idx - 1) < get(idx) > get(idx + 1)):
+            if get(idx) < get(idx + 1):
+                idx += 1
+            else:
+                idx -= 1
+        return idx
+```
+
+```c++
+class Solution {
+public:
+    int findPeakElement(vector<int>& nums) {
+        int n = nums.size();
+        int idx = rand() % n;
+
+        // 辅助函数，输入下标 i，返回一个二元组 (0/1, nums[i])
+        // 方便处理 nums[-1] 以及 nums[n] 的边界情况
+        auto get = [&](int i) -> pair<int, int> {
+            if (i == -1 || i == n) {
+                return {0, 0};
+            }
+            return {1, nums[i]};
+        };
+
+        while (!(get(idx - 1) < get(idx) && get(idx) > get(idx + 1))) {
+            if (get(idx) < get(idx + 1)) {
+                idx += 1;
+            }
+            else {
+                idx -= 1;
+            }
+        }
+        return idx;
+    }
+};
+```
+
+二分优化：
+
+- 将随机位置改为必定选择中点 $i$ 
+- 如果当前 < 右，那么一直往右一定能遇到至少一个解，所以可以抛弃左边，子问题继续二分
+- 如果当前 > 右，那么一直往左一定能遇到至少一个解，所以可以抛弃右边，子问题继续二分
+
+```python
+class Solution:
+    def findPeakElement(self, nums: List[int]) -> int:
+        n = len(nums)
+
+        # 辅助函数，输入下标 i，返回 nums[i] 的值
+        # 方便处理 nums[-1] 以及 nums[n] 的边界情况
+        def get(i: int) -> int:
+            if i == -1 or i == n:
+                return float('-inf')
+            return nums[i]
+        
+        left, right, ans = 0, n - 1, -1
+        while left <= right:
+            mid = (left + right) // 2
+            if get(mid - 1) < get(mid) > get(mid + 1):
+                ans = mid
+                break
+            if get(mid) < get(mid + 1):
+                left = mid + 1
+            else:
+                right = mid - 1
+        
+        return ans
 ```
 
 
