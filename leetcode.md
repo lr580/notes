@@ -1109,6 +1109,10 @@
 - 162\.寻找峰值
 
   枚举 / <u>二分</u>
+  
+- 1901\.寻找峰值II
+
+  枚举 / <u>二分</u>
 
 
 
@@ -30245,6 +30249,64 @@ class Solution:
         
         return ans
 ```
+
+##### 1901\.寻找峰值II
+
+[题目](https://leetcode.cn/problems/find-a-peak-element-ii)
+
+枚举整列，找到最大值所在行的格子：
+
+- 如果该格子的左右都比它小，则它就是答案
+- 否则，如果该格子的右比它大，可以走右边，左边的列全部删了
+- 否则，如果该格子的左比它大，可以走左边，右边的列全部删了
+
+```python
+class Solution:
+    def findPeakGrid(self, mat: List[List[int]]) -> List[int]:
+        m, n = len(mat), len(mat[0])
+
+        # 找到单列中最大值和其索引
+        def getColMax(i: int) -> (int, int):
+            value, index = mat[0][i], 0
+            for row in range(1, m):
+                if mat[row][i] > value:
+                    value, index = mat[row][i], row
+            return value, index
+
+        # 二分法切片
+        left, right = 0, n - 1
+        while left < right:
+            mid = left + int((right-left)/2)
+            max_val, max_idx = getColMax(mid)
+            if mid == 0: # left = 0, right = 1
+                if max_val > mat[max_idx][1]:
+                    return [max_idx, 0]
+                else:
+                    left = 1
+            else:
+                if mat[max_idx][mid-1] < max_val and mat[max_idx][mid+1] < max_val:
+                    return [max_idx, mid]
+                elif mat[max_idx][mid-1] < max_val < mat[max_idx][mid+1]:
+                    left = mid + 1
+                else:
+                    right = mid - 1
+        
+        # 对于最后剩下的一列，其最大值一定是极大值
+        _, idx = getColMax(left)
+        return [idx, left]
+```
+
+> 对每一列，必须找最大值，不能同理二分找极大值，考虑这三列：
+>
+> ```
+> 1 2 1
+> 3 5 4
+> 1 6 3
+> 7 10 13
+> 5 4 3
+> ```
+>
+> 设一开始在第一列，极大值为 3，然后去第三列，极大值在 4，然后去第二列，极大值为 10，但 10 不是答案。[参见](https://leetcode.cn/problems/find-a-peak-element-ii/solutions/1208991/python3-er-fen-qie-pian-shi-jian-fu-za-d-gmd2/)
 
 
 

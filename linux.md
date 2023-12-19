@@ -497,6 +497,26 @@ wsl --set-default-version 2
 
 文件资源管理器 `\\wsl$` 可以打开文件。
 
+方法二：对 vscode，可以使用 remote-wsl 扩展，在管理员身份本机运行 vscode，输入 remote explorer，在当前窗口链接，即可。如果编辑不行可以 `chmod/chown` 等一下。
+
+> seems useless:
+>
+> wsl 安装和打开 code：(800多MB安装)
+>
+> ```sh
+> sudo apt update
+> sudo apt install software-properties-common apt-transport-https wget
+> wget -q "https://packages.microsoft.com/keys/microsoft.asc" -O- | sudo apt-key add -
+> sudo add-apt-repository "deb [arch=amd64] https://packages.microsoft.com/repos/code stable main"
+> sudo apt install code # --fix-missing
+> ```
+>
+> 启动：
+>
+> ```sh
+> sudo code
+> ```
+
 #### 常用指令
 
 ##### 重命名

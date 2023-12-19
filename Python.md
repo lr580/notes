@@ -1403,7 +1403,7 @@ tuple内list可变，实例同理(dack)。切片取tuple复制后赋值，二者
 
 #### dict
 
-字典，即C语言的map。
+字典，即C语言的map。3.7 之后保证元素枚举顺序是插入顺序。(之前要 `collections.OrderedDict`)
 
 ```python
 x={1:20,'1':30}#初始化 key:value
@@ -1411,7 +1411,7 @@ x[2]=50 #新增元素
 y={}#空字典
 ```
 
-调用错误的值返回KeyError
+调用错误的值返回 `KeyError`
 
 `in .keys()` 是时空 O1 的
 
@@ -1637,8 +1637,6 @@ def do(self):
     print('Class attribute "b" is', self.b)
 a.do()
 ```
-
-
 
 #### 静态
 
@@ -2510,6 +2508,16 @@ lambda :print('123')
 ### 内建函数
 
 无需import即可直接使用的函数，如print。
+
+> 使用 del 可以清理被命名覆盖的变量
+>
+> ```python
+> sum=1
+> del sum
+> sum([1,2]) #之后再del报错
+> ```
+
+
 
 #### 算术函数
 
@@ -3599,10 +3607,17 @@ int(degrees(asin(0.5)))
 
 无需置随机数种子，也可置，可非 int 如 `random.seed(time.time())`
 
+##### random
+
+```python
+random() #[0,1] 随机实数
+uniform(a,b) #[a,b] 随机浮点数
+```
+
 ##### randint
 
 ```python
-randint(a，b) #返回区间[a,b]内随机整数
+randint(a,b) #返回区间[a,b]内随机整数
 ```
 
 ##### choice
@@ -3611,10 +3626,18 @@ randint(a，b) #返回区间[a,b]内随机整数
 choice(数组) #返回数组内随机一个元素,dict要key是整数,返回value
 ```
 
-加权，多次：
+加权，多次：(权和可以不为 1)
 
 ```python
-random.choices(list(self.mdl.index), weights=self.mdl.values, k=M)
+choices(list(self.mdl.index), weights=self.mdl.values, k=M)
+```
+
+##### sample
+
+取不重复元素
+
+```python
+sample(["never","gonna","give","you","up"],4)
 ```
 
 ##### randrange
@@ -3623,7 +3646,6 @@ random.choices(list(self.mdl.index), weights=self.mdl.values, k=M)
 # 从 0 到 9 中随机选择一个数字
 num = random.randrange(10)
 # 从 5 到 50 中随机选择一个数字
-
 num = random.randrange(5, 51)
 # 从 0 到 100 中以 5 为步长随机选择一个数字（例如 0, 5, 10, ..., 95, 100）
 num = random.randrange(0, 101, 5)
@@ -4296,6 +4318,16 @@ print(datetime.fromtimestamp(1623241613.023852))
 
 有属性 days 等。可以与日期进行加法运算。
 
+```python
+a=datetime(2002,3,8)
+b=datetime(2002,3,9)
+c=datetime(2002,3,8,23,59,59)
+(b-a).days #1
+(b-c).days #0
+```
+
+
+
 
 
 ##### 日历
@@ -4351,6 +4383,15 @@ t1 = time.perf_counter()
 time.sleep(0.5)
 t2 = time.perf_counter()
 print(t2 - t1)
+```
+
+其他计时库：
+
+```python
+import timeit
+t = timeit.Timer("[x**2 for x in range(500000)]")
+result = t.timeit(number=10) #测试10次，返回总用时
+print(result) #1.8840052999985346
 ```
 
 
@@ -4473,6 +4514,13 @@ from itertools import *
   对 dict 使用，等价于对 keys 使用
 
 - 排列 `permutaions(iterable, m = len)`
+
+  按照给定参数的顺序而不是字典序返回排列，每个排列是 tuple；组合、笛卡尔积同理
+
+  ```python
+  list(permutations([1,5,3]))
+  #[(1, 5, 3), (1, 3, 5), (5, 1, 3), (5, 3, 1), (3, 1, 5), (3, 5, 1)]
+  ```
 
 - 组合 `combinations(iterable, m)` 
 
@@ -4745,6 +4793,16 @@ people = [Person('张三', 30), Person('李四', 25), Person('王五', 40)]
 sorted_people = sorted(people, key=attrgetter('age'))
 for person in sorted_people:
     print(person.name, person.age)
+```
+
+#### zlib
+
+压缩解压缩
+
+```python
+import zlib
+print(zlib.compress(b'hello!'*20)) #b'x\x9c\xcbH\xcd\xc9\xc9W\xcc\xa0;\t\x00|B,%'
+print(zlib.decompress(b'x\x9cKLLJJ\x1c\x06\x18\x00\xe9]L-')) #b'aabb'*50
 ```
 
 
