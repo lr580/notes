@@ -1113,6 +1113,14 @@
 - 1901\.寻找峰值II
 
   枚举 / <u>二分</u>
+  
+- 2828\.判别首字母缩略词
+
+  签到
+  
+- 2866\.美丽塔II
+
+  单调栈+DP
 
 
 
@@ -30307,6 +30315,93 @@ class Solution:
 > ```
 >
 > 设一开始在第一列，极大值为 3，然后去第三列，极大值在 4，然后去第二列，极大值为 10，但 10 不是答案。[参见](https://leetcode.cn/problems/find-a-peak-element-ii/solutions/1208991/python3-er-fen-qie-pian-shi-jian-fu-za-d-gmd2/)
+
+##### 2828\.判别首字母缩略词
+
+[题目](https://leetcode.cn/problems/check-if-a-string-is-an-acronym-of-words)
+
+```python
+class Solution:
+    def isAcronym(self, words: List[str], s: str) -> bool:
+        if len(s)==len(words):
+            for i in range(len(s)):
+                if s[i]!=words[i][0]:
+                    return False
+            return True
+        return False
+```
+
+一句话题解：
+
+```python
+return ''.join(w[0] for w in words) == s
+```
+
+##### 2866\.美丽塔II
+
+[题目](https://leetcode.cn/problems/beautiful-towers-ii)
+
+使用单调栈，可以维护单调不降的和，即设 $dp_i$ 是前 $i$ 项保持单调不减的和。可以维护单调不降栈的元素为 $(val,l,r)$ 表示一个区间 $[l,r]$ 的取值都是 $val$。并维护和 $s$。初始设 $l=r=i,val=a_i$，每次弹栈时从 $s$ 去掉这个区间和，更新 $l$。
+
+用该算法原序求出 $up$，逆序求出 $down$。则以 $i$ 为峰值时，左边的和为 $up_i$，右边的和为 $down_{i+1}$。枚举 $i$ 求最大即可。注意不为 $up_{i-1}+a_i+down_{i+1}$。
+
+复杂度 $O(n)$。
+
+```python
+class Solution:
+    def maximumSumOfHeights(self, a: List[int]) -> int:
+        n = len(a)
+        def incrSum(a):
+            dp = [0] * n
+            inc = [] # non-desc stack interval(val,l,r)
+            s = 0
+            for i in range(n):
+                l,r=i,i
+                while inc and a[i] < inc[-1][0]:
+                    s -= (inc[-1][2] - inc[-1][1] + 1) * inc[-1][0]
+                    l = inc[-1][1]
+                    inc.pop()
+                s += (r-l+1)*a[i]
+                dp[i] = s
+                inc.append((a[i],l,r))
+            return dp
+        up, down, ans = incrSum(a), incrSum(a[::-1])[::-1], 0
+        for i in range(1,n-1):
+            ans = max(ans, up[i]+down[i+1])
+        ans = max(ans, up[n-1], down[0])
+        return ans
+```
+
+更优雅实现方法：
+
+```python
+class Solution:
+    def maximumSumOfHeights(self, a: List[int]) -> int:
+        n = len(a)
+        suf = [0] * (n + 1)
+        st = [n]  # 哨兵
+        s = 0
+        for i in range(n - 1, -1, -1):
+            x = a[i]
+            while len(st) > 1 and x <= a[st[-1]]:
+                j = st.pop()
+                s -= a[j] * (st[-1] - j)  # 撤销之前加到 s 中的
+            s += x * (st[-1] - i)  # 从 i 到 st[-1]-1 都是 x
+            suf[i] = s
+            st.append(i)
+
+        ans = s
+        st = [-1]  # 哨兵
+        pre = 0
+        for i, x in enumerate(a):
+            while len(st) > 1 and x <= a[st[-1]]:
+                j = st.pop()
+                pre -= a[j] * (j - st[-1])  # 撤销之前加到 pre 中的
+            pre += x * (i - st[-1])  # 从 st[-1]+1 到 i 都是 x
+            ans = max(ans, pre + suf[i + 1])
+            st.append(i)
+        return ans
+```
 
 
 
