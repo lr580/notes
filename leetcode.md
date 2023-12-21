@@ -1121,6 +1121,10 @@
 - 2866\.美丽塔II
 
   单调栈+DP
+  
+- 1671\.得到山形数组的最少删除次数
+
+  DP+前缀和 / <u>DP</u> / <u>二分+单调栈</u>
 
 
 
@@ -30402,6 +30406,114 @@ class Solution:
             st.append(i)
         return ans
 ```
+
+##### 1671\.得到山形数组的最少删除次数
+
+[题目](https://leetcode.cn/problems/minimum-number-of-removals-to-make-mountain-array)
+
+设得到严格单调递增的前 $i$ 个元素所需的最少删除是 $dp_i$，初始设 $dp_i=i$。有递推方程：
+$$
+dp_i=\min_{0\le j<i\wedge a_j < a_i}(dp_j+(i-j-1))
+$$
+顺序逆序求一遍，分别得到 $incr,desc$ 数组。
+
+如果不需要满足 $arr_0 < arr_i$ 和 $arr_i > arr_{n-1}$，那么直接枚举 $\min incr_i+desc_i$ 即为答案。
+
+考虑满足这两个条件，如 `[9,8,1,7,6,5,4,3,2,1]`，必须选第一个 $1$ 而不是选 $9$。则需要追加判断：是否当前方案前边有小于它的数。
+
+维护前缀 min $pre$ 和后缀 min $suf$，如果当前 $i$ 满足 $i\neq pre_i$，则前边有小于它的数，则根据 DP 递推可知，该数一定会在方案保留，所以会满足删后 $arr_0 < arr_i$。同理，$i\neq suf_i$，则后边也有小于它的数，则 $i$ 一定是峰值(左右都有严格小于的)。
+
+```python
+class Solution:
+    def minimumMountainRemovals(self, nums: List[int]) -> int:
+        n = len(nums)
+        def get(arr):
+            dp = [i for i in range(n)]
+            mi = [arr[0]] * n
+            for i in range(1,n):
+                mi[i]=min(mi[i-1],arr[i])
+                for j in range(i):
+                    if arr[j]<arr[i]:
+                        dp[i]=min(dp[i],dp[j]+i-j-1)
+            return dp,mi
+        incr, pre = get(nums)
+        desc, suf = (i[::-1] for i in get(nums[::-1]))
+        ans = n
+        for i in range(n):
+            if nums[i]!=pre[i] and nums[i]!=suf[i]:
+                ans=min(ans,incr[i]+desc[i])
+        return ans
+```
+
+一种可以优化掉前后缀min的实现：
+
+```c++
+class Solution {
+public:
+    int minimumMountainRemovals(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> delleft(n), delright(n);
+        for(int i = 0; i < n; ++i){ // 初始化delleft和delright为其左边或右边点的个数
+            delleft[i] = i;
+            delright[i] = n - i - 1;
+        }
+        for(int i = 0; i < n; ++i){
+            for(int j = i - 1; j >= 0; --j){
+                if(nums[j] < nums[i]) 
+                    delleft[i] = min(delleft[i], delleft[j] + i - j - 1);
+            }
+        }
+        for(int i = n - 1; i >= 0; --i){
+            for(int j = i + 1; j < n; ++j){
+                if(nums[j] < nums[i]) 
+                    delright[i] = min(delright[i], delright[j] + j - i - 1);
+            }
+        }
+        int ans = INT_MAX;
+        for(int i = 1; i < n - 1; ++i){ // 注意数组两头的元素不能作为山顶
+            if(delleft[i] == i || delright[i] == n - i - 1) continue; // 某点左边或者右边全删除完的不能作为山顶
+            ans = min(ans, delleft[i] + delright[i]);
+        }
+        return ans;
+    }
+};
+```
+
+二分+单调栈求出最长上升子序列的长度并存数组，则要删的长度就是全长减去子序列长度。
+
+```c++
+class Solution {
+public:
+    int minimumMountainRemovals(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> delleft(n), delright(n);
+        for(int i = 0; i < n; ++i){ // 初始化delleft和delright为其左边或右边点的个数
+            delleft[i] = i;
+            delright[i] = n - i - 1;
+        }
+        for(int i = 0; i < n; ++i){
+            for(int j = i - 1; j >= 0; --j){
+                if(nums[j] < nums[i]) 
+                    delleft[i] = min(delleft[i], delleft[j] + i - j - 1);
+            }
+        }
+        for(int i = n - 1; i >= 0; --i){
+            for(int j = i + 1; j < n; ++j){
+                if(nums[j] < nums[i]) 
+                    delright[i] = min(delright[i], delright[j] + j - i - 1);
+            }
+        }
+        int ans = INT_MAX;
+        for(int i = 1; i < n - 1; ++i){ // 注意数组两头的元素不能作为山顶
+            if(delleft[i] == i || delright[i] == n - i - 1) continue; // 某点左边或者右边全删除完的不能作为山顶
+            ans = min(ans, delleft[i] + delright[i]);
+        }
+        return ans;
+    }
+};
+```
+
+
 
 
 

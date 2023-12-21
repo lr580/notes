@@ -26,10 +26,22 @@ python3.4是最后支持window XP的版本。不要安装最新的版本，往�
 python --version
 ```
 
+代码查看：
+
+```python
+import platform
+print(platform.python_version()) #'3.10.6'
+```
+
 查看安装路径
 
 ```shell
 py -0p
+```
+
+```python
+import sys
+sys.executable # '...\\Python310\\pythonw.exe' 绝对路径
 ```
 
 
@@ -3660,6 +3672,12 @@ num = random.randrange(0, 101, 5)
 main参数
 
 `sys.argv` 得到数组，第一个元素是输入的执行本程序名，后面是输入的参数
+
+安装路径：
+
+```python
+sys.executable # '...\\Python310\\pythonw.exe' 绝对路径
+```
 
 
 
@@ -9095,6 +9113,27 @@ plt.imshow(img2, 'gray')
 plt.show()
 ```
 
+#### 其他例子
+
+##### 字符画转换
+
+基本理论：灰度低的映射到看着更密的字符。
+
+```python
+import cv2
+import numpy as np
+def convert_image_to_ascii(image_path, output_file, chars="@$%#*+=-:. "):
+    img = cv2.imread(image_path)
+    # 将图片转换为灰度
+    gray_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # 使用 NumPy 重新调整灰度值 将灰度值映射到字符集上
+    char_indices = (gray_image / (256.0 / len(chars))).astype(np.int32)
+    ascii_image = "\n".join("".join(chars[idx] for idx in row) for row in char_indices)
+    with open(output_file, "w") as f:
+        f.write(ascii_image)
+convert_image_to_ascii("a.jpg", "output.txt")
+```
+
 
 
 ### pillow
@@ -9178,9 +9217,19 @@ plt.imshow(img1)
 plt.show()
 ```
 
+#### 直方图均衡化
+
+```python
+from PIL import Image, ImageOps
+image = Image.open("path_to_your_image.jpg")
+equalized_image = ImageOps.equalize(image)
+equalized_image.save("equalized_image.jpg")
+```
 
 
-### scikit-image
+
+> ### scikit-image
+>
 
 
 
