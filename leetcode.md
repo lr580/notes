@@ -1125,6 +1125,10 @@
 - 1671\.得到山形数组的最少删除次数
 
   DP+前缀和 / <u>DP</u> / <u>二分+单调栈</u>
+  
+- 1962\.移除石子使总数最小
+
+  STL
 
 
 
@@ -30511,6 +30515,24 @@ public:
         return ans;
     }
 };
+```
+
+##### 1962\.移除石子使总数最小
+
+[题目](https://leetcode.cn/problems/remove-stones-to-minimize-the-total)
+
+```python
+from heapq import heapify, heappop, heappush
+class Solution:
+    def minStoneSum(self, piles: List[int], k: int) -> int:
+        a,ans = [-v for v in piles],sum(piles)
+        heapify(a)
+        for i in range(k):
+            x = -heappop(a)
+            dt = x // 2
+            ans -= dt
+            heappush(a, -(x - dt))
+        return ans
 ```
 
 

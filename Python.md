@@ -3556,6 +3556,8 @@ heapq.heappush(heap, (1, '任务1'))
 heapq.heappush(heap, (3, '任务3'))
 while heap:
     print(heapq.heappop(heap)) #1,2,3
+a=[1,1,4,5,1,4]
+heapq.heapify(a) #成最小堆,无返回值
 ```
 
 
