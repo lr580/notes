@@ -10360,6 +10360,24 @@ print(summation(summation(j,(j,1,i)),(i,1,n)).simplify()) # n*(n**2 + 3*n + 2)/6
 (i**2*j-i*j*j).simplify() # i*j*(i - j)
 ```
 
+##### 极限
+
+```python
+from sympy import *
+x=symbols('x')
+limit(cot(x)-1/x,x,0)
+```
+
+单侧极限：
+
+```python
+f = 1/x
+left_limit = limit(f, x, 0, '-') '-oo'
+right_limit = limit(f, x, 0, '+')
+```
+
+
+
 #### 数值运算
 
 ##### 解方程

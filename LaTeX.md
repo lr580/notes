@@ -302,9 +302,13 @@ $$
 \mathcal{ABCDEFGHIJKLMNOPQRSTUVWXYZ}
 $$
 
+blackboard bold font 通常用于表示数学中的特定集合
+
 $$
 \mathbb{ABCDEFGHIJKLMNOPQRSTUVWXYZ}
 $$
+
+mathfrak 是哥特体  Fraktur font
 
 以下不只是大写都可以
 $$
@@ -313,11 +317,15 @@ $$
 \mathfrak{0123456789}
 $$
 
+mathsf: sans-serif font 无衬线字体
+
 $$
 \mathsf{ABCDEFGHIJKLMNOPQRSTUVWXYZ}\\
 \mathsf{abcdefghijklmnopqrstuvwxyz}\\
 \mathsf{0123456789}
 $$
+
+mathbf: bold font
 
 $$
 \mathbf{ABCDEFGHIJKLMNOPQRSTUVWXYZ}\\
@@ -325,13 +333,12 @@ $$
 \mathbf{0123456789}
 $$
 
-斜体 textit
+斜体 textit (italic)
 $$
 \textit{1234567890 ABC abc}
 $$
 
-正体 mathrm $\mathrm{arccot}\ x$
-
+正体 mathrm (roman) $\mathrm{arccot}\ x$
 
 ### 字符
 
