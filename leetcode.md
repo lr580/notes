@@ -1129,6 +1129,10 @@
 - 1962\.移除石子使总数最小
 
   STL
+  
+- 1954\.收集足够苹果的最小花园周长
+
+  数学+二分/枚举
 
 
 
@@ -30535,7 +30539,34 @@ class Solution:
         return ans
 ```
 
+##### 1954\.收集足够苹果的最小花园周长
 
+[题目](https://leetcode.cn/problems/minimum-garden-perimeter-to-collect-enough-apples)
+
+将一条坐标轴和一个象限设为一个区域，对半边长 $a$，周长为 $4(2a)=8a$，数目为：
+$$
+\sum_{x=-a}^a\sum_{y=-a}^a|x|+|y|=4\sum_{x=1}^a\sum_{y=0}^ax+y=4\sum_{x=1}^a(a+1)x+\dfrac{0+a}2(a+1)\\=4(a+1)\dfrac{a(a+1)}2+a\dfrac{0+a}2(a+1)=2a(a+1)(2a+1)
+$$
+二分 $a$ 即可。
+
+```python
+class Solution:
+    def minimumPerimeter(self, neededApples: int) -> int:
+        lf,rf,ans=1,int(1e5),1
+        while lf<=rf:
+            cf=(lf+rf)>>1
+            cnt=2*cf*(cf+1)*(2*cf+1)
+            if cnt>=neededApples:
+                ans=cf
+                rf=cf-1
+            else:
+                lf=cf+1
+        return 8*ans
+```
+
+其他求和方式略。
+
+也可以直接枚举，可知复杂度为 $O(\sqrt[3]n)$。略。
 
 
 
