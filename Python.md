@@ -4513,6 +4513,28 @@ def Decode(Binary): # 解密
 	return json.loads(Binary.decode('utf-8'))
 ```
 
+#### functools
+
+##### 缓存
+
+1. 版本要求：
+   - `@cache` 是在 Python 3.9 中引入的。
+   - `@lru_cache` 在较早的版本中就已经存在（Python 3.2 及以上版本）。
+2. 缓存策略：
+   - `@cache` 本质上是 `@lru_cache(maxsize=None)` 的简化版本。它不限制缓存大小，所以会缓存所有调用的结果。
+   - `@lru_cache` 允许你指定一个 `maxsize` 参数，用于限制缓存的大小。如果设置了 `maxsize`，它将采用“最近最少使用”（LRU）策略来淘汰旧的缓存项。
+
+```python
+from functools import lru_cache, cache
+@lru_cache(maxsize=None) # 或 @cache ,都不加就 TLE
+def fibonacci_mod(n):
+    MOD = 10**9 + 7
+    if n < 2:
+        return n
+    return (fibonacci_mod(n - 1) + fibonacci_mod(n - 2)) % MOD
+print(fibonacci_mod(400))
+```
+
 
 
 #### itertools

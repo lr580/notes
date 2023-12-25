@@ -1133,6 +1133,10 @@
 - 1954\.收集足够苹果的最小花园周长
 
   数学+二分/枚举
+  
+- 1349\. 参加考试的最大学生数
+
+  状压DP / <u>网络流</u>
 
 
 
@@ -30568,7 +30572,301 @@ class Solution:
 
 也可以直接枚举，可知复杂度为 $O(\sqrt[3]n)$。略。
 
+##### 1349\.参加考试的最大学生数
 
+[题目](https://leetcode.cn/problems/maximum-students-taking-exam)
+
+设状态 $s$ 代表一行的座位，从左到右如果是 $1$ 表示有人，是 $0$ 表示没人。显然，$s$ 一定是 `.#` 的子集(`.` 为 $1$)，所以可用枚举子集技巧来生成 $s$。
+
+对二进制 $m$，它的所有非空子集为：
+
+```c++
+for (int s = m; s; s = (s - 1) & m) // s 是 m 的一个非空子集
+```
+
+接下来，可以用位运算判断是否二进制 $s$ 的每个 $1$ 的左右都是 $0$，考虑使用 $s\&(s < < 1)=0$ 和 $s\&(s > > 1)=0$ 来判断。这样可以判断同行的左右是否没人。同理，跨行，对本行 $s$ 和前一行 $t$，只需要判断 $t\&(s < < 1)=0$ 和 $t\&(s > > 1)=0$。
+
+解决了前置问题，现在可以设 $dp_{i,j}$ 为只考虑前 $i$ 行，第 $i$ 行坐人状态为 $j$ 的总坐人数。则答案为 $\max_j dp_{n-1,j}$。设 $num1(s)$ 求二进制状态 $s$ 的 $1$ 的数目，第 $i$ 行教室二进制状态 $a_i$(`.` 为 $1$)，设 $f(s)$ 求出所有 $s$ 的满足每个 $1$ 的左右 $0$ 的全体子集。则递推方程为：
+$$
+dp_{i,j}=\max_{k\in f(a_{i-1})}dp_{i-1,k}+num1(j)
+$$
+设行数为 $n$，列数为 $m$，则空间复杂度为 $O(n2^m)$，时间复杂度为 $O(n2^{2m})$。
+
+```python
+class Solution:
+    def maxStudents(self, seats: List[List[str]]) -> int:
+        n, m, IMPOS = len(seats), len(seats[0]), -100
+        # 前i行,第i行状态为j的最大学生数
+        dp = [[IMPOS for j in range(2**m)] for i in range(n)]
+        a = [int(''.join(seats[i]).replace('.','1').replace('#','0'),2) for i in range(n)] #可用为1不可用为0的状态行
+        def subset(w): #枚举子集
+            s=w
+            while s:
+                yield s
+                s=(s-1)&w
+            yield s
+        # def noLeftRight(s):
+            # return s|(s<<1)==s^(s<<1) and s|(s>>1)==s^(s>>1)
+        def noLeftRight(s,t): #s每个1左右移动是否不能到达任意t的1
+            return t&(s<<1)==0 and t&(s>>1)==0
+        def subsetIso(s):
+            for i in subset(s):
+                if noLeftRight(i,i):
+                    yield i
+        def num1(s):
+            return bin(s).count('1')
+        for j in subsetIso(a[0]):
+            dp[0][j] = num1(j)
+        for i in range(1,n):
+            for j in subsetIso(a[i]):
+                for k in subsetIso(a[i-1]):
+                    if noLeftRight(j,k):
+                        dp[i][j] = max(dp[i][j], dp[i-1][k]+num1(j))
+        return max(dp[-1])
+```
+
+记忆化搜索写法：
+
+```python
+class Solution:
+    def maxStudents(self, seats: List[List[str]]) -> int:
+
+        def isSingleRowCompliant(status: int, row: int) -> bool:
+            for j in range(n):
+                if ((status >> j) & 1) == 1:
+                    if seats[row][j] == '#':
+                        return False
+                    if j > 0 and ((status >> (j - 1)) & 1) == 1:
+                        return False
+            return True
+
+        def isCrossRowsCompliant(status: int, upperRowStatus: int) -> bool:
+            for j in range(n):
+                if ((status >> j) & 1) == 1:
+                    if j > 0 and ((upperRowStatus >> (j - 1)) & 1) == 1:
+                        return False
+                    if j < n - 1 and ((upperRowStatus >> (j + 1)) & 1) == 1:
+                        return False
+            return True
+
+        @cache
+        def dp(row: int, status: int) -> int:
+            if not isSingleRowCompliant(status, row):
+                return -inf
+            students = bin(status).count('1')
+            if row == 0:
+                return students
+            mx = 0
+            for upperRowStatus in range(2 ** n):
+                if isCrossRowsCompliant(status, upperRowStatus):
+                    mx = max(mx, dp(row - 1, upperRowStatus))
+            return students + mx
+
+        m, n = len(seats), len(seats[0])
+        mx = 0
+        for i in range(2 ** n):
+            mx = max(mx, dp(m - 1, i))
+        return mx
+```
+
+网络流：按照列下标($j$)的奇偶性建二分图：
+
+- 源点 $S$ 向每个奇点连边，每个偶点向汇点 $T$ 连边
+- 如果当前座位的左边是座位：如果当前点是奇点，则左边是偶点，当前连左边；否则，左边连当前
+- 如果右边是座位，也如此这般连
+- 对左上和右上，也是如此这般
+- 每条边的流量是 $1$
+
+求二分图最大点独立集，转化为 Dinic 求最大流 $O(n^3)$ [参考](https://leetcode.cn/problems/maximum-students-taking-exam/solutions/89661/er-fen-tu-zui-da-du-li-ji-by-lightcml/) 
+
+> 二分图的最大点独立集是指在二分图中选出的一个点集，其中任意两个点都不相连，且这个点集的大小尽可能大。简单来说，它是图中最大的无边连接的点的集合。
+>
+> 通过求解其对偶问题——最小点覆盖问题。根据König定理，在二分图中，最大点独立集的大小等于最小点覆盖集的大小。最小点覆盖集是指在图中选出最少的点，使得所有的边至少有一个端点被选中。
+
+```c++
+class Solution {
+    const int INF=1<<29;
+    int tot,head[110];
+    struct Edge {int to,net,v;}E[10010];
+    void addedge(int x,int y,int v)
+    {
+        E[++tot].to=y;E[tot].net=head[x];head[x]=tot;E[tot].v=v;
+        E[++tot].to=x;E[tot].net=head[y];head[y]=tot;E[tot].v=0;
+    }
+    int n,m,S,T,Q[110],depth[110];
+    int getp(int x,int y)
+    {
+        return x*m+y+1;
+    }
+    bool bfs()
+    {
+        for (int i=S;i<=T;++i) depth[i]=-1;
+        int L=0,R=1;
+        Q[1]=S;
+        depth[S]=0;
+        while (L<R)
+        {
+            int x=Q[++L];
+            for (int i=head[x];i;i=E[i].net)
+                if (E[i].v>0 && depth[E[i].to]==-1)
+                {
+                    depth[E[i].to]=depth[x]+1;
+                    Q[++R]=E[i].to;
+                }
+        }
+        return depth[T]!=-1;
+    }
+    int dfs(int x,int flow)
+    {
+        if (x==T || !flow) return flow;
+        int w=0;
+        for (int i=head[x];i;i=E[i].net)
+            if (E[i].v>0 && depth[E[i].to]==depth[x]+1)
+            {
+                int v=dfs(E[i].to,min(flow-w,E[i].v));
+                E[i].v-=v;E[i^1].v+=v;w+=v;
+            }
+        if (!w) depth[x]=-1;
+        return w;
+    }
+    int Dinic() {int sum=0;while(bfs()) sum+=dfs(S,INF);return sum;}
+public:
+    int maxStudents(vector<vector<char>>& seats) {
+        tot=1;
+        n=seats.size();
+        m=seats[0].size();
+        S=0;
+        T=n*m+1;
+        int cnt=0;
+        for (int i=0;i<n;++i)
+            for (int j=0;j<m;++j)
+                if (seats[i][j]=='.')
+                {
+                    ++cnt;
+                    int x=i*m+j+1;
+                    if (j&1) addedge(S,x,1);
+                    else addedge(x,T,1);
+                    if (j-1>=0 && seats[i][j-1]=='.')
+                    {
+                        if (j&1) addedge(x,getp(i,j-1),1);
+                        else addedge(getp(i,j-1),x,1);
+                    }
+                    if (j+1<m && seats[i][j+1]=='.')
+                    {
+                        if (j&1) addedge(x,getp(i,j+1),1);
+                        else addedge(getp(i,j+1),x,1);
+                    }
+                    if (i && j+1<m && seats[i-1][j+1]=='.')
+                    {
+                        if (j&1) addedge(x,getp(i-1,j+1),1);
+                        else addedge(getp(i-1,j+1),x,1);
+                    }
+                    if (i && j && seats[i-1][j-1]=='.')
+                    {
+                        if (j&1) addedge(x,getp(i-1,j-1),1);
+                        else addedge(getp(i-1,j-1),x,1);
+                    }
+                }
+        return cnt-Dinic();
+    }
+};
+```
+
+python: [参考](https://leetcode.cn/problems/maximum-students-taking-exam/solutions/93982/wang-luo-liu-er-fen-tu-zui-da-du-li-ji-jian-dan-fa/) (Ford-Fulkerson)
+
+```python
+class Solution:
+    def maxStudents(self, seats: List[List[str]]) -> int:
+        n = len(seats)
+        m = len(seats[0])
+        edges = [[], []]
+        s = 0
+        t = 1
+        cur = 2
+        for i in range(n):
+            for j in range(m):
+                if seats[i][j] == '.':
+                    edges.append([])
+                    if j & 1 == 1: # 偶数
+                        edges[s].append(cur)
+                    else:
+                        edges[cur].append(t)
+                    seats[i][j] = cur
+                    cur += 1
+        if cur == 2: return 0
+        for i in range(n):
+            for j in range(m):
+                if seats[i][j] != '#':
+                    cur = seats[i][j]
+                    if j + 1 < m and seats[i][j+1] != '#':
+                        if j & 1 == 1:
+                            edges[cur].append(seats[i][j+1])
+                        else:
+                            edges[seats[i][j+1]].append(cur)
+                    if i > 0:
+                        if j + 1 < m and seats[i-1][j+1] != '#':
+                            if j & 1 == 1:
+                                edges[cur].append(seats[i-1][j+1])
+                            else:
+                                edges[seats[i-1][j+1]].append(cur)
+                        if j - 1 >= 0 and seats[i-1][j-1] != '#':
+                            if j & 1 == 1:
+                                edges[cur].append(seats[i-1][j-1])
+                            else:
+                                edges[seats[i-1][j-1]].append(cur)
+        #for e in enumerate(edges): print(e)
+        #for s in seats: print(s)
+        edges2 = [[] for i in range(len(edges))]
+        for s, e in enumerate(edges):
+            if s == 0: continue
+            for i in e:
+                if i == 1: continue
+                edges2[i].append(s)
+            
+        flag = [[False] * len(edges) for _ in edges]
+        vis = [False] * len(edges)
+        p = []
+        ans = 0
+        def dfs(i):
+            #print(i)
+            if i == 1:
+                print('\t', p)
+                return True
+            for j, e in enumerate(edges[i]):
+                if vis[e]: continue
+                vis[e] = True
+                if flag[i][e] == False:
+                    flag[i][e] = True
+                    p.append(e)
+                    r = dfs(e)
+                    p.pop()
+                    if r:
+                        vis[e] = False
+                        return r
+                    flag[i][e] = False
+                vis[e] = False
+            for j, e in enumerate(edges2[i]):
+                if vis[e]: continue
+                vis[e] = True
+                # print(j, i)
+                if flag[e][i] == True:
+                    flag[e][i] = False
+                    p.append(e)
+                    r = dfs(e)
+                    p.pop()
+                    if r:
+                        vis[e] = False
+                        return r
+                    flag[e][i] = True
+                vis[e] = False
+            return False
+
+        while dfs(0):
+            cur -= 1
+        return cur - 1
+```
+
+(没想明白，为啥要分奇偶)
 
 > ### 力扣比赛
 
