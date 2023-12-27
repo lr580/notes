@@ -1137,6 +1137,10 @@
 - 1349\. 参加考试的最大学生数
 
   状压DP / <u>网络流</u>
+  
+- 2735\.收集巧克力
+
+  枚举(+优化) / <u>单调栈+前缀和+斜率优化</u>
 
 
 
@@ -30867,6 +30871,107 @@ class Solution:
 ```
 
 (没想明白，为啥要分奇偶)
+
+##### 2735\.收集巧克力
+
+[题目](https://leetcode.cn/problems/collecting-chocolates)
+
+设第 $i$ 个类型的巧克力成本的最小值为 $a_i$。初始时修改了 $k=0$ 轮类型，初始 $a_i=nums_i$。答案为 $kx+\sum a$。
+
+每修改一次类型，$k$ 增加，更新 $a_i=\min(a_i,nums_{i-k})$，维护答案。输出最小答案即可。
+
+```python
+class Solution:
+    def minCost(self, nums: List[int], x: int) -> int:
+       n, ans, a = len(nums), 1e9, nums[::]
+       for i in range(n):
+           ans = min(ans, sum(a)+i*x)
+           for j in range(n):
+               a[j]=min(a[j],nums[(j-(i+1)+n)%n])
+       return ans
+```
+
+一种压掉一维的枚举顺序：
+
+```python
+class Solution:
+    def minCost(self, nums: List[int], x: int) -> int:
+        n = len(nums)
+        s = list(range(0, n * x, x))  # s[k] 统计操作 k 次的总成本
+        for i, mn in enumerate(nums):  # 子数组左端点
+            for j in range(i, n + i):  # 子数组右端点（把数组视作环形的）
+                mn = min(mn, nums[j % n])  # 维护从 nums[i] 到 nums[j] 的最小值
+                s[j - i] += mn  # 累加操作 j-i 次的花费
+        return min(s)
+```
+
+枚举操作次数 $i$，则第 $j$ 类巧克力的最小价值为 $\min(nums_k,k\in [j-i,j])$。所有巧克力加起来答案为长为 $i+1$ 区间的最小值之和。即求：长度为 $i$ 的区间最小值之和。也可以等价于 $[j,j+i]$。
+
+每个 $nums_j$ ，最小值时，对区间长度 $i$ 的答案贡献是 $nums_j\cdot i$。
+
+去掉最小值转换为链上问题。
+
+单调栈求出每个 $nums_j$ 左右有多少个连续的数大于它，值相等再比较下标。若左右分别有 $l_j,r_j$ 个数连续大于它，则有 $(l_j+1)(r_j+1)$ 个区间的最小值是 $nums_j$。
+
+设 $l_j\le r_j$，枚举 $0\le x\le l_j$ 的 $x$，对区间长度范围为 $[x+1,x+1+r_j]$ 都有贡献 $nums_j$，维护差分数组，前后缀和统计，可以做到 $O(n\log n)$。
+
+对区间长度 $i\in [1,l_j]$，对 $i$ 的贡献是 $nums_j\cdot i$，长度为 $i\in [l_j+1,r_j]$ 时，对 $i$ 贡献是 $nums_j(l_j+1)$，长度为 $[r_j,l_j+r_j+1]$ 时，贡献是 $nums_j (l_j+r_j+2-i)$，都是关于 $i$ 的一次函数，则维护斜率和截距的差分数组，然后前缀和统计计算即可。
+
+```python
+class Solution:
+    def minCost(self, nums: List[int], x: int) -> int:
+        n = len(nums)
+        k = [0] * (n + 1)
+        b = [0] * (n + 1)
+
+        def add(l: int, r: int, delta_k: int, delta_b: int):
+            k[l] += delta_k
+            k[r] -= delta_k
+            b[l] += delta_b
+            b[r] -= delta_b
+
+        add(0, n, x, 0)
+
+        min_num = min(nums)
+        min_index = nums.index(min_num)
+
+        add(0, n, min_num, min_num)
+
+        nums = [nums[(min_index + i) % n] for i in range(1, n)]
+
+        def f(a: List[int], left_less: True):
+            res = [0] * len(a)
+            stack = []
+            for i in range(len(a)):
+                while len(stack) and (
+                    a[stack[-1]] > a[i] or (a[stack[-1]] == a[i] and not left_less)
+                ):
+                    stack.pop()
+                if len(stack):
+                    res[i] = i - stack[-1] - 1
+                else:
+                    res[i] = i
+                stack.append(i)
+            return res
+
+        l = f(nums, True)
+        r = f(nums[::-1], False)[::-1]
+        for i in range(n - 1):
+            li, ri = min(l[i], r[i]), max(l[i], r[i])
+            add(0, li, nums[i], nums[i])
+            add(li, ri, 0, (li + 1) * nums[i])
+            add(ri, li + ri + 1, -nums[i], (li + ri + 1) * nums[i])
+
+        for i in range(1, n):
+            k[i] += k[i - 1]
+            b[i] += b[i - 1]
+
+        return min(k[i] * i + b[i] for i in range(n))
+```
+
+> 没有很看懂，没有时间细看了，有机会再看看。
+
+
 
 > ### 力扣比赛
 

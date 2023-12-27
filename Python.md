@@ -1881,6 +1881,14 @@ else:
 print(3) if 0 else print(4) if 0 else print(5) #5
 ```
 
+多层不用括号：
+
+```python
+return 0 if s1 == s2 else 1 if s1 > s2 else 2
+```
+
+
+
 ### 循环
 
 > 没有do……while，不允许在判别式里赋值(不同C语言)
