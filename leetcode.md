@@ -1141,6 +1141,10 @@
 - 2735\.收集巧克力
 
   枚举(+优化) / <u>单调栈+前缀和+斜率优化</u>
+  
+- 2706\.购买两块巧克力
+
+  签到
 
 
 
@@ -30970,6 +30974,34 @@ class Solution:
 ```
 
 > 没有很看懂，没有时间细看了，有机会再看看。
+
+##### 2706\.购买两块巧克力
+
+[题目](https://leetcode.cn/problems/buy-two-chocolates)
+
+```python
+class Solution:
+    def buyChoco(self, prices: List[int], money: int) -> int:
+        prices.sort()
+        if prices[0]+prices[1]>money:
+            return money
+        return money-(prices[0]+prices[1])
+```
+
+更优雅：
+
+```python
+class Solution:
+    def buyChoco(self, prices: List[int], money: int) -> int:
+        mn1 = mn2 = inf
+        for p in prices:
+            if p < mn1:
+                mn2 = mn1
+                mn1 = p
+            elif p < mn2:
+                mn2 = p
+        return money if mn1 + mn2 > money else money - mn1 - mn2
+```
 
 
 

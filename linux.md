@@ -3229,6 +3229,12 @@ kill PID 终止线程执行 ，或 `killall 进程名` 。一个同名进程可�
 - `pgrep -l -U usr1`
 - `pkill -9 -U usr1`
 
+> 默认是 `SIGTERM`（信号15）信号，大多数进程都会在收到 `SIGTERM` 信号时进行清理操作并优雅地退出。更强制是 `SIGKILL`（信号9）信号。这个信号会立即终止进程，不给进程进行任何清理或保存状态的机会。
+
+```sh
+pkill -9 dispatcher
+```
+
 
 
 ##### runlevel
