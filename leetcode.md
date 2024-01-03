@@ -1145,6 +1145,10 @@
 - 2706\.购买两块巧克力
 
   签到
+  
+- 2487\.从链表中移除节点
+
+  链表
 
 
 
@@ -31001,6 +31005,90 @@ class Solution:
             elif p < mn2:
                 mn2 = p
         return money if mn1 + mn2 > money else money - mn1 - mn2
+```
+
+##### 2487\.从链表中移除节点
+
+[题目](https://leetcode.cn/problems/remove-nodes-from-linked-list)
+
+后缀 max：
+
+```python
+class Solution:
+    def removeNodes(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        u = head
+        a = []
+        while u:
+            a.append(u.val)
+            u = u.next
+        n = len(a)
+        mx = a[::]
+        for i in range(n-2,-1,-1):
+            mx[i]=max(mx[i],mx[i+1])
+        res = ListNode()
+        hd = res
+        for i in range(n):
+            if a[i]==mx[i]:
+                res.next = ListNode(a[i])
+                res = res.next
+        return hd.next
+```
+
+递归：当前节点对它右边的节点都无后效性。
+
+```python
+class Solution:
+    def removeNodes(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        if head is None:
+            return None
+        head.next = self.removeNodes(head.next)
+        if head.next is not None and head.val < head.next.val:
+            return head.next
+        else:
+            return head
+```
+
+栈：
+
+```python
+class Solution:
+    def removeNodes(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        st = []
+        while head is not None:
+            st.append(head)
+            head = head.next
+        while st:
+            if head is None or st[-1].val >= head.val:
+                st[-1].next = head
+                head = st[-1]
+            st.pop()
+        return head
+```
+
+可以空间 O1 反转链表，即遍历一个链表，每次把当前遍历节点的 next 值修改为上一个值。
+
+先翻转，然后处理为左边更大，即做一个单调上升：不断移除当前节点比它大的下一个点。
+
+```python
+class Solution:
+    def reverse(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        dummy = ListNode()
+        while head is not None:
+            p = head
+            head = head.next
+            p.next = dummy.next
+            dummy.next = p
+        return dummy.next
+
+    def removeNodes(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        head = self.reverse(head)
+        p = head
+        while p.next is not None:
+            if p.val > p.next.val:
+                p.next = p.next.next
+            else:
+                p = p.next
+        return self.reverse(head)
 ```
 
 
