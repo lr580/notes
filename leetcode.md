@@ -1149,6 +1149,10 @@
 - 2487\.从链表中移除节点
 
   链表
+  
+- 2397\. 被列覆盖的最多行数
+
+  DFS / 二进制枚举 / Gosper's Hack
 
 
 
@@ -1162,7 +1166,9 @@
 
 [题目](https://leetcode.cn/problems/median-of-two-sorted-arrays/)
 
-> 究极暴力：sort $O((n+m)\log (n+m))$
+> 究极暴力：sort 
+>
+> $O((n+m)\log (n+m))$
 >
 > 一般暴力：归并排序思想合并/双指针 $O(n+m)$
 >
@@ -31089,6 +31095,149 @@ class Solution:
             else:
                 p = p.next
         return self.reverse(head)
+```
+
+##### 2397\. 被列覆盖的最多行数
+
+[题目](https://leetcode.cn/problems/maximum-rows-covered-by-columns/)
+
+我的 DFS：
+
+```python
+from typing import *
+class Solution:
+    def maximumRows(self, matrix: List[List[int]], numSelect: int) -> int:
+        n,m=len(matrix),len(matrix[0])
+        req=[sum(matrix[i]) for i in range(n)]
+        cnt,res,ans=[0]*n,sum(i==0 for i in req),0
+        def dfs(k,low):
+            nonlocal res,ans
+            # print(k,low,cnt,res)
+            if k==numSelect:
+                ans=max(ans,res)
+                return
+            for i in range(low+1,m):
+                for j in range(n):
+                    if matrix[j][i]:
+                        cnt[j]+=1
+                        res+=cnt[j]==req[j]
+                dfs(k+1,i)
+                for j in range(n):
+                    if matrix[j][i]:
+                        res-=cnt[j]==req[j]
+                        cnt[j]-=1
+        dfs(0,-1)
+        return ans
+```
+
+可以证明是 NP-hard 的：[here](https://leetcode.cn/problems/maximum-rows-covered-by-columns/solutions/1798588/zhe-ge-wen-ti-shi-npcde-by-hqztrue-2zvs/)。
+
+二进制枚举其实更快：
+
+```python
+class Solution:
+    def maximumRows(self, mat: List[List[int]], numSelect: int) -> int:
+        mask = [sum(x << j for j, x in enumerate(row)) for i, row in enumerate(mat)]
+        ans = 0
+        for subset in range(1 << len(mat[0])):
+            if subset.bit_count() == numSelect:  # subset 的大小等于 numSelect
+                covered_rows = sum(row & subset == row for row in mask)
+                ans = max(ans, covered_rows)
+        return ans
+```
+
+一种枚举所有 m 个里取 k 个的组合的方法，避免无效枚举。 Gosper's Hack。
+
+> 1. 初始化：从最小的子集开始，即最右边的k位都设置为1，其他位为0。这代表了最小的k元素子集。
+> 2. 迭代：在每一步迭代中，算法修改当前的位模式，生成下一个子集。这是通过以下步骤完成的：
+>    - 找到最右边的1，并将其向右移动一位。
+>    - 更新这个1左边的所有位，使之成为连续的1。
+>    - 更新这个1右边的所有位，使之成为连续的0。
+> 3. 终止条件：当不能再生成新的子集时，算法终止。
+>
+> 参考：
+>
+> ```python
+> def gospers_hack(k, n):
+>     """Generate all k-subsets of a set of size n using Gosper's Hack."""
+>     def next_subset(subset):
+>         """Generate the next subset."""
+>         u = subset & -subset
+>         v = subset + u
+>         return v | (((v ^ subset) // u) >> 2)
+> 
+>     # Initial subset
+>     subset = (1 << k) - 1
+>     limit = (1 << n)
+> 
+>     while subset < limit:
+>         yield subset
+>         subset = next_subset(subset)
+> 
+> # Example: Generate all 3-subsets of a 5-element set
+> k = 3
+> n = 5
+> subsets = list(gospers_hack(k, n))
+> 
+> # Converting bit patterns to subsets for easier understanding
+> formatted_subsets = []
+> for subset in subsets:
+>     formatted_subset = [i + 1 for i in range(n) if (1 << i) & subset]
+>     formatted_subsets.append(formatted_subset)
+> 
+> print(formatted_subsets)
+> '''[[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4],
+> [1, 2, 5], [1, 3, 5], [2, 3, 5], [1, 4, 5],
+> [2, 4, 5], [3, 4, 5]]'''
+> ```
+
+
+
+```python
+class Solution:
+    def maximumRows(self, mat: List[List[int]], numSelect: int) -> int:
+        mask = [sum(x << j for j, x in enumerate(row)) for i, row in enumerate(mat)]
+        ans = 0
+        u = 1 << len(mat[0])
+        subset = (1 << numSelect) - 1
+        while subset < u:
+            covered_rows = sum(row & subset == row for row in mask)
+            ans = max(ans, covered_rows)
+            lb = subset & -subset
+            x = subset + lb
+            subset = ((subset ^ x) // lb >> 2) | x
+        return ans
+```
+
+```c++
+class Solution {
+public:
+    int maximumRows(vector<vector<int>> &mat, int numSelect) {
+        int m = mat.size(), n = mat[0].size();
+        vector<int> mask(m);
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                mask[i] |= mat[i][j] << j;
+            }
+        }
+
+        int ans = 0;
+        int subset = (1 << numSelect) - 1;
+        while (subset < (1 << n)) {
+            int coveredRows = 0;
+            for (int row : mask) {
+                if ((row & subset) == row) {
+                    coveredRows++;
+                }
+            }
+            ans = max(ans, coveredRows);
+            int lb = subset & -subset;
+            int x = subset + lb;
+            subset = ((subset ^ x) / lb >> 2) | x;
+        }
+        return ans;
+    }
+};
 ```
 
 

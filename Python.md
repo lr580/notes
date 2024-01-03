@@ -1180,6 +1180,14 @@ list(zip(*[((1, 1), False, 'd'), ((2, 2), True, 'e'), ((1, 3), False, 'f')]))
 > str(int(num1)+int(num2)) # 高精度加法
 > ```
 
+位运算方法(变量可用)：
+
+```python
+x=15
+x.bit_count() #数1; 15.bit_count() 报错
+x.bit_length() #二进制串长度
+```
+
 
 
 #### float
