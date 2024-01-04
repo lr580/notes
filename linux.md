@@ -5641,6 +5641,12 @@ scp -r scnuoj@10.191.65.243:/var/www/scnuoj/next/judge/data/1577/ .
 scp .\DuLa-Net-master.zip root@121.37.165.73:/root
 ```
 
+带端口号的服务器：
+
+```sh
+scp -P 10022 root@218.192.110.159:/root/647.txt .
+```
+
 
 
 ### XSHELL

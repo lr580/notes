@@ -70,6 +70,12 @@ pip install requests-html
 pip install plotly pandas # 一次装两个
 ```
 
+> 注意到 debian 如果报错 `error: externally-managed-environment`，考虑 apt 装包，如装 `pymysql`：
+>
+> ```sh
+> apt-get install python3-pymysql
+> ```
+
 可以加上调用国内镜像的选项，加快下载速度：
 
 ```bash
@@ -173,7 +179,10 @@ pip install -r requirement.txt
 ```
 
 > 如果里面任意一项输入不正确，如版本找不到，全部都不会安装，不会弹 error 直接结束。
->
+
+
+
+
 
 ### 编译
 
@@ -1770,6 +1779,32 @@ p2 = Point(1, 2)
 p3 = Point(0, 1)
 print(p1 == p2)  # True
 print(p1 < p3)   # False
+```
+
+按照关键字顺序排序，没找到如何修改顺序。
+
+可以套 default dict，但是需要工厂，如：
+
+```python
+@dataclass(order=True)
+    class SubmitCode:
+        submit_time: datetime
+        code: str
+        language: str
+        result: str
+        student_number: str
+        submit_id: str
+        contest_problem_id: str
+        
+    def create_default_code():
+        return SubmitCode(datetime.min, "", "", "", "", "", "")
+    last_submits = defaultdict(create_default_code) # 键是 (student_number, contest_problem_id) 二元 tuple
+    
+    # for ... :
+    submitCode = SubmitCode(submit_time, code, language, result, student_number, submit_id, contest_problem_id)
+    key = (student_number, contest_problem_id)
+    if last_submits[key] < submitCode:
+        last_submits[key] = submitCode
 ```
 
 
@@ -4242,6 +4277,14 @@ dt = datetime.today()
 ```python
 dt = datetime(年,月 ,日 ,时 ,分 ,秒)
 ```
+
+取最值时间：
+
+```python
+datetime.min # 0001-01-01 00:00:00; 或 .max 9999-12-31 23:59:59.999999
+```
+
+
 
 ##### datetime对象
 
