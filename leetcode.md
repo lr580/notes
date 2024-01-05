@@ -1152,7 +1152,11 @@
   
 - 2397\. 被列覆盖的最多行数
 
-  DFS / 二进制枚举 / Gosper's Hack
+  DFS / 二进制枚举 / <u>Gosper's Hack</u>
+  
+- 1944\.队列中可以看到的人数
+
+  静态双链表 / <u>单调栈</u>
 
 
 
@@ -31238,6 +31242,71 @@ public:
         return ans;
     }
 };
+```
+
+##### 1944\.队列中可以看到的人数
+
+[题目](https://leetcode.cn/problems/number-of-visible-people-in-a-queue/)
+
+每个人总是能看到他的下一个人，先把该情况特判。
+
+可以发现，所有人可以看到的总人数加起来是 $O(n)$ 的，所以可以枚举贡献。
+
+使用静态双链表思想维护 max 段区间。初始时每个人独立代表最大区间 $[i,i]$，最大值为 $mx_i=heights_i$，且该人还没有被枚举即 $vis_i=0$。
+
+按身高从小到大枚举每个人。对枚举到的每个区间，如果他左边的区间已经被枚举过了，合并这两个区间。如果他右边的区间也已经被枚举过了，也合并一下。合并时维护最值，让每个链表下标 $i$ 总是维护 $i$ 开头的下标区间(总是向左合并)。
+
+之后，得到一个大区间。看看这个大区间的左右区间的下标值所在的人的身高的较小值是否比该区间的最值大，如果是的话，该区间右边的区间下标贡献值加一。因为按身高顺序枚举，当前区间的左右一定是长为 $1$ 的区间。
+
+复杂度取排序复杂度 $O(n\log n)$，空间 $O(n)$。
+
+```python
+class Solution:
+    def canSeePersonsCount(self, heights: List[int]) -> List[int]:
+        n = len(heights)
+        ans = [1] * (n-1) + [0]
+        lf, rf = [i-1 for i in range(n+1)], [i+1 for i in range(n+1)]
+        mx, vis = heights[::], [False] * n
+        for v,i in sorted([(vv,ii) for ii,vv in enumerate(heights)]):
+            vis[i] = True
+            l,r=lf[i],rf[i]
+            if l>=0 and vis[l]: #merge left, delete center
+                mx[l]=max(mx[l],mx[i])
+                rf[l],lf[r]=r,l
+                i=l
+                l=lf[i]
+            if r<n and vis[r]:#merge right, delete right
+                mx[i]=max(mx[r],mx[i])
+                rf[i]=rf[r]
+                lf[rf[r]]=i
+                r=rf[r]
+            if l>=0 and r<n:
+                if mx[i] < min(heights[l],heights[r]):
+                    ans[l]+=1
+        return ans
+```
+
+单调栈：显然每个人能看到的人是严格递增身高的。
+
+逆序遍历每个人，维护单调递减栈。每出现一个更高的人，他后面比他矮的人都不再可能被任何人看到，所以可以移除。当这个更高的人出现时，被他移除出栈的所有人， 刚好是他能看到的人，所以弹栈时，因他弹栈的人都对他贡献。
+
+此外，如果栈里仍有元素，那么这个人就是刚好挡住他的人，所以再加一次贡献。
+
+```python
+class Solution:
+    def canSeePersonsCount(self, heights: List[int]) -> List[int]:
+        n = len(heights)
+        stack = []
+        res = [0] * n
+        for i in range(n - 1, -1, -1):
+            h = heights[i]
+            while stack and h > stack[-1]:
+                res[i] += 1
+                stack.pop()
+            if stack:
+                res[i] += 1
+            stack.append(h)
+        return res
 ```
 
 
