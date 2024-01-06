@@ -10463,6 +10463,8 @@ left_limit = limit(f, x, 0, '-') '-oo'
 right_limit = limit(f, x, 0, '+')
 ```
 
+> ##### 解方程
+
 
 
 #### 数值运算
@@ -10474,6 +10476,12 @@ from sympy import symbols, Eq, solve
 alpha = symbols('alpha')
 equation = Eq(alpha**2 + (1 - alpha)**2, 0.65) #a^2+(1-a^2)=0.65
 alpha_values = solve(equation, alpha) # list of float
+```
+
+不等式：
+
+```python
+solve(x**2+x-3>0,x)
 ```
 
 
