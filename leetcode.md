@@ -1157,6 +1157,14 @@
 - 1944\.队列中可以看到的人数
 
   静态双链表 / <u>单调栈</u>
+  
+- 2807\.在链表中插入最大公约数
+
+  链表
+  
+- 383\.赎金信
+
+  STL
 
 
 
@@ -31307,6 +31315,66 @@ class Solution:
                 res[i] += 1
             stack.append(h)
         return res
+```
+
+##### 2807\.在链表中插入最大公约数
+
+[题目](https://leetcode.cn/problems/insert-greatest-common-divisors-in-linked-list)
+
+我的：
+
+```python
+def gcd(a,b):
+    return a if b==0 else gcd(b,a%b)
+class Solution:
+    def insertGreatestCommonDivisors(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        i, j = head, head.next
+        while j:
+            v = gcd(i.val, j.val)
+            i.next = ListNode(v, j)
+            i, j = j, j.next
+        return head
+```
+
+题解：
+
+```python
+class Solution:
+    def insertGreatestCommonDivisors(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        node = head
+        while node.next is not None:
+            node.next = ListNode(math.gcd(node.val, node.next.val), node.next)
+            node = node.next.next
+        return head
+```
+
+
+
+##### 383\.赎金信
+
+[题目](https://leetcode.cn/problems/ransom-note/solutions/1135839/shu-jin-xin-by-leetcode-solution-ji8a/)
+
+我的：
+
+```python
+from collections import Counter
+class Solution:
+    def canConstruct(self, ransomNote: str, magazine: str) -> bool:
+        b=Counter(magazine)
+        for k,v in Counter(ransomNote).items():
+            if k not in b or b[k]<v:
+                return False
+        return True
+```
+
+题解：
+
+```python
+class Solution:
+    def canConstruct(self, ransomNote: str, magazine: str) -> bool:
+        if len(ransomNote) > len(magazine):
+            return False
+        return not collections.Counter(ransomNote) - collections.Counter(magazine)
 ```
 
 
