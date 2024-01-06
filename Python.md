@@ -3666,6 +3666,12 @@ round(tan(radians(45)))
 int(degrees(asin(0.5)))
 ```
 
+最大公因数：(也有最小公倍数 lcm)
+
+```python
+gcd(-3,-6) #3
+```
+
 
 
 #### random
