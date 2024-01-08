@@ -1165,6 +1165,10 @@
 - 383\.赎金信
 
   STL
+  
+- 2707\.字符串中的额外字符
+
+  DP
 
 
 
@@ -31375,6 +31379,31 @@ class Solution:
         if len(ransomNote) > len(magazine):
             return False
         return not collections.Counter(ransomNote) - collections.Counter(magazine)
+```
+
+##### 2707\.字符串中的额外字符
+
+[题目](https://leetcode.cn/problems/extra-characters-in-a-string)
+
+$O(n^2)$ DP。先 $O(n^2)$ 预处理每个位置可以由哪些位置到达，然后 $O(n^2)$ 做 DP 递推。空间复杂度 $O(m+n)$。
+
+```python
+class Solution:
+    def minExtraChar(self, s: str, dictionary: List[str]) -> int:
+        n, h = len(s), set(dictionary)
+        pr = [[] for i in range(n+1)]
+        for l in range(n):
+            c=''
+            for r in range(l, n):
+                c+=s[r]
+                if c in h:
+                    pr[r+1].append(l)
+        dp = [i for i in range(n+1)]
+        for i in range(1,1+n):
+            dp[i]=dp[i-1]+1
+            for j in pr[i]:
+                dp[i]=min(dp[i],dp[j])
+        return dp[n]
 ```
 
 
