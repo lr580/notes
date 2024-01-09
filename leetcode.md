@@ -1169,6 +1169,10 @@
 - 2707\.字符串中的额外字符
 
   DP
+  
+- 2696\.删除子串后的字符串
+
+  静态双链表 / <u>栈</u>
 
 
 
@@ -31404,6 +31408,58 @@ class Solution:
             for j in pr[i]:
                 dp[i]=min(dp[i],dp[j])
         return dp[n]
+```
+
+##### 2696\.删除子串后的字符串
+
+[题目](https://leetcode.cn/problems/minimum-string-length-after-removing-substrings)
+
+静态双链表：
+
+```python
+class Solution:
+    def minLength(self, s: str) -> int:
+        n,i=len(s),0
+        lf,rf=[i-1 for i in range(n+2)],[i+1 for i in range(n+2)]
+        ans=n
+        while i<n:
+            j=rf[i]
+            while j<n and ((s[i]=='A' and s[j]=='B') or (s[i]=='C' and s[j]=='D')):
+                if lf[i]>=0:
+                    rf[lf[i]]=rf[j]
+                    lf[rf[j]]=lf[i]
+                ans-=2
+                j=rf[j]
+                if lf[i]>=0:
+                    i=lf[i]
+                else:
+                    break
+            i=rf[i]
+        return ans
+```
+
+n^2 的暴力：
+
+```python
+class Solution:
+    def minLength(self, s: str) -> int:
+        while "AB" in s or "CD" in s:
+            s = s.replace("AB", "").replace("CD", "")
+        return len(s)
+```
+
+ 栈：
+
+```python
+class Solution:
+    def minLength(self, s: str) -> int:
+        st = []
+        for c in s:
+            if st and (c == 'B' and st[-1] == 'A' or c == 'D' and st[-1] == 'C'):
+                st.pop()
+            else:
+                st.append(c)
+        return len(st)
 ```
 
 
