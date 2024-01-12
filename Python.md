@@ -6194,6 +6194,24 @@ numpy_std_population = np.std(data) # 即分母 N
 numpy_std_sample = np.std(data, ddof=1) # 即分母 N-1
 ```
 
+##### 拼接
+
+如样本特征增广：
+
+```python
+X = np.column_stack((np.ones(x_squared.shape), x_squared))#x_squared是一维数组np.array([-1, 0, 1, 2, 3])平方
+```
+
+#### 线性代数
+
+##### 逆元
+
+求矩阵的转置、逆元、矩阵乘法以求和正规方程：
+
+```python
+coefficients = np.linalg.inv(X.T @ X) @ X.T @ y
+```
+
 
 
 #### 其他运算
@@ -6781,7 +6799,42 @@ if __name__ == '__main__':
     a = AHP(criteria, samples).run("calculate_mean_weights")
 ```
 
-已知权重转矩阵：
+> 已知权重转矩阵：
+>
+
+##### 手写梯度下降
+
+以 MSE 误差，求 $h=w_0+w_1 x^2$ 为例：
+
+```python
+import numpy as np
+x = np.array([-1, 0, 1, 2, 3])
+y = np.array([1, 2, 2, 5, 10])
+
+def compute_gradients(w0, w1, x, y):
+    m = len(x)
+    error = (w0 + w1 * x**2) - y
+    grad_w0 = (1/m) * np.sum(error)
+    grad_w1 = (1/m) * np.sum(error * x**2)
+    return grad_w0, grad_w1
+
+def gradient_descent(x, y, learning_rate, iterations):
+    w0 = 0
+    w1 = 0
+    m = len(x)
+    for _ in range(iterations):
+        grad_w0, grad_w1 = compute_gradients(w0, w1, x, y)
+
+        w0 = w0 - learning_rate * grad_w0
+        w1 = w1 - learning_rate * grad_w1
+    return w0, w1
+
+learning_rate = 0.01
+iterations = 10000
+
+w0_gd, w1_gd = gradient_descent(x, y, learning_rate, iterations)
+print(w0_gd, w1_gd)
+```
 
 
 
