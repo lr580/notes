@@ -1177,6 +1177,10 @@
 - 2182\.构造限制重复的字符串
 
   贪心+小模拟/双指针
+  
+- 83\.删除排序链表中的重复元素
+
+  链表
 
 
 
@@ -31520,6 +31524,41 @@ class Solution:
                 ret.append(chr(ord('a') + j))
                 m = 0
         return ''.join(ret) #x比+=更快
+```
+
+##### 83\.删除排序链表中的重复元素
+
+[题目]()
+
+我的：
+
+```python
+class Solution:
+    def deleteDuplicates(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        p, q = head, head.next if head else None
+        while q:
+            if p.val == q.val:
+                p.next = q.next
+            else:
+                p = q
+            q = q.next
+        return head
+```
+
+少一个指针的：
+
+```python
+class Solution:
+    def deleteDuplicates(self, head: ListNode) -> ListNode:
+        if not head:
+            return head
+        cur = head
+        while cur.next:
+            if cur.val == cur.next.val:
+                cur.next = cur.next.next
+            else:
+                cur = cur.next
+        return head
 ```
 
 

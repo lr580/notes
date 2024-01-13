@@ -6080,6 +6080,7 @@ np.random.normal(mean, sigma, image.shape).astype(dtype=np.float32)
 
 ```python
 np.random.uniform(low=0.0, high=1.0, size=(5,5))
+np.random.uniform(-1, 1, (1000, d))
 np.random.uniform(0,1) #取一个
 ```
 
@@ -6866,7 +6867,7 @@ plt.show() #如果plot多次，自动赋予不同颜色
 如：
 
 ```python
-plt.plot([1,4,9,16,25])#点(0,1),(1,4),...，下类同
+plt.plot([1,4,9,16,25])#点(0,1),(1,4),...，下类同;也可以nparray
 plt.plot([-1,-1,-1,-1])
 plt.show()
 ```
@@ -6971,6 +6972,8 @@ plt.show()
 
 #### 属性
 
+##### 基本
+
 图表预设定：(必须放在绘图，如scatter之前)
 
 ```python
@@ -6984,7 +6987,7 @@ plt.figure(figsize=(10,5),dpi=128) #改单位
 >
 > **线型参数：**'‐' 实线，'‐‐' 破折线，'‐.' 点划线，':' 虚线。
 >
-> **标记字符：**'.' 点标记，',' 像素标记(极小点)，'o' 实心圈标记，'v' 倒三角标记，'^' 上三角标记，'>' 右三角标记，'<' 左三角标记...等等。
+> **标记字符：**'.' 点标记，',' 像素标记(极小点)，'o' 实心圈标记，'v' 倒三角标记，'^' 上三角标记，'>' 右三角标记，'<' 左三角标记., 'H' 六边形, 'D'菱形..等等。(marker)
 >
 > ```python
 > plot(y, 'r+')     # 使用红色 + 号
@@ -7051,6 +7054,28 @@ plt.tick_params(axis='both',labelsize=14) #或x或y，坐标上数字大小
 >
 > ylabel() 方法提供了 loc 参数来设置 y 轴显示的位置，可以设置为: 'bottom', 'top', 和 'center'， 默认值为 'center'。
 
+##### 点样式
+
+```python
+plt.plot(dimensions, min_distances, marker='o')
+```
+
+- `'o'`: 圆圈
+- `'.'`: 点
+- `'^'`: 上三角
+- `'v'`: 下三角
+- `'<'`: 左三角
+- `'>'`: 右三角
+- `'s'`: 正方形
+- `'p'`: 五边形
+- `'*'`: 星号
+- `'+'`: 加号
+- `'x'`: 叉号
+- `'D'`: 菱形
+- `'H'`: 六边形
+
+##### 坐标轴
+
 锁定坐标轴范围为$x\in[-12,12],y\in[-5,5]$。也可以用 `xlim(a,b)`, `ylim`。可以 $a\ge b$ 则画图序列也跟着倒序。
 
 ```python
@@ -7076,6 +7101,16 @@ plt.axes().get_yaxis().set_visible(False)
 plt.axis('off')
 ```
 
+对数坐标轴：
+
+```python
+plt.xscale('log')
+```
+
+
+
+##### 图例
+
 图例使用：
 
 ```python
@@ -7087,6 +7122,8 @@ plt.show()
 
 loc控制图例的方位，具体为：$\left[\matrix{2&3\\1&4}\right]$
 
+##### 网格
+
 添加网格：[参考](https://www.runoob.com/matplotlib/matplotlib-grid.html)
 
 ```python
@@ -7097,6 +7134,8 @@ plt.grid()
 > - which：可选，可选值有 'major'、'minor' 和 'both'，默认为 'major'，表示应用更改的网格线。
 > - axis：可选，设置显示哪个方向的网格线，可以是取 'both'（默认），'x' 或 'y'，分别表示两个方向，x 轴方向或 y 轴方向。
 > - `**kwargs`：可选，设置网格样式，可以是 color='r', linestyle='-' 和 linewidth=2，分别表示网格线的颜色，样式和宽度。
+
+##### 保存
 
 保存图表：
 
@@ -7135,6 +7174,8 @@ subplot(ax)
 ```
 
 以上函数将整个绘图区域分成 nrows 行和 ncols 列，然后从左到右，从上到下的顺序对每个子区域进行编号 `1...N` ，左上的子区域的编号为 1、右下的区域编号为 N，编号可以通过参数 index 来设置。
+
+##### 例子
 
 > ```python
 > import matplotlib.pyplot as plt
@@ -7176,7 +7217,53 @@ subplot(ax)
 > plt.show()
 > ```
 
-
+> ```python
+> import numpy as np
+> import matplotlib.pyplot as plt
+> 
+> def generate_data(d):
+>     """生成 d 维的数据集，每个维度包含 1000 个点，每个点的坐标在 [-1, 1] 之间随机生成。"""
+>     return np.random.uniform(-1, 1, (1000, d))
+> 
+> def calculate_distances(data):
+>     """计算数据集中的点到原点的欧氏距离，并返回最近和最远的距离。"""
+>     distances = np.sqrt(np.sum(data**2, axis=1))
+>     return np.min(distances), np.max(distances)
+> 
+> # 设定一系列维度 d
+> dimensions = [2, 4, 8, 16, 32, 64, 128, 256, 512]
+> min_distances = []
+> max_distances = []
+> 
+> # 对于每个维度，生成数据并计算距离
+> for d in dimensions:
+>     data = generate_data(d)
+>     min_dist, max_dist = calculate_distances(data)
+>     min_distances.append(min_dist)
+>     max_distances.append(max_dist)
+> 
+> # 绘制图表
+> plt.figure(figsize=(14, 6))
+> 
+> # △0(d) 随 d 变化的图表
+> plt.subplot(1, 2, 1)
+> plt.plot(dimensions, min_distances, marker='o')
+> plt.xlabel('Dimension d')
+> plt.ylabel('Minimum Distance to Origin (△0(d))')
+> plt.title('Minimum Distance to Origin vs Dimension')
+> plt.xscale('log')
+> 
+> # △1(d)/△0(d) 随 d 变化的图表
+> plt.subplot(1, 2, 2)
+> plt.plot(dimensions, np.array(max_distances) / np.array(min_distances), marker='o')
+> plt.xlabel('Dimension d')
+> plt.ylabel('Ratio of Max to Min Distance (△1(d)/△0(d))')
+> plt.title('Ratio of Max to Min Distance vs Dimension')
+> plt.xscale('log')
+> 
+> plt.tight_layout()
+> plt.show()
+> ```
 
 #### 图片
 
