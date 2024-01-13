@@ -1173,6 +1173,10 @@
 - 2696\.删除子串后的字符串
 
   静态双链表 / <u>栈</u>
+  
+- 2182\.构造限制重复的字符串
+
+  贪心+小模拟/双指针
 
 
 
@@ -31460,6 +31464,62 @@ class Solution:
             else:
                 st.append(c)
         return len(st)
+```
+
+##### 2182\.构造限制重复的字符串
+
+[题目](https://leetcode.cn/problems/construct-string-with-repeat-limit/)
+
+贪心+小模拟：
+
+```python
+class Solution:
+    def repeatLimitedString(self, s: str, k: int) -> str:
+        cnt=[0]*(ord('z')+1)
+        for c in s:
+            cnt[ord(c)]+=1
+        ans,last='',0
+        while True:
+            now=big=0
+            for i in range(ord('z'),ord('a')-1,-1):
+                if cnt[i]>0 and not big:
+                    big=i
+                if i!=last and cnt[i]>0:
+                    now=last=i
+                    break
+            if not now:
+                break
+            num=min(cnt[now],k if big==now else 1)
+            cnt[now]-=num
+            ans+=chr(now)*num
+        return ans
+```
+
+贪心+双指针：(当前字符串，超长单次限制字符串)
+
+```python
+class Solution:
+    def repeatLimitedString(self, s: str, repeatLimit: int) -> str:
+        N = 26
+        count = [0] * N
+        for c in s:
+            count[ord(c) - ord('a')] += 1
+        ret = []
+        i, j, m = N - 1, N - 2, 0
+        while i >= 0 and j >= 0:
+            if count[i] == 0: # 当前字符已经填完，填入后面的字符，重置 m
+                m, i = 0, i - 1
+            elif m < repeatLimit: # 当前字符未超过限制
+                count[i] -= 1
+                ret.append(chr(ord('a') + i))
+                m += 1
+            elif j >= i or count[j] == 0: # 当前字符已经超过限制，查找可填入的其他字符
+                j -= 1
+            else: # 当前字符已经超过限制，填入其他字符，并且重置 m
+                count[j] -= 1
+                ret.append(chr(ord('a') + j))
+                m = 0
+        return ''.join(ret) #x比+=更快
 ```
 
 
