@@ -1181,6 +1181,14 @@
 - 83\.删除排序链表中的重复元素
 
   链表
+  
+- 82\.删除排序链表中的重复元素II
+
+  链表
+  
+- 2719\.统计整数数目
+
+  数位DP
 
 
 
@@ -31560,6 +31568,294 @@ class Solution:
                 cur = cur.next
         return head
 ```
+
+##### 82\.删除排序链表中的重复元素II
+
+[题目](https://leetcode.cn/problems/remove-duplicates-from-sorted-list-ii)
+
+我的初始版本：
+
+```python
+class Solution:
+    def deleteDuplicates(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        p = hd = ListNode(-101,head)
+        while p.next:
+            q, r, rep = p.next, p.next.next, False
+            while r and r.val == q.val:
+                r, q = r.next, q.next
+                rep = True
+            if not rep:
+                p = q
+            else:
+                p.next = r
+            if not p:
+                break
+        return hd.next
+```
+
+我的另一个版本：
+
+```python
+from typing import *
+class Solution:
+    def deleteDuplicates(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        hd = ListNode(-101, head)
+        prv, cur = hd, head
+        while cur:
+            nxt, rep = cur.next, False
+            while nxt and nxt.val == cur.val:
+                nxt = nxt.next
+                rep = True
+            if rep:
+                prv.next = cur = nxt
+            else:
+                prv, cur = prv.next, cur.next
+        return hd.next
+```
+
+题解：
+
+```python
+class Solution:
+    def deleteDuplicates(self, head: ListNode) -> ListNode:
+        if not head:
+            return head  
+        dummy = ListNode(0, head)
+        cur = dummy
+        while cur.next and cur.next.next:
+            if cur.next.val == cur.next.next.val:
+                x = cur.next.val
+                while cur.next and cur.next.val == x:
+                    cur.next = cur.next.next
+            else:
+                cur = cur.next
+        return dummy.next
+```
+
+##### 2719\.统计整数数目
+
+[题目](https://leetcode.cn/problems/count-of-integers/)
+
+求 $[l,r]$ 内的方案计数，即求 $[1,r]$ 内的计数减去 $[1,l-1]$ 的计数。下面考虑求 $[1,a]$ 内计数子问题。其中 $l-1$ 可以做 int128 或手写高精度。
+
+如果不考虑尾数影响时，设 $dp_{i,j,k}$ 表示从高到低前 $i$ 位里，第 $i$ 位是 $j$，数位和为 $k$ 的方案数。设最低位是 $m-1$。则初始值为 $dp_{m-1,i,i}=1$。递推方程为：
+$$
+dp_{i,j,k}=\sum_{u=0}^9 dp_{i-1,u,k-u}
+$$
+则输出所有 $dp_{0,j,k}$ 即可，其中 $0\le j\le k,\min\le k\le \max$。复杂度为 $O(22\cdot 10^2\cdot 400)\approx 10^6$。
+
+现在考虑末位影响。当前需要考虑末位当且仅当高的每一位都到达最后一位。设 $l$ 表示当前是否为末尾，重设 $dp_{l,i,j,k}$。并且自顶向下搜索，除了 $j=a_0$ 最高位是 $l$ 为末尾，其他都不为末尾。之后，进行递推如下：
+
+- 结束状态为 $i=m-1$，此时如果不为末尾，若 $j=k$ 则方案数为 $1$；如果是末尾，还要判断 $j\le a_{m-1}$。
+- $l$ 值维护：如果当前是末尾，而且下一个枚举的 $u$ 也是最大范围，那么继续继承末尾，否则不再是末尾。即 $l=l\& [u=top]$。其中若不是末尾，$top=9$，否则 $top=a_{i+1}$。
+- $u$ 的枚举范围 $[0,top]$。
+- 记忆化 DFS，存储所有 $dp$。记得细节取模和减法公式 $+mod$，
+
+```c++
+#include <iostream>
+#include <string>
+#include <vector>
+using namespace std;
+
+const int MOD = int(1e9) + 7;
+
+class Solution {
+public:
+    int count(string num1, string num2, int min_sum, int max_sum) {
+        return (MOD + solve(num2, min_sum, max_sum) - solve(decrement(num1), min_sum, max_sum)) % MOD;
+    }
+
+private:
+    int dp[2][24][11][402];
+    string n;
+    int m;
+
+    int solve(string num, int min_sum, int max_sum) {
+        n = num;
+        m = n.length();
+        for (int i = 0; i < 2; ++i) {
+            for(int j = 0 ; j <= m; ++j) {
+                for(int k = 0; k <= 9; ++k) {
+                    for(int l = 0; l <= max_sum; ++l) {
+                        dp[i][j][k][l] = -1;
+                    }
+                }
+            }
+        }
+        int ans = 0;
+        for (int i = 0; i <= n[0] - '0'; ++i) {
+            for (int j = min_sum; j <= max_sum; ++j) {
+                ans = (ans + dfs(0, i, j, i == n[0] - '0')) % MOD;
+            }
+        }
+        return ans;
+    }
+
+    int dfs(int i, int j, int k, bool last) {
+        if (k < 0) return 0;
+        if (dp[last][i][j][k] != -1) return dp[last][i][j][k];
+
+        int cnt = 0;
+        if (i == m - 1) {
+            cnt += (k == j && (!last || (last && j <= n[i] - '0')));
+        } else {
+            int top = !last ? 9 : n[i + 1] - '0';
+            for (int u = 0; u <= top; ++u) {
+                cnt = (cnt + dfs(i + 1, u, k - j, last && (u == top))) % MOD;
+            }
+        }
+        return dp[last][i][j][k] = cnt;
+    }
+
+    string decrement(const string& num) {
+        string result = num;
+        int length = result.length();
+        for (int i = length - 1; i >= 0; --i) {
+            if (result[i] > '0') {
+                result[i]--;
+                break;
+            }
+            result[i] = '9';
+        }
+        if (result[0] == '0' && length > 1) {
+            result.erase(0, 1);
+        }
+        return result;
+    }
+};
+```
+
+> 原本我写的代码是 Python 的，但常数太大 TLE 了：
+>
+> ```python
+> MOD=(int(1e9)+7)
+> def solve(n, min_sum, max_sum):
+>     m,ans,INIT=len(n),0,-1
+>     #dp[i][j][k] 低i位,从低第i位为j,数位和为k方案数
+>     dp=[[[[INIT for i in range(max_sum+2)] for j in range(11)] for k in range(m+2)] for x in range(2)]
+>     #第i位,当前位为j,还剩下k个要凑
+>     def dfs(i,j,k,last):
+>         if k<0:
+>             return 0
+>         if dp[last][i][j][k]!=INIT:
+>             return dp[last][i][j][k]
+>         cnt=0
+>         
+>         if i==m-1:
+>             cnt += k==j and (not last or (last and j<=int(n[i])))
+>         else:
+>             top=9 if not last else int(n[i+1])
+>             for u in range(top+1):
+>                 v=dfs(i+1,u,k-j,last&(u==top))
+>                 cnt=(cnt+v)%MOD
+>                 # if v:
+>                     # print('A', i+1,u,k-j,last&(u==top), 'to', i,j,k,last,'by',v)
+>         dp[last][i][j][k]=cnt
+>         # if cnt:
+>         #     print(i,j,k,last,cnt)
+>         return cnt
+>     for i in range(int(n[0])+1):
+>         for j in range(min_sum, max_sum+1):
+>             # print('acc',i,j,dfs(0,i,j,i==int(n[0])))
+>             ans=(ans+dfs(0,i,j,i==int(n[0])))%MOD
+>     # print(n,min_sum,max_sum,ans)
+>     return ans%MOD
+> class Solution:
+>     def count(self, num1: str, num2: str, min_sum: int, max_sum: int) -> int:
+>         return (MOD+solve(num2, min_sum,max_sum)-solve(str(int(num1)-1),min_sum,max_sum))%MOD
+> ```
+
+题解做法：(类似题目推荐 [here](https://leetcode.cn/problems/count-of-integers/solutions/2601111/tong-ji-zheng-shu-shu-mu-by-leetcode-sol-qxqd/), 233, 600, 1012；更多 [here](https://leetcode.cn/problems/count-of-integers/solutions/1/shu-wei-dp-tong-yong-mo-ban-pythonjavacg-9tuc/))
+
+- 剪掉一个维度：当前位。
+- 尾状态只会被搜索一次，无需记忆化。
+
+```c++
+class Solution {
+    static constexpr int N = 23;
+    static constexpr int M = 401;
+    static constexpr int MOD = 1e9 + 7;
+    int d[N][M];
+    string num;
+    int min_sum;
+    int max_sum;
+
+    int dfs(int i, int j, bool limit) {
+        if (j > max_sum) {
+            return 0;
+        }
+        if (i == -1) {
+            return j >= min_sum;
+        }
+        if (!limit && d[i][j] != -1) {
+            return d[i][j];
+        }
+        int res = 0;
+        int up = limit ? num[i] - '0' : 9;
+        for (int x = 0; x <= up; x++) {
+            res = (res + dfs(i - 1, j + x, limit && x == up)) % MOD;
+        }
+        if (!limit) {
+            d[i][j] = res;
+        }
+        return res;
+    }
+
+    int get(string num) {
+        reverse(num.begin(), num.end());
+        this->num = num;
+        return dfs(num.size() - 1, 0, true);
+    }
+
+    // 求解 num - 1，先把最后一个非 0 字符减去 1，再把后面的 0 字符变为 9
+    string sub(string num) {
+        int i = num.size() - 1;
+        while (num[i] == '0') {
+            i--;
+        }
+        num[i]--;
+        i++;
+        while (i < num.size()) {
+            num[i] = '9';
+            i++;
+        }
+        return num;
+    }
+public:
+    int count(string num1, string num2, int min_sum, int max_sum) {
+        memset(d, -1, sizeof d);
+        this->min_sum = min_sum;
+        this->max_sum = max_sum;
+        return (get(num2) - get(sub(num1)) + MOD) % MOD;
+    }
+};
+```
+
+> 参考一次遍历方法：
+>
+> ```python
+> class Solution:
+>     def count(self, num1: str, num2: str, min_sum: int, max_sum: int) -> int:
+>         n = len(num2)
+>         num1 = num1.zfill(n)  # 补前导零，和 num2 对齐
+> 
+>         @cache
+>         def dfs(i: int, s: int, limit_low: bool, limit_high: bool) -> int:
+>             if s > max_sum:  # 非法
+>                 return 0
+>             if i == n:
+>                 return s >= min_sum
+> 
+>             lo = int(num1[i]) if limit_low else 0
+>             hi = int(num2[i]) if limit_high else 9
+> 
+>             res = 0
+>             for d in range(lo, hi + 1):  # 枚举当前数位填 d
+>                 res += dfs(i + 1, s + d, limit_low and d == lo, limit_high and d == hi)
+>             return res
+> 
+>         return dfs(0, 0, True, True) % 1_000_000_007
+> ```
 
 
 

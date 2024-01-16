@@ -1312,7 +1312,7 @@ title: 每个单词首字母大写；capitalize 只第一个单词首字母大�
 
 expandtabs 将 \t 转化 7 个空格，可以调为 n-1 个
 
-
+zfill(n) 补充前导零直到长度为n
 
 #### None
 
