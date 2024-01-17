@@ -1189,6 +1189,10 @@
 - 2719\.统计整数数目
 
   数位DP
+  
+- 2744\.最大字符串配对数目
+
+  哈希
 
 
 
@@ -31856,6 +31860,36 @@ public:
 > 
 >         return dfs(0, 0, True, True) % 1_000_000_007
 > ```
+
+##### 2744.最大字符串配对数目
+
+[题目](https://leetcode.cn/problems/find-maximum-number-of-string-pairs)
+
+暴力：
+
+```python
+class Solution:
+    def maximumNumberOfStringPairs(self, words: List[str]) -> int:
+        s, n = 0, len(words)
+        for i in range(n):
+            for j in range(i + 1, n):
+                s += words[i] == words[j][::-1]
+        return s
+```
+
+哈希：
+
+```python
+class Solution:
+    def maximumNumberOfStringPairs(self, words: List[str]) -> int:
+        ans = 0
+        seen = set()
+        for i, word in enumerate(words):
+            if word[::-1] in seen:
+                ans += 1
+            seen.add(word)
+        return ans
+```
 
 
 
