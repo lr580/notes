@@ -2035,6 +2035,8 @@ geometry 宏包，如：
 授课内容与时间参见 SCNUOJ 小组。
 ```
 
+> 段落及段首标题：`\paragraph{Step} Frist, you ....`
+
 
 
 #### 列表
@@ -2868,7 +2870,13 @@ latex 会自动给长单词跨行加 `-` 连接符。
 
 ##### 转义
 
-单行代码使用 `\verb|内容`，如 `\verb|\alpha`。输出 `\alpha`。
+单行代码使用 `\verb|内容|`，如 `\verb|\alpha|`。输出 `\alpha`。
+
+> 其中 `|` 是定义的分割符，可以是任意非空格字符。
+>
+> 命令不能用在参数中，比如在 `\caption{}` 或 `\footnote{}` 中。
+
+ 生成的文本不能换行，除非用下一行所说的：
 
 多行代码用 verbatim 代码块(注意缩进会没有掉)。
 
@@ -2912,6 +2920,8 @@ font awesome [参考](https://blog.csdn.net/zzq060143/article/details/89380160) 
 
 ##### 空格
 
+`~` 不间断空格，不会出现行的自动换行的空格。如 `3~cm`。
+
 多个空格：
 
 - `\quad`, `\qquad`
@@ -2922,6 +2932,10 @@ font awesome [参考](https://blog.csdn.net/zzq060143/article/details/89380160) 
 ##### 作者贡献符号
 
 一作 `\dag`，二作 `\ddag`，其他 $\S$，通讯作者 $\ast$。全都是上标，如 $lr580^*$
+
+##### 斜分数
+
+units 包，分子左上角，分母右下角，一条斜杠，高度正常高。如：`\nicefrac{1}{2}`
 
 ### 数学公式
 

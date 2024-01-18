@@ -1193,6 +1193,10 @@
 - 2744\.最大字符串配对数目
 
   哈希
+  
+- 2171\.拿出最少数目的魔法豆
+
+  前缀和 排序
 
 
 
@@ -31889,6 +31893,40 @@ class Solution:
                 ans += 1
             seen.add(word)
         return ans
+```
+
+##### 2171\.拿出最少数目的魔法豆
+
+[题目](https://leetcode.cn/problems/removing-minimum-number-of-magic-beans/)
+
+我的办法：排序，累积前面部分变成它的代价和及计数，和后面变成它的后缀和。
+
+```python
+class Solution:
+    def minimumRemoval(self, beans: List[int]) -> int:
+        n, m, p, s1 = len(beans), max(beans), beans[0], 0
+        ans = s0 = sum(beans)
+        beans.sort(reverse=True)
+        for i in range(n):
+            s1 += (p - beans[i]) * i
+            s0 -= beans[i]
+            ans = min(ans, s1 + s0)
+            p = beans[i]
+        return ans
+```
+
+题解：
+
+```python
+class Solution:
+    def minimumRemoval(self, beans: List[int]) -> int:
+        n = len(beans)
+        beans.sort()
+        total = sum(beans) # 豆子总数
+        res = total # 最少需要移除的豆子数
+        for i in range(n):
+            res = min(res, total - beans[i] * (n - i))
+        return res
 ```
 
 

@@ -6205,6 +6205,34 @@ numpy_std_sample = np.std(data, ddof=1) # 即分母 N-1
 X = np.column_stack((np.ones(x_squared.shape), x_squared))#x_squared是一维数组np.array([-1, 0, 1, 2, 3])平方
 ```
 
+```python
+x = np.array([1, 2, 3, 4, 5])
+y = np.array([2, 4, 5, 4, 5])
+A = np.vstack([x, np.ones(len(x))]).T
+#array([[1., 1.],
+#       [2., 1.],
+```
+
+```python
+a = np.array([1, 2, 3])
+b = np.array([4, 5, 6])
+c = np.c_[a, b] # 打竖拼接
+'''[[1 4]
+ [2 5]
+ [3 6]]'''
+X = np.array([
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9]
+])
+X_b = np.c_[np.ones((len(X), 1)), X]
+'''[[1. 1. 2. 3.]
+ [1. 4. 5. 6.]
+ [1. 7. 8. 9.]]'''
+```
+
+
+
 #### 线性代数
 
 ##### 逆元
@@ -6215,7 +6243,42 @@ X = np.column_stack((np.ones(x_squared.shape), x_squared))#x_squared是一维数
 coefficients = np.linalg.inv(X.T @ X) @ X.T @ y
 ```
 
+##### 线性回归
 
+其他解法和更多例子参见 `应用举例-线性回归`
+
+`np.linalg.lstsq(A,B,rcond)` 求解过定方程组(方程数多于未知数)
+
+- `A` 是设计矩阵。
+- `B` 是观测值向量。
+- `rcond` 是一个用于判断奇异值的阈值。
+
+函数返回四个值：
+
+1. 模型系数。
+2. 残差平方和。
+3. `A` 的秩。
+4. `A` 的奇异值
+
+```python
+A = np.array([[1, 1], [1, 2], [1, 3]])
+B = np.array([6, 5, 7])
+x, residuals, rank, s = np.linalg.lstsq(A, B, rcond=None)
+```
+
+
+
+##### 多项式回归
+
+如拟合 $ax^2+bx+c$，返回 `[a,b,c]`。
+
+```python
+x = np.array([1, 2, 3, 4, 5])
+y = np.array([5, 7, 9, 11, 13])
+coefficients = np.polyfit(x, y, 2)
+```
+
+高级选项，比如权重和误差估计，允许更复杂的拟合分析。
 
 #### 其他运算
 
@@ -6805,9 +6868,11 @@ if __name__ == '__main__':
 > 已知权重转矩阵：
 >
 
-##### 手写梯度下降
+##### 线性回归
 
-以 MSE 误差，求 $h=w_0+w_1 x^2$ 为例：
+###### 梯度下降
+
+以 MSE 误差，求 $h=w_0+w_1 x^2$ 为例，梯度下降：
 
 ```python
 import numpy as np
@@ -6840,6 +6905,69 @@ print(w0_gd, w1_gd)
 ```
 
 
+
+###### 最小二乘法
+
+(手写)
+
+```python
+x = np.array([-1,0,1,2,3])**2
+y = np.array([1,2,2,5,10])
+mean_x = np.mean(x)
+mean_y = np.mean(y)
+n = len(x)
+numerator = np.sum((x - mean_x) * (y - mean_y))
+denominator = np.sum((x - mean_x) ** 2)
+a = numerator / denominator
+b = mean_y - (a * mean_x)
+print(f"线性回归方程为: y = {a}x + {b}")
+```
+
+
+
+调库：(或多项式拟合：`np.polyfit`)
+
+```python
+x = np.array([1, 2, 3, 4, 5])
+y = np.array([2, 4, 5, 4, 5])
+A = np.vstack([x, np.ones(len(x))]).T #[[1,1],[2,1],[3,1],[4,1],[5,1]]
+a, b = np.linalg.lstsq(A, y, rcond=None)[0]
+```
+
+多个变量：
+
+```python
+X = np.array([
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9],
+    [10, 11, 12]
+])
+Y = np.array([2, 3, 4, 5])
+X_b = np.c_[np.ones((len(X), 1)), X]
+coefficients = np.linalg.lstsq(X_b, Y, rcond=None)[0]
+```
+
+
+
+###### 正规方程
+
+令 $z=x^2$，则要求拟合 $h=w_0+w_1z$。做增广，令 $X=(1,z)=(1,x^2)$。所求为：$h=wX$。令 $h=y$，正规方程为：
+$$
+w=(X^TX)^{-1}X^Ty
+$$
+编写代码：
+
+```python
+import numpy as np
+x = np.array([-1, 0, 1, 2, 3])
+y = np.array([1, 2, 2, 5, 10])
+x_squared = x**2
+X = np.column_stack((np.ones(x_squared.shape), x_squared))
+coefficients = np.linalg.inv(X.T @ X) @ X.T @ y
+w_0, w_1 = coefficients
+print(w_0, w_1) #1.0555555555555551 0.9814814814814814
+```
 
 
 
