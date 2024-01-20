@@ -7094,6 +7094,39 @@ plt.plot(sumVert)
 plt.show()
 ```
 
+###### 半平面和点涂色
+
+```python
+w = [1, -1, -1] # 1-x_1-x_2
+def g2(): # 分界线所在也是红色的
+    c, a, b = w
+    
+    x = np.linspace(-1, 2, 400)
+    y = np.linspace(-1, 2, 400)
+    X, Y = np.meshgrid(x, y)
+
+    Z = a*X + b*Y + c
+
+    plt.figure(figsize=(6,6))
+    plt.contourf(X, Y, Z, levels=[0, Z.max()], colors='red', alpha=0.3)
+
+    points = {'(0,0)': (0, 0), '(0,1)': (0, 1), '(1,0)': (1, 0), '(1,1)': (1, 1)}
+    for label, (x, y) in points.items():
+        color = 'blue' if label == '(1,1)' else 'red'
+        plt.scatter(x, y, color=color)
+        plt.text(x, y, label, fontsize=12, horizontalalignment='right')
+
+    plt.xlim(-1, 2)
+    plt.ylim(-1, 2)
+    plt.axhline(0, color='black',linewidth=0.5)
+    plt.axvline(0, color='black',linewidth=0.5)
+    plt.grid(color = 'gray', linestyle = '--', linewidth = 0.5)
+    plt.title('Graph of ax + by + c >= 0 with specific points marked')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.show()
+```
+
 
 
 

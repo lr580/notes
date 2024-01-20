@@ -1197,6 +1197,10 @@
 - 2171\.拿出最少数目的魔法豆
 
   前缀和 排序
+  
+- 2809\. 使数组和小于等于 x 的最少时间
+
+  **排序不等式 贪心 DP**
 
 
 
@@ -31927,6 +31931,173 @@ class Solution:
         for i in range(n):
             res = min(res, total - beans[i] * (n - i))
         return res
+```
+
+##### 2809. 使数组和小于等于 x 的最少时间
+
+[题目链接](https://leetcode.cn/problems/minimum-time-to-make-array-sum-at-most-x)
+
+易知不会对同一个下标同用两次，不会更优。所以最多操作 $n$ 次。
+
+设第 $j$ 次操作的下标是 $p_j$(操作数从 $1$ 开始)，第 $i$ 次操作后的总和为：
+$$
+sum_1+i\cdot sum_2-\sum_{j=1}^i(num1_{p_j}+j\cdot num2_{p_j})
+$$
+
+> 下面是错误的思路：首先不能二分，其次不能这样贪心
+>
+> 设第 $i$ 次操作下标 $j$ 对总和的增量是 $a_{i,j}$，显然 $a_{0,j}=sum_2-num1_j$，且 $a_{i,j}=a_{i-1,j}-num2_j$。即：$a_{i,j}=sum_2-num1_j-i\cdot num2_j$。
+>
+> 显然操作次数对答案单调。二分次数 $m$。即从 $a$ 的前 $m$ 行里选择不重的 $m$ 个列元素，使其满足 $sum_1$ 加上所选贡献和小于等于 $x$。
+>
+> 考虑倒着来看 $m$ 次操作，因为每列递减，所以如果当前可选某列增量最小而不选，一定不会更优。所以考虑每次贪心选增量最小的。
+>
+> 考虑反例：`[9,2,8,3,1,9,7,6]`, `[0,3,4,1,3,4,2,1]`, `40`。
+>
+> 改成：如果有贡献一样的，选贡献变化率($num2_j$)较大的。
+
+> 错误的二分+贪心：
+>
+> ```c++
+> class Solution
+> {
+> public:
+>     int minimumTime(vector<int> &nums1, vector<int> &nums2, int x)
+>     {
+>         int n = nums1.size();
+>         int sum1 = accumulate(nums1.begin(), nums1.end(), 0);
+>         int sum2 = accumulate(nums2.begin(), nums2.end(), 0);
+>         auto a = [&](int i, int j){return sum2 - nums1[j] - i * nums2[j];};
+>         int ans = -1, lf = 0, rf = n;
+>         bitset<1024> vis;
+>         while (lf <= rf) {
+>             int cf = (lf + rf) >> 1, s = sum1;
+>             vis.reset();
+>             for (int i = cf; i > 0; --i) {
+>                 int minv = 1e9, minj, maxk = -1;
+>                 for (int j = 0; j < n; ++j) {
+>                     if (vis[j]) continue;
+>                     int v = a(i, j), k = nums2[j];
+>                     if (minv > v || (minv == v && maxk < k)) minv = v, minj = j, maxk = k;
+>                 }
+>                 s += minv, vis[minj] = true;
+>             }
+>             if (s <= x) {
+>                 ans = cf, rf = cf - 1;
+>             } else {
+>                 lf = cf + 1;
+>             }
+>         }
+>         return ans;
+>     }
+> };
+> ```
+
+> 考虑反例：`[7,10,1,3,7,3,2]`, `[1,1,3,0,2,2,3]`, `22`。最优操作序列是 `3 0 1 4 5 2 6`。
+
+> 暴力验证程序如下：
+>
+> ```c++
+> #include <bits/stdc++.h>
+> using namespace std;
+> class Solution
+> {
+> public:
+>     int minimumTime(vector<int> &nums1, vector<int> &nums2, int x)
+>     {
+>         int n = nums1.size();
+>         vector<int> p = vector<int>(n,0), q;
+>         int ans = 1e9;
+>         int sum1 = accumulate(nums1.begin(),nums1.end(),0);
+>         int sum2 = accumulate(nums2.begin(),nums2.end(),0);
+>         for(int i=0;i<n;i++) p[i]=i;
+>         do{
+>             int s = sum1;
+>             for(int i=0;i<n;i++) s+=sum2-nums2[p[i]]*(i+1)-nums1[p[i]];
+>             if(s<ans) ans=s,q=p;
+>         }while(next_permutation(p.begin(),p.end()));
+>         cout << ans<<'\n';
+>         for(auto v:q){
+>             cout<<v<<' ';
+>         }
+>         return 0;
+>     }
+> };
+> signed main(){
+>     Solution s = Solution();
+>     vector<int> nums1 = {7,10,1,3,7,3,2}, nums2 = {1,1,3,0,2,2,3};
+>     s.minimumTime(nums1, nums2, 22);
+>     return 0;
+> }
+> ```
+
+> 进一步化简，固定 $i=m$，即求上式最小值，即选出最大的：
+> $$
+> \max \sum_{j=1}^m(num1_{p_j}+j\cdot num2_{p_j})
+> $$
+
+先按 $num2$ 排序，对于选定的特定 $p$ 序列： $num1_{p_j}+num2_{p_j}\cdot j$，可以通过排序不等式，可知 $num2$ 和 $j$ 分别取升序时 $num2_{p_j}\cdot j$ 最大，进而加上 $num1_{p_j}$ 也最大。
+
+定义 $f_{i+1,j}$ 表示从 $[0,i]$ 选定 $j\le i+1$ 个下标，最大的减少量。初始 $f_{0,0}=0$，递推：
+$$
+f_{i+1,j}=\max(f_{i,j},f_{i,j-1}+num1_i+num2_i\cdot j)
+$$
+即对每个下标，可以选或不选；如果选了 $i$，那么前 $j-1$ 个的答案由 DP 解决，且第 $j$ 个恰好可以直接算贡献。
+
+因为按 $num2$ 排序，则对新选择的，总是分配最大的 $j$ 将最优。
+
+其中 $i$ 可以压缩，类似 01 背包。
+
+算出首个满足 $s_1+s_2\cdot t-f_{n,t}\le x$ 的 $t$ 即所求。
+
+```c++
+class Solution {
+public:
+    int minimumTime(vector<int> &nums1, vector<int> &nums2, int x) {
+        int n = nums1.size();
+        // 对下标数组排序，避免破坏 nums1 和 nums2 的对应关系
+        vector<int> ids(n);
+        iota(ids.begin(), ids.end(), 0);
+        sort(ids.begin(), ids.end(), [&](const int i, const int j) {
+            return nums2[i] < nums2[j];
+        });
+
+        vector<int> f(n + 1);
+        for (int i = 0; i < n; i++) {
+            int a = nums1[ids[i]], b = nums2[ids[i]];
+            for (int j = i + 1; j; j--) {
+                f[j] = max(f[j], f[j - 1] + a + b * j);
+            }
+        }
+
+        int s1 = accumulate(nums1.begin(), nums1.end(), 0);
+        int s2 = accumulate(nums2.begin(), nums2.end(), 0);
+        for (int t = 0; t <= n; t++) {
+            if (s1 + s2 * t - f[t] <= x) {
+                return t;
+            }
+        }
+        return -1;
+    }
+};
+```
+
+```python
+class Solution:
+    def minimumTime(self, nums1: List[int], nums2: List[int], x: int) -> int:
+        pairs = sorted(zip(nums1, nums2), key=lambda p: p[1])
+        n = len(pairs)
+        f = [0] * (n + 1)
+        for i, (a, b) in enumerate(pairs):
+            for j in range(i + 1, 0, -1):
+                f[j] = max(f[j], f[j - 1] + a + b * j)
+
+        s1 = sum(nums1)
+        s2 = sum(nums2)
+        for t, v in enumerate(f):
+            if s1 + s2 * t - v <= x:
+                return t
+        return -1
 ```
 
 
