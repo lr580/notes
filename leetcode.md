@@ -1201,6 +1201,10 @@
 - 2809\. 使数组和小于等于 x 的最少时间
 
   **排序不等式 贪心 DP**
+  
+- 670\.最大交换
+
+  贪心
 
 
 
@@ -32098,6 +32102,45 @@ class Solution:
             if s1 + s2 * t - v <= x:
                 return t
         return -1
+```
+
+##### 670\.最大交换
+
+[题目](https://leetcode.cn/problems/maximum-swap/)
+
+```python
+class Solution:
+    def maximumSwap(self, num: int) -> int:
+        a, n = [str(i) for i in str(num)], len(str(num))
+        for i in range(n):
+            topv, topj=chr(ord('0')-1), -1
+            for j in range(i+1,n):
+                if a[i]<a[j] and topv<=a[j]:
+                    topv,topj=a[j],j
+            if topj>=0:
+                a[i],a[topj]=a[topj],a[i]
+                break
+        return int(''.join(a))
+```
+
+更好地实现：
+
+```python
+class Solution:
+    def maximumSwap(self, num: int) -> int:
+        s = list(str(num))
+        n = len(s)
+        maxIdx = n - 1
+        idx1 = idx2 = -1
+        for i in range(n - 1, -1, -1):
+            if s[i] > s[maxIdx]:
+                maxIdx = i
+            elif s[i] < s[maxIdx]:
+                idx1, idx2 = i, maxIdx
+        if idx1 < 0:
+            return num
+        s[idx1], s[idx2] = s[idx2], s[idx1]
+        return int(''.join(s))
 ```
 
 
