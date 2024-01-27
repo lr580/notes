@@ -1698,7 +1698,15 @@ American.printNationality()
 
 #### __属性
 
+##### len
+
 `__len__` 方法如果定义了，可以用内置函数 `len()`。通常都是 O(1) 的。
+
+##### call
+
+`()` 方法调用
+
+##### doc
 
 `__doc__` 属性，可以输出函数文档，也可以对库函数等使用，且 help 函数会用到，如：
 
@@ -4581,6 +4589,8 @@ def Decode(Binary): # 解密
 	return json.loads(Binary.decode('utf-8'))
 ```
 
+
+
 #### functools
 
 ##### 缓存
@@ -4868,6 +4878,44 @@ class Solution:
 - `insort_left(arr, v)` 将 `v` 插入到 `arr`，返回 None，保持有序，插入到相同元素的左
 
 - `insort_right(arr, v)` 将 `v` 插入到 `arr`，返回 None，保持有序，插入到相同元素的右
+
+二分答案：[例题](https://leetcode.cn/problems/maximum-number-of-alloys/solutions/2446024/er-fen-da-an-fu-ti-dan-by-endlesscheng-3jdr/)
+
+```python
+class Solution:
+    def maxNumberOfAlloys(self, n: int, k: int, budget: int, composition: List[List[int]], stock: List[int], cost: List[int]) -> int:
+        ans = 0
+        mx = min(stock) + budget
+        for comp in composition:
+            def f(num: int) -> int:
+                money = 0
+                for s, base, c in zip(stock, comp, cost):
+                    if s < base * num:
+                        money += (base * num - s) * c
+                        if money > budget:
+                            break
+                return money
+            ans += bisect_right(range(ans + 1, mx + 1), budget, key=f)
+        return ans
+```
+
+
+
+#### argparse
+
+处理 CLI 参数：
+
+```python
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--experiment', type=str, default='test_momentum', help='Specify the experiment that you want to run')
+parser.add_argument('-p', type=int, default=80, help='Some port')
+args = parser.parse_args()
+print(args.experiment) #上面那个experiment;或args.p
+```
+
+- `help` 参数提供了这个选项的简短描述。当用户在命令行中运行程序并带上 `-h` 或 `--help` 时，这些帮助信息会显示出来。
 
 #### hashlib
 
@@ -5830,6 +5878,7 @@ np.zeros(维度)#单一维度可以用int，否则用tuple，类型默认float
 > ```python
 > bins = np.zeros(256, np.float32)
 > np.zeros(a.shape)
+> self.prev_dw = np.zeros_like(self.w) 
 > ```
 
 建立未初始化的数组：
@@ -5874,6 +5923,12 @@ np.linspace(a,b,k)
 ##### 类型
 
 查看：`.dtype`
+
+##### 大小
+
+`.size` 元素数
+
+`.shape` tuple 维度(一维也是 tuple)
 
 ##### 变换
 
@@ -5986,7 +6041,7 @@ np.random.permutation(x) # np.random.shuffle(x) # 有细节差别
 
 ##### 下标
 
-`[第一维度,第二维度, ...]` 的方法。每个维度可以用列表生成表达式，可以表示子阵，支持修改。如 `x[1,2]`, `x[1,:,3]=3`
+`[第一维度,第二维度, ...]` 的方法。每个维度可以用列表生成表达式，可以表示子阵，支持修改。如 `x[1,2]`, `x[1,:,3]=3`，也可以 `x[1][2]`，对二维用 `x[1]` 得到一维数组(第二行)
 
 可以用不等式表示范围内的下标，如：
 
@@ -5995,9 +6050,22 @@ mu0 = np.sum(img[img < i])/n0
 img2[img2 < x] = 0
 ```
 
+范围下标：如取 `(1,1),(2,2),(3,3)`：
 
+```python
+a = np.zeros((5,6))
+a[[1,2,3],[1,2,3]]=1
+```
 
+应用例子：one hot (更快的实现见下文)
 
+```python
+oneHot = np.zeros((labels.size, num_classes))
+oneHot[np.arange(labels.size), labels] = 1
+return oneHot # labels : N dimensional 1D array 
+```
+
+其中 arange 是 0,1,2, ... ,size-1 的整型 np 数组
 
 ##### 遍历
 
@@ -6024,16 +6092,13 @@ rows, cols = img1.shape
 
 #### 常规运算
 
-##### 普通
-
-点乘：`a*b`
-
-矩阵乘法：`np.dot(a,b)`
+##### 初等
 
 $e^k$
 
 ```python
-np.exp(k) 
+np.exp(k)
+# 如 np.exp([-1,0,1]), 即可以传 list，返回 ndarray
 ```
 
 $\lg(k)$
@@ -6042,13 +6107,36 @@ $\lg(k)$
 np.log(k)
 ```
 
+`np.square` 逐个元素求平方
+
+##### 浮点相等
+
 两数是否在某个阈值内相近：(绝对误差)
 
 ```
 np.isclose(a,b,atol=k)
 ```
 
+##### 求和
 
+对二维，逐行和逐列分别是参数 `axis=1`, `axis=0` 且结果会降维，不填就降成常数，如果保持二维：
+
+```python
+arr = np.array([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]])
+np.sum(arr) # 78
+np.sum(arr, axis=1)  # 输出: array([10, 26, 42])
+np.sum(arr, axis=1, keepdims=True)  # 输出: array([[10], [26], [42]])
+```
+
+##### 求最值
+
+min, max 或取得最值的地方：argmin, argmax (第一个最值)
+
+```python
+np.argmax(np.array([[1,5,2,5],[3,2,1,3]]),axis=1) # array([1, 0])
+```
+
+缩减到某个范围内 `x = np.clip(x, -500, 500)`
 
 ##### 随机
 
@@ -6068,6 +6156,12 @@ np.random.randint(a,b)
 
 ```python
 np.random.choice(a,k)
+```
+
+长为 n 的随机全排列：
+
+```
+np.random.permutation(n)
 ```
 
 高斯分布，如：
@@ -6197,6 +6291,10 @@ numpy_std_population = np.std(data) # 即分母 N
 numpy_std_sample = np.std(data, ddof=1) # 即分母 N-1
 ```
 
+对每列分别计算：`np.std(inp, axis=0)`
+
+
+
 ##### 拼接
 
 如样本特征增广：
@@ -6234,6 +6332,20 @@ X_b = np.c_[np.ones((len(X), 1)), X]
 
 
 #### 线性代数
+
+##### 乘法
+
+点乘：`a*b` 或 `np.multiply(a,b)` 矩阵或向量
+
+- multiply 可以标量对矩阵/向量，会广播
+
+矩阵乘法：`np.dot(a,b)` 或 `a.dot(b)`
+
+- a,b 都是一维，做向量内积
+- a,b 都是二维，做矩阵乘法(叉乘而不是点乘)，等效于 `a@b`
+- 高维，根据数组的最后两个维度来执行矩阵乘法，并按照广播规则处理其他维度
+
+如果对一维向量做 `a@b`，等效于内积元素和，即 `np.sum(a*b)`
 
 ##### 逆元
 
@@ -6281,6 +6393,39 @@ coefficients = np.polyfit(x, y, 2)
 高级选项，比如权重和误差估计，允许更复杂的拟合分析。
 
 #### 其他运算
+
+##### where/zscore
+
+```
+np.where(condition, [x, y])
+```
+
+- `condition`：一个布尔数组，其中的每个元素都对应一个条件判断。
+- `x`：当条件为 `True` 时选择的值。
+- `y`：当条件为 `False` 时选择的值。
+- 返回值：一个与 `condition` 形状相同的数组，其中包含来自 `x` 或 `y` 的元素，取决于对应位置的条件是 `True` 还是 `False`。
+
+如 z-scoring (一般不用特判，即分母为零直接 nan)
+
+```python
+def normalize_data(inp):
+    mean = np.mean(inp, axis=0)
+    std = np.std(inp, axis=0)
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        normalized_inp = np.where(std == 0, 0, (inp - mean) / std)
+    return normalized_inp
+```
+
+> 无需手写：
+>
+> ```python
+> from scipy import stats
+> stats.zscore(a,axis=0)
+> ```
+
+
 
 ##### histogram
 
@@ -6369,6 +6514,21 @@ np.seterr(divide='ignore',invalid='ignore')
 
 
 #### 应用举例
+
+##### 独热
+
+高效：(单一特征的话 flatten)
+
+```python
+def one_hot_encoding(labels, num_classes=10):
+    return np.eye(num_classes)[labels]
+one_hot_encoding(np.array([3,4,1]))
+def one_hot_encoding(labels, num_classes=10):
+    return np.eye(num_classes)[labels.flatten()]
+one_hot_encoding(np.array([[3],[4],[1]]))
+```
+
+
 
 ##### 图片加噪手写
 
@@ -10852,6 +11012,38 @@ print("最优解为：\n",x.value)
 [更多例题参考](https://blog.csdn.net/abc1234564546/article/details/126263264)
 
 ## 文件处理
+
+### yaml
+
+返回 dict：
+
+```python
+import yaml
+path = 'configs/config_4.yaml'
+res = yaml.load(open(path, 'r'), Loader=yaml.SafeLoader)
+print(res)
+#{'layer_specs': [784, 10], 'activation': 'None', 'learning_rate': 0.01, 'batch_size': 128, 'epochs': 100, 'early_stop': True, 'early_stop_epoch': 3, 'L2_penalty': 0, 'momentum': False, 'momentum_gamma': 0.9}
+```
+
+### pickle
+
+序列化，反序列化
+
+```python
+import pickle
+
+# 对象序列化
+my_dict = {'a': 1, 'b': 2}
+with open('example.pkl', 'wb') as f:
+    pickle.dump(my_dict, f)
+
+# 对象反序列化
+with open('example.pkl', 'rb') as f:
+    loaded_dict = pickle.load(f)
+    print(loaded_dict)
+```
+
+
 
 ## 文本处理
 

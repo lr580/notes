@@ -5607,9 +5607,32 @@ ssh-copy-id 目标ID
 
 #### 常见问题
 
+##### 无法连接
+
 突然无法连接了，可以通过其他方式链接，如cmd的ssh，然后登录上服务器，找到`/home/登录用户名/`即`~`下有一个文件夹为`.vscode-server`，将其弄走，如`mv .vscode-server/ .vscode-server-old/`，那么就可以连接了。
 
 如果 vscode 链接超时，而 cmd 等途径可以连接，可以尝试删掉本机 `C:\Users\用户名\.ssh\known_hosts` 文件对应 IP 的一行，然后再次链接时 vscode 会弹窗，点击是即可
+
+##### 经常断线
+
+连上去几十秒钟就断了，不断要重连重新打开 vscode
+
+[参考方案](https://blog.csdn.net/qq_36393978/article/details/127228176)
+
+- 在服务器编辑 `/etc/ssh/sshd_config`，添加：
+
+  ```ini
+  # 60 秒向客户端发送一次信号
+  ClientAliveInterval 60
+  # 最大保活消息时长为60s*86400
+  ClientAliveCountMax 86400
+  ```
+
+- 重启服务器 sshd：
+
+  ```sh
+  sudo service sshd restart
+  ```
 
 
 

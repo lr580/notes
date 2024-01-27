@@ -1205,6 +1205,14 @@
 - 670\.最大交换
 
   贪心
+  
+- 2765\.最长交替子数组
+
+  小模拟(指针)
+  
+- 2846\.边权重均等查询
+
+  LCA 树上前缀和
 
 
 
@@ -32142,6 +32150,332 @@ class Solution:
         s[idx1], s[idx2] = s[idx2], s[idx1]
         return int(''.join(s))
 ```
+
+##### 2765\.最长交替子数组
+
+[题目](https://leetcode.cn/problems/longest-alternating-subarray/)
+
+我的模拟：
+
+```python
+from typing import *
+class Solution:
+    def alternatingSubarray(self, nums: List[int]) -> int:
+        n, ans, i = len(nums), -1, 0
+        while i<n:
+            if i+1<n and nums[i]+1==nums[i+1]:
+                l = 2
+                while i+l<n and nums[i+l]-nums[i+l-1]==(-1)**(l+1):
+                    l += 1
+                ans = max(ans, l)
+                i += l - 1
+            else:
+                i += 1
+        return ans
+```
+
+其他写法：
+
+```python
+class Solution:
+    def alternatingSubarray(self, nums: List[int]) -> int:
+        res = -1
+        firstIndex = 0
+        for i in range(1, len(nums)):
+            length = i - firstIndex + 1
+            if nums[i] - nums[firstIndex] == (length - 1) % 2:
+                res = max(res, length)
+            else:
+                if nums[i] - nums[i - 1] == 1:
+                    firstIndex = i - 1
+                    res = max(res, 2)
+                else:
+                    firstIndex = i
+        return res
+```
+
+##### 2846\.边权重均等查询
+
+[题目](https://leetcode.cn/problems/minimum-edge-weight-equilibrium-queries-in-a-tree)
+
+维护树上前缀和，可以 $O(\log n+c)$ 求出链上颜色的各数目，链长减去最大数目即可。其中 $c$ 是颜色数。
+
+树上倍增参考：
+
+```python
+class Solution:
+    def minOperationsQueries(self, n: int, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
+        g = [[] for _ in range(n)]
+        for x, y, w in edges:
+            g[x].append((y, w - 1))
+            g[y].append((x, w - 1))
+
+        m = n.bit_length()
+        pa = [[-1] * m for _ in range(n)]
+        cnt = [[[0] * 26 for _ in range(m)] for _ in range(n)]
+        depth = [0] * n
+        def dfs(x: int, fa: int) -> None:
+            pa[x][0] = fa
+            for y, w in g[x]:
+                if y != fa:
+                    cnt[y][0][w] = 1
+                    depth[y] = depth[x] + 1
+                    dfs(y, x)
+        dfs(0, -1)
+
+        # 倍增模板
+        for i in range(m - 1):
+            for x in range(n):
+                p = pa[x][i]
+                if p != -1:
+                    pp = pa[p][i]
+                    pa[x][i + 1] = pp
+                    for j, (c1, c2) in enumerate(zip(cnt[x][i], cnt[p][i])):
+                        cnt[x][i + 1][j] = c1 + c2
+
+        ans = []
+        for x, y in queries:
+            path_len = depth[x] + depth[y]  # 最后减去 depth[lca] * 2
+            cw = [0] * 26
+            if depth[x] > depth[y]:
+                x, y = y, x
+
+            # 使 y 和 x 在同一深度
+            k = depth[y] - depth[x]
+            for i in range(k.bit_length()):
+                if (k >> i) & 1:  # k 二进制从低到高第 i 位是 1
+                    p = pa[y][i]
+                    for j, c in enumerate(cnt[y][i]):
+                        cw[j] += c
+                    y = p
+
+            if y != x:
+                for i in range(m - 1, -1, -1):
+                    px, py = pa[x][i], pa[y][i]
+                    if px != py:
+                        for j, (c1, c2) in enumerate(zip(cnt[x][i], cnt[y][i])):
+                            cw[j] += c1 + c2
+                        x, y = px, py  # 同时上跳 2^i 步
+                for j, (c1, c2) in enumerate(zip(cnt[x][0], cnt[y][0])):
+                    cw[j] += c1 + c2
+                x = pa[x][0]
+
+            lca = x
+            path_len -= depth[lca] * 2
+            ans.append(path_len - max(cw))
+        return ans
+```
+
+```c++
+class Solution {
+public:
+    vector<int> minOperationsQueries(int n, vector<vector<int>> &edges, vector<vector<int>> &queries) {
+        vector<vector<pair<int, int>>> g(n);
+        for (auto &e: edges) {
+            int x = e[0], y = e[1], w = e[2] - 1;
+            g[x].emplace_back(y, w);
+            g[y].emplace_back(x, w);
+        }
+
+        int m = 32 - __builtin_clz(n); // n 的二进制长度
+        vector<vector<int>> pa(n, vector<int>(m, -1));
+        vector<vector<array<int, 26>>> cnt(n, vector<array<int, 26>>(m));
+        vector<int> depth(n);
+        function<void(int, int)> dfs = [&](int x, int fa) {
+            pa[x][0] = fa;
+            for (auto [y, w]: g[x]) {
+                if (y != fa) {
+                    cnt[y][0][w] = 1;
+                    depth[y] = depth[x] + 1;
+                    dfs(y, x);
+                }
+            }
+        };
+        dfs(0, -1);
+
+        for (int i = 0; i < m - 1; i++) {
+            for (int x = 0; x < n; x++) {
+                int p = pa[x][i];
+                if (p != -1) {
+                    int pp = pa[p][i];
+                    pa[x][i + 1] = pp;
+                    for (int j = 0; j < 26; ++j) {
+                        cnt[x][i + 1][j] = cnt[x][i][j] + cnt[p][i][j];
+                    }
+                }
+            }
+        }
+
+        vector<int> ans;
+        for (auto &q: queries) {
+            int x = q[0], y = q[1];
+            int path_len = depth[x] + depth[y]; // 最后减去 depth[lca] * 2
+            int cw[26]{};
+            if (depth[x] > depth[y]) {
+                swap(x, y);
+            }
+
+            // 让 y 和 x 在同一深度
+            for (int k = depth[y] - depth[x]; k; k &= k - 1) {
+                int i = __builtin_ctz(k);
+                int p = pa[y][i];
+                for (int j = 0; j < 26; ++j) {
+                    cw[j] += cnt[y][i][j];
+                }
+                y = p;
+            }
+
+            if (y != x) {
+                for (int i = m - 1; i >= 0; i--) {
+                    int px = pa[x][i], py = pa[y][i];
+                    if (px != py) {
+                        for (int j = 0; j < 26; j++) {
+                            cw[j] += cnt[x][i][j] + cnt[y][i][j];
+                        }
+                        x = px;
+                        y = py; // x 和 y 同时上跳 2^i 步
+                    }
+                }
+                for (int j = 0; j < 26; j++) {
+                    cw[j] += cnt[x][0][j] + cnt[y][0][j];
+                }
+                x = pa[x][0];
+            }
+
+            int lca = x;
+            path_len -= depth[lca] * 2;
+            ans.push_back(path_len - *max_element(cw, cw + 26));
+        }
+        return ans;
+    }
+};
+```
+
+tarjan 离线参考：
+
+```python
+const int W = 26;
+
+class Solution {
+public:
+    int find(vector<int> &uf, int i) {
+        if (uf[i] == i) {
+            return i;
+        }
+        uf[i] = find(uf, uf[i]);
+        return uf[i];
+    }
+
+    vector<int> minOperationsQueries(int n, vector<vector<int>>& edges, vector<vector<int>>& queries) {
+        int m = queries.size();
+        vector<unordered_map<int, int>> neighbors(n);
+        for (auto &edge : edges) {
+            neighbors[edge[0]][edge[1]] = edge[2];
+            neighbors[edge[1]][edge[0]] = edge[2];
+        }
+        vector<vector<pair<int, int>>> queryArr(n);
+        for (int i = 0; i < m; i++) {
+            queryArr[queries[i][0]].push_back({queries[i][1], i});
+            queryArr[queries[i][1]].push_back({queries[i][0], i});
+        }
+
+        vector<vector<int>> count(n, vector<int>(W + 1));
+        vector<int> visited(n), uf(n), lca(m);
+        function<void(int, int)> tarjan = [&](int node, int parent) {
+            if (parent != -1) {
+                count[node] = count[parent];
+                count[node][neighbors[node][parent]]++;
+            }
+            uf[node] = node;
+            for (auto [child, _] : neighbors[node]) {
+                if (child == parent) {
+                    continue;
+                }
+                tarjan(child, node);
+                uf[child] = node;
+            }
+            for (auto [node1, index] : queryArr[node]) {
+                if (node != node1 && !visited[node1]) {
+                    continue;
+                }
+                lca[index] = find(uf, node1);
+            }
+            visited[node] = 1;
+        };
+        tarjan(0, -1);
+        vector<int> res(m);
+        for (int i = 0; i < m; i++) {
+            int totalCount = 0, maxCount = 0;
+            for (int j = 1; j <= W; j++) {
+                int t = count[queries[i][0]][j] + count[queries[i][1]][j] - 2 * count[lca[i]][j];
+                maxCount = max(maxCount, t);
+                totalCount += t;
+            }
+            res[i] = totalCount - maxCount;
+        }
+        return res;
+    }
+};
+```
+
+```python
+class Solution:
+    def find(self, uf: List[int], i: int) -> int:
+        if uf[i] == i:
+            return i
+        uf[i] = self.find(uf, uf[i])
+        return uf[i]
+
+    def minOperationsQueries(self, n: int, edges: List[List[int]], queries: List[List[int]]) -> List[int]: 
+        m, W = len(queries), 26
+        neighbors = [dict() for i in range(n)]
+        for edge in edges:
+            neighbors[edge[0]][edge[1]] = edge[2]
+            neighbors[edge[1]][edge[0]] = edge[2]
+        queryArr = [[] for i in range(n)]
+        for i in range(m):
+            queryArr[queries[i][0]].append([queries[i][1], i])
+            queryArr[queries[i][1]].append([queries[i][0], i])
+
+        count = [[0 for j in range(W + 1)] for i in range(n)]
+        visited, uf, lca = [0 for i in range(n)], [0 for i in range(n)], [0 for i in range(m)]
+        def tarjan(node: int, parent: int):
+            if parent != -1:
+                count[node] = count[parent].copy()
+                count[node][neighbors[node][parent]] += 1
+            uf[node] = node
+            for child in neighbors[node].keys():
+                if child == parent:
+                    continue
+                tarjan(child, node)
+                uf[child] = node
+            for [node1, index] in queryArr[node]:
+                if node != node1 and not visited[node1]:
+                    continue
+                lca[index] = self.find(uf, node1)
+            visited[node] = 1
+
+        tarjan(0, -1)
+        res = [0 for i in range(m)]
+        for i in range(m):
+            totalCount, maxCount = 0, 0
+            for j in range(1, W+1):
+                t = count[queries[i][0]][j] + count[queries[i][1]][j] - 2 * count[lca[i]][j]
+                maxCount = max(maxCount, t)
+                totalCount += t
+            res[i] = totalCount - maxCount
+        return res
+```
+
+回忆：
+
+路径点权和：$s[u]+s[v]-s[lca]-s[fa_{lca}]$
+
+路径边权和： $s[u]+s[v]-2s[lca]$
+
+路径点差分：$s[u],s[v]$ 加一， $s[lca],s[fa_{lca}]$ 减一
+
+路径边差分：$s[u],s[v]$ 加一， $s[lca]$ 减二
 
 
 
