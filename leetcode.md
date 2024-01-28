@@ -1213,6 +1213,10 @@
 - 2846\.边权重均等查询
 
   LCA 树上前缀和
+  
+- 365\.水壶问题
+
+  裴蜀定理 / 搜索 / STL
 
 
 
@@ -32476,6 +32480,50 @@ class Solution:
 路径点差分：$s[u],s[v]$ 加一， $s[lca],s[fa_{lca}]$ 减一
 
 路径边差分：$s[u],s[v]$ 加一， $s[lca]$ 减二
+
+##### 365\. 水壶问题
+
+[题目](https://leetcode.cn/problems/water-and-jug-problem)
+
+设 $A,B$ 水壶容量为 $a < b$，目标为 $c$。
+
+$B$ 装满，$B$ 倒入 $A$ 直到 $A$ 满，然后倒空 $A$，重复此操作直到 $B$ 剩下容量不足 $A$，则能够得到的水为全体 $b-ka,k\ge 0$，例如 $(a,b)=(11,13)\to 13,2, (a,b)=(3,100)\to100,97,\cdots,4,1$。最终得到的一定是 $b\bmod a$。
+
+然后将 $B$ 剩余的水装到 $A$，$A$ 不满，水量为 $b\bmod a$，再次将 $B$ 装满，然后倒入 $A$ 直到 $A$ 满，此时 $B$ 的水量为 $b-(a-(b\bmod a))$，如 $(a,b)=(11,13)\to 4,(a,b)=(3,100)\to 98$，可以再不断减去 $ka$，直到容量不足 $A$，对 $(11,13)$ 不变，对 $(3,100)\to 98,95,\cdots,2$，即最终得到的一定是 $2(b\bmod a)$。
+
+不断如此操作，能得到 $3(b\bmod a),\cdots, k(b\bmod a)$，直到 $k(b\bmod a)\ge a$ 时，将更新为 $(k(b\bmod a))\bmod a$，或者到达循环节。例如对 $(11,13)\to13,2,4,6,8,10,12,1,3,5,7,9,11$ 且 $(3,100)\to100,97,\cdots,1,98,95,\cdots,2,99,96\cdots,3,0$。
+
+可以总结出在这个过程里，$B$ 容器的残余水量 $b'$ 满足：若 $b'\ge a$，则 $b'\to b'-a$，否则为 $b-a+b'$，即 $b'=(b'+b-a)\bmod b$。即 $b'$ 的所有可能取值为 $(b_0+k(b-a))\bmod b,0\le k < b\to (b_0-ka)\bmod b$，初始残余水量 $b_0=b$。等价于 $b\equiv ka\pmod b\to 0\equiv ka\pmod b$。也就是说 $B$ 残余水量是全体 $ka\bmod b$，且循环节的大小就是不同取值大小，最长循环节不超过 $b$(证明：当达到循环时，有 $k_ia\equiv k_ja\pmod b$，即 $k_i\equiv k_j\pmod b$，即 $\min (i-j)=b$)。
+
+根据同余性质，可以除以 $g=\gcd(a,b)$，使得 $k_i\dfrac ag\equiv k_j\dfrac ag\pmod{\dfrac bg}$，再消去 $\dfrac ag$ 可得 $k_i\equiv k_j\pmod{\dfrac bg}$，所以取值为最小。
+
+总结：
+
+- 若 $\gcd(a,b)=1$，则 $B$ 的水容量可以取遍 $0,1,\cdots, b$，将这个取值范围 0-1 背包地加上 $a$，能得到全体 $[0,a+b]$
+- 否则，取值范围是 $0,g,2g,\cdots,\lfloor\dfrac{b}{g}\rfloor g$，同理，得到 $0\le kg\le a+b$
+
+结论：若 $\exists 0\le kg=c\le a+b$，为真。
+
+```python
+return 0<=c<=a+b and c%gcd(a,b)==0
+```
+
+思路：
+
+- 两个桶不可能同时是半满的；
+- 对半满的桶加满水或倒掉不会更优。
+
+则等价于找到一组整数 $x,y$，满足 $ax+by=c\le a+b$。
+
+- 若 $a\ge0,b\ge0$ 直接灌满 $A,B$ 或 $AB$ 即可。
+- 若 $a<0$，等效于：
+  - 往 $B$ 灌水总次数为 $b$，且转移净空掉 $a$ 次 $A$ 里的水；
+  - $b < 0$ 反之亦然成立。 
+- 不可能 $a < 0$ 且 $b < 0$。
+
+根据裴蜀定理，有解当且仅当 $c=k\gcd(a,b)$。
+
+> 也可以对状态数为 $ab$ 的进行爆搜，复杂度为 $O(ab)$
 
 
 
