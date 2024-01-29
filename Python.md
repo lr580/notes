@@ -4648,6 +4648,8 @@ from itertools import *
 
 - 前缀和 `list(accumulate(nums, initial=0))`  (增加首元素0,即对 [0]+nums 叠，长度加一；不加该参数长度不变原地叠)
 
+- `pairwise(a)` 返回 a 相邻两个元素值组成的元组的迭代器
+
 例：
 
 ```python

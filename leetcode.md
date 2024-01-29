@@ -1217,6 +1217,10 @@
 - 365\.水壶问题
 
   裴蜀定理 / 搜索 / STL
+  
+- 2808\.使循环数组所有元素相等
+
+  STL
 
 
 
@@ -35406,6 +35410,50 @@ class DiningPhilosophers {
 ```
 
 > 思路参考：2023 王道计算机操作系统考研复习指导 P102-P103。
+
+##### 2808\.使循环数组所有元素相等
+
+[题目](https://leetcode.cn/problems/minimum-seconds-to-equalize-a-circular-array)
+
+枚举每个值，求最长间隙可对应求得变为该值的最少秒数
+
+```python
+from typing import *
+from collections import defaultdict
+class Solution:
+    def minimumSeconds(self, nums: List[int]) -> int:
+        n = len(nums)
+        ans = n // 2
+        d = defaultdict(list)
+        for i, v in enumerate(nums):
+            d[v].append(i)
+        for l in d:
+            m, mx = len(d[l]), 0
+            if m == 1:
+                continue
+            for i in range(m):
+                x, y = d[l][i], d[l][(i + 1) % m]
+                mx = max(mx, y-x-1+n*(y<x))
+            ans=min(ans,(mx+1)//2)
+        return ans
+```
+
+优雅写法：
+
+```python
+class Solution:
+    def minimumSeconds(self, nums: List[int]) -> int:
+        pos = defaultdict(list)
+        for i, x in enumerate(nums):
+            pos[x].append(i)
+
+        ans = n = len(nums)
+        for a in pos.values():
+            a.append(a[0] + n)
+            mx = max((j - i) // 2 for i, j in pairwise(a))
+            ans = min(ans, mx)
+        return ans
+```
 
 
 
