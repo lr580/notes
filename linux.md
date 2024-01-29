@@ -495,7 +495,7 @@ wsl --set-default-version 2
 
 #### 使用
 
-文件资源管理器 `\\wsl$` 可以打开文件。
+文件资源管理器 `\\wsl$` 可以打开文件。可以操作的目录如 `/mnt/wsl`
 
 方法二：对 vscode，可以使用 remote-wsl 扩展，在管理员身份本机运行 vscode，输入 remote explorer，在当前窗口链接，即可。如果编辑不行可以 `chmod/chown` 等一下。
 

@@ -5957,6 +5957,12 @@ h=np.insert(np.eye(5),1,values=np.ones(5),axis=0)  #values形状会随axis不同
 np.linspace(1,25,25).reshape(5,5)
 ```
 
+- reshape 参数数量代表新的维度
+
+- -1 代表 size / 已知，如 `(a,b,c,d)` 的 reshape 为 `(a, -1)` 为 `(a, bcd)`
+
+  要求只能有一个 -1，且 size 可以整除已知
+
 类型转换方法 `astype`：
 
 ```python
@@ -6346,6 +6352,12 @@ X_b = np.c_[np.ones((len(X), 1)), X]
 - 高维，根据数组的最后两个维度来执行矩阵乘法，并按照广播规则处理其他维度
 
 如果对一维向量做 `a@b`，等效于内积元素和，即 `np.sum(a*b)`
+
+##### 转置
+
+`.T` 对一维不变，二维横纵坐标改变
+
+对高维，使用 `.transpose((x,y,z,...))`  表示新的第几个维度对应旧的第几个维度
 
 ##### 逆元
 
