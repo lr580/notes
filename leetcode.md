@@ -1221,6 +1221,14 @@
 - 2808\.使循环数组所有元素相等
 
   STL
+  
+- 1686\.石子游戏VI
+
+  **贪心**+博弈论
+  
+- LCP24\.数字游戏
+
+  对顶堆(证明定点距离和是中位数)
 
 
 
@@ -32529,7 +32537,113 @@ return 0<=c<=a+b and c%gcd(a,b)==0
 
 > 也可以对状态数为 $ab$ 的进行爆搜，复杂度为 $O(ab)$
 
+##### 1686\.石子游戏VI
 
+[题目](https://leetcode.cn/problems/stone-game-vi)
+
+显然 alice 最大化选定的 $A-B$。bob 则最小化该值。
+
+> 对 alice 选 $i$，bob 选 $j$ 好当：$(a_i-b_j)-(a_j-b_i)=(a_i+b_i)-(a_j+b_j)$，若大于零，选 $i$ 更好。所以按照 $a_i+b_i$ 排序。
+
+设初始值是 bob 全拿；然后 alice 拿走 $i$ 时，会将 $A-B$ 添加一个增量 $a_i-(-b_i)=a_i+b_i$，所以第一次一定优先拿走 $c_i=a_i+b_i$ 最大的。
+
+问题转化为，对 $c_i$，alice 每回合拿走一个，bob 每回合删掉一个，alice 使 alice 拿走的最大的策略是什么，bob 让 alice 拿的最小的策略是什么。因此，博弈论策略为：alice 每次拿最大的，bob 每次删最大的。
+
+```python
+class Solution:
+    def stoneGameVI(self, a: List[int], b: List[int]) -> int:
+        pairs = sorted(zip(a, b), key=lambda p: -p[0] - p[1])
+        diff = sum(x if i % 2 == 0 else -y for i, (x, y) in enumerate(pairs))
+        return (diff > 0) - (diff < 0)
+```
+
+
+
+```python
+class Solution:
+    def stoneGameVI(self, aliceValues: List[int], bobValues: List[int]) -> int:
+        values = [[a+b, a, b] for a, b in zip(aliceValues, bobValues)]
+        values.sort(reverse=True)
+        aliceSum, bobSum = sum(value[1] for value in values[::2]), sum(value[2] for value in values[1::2])
+        if aliceSum > bobSum:
+            return 1
+        elif aliceSum == bobSum:
+            return 0
+        else:
+            return -1
+```
+
+##### LCP24\.数字游戏
+
+[题目](https://leetcode.cn/problems/5TxKeK)
+
+下标 $i$ 从 $0$ 开始，即找到 $c$，最小化 $f(c)=\sum |a_i-(c+i)|=\sum|a_i-i-c|$，即令 $b_i=a_i-i$，最小化 $f(c)=\sum|b_i-c|$。可以证明，即找到 $b$ 的中位数(如果有两个中位数 $x,y$，则任意 $c\in[x,y]$ 均可)作为 $c$，答案最小。所以可以使用对顶堆动态维护中位数即可。
+
+不妨维护左右的和 $s_l,s_r$，左右元素数 $n_l,n_r$(设中位数在左边)，则答案为 $f(c)=(n_lc-s_l)+(s_r-n_rc)$。
+
+```python
+from heapq import heappush, heappop # 小根堆
+class heap: # 对顶堆
+    def __init__(self):
+        self.l = [] # 前 (n+1)//2 个元素, 逆序(大根堆)
+        self.r = [] # 剩下的元素, 升序(小根堆)
+        self.sl = self.sr = 0 # 左和,右和
+    def add(self, v):
+        if len(self.l)==0 or v<=-self.l[0]:
+            heappush(self.l, -v)
+            self.sl += v
+        else:
+            heappush(self.r, v)
+            self.sr += v
+        if len(self.l)-len(self.r)>1:
+            x = -heappop(self.l)
+            heappush(self.r,x)
+            self.sl -= x
+            self.sr += x
+        if len(self.r)>len(self.l):
+            x = heappop(self.r)
+            heappush(self.l, -x)
+            self.sl += x
+            self.sr -= x
+    def mid(self):
+        return -self.l[0]
+        
+class Solution:
+    def numsGame(self, nums: List[int]) -> List[int]:
+        r, h, p = [], heap(), 1_000_000_007
+        for i,v in enumerate(nums):
+            h.add(v-i)
+            c=h.mid()
+            s=len(h.l)*c-h.sl+h.sr-len(h.r)*c
+            r.append((s+p)%p)
+        return r
+```
+
+证明：对 $f(x)$​，几何意义为求数轴一个点 $x$ ，使得其到这 $n$ 个点的距离和最小。
+
+题目要求即对每组 $g'$ ，需要选取一个 $x$ ，使得 $f(x)$ 最小化。
+
+1. 若 $n=1$ ，显然取 $x=x_1, $ 有 $f(x) = 0$， $f(x)$ 最小。
+
+2. 若 $n=2$ ，若 $x_1=x_2$ ，显然取 $x=x_1$ 即可使最小 $f(x)=0$ 。若 $x_1\neq x_2$， 假设 $x < x_1$ 或 $x > x_2$ ，作图数形结合可知，$x$ 越往两端走， $f(x)$ 越大。结合函数图像不难发现，选取 $x\in [x_1, x_2]$ 的结果必然优于选取 $x$ 在其他区间的值。 而 $x\in [x_1,x_2]$ 时， 有：
+   $$
+   f(x)=|x_1-x|+|x_2-x|=x-x_1+x_2-x=x_2-x_1
+   $$
+   因此对 $n=2$ 时， 任取 $x\in [x_1, x_2]$ ，均可获得最小值 $f(x)=x_2-x_1$
+
+3. 若 $n=3$ ，类似分析可得， $x\in [x_1, x_3]$ 必然优于 $x$ 取其他值的情况，因为在两端时距 $x_2$ 的距离也必然加大。在这个区间时，有：
+   $$
+   f(x)=|x_1-x|+|x_2-x|+|x_3-x|=x_3-x_1+|x_2-x|
+   $$
+   为使得 $f(x)$ 最小，可以令 $x=x_2$， 得 $f(x)=x_3-x_1$
+
+4. 若 $n=4$ ，同理， $x\in[x_1,x_4]$，有：
+   $$
+   f(x)=x_4-x_1+|x_2-x|+|x_3-x|
+   $$
+   其中 $|x_2-x|+|x_3-x|$ 的最小值可以看做忽略点 $x_1, x_4$ 后， $n'=2$ 的一个子问题，根据上面第二点可知， $x\in [x_2,x_3]$ 时，该子问题的最优解是 $x_3-x_2$ ，而 $[x_2,x_3]\subset [x_1,x_4]$ ，故答案为 $f(x)=x_4-x_1+x_3-x_2$ 。
+
+5. 若 $n=5$ ，同理用子问题的思想，得 $x=x_3$ 时， $f(x)=x_5-x_1+x_4-x_2$ 。 若 $n\ge 6$ ，可以每次用子问题的思想分析 $n' = n-2$ 时的子问题，得到答案。综上所述，$x\in[x_{\lfloor\frac n2\rfloor}, x_{\lfloor\frac {n+1}2\rfloor}]$ 时， $f(x)= x_{n-1} - x_1 + x_{n-2} - x_2 + \cdots$ 。( $n$ 为偶数是 $x$ 取值区间有长度，$n$ 为奇数时，取值区间是一个点)
 
 > ### 力扣比赛
 
