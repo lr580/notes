@@ -1229,6 +1229,10 @@
 - LCP24\.数字游戏
 
   对顶堆(证明定点距离和是中位数)
+  
+- 1690\.石子游戏VII
+
+  博弈论 记忆化DFS/<u>DP</u>
 
 
 
@@ -32644,6 +32648,129 @@ class Solution:
    其中 $|x_2-x|+|x_3-x|$ 的最小值可以看做忽略点 $x_1, x_4$ 后， $n'=2$ 的一个子问题，根据上面第二点可知， $x\in [x_2,x_3]$ 时，该子问题的最优解是 $x_3-x_2$ ，而 $[x_2,x_3]\subset [x_1,x_4]$ ，故答案为 $f(x)=x_4-x_1+x_3-x_2$ 。
 
 5. 若 $n=5$ ，同理用子问题的思想，得 $x=x_3$ 时， $f(x)=x_5-x_1+x_4-x_2$ 。 若 $n\ge 6$ ，可以每次用子问题的思想分析 $n' = n-2$ 时的子问题，得到答案。综上所述，$x\in[x_{\lfloor\frac n2\rfloor}, x_{\lfloor\frac {n+1}2\rfloor}]$ 时， $f(x)= x_{n-1} - x_1 + x_{n-2} - x_2 + \cdots$ 。( $n$ 为偶数是 $x$ 取值区间有长度，$n$ 为奇数时，取值区间是一个点)
+
+##### 1690\.石子游戏VII
+
+[题目]()
+
+记忆化 DFS，可以知道每个还没拿的连续区间 $[l,r]$ 根据区间长度能直接确定当前是 alice 还是 bob，每个区间 $[l,r]$ 只由 $[l+1,r]$ 和 $[l,r-1]$ 决定，所以考虑记忆化 DFS。使用前缀和求区间和，DFS 时维护差值，alice 增大它并选更大的，bob 减少它并选更小的。
+
+时空复杂度 $O(n^2)$。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using pii = pair<int,int>;
+class Solution {
+    vector<int> s;
+    vector<vector<int>> m;
+    int n,FAIL=-1;
+    int dfs(int l, int r){
+        if(m[l][r]!=FAIL) return m[l][r];
+        if(l==r) return 0;
+        bool isAlice=((r-l+1)&1)==(n&1);
+        int lans = dfs(l+1,r), rans = dfs(l,r-1), ans;
+        int lcnt = s[r+1]-s[l+1], rcnt = s[r]-s[l];
+        if(isAlice){
+            lans+=lcnt,rans+=rcnt;
+            ans=max(lans,rans);
+        }else{
+            lans-=lcnt,rans-=rcnt;
+            ans=min(lans,rans);
+        }
+        return m[l][r] = ans;
+    }
+public:
+    int stoneGameVII(vector<int>& stones) {
+        n = stones.size();
+        s = vector<int>(n + 1);
+        m = vector<vector<int>>(n, vector<int>(n, FAIL));
+        for (int i = 0; i < n; ++i) {
+            s[i + 1] = s[i] + stones[i];
+        }
+        return dfs(0, n-1);
+    }
+};
+```
+
+可以不分类讨论：
+
+- 定义 alice 和为 $A$，bob 和为 $B$；
+
+- 重定义 $dfs$ 答案为以当前区间的人为先手，先手和减去后手和的最大值；
+
+  alice 本来就是最大化 $A-B$，对 dfs 初始状态即为所求；而 bob 要最小化 $A-B$，如果把他看成先手，则先手和就是 $B$，后手和是 $A$，最大化 $B-A$ 就是最小化 $A-B$；
+
+  所以可以不再分类讨论 alice, bob，直接最大化当前回合先手和减后手和。
+
+- dfs 时，返回该最大和即可，故递推为前缀和-DFS。
+
+```python
+class Solution:
+    def stoneGameVII(self, stones: List[int]) -> int:
+        s = list(accumulate(stones, initial=0))  # 前缀和
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果
+        def dfs(i: int, j: int) -> int:
+            if i == j:  # 递归边界
+                return 0
+            return max(s[j + 1] - s[i + 1] - dfs(i + 1, j), s[j] - s[i] - dfs(i, j - 1))
+        ans = dfs(0, len(stones) - 1)
+        dfs.cache_clear()  # 防止爆内存
+        return ans
+```
+
+```c++
+class Solution {
+public:
+    int stoneGameVII(vector<int> &stones) {
+        int n = stones.size();
+        vector<int> s(n + 1); // 前缀和
+        partial_sum(stones.begin(), stones.end(), s.begin() + 1);
+        vector<vector<int>> memo(stones.size(), vector<int>(stones.size()));
+        function<int(int, int)> dfs = [&](int i, int j) -> int {
+            if (i == j) { // 递归边界
+                return 0;
+            }
+            int &res = memo[i][j]; // 注意这里是引用
+            if (res) { // 之前计算过
+                return res;
+            }
+            return res = max(s[j + 1] - s[i + 1] - dfs(i + 1, j), s[j] - s[i] - dfs(i, j - 1));
+        };
+        return dfs(0, n - 1);
+    }
+};
+```
+
+可以写成递推式：
+
+```python
+class Solution:
+    def stoneGameVII(self, stones: List[int]) -> int:
+        n = len(stones)
+        s = list(accumulate(stones, initial=0))
+        f = [[0] * n for _ in range(n)]
+        for i in range(n - 2, -1, -1):
+            for j in range(i + 1, n):
+                f[i][j] = max(s[j + 1] - s[i + 1] - f[i + 1][j], s[j] - s[i] - f[i][j - 1])
+        return f[0][-1]
+```
+
+可以使用完全背包思想优化掉一层 DP 维度，滚动数组也行。
+
+```python
+class Solution:
+    def stoneGameVII(self, stones: List[int]) -> int:
+        n = len(stones)
+        s = list(accumulate(stones, initial=0))
+        f = [0] * n
+        for i in range(n - 2, -1, -1):
+            for j in range(i + 1, n):
+                f[j] = max(s[j + 1] - s[i + 1] - f[j], s[j] - s[i] - f[j - 1])
+        return f[-1]
+```
+
+
 
 > ### 力扣比赛
 
