@@ -3584,6 +3584,8 @@ d = defaultdict(list) # 空列表
 
 `pop, popleft` 方法删除右端和左端并返回，`append, appendleft` 插入。
 
+`[]` 从左往右取下标
+
 ##### priorityqueue
 
 `queue.PriorityQueue`类是一个线程安全的优先级队列实现。它提供了以下几个常用方法：

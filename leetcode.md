@@ -1233,6 +1233,10 @@
 - 1690\.石子游戏VII
 
   博弈论 记忆化DFS/<u>DP</u>
+  
+- 1696\.跳跃游戏VI
+
+  DP+单调队列
 
 
 
@@ -32768,6 +32772,32 @@ class Solution:
             for j in range(i + 1, n):
                 f[j] = max(s[j + 1] - s[i + 1] - f[j], s[j] - s[i] - f[j - 1])
         return f[-1]
+```
+
+##### 1696\.跳跃游戏VI
+
+[题目](https://leetcode.cn/problems/jump-game-vi/)
+
+设 $dp_i$ 为前 $i$ 项数组的答案，显然 $dp_i=nums_i+\max_{i-k\le j < i} dp_j$。
+
+使用单调队列优化，维护 $\max dp$ 的下标，维护满足下标限制的单调递减队列，因为每出现一个更大的值，更前的值不会更优。
+
+原地使用 $nums$ 更新 $dp$，可以节省一个数组。时间复杂度 $O(n)$，空间复杂度 $O(k)$。
+
+```python
+from collections import deque
+class Solution:
+    def maxResult(self, nums: List[int], k: int) -> int:
+        q = deque()
+        q.append(0)
+        for i in range(1,len(nums)):
+            if q[0]<i-k:
+                q.popleft()
+            nums[i]+=nums[q[0]]
+            while q and nums[q[-1]]<nums[i]:
+                q.pop()
+            q.append(i)
+        return nums[-1]
 ```
 
 

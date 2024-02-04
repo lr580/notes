@@ -883,9 +883,29 @@ su
 
 但是这样需要输入一次密码。
 
+切换其他用户：(不知道用户密码可以加 sudo su)
+
+```sh
+su - 用户名
+```
+
+
+
 
 
 用`exit`退出窗口
+
+
+
+以某个用户身份执行命令：
+
+```sh
+sudo -u 用户名 命令 
+```
+
+> ```sh
+> sudo -u postgres psql -d chinook -f /tmp/chinook_postgres.sql
+> ```
 
 
 
