@@ -1237,6 +1237,14 @@
 - 1696\.跳跃游戏VI
 
   DP+单调队列
+  
+- LCP30\.魔塔游戏
+
+  贪心+优先级队列
+  
+- 2641\.二叉树的堂兄弟节点II
+
+  搜索
 
 
 
@@ -32798,6 +32806,95 @@ class Solution:
                 q.pop()
             q.append(i)
         return nums[-1]
+```
+
+##### LCP30\.魔塔游戏
+
+[题目](https://leetcode.cn/problems/p0NxJO/description/)
+
+python heapq 库优先级队列；若总和小于 0 必无解；记录所有负数，每次没血了删掉最小的。复杂度 $O(n\log n)$
+
+```python
+from typing import *
+from heapq import heappop, heappush # 小根堆
+class Solution:
+    def magicTower(self, nums: List[int]) -> int:
+        if sum(nums) < 0:
+            return -1
+        q, cnt, s = [], 0, 0
+        for v in nums:
+            if v < 0:
+                heappush(q, v)
+            s += v
+            while s < 0:
+                w = heappop(q)
+                cnt += 1
+                s -= w
+        return cnt
+```
+
+##### 2641\.二叉树的堂兄弟节点II
+
+[题目](https://leetcode.cn/problems/cousins-in-binary-tree-ii)
+
+DFS：
+
+```python
+class Solution:
+    def replaceValueInTree(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
+        sf = {None:root.val}
+        s = []
+        def dfs(u, d):
+            if len(s)<=d:
+                s.append(0)
+            s[d] += u.val
+            slr = 0
+            if u.left:
+                slr += u.left.val
+                dfs(u.left,d+1)
+            if u.right:
+                slr += u.right.val
+                dfs(u.right,d+1)
+            sf[u] = slr
+        dfs(root, 0)
+        def dfs2(u, f, d):
+            u.val = s[d]-sf[f]
+            if u.left:
+                dfs2(u.left, u, d+1)
+            if u.right:
+                dfs2(u.right, u, d+1)
+        dfs2(root,None,0)
+        return root
+```
+
+BFS：
+
+```python
+class Solution:
+    def replaceValueInTree(self, root: Optional[TreeNode]) -> Optional[TreeNode]:
+        root.val = 0
+        q = [root]
+        while q:
+            tmp = q
+            q = []
+
+            # 计算下一层的节点值之和
+            next_level_sum = 0
+            for node in tmp:
+                if node.left:
+                    q.append(node.left)
+                    next_level_sum += node.left.val
+                if node.right:
+                    q.append(node.right)
+                    next_level_sum += node.right.val
+
+            # 再次遍历，更新下一层的节点值
+            for node in tmp:
+                children_sum = (node.left.val if node.left else 0) + \
+                               (node.right.val if node.right else 0)
+                if node.left: node.left.val = next_level_sum - children_sum
+                if node.right: node.right.val = next_level_sum - children_sum
+        return root
 ```
 
 

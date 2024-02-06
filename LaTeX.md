@@ -1915,8 +1915,8 @@ geometry 宏包，如：
 
 ```tex
 \section{标题}
-	\subsection{一级子标题}
-	\subsection{一杠一} %显示上同级
+\subsection{一级子标题}
+\subsection{一杠一} %显示上同级
 ```
 
 不想写入目录的节使用 `\section*{标题}`。想让一个节无编号地写入目录使用 `\addcontentsline{toc}{section}{名字}`。
@@ -2586,6 +2586,8 @@ signed main()
 - `keywordstyle=\color{blue}` 关键字颜色
 - `commentstyle=\it\color[RGB]{0,100,0}` 注释颜色
 - `stringstyle=\sl\color{red}` 字符串格式
+
+对上面的都管用(如引用外部)
 
 如：
 

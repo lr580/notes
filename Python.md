@@ -1209,7 +1209,10 @@ print(-float('-inf')/9-9) #是inf
 
 非无穷的最小值/最大值：`sys.float_info.min`, `.max`，最小正差异 `.epsilon`。
 
+有 nan 值，特点如下：
 
+- 不等于任何数(包括自身) `float('nan')==float('nan') -> False`
+- 与任何数计算得到 nan：`float('nan')+1 -> nan`
 
 #### bool
 
@@ -1447,6 +1450,8 @@ y={}#空字典
 `in .keys()` 是时空 O1 的
 
 `[]` 与 `get()` 的区别，前者查无 `KeyError`，后者返回 None。`get(key, default)` 可以规定查无返回什么。
+
+None 和自定义对象可以做 key，都可以唯一区分。
 
 ##### 方法
 
@@ -1705,6 +1710,10 @@ American.printNationality()
 ##### call
 
 `()` 方法调用
+
+##### contain
+
+ `__contains__` 方法，那么 `in` 关键字会调用这个方法来判断。如果没有实现 `__contains__` 方法，但实现了 `__iter__` 方法（或者是可迭代的），Python会通过迭代对象来查找元素；如果还没有实现 `__iter__`，但实现了 `__getitem__` 方法，Python会尝试从索引0开始，通过连续的整数索引来访问元素，直到遇到 `IndexError`。
 
 ##### doc
 
@@ -5902,7 +5911,7 @@ np.empty_like(img, dtype=float) #复制形状
 建立python range：
 
 ```python
-np.arange(n) #同np.array(range(n))
+np.arange(n) #同np.array(range(n)),同理可以几个a,b,k参数
 ```
 
 建立n阶或$n\times m$$(0,1)$对角矩阵
@@ -5986,6 +5995,8 @@ np.array([1, 2, 3, 4])[:,np.newaxis]
 ```
 
 变成一维并返回：`.flatten()`
+
+复制：`np.tile(arr, (x,y))` 在行方向重复 x 次，列方向 y 次(重复类似列表乘法)
 
 ##### 运算
 
@@ -8034,6 +8045,8 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 
 取单独元素 `.at[行号, 列str]` 或 `.loc[]`，可以取和赋值
 
+行号是否在表里：`行号 in df.index`
+
 > loc 和 iloc 的区别在于，对行 loc 是下标值作索引，iloc 是第几个下标
 
 转 numpy(丢失表头)：`.to_numpy()`，转列表 `.tolist()`，转 set 直接 `set(df[])`，
@@ -9623,6 +9636,81 @@ img = cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_COLOR)
 
 不能读 GIF，需要的话用 `imageio` 库
 
+#### 图像绘制
+
+##### 矩形
+
+```python
+cv2.rectangle(image, pt1, pt2, color, thickness=None, lineType=None, shift=None)
+```
+
+- image 是 numpy 数组
+- pt1 是整数元组，表示左上角横纵坐标，从左往右和从上往下
+- pt2 右下角
+- color 三元组，整型范围 0-255,255 是最亮，如 (0,255,0) 是绿
+- thickness 边框厚度，-1 是填充，默认 1
+- lineType 如 `cv2.LINE_8` 或 `cv2.LINE_AA`
+- shift 小数位数，默认 0
+
+##### 加权混合
+
+```python
+cv2.addWeighted(src1, alpha, src2, beta, gamma[, dst[, dtype]])
+```
+
+- src1 图像 A
+- src2 图像 B
+- alpha 图像 A 占比
+- beta 图像 B 占比
+- gamma 被加到所有的加权和上，可以调节亮度
+- dst 输出图像位置，不指定就新建
+
+半透明填充矩阵：
+
+```python
+image = cv2.imread('data/frame_0.jpg')
+rect_start = (10, 10)  # 矩形左上角
+rect_end = (200, 60)   # 矩形右下角
+rect_color = (255, 255, 255)  # 白色背景
+rect_alpha = 0.4  # 40%可见
+overlay = image.copy()
+cv2.rectangle(overlay, rect_start, rect_end, rect_color, -1)  # -1 填充矩形, 40% 
+cv2.addWeighted(overlay, rect_alpha, image, 1 - rect_alpha, 0, image)
+```
+
+##### 文字
+
+```python
+cv2.putText(img, text, org, fontFace, fontScale, color[, thickness[, lineType[, bottomLeftOrigin]]])
+```
+
+- text 是字符串
+- org 是文本框左下角坐标
+- fontFace 如`cv2.FONT_HERSHEY_SIMPLEX`, `cv2.FONT_HERSHEY_PLAIN`
+- fontScale 浮点数，字体大小，1 是默认(基线)
+- color RGB 三元组
+- thickness 文本线条厚度
+- bottomLeftOrigin 默认 true，否则 false 的话 org 设左上角
+
+在上面半透明的例子上：
+
+```python
+text = "Your Text Here"
+rect_start = (10, 10)
+position = (rect_start[0] + 10, rect_start[1] + 30) 
+font = cv2.FONT_HERSHEY_SIMPLEX
+font_scale = 1
+font_color = (0, 0, 0)  # 黑色文字
+line_type = 2
+
+cv2.putText(image, text, position, font, font_scale, font_color, line_type)
+cv2.imshow('Image with Text', image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+```
+
+
+
 #### 图像增强
 
 ##### 直方图均衡化
@@ -9681,6 +9769,43 @@ plt.subplot(122)
 plt.imshow(img2, 'gray')
 plt.show()
 ```
+
+#### 视频处理
+
+##### 基本信息
+
+长宽：
+
+```python
+video = cv2.VideoCapture(video_path)
+width = video.get(cv2.CAP_PROP_FRAME_WIDTH)
+height = video.get(cv2.CAP_PROP_FRAME_HEIGHT)
+frames_count = video.get(cv2.CAP_PROP_FRAME_COUNT) # float
+```
+
+
+
+##### 逐帧提取
+
+```python
+import cv2
+def extract_frames(video_path, output_folder):
+    video = cv2.VideoCapture(video_path)
+    count = 0
+    while True:
+        success, frame = video.read()
+        if not success:
+            break
+        cv2.imwrite(f"{output_folder}/frame_{count}.jpg", frame)
+        count += 1
+    video.release()
+    cv2.destroyAllWindows()
+video_path = 'w10_10.mp4'
+output_folder = 'data' # 该output路径必须存在
+extract_frames(video_path, output_folder)
+```
+
+
 
 #### 其他例子
 
@@ -11056,7 +11181,7 @@ with open('example.pkl', 'wb') as f:
 # 对象反序列化
 with open('example.pkl', 'rb') as f:
     loaded_dict = pickle.load(f)
-    print(loaded_dict)
+    print(loaded_dict) # dict
 ```
 
 
