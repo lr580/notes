@@ -4769,6 +4769,8 @@ print(glob.glob('.gitignore'))
 print(glob.glob('.vscode/*'))
 ```
 
+> 用 `/` 或`\\` 分割目录都可以
+
 
 
 `iglob` 每次返回可迭代对象，如：
@@ -9785,7 +9787,9 @@ frames_count = video.get(cv2.CAP_PROP_FRAME_COUNT) # float
 
 
 
-##### 逐帧提取
+##### 帧提取
+
+逐帧提取
 
 ```python
 import cv2
@@ -9803,6 +9807,17 @@ def extract_frames(video_path, output_folder):
 video_path = 'w10_10.mp4'
 output_folder = 'data' # 该output路径必须存在
 extract_frames(video_path, output_folder)
+```
+
+也可以跳帧提取：
+
+```python
+frame_number = 50
+cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+
+ret, frame = cap.read()
+if ret:
+    cv2.imwrite('output.jpg', frame)
 ```
 
 
@@ -11663,6 +11678,47 @@ d2l.plt.legend()
 
 ```python
 torch.set_printoptions(2)  # 精简输出精度
+```
+
+### yolo
+
+[官网](https://docs.ultralytics.com/) [代码仓库](https://github.com/ultralytics/ultralytics)
+
+安装：
+
+```sh
+pip install ultralytics
+```
+
+#### 基本操作
+
+##### 加载模型
+
+```python
+from ultralytics import YOLO
+# 下载一个预训练模型，在当前目录保存 yolov8n.pt (6MB)
+model = YOLO('yolov8n.pt')
+```
+
+#### 训练模型
+
+在一个文件夹，文件夹里有两个子文件夹 `images\` 和 `\labels\`，每个文件夹有 `train` 和 `val` 文件夹，文件夹里放图片文件，图片后缀任意，标签里放对应文件名的 `.txt` 标签。标签格式为：
+
+```
+类别 x y w h
+```
+
+- 其中 `x,y,w,h` 都是浮点数，取值范围为 $[0,1]$，是归一化相对坐标
+- 类别是整数，在数据配置文件定义，其配置文件为 yaml 格式，有：
+
+```yaml
+path: 训练集根目录路径 (以项目根目录为当前相对起点)
+train: images/train
+val: images/val
+names: # 期望序号从 0 开始连续
+  0: 类名字符串
+  1: 类名字符串
+  ...
 ```
 
 
