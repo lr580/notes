@@ -2320,7 +2320,7 @@ def toGrey(img):
     pass
 ```
 
-
+同理，对一个变量在其下方加这样的字符串也可以生成说明
 
 
 
@@ -3874,7 +3874,9 @@ os.rmdir(路径)
 shutil.rmtree(路径)
 ```
 
-路径是否存在
+> 如果目录不存在不报错，添加默认参数 `ignore_errors=True`
+
+路径是否存在：
 
 ```python
 os.path.exists(路径)
@@ -8015,6 +8017,8 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 
 ##### 基本操作
 
+ `.shape` 依次是行数(不含表头)、列数。是独有的类型。可以用 `[]`
+
 列名字符串区分大小写。默认每列同一个数据类型。
 
 创建两行数据：
@@ -8682,7 +8686,12 @@ w=pd.DataFrame([{'name':'lr580','value':580},{'name':'lr581','value':581}])
 w.query('value >= 581') #相等就 ==
 ```
 
-
+> 相互等效：
+>
+> ```python
+> df1 = df.query('type=="before crush"')
+> df1 = df[df['type'] == 'before crush']
+> ```
 
 #### 其他运算
 
@@ -9638,6 +9647,12 @@ img = cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_COLOR)
 
 不能读 GIF，需要的话用 `imageio` 库
 
+展示或保存 `imshow(标题str, img)`, `imwrite(path, img)`
+
+基本信息：
+
+- 宽高 `height, width = img.shape[:2]` (彩图有第三个元素通道数)
+
 #### 图像绘制
 
 ##### 矩形
@@ -9693,6 +9708,8 @@ cv2.putText(img, text, org, fontFace, fontScale, color[, thickness[, lineType[, 
 - color RGB 三元组
 - thickness 文本线条厚度
 - bottomLeftOrigin 默认 true，否则 false 的话 org 设左上角
+
+如果绘制的坐标超出边界，会剪裁不会报错
 
 在上面半透明的例子上：
 
@@ -9812,9 +9829,9 @@ extract_frames(video_path, output_folder)
 也可以跳帧提取：
 
 ```python
+cap = cv2.VideoCapture('input.mp4')
 frame_number = 50
 cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-
 ret, frame = cap.read()
 if ret:
     cv2.imwrite('output.jpg', frame)
@@ -11708,7 +11725,7 @@ model = YOLO('yolov8n.pt')
 类别 x y w h
 ```
 
-- 其中 `x,y,w,h` 都是浮点数，取值范围为 $[0,1]$，是归一化相对坐标
+- 其中 `x,y,w,h` 都是浮点数，取值范围为 $[0,1]$，是归一化相对坐标，保留位数无要求
 - 类别是整数，在数据配置文件定义，其配置文件为 yaml 格式，有：
 
 ```yaml

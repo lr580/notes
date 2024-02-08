@@ -1249,6 +1249,10 @@
 - 993\.二叉树的堂兄弟节点
 
   搜索
+  
+- 236\.二叉树的最近公共祖先
+
+  LCA 搜索
 
 
 
@@ -32974,6 +32978,58 @@ public:
         this->y = y;
         dfs(root, 0, nullptr);
         return x_depth == y_depth && x_parent != y_parent;
+    }
+};
+```
+
+##### 236\.二叉树的最近公共祖先
+
+[题目](https://leetcode.cn/problems/lowest-common-ancestor-of-a-binary-tree/)
+
+我的写法：(双碰)
+
+```python
+class Solution:
+    def lowestCommonAncestor(self, root: 'TreeNode', p: 'TreeNode', q: 'TreeNode') -> 'TreeNode':
+        ans = INF = 2e9
+        def dfs(u):
+            nonlocal ans
+            if ans != INF: # 可有可无剪枝
+                return True, True
+            psuc = u.val == p.val
+            qsuc = u.val == q.val
+            lp = lq = rp = rq = False
+            if u.left:
+                lp, lq = dfs(u.left)
+            if u.right:
+                rp, rq = dfs(u.right)
+            psuc |= lp or rp
+            qsuc |= lq or rq
+            if psuc and qsuc and ans == INF:
+                ans = u
+            return psuc, qsuc
+        dfs(root)
+        return ans
+```
+
+答案：(单碰)
+
+```c++
+class Solution {
+public:
+    TreeNode* ans;
+    bool dfs(TreeNode* root, TreeNode* p, TreeNode* q) {
+        if (root == nullptr) return false;
+        bool lson = dfs(root->left, p, q);
+        bool rson = dfs(root->right, p, q);
+        if ((lson && rson) || ((root->val == p->val || root->val == q->val) && (lson || rson))) {
+            ans = root;
+        } 
+        return lson || rson || (root->val == p->val || root->val == q->val);
+    }
+    TreeNode* lowestCommonAncestor(TreeNode* root, TreeNode* p, TreeNode* q) {
+        dfs(root, p, q);
+        return ans;
     }
 };
 ```
