@@ -1253,6 +1253,10 @@
 - 236\.二叉树的最近公共祖先
 
   LCA 搜索
+  
+- 94\.二叉树的中序遍历
+
+  DFS
 
 
 
@@ -33030,6 +33034,49 @@ public:
     TreeNode* lowestCommonAncestor(TreeNode* root, TreeNode* p, TreeNode* q) {
         dfs(root, p, q);
         return ans;
+    }
+};
+```
+
+##### 94\.二叉树的中序遍历
+
+[题目](https://leetcode.cn/problems/binary-tree-inorder-traversal/)
+
+递归：
+
+```python
+class Solution:
+    def inorderTraversal(self, root: Optional[TreeNode]) -> List[int]:
+        ans = []
+        def dfs(u):
+            if not u:
+                return
+            dfs(u.left)
+            ans.append(u.val)
+            dfs(u.right)
+        dfs(root)
+        return ans
+```
+
+非递归：
+
+```c++
+class Solution {
+public:
+    vector<int> inorderTraversal(TreeNode* root) {
+        vector<int> res;
+        stack<TreeNode*> stk;
+        while (root != nullptr || !stk.empty()) {
+            while (root != nullptr) {
+                stk.push(root);
+                root = root->left;
+            }
+            root = stk.top();
+            stk.pop();
+            res.push_back(root->val);
+            root = root->right;
+        }
+        return res;
     }
 };
 ```

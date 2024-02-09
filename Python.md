@@ -2550,41 +2550,7 @@ print(f(*[1,2,3])) # 含义同上
 
 
 
-### 匿名函数
 
-```python
-lambda 参数:运算
-```
-
-等效于：
-
-```python
-def f(参数):
-    return 运算
-```
-
-例如：
-
-```python
-x=lambda a,b:a+2*b
-x(2,5) #12
-```
-
-```python
-max(2+1j,1+2j,key=lambda x:x.real) #默认无法比较虚数
-```
-
-无参数匿名函数不输入参数即可，如：
-
-```python
-lambda :print('123')
-```
-
-
-
-### 高阶函数
-
-使用一个或多个函数作为参数的函数是高阶函数。
 
 
 
@@ -2944,7 +2910,43 @@ hasattr([],'append')
 
 
 
-### 其他函数
+### 函数语法
+
+#### 匿名函数
+
+```python
+lambda 参数:运算
+```
+
+等效于：
+
+```python
+def f(参数):
+    return 运算
+```
+
+例如：
+
+```python
+x=lambda a,b:a+2*b
+x(2,5) #12
+```
+
+```python
+max(2+1j,1+2j,key=lambda x:x.real) #默认无法比较虚数
+```
+
+无参数匿名函数不输入参数即可，如：
+
+```python
+lambda :print('123')
+```
+
+
+
+#### 高阶函数
+
+使用一个或多个函数作为参数的函数是高阶函数。
 
 #### 函数指针
 
@@ -2969,6 +2971,15 @@ from functions import partial
 int2=partial(int,base=2)
 int2('100000')
 ```
+
+### 主函数
+
+```python
+if __name__ == '__main__':
+    ...
+```
+
+
 
 ### 装饰器
 
@@ -11717,7 +11728,11 @@ from ultralytics import YOLO
 model = YOLO('yolov8n.pt')
 ```
 
+如果没有会下载，可能需要梯子。
+
 #### 训练模型
+
+##### 数据
 
 在一个文件夹，文件夹里有两个子文件夹 `images\` 和 `\labels\`，每个文件夹有 `train` 和 `val` 文件夹，文件夹里放图片文件，图片后缀任意，标签里放对应文件名的 `.txt` 标签。标签格式为：
 
@@ -11729,13 +11744,39 @@ model = YOLO('yolov8n.pt')
 - 类别是整数，在数据配置文件定义，其配置文件为 yaml 格式，有：
 
 ```yaml
-path: 训练集根目录路径 (以项目根目录为当前相对起点)
+path: 训练集根目录路径
 train: images/train
 val: images/val
 names: # 期望序号从 0 开始连续
   0: 类名字符串
   1: 类名字符串
   ...
+```
+
+path 基于 `settings.yaml` 的 `datasets_dir`，如 `C:\Users\lr580\AppData\Roaming\Ultralytics\settings.yaml`。
+
+##### 训练
+
+导入基础模型，加载数据 yaml 
+
+要求在 main 函数训练，如：
+
+```python
+from ultralytics import YOLO
+def main():
+    model = YOLO('yolov8n.pt')
+    res = model.train(data='data/data.yaml', epochs=100, imgsz=640)
+if __name__ == '__main__':
+    main()
+```
+
+训练时会在当前目录生成 `runs/`
+
+每个 epoch 结束后都会保存，如果意外中断了，可以恢复训练。
+
+```python
+model = YOLO('path/to/last.pt')  # load a partially trained model
+results = model.train(resume=True)
 ```
 
 
