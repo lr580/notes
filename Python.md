@@ -6551,7 +6551,32 @@ np.set_printoptions(suppress=True)
 np.seterr(divide='ignore',invalid='ignore')
 ```
 
+#### 导入导出
 
+`npz` 格式，存储若干个 np 数组
+
+##### 导出
+
+```python
+import numpy as np
+array1 = np.array([1, 2, 3, 4, 5])
+array2 = np.array([[1, 2, 3], [4, 5, 6]])
+np.savez('a.npz', a1=array1, a2=array2)
+```
+
+##### 导入
+
+`.npz` 文件导入：
+
+```python
+import numpy as np
+data = np.load('a.npz')
+print(data.files) # list ['a1', 'a2']
+for key in data.files:
+    array = data[key]
+    print(f"Array '{key}':\n{array}")
+specific_array = data['a1']
+```
 
 
 
@@ -11730,6 +11755,10 @@ model = YOLO('yolov8n.pt')
 
 如果没有会下载，可能需要梯子。
 
+##### 模型预测
+
+
+
 #### 训练模型
 
 ##### 数据
@@ -11754,6 +11783,66 @@ names: # 期望序号从 0 开始连续
 ```
 
 path 基于 `settings.yaml` 的 `datasets_dir`，如 `C:\Users\lr580\AppData\Roaming\Ultralytics\settings.yaml`。
+
+##### 结果
+
+训练过程有数个参数，如：
+
+```
+Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
+     99/100         0G     0.5037      1.009     0.9617          8        640: 100%|██████████| 7/7 [00:41<00:00,  5.92s/it]
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100%|██████████| 4/4 [00:14<00:00,  3.66s/it]
+                   all        122        131      0.693      0.618      0.609      0.185
+```
+
+- `box_loss` 是预测边界框和真实边界框差异的损失函数，常见 L1 损失和交并比损失(IoU)
+
+- `cls_loss` 分类损失，预测类别和真实类别的差异，常见交叉熵损失
+
+- `dfl_loss` 边界框变形(deformation)损失，捕捉对象形状细微变化
+
+- `mAP50` 预测置信度阈值 50% 时的平均精度，所有类别 AP(均精度)的均值
+
+  即画出 P-R 图，求该图的折线与坐标轴的面积
+
+  只有当预测的边界框与真实边界框的 IoU 值大于或等于 0.5 时，该预测才被视为正确
+
+- `mAP50-95` 从 50%-95% 的不同置信度阈值下平均精度，每隔 0.05 递增
+
+  通常比 mAP50 低
+
+数据统计：
+
+- `labels` 统计了数据框里各种标记的数目，框的 x,y,h,w 的散点图
+- `label_correlogram` 数据里 x,y,h,w 和其他三者的关系散点直方图
+
+结果将存储在 `runs/detect/trainx` 里，x 是最新的数字。结果里有多张图，分别从上面几个数据量以及：
+
+- `P_curve` precision (TP)/(TP+FP) 是纵坐标，confidence 是横坐标，
+
+  confidence 置信度决定了将某个样本分类的阈值，一般是上升曲线，这意味着 confidence 越低，越严格将某个样本标记为该类，越高越宽松，当为 1 时无论什么都是该类(这类T=TP+FN, FN=0 故 P=1)，为 0 时无论什么都不是该类(TP=0)。
+
+- `R_curve` recall TP/(TP+FN) 是纵坐标，confidence 是横坐标，一般是下降曲线
+
+  confidence 为 1 时，全是 FN，为 0 时，TP 最大(但还有 FN)
+
+- `PR_curve` P 纵坐标，R 横坐标，一般是下降曲线，曲线下面积越大越好
+
+- `F1_curve` 2PR/(P+R) 纵坐标，confidence 横坐标
+
+- `results.png` 有训练轮次为横坐标的对应多张统计图
+
+- `val_batch?_pred` 一次验证集验证结果；`val_batch?_labels` 真实结果
+
+- `confusion_matrix_normalized` 将真实某类(横)分为预测某类(总)的比值
+
+  `confusion_matrix` 的数目
+
+- `results.csv` 每轮训练的各种 loss 和 mAP 等
+
+- `args.yaml` 训练的各种参数，如学习率等
+
+在其 `weights` 文件夹里，`best.pt` 是最好模型，`last.pt` 是最后模型。
 
 ##### 训练
 

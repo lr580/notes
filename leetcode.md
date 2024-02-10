@@ -1257,6 +1257,10 @@
 - 94\.二叉树的中序遍历
 
   DFS
+  
+- 144\.二叉树的前序遍历
+
+  DFS Morris遍历
 
 
 
@@ -33079,6 +33083,125 @@ public:
         return res;
     }
 };
+```
+
+##### 144\.二叉树的前序遍历
+
+[题目](https://leetcode.cn/problems/binary-tree-preorder-traversal)
+
+递归：
+
+```python
+class Solution:
+    def preorderTraversal(self, root: Optional[TreeNode]) -> List[int]:
+        r = []
+        def dfs(u):
+            if not u:
+                return
+            r.append(u.val)
+            dfs(u.left)
+            dfs(u.right)
+        return r
+```
+
+迭代：
+
+```c++
+class Solution {
+public:
+    vector<int> preorderTraversal(TreeNode* root) {
+        vector<int> res;
+        if (root == nullptr) {
+            return res;
+        }
+
+        stack<TreeNode*> stk;
+        TreeNode* node = root;
+        while (!stk.empty() || node != nullptr) {
+            while (node != nullptr) {
+                res.emplace_back(node->val);
+                stk.emplace(node);
+                node = node->left;
+            }
+            node = stk.top();
+            stk.pop();
+            node = node->right;
+        }
+        return res;
+    }
+};
+```
+
+Morris 遍历：
+
+1. 新建临时节点，令该节点为 root；
+2. 如果当前节点的左子节点为空，将当前节点加入答案，并遍历当前节点的右子节点；
+3. 如果当前节点的左子节点不为空，在当前节点的左子树中找到当前节点在中序遍历下的前驱节点：
+
+   1. 如果前驱节点的右子节点为空，将前驱节点的右子节点设置为当前节点。然后将当前节点加入答案，并将前驱节点的右子节点更新为当前节点。当前节点更新为当前节点的左子节点。
+   2. 如果前驱节点的右子节点为当前节点，将它的右子节点重新设为空。当前节点更新为当前节点的右子节点。
+4. 重复步骤 2 和步骤 3，直到遍历结束。
+
+```c++
+class Solution {
+public:
+    vector<int> preorderTraversal(TreeNode *root) {
+        vector<int> res;
+        if (root == nullptr) {
+            return res;
+        }
+
+        TreeNode *p1 = root, *p2 = nullptr;
+
+        while (p1 != nullptr) {
+            p2 = p1->left;
+            if (p2 != nullptr) {
+                while (p2->right != nullptr && p2->right != p1) {
+                    p2 = p2->right;
+                }
+                if (p2->right == nullptr) {
+                    res.emplace_back(p1->val);
+                    p2->right = p1;
+                    p1 = p1->left;
+                    continue;
+                } else {
+                    p2->right = nullptr;
+                }
+            } else {
+                res.emplace_back(p1->val);
+            }
+            p1 = p1->right;
+        }
+        return res;
+    }
+};
+```
+
+```python
+class Solution:
+    def preorderTraversal(self, root: TreeNode) -> List[int]:
+        res = list()
+        if not root:
+            return res
+        
+        p1 = root
+        while p1:
+            p2 = p1.left
+            if p2:
+                while p2.right and p2.right != p1:
+                    p2 = p2.right
+                if not p2.right:
+                    res.append(p1.val)
+                    p2.right = p1
+                    p1 = p1.left
+                    continue
+                else:
+                    p2.right = None
+            else:
+                res.append(p1.val)
+            p1 = p1.right
+        
+        return res
 ```
 
 
