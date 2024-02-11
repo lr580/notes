@@ -11753,9 +11753,118 @@ from ultralytics import YOLO
 model = YOLO('yolov8n.pt')
 ```
 
-如果没有会下载，可能需要梯子。
+如果没有会下载，可能需要梯子。如果下载到一半断了，可以把 `.pt` 删了，不然可能会不断报错。
 
-##### 模型预测
+#### 预测
+
+##### 数据
+
+[参考](https://docs.ultralytics.com/modes/predict/)
+
+source 可以传多种类型(如文件路径)，详见参考文档
+
+路径不能套路径
+
+```python
+from ultralytics import YOLO
+model = YOLO('../runs/detect/train2/weights/best.pt')
+source = '../data/crash/images/val/p (1006).jpeg'
+results = model(source) # result 的 list
+```
+
+输出：(参考)
+
+```
+image 1/1 D:\_lr580\program\practice\dissertation\model-trail\..\data\crash\images\val\p (1006).jpeg: 640x512 1 accident, 19.0ms
+Speed: 13.0ms preprocess, 19.0ms inference, 10.0ms postprocess per image at shape (1, 3, 640, 512)
+```
+
+传入视频的话，会对视频每帧都跑一次。使用视频 + GPU + 禁止输出参考：
+
+```
+model(dirpath, verbose=False, device='0', stream=True)
+```
+
+不开 stream 可能会爆内存；即使 device 了 CPU 还是很大可能 100%。
+
+##### 结果
+
+详见参考文档
+
+###### 原始图路径
+
+```python
+print(results[0].path) #字符串
+```
+
+###### 矩形框
+
+保存：(txt 保存)
+
+```python
+results[0].save_txt('res.txt')
+```
+
+```
+15 0.471278 0.45656 0.846905 0.475151
+```
+
+输出：
+
+```python
+# cls, xywhn 是 tensor
+print(results[0].boxes.cls.tolist())
+print(results[0].boxes.xywhn.tolist())
+print(results[0].boxes.conf.tolist())
+'''[15.0]
+[[0.4712783992290497, 0.4565601646900177, 0.8469053506851196, 0.4751512408256531]]
+[0.7568095922470093]'''
+```
+
+###### JSON
+
+```python
+with open('res.json', 'w') as f:
+    f.write(results[0].tojson())
+```
+
+```json
+[
+  {
+    "name": "accident",
+    "class": 15,
+    "confidence": 0.7568095922470093,
+    "box": {
+      "x1": 32.760623931884766,
+      "y1": 187.8887176513672,
+      "x2": 612.8908081054688,
+      "y2": 595.5684814453125
+    }
+  }
+]
+```
+
+
+
+###### 裁剪图
+
+保存：
+
+```python
+results[0].save_crop('res')
+```
+
+`res/accident/im.jpg` 保存经由矩形框裁剪的子图
+
+###### 标记图
+
+绘制(或返回 ndarray)：原图+矩形框+类名+置信度
+
+```python
+import cv2
+cv2.imshow('res',results[0].plot())
+cv2.waitKey(0)
+```
 
 
 
@@ -11785,6 +11894,8 @@ names: # 期望序号从 0 开始连续
 path 基于 `settings.yaml` 的 `datasets_dir`，如 `C:\Users\lr580\AppData\Roaming\Ultralytics\settings.yaml`。
 
 ##### 结果
+
+结果将存储在 `runs/detect/trainx` 里，x 是最新的数字。
 
 训练过程有数个参数，如：
 
@@ -11816,7 +11927,7 @@ Epoch    GPU_mem   box_loss   cls_loss   dfl_loss  Instances       Size
 - `labels` 统计了数据框里各种标记的数目，框的 x,y,h,w 的散点图
 - `label_correlogram` 数据里 x,y,h,w 和其他三者的关系散点直方图
 
-结果将存储在 `runs/detect/trainx` 里，x 是最新的数字。结果里有多张图，分别从上面几个数据量以及：
+结果里有多张图，分别从上面几个数据量以及：
 
 - `P_curve` precision (TP)/(TP+FP) 是纵坐标，confidence 是横坐标，
 
@@ -11866,6 +11977,35 @@ if __name__ == '__main__':
 ```python
 model = YOLO('path/to/last.pt')  # load a partially trained model
 results = model.train(resume=True)
+```
+
+#### 分类模型
+
+
+
+[参考](https://docs.ultralytics.com/tasks/classify/) [数据集格式](https://docs.ultralytics.com/datasets/classify/#dataset-format)
+
+YOLO 可以不做矩形框检测，直接做分类任务，在这种情况下，将数据集分为两个文件夹 `train/` 和 `test/`，每个文件夹内又有若干个文件夹，其文件夹名字代表类别名，文件夹内存放数据图片。
+
+训练：
+
+```python
+model = YOLO('yolov8n-cls.pt')
+model.train(data='data/cls', epochs=100, imgsz=640,device='0')#gpu强制
+```
+
+- top 1 表示预测的多个类别里，概率最大的那个类属于目标类的准确率；
+- top 5 表示概率前 5 大的类里存在属于目标类的概率。
+
+结果在 `runs/detect/trainx`。
+
+测试模型：
+
+```python
+model = YOLO('../runs/classify/train5/weights/best.pt')
+res = model('../data/yolo/images/train/w1_6_462.jpg')
+print(res[0].names) # {0: 'crash', 1: 'normal'}
+print(res[0].probs.top1) # 1
 ```
 
 

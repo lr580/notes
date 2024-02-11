@@ -1261,6 +1261,10 @@
 - 144\.二叉树的前序遍历
 
   DFS Morris遍历
+  
+- 145\.二叉树的后序遍历
+
+  DFS Morris遍历
 
 
 
@@ -33202,6 +33206,112 @@ class Solution:
             p1 = p1.right
         
         return res
+```
+
+##### 145\.二叉树的后序遍历
+
+[题目](https://leetcode.cn/problems/binary-tree-postorder-traversal/)
+
+```python
+class Solution:
+    def postorderTraversal(self, root: Optional[TreeNode]) -> List[int]:
+        r = []
+        def dfs(u):
+            if not u:
+                return
+            dfs(u.left)
+            dfs(u.right)
+            r.append(u.val)
+        dfs(root)
+        return r
+```
+
+迭代：
+
+```c++
+class Solution {
+public:
+    vector<int> postorderTraversal(TreeNode *root) {
+        vector<int> res;
+        if (root == nullptr) {
+            return res;
+        }
+
+        stack<TreeNode *> stk;
+        TreeNode *prev = nullptr;
+        while (root != nullptr || !stk.empty()) {
+            while (root != nullptr) {
+                stk.emplace(root);
+                root = root->left;
+            }
+            root = stk.top();
+            stk.pop();
+            if (root->right == nullptr || root->right == prev) {
+                res.emplace_back(root->val);
+                prev = root;
+                root = nullptr;
+            } else {
+                stk.emplace(root);
+                root = root->right;
+            }
+        }
+        return res;
+    }
+};
+```
+
+Morris 遍历：
+
+1. 新建临时节点，令该节点为 root；
+2. 如果当前节点的左子节点为空，则遍历当前节点的右子节点；
+3. 如果当前节点的左子节点不为空，在当前节点的左子树中找到当前节点在中序遍历下的前驱节点；
+
+   - 如果前驱节点的右子节点为空，将前驱节点的右子节点设置为当前节点，当前节点更新为当前节点的左子节点。
+   - 如果前驱节点的右子节点为当前节点，将它的右子节点重新设为空。倒序输出从当前节点的左子节点到该前驱节点这条路径上的所有节点。当前节点更新为当前节点的右子节点。
+4. 重复步骤 2 和步骤 3，直到遍历结束。
+
+```c++
+class Solution {
+public:
+    void addPath(vector<int> &vec, TreeNode *node) {
+        int count = 0;
+        while (node != nullptr) {
+            ++count;
+            vec.emplace_back(node->val);
+            node = node->right;
+        }
+        reverse(vec.end() - count, vec.end());
+    }
+
+    vector<int> postorderTraversal(TreeNode *root) {
+        vector<int> res;
+        if (root == nullptr) {
+            return res;
+        }
+
+        TreeNode *p1 = root, *p2 = nullptr;
+
+        while (p1 != nullptr) {
+            p2 = p1->left;
+            if (p2 != nullptr) {
+                while (p2->right != nullptr && p2->right != p1) {
+                    p2 = p2->right;
+                }
+                if (p2->right == nullptr) {
+                    p2->right = p1;
+                    p1 = p1->left;
+                    continue;
+                } else {
+                    p2->right = nullptr;
+                    addPath(res, p1->left);
+                }
+            }
+            p1 = p1->right;
+        }
+        addPath(res, root);
+        return res;
+    }
+};
 ```
 
 
