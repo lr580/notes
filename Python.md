@@ -8010,6 +8010,12 @@ df_1 = pd.DataFrame().assign(x=x, y=y)
 pd.DataFrame(np.array([[1,2],[3,4],[5,6]]))
 ```
 
+###### low_memory
+
+默认 True，即：根据文件的一些推测来分配数据的类型，以降低内存使用量。
+
+若 False 可以将在读取整个文件之前分析数据的类型，并将整个文件读入内存。避免一些类型复杂导致的报错。
+
 ##### 写入
 
 [参考](https://blog.csdn.net/m0_46419189/article/details/123111493)
@@ -8086,6 +8092,8 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 > 取特定若干列：`df[['text', 'num_hashtags']]`；取一列是 series，这样取多列还是 df 类型。
 >
 > 若干行+若干列举例：`print(df.iloc[:5][['DURATION', 'AFFECTED']])`
+>
+> 逐行遍历：`.iterrows()`，返回 `(idx,row)`，row 可以  `.列名`(不用引号)取值
 >
 > 取特定类型的类：
 >
@@ -9231,6 +9239,8 @@ df['OUTAGE.START'] = df['OUTAGE.START.DATE'] + df['OUTAGE.START.TIME']
 df1['age'].hist()
 ```
 
+可以带参数 `bins=n` 表示多少个直方图桶。
+
 ##### 柱状图
 
 以 series(带列名)为例：
@@ -9240,8 +9250,6 @@ to_frame().rename(columns={0: 'p-value'}).plot(kind='barh', width=800, height=40
 ```
 
 `kind='barh'`指定了图表的类型为水平条形图（horizontal bar chart）。
-
-
 
 
 

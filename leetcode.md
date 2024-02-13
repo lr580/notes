@@ -1270,6 +1270,11 @@
 
   数据结构/<u>排序</u>
 
+  DFS Morris遍历
+  
+- 102\.二叉树的层序遍历
+
+  BFS
 
 
 ## 算法
@@ -33369,6 +33374,54 @@ class Solution:
             ans[-1].append(value)
         
         return ans
+```
+
+##### 102\.二叉树的层序遍历
+
+[题目](https://leetcode.cn/problems/binary-tree-level-order-traversal)
+
+```python
+class Solution:
+    def levelOrder(self, root: Optional[TreeNode]) -> List[List[int]]:
+        d = []
+        q = [] if root is None else [root]
+        while q:
+            a = []
+            d.append([u.val for u in q])
+            for u in q:
+                if u.left:
+                    a.append(u.left)
+                if u.right:
+                    a.append(u.right)
+            q = a
+        return d
+```
+
+```c++
+class Solution {
+public:
+    vector<vector<int>> levelOrder(TreeNode* root) {
+        vector <vector <int>> ret;
+        if (!root) {
+            return ret;
+        }
+
+        queue <TreeNode*> q;
+        q.push(root);
+        while (!q.empty()) {
+            int currentLevelSize = q.size();
+            ret.push_back(vector <int> ());
+            for (int i = 1; i <= currentLevelSize; ++i) {
+                auto node = q.front(); q.pop();
+                ret.back().push_back(node->val);
+                if (node->left) q.push(node->left);
+                if (node->right) q.push(node->right);
+            }
+        }
+        
+        return ret;
+    }
+};
 ```
 
 
