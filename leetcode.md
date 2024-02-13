@@ -1265,6 +1265,10 @@
 - 145\.二叉树的后序遍历
 
   DFS Morris遍历
+  
+- 987\.二叉树的垂序遍历
+
+  数据结构/<u>排序</u>
 
 
 
@@ -33312,6 +33316,59 @@ public:
         return res;
     }
 };
+```
+
+##### 987\.二叉树的垂序遍历
+
+[题目](https://leetcode.cn/problems/vertical-order-traversal-of-a-binary-tree)
+
+```python
+class Solution:
+    def verticalTraversal(self, root: Optional[TreeNode]) -> List[List[int]]:
+        def nd(): return defaultdict(list)
+        g = defaultdict(nd)
+        def dfs(u, y, x):
+            g[x][y].append(u.val)
+            if u.left:
+                dfs(u.left, y+1, x-1)
+            if u.right:
+                dfs(u.right, y+1, x+1)
+        dfs(root, 0, 0)
+        ans = []
+        for x in sorted(g.keys()):
+            l = []
+            for y in sorted(g[x].keys()):
+                l.extend(sorted(g[x][y]))
+            ans.append(l)
+        return ans
+```
+
+结构体排序：
+
+```python
+class Solution:
+    def verticalTraversal(self, root: TreeNode) -> List[List[int]]:
+        nodes = list()
+
+        def dfs(node: TreeNode, row: int, col: int) -> None:
+            if not node:
+                return
+
+            nodes.append((col, row, node.val))
+            dfs(node.left, row + 1, col - 1)
+            dfs(node.right, row + 1, col + 1)
+
+        dfs(root, 0, 0)
+        nodes.sort()
+        ans, lastcol = list(), float("-inf")
+
+        for col, row, value in nodes:
+            if col != lastcol:
+                lastcol = col
+                ans.append(list())
+            ans[-1].append(value)
+        
+        return ans
 ```
 
 

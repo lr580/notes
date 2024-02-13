@@ -3590,6 +3590,13 @@ d = defaultdict(int) # 默认值 0
 d = defaultdict(list) # 空列表
 ```
 
+defaultdict 嵌套：
+
+```python
+def nd(): return defaultdict(list)
+g = defaultdict(nd)
+```
+
 ##### queue
 
 有 `get` 出队并取队首，`put` 插入
@@ -3649,6 +3656,8 @@ heapq.heapify(a) #成最小堆,无返回值
 ##### counter
 
 记录数的频次可以用 Counter ，传入一个列表，输出元组列表，依次表示数字和频次，用 `.most_common()` 方法转元素列表，输入参数表示取多少个。如果想要按大小取，可以先对传入的列表排序。可以减法作差。
+
+可以用 `sum(.values())` 的办法求总计数和。
 
 ```python
 data = ['apple', 'banana', 'apple', 'orange', 'banana', 'apple']
@@ -11892,6 +11901,19 @@ names: # 期望序号从 0 开始连续
 ```
 
 path 基于 `settings.yaml` 的 `datasets_dir`，如 `C:\Users\lr580\AppData\Roaming\Ultralytics\settings.yaml`。
+
+##### 超参数
+
+[参考](https://docs.ultralytics.com/modes/train/#arguments)
+
+- `epochs=100` 训练轮次
+- `batch=16` 批大小，若 -1 根据 GPU 动态
+- `imgsz=640` 固定预处理图形大小
+- `patience=50` early sto 轮次
+- `pretrained=True` 预训练
+- `seed=0` 随机数种子
+- `verbose=False` 是否调试输出
+- `device=None` 使用的硬件，如 GPU `device='0'`
 
 ##### 结果
 
