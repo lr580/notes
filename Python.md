@@ -8973,6 +8973,29 @@ print("Pandas Sample Std:", pandas_std_sample)
 print("Pandas Population Std:", pandas_std_population)
 ```
 
+##### RMSE
+
+```python
+def calculate_rmse(file1, file2):
+    prices1 = read_prices(file1)
+    prices2 = read_prices(file2)
+    if len(prices1) != len(prices2):
+        raise ValueError("The number of rows different.")
+    prices1 = np.array(prices1)
+    prices2 = np.array(prices2)
+    
+    squared_diff_sum = np.sum((prices1 - prices2) ** 2)
+    rmse = np.sqrt(squared_diff_sum / len(prices1))
+    return rmse
+```
+
+##### z-score
+
+```python
+from scipy import stats
+df['host_since'] = stats.zscore(df['host_since'])
+```
+
 
 
 #### 字符串
@@ -9103,6 +9126,15 @@ print(titles_df)
 pd.to_datetime(df[列]) #比如本来是字符串2022-01-29 18:24:07
 ```
 
+之后转 int，如秒数：
+
+```python
+df['host_since'] = pd.to_datetime(df['host_since'])
+base_time = df['host_since'].min()
+df['host_since'] = df['host_since'].fillna(df['host_since'].median())
+df['host_since'] = (df['host_since'] - base_time).dt.total_seconds().astype(int)
+```
+
 检测转换：
 
 ```python
@@ -9114,6 +9146,8 @@ df['date_column'].dtype == 'datetime64[ns]'
 - `errors='raise'`（默认）：如果遇到无法解析为日期的字符串，会引发一个`ValueError`。
 - `errors='ignore'`：如果遇到无法解析为日期的字符串，原始数据将不会被修改，也不会引发错误。
 - `errors='coerce'`：如果遇到无法解析为日期的字符串，那些无法解析的字符串将会被设置为`NaT`（Not a Time），这是Pandas中用于表示缺失日期数据的特殊类型。
+
+
 
 ##### dt属性
 
@@ -10018,6 +10052,19 @@ equalized_image.save("equalized_image.jpg")
 
 [官网](https://scipy.org/)
 
+#### 数据处理
+
+##### z-score
+
+对 pandas 一列为例：
+
+```python
+from scipy import stats
+df['host_since'] = stats.zscore(df['host_since'])
+```
+
+
+
 #### 统计
 
 ##### KS测试
@@ -10688,6 +10735,10 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
 '''[[1 2]
  [7 8]
  [3 4]] [[5 6]] [1 4 2] [3] # 每次随机'''
+
+# 不分 XY：
+data = pd.read_csv('train.csv')
+train_data, val_data = train_test_split(data, test_size=0.2, random_state=42)
 ```
 
 也可以传 data frame
@@ -10791,6 +10842,54 @@ def tree_reg_perf(galton):
 9. **`max_leaf_nodes`**：最大叶节点数。
 10. **`min_impurity_decrease`**：如果分割导致不纯度的减少大于或等于这个值，则该分割将会发生。
 11. **`class_weight`**：类别权重，用于处理不平衡的分类问题。
+
+##### 决策树分类
+
+二分类为例，含输出决策树结构
+
+```python
+from sklearn.tree import DecisionTreeClassifier
+import pandas as pd
+
+# 创建数据集
+data = {
+    'A': [0, 1, 1, 0, 1, 0],
+    'B': [0, 1, 0, 1, 1, 0],
+    'C': [0, 0, 1, 1, 1, 1],
+    'Class': ['+', '-', '+', '-', '+', '-']
+}
+
+df = pd.DataFrame(data)
+
+# 将属性和目标变量拆分
+X = df[['A', 'B', 'C']]
+y = df['Class']
+
+# 创建决策树模型
+model = DecisionTreeClassifier(criterion='entropy', max_depth=3)
+
+# 拟合模型
+model.fit(X, y)
+
+# 打印决策树结构
+tree_structure = model.tree_
+node_count = tree_structure.node_count
+children_left = tree_structure.children_left
+children_right = tree_structure.children_right
+feature = tree_structure.feature
+threshold = tree_structure.threshold
+
+for i in range(node_count):
+    if children_left[i] == children_right[i]:  # 叶节点
+        class_label = model.classes_[model.tree_.value[i].argmax()]
+        print(f"叶节点 {i}: 类别 {class_label}")
+    else:  # 决策节点
+        print(f"决策节点 {i}: 属性 {feature[i]}, 阈值 {threshold[i]} 左 {children_left[i]} 右 {children_right[i]}")
+        
+print(model.predict(X))
+```
+
+
 
 ##### K近邻回归
 
@@ -11238,6 +11337,22 @@ print("最优解为：\n",x.value)
 [更多例题参考](https://blog.csdn.net/abc1234564546/article/details/126263264)
 
 ## 文件处理
+
+### csv
+
+根据某行读另一行：
+
+```python
+def read_prices(file):
+    prices = []
+    with open(file, 'r', encoding='utf8') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            prices.append(float(row['price']))
+    return prices
+```
+
+
 
 ### yaml
 
