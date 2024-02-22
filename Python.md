@@ -7504,6 +7504,12 @@ plt.axis('off')
 plt.xscale('log')
 ```
 
+横纵相等：
+
+```python
+plt.axis('equal')
+```
+
 
 
 ##### 图例
@@ -8996,11 +9002,20 @@ from scipy import stats
 df['host_since'] = stats.zscore(df['host_since'])
 ```
 
+##### 最值
 
+前 k 大(series)
+
+```python
+wc = df[col].apply(pd.Series).stack().value_counts()
+wc.nlargest(k).index
+```
 
 #### 字符串
 
 ##### .str
+
+转 str: `.astype(str)`
 
 对某一列，`.str` 是 Pandas 中用于对字符串列进行操作的属性
 
@@ -9076,7 +9091,7 @@ print(df)
 # 注意 ² 会 isdight，如果单位有奇怪的特殊字符建议重写isdight
 ```
 
-正则表达式：
+##### 正则表达式
 
 ```python
 def hashtag_list(tweet_text):
@@ -9110,6 +9125,17 @@ titles_df = extract_title(df)
 
 # 显示结果
 print(titles_df)
+```
+
+##### 词频
+
+```python
+def get_top_words(col, k):
+    df[col] = df[col].apply(lambda x:re.findall(r'\b\w+\b', x, flags=re.IGNORECASE))
+    df[col] = df[col].apply(lambda x:[y.lower() for y in x])
+    wc = df[col].apply(pd.Series).stack().value_counts()
+    print(wc)
+    return wc.nlargest(k).index
 ```
 
 
@@ -11024,11 +11050,171 @@ pre = titanic_model(titanic)
 from sklearn.svm import SVR
 ```
 
+二分类：
+
+```python
+from sklearn import svm
+import numpy as np
+
+# 准备数据集，X为特征向量，y为对应的类别标签
+X = np.array([[2, 0], [4, 2], [2, 5], [4, 7]])
+y = np.array([1, 1, -1, -1])
+
+# 创建SVM模型
+model = svm.SVC(kernel='linear')
+
+# 训练模型
+model.fit(X, y)
+
+# 提取决策边界参数
+w = model.coef_[0]
+b = model.intercept_
+
+# 打印决策边界方程
+print(f"{w[0]}*x1 + {w[1]}*x2 + {b} = 0")
+
+import matplotlib.pyplot as plt
+# 绘制数据点
+plt.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.Paired)
+
+# 绘制决策边界
+x1 = np.linspace(0, 5, 100)
+x2 = -(w[0] * x1 + b) / w[1]
+plt.plot(x1, x2, 'k-')
+
+# 设置图形属性
+plt.xlim(0, 5)
+plt.ylim(-2, 8)
+plt.xlabel('x1')
+plt.ylabel('x2')
+plt.title('Decision Boundary')
+
+# 显示图形
+plt.show()
+```
+
+##### 模型树
+
+树状，每个节点线性回归
+
+```python
+from sklearn.datasets import load_boston
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+
+# 加载波士顿房价数据集
+X, y = load_boston(return_X_y=True)
+
+# 分割数据集为训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 训练决策树模型
+tree = DecisionTreeRegressor(min_samples_leaf=10)
+tree.fit(X_train, y_train)
+
+# 使用决策树的叶节点对数据进行分割
+leaf_indices = tree.apply(X_train)
+
+# 存储每个叶节点的线性模型
+linear_models = {}
+
+# 对于每个叶节点，使用对应的数据点训练一个线性回归模型
+for leaf_index in set(leaf_indices):
+    leaf_data = X_train[leaf_indices == leaf_index]
+    leaf_target = y_train[leaf_indices == leaf_index]
+    linear_model = LinearRegression()
+    linear_model.fit(leaf_data, leaf_target)
+    linear_models[leaf_index] = linear_model
+
+# 预测函数
+def model_tree_predict(X, tree, linear_models):
+    leaf_indices = tree.apply(X)
+    predictions = []
+    for leaf_index in leaf_indices:
+        linear_model = linear_models[leaf_index]
+        predictions.append(linear_model.predict([X[leaf_indices == leaf_index][0]]))
+    return predictions
+
+# 使用模型树进行预测
+predictions = model_tree_predict(X_test, tree, linear_models)
+```
+
+多个样本预测：
+
+```python
+def model_tree_predict(X, tree, linear_models):
+    leaf_indices = tree.apply(X)
+    predictions = []
+    for sample, leaf_index in zip(X, leaf_indices):
+        linear_model = linear_models[leaf_index]
+        predictions.append(linear_model.predict([sample])[0])
+    return predictions
+```
+
+
+
+#### 聚类
+
+##### k-means
+
+```python
+from sklearn.cluster import KMeans
+import numpy as np
+np.random.seed(0)
+X = np.random.rand(100, 2)
+K = 3
+
+kmeans = KMeans(n_clusters=K, random_state=0)
+kmeans.fit(X)
+
+labels = kmeans.labels_
+centroids = kmeans.cluster_centers_
+
+print("Cluster labels:")
+print(labels) # numpy 0/1/2 数组
+print("Centroids:")
+print(centroids) # 3x2 numpy 数组
+```
+
+#### 神经网络
+
+##### MLP
+
+```python
+from sklearn.neural_network import MLPRegressor
+regr = MLPRegressor()
+```
+
+```python
+from sklearn.model_selection import GridSearchCV
+
+# 创建MLPRegressor模型
+regr0 = MLPRegressor()
+
+# 定义参数空间
+param_grid = {
+    'hidden_layer_sizes': [(100,), (50, 50), (100, 50, 25)],
+    'activation': ['relu', 'sigmoid'],
+    'solver': ['adam', 'sgd'],
+    'alpha': [0.0001, 0.001, 0.01],
+    'learning_rate': ['constant', 'adaptive'],
+    'max_iter': [100, 200, 300]
+}
+
+# 创建GridSearchCV对象
+regr = GridSearchCV(estimator=regr0, param_grid=param_grid, cv=5)
+```
+
+- alpha: L2 正则化参数
+
 
 
 #### 辅助功能
 
 ##### 超参选择
+
+###### GridSearchCV
 
 `GridSearchCV` 用于执行超参数的穷举搜索。它的目的是通过自动化的方式找到最优的参数组合，从而改进机器学习模型的性能。
 
@@ -11119,6 +11305,38 @@ test_pipeline = Pipeline(steps=[
 param_grid = {
     'a__max_depth': [5, 10, 15, 20, 25, 30]
 }
+```
+
+###### 随机搜索
+
+```python
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import randint
+
+# 定义决策树的参数分布
+param_dist = {
+    "max_depth": [3, None],  # 允许的最大深度，None表示不限制深度
+    "min_samples_split": randint(2, 11),  # 内部节点再划分所需最小样本数
+    "min_samples_leaf": randint(1, 11),  # 叶节点最少样本数
+    "max_leaf_nodes": [None] + list(range(10, 50, 5))  # 最大叶节点数，None表示不限制
+}
+
+# 创建决策树回归器实例
+tree = DecisionTreeRegressor()
+
+# 创建RandomizedSearchCV实例
+random_search = RandomizedSearchCV(tree, param_distributions=param_dist,n_iter=100, cv=5, verbose=1, n_jobs=-1, random_state=42)
+
+# 运行随机搜索
+random_search.fit(train_X, train_y)
+
+# 打印最佳参数组合
+print("Best parameters:", random_search.best_params_)
+
+# 使用最佳参数的模型进行预测
+best_tree = random_search.best_estimator_
+tree = best_tree
 ```
 
 
