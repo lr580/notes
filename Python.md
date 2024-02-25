@@ -6476,6 +6476,33 @@ def normalize_data(inp):
 > stats.zscore(a,axis=0)
 > ```
 
+##### 前缀和
+
+滑动窗口平均值：
+
+```python
+import numpy as np
+def moving_average(a, n=3):
+    ret = np.cumsum(a,dtype=float)
+    ret[n:]= ret[n:]-ret[:-n]
+    return ret[n-1:]/n #长len(a)-n+1
+Z= np.arange(20)
+print(Z)
+print(moving_average(Z,n=3))
+```
+
+或：
+
+```python
+import numpy as np
+arr = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+window_size = 3
+# 创建等权重的窗口数组
+window = np.ones(window_size) / window_size
+averages = np.convolve(arr, window, 'valid')
+print(averages)
+```
+
 
 
 ##### histogram

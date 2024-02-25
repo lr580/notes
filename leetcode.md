@@ -1270,11 +1270,29 @@
 
   数据结构/<u>排序</u>
 
-  DFS Morris遍历
-  
 - 102\.二叉树的层序遍历
 
   BFS
+  
+- 2476\.二叉搜索树最近节点查询
+
+  DFS+二分
+  
+- 105\.从前序与中序遍历序列构造二叉树
+
+  DFS 分治
+
+- 106\.从中序与后序遍历序列构造二叉树
+
+  DFS 分治
+
+- 889\.根据前序和后序遍历构造二叉树
+
+  DFS 构造
+
+- 235\.二叉搜索树的最近公共祖先
+
+  DFS LCA
 
 
 ## 算法
@@ -33422,6 +33440,251 @@ public:
         return ret;
     }
 };
+```
+
+##### 2476\.二叉搜索树最近节点查询
+
+[题目](https://leetcode.cn/problems/closest-nodes-queries-in-a-binary-search-tree)
+
+防止退化成链：
+
+```python
+from bisect import *
+class Solution:
+    def closestNodes(self, root: Optional[TreeNode], queries: List[int]) -> List[List[int]]:
+        a, r = [], []
+        def dfs(u):
+            if not u:
+                return
+            dfs(u.left)
+            a.append(u.val)
+            dfs(u.right)
+        dfs(root)
+        for v in queries:
+            li = bisect_right(a, v) - 1
+            lv = -1 if li == -1 else a[li]
+            ri = bisect_left(a, v)
+            rv = -1 if ri == len(a) else a[ri]
+            r.append([lv, rv])
+        return r
+```
+
+其他写法：
+
+```python
+class Solution:
+    def closestNodes(self, root: Optional[TreeNode], queries: List[int]) -> List[List[int]]:
+        a = []
+        def dfs(node: Optional[TreeNode]) -> None:
+            if node is None:
+                return
+            dfs(node.left)
+            a.append(node.val)
+            dfs(node.right)
+        dfs(root)
+
+        n = len(a)
+        ans = []
+        for q in queries:
+            j = bisect_left(a, q)
+            mx = a[j] if j < n else -1
+            if j == n or a[j] != q:  # a[j]>q, a[j-1]<q
+                j -= 1
+            mn = a[j] if j >= 0 else -1
+            ans.append([mn, mx])
+        return ans
+```
+
+##### 105\.从前序与中序遍历序列构造二叉树
+
+[题目](https://leetcode.cn/problems/construct-binary-tree-from-preorder-and-inorder-traversal)
+
+```python
+class Solution:
+    def buildTree(self, preorder: List[int], inorder: List[int]) -> TreeNode:
+        def myBuildTree(preorder_left: int, preorder_right: int, inorder_left: int, inorder_right: int):
+            if preorder_left > preorder_right:
+                return None
+            
+            # 前序遍历中的第一个节点就是根节点
+            preorder_root = preorder_left
+            # 在中序遍历中定位根节点
+            inorder_root = index[preorder[preorder_root]]
+            
+            # 先把根节点建立出来
+            root = TreeNode(preorder[preorder_root])
+            # 得到左子树中的节点数目
+            size_left_subtree = inorder_root - inorder_left
+            # 递归地构造左子树，并连接到根节点
+            # 先序遍历中「从 左边界+1 开始的 size_left_subtree」个元素就对应了中序遍历中「从 左边界 开始到 根节点定位-1」的元素
+            root.left = myBuildTree(preorder_left + 1, preorder_left + size_left_subtree, inorder_left, inorder_root - 1)
+            # 递归地构造右子树，并连接到根节点
+            # 先序遍历中「从 左边界+1+左子树节点数目 开始到 右边界」的元素就对应了中序遍历中「从 根节点定位+1 到 右边界」的元素
+            root.right = myBuildTree(preorder_left + size_left_subtree + 1, preorder_right, inorder_root + 1, inorder_right)
+            return root
+        
+        n = len(preorder)
+        # 构造哈希映射，帮助我们快速定位根节点
+        index = {element: i for i, element in enumerate(inorder)}
+        return myBuildTree(0, n - 1, 0, n - 1)
+```
+
+##### 106\.从中序与后序遍历序列构造二叉树
+
+[题目](https://leetcode.cn/problems/construct-binary-tree-from-inorder-and-postorder-traversal)
+
+```python
+class Solution:
+    def buildTree(self, inorder: List[int], postorder: List[int]) -> TreeNode:
+        def helper(in_left, in_right):
+            # 如果这里没有节点构造二叉树了，就结束
+            if in_left > in_right:
+                return None
+            
+            # 选择 post_idx 位置的元素作为当前子树根节点
+            val = postorder.pop()
+            root = TreeNode(val)
+
+            # 根据 root 所在位置分成左右两棵子树
+            index = idx_map[val]
+ 
+            # 构造右子树
+            root.right = helper(index + 1, in_right)
+            # 构造左子树
+            root.left = helper(in_left, index - 1)
+            return root
+        
+        # 建立（元素，下标）键值对的哈希表
+        idx_map = {val:idx for idx, val in enumerate(inorder)} 
+        return helper(0, len(inorder) - 1)
+```
+
+##### 889\.根据前序和后序遍历构造二叉树
+
+[题目](https://leetcode.cn/problems/construct-binary-tree-from-preorder-and-postorder-traversal)
+
+```python
+class Solution(object):
+    def constructFromPrePost(self, pre, post):
+        if not pre: return None
+        root = TreeNode(pre[0])
+        if len(pre) == 1: return root
+
+        L = post.index(pre[1]) + 1
+        root.left = self.constructFromPrePost(pre[1:L+1], post[:L])
+        root.right = self.constructFromPrePost(pre[L+1:], post[L:-1])
+        return root
+```
+
+```python
+class Solution:
+    def constructFromPrePost(self, preorder: List[int], postorder: List[int]) -> Optional[TreeNode]:
+        index = {x: i for i, x in enumerate(postorder)}
+
+        def dfs(pre_l: int, pre_r: int, post_l: int, post_r: int) -> Optional[TreeNode]:
+            if pre_l == pre_r:  # 空节点
+                return None
+            if pre_l + 1 == pre_r:  # 叶子节点
+                return TreeNode(preorder[pre_l])
+            left_size = index[preorder[pre_l + 1]] - post_l + 1  # 左子树的大小
+            left = dfs(pre_l + 1, pre_l + 1 + left_size, post_l, post_l + left_size)
+            right = dfs(pre_l + 1 + left_size, pre_r, post_l + left_size, post_r - 1)
+            return TreeNode(preorder[pre_l], left, right)
+
+        return dfs(0, len(preorder), 0, len(postorder))  # 左闭右开区间
+```
+
+参考 SCNUOJ 1423：情况数 [here](http://218.192.110.159/p/1423)
+
+```c++
+#include <bits/stdc++.h>
+#define mod 1000000007
+#define mn 100002
+typedef long long ll;
+ll n, a[mn], b[mn], c[mn], r = 1;
+signed main()
+{
+    scanf("%lld", &n);
+    for (ll i = 1; i <= n; ++i) //先序
+        scanf("%lld", a + i);
+    for (ll i = 1; i <= n; ++i) //后序
+        scanf("%lld", b + i), c[b[i]] = i;
+    for (ll i = 1; i <= n; ++i)
+    {
+        ll k = c[a[i]];
+        if (i != n && a[i + 1] == b[k - 1])
+            (r *= 2) %= mod;
+    }
+    printf("%lld", r);
+    return 0;
+}
+```
+
+##### 235\.二叉搜索树的最近公共祖先
+
+[题目](https://leetcode.cn/problems/lowest-common-ancestor-of-a-binary-search-tree)
+
+思路一：得到从根到叶的路径，取最后一个共同的点。
+
+```python
+class Solution:
+    def lowestCommonAncestor(self, root: TreeNode, p: TreeNode, q: TreeNode) -> TreeNode:
+        def getPath(root: TreeNode, target: TreeNode) -> List[TreeNode]:
+            path = list()
+            node = root
+            while node != target:
+                path.append(node)
+                if target.val < node.val:
+                    node = node.left
+                else:
+                    node = node.right
+            path.append(node)
+            return path
+        
+        path_p = getPath(root, p)
+        path_q = getPath(root, q)
+        ancestor = None
+        for u, v in zip(path_p, path_q):
+            if u == v:
+                ancestor = u
+            else:
+                break
+        
+        return ancestor
+```
+
+思路二：二叉搜索树性质，同左/同右继续，否则终止
+
+```python
+class Solution:
+    def lowestCommonAncestor(self, root: TreeNode, p: TreeNode, q: TreeNode) -> TreeNode:
+        ancestor = root
+        while True:
+            if p.val < ancestor.val and q.val < ancestor.val:
+                ancestor = ancestor.left
+            elif p.val > ancestor.val and q.val > ancestor.val:
+                ancestor = ancestor.right
+            else:
+                break
+        return ancestor
+```
+
+```java
+public TreeNode lowestCommonAncestor(TreeNode cur, TreeNode p, TreeNode q) {
+    if (cur == null || cur == p || cur == q)
+        return cur;
+    TreeNode left = lowestCommonAncestor(cur.left, p, q);
+    TreeNode right = lowestCommonAncestor(cur.right, p, q);
+    //如果left为空，说明这两个节点在cur结点的右子树上，我们只需要返回右子树查找的结果即可
+    if (left == null)
+        return right;
+    //同上
+    if (right == null)
+        return left;
+    //如果left和right都不为空，说明这两个节点一个在cur的左子树上一个在cur的右子树上，
+    //我们只需要返回cur结点即可。
+    return cur;
+}
 ```
 
 
