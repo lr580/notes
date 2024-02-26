@@ -9878,6 +9878,21 @@ cv2.destroyAllWindows()
 
 #### 图像增强
 
+##### 长宽调整
+
+等比缩放：
+
+```python
+img = cv2.imread(path)
+original_height, original_width = img.shape[:2]
+new_width = int(original_width * rate)
+new_height = int(original_height * rate)
+resized_img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+cv2.imwrite(path, resized_img)
+```
+
+
+
 ##### 直方图均衡化
 
 [原理](https://blog.csdn.net/qq_15971883/article/details/88699218)
