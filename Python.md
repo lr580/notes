@@ -8101,6 +8101,8 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 
 ##### 基本操作
 
+`.info` 总行数列数，按顺序输出各列名, not-null 计数,
+
  `.shape` 依次是行数(不含表头)、列数。是独有的类型。可以用 `[]`
 
 列名字符串区分大小写。默认每列同一个数据类型。
@@ -8162,6 +8164,8 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 > `df[col].values.shape` 是一维；`df[[col]].values.shape` 是二维(前者算 series 转；后者算一列 df 转，故第二维为 1)
 
 列赋值，可以直接把 numpy (1,n) shape 的赋值
+
+#### 常规运算
 
 ##### nan/null
 
@@ -9206,7 +9210,9 @@ df['date_column'].dtype == 'datetime64[ns]'
 
 一些常用的 `.dt` 方法和属性：
 
-1. `.dt.year`：返回日期时间中的年份。
+> 如果是逐行遍历，对每个 timestamp 对象，不用 `.dt`
+
+1. `.dt.year`：返回日期时间中的年份。(float)
 2. `.dt.month`：返回日期时间中的月份（1 到 12）。
 3. `.dt.day`：返回日期时间中的日（1 到 31）。
 4. `.dt.hour`：返回日期时间中的小时（0 到 23）。
@@ -11235,6 +11241,44 @@ regr = GridSearchCV(estimator=regr0, param_grid=param_grid, cv=5)
 
 - alpha: L2 正则化参数
 
+#### 堆叠
+
+Stacking（堆叠泛化）是一种集成学习技术，它首先使用多个不同的模型进行训练，然后用另一个模型来综合这些模型的预测。基本思想是利用原始模型的预测作为输入，以及正确的输出（目标变量），来训练一个新的模型来做出最终预测。这个新模型可以学习如何最好地结合原始模型的预测，以提高整体性能。
+
+```python
+import numpy as np
+import xgboost as xgb
+from sklearn.datasets import load_boston
+from sklearn.ensemble import RandomForestRegressor, StackingRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+
+# 加载数据
+boston = load_boston()
+X, y = boston.data, boston.target
+
+# 划分训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 定义基学习器
+estimators = [
+    ('xgb', xgb.XGBRegressor()),
+    ('rf', RandomForestRegressor())
+]
+
+# 定义StackingRegressor，使用LinearRegression作为元学习器
+stacking_regressor = StackingRegressor(estimators=estimators, final_estimator=LinearRegression())
+
+# 训练模型
+stacking_regressor.fit(X_train, y_train)
+
+# 进行预测
+predictions = stacking_regressor.predict(X_test)
+
+# 评估模型（根据需要选择合适的评估指标）
+print("Model score:", stacking_regressor.score(X_test, y_test))
+```
+
 
 
 #### 辅助功能
@@ -11333,6 +11377,8 @@ param_grid = {
     'a__max_depth': [5, 10, 15, 20, 25, 30]
 }
 ```
+
+参数输出：`regr.get_all_params()`
 
 ###### 随机搜索
 
@@ -12398,7 +12444,66 @@ print(res[0].names) # {0: 'crash', 1: 'normal'}
 print(res[0].probs.top1) # 1
 ```
 
+### 决策树
 
+XGBoost（Extreme Gradient Boosting）和CatBoost（Categorical Boosting）都是流行的梯度提升库，用于解决分类、回归和其他机器学习任务。它们都是基于决策树的集成学习方法，但在实现和特定功能上有所不同。
+
+- **性能和速度**：XGBoost在处理稀疏数据时表现更好，而CatBoost在处理具有大量分类特征的数据集时表现更好。CatBoost通常在默认参数下就能提供不错的结果，而XGBoost可能需要更多的参数调整来达到最优性能。
+- **易用性**：CatBoost对分类变量的自动处理能力使其在需要处理这类数据时更加方便。XGBoost需要手动进行数据预处理，如独热编码。
+- **特性**：CatBoost提供了对分类特征的内置支持，而XGBoost则侧重于提高模型的效率和灵活性。
+- **社区和支持**：XGBoost由于发布时间较早，拥有更大的社区和更广泛的应用。CatBoost是相对较新的，但由于其易用性和对分类特征的优化，正在迅速获得流行。
+
+#### XGBoost
+
+XGBoost是梯度提升决策树（GBDT）的一种高效实现。它使用了一些优化手段，比如近似算法（用于快速找到最佳分割点）和正则化（用于控制模型的复杂度，防止过拟合）。XGBoost还支持行列抽样，以进一步提高效率和减少过拟合。
+
+```python
+import xgboost as xgb
+from sklearn.datasets import load_boston
+from sklearn.model_selection import train_test_split
+
+boston = load_boston()
+X, y = boston.data, boston.target
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+model = xgb.XGBRegressor(objective ='reg:squarederror', colsample_bytree = 0.3, learning_rate = 0.1,
+                max_depth = 5, alpha = 10, n_estimators = 10)
+model.fit(X_train, y_train)
+preds = model.predict(X_test)
+```
+
+1. **`n_estimators`**：树的数量。较多的树可以提高模型的性能，但也会使训练时间更长，可能导致过拟合。常见取值范围为100-1000。
+2. **`learning_rate`**（或 `eta`）：每棵树的贡献缩减系数。较小的值意味着需要更多的树来构建模型，但可以提高模型的泛化能力。常见取值范围为0.01-0.3。
+3. **`max_depth`**：树的最大深度。控制模型的复杂度，较大的值可能导致过拟合。常见取值范围为3-10。
+4. **`min_child_weight`**：决定最小叶子节点样本权重和。用于控制过拟合，较大的值会导致更保守的模型。常见取值范围为1-10。
+5. **`subsample`**：用于训练模型的样本占总样本的比例。可以防止过拟合，常见取值范围为0.5-1。
+6. **`colsample_bytree`**、**`colsample_bylevel`**、**`colsample_bynode`**：分别表示在构建树、在每一层、在每个分裂中使用的特征的子样本比率。这些参数用于控制过拟合，常见取值范围为0.5-1。
+
+#### catBoost
+
+CatBoost是由Yandex开发的一个开源梯度提升库。它对分类特征的处理进行了优化，无需手动进行独热编码。CatBoost使用了称为“Ordered Boosting”的特殊技术来处理过拟合，这种技术可以提高模型的泛化能力。此外，CatBoost还实现了对称树的构建算法，以提高模型的训练速度和减少内存消耗。
+
+```python
+import catboost as cb
+from sklearn.datasets import load_boston
+from sklearn.model_selection import train_test_split
+
+boston = load_boston()
+X, y = boston.data, boston.target
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+model = cb.CatBoostRegressor(iterations=10, learning_rate=0.1, depth=5, loss_function='RMSE')
+model.fit(X_train, y_train, verbose=False)
+preds = model.predict(X_test)
+```
+
+1. **`iterations`**（或 `num_boost_round`）：要运行的树的数量。与XGBoost的`n_estimators`相似，较多的树可能提高性能但增加计算成本。常见取值范围为100-1000。
+2. **`learning_rate`**：用于减少每棵树的贡献，与XGBoost中的相同。较小的值通常意味着需要更多的树，但可以提高模型的泛化能力。常见取值范围为0.01-0.3。
+3. **`depth`**：树的深度，与XGBoost中的`max_depth`相似。控制模型复杂度，较大的值可能导致过拟合。常见取值范围为3-10。
+4. **`l2_leaf_reg`**：L2正则化项的系数，用于控制模型的复杂度和防止过拟合。较大的值会使模型更加保守。常见取值范围为1-10。
+5. **`border_count`**：用于数值特征分割的边界数量。较大的值可以提高模型的精度，但也会增加训练时间和过拟合的风险。常见取值范围为32-255。
+6. **`cat_features`**：指定哪些特征被视为分类特征。这对于CatBoost特别重要，因为它对分类特征有特殊的处理方式。
 
 ## 网络
 

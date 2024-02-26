@@ -1293,6 +1293,10 @@
 - 235\.二叉搜索树的最近公共祖先
 
   DFS LCA
+  
+- 938\.二叉搜索树的范围和
+
+  DFS
 
 
 ## 算法
@@ -33685,6 +33689,22 @@ public TreeNode lowestCommonAncestor(TreeNode cur, TreeNode p, TreeNode q) {
     //我们只需要返回cur结点即可。
     return cur;
 }
+```
+
+##### 938\.二叉搜索树的范围和
+
+[题目](https://leetcode.cn/problems/range-sum-of-bst/)
+
+```python
+class Solution:
+    def rangeSumBST(self, root: TreeNode, low: int, high: int) -> int:
+        if not root:
+            return 0
+        if root.val > high:
+            return self.rangeSumBST(root.left, low, high)
+        if root.val < low:
+            return self.rangeSumBST(root.right, low, high)
+        return root.val + self.rangeSumBST(root.left, low, high) + self.rangeSumBST(root.right, low, high)
 ```
 
 
