@@ -1297,6 +1297,10 @@
 - 938\.二叉搜索树的范围和
 
   DFS
+  
+- 2867\.统计树中的合法路径数目
+
+  欧拉筛 树上DP
 
 
 ## 算法
@@ -33705,6 +33709,123 @@ class Solution:
         if root.val < low:
             return self.rangeSumBST(root.right, low, high)
         return root.val + self.rangeSumBST(root.left, low, high) + self.rangeSumBST(root.right, low, high)
+```
+
+##### 2867\.统计树中的合法路径数目
+
+[题目](https://leetcode.cn/problems/count-valid-paths-in-a-tree)
+
+先用欧拉筛 $O(n)$ 求出每个数是否是质数。
+
+对每个质数，以它为根节点，对它连向的每个只有非质数点的子树，设子树大小为 $s$，则总路径数为：
+$$
+s_0\times 1+s_1\times(s_0+1)+s_2\times(s_0+s_1+1)+\cdots+s_k\times(s_0+\cdots+s_{k-1}+1)
+$$
+先任意定根转有根树，可以求出每个质数向下每个非质数子树的 $s$；再求出每个质数向上最深的非质数 $up$，则 $up$ 的子树大小就是该质数向上的非质数子树，这样就完整的统计了每个质数的非质数子树。
+
+可以用一个和维护括号里的部分，可以实现 $O(n)$ 完成上面的计算。
+
+```python
+from typing import *
+class Solution:
+    def countPaths(self, n: int, edges: List[List[int]]) -> int:
+        # 欧拉筛
+        notPrime = [True] * 2 + [False] * (n - 1)
+        prime = []
+        for i in range(2,n+1):
+            if not notPrime[i]:
+                prime.append(i)
+            for p in prime:
+                if i*p > n:
+                    break
+                notPrime[i*p] = True
+                if i%p==0:
+                    break
+        
+        g = [[] for _ in range(n+1)]
+        for e in edges:
+            u, v = e
+            g[u].append(v)
+            g[v].append(u)
+                
+        up = [0] * (n+1) # 该点最向上的非质数点编号
+        down = [0] * (n+1) # 该点和向下有几个连续非质数
+        def dfs0(u, f, np):
+            up[u] = np
+            if np==0 and notPrime[u]:
+                np=u
+            if not notPrime[u]:
+                np=0
+                
+            downs = 1
+            for v in g[u]:
+                if v!=f:
+                    dfs0(v, u, np)
+                    downs += down[v]
+            downs -= not notPrime[u]
+            down[u] = downs * notPrime[u]
+        dfs0(1, 0, 0)
+        
+        ans = 0
+        def dfs(u, f):
+            downs = 1
+            ways = 0
+            for v in g[u]:
+                if v!=f:
+                    dfs(v, u)
+                    ways += downs * down[v]
+                    downs += down[v]
+            ways += downs * down[up[u]]
+            nonlocal ans
+            ans += ways * (not notPrime[u])
+        dfs(1,0)
+        return ans
+```
+
+其他解法：将非质数分成若干个连通块，记忆化每个块统计点数。
+
+```python
+# 标记 10**5 以内的质数
+MX = 10 ** 5 + 1
+is_prime = [True] * MX
+is_prime[1] = False
+for i in range(2, isqrt(MX) + 1):
+    if is_prime[i]:
+        for j in range(i * i, MX, i):
+            is_prime[j] = False
+
+class Solution:
+    def countPaths(self, n: int, edges: List[List[int]]) -> int:
+        g = [[] for _ in range(n + 1)]
+        for x, y in edges:
+            g[x].append(y)
+            g[y].append(x)
+
+        def dfs(x: int, fa: int) -> None:
+            nodes.append(x)
+            for y in g[x]:
+                if y != fa and not is_prime[y]:
+                    dfs(y, x)
+
+        ans = 0
+        size = [0] * (n + 1)
+        for x in range(1, n + 1):
+            if not is_prime[x]:  # 跳过非质数
+                continue
+            s = 0
+            for y in g[x]:  # 质数 x 把这棵树分成了若干个连通块
+                if is_prime[y]:
+                    continue
+                if size[y] == 0:  # 尚未计算过
+                    nodes = []
+                    dfs(y, -1)  # 遍历 y 所在连通块，在不经过质数的前提下，统计有多少个非质数
+                    for z in nodes:
+                        size[z] = len(nodes)
+                # 这 size[y] 个非质数与之前遍历到的 s 个非质数，两两之间的路径只包含质数 x
+                ans += size[y] * s
+                s += size[y]
+            ans += s  # 从 x 出发的路径
+        return ans
 ```
 
 
