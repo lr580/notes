@@ -2694,6 +2694,8 @@ pageup pagedn 上下页   home 回到第一页
 
 `uname -r` 内核版本
 
+`uname -m` 输出架构(位数)如 `x86_64`
+
 `uname -a` 显示主机名/内核/硬件平台等全部信息
 
 > 具体小版本：(RHEL为例)`cat etc/redhat-release`
@@ -3704,6 +3706,8 @@ compress -d source.dat   //将 source.dat.Z 解压成 source.dat ，若档案已
 解压缩是`unzip`，可以`-d`加路径名
 
 如：`unzip -d newa/ a.zip` (或`unzip a.zip -d newa/`)
+
+不输出过程使用 `-q` (quiet) 如 `unzip -q Normal.zip -d Normal`
 
 否则解压到当前文件夹，如`unzip a.zip`
 
@@ -5595,13 +5599,22 @@ ssh-keygen -t rsa -C "abc@def.com" #一路回车
 
 
 
-可以传送自己的公钥：
+可以传送自己的公钥：(默认位置不需要 -i 文件名)，等效于写 `authorized_keys`
 
 ```sh
-ssh-copy-id 目标ID
+ssh-copy-id -i 文件名 服务器用户名@IP
 ```
 
 
+
+> 可以试试权限问题：
+>
+> ```sh
+> chmod 700 ~/.ssh
+> chmod 600 ~/.ssh/authorized_keys
+> ```
+
+> 还不行就改 `/etc/ssh/sshd_config` 并重启 sshd。一般不用改。
 
 
 
@@ -5653,6 +5666,16 @@ ssh-copy-id 目标ID
   ```sh
   sudo service sshd restart
   ```
+
+或者本地：`~/.ssh/config` (windows 同理 `C:\Users\你的用户名\.ssh\config`)
+
+```ini
+Host *
+    ServerAliveInterval 60
+    ServerAliveCountMax 120
+```
+
+注意到该文件有所有 vscode 的连接。
 
 
 

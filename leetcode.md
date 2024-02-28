@@ -1301,6 +1301,14 @@
 - 2867\.统计树中的合法路径数目
 
   欧拉筛 树上DP
+  
+- 2673\.使二叉树所有路径值相等的最小代价
+
+  二分治+贪心 / <u>贪心</u>
+  
+- 2581\.统计可能的树根数目
+
+  DFS(换根DP)
 
 
 ## 算法
@@ -1315,7 +1323,11 @@
 
 > 究极暴力：sort 
 >
-> $O((n+m)\log (n+m))$
+> $
+>
+> 
+>
+> $
 >
 > 一般暴力：归并排序思想合并/双指针 $O(n+m)$
 >
@@ -33826,6 +33838,250 @@ class Solution:
                 s += size[y]
             ans += s  # 从 x 出发的路径
         return ans
+```
+
+##### 2673\.使二叉树所有路径值相等的最小代价
+
+[题目](https://leetcode.cn/problems/make-costs-of-paths-equal-in-a-binary-tree/)
+
+先得到每个叶子节点的路径值，设最大值为 $mx$，显然每个叶子路径值都要最终为 $mx$。设每个叶子差 $a$ 到达 $mx$，根据满二叉树性质，不妨考虑分治，对当前子树 $[l,r]$，可以对子树根节点操作 $\min a$ 次。这个计算和操作过程是 $O(n)$ 的，根据二分+主定理，复杂度为：
+$$
+T(n)=aT(\dfrac nb)+cn^k=2T(\dfrac n2)+n\to O(n\log n)\ (a=b^k)
+$$
+
+> $$
+> T(n)=\begin{cases}\Omicron(n^{\log_ba})&a>b^k\\
+> \Omicron(n^k\log_bn)&a=b^k\\
+> \Omicron(n^k)&a<b^k\end{cases}
+> $$
+
+```python
+class Solution:
+    def minIncrements(self, n: int, a: List[int]) -> int:
+        for i in range(n//2):
+            a[2*i+1]+=a[i]
+            a[2*i+2]+=a[i]
+        mx, ans = max(a), 0
+        a = [mx - v for v in a[n//2:]]
+        def dfs(l, r):
+            mi = min(a[l:r+1])
+            nonlocal ans
+            ans += mi
+            for i in range(l, r+1):
+                a[i] -= mi
+            c = (l+r)//2
+            if l==r:
+                return
+            dfs(l, c)
+            dfs(c+1, r)
+        dfs(0, n//2)
+        return ans
+```
+
+
+
+答案：
+
+- 假设当前考虑叶子 $x,y$，只要 $x\neq y$，不管祖先如何，一定要操作 $abs(x-y)$ 次，把叶子层这样累加完。
+
+  如果操作次数比 $abs(x-y)$ 多，一定可以转化为对祖先进行操作。
+
+  当操作完这一层后，显然每个父的儿子相等，均为 $\max(x,y)$。
+
+- 到上一层时，为了保证总和相等，它下面层的总和设为 $\sum\max$(即向上叠路径和)，所以初始算的两非叶子节点 $x,y$，它们的节点值都加上它们往下处理完的 $\max$ 和。
+
+$O(n)$。
+
+```python
+class Solution:
+    def minIncrements(self, n: int, cost: List[int]) -> int:
+        ans = 0
+        for i in range(n // 2, 0, -1):  # 从最后一个非叶节点开始算
+            ans += abs(cost[i * 2 - 1] - cost[i * 2])  # 两个子节点变成一样的
+            cost[i - 1] += max(cost[i * 2 - 1], cost[i * 2])  # 累加路径和
+        return ans
+```
+
+##### 2581\.统计可能的树根数目
+
+[题目](https://leetcode.cn/problems/count-number-of-possible-root-nodes)
+
+先任意定根，统计该根下正确的猜测数。然后换根 DFS，对从原根到当前 DFS 路径的每个点的猜测边，全部猜测结论取反，这样维护统计正确数对比，求出每个点是否可以做根。
+
+使用链式前向星实现，忽略建图复杂度(每条边查询是否为 guess 边，可以用 unmap 达到总 $O(n)$)，复杂度 $O(n)$。也可以邻接表实现。
+
+链式前向星：
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    int rootCount(vector<vector<int>>& edges, vector<vector<int>>& guesses, int k) {
+        struct node {
+            int u, v, nx, gu, mark;
+        };
+        int n = edges.size() + 1, tot=0;
+        vector<node> g(n*2+10);
+        vector<int> hd(n,-1);
+        set<pair<int, int>> gu;
+        for(auto& e : guesses) {
+            int u = e[0], v = e[1];
+            gu.insert({u, v});
+        }
+        auto adde = [&](int u, int v) {
+            g[tot] = {u, v, hd[u], (int)gu.count({u,v}),false};
+            hd[u] = tot++;
+        };
+        for(auto& e : edges) {
+            int u = e[0], v = e[1];
+            adde(u, v);
+            adde(v, u);
+        }
+        
+        int trues = 0;
+        auto mark = [&](int i, bool w) {
+            if(g[i].mark == w) return;
+            trues += (w ? 1 : -1) * g[i].gu;
+            g[i].mark = w;
+        };
+        auto markUtoV = [&] (int i) {
+            mark(i, true);
+            mark(i^1, false);
+        };
+        auto dfs0 = [&](auto dfs0, int u, int fa) -> void {
+            for(int i = hd[u]; i != -1; i = g[i].nx) {
+                int v = g[i].v;
+                if (v != fa) {
+                    markUtoV(i);
+                    dfs0(dfs0, v, u);
+                }
+            }
+        };
+        dfs0(dfs0, 0, 0);
+        int ans = 0;
+        ios::sync_with_stdio(false);
+        auto dfs = [&](auto dfs, int u, int fa) -> void {
+            ans += trues >= k;
+            for(int i = hd[u]; i != -1; i = g[i].nx) {
+                int v = g[i].v;
+                if (v != fa) {
+                    markUtoV(i^1);
+                    dfs(dfs, v, u); 
+                    markUtoV(i);
+                }
+            }
+        };
+        dfs(dfs, 0, 0);
+        return ans;
+    }
+};
+```
+
+邻接表：(TLE)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    int rootCount(vector<vector<int>>& edges, vector<vector<int>>& guesses, int k) {
+        int n = edges.size() + 1;
+        vector<vector<int>> g(n);
+        for (auto& e : edges) {
+            g[e[0]].push_back(e[1]);
+            g[e[1]].push_back(e[0]);
+        }
+        map<pair<int,int>, bool> gu;
+        for(auto& e: guesses) {
+            int u = e[0], v = e[1];
+            gu[{u,v}] = false;
+        }
+        int trues = 0;
+        auto mark = [&](int u, int v, bool w) {
+            if(!gu.count({u, v})) return;
+            if(gu[{u, v}] == w) return;
+            trues += w ? 1 : -1;
+            gu[{u, v}] = w;
+        };
+        auto markUtoV = [&] (int u, int v) {
+            mark(u, v, true);
+            mark(v, u, false);
+        };
+        auto dfs0 = [&](auto dfs0, int u, int fa) -> void {
+            markUtoV(fa, u);
+            for (auto& v : g[u]) {
+                if (v != fa) dfs0(dfs0, v, u);
+            }
+        };
+        dfs0(dfs0, 0, -1);
+        int ans = 0;
+        auto dfs = [&](auto dfs, int u, int fa) -> void {
+            ans += trues >= k;
+            for(auto& v: g[u]) {
+                if(v != fa) {
+                    markUtoV(v, u);
+                    dfs(dfs, v, u); 
+                    markUtoV(u, v);
+                }
+            }
+        };
+        dfs(dfs, 0, -1);
+        return ans;
+    }
+};
+```
+
+更优雅的实现：
+
+```c++
+class Solution {
+public:
+    using ll = long long;
+    int rootCount(vector<vector<int>>& edges, vector<vector<int>>& guesses, int k) {
+        int n = edges.size() + 1;
+        vector<vector<int>> g(n);
+        unordered_set<ll> st;
+        for (auto &v : edges) {
+            g[v[0]].push_back(v[1]);
+            g[v[1]].push_back(v[0]);
+        }
+        auto h = [&](int x, int y) -> ll {
+            return (ll) x << 20 | y;
+        };
+        for (auto &v : guesses) {
+            st.insert(h(v[0], v[1]));
+        }
+
+        int cnt = 0, res = 0;
+        function<void(int, int)> dfs = [&](int x, int fat) -> void {
+            for (auto &y : g[x]) {
+                if (y == fat) {
+                    continue;
+                }
+                cnt += st.count(h(x, y));
+                dfs(y, x);
+            }
+        };
+        dfs(0, -1);
+
+        function<void(int, int, int)> redfs = [&](int x, int fat, int cnt) {
+            if (cnt >= k) {
+                res++;
+            }
+            for (auto &y : g[x]) {
+                if (y == fat) {
+                    continue;
+                }
+                redfs(y, x, cnt - st.count(h(x, y)) + st.count(h(y, x)));
+            }
+        };
+        redfs(0, -1, cnt);
+        return res;
+    }
+};
 ```
 
 

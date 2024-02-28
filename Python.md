@@ -6,7 +6,7 @@
 
 # 语法
 
-## 初始
+## 安装使用
 
 ### 安装/使用python
 
@@ -439,6 +439,8 @@ ctrl+shift+p 打开 `settings.json` (一般可能在用户文件夹的 `AppData\
 
 #### 安装
 
+##### 常规
+
 anaconda 安装可以去官方，或者 miniconda [here](https://anaconda.org.cn/anaconda/)
 
 作用：隔离环境，一个项目一个 py 版本及其对应的包。避免项目间污染。
@@ -455,6 +457,24 @@ D:\APP\Anaconda\Library\bin
 >
 > update: 疑似不行，后面再说。
 
+ubuntu:
+
+```sh
+uname -m # 查看系统架构，如 x86_64 下载 64
+```
+
+在官网如 miniconda [here](https://docs.anaconda.com/free/miniconda/) 下载对应架构的 `.sh`，安装，如 `bash xxx.sh`。一路回车/按yes等。
+
+然后再 `~/.bashrc` 追加一行：(lr584改成自己用户名)，记得改完 `source .bashrc`
+
+```sh
+export PATH="/home/lr584/miniconda3/bin:$PATH"
+```
+
+> 不追加的办法：每次先 `source /home/lr584/miniconda3/bin/activate`。
+
+
+
 检查安装完毕：
 
 ```sh
@@ -469,6 +489,58 @@ conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/f
 conda config --set show_channel_urls yes
 conda install numpy # 测试镜像
 ```
+
+##### 离线
+
+安装插件：
+
+```sh
+conda install -c conda-forge conda-pack
+```
+
+对某个配好的环境，导出：(windows 要管理员)
+
+```sh
+conda pack -n 环境名
+```
+
+在当前 pwd 位置生成 `环境名.tar.gz`
+
+上传到某个离线机子。解压，cd 进去，运行
+
+```sh
+mkdir my_env
+tar -xzf my_env.tar.gz -C my_env
+source my_env/bin/activate
+# .\my_env\Scripts\activate  # windows
+```
+
+注意到打包的机子和解压的机子应当是同一个环境，比如不能 windows 迁移 linux。
+
+> 在某台能联网的机子安装好，然后导出一个几十 KB 的文件 txt，然后安装：
+>
+> ```sh
+> conda list --explicit > spec-file.txt
+> #conda install --download-only -c defaults --file spec-file.txt
+> ```
+>
+> 除了开头，都是每行一个下载地址路径；把开头几行非 url 删掉，执行诸如下面的 power shell 脚本或其他脚本，将在当前目录下下载 spec-file.txt 的全部文件。
+>
+> ```sh
+> $urls = Get-Content .\spec-file.txt
+> foreach ($url in $urls) {
+>     Invoke-WebRequest -Uri $url -OutFile (Split-Path -Path $url -Leaf)
+> }
+> ```
+>
+> 
+>
+> 然后在上传到离线机子：
+>
+> ```sh
+> conda create --name lr580_yolo --file spec-file.txt
+> ```
+>
 
 
 
@@ -1948,6 +2020,26 @@ print(3) if 0 else print(4) if 0 else print(5) #5
 
 ```python
 return 0 if s1 == s2 else 1 if s1 > s2 else 2
+```
+
+#### match
+
+python 3.10
+
+自带 break，自上而下。使用 `|` 符号匹配多个可能的模式之一。`_` 是 else。可以模糊匹配。
+
+```python
+match point:
+    case (0, 0):
+        print("Origin")
+    case (0, y):
+        print(f"Y={y}")
+    case (x, 0):
+        print(f"X={x}")
+    case (x, y):
+        print(f"Point at ({x}, {y})")
+    case _:
+        print("Not a point")
 ```
 
 
@@ -9950,6 +10042,33 @@ plt.imshow(img2, 'gray')
 plt.show()
 ```
 
+#### 图像评估
+
+##### 马赛克模糊度
+
+canny 算子：
+
+```python
+def estimate_blur(image_path):
+    # 加载图片并转换为灰度图像
+    image = cv2.imread(image_path)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # 应用Canny边缘检测
+    edges = cv2.Canny(gray, 100, 200)
+
+    # 计算边缘像素的比例，作为模糊度的一个指标
+    edge_count = np.sum(edges > 0)
+    total_pixels = gray.shape[0] * gray.shape[1]
+    edge_ratio = edge_count / total_pixels
+
+    # 模糊度越低，边缘比例越高
+    blur_estimate = 1 - edge_ratio
+    return blur_estimate
+```
+
+
+
 #### 视频处理
 
 ##### 基本信息
@@ -10054,9 +10173,9 @@ img = img.resize((rows, cols), Image.Resampling.BICUBIC)
 img.save(文件名)
 ```
 
+#### 图像增强
 
-
-#### 转黑白
+##### 转黑白
 
 直接取平均值：
 
@@ -10091,7 +10210,7 @@ plt.show()
 
 
 
-#### 图片旋转
+##### 图片旋转
 
 ```python
 from PIL import Image
@@ -10104,13 +10223,57 @@ plt.imshow(img1)
 plt.show()
 ```
 
-#### 直方图均衡化
+##### 直方图均衡化
 
 ```python
 from PIL import Image, ImageOps
 image = Image.open("path_to_your_image.jpg")
 equalized_image = ImageOps.equalize(image)
 equalized_image.save("equalized_image.jpg")
+```
+
+##### 马赛克
+
+```python
+from PIL import Image
+
+def apply_mosaic(image_path, block_size=10):
+    """
+    对指定图片应用马赛克效果。
+
+    参数:
+    image_path: 图片的路径。
+    block_size: 马赛克的每个块的大小（像素为单位）。
+    """
+    # 加载图片
+    image = Image.open(image_path)
+    image = image.convert('RGB')  # 确保图片是RGB模式
+
+    # 获取图片尺寸
+    width, height = image.size
+
+    # 对每个网格块应用马赛克效果
+    for y in range(0, height, block_size):
+        for x in range(0, width, block_size):
+            # 获取当前块的区域
+            box = (x, y, x + block_size, y + block_size)
+            # 裁剪图片区域
+            block = image.crop(box)
+            # 获取区域的平均颜色
+            average_color = tuple(map(lambda x: int(sum(x) / len(x)), zip(*block.getdata())))
+            # 用平均颜色填充这个区域
+            image.paste(Image.new('RGB', block.size, average_color), box)
+
+    # 返回处理后的图片
+    return image
+
+# 应用马赛克效果并显示图片
+# 注意替换'image_path'为你的图片文件路径
+mosaiced_image = apply_mosaic('image_path.jpg')
+mosaiced_image.show()
+
+# 如果需要，可以保存处理后的图片
+# mosaiced_image.save('mosaiced_image_path.jpg')
 ```
 
 
@@ -10790,6 +10953,28 @@ print(transformed_data)
  [1.  ]]'''
 ```
 
+##### 文本向量化
+
+1. **词汇表构建**：`CountVectorizer` 首先对所有文档中的单词进行统计，创建一个词汇表。词汇表中的每个单词都对应一个特征索引。
+2. **文本向量化**：对于每个文档，`CountVectorizer` 会根据词汇表中的单词出现的频次来构建一个稀疏的特征向量。如果某个词汇表中的单词在文档中出现，则在相应的特征位置上会显示出现的次数，如果没有出现，则为0。
+3. **预处理和标准化**：`CountVectorizer` 还提供了多种参数来进行文本的预处理，如转换为小写、去除停用词、应用词干提取等。
+
+```python
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.pipeline import Pipeline
+import joblib
+
+texts = ["this is a sample text", "another sample text with more words", "text with few words"]
+labels = [0, 1, 1]  
+pipeline = Pipeline([
+    ('vect', CountVectorizer()),
+    ('clf', DecisionTreeClassifier()), 
+])
+pipeline.fit(texts, labels)
+joblib.dump(pipeline, 'text_clf_pipeline.joblib')
+```
+
 
 
 #### 数据处理
@@ -11425,6 +11610,46 @@ print("Best parameters:", random_search.best_params_)
 # 使用最佳参数的模型进行预测
 best_tree = random_search.best_estimator_
 tree = best_tree
+```
+
+#### 导入导出
+
+```python
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.pipeline import Pipeline
+import joblib
+
+# 示例文本数据和标签（需要根据实际情况替换）
+texts = ["this is a sample text", "another sample text with more words", "text with few words"]
+labels = [0, 1, 1]  # 假设我们有两个类别：0 和 1
+
+# 创建管道
+pipeline = Pipeline([
+    ('vect', CountVectorizer()),  # 文本转换步骤
+    ('clf', DecisionTreeClassifier()),  # 决策树分类器
+])
+
+# 训练模型
+pipeline.fit(texts, labels)
+
+# 保存模型
+joblib.dump(pipeline, 'text_clf_pipeline.joblib')
+```
+
+```python
+import joblib
+
+# 加载模型
+pipeline = joblib.load('text_clf_pipeline.joblib')
+
+# 新的文本数据
+new_texts = ["sample text to classify", "another new text"]
+
+# 使用模型进行预测
+predictions = pipeline.predict(new_texts)
+
+print(predictions)  # 打印预测结果
 ```
 
 
@@ -12459,7 +12684,9 @@ print(res[0].names) # {0: 'crash', 1: 'normal'}
 print(res[0].probs.top1) # 1
 ```
 
-### 决策树
+### 机器学习
+
+#### 决策树
 
 XGBoost（Extreme Gradient Boosting）和CatBoost（Categorical Boosting）都是流行的梯度提升库，用于解决分类、回归和其他机器学习任务。它们都是基于决策树的集成学习方法，但在实现和特定功能上有所不同。
 
@@ -12468,7 +12695,7 @@ XGBoost（Extreme Gradient Boosting）和CatBoost（Categorical Boosting）都�
 - **特性**：CatBoost提供了对分类特征的内置支持，而XGBoost则侧重于提高模型的效率和灵活性。
 - **社区和支持**：XGBoost由于发布时间较早，拥有更大的社区和更广泛的应用。CatBoost是相对较新的，但由于其易用性和对分类特征的优化，正在迅速获得流行。
 
-#### XGBoost
+##### XGBoost
 
 XGBoost是梯度提升决策树（GBDT）的一种高效实现。它使用了一些优化手段，比如近似算法（用于快速找到最佳分割点）和正则化（用于控制模型的复杂度，防止过拟合）。XGBoost还支持行列抽样，以进一步提高效率和减少过拟合。
 
@@ -12494,7 +12721,7 @@ preds = model.predict(X_test)
 5. **`subsample`**：用于训练模型的样本占总样本的比例。可以防止过拟合，常见取值范围为0.5-1。
 6. **`colsample_bytree`**、**`colsample_bylevel`**、**`colsample_bynode`**：分别表示在构建树、在每一层、在每个分裂中使用的特征的子样本比率。这些参数用于控制过拟合，常见取值范围为0.5-1。
 
-#### catBoost
+##### catBoost
 
 CatBoost是由Yandex开发的一个开源梯度提升库。它对分类特征的处理进行了优化，无需手动进行独热编码。CatBoost使用了称为“Ordered Boosting”的特殊技术来处理过拟合，这种技术可以提高模型的泛化能力。此外，CatBoost还实现了对称树的构建算法，以提高模型的训练速度和减少内存消耗。
 
@@ -12519,6 +12746,63 @@ preds = model.predict(X_test)
 4. **`l2_leaf_reg`**：L2正则化项的系数，用于控制模型的复杂度和防止过拟合。较大的值会使模型更加保守。常见取值范围为1-10。
 5. **`border_count`**：用于数值特征分割的边界数量。较大的值可以提高模型的精度，但也会增加训练时间和过拟合的风险。常见取值范围为32-255。
 6. **`cat_features`**：指定哪些特征被视为分类特征。这对于CatBoost特别重要，因为它对分类特征有特殊的处理方式。
+
+#### LightGBM
+
+回归：
+
+```python
+import lightgbm as lgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+
+# 假设 X 和 y 已经准备好了
+# X: 特征矩阵
+# y: 连续的目标变量
+
+# 将数据分为训练集和测试集
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 创建LightGBM数据格式
+train_data = lgb.Dataset(X_train, label=y_train)
+test_data = lgb.Dataset(X_test, label=y_test, reference=train_data)
+
+# 设置参数
+params = {
+    'boosting_type': 'gbdt',
+    'objective': 'regression',
+    'metric': 'l2',  # 均方误差
+    'num_leaves': 31,
+    'learning_rate': 0.05,
+    'feature_fraction': 0.9,
+    'bagging_fraction': 0.8,
+    'bagging_freq': 5,
+    'verbose': 0
+}
+
+# 训练模型
+gbm = lgb.train(params, train_data, num_boost_round=100, valid_sets=[train_data, test_data], early_stopping_rounds=10)
+
+# 预测
+y_pred = gbm.predict(X_test, num_iteration=gbm.best_iteration)
+
+# 评估模型
+mse = mean_squared_error(y_test, y_pred)
+print(f'MSE: {mse}')
+```
+
+分类：
+
+```python
+# 将概率转换为二进制输出
+y_pred_binary = [1 if x > 0.5 else 0 for x in y_pred]
+
+# 计算准确率
+accuracy = accuracy_score(y_test, y_pred_binary)
+print(f'Accuracy: {accuracy}')
+```
+
+
 
 ## 网络
 
