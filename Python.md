@@ -121,6 +121,10 @@ trusted-host=mirrors.aliyun.com
 
 
 
+查看装了什么包：`pip list`
+
+
+
 将 python 安装的包移出 C盘：
 
 输入 `python -m site` 查看当前安装目录
@@ -545,6 +549,16 @@ source my_env/bin/activate
 
 
 #### 使用
+
+镜像：
+
+```sh
+conda config --set show_channel_urls yes
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
+```
+
+
 
 新建环境：
 
@@ -9252,13 +9266,53 @@ print(titles_df)
 
 ##### 词频
 
+函数里，所有下面的第二个函数效率更高
+
 ```python
 def get_top_words(col, k):
+    df[col] = df[col].astype(str)
     df[col] = df[col].apply(lambda x:re.findall(r'\b\w+\b', x, flags=re.IGNORECASE))
     df[col] = df[col].apply(lambda x:[y.lower() for y in x])
     wc = df[col].apply(pd.Series).stack().value_counts()
-    print(wc)
-    return wc.nlargest(k).index
+    # print(wc)
+    return list(wc.nlargest(k).index)
+
+def get_top_words(col, k):
+    df[col] = df[col].astype(str)
+    words_series = df[col].apply(lambda x: [word.lower() for word in re.findall(r'\b\w+\b', x, flags=re.IGNORECASE)])
+    all_words_counter = Counter()
+    for words_list in words_series:
+        all_words_counter.update(words_list)
+    top_k_words = [word for word, _ in all_words_counter.most_common(k)]
+    return top_k_words
+
+def get_all_words(col):
+    df[col] = df[col].astype(str)
+    df[col] = df[col].apply(lambda x:re.findall(r'\b\w+\b', x, flags=re.IGNORECASE))
+    df[col] = df[col].apply(lambda x:[y.lower() for y in x])
+    wc = df[col].apply(pd.Series).stack().value_counts()
+    return list(wc.index)
+
+def get_all_words(col):
+    df[col] = df[col].astype(str)
+    words_series = df[col].apply(lambda x: [word.lower() for word in re.findall(r'\b\w+\b', x, flags=re.IGNORECASE)])
+    all_words_counter = Counter()
+    for words_list in words_series:
+        all_words_counter.update(words_list)
+    return [word for word, _ in all_words_counter.most_common()]
+
+def count_words(row, col, words):
+    cnt = []
+    text = str(row[col]).lower()
+    for word in words:
+        cnt.append(text.count(word))
+    return cnt
+
+def count_words(row, col, words):
+    text_words = re.findall(r'\b\w+\b', str(row[col]).lower())
+    word_counts = Counter(text_words)
+    cnt = [word_counts[word] for word in words]
+    return cnt
 ```
 
 
@@ -10975,6 +11029,53 @@ pipeline.fit(texts, labels)
 joblib.dump(pipeline, 'text_clf_pipeline.joblib')
 ```
 
+##### TF-IDF
+
+```python
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# 创建示例数据
+data = {
+    'text_column': [
+        "The quick brown fox jumps over the lazy dog.",
+        "Never jump over the lazy dog quickly.",
+        "A quick brown dog outpaces a quick fox."
+    ]
+}
+
+# 创建 DataFrame
+df = pd.DataFrame(data)
+
+# 文本预处理函数
+def preprocess_text(text):
+    # 转换为小写
+    text = text.lower()
+    # 去除标点（可根据需要添加更多预处理步骤）
+    text = ''.join([char for char in text if char.isalnum() or char.isspace()])
+    return text
+
+# 应用文本预处理
+df['processed_text'] = df['text_column'].apply(preprocess_text)
+
+# 计算 TF-IDF
+vectorizer = TfidfVectorizer()
+tfidf_matrix = vectorizer.fit_transform(df['processed_text'])
+
+# 获取特征名（单词）
+feature_names = vectorizer.get_feature_names_out()
+
+# 计算每个单词的平均 TF-IDF 得分
+avg_scores = tfidf_matrix.mean(axis=0)
+scores_dict = dict(zip(feature_names, avg_scores.tolist()[0]))
+
+# 提取得分最高的前 3 个单词
+k = 3
+top_k_words = sorted(scores_dict, key=scores_dict.get, reverse=True)[:k]
+
+print(top_k_words)
+```
+
 
 
 #### 数据处理
@@ -11959,6 +12060,15 @@ with open(d,'r',encoding=check(d)) as f:
 import torch
 print(torch.__version__)
 ```
+
+查看可用性(cuda):
+
+```python
+print(torch.cuda.is_available())  # Should return True if CUDA is properly set up
+print(torch.cuda.device_count())  # Should return the number of GPUs available
+```
+
+
 
 #### 创建张量
 

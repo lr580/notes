@@ -1309,6 +1309,10 @@
 - 2581\.统计可能的树根数目
 
   DFS(换根DP)
+  
+- 2369\.检查数组是否存在有效划分
+
+  DP
 
 
 ## 算法
@@ -34080,6 +34084,34 @@ public:
         };
         redfs(0, -1, cnt);
         return res;
+    }
+};
+```
+
+##### 2369\.检查数组是否存在有效划分
+
+[题目](https://leetcode.cn/problems/check-if-there-is-a-valid-partition-for-the-array/)
+
+DP
+
+```c++
+class Solution {
+public:
+    bool validPartition(vector<int>& nums) {
+        int n = nums.size();
+        vector<bool> ok(n+1, false);
+        ok[0] = true;
+        ok[2] = nums[0] == nums[1];
+        for(int i=2;i<n;++i){
+            if(ok[i-2+1]) {
+                if(nums[i] == nums[i-1]) ok[i+1]=true;
+            }
+            if(ok[i-3+1]) {
+                if(nums[i] == nums[i-1] && nums[i] == nums[i-2]) ok[i+1]=true;
+                else if(nums[i] == nums[i-1] + 1 && nums[i] == nums[i-2] + 2) ok[i+1]=true;
+            }
+        }
+        return ok[n];
     }
 };
 ```
