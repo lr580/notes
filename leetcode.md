@@ -1317,6 +1317,10 @@
 - 2368\.受限条件下可到达节点的数目
 
   BFS DFS 并查集
+  
+- 225\.用队列实现栈
+
+  STL
 
 ## 算法
 
@@ -38646,4 +38650,102 @@ public:
 ```
 
 
+
+##### 225\.用队列实现栈
+
+[题目](https://leetcode.cn/problems/implement-stack-using-queues)
+
+入栈 $O(n)$，总复杂度 $O(n^2)$。
+
+```
+q1      a
+q2 a => 
+
+q1 a           b a
+q2 b => b a =>
+
+q1 b a             c b a
+q2 c   => c b a =>
+```
+
+```c++
+class MyStack {
+public:
+    queue<int> queue1;
+    queue<int> queue2;
+
+    /** Initialize your data structure here. */
+    MyStack() {
+
+    }
+
+    /** Push element x onto stack. */
+    void push(int x) {
+        queue2.push(x);
+        while (!queue1.empty()) {
+            queue2.push(queue1.front());
+            queue1.pop();
+        }
+        swap(queue1, queue2);
+    }
+    
+    /** Removes the element on top of the stack and returns that element. */
+    int pop() {
+        int r = queue1.front();
+        queue1.pop();
+        return r;
+    }
+    
+    /** Get the top element. */
+    int top() {
+        int r = queue1.front();
+        return r;
+    }
+    
+    /** Returns whether the stack is empty. */
+    bool empty() {
+        return queue1.empty();
+    }
+};
+```
+
+```c++
+class MyStack {
+public:
+    queue<int> q;
+
+    /** Initialize your data structure here. */
+    MyStack() {
+
+    }
+
+    /** Push element x onto stack. */
+    void push(int x) {
+        int n = q.size();
+        q.push(x);
+        for (int i = 0; i < n; i++) {
+            q.push(q.front());
+            q.pop();
+        }
+    }
+    
+    /** Removes the element on top of the stack and returns that element. */
+    int pop() {
+        int r = q.front();
+        q.pop();
+        return r;
+    }
+    
+    /** Get the top element. */
+    int top() {
+        int r = q.front();
+        return r;
+    }
+    
+    /** Returns whether the stack is empty. */
+    bool empty() {
+        return q.empty();
+    }
+};
+```
 
