@@ -1147,6 +1147,77 @@ pie
     "Iron" :  5
 ```
 
+#### ER图
+
+##### crow's foot
+
+> [官方文档](https://mermaid.js.org/syntax/entityRelationshipDiagram.html)
+
+o 是 0，| 是 1，{ 是多，|| 是仅 1。
+
+| Value (left) | Value (right) | Meaning                       |
+| :----------: | :-----------: | :---------------------------- |
+|     `|o`     |     `o|`      | Zero or one                   |
+|     `||`     |     `||`      | Exactly one                   |
+|     `}o`     |     `o{`      | Zero or more (no upper limit) |
+|     `}|`     |     `|{`      | One or more (no upper limit)  |
+
+```mermaid
+erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ LINE-ITEM : contains
+    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses
+```
+
+```mermaid
+erDiagram
+    COUNTRY {
+        string name PK
+        float area
+        int population
+        float gdp
+    }
+
+    CITY {
+        string name PK
+        string country_name FK
+        int population
+        float longitude PK
+        float latitude PK
+    }
+
+    COUNTRY ||--|{  CITY : has
+
+    RIVER {
+        string name PK
+        float length
+        string end_river_name FK
+        string end_sea_name FK
+    }
+
+    SEA {
+        string name PK
+        float maxDepth
+    }
+
+    RIVER_CROSS {
+        string country_name FK
+        string river_name FK
+    }
+
+    COUNTRY ||--o{ RIVER_CROSS : "crossed by"
+    RIVER ||--|{ RIVER_CROSS : crosses
+
+    RIVER ||--o| RIVER : "ends in"
+    RIVER ||--O{ SEA : "ends in"
+```
+
+
+
+还有一些本地 typora 渲染不出来的更多的语法，参考官网和在线运行。
+
+
+
 #### 导出
 
 绘制好的图片可以选择菜单/文件/导出，导出为图片或者网页格式。在网页中图片是以 SVG 格式渲染的，可以复制 SVG 内容，导入到 SVG 的图片编辑器中进一步操作。

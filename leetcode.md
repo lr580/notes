@@ -1321,6 +1321,10 @@
 - 225\.用队列实现栈
 
   STL
+  
+- 1976\.到达目的地的方案数
+
+  Dijkstra
 
 ## 算法
 
@@ -38747,5 +38751,121 @@ public:
         return q.empty();
     }
 };
+```
+
+##### 1976\.到达目的地的方案数
+
+[题目](https://leetcode.cn/problems/number-of-ways-to-arrive-at-destination)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+using pll = pair<ll,ll>;
+const ll MOD = 1e9+7;
+class Solution {
+    struct node {
+        ll i,d;
+        bool operator<(const node&x) const {return d>x.d;}
+    };
+public:
+    int countPaths(int n, vector<vector<int>>& roads) {
+        vector<vector<pll>> g(n);
+        for(auto& e:roads){
+            int u=e[0],v=e[1],w=e[2];
+            g[u].emplace_back(v,w);
+            g[v].emplace_back(u,w);
+        }
+        priority_queue<node> q;
+        vector<bool> vis(n);
+        vector<ll> d(n,1e18),s(n);
+        d[0]=0,s[0]=1;
+        q.push({0,0});
+        while(!q.empty()){
+            node p = q.top();
+            q.pop();
+            int u=p.i;
+            if(vis[u]) continue;
+            for(auto&[v,w]:g[u]){
+                if(d[v]>d[u]+w){
+                    d[v]=d[u]+w, s[v]=s[u];
+                    q.push({v,d[v]});
+                }else if(d[v]==d[u]+w){
+                    (s[v]+=s[u])%=MOD;
+                }
+            }
+        }
+        return s[n-1];
+    }
+};
+```
+
+题解：
+
+```c++
+class Solution {
+public:
+    using LL = long long;
+    int countPaths(int n, vector<vector<int>>& roads) {
+        const long long mod = 1e9 + 7;
+        vector<vector<pair<int, int>>> e(n);
+        for (const auto& road : roads) {
+            int x = road[0], y = road[1], t = road[2];
+            e[x].emplace_back(y, t);
+            e[y].emplace_back(x, t);
+        }
+        vector<long long> dis(n, LLONG_MAX);
+        vector<long long> ways(n);
+
+        priority_queue<pair<LL, int>, vector<pair<LL, int>>, greater<pair<LL, int>>> q;
+        q.emplace(0, 0);
+        dis[0] = 0;
+        ways[0] = 1;
+        
+        while (!q.empty()) {
+            auto [t, u] = q.top();
+            q.pop();
+            if (t > dis[u]) {
+                continue;
+            }
+            for (auto &[v, w] : e[u]) {
+                if (t + w < dis[v]) {
+                    dis[v] = t + w;
+                    ways[v] = ways[u];
+                    q.emplace(t + w, v);
+                } else if (t + w == dis[v]) {
+                    ways[v] = (ways[u] + ways[v]) % mod;
+                }
+            }
+        }
+        return ways[n - 1];
+    }
+};
+```
+
+```python
+class Solution:
+    def countPaths(self, n: int, roads: List[List[int]]) -> int:
+        mod = 10 ** 9 + 7
+        e = [[] for _ in range(n)]
+        for x, y, t in roads:
+            e[x].append([y, t])
+            e[y].append([x, t])
+        dis = [0] + [inf] * (n - 1)
+        ways = [1] + [0] * (n - 1)
+
+        q = [[0, 0]]
+        while q:
+            t, u = heappop(q)
+            if t > dis[u]:
+                continue
+            for v, w in e[u]:
+                if t + w < dis[v]:
+                    dis[v] = t + w
+                    ways[v] = ways[u]
+                    heappush(q, [t + w, v])
+                elif t + w == dis[v]:
+                    ways[v] = (ways[u] + ways[v]) % mod
+        return ways[-1]
 ```
 
