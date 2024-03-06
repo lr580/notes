@@ -841,20 +841,30 @@ table标签，内部若干tr标签。每个tr标签代表一行，内部若干td
 基本属性：
 
 - align 表格相对**其他元素**（不是表格单元格）的对齐方式 left center right;除center外，都可以与上面和下面的元素同行展示
+
 - bgcolor 背景颜色
+
 - border 边框宽度(像素)(每个单元格都有框，但border只生效外边框，但不设border时内外边框都没有)
+
+  内边框对 td 设 border style
+
 - cellpadding 单元格与内容的距离（像素/百分比(均不支持小数点，百分比可以超过100%)）
+
 - cellspacing 单元格间距 像素/百分比
+
 - height 表格高度 单元格高度更高时，取单元格高度和 像素/百分比；用height设置百分比可能不生效，否则会比较平均分配
+
 - width 表格宽度 像素/百分比
 
   width=2\*cellpadding+本文长度(所以有可能出现一行只有一个字即2\*cellpadding+一个字宽度)
+  
 - rules 表格线显示方式
   - all 默认(有border时应该不是)，如果有rules有border，则表格间线会变成单线；有border无rules，是双线；下同
   - groups
   - rows 行线
   - cols 列线
   - none
+  
 - frame 表格外部框架显示方式(会跟border冲突)
   - void 不显示外边框
   - above 仅顶部边框
@@ -2778,7 +2788,7 @@ li:hover a{
 
 ### 表格属性
 
-- border 边框宽度+样式+颜色
+- border 边框宽度+样式+颜色 (对 td 用内边框)
 
 - border-collapse 是否单一边框(separate 双边框，默认；collapse 单边框)
 

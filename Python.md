@@ -80,6 +80,7 @@ pip install plotly pandas # 一次装两个
 
 ```bash
 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pyspider
+pip install onnx -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 其他镜像：
@@ -592,7 +593,7 @@ conda env remove --name 环境名称
 conda activate 环境名
 ```
 
-> 对 windows，要在命令提示符，不能在 powershell。
+> 对 windows，要在命令提示符，不能在 powershell。尽管运行代码可以在 powershell，但是其无法装包。
 
 之后可以装包。(如 `pip install -r requirements.txt`)
 
@@ -12051,7 +12052,9 @@ with open(d,'r',encoding=check(d)) as f:
 
 ### torch
 
-官网按需下载 pytorch
+#### 安装
+
+官网按需下载 pytorch，注意要求和本地 cuda 版本对应(如 11x 对应 11y)，不对的可以找历史版本。
 
 导库：
 
@@ -12066,6 +12069,18 @@ print(torch.__version__)
 ```python
 print(torch.cuda.is_available())  # Should return True if CUDA is properly set up
 print(torch.cuda.device_count())  # Should return the number of GPUs available
+```
+
+#### 模型信息
+
+直接输出一个 dict，包括网络结构、超参数和可能的权重。
+
+```python
+import torch
+model = torch.load('../yolov8n-cls.pt')
+print(model) # ['model'] 是网络结构
+with open('modelinfo.txt','w') as f:
+    f.write(str(model['model']))
 ```
 
 
@@ -12527,6 +12542,26 @@ model = YOLO('yolov8n.pt')
 ```
 
 如果没有会下载，可能需要梯子。如果下载到一半断了，可以把 `.pt` 删了，不然可能会不断报错。
+
+> 可以在[库项目](https://github.com/ultralytics/ultralytics)根目录的 `ultralytics/cfg/models/v8` 找到配置文件 `yaml`。
+
+不加载权重，只加载结构用 `.yaml`，具体有啥看文档。可以用一个的结构和另一个的权重：
+
+```python
+model = YOLO('yolov8s-cls-akconv3.yaml').load('yolov8s-cls.pt')
+```
+
+##### 模型信息
+
+`.pt` 是 torch，可以按 torch 格式来输出。
+
+可视化查看：[参考](https://blog.csdn.net/weixin_62098402/article/details/132778285) (需要装包 onnx)
+
+```python
+model.export(format='onnx') # 然后上传到 https://netron.app/
+```
+
+
 
 #### 预测
 

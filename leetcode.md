@@ -1325,6 +1325,10 @@
 - 1976\.到达目的地的方案数
 
   Dijkstra
+  
+- 2575\.找出字符串的可整除数组
+
+  数论
 
 ## 算法
 
@@ -38867,5 +38871,25 @@ class Solution:
                 elif t + w == dis[v]:
                     ways[v] = (ways[u] + ways[v]) % mod
         return ways[-1]
+```
+
+##### 2575\.找出字符串的可整除数组
+
+[题目](https://leetcode.cn/problems/find-the-divisibility-array-of-a-string)
+
+```c++
+using ll = long long;
+class Solution {
+public:
+    vector<int> divisibilityArray(string word, int m) {
+        ll s = 0,n=word.size();
+        vector<int> ans(n);
+        for(int i=0;i<n;++i) {
+            s=(s*10+(word[i]-'0'))%m;
+            ans[i]=s==0;
+        }
+        return ans;
+    }
+};
 ```
 
