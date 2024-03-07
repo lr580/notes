@@ -1329,6 +1329,10 @@
 - 2575\.找出字符串的可整除数组
 
   数论
+  
+- 2834\.找出美丽数组的最小和
+
+  贪心 数学
 
 ## 算法
 
@@ -38889,6 +38893,42 @@ public:
             ans[i]=s==0;
         }
         return ans;
+    }
+};
+```
+
+##### 2834\.找出美丽数组的最小和
+
+[题目](https://leetcode.cn/problems/find-the-minimum-possible-sum-of-a-beautiful-array)
+
+在 $[1,\lfloor\dfrac{target}2\rfloor]$ 的数能选就连续选，之后还没选够就从 $target$ 开始选，可以证明交换策略不存在更优的。
+
+```c++
+using ll = long long;
+class Solution {
+public:
+    int minimumPossibleSum(int n, int target) {
+        int mod=1e9+7;
+        int k = target/2;
+        int a = min(n, k);
+        int s1 = 1LL*a*(a+1)/2%mod;
+        cout << s1 << " " << a;
+        n -= a;
+        if (n > 0) {
+            int s2 = (1LL*target+target+n-1)*n/2%mod;
+            s1 = (1LL*s1+s2)%mod;
+        }
+        return s1;
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    int minimumPossibleSum(int n, int k) {
+        long long m = min(k / 2, n);
+        return (m * (m + 1) + (n - m - 1 + k * 2) * (n - m)) / 2 % 1'000'000'007;
     }
 };
 ```

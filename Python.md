@@ -12706,13 +12706,26 @@ path 基于 `settings.yaml` 的 `datasets_dir`，如 `C:\Users\lr580\AppData\Roa
 [参考](https://docs.ultralytics.com/modes/train/#arguments)
 
 - `epochs=100` 训练轮次
+
 - `batch=16` 批大小，若 -1 根据 GPU 动态
+
 - `imgsz=640` 固定预处理图形大小
+
 - `patience=50` early sto 轮次
+
 - `pretrained=True` 预训练
-- `seed=0` 随机数种子
+
+- `seed=0` 随机数种子；默认种子是 0(而不是随机生成种子的意思)
+
 - `verbose=False` 是否调试输出
+
 - `device=None` 使用的硬件，如 GPU `device='0'`
+
+- `save=True`, `save_period=1` 每隔多少轮保存一次模型
+
+  保存在 `weights/`，除最后一轮，都命名为 `epoch?` 其中 `?` 是从 1 开始的轮次编号；last 是最后一轮，还有 best (不 period 也有这两个)
+  
+  best 是 val 准确率最高的模型
 
 ##### 结果
 
