@@ -12071,6 +12071,14 @@ print(torch.cuda.is_available())  # Should return True if CUDA is properly set u
 print(torch.cuda.device_count())  # Should return the number of GPUs available
 ```
 
+最大可用显存：
+
+```python
+torch.cuda.get_device_properties(0).total_memory / (1024**3)
+```
+
+
+
 #### 模型信息
 
 直接输出一个 dict，包括网络结构、超参数和可能的权重。

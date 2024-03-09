@@ -1333,6 +1333,14 @@
 - 2834\.找出美丽数组的最小和
 
   贪心 数学
+  
+- 299\.猜数字游戏
+
+  小模拟
+
+- 2386\.找出数组的第K大和
+
+  **二分答案+爆搜 / 最小堆**
 
 ## 算法
 
@@ -38932,4 +38940,116 @@ public:
     }
 };
 ```
+
+##### 299\.猜数字游戏
+
+[题目](https://leetcode.cn/problems/bulls-and-cows/)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+int bin[58],bin2[58];
+class Solution {
+public:
+    string getHint(string secret, string guess) {
+        int a=0,b=0,n=secret.size();
+        for(char i='0';i<='9';++i) bin[i]=bin2[i]=0;
+        for(int i=0;i<n;++i){
+            ++bin[secret[i]];
+            a+=secret[i]==guess[i];
+        }
+        for(int i=0;i<n;++i) {
+            ++bin2[guess[i]];
+        }
+        for(char i='0';i<='9';++i) {
+            b+=min(bin[i],bin2[i]);
+        }
+        return to_string(a)+'A'+to_string(b-a)+'B';
+    }
+};
+```
+
+##### 2386\.找出数组的第K大和
+
+[题目](https://leetcode.cn/problems/find-the-k-sum-of-an-array)
+
+二分答案+爆搜
+
+先求出正和 $sum$，二分答案设为 $sumLimit$，对排序后数组暴力搜索，找一下是否至少有 $k$ 个子序列不大于 $sumLimit$，如果是，继续二分找更大的。
+
+搜索从最小的数开始先选，如果是负数等价于选上，如果是正数等价于撤销 $sum$，能保证按序优先找到答案。复杂度为 $n\log n+k\log\sum a$。
+
+```c++
+class Solution {
+public:
+    long long kSum(vector<int> &nums, int k) {
+        long sum = 0;
+        for (int &x : nums) {
+            if (x >= 0) {
+                sum += x;
+            } else {
+                x = -x;
+            }
+        }
+        ranges::sort(nums);
+
+        auto check = [&](long sum_limit) -> bool {
+            int cnt = 1; // 空子序列算一个
+            function<void(int, long long)> dfs = [&](int i, long long s) {
+                if (cnt == k || i == nums.size() || s + nums[i] > sum_limit) {
+                    return;
+                }
+                cnt++; // s + nums[i] <= sum_limit
+                dfs(i + 1, s + nums[i]); // 选
+                dfs(i + 1, s); // 不选
+            };
+            dfs(0, 0);
+            return cnt == k; // 找到 k 个元素和不超过 sum_limit 的子序列
+        };
+
+        long long left = -1, right = accumulate(nums.begin(), nums.end(), 0LL);
+        while (left + 1 < right) { // 开区间二分，原理见【前置知识】
+            long long mid = (left + right) / 2;
+            (check(mid) ? right : left) = mid;
+        }
+        return sum - right;
+    }
+};
+```
+
+最小堆：从空序列开始，对当前序列，要么将序列内最大的数替换成新的数，要么直接添加新的数。取生成第 k 的子序列，用 $sum$ 减去它。
+
+```c++
+class Solution {
+public:
+    long long kSum(vector<int> &nums, int k) {
+        long sum = 0L;
+        for (int &x : nums) {
+            if (x >= 0) {
+                sum += x;
+            } else {
+                x = -x;
+            }
+        }
+        ranges::sort(nums);
+
+        priority_queue<pair<long, int>, vector<pair<long, int>>, greater<>> pq;
+        pq.emplace(0, 0); // 空子序列
+        while (--k) {
+            auto [s, i] = pq.top();
+            pq.pop();
+            if (i < nums.size()) {
+                // 在子序列的末尾添加 nums[i]
+                pq.emplace(s + nums[i], i + 1); // 下一个添加/替换的元素下标为 i+1
+                if (i) { // 替换子序列的末尾元素为 nums[i]
+                    pq.emplace(s + nums[i] - nums[i - 1], i + 1);
+                }
+            }
+        }
+        return sum - pq.top().first;
+    }
+};
+```
+
+
 
