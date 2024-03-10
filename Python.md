@@ -12071,10 +12071,37 @@ print(torch.cuda.is_available())  # Should return True if CUDA is properly set u
 print(torch.cuda.device_count())  # Should return the number of GPUs available
 ```
 
-最大可用显存：
+显存：
 
 ```python
-torch.cuda.get_device_properties(0).total_memory / (1024**3)
+torch.cuda.get_device_properties(0).total_memory / (1024**3)#最大可用
+torch.cuda.empty_cache() # 清理
+#疑似无用print(torch.cuda.memory_reserved(0) / (1024**3)) # 当前可用
+```
+
+查看当前 n 卡显存，shell 输入 `nvidia-smi`，如下面表示利用率 99%，17G/24G
+
+```
+Sun Mar 10 18:49:18 2024
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.57.02    Driver Version: 470.57.02    CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  NVIDIA A30          Off  | 00000000:D8:00.0 Off |                    0 |
+| N/A   52C    P0   174W / 165W |  17556MiB / 24258MiB |     99%      Default |
+|                               |                      |             Disabled |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|    0   N/A  N/A     85249      C   ...h1.10-cuda11.3/bin/python    17527MiB |
++-----------------------------------------------------------------------------+
 ```
 
 
@@ -12521,6 +12548,86 @@ d2l.plt.gca().set_ylabel('Estimated probability')
 d2l.plt.legend()
 ```
 
+#### 数据处理
+
+##### 数据类型
+
+###### 半精度
+
+相互转换
+
+##### 加载
+
+###### ImageFolder
+
+处理那些按目录存储的图像数据。它要求数据集的目录结构按照一定的方式组织：每个类别的图像存储在以该类别名命名的子目录中。`ImageFolder`可以从这样的目录结构中自动加载数据，并将子目录的名称作为类别标签。如 `cat/xxx.png` 和 `dog/abc.png`
+
+```python
+from torchvision.datasets import ImageFolder
+dataset = ImageFolder(root='path/to/root/')
+```
+
+###### DataLoader
+
+```python
+from torch.utils.data import DataLoader
+data_loader = DataLoader(dataset, batch_size=32, shuffle=True, num_workers=4)
+# dataset 如上面的 ImageFolder
+```
+
+
+
+##### 预处理
+
+- `Resize((256, 256))`：调整图像大小到256x256像素。
+- `ToTensor()`：将图像转换为PyTorch张量，并且把像素值的范围从[0, 255]线性映射到[0, 1]。
+
+```python
+from torchvision import transforms
+transform = transforms.Compose([
+    transforms.Resize((256, 256)),  # 调整图像大小
+    transforms.ToTensor(),  # 将图像转换为Tensor，并归一化至[0,1]
+])
+train_dataset = ImageFolder(root=train_dir, transform=transform)
+```
+
+```python
+# 缩放并保持长宽比，然后填充至640x640
+transform = transforms.Compose([
+    transforms.Resize(640),  # 缩放图像，使得最短的边为640，长宽比保持不变
+    transforms.Pad((0, 0, max(0, 640 - width), max(0, 640 - height)), fill=0),  # 填充至640x640，fill为填充的值
+    transforms.ToTensor(),
+])
+```
+
+
+
+> ##### 例子
+
+#### 导入导出
+
+##### 导出
+
+##### script
+
+`.torchscript`
+
+TorchScript是PyTorch的一个特性，它允许你将PyTorch模型转换为一个可以在不依赖Python解释器的环境中高效运行的格式。这对于将模型部署到生产环境中尤为重要，特别是在资源受限的设备上，或者需要使用非Python环境时。
+
+```python
+import torch
+model = MyModel()  # 假设你已经定义和训练了一个模型
+example_input = torch.rand(1, 3, 224, 224)  # 模型输入的示例
+
+traced_model = torch.jit.trace(model, example_input)
+scripted_model = torch.jit.script(model)
+traced_model.save("traced_model.pt")
+# 或者
+scripted_model.save("scripted_model.pt")
+loaded_model = torch.jit.load("traced_model.pt")
+
+```
+
 
 
 #### 设置
@@ -12528,6 +12635,14 @@ d2l.plt.legend()
 ```python
 torch.set_printoptions(2)  # 精简输出精度
 ```
+
+```python
+torch.manual_seed(0)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+torch.backends.cudnn.benchmark = True # 使用cudnn加速卷积运算
+```
+
+
 
 ### yolo
 
@@ -12562,6 +12677,34 @@ model = YOLO('yolov8s-cls-akconv3.yaml').load('yolov8s-cls.pt')
 ##### 模型信息
 
 `.pt` 是 torch，可以按 torch 格式来输出。
+
+如果用 `torch.load` 读 `.pt`，得到 dict，键值：
+
+```
+epoch <class 'int'>
+best_fitness <class 'NoneType'>
+model <class 'ultralytics.nn.tasks.ClassificationModel'>
+ema <class 'NoneType'>
+updates <class 'NoneType'>
+optimizer <class 'NoneType'>
+train_args <class 'dict'>
+train_metrics <class 'dict'>
+train_results <class 'dict'>
+    epoch <class 'list'>
+    train/loss <class 'list'>
+    metrics/accuracy_top1 <class 'list'>
+    metrics/accuracy_top5 <class 'list'>
+    val/loss <class 'list'>
+    lr/pg0 <class 'list'>
+    lr/pg1 <class 'list'>
+    lr/pg2 <class 'list'>
+date <class 'str'>
+version <class 'str'>
+license <class 'str'>
+docs <class 'str'>
+```
+
+如果要丢到 torch 继续玩，用 `torch.load()['model']`
 
 可视化查看：[参考](https://blog.csdn.net/weixin_62098402/article/details/132778285) (需要装包 onnx)
 
