@@ -12608,6 +12608,25 @@ transform = transforms.Compose([
 
 ##### 导出
 
+##### pt
+
+保存模型和参数
+
+```python
+import torch
+# 保存模型
+torch.save(model, 'model.pth')
+torch.save(student_model.state_dict(), 'distill_params.pt') # 仅参数
+# 加载模型
+model = torch.load('model.pth')
+
+# 第二种save的加载
+student_model = TheModelClass(*args, **kwargs)  # 使用您的模型定义和初始化参数
+student_model.load_state_dict(torch.load('distill_params.pt'))
+```
+
+
+
 ##### script
 
 `.torchscript`

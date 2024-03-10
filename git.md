@@ -148,6 +148,14 @@ git config --global alias.别名 全称
 git config --global core.editor emacs
 ```
 
+windows，记事本：
+
+```sh
+git config --global core.editor "notepad"
+```
+
+
+
 还有一个比较常用的是，在解决合并冲突时使用哪种差异分析工具。比如要改用 vimdiff 的话：
 
 ```bash
@@ -386,6 +394,25 @@ git reset HEAD 文件名
 把暂存区的修改撤销掉。工作区不变，意味着你现在做的内容不会被覆盖。
 
 如果已经commit但未提交版本库，用版本回退。
+
+> 交互式回退，找到刚错误提交的 commit 号，如：
+>
+> ```sh
+> git rebase -i 67abfad^
+> ```
+>
+> 弹出一个文件，刚刚的 commit 如果是 `pick 67abfad xxx`，修改为 `edit 67..`，保存。
+>
+> 然后在 git 里继续，删除就 `git rm xxx`，如 `git rm yolov8n-cls.torchscript`
+>
+> 然后提交
+>
+> ```sh
+> git commit --amend
+> git rebase --continue
+> ```
+
+
 
 如果已经提交远程库，无力回天。
 
