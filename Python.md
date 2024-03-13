@@ -2382,6 +2382,74 @@ with Benchmark('有torchscript'):
 
 
 
+### 异步
+
+#### 基本
+
+[速成教程](https://blog.csdn.net/rhx_qiuzhi/article/details/124332114)
+
+多任务协同：
+
+```python
+import asyncio
+
+async def task1():
+    print("Task 1 started")
+    await asyncio.sleep(2)  # 模拟 I/O 操作,2秒
+    print("Task 1 finished")
+
+async def task2():
+    print("Task 2 started")
+    await asyncio.sleep(1)  # 模拟较短的 I/O 操作
+    print("Task 2 finished")
+
+async def main():
+    # 同时启动两个异步任务
+    await asyncio.gather(task1(), task2())
+
+# 运行异步主函数
+asyncio.run(main())
+```
+
+队列：[参考](https://blog.csdn.net/rhx_qiuzhi/article/details/124332114)
+
+```python
+# deom4
+import time
+import asyncio
+
+async def washing1():
+    await asyncio.sleep(3)
+    print('小朋友的衣服洗完了')
+
+async def washing2():
+    await asyncio.sleep(2)
+    print('爷爷奶奶的衣服洗完了')
+
+
+async def washing3():
+    await asyncio.sleep(5)
+    print('爸爸妈妈的衣服洗完了')
+
+# 2. 将异步函数加入事件队列
+tasks = [
+    washing1(),
+    washing2(),
+    washing3(),
+]
+
+if __name__ == '__main__':
+    # 1. 创建一个事件循环
+    loop = asyncio.get_event_loop()
+    startTime = time.time()
+    # 3.执行队列实践，直到最晚的一个事件被处理完毕后结束
+    loop.run_until_complete(asyncio.wait(tasks))
+    # 4.如果不在使用loop，建议使用关闭，类似操作文件的close()函数
+    loop.close()
+    endTime = time.time()
+    print("洗完三批衣服共耗时: ",endTime-startTime)
+```
+
 
 
 ## 函数
@@ -4069,6 +4137,13 @@ import filecmp
 filecmp.cmp(路径1,路径2) #返回True如果相同
 ```
 
+文件大小：
+
+```python
+file_size = os.path.getsize(file_path)
+file_size_mb = file_size / (1024 * 1024)
+```
+
 
 
 #### re
@@ -4607,8 +4682,8 @@ time.pref_counter() #更为精准
 ```python
 import time
 x=time.perf_counter()
-y=time.perf_counter()
-print(y-x)
+y=time.perf_counter() #perf_counter_ns()
+print(y-x)#秒
 ```
 
 更准确的计时：
@@ -6001,7 +6076,7 @@ arr=np.array(数组, dtype=数据类型)
 >
 > 逆运算：`tolist` 方法
 
-查看维度：(一个tuple)
+查看维度：(一个tuple) 大小 size
 
 ```python
 arr.shape
@@ -6719,6 +6794,12 @@ for key in data.files:
     array = data[key]
     print(f"Array '{key}':\n{array}")
 specific_array = data['a1']
+```
+
+`.npy` 文件是一种存储单一数值数组（如numpy数组）
+
+```python
+data = np.load('path_to_file.npy')
 ```
 
 
@@ -7952,6 +8033,77 @@ plt.gca().add_patch(rect)
 ```
 
 [颜色参考](https://matplotlib.org/3.6.0/gallery/color/named_colors.html#sphx-glr-gallery-color-named-colors-py)
+
+#### 动画
+
+##### 爱心放大缩小
+
+绘制爱心(散点，越外面越离散偏移值越大)
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+# 设置参数
+num_frames = 100  # 动画帧数
+heart_size = 15  # 初始爱心大小
+num_borders = 10  # 爱心边框的数量
+border_gap = 0.5  # 边框间的距离
+max_offset = 5  # 最外层边框的最大偏移量
+base_size = heart_size - num_borders * border_gap  # 最内层爱心的大小
+t_values = np.linspace(0, 2 * np.pi, 1000)  # 参数t的值，用于绘制爱心曲线
+
+def heart_curve(t, size=1):
+    """计算爱心曲线上的点。"""
+    x = 16 * size * np.sin(t)**3
+    y = 13 * size * np.cos(t) - 5 * size * np.cos(2*t) - 2 * size * np.cos(3*t) - size * np.cos(4*t)
+    return x, y
+
+# 动画更新函数
+def update_heart_curve_animation(frame, ax):
+    ax.clear()
+    expanded_heart_size = heart_size * 20  # 考虑放大因子
+    ax.set_xlim(-expanded_heart_size, expanded_heart_size)
+    ax.set_ylim(-expanded_heart_size * 1.2, 1.2 * expanded_heart_size)
+    ax.set_aspect('equal')
+    ax.axis('off')  # 隐藏坐标轴
+
+    scale_factor = 1 + np.sin(frame * np.pi / num_frames) * 0.3  # 放大缩小的比例因子
+
+    for i in range(num_borders):
+        current_size = (base_size + i * border_gap) * scale_factor  # 考虑放缩的当前边框大小
+        offset = (max_offset / num_borders) * i  # 当前边框的偏移量
+        
+        # 计算爱心曲线上的点，并根据当前帧调整大小
+        rate = (num_borders - i) / num_borders
+        t_part = np.random.choice(t_values, int(t_values.size * rate))
+        curve_x, curve_y = heart_curve(t_part, current_size)
+        
+        # 为每个点添加随机偏移
+        curve_x += np.random.normal(0, offset, curve_x.shape)
+        curve_y += np.random.normal(0, offset, curve_y.shape)
+
+        # 越靠外的边框点越细
+        point_sizes = int(6.0 * rate)
+
+        ax.scatter(curve_x, curve_y, s=point_sizes, color='red', alpha=0.6)
+
+# 创建图形和坐标轴
+fig, ax = plt.subplots()
+expanded_heart_size = heart_size * 20  # 考虑放大因子
+ax.set_xlim(-expanded_heart_size, expanded_heart_size)
+ax.set_ylim(-expanded_heart_size, 1.5 * expanded_heart_size)
+ax.set_aspect('equal')
+ax.axis('off')  # 隐藏坐标轴
+
+# 创建动画
+heart_curve_anim = FuncAnimation(fig, update_heart_curve_animation, fargs=(ax,), frames=num_frames, interval=25, blit=False)
+
+plt.show()
+```
+
+
 
 #### 举例
 
@@ -12108,6 +12260,8 @@ Sun Mar 10 18:49:18 2024
 
 #### 模型信息
 
+##### 基本信息
+
 直接输出一个 dict，包括网络结构、超参数和可能的权重。
 
 ```python
@@ -12116,6 +12270,38 @@ model = torch.load('../yolov8n-cls.pt')
 print(model) # ['model'] 是网络结构
 with open('modelinfo.txt','w') as f:
     f.write(str(model['model']))
+```
+
+##### GFLOPs
+
+GFLOPs（Giga Floating Point Operations Per Second）是一个衡量计算性能的指标，表示每秒可以进行多少十亿次浮点运算。在深度学习和其他计算密集型任务中，GFLOPs通常用来衡量模型或算法的复杂度和计算需求。具体到模型，GFLOPs可以用来估算模型前向传播（即一次推理）所需的计算量。
+
+- **FLOPs（浮点运算次数）：** 指在模型的一次前向传播中进行的浮点运算次数，常用GFLOPs（十亿次浮点运算）来表示。这是衡量模型计算复杂度的一个重要指标。
+- **MACs（乘累加操作次数）：** 在某些情况下，特别是在卷积操作中，乘累加操作被单独计算并用作模型复杂度的衡量指标。
+
+```python
+from torchprofile import profile_macs
+
+# 假设`model`是你的PyTorch模型，`input`是一个模型的输入张量
+macs = profile_macs(model, input)
+gflops = macs / 1e9  # 将MACs（乘加操作）转换为GFLOPs
+print(f"GFLOPs: {gflops}")
+```
+
+##### 稀疏度
+
+稀疏度 sparsity: 0元素占比
+
+```python
+def sparsity(model):
+    """Calculates and returns the global sparsity of a model as the ratio of zero-valued parameters to total
+    parameters.
+    """
+    a, b = 0, 0
+    for p in model.parameters():
+        a += p.numel()
+        b += (p == 0).sum()
+    return b / a
 ```
 
 
@@ -12625,6 +12811,16 @@ student_model = TheModelClass(*args, **kwargs)  # 使用您的模型定义和初
 student_model.load_state_dict(torch.load('distill_params.pt'))
 ```
 
+啥都能保存：
+
+```python
+import torch
+a = {'a':1, 'b':[6]}
+torch.save(a, 'a.pt')
+b = torch.load('a.pt')
+print(b)
+```
+
 
 
 ##### script
@@ -12694,6 +12890,24 @@ model = YOLO('yolov8s-cls-akconv3.yaml').load('yolov8s-cls.pt')
 ```
 
 ##### 模型信息
+
+层数，GFLOPs，参数数等：
+
+```python
+from ultralytics.utils import torch_utils
+def modelInfo(model_path):
+    model = YOLO(model_path)
+    params = torch_utils.get_num_params(model)
+    # 若 torch 版本低于 2.0，手动修改 if 条件(ultralytics/utils/torch_utils.py的该函数)
+    gflops = torch_utils.get_flops_with_torch_profiler(model) / 1024
+    layers = len(list(model.modules()))
+    print(f'params: {params}')
+    print(f'GFLOPs: {gflops}')
+    print(f'layers: {layers}')
+modelInfo('runs/classify/train144/weights/best.pt')
+```
+
+##### 模型结构
 
 `.pt` 是 torch，可以按 torch 格式来输出。
 
@@ -13831,6 +14045,8 @@ with open('titles.txt', 'w', encoding=enc) as f:
 
 ![image-20220426205500774](img/image-20220426205500774.png)
 
+## 后端
+
 ### Flask
 
 #### 简单post
@@ -13912,12 +14128,37 @@ requests.post('http://127.0.0.1:52580/',data={'name':'yym'}).text
 </html>
 ```
 
+### fastapi
+
+> 感觉可以取代 flask 的新后端框架，比 django 轻量。
+
+[官方文档](https://fastapi.tiangolo.com/) [博客介绍](https://blog.csdn.net/qq_38195610/article/details/130585034)
+
+```sh
+pip install fastapi
+pip install "uvicorn[standard]"
+```
+
+#### 基本
+
+```python
+from typing import Union
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
+@app.get("/items/{item_id}")
+def read_item(item_id: int, q: Union[str, None] = None):
+    return {"item_id": item_id, "q": q}
+```
 
 
-> ### 其他
->
 
-> `PySNMP` 模块可以实现 SNMP 功能
+
 
 ## 数据结构
 

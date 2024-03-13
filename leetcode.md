@@ -1345,6 +1345,14 @@
 - 2129\.将标题首字母大写
 
   小模拟
+  
+- 2864\.最大二进制奇数
+
+  签到 贪心
+  
+- 2789\.合并后数组中的最大元素
+
+  贪心
 
 ## 算法
 
@@ -39087,6 +39095,17 @@ public:
     }
 };
 
+```
+
+##### 2864\.最大二进制奇数
+
+[题目](https://leetcode.cn/problems/maximum-odd-binary-number/)
+
+```python
+class Solution:
+    def maximumOddBinaryNumber(self, s: str) -> str:
+        s1, s0 = s.count('1'), s.count('0')
+        return (s1-1)*'1'+s0*'0'+'1'
 ```
 
 

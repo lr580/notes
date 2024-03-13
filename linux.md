@@ -855,6 +855,12 @@ ctrl+n 在新窗口打开当前目录的副本
 
 
 
+后台运行：`xxx &`
+
+关闭终端不结束后台运行：`nohub xxx &`
+
+
+
 #### 基本
 
 ##### sudo
@@ -5707,7 +5713,7 @@ scp -r scnuoj@10.191.65.243:/var/www/scnuoj/next/judge/data/1577/ .
 scp .\DuLa-Net-master.zip root@121.37.165.73:/root
 ```
 
-带端口号的服务器：
+在本机，带端口号的服务器：
 
 ```sh
 scp -P 10022 root@218.192.110.159:/root/647.txt .
