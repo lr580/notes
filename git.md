@@ -82,44 +82,6 @@ git config -e --global
 
 > 去掉global就是只对当前生效；会打开一个文件让编辑，可通过这个方式找到目录路径
 
-##### 忽略特殊文件
-
-`.gitigore`文件放到代码仓库
-
-配置语法：
-
-```
-以斜杠“/”开头表示目录；
-以星号“*”通配多个字符；
-以问号“?”通配单个字符
-以方括号“[]”包含单个字符的匹配列表；
-以叹号“!”表示不忽略(跟踪)匹配到的文件或目录；
-```
-
-例如：
-
-```gitignore
-/bin/*
-*.log
-abc/*
-!/abc/special.txt
-```
-
-> `/bin/` 与 `abc/` 都是当前开始，一定要加 `*`
-
-
-
-配置完毕后进行更新：
-
-```shell
-git rm -r --cached .
-git add .gitignore
-git add .
-git commit -m "..."
-```
-
-反义是 `.gitkeep`。
-
 
 
 ##### 别名
@@ -280,6 +242,69 @@ rm 文件名
 ```bash
 git grep 字符串
 ```
+
+#### .gitignore
+
+通过配置，让 git 忽略一些文件
+
+`.gitigore`文件放到代码仓库
+
+配置语法：
+
+```
+以斜杠“/”开头表示目录；
+以星号“*”通配多个字符；
+以问号“?”通配单个字符
+以方括号“[]”包含单个字符的匹配列表；
+以叹号“!”表示不忽略(跟踪)匹配到的文件或目录；
+```
+
+例如：
+
+```gitignore
+/bin/*
+*.log
+abc/*
+!/abc/special.txt
+```
+
+> `/bin/` 与 `abc/` 都是当前开始，一定要加 `*`
+>
+> 删除一个文件夹的其他文件，但是允许文件夹里一个文件的格式：(必须要 *)
+>
+> ```.gitignore
+> models/*
+> !models/info.txt
+> ```
+
+
+
+配置完毕后进行更新：
+
+```shell
+git rm -r --cached .
+git add .gitignore
+git add .
+git commit -m "..."
+```
+
+反义是 `.gitkeep`。
+
+在子目录的 `.gitignore` 也会生效，上面写的配置项基于子目录相对路径
+
+
+
+
+
+
+
+检查：
+
+```sh
+git check-ignore -v front/.vscode/extension.json
+```
+
+如果应该被 ignore，就会输出内容
 
 
 

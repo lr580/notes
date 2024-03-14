@@ -1571,11 +1571,17 @@ s=set("aab") #逐个字符
 
 - `discard(u)` 删除值为 u 的元素，如无忽略；返回 None
 
-  `remove(u)` 如无报错，返回 None
+  `remove(u)` 如无报错 KeyError，返回 None
 
 - `pop()` 任意删除元素并返回；空集报错
 
 - `add(u)` 插入元素，已有忽略；返回 None
+
+- `update(set)` 批量插入
+
+- `copy()` 副本
+
+- `issubset(set)` bool
 
 ##### 运算
 
@@ -1594,17 +1600,7 @@ x>y #False
 x|y>y #True
 ```
 
-##### 方法
 
-add(x) 插入
-
-remove(x) 删除，找不到返回KeyError
-
-discard 删除，找不到忽略
-
-update(set) 批量插入
-
-copy() 副本
 
 ##### frozenset
 
@@ -14132,14 +14128,19 @@ requests.post('http://127.0.0.1:52580/',data={'name':'yym'}).text
 
 > 感觉可以取代 flask 的新后端框架，比 django 轻量。
 
-[官方文档](https://fastapi.tiangolo.com/) [博客介绍](https://blog.csdn.net/qq_38195610/article/details/130585034)
+[官方文档](https://fastapi.tiangolo.com/) [博客介绍](https://blog.csdn.net/qq_38195610/article/details/130585034) [完整教程](https://fastapi.tiangolo.com/tutorial/)
 
 ```sh
 pip install fastapi
 pip install "uvicorn[standard]"
+pip install python-multipart
 ```
 
+multipart 是自动文档所需
+
 #### 基本
+
+`main.py`
 
 ```python
 from typing import Union
@@ -14149,6 +14150,7 @@ app = FastAPI()
 
 @app.get("/")
 def read_root():
+    '''这一串东西会在自动文档里显示出来'''
     return {"Hello": "World"}
 
 @app.get("/items/{item_id}")
@@ -14156,9 +14158,29 @@ def read_item(item_id: int, q: Union[str, None] = None):
     return {"item_id": item_id, "q": q}
 ```
 
+代码解释：
 
+- 使用 typing，能够在传入参数时自动转换参数类型
 
+运行：
 
+```sh
+uvicorn main:app --reload
+```
+
+> `--reload` 是自动加载代码更新的意思
+
+访问 `http://127.0.0.1:8000/`，网页显示 `{"Hello": "World"}`
+
+访问 `http://127.0.0.1:8000/items/6`，网页显示 `{"item_id":6,"q":null}`
+
+传入 `q`：`http://127.0.0.1:8000/items/6?q=somequery`
+
+> 如果传入 `http://127.0.0.1:8000/items/foo` 会报错，如 `{"detail":[{"type":"int_parsing","loc":["path","item_id"],"msg":"Input should be a valid integer, unable to parse string as an integer","input":"foo","url":"https://errors.pydantic.dev/2.6/v/int_parsing"}]}`
+
+访问其他不存在的，比如 `http://127.0.0.1:8000/item/6`，网页显示 `{"detail":"Not Found"}`(404返回)
+
+自动文档：访问 `http://127.0.0.1:8000/docs`，或 `http://127.0.0.1:8000/redoc`
 
 ## 数据结构
 
@@ -14320,6 +14342,68 @@ isOnly456 = minLen >= 4 and maxLen <= 6
 isFullerene = is3Regular and is3Connected and isPlanar and isOnly456
 print(isFullerene)
 ```
+
+## 系统管理
+
+#### psutil
+
+1. 获取系统信息：psutil 可以获取有关计算机的各种信息，如 CPU 数量、物理内存大小、磁盘分区等。
+2. 获取 CPU 信息：psutil 可以获取 CPU 的使用率、核心数、频率等信息。它还可以获取每个进程的 CPU 使用情况，包括用户态和内核态的 CPU 时间。
+3. 获取内存信息：psutil 可以获取系统的内存使用情况，包括总内存、可用内存、已使用内存等。它还可以获取每个进程的内存使用情况，包括虚拟内存和物理内存的使用量。
+4. 获取磁盘和分区信息：psutil 可以获取磁盘和分区的使用情况，包括总容量、可用空间、已使用空间等。它还可以获取每个进程打开的文件和网络连接。
+5. 获取网络信息：psutil 可以获取网络接口的信息，包括接口名称、IP 地址、网络流量等。它还可以获取每个进程的网络连接信息，包括建立的连接、监听的端口等。
+6. 获取进程信息：psutil 可以获取关于运行中进程的详细信息，如进程 ID、父进程 ID、进程状态、命令行参数等。它还可以获取进程的 CPU 使用情况、内存使用情况、打开的文件、打开的网络连接等。
+7. 控制进程：psutil 提供了一些方法来管理和控制进程，如启动新进程、终止进程、挂起进程、恢复进程等。
+
+> GPUtil 是一个用于检索 GPU（显卡）信息的 Python 第三方库。它提供了一种简单且跨平台的方法来获取有关系统中可用 GPU 的信息，包括显卡名称、显存使用情况、GPU 使用率等。
+
+```python
+import psutil
+import GPUtil
+
+def get_server_info():
+    # 获取硬盘信息
+    disk_usage = psutil.disk_usage('/')
+    total_disk = disk_usage.total / (1024 ** 3)  # 转换为GB
+    free_disk = disk_usage.free / (1024 ** 3)  # 转换为GB
+
+    # 获取CPU信息
+    cpu_usage = psutil.cpu_percent()
+
+    # 获取内存信息
+    memory_info = psutil.virtual_memory()
+    total_memory = memory_info.total / (1024 ** 3)  # 转换为GB
+    available_memory = memory_info.available / (1024 ** 3)  # 转换为GB
+
+    # 获取GPU信息
+    gpus = GPUtil.getGPUs()
+    gpu_info = [{'gpu_id': gpu.id, 'total_memory': gpu.memoryTotal, 'free_memory': gpu.memoryFree} for gpu in gpus] # 还可以 gpu.name
+
+    # 将信息整理成字典形式返回
+    server_info = {
+        'disk': {
+            'total': total_disk,
+            'free': free_disk
+        },
+        'cpu': {
+            'usage': cpu_usage
+        },
+        'memory': {
+            'total': total_memory,
+            'available': available_memory
+        },
+        'gpu': gpu_info
+    }
+
+    return server_info
+
+info = get_server_info()
+print(info)
+
+# {'disk': {'total': 931.4970664978027, 'free': 156.79941177368164}, 'cpu': {'usage': 45.7}, 'memory': {'total': 15.871387481689453, 'available': 4.591732025146484}, 'gpu': [{'gpu_id': 0, 'total_memory': 4096.0, 'free_memory': 3962.0}]}
+```
+
+
 
 ## 其他
 

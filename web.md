@@ -5062,6 +5062,21 @@ isNaN(undefined)=true
 
 `判定一个量是否是NaN使用!==方法，因为NaN是唯一自身不等于自身的，即对于变量，x!==x，则x一定是NaN，这比自带隐式类型转换的isNaN函数更可靠，因为对于undefined,'foo'等内容，isNaN返回true`
 
+###### 保留小数
+
+会四舍五入，`.toFixed(n)`，如 `(2/3).toFixed(6)`
+
+###### 逗号分隔数字
+
+```js
+formatParams(value) {
+    // 将数字格式化为每三位以逗号分隔的字符串
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+```
+
+
+
 ##### 流程相关
 
 ###### eval
@@ -7607,6 +7622,18 @@ n&&c||n&&s||c&&s //或n+c+s>=2
 ```
 
 > 更多应用百度或翻书
+
+##### 每隔三个字符一个逗号
+
+```js
+function formatParams(value) {
+    // 将数字格式化为每三位以逗号分隔的字符串
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+formatParams(114514)
+```
+
+
 
 ##### 网页
 
@@ -13286,6 +13313,8 @@ node x.js
 
 ## Vue
 
+[官网](https://vuejs.org/)
+
 ### 基本
 
 #### 概念
@@ -13359,13 +13388,13 @@ npm run dev
 vue ui
 ```
 
-> Vite 是一个 web 开发构建工具，由于其原生 ES 模块导入方式，可以实现闪电般的冷服务器启动
+> Vite 是一个 web 开发构建工具，由于其原生 ES 模块导入方式，可以实现冷服务器启动
 >
 > ```sh
-> npm init vite-app sec-test
+> npm init vite-app sec-test # 或 npm init vite@latest front -- --template vue
 > cd test
-> npm i
-> npm run dev
+> npm i # 即 npm install, 装依赖
+> npm run dev # 运行服务器
 > ```
 >
 > 在修改了代码文件并保存后，能够不重启 npm run 而直接刷新结果
@@ -13407,7 +13436,7 @@ npm run build
 
 
 
-### 语法
+### 2.0语法
 
 #### 基本
 
@@ -15006,6 +15035,729 @@ const app = Vue.createApp({
 
 ```js
 {"message":"goodbye","foo":"runoob","bar":"def"}
+```
+
+### 3.0语法
+
+#### hello world
+
+> 对下面指令自动生成的项目：
+>
+> ```sh
+> npm init vite-app vtest
+> cd vtest
+> npm install
+> npm run dev
+> ```
+>
+> 项目目录：
+>
+> ```python
+> node_modules/ #被gitignore
+> public/ #存放资源如.ico
+> .gitignore
+> index.html
+> package.json
+> package-lock.json
+> src/
+>   assets/ #如logo.png
+>   components/
+>     HelloWorld.vue
+>   App.vue
+>   index.css
+>   main.js
+> ```
+>
+> 关于 `package-lock.json`，它是一个自动生成的文件，用于记录当前状态下实际安装的依赖树的确切版本。这意味着，通过这个文件，能够确保所有开发人员和部署环境使用完全相同版本的依赖，从而避免因版本差异引起的问题。一般建议是**不应该**将其加入 `.gitignore`，因为将 `package-lock.json` 纳入版本控制可以确保所有人使用相同的依赖版本，这有助于避免"在我机器上可以运行"的问题。
+>
+> 代码文件：
+>
+> `index.html`
+>
+> ```html
+> <!DOCTYPE html>
+> <html lang="en">
+> <head>
+>   <meta charset="UTF-8">
+>   <link rel="icon" href="/favicon.ico" />
+>   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+>   <title>Vite App</title>
+> </head>
+> <body>
+>   <div id="app"></div>
+>   <script type="module" src="/src/main.js"></script>
+> </body>
+> </html>
+> ```
+>
+> `main.js`
+>
+> ```javascript
+> import { createApp } from 'vue'
+> import App from './App.vue'
+> import './index.css'
+> 
+> createApp(App).mount('#app') //#app 对应 index.html的app div
+> ```
+>
+> `App.vue`
+>
+> ```vue
+> <template>
+>   <img alt="Vue logo" src="./assets/logo.png" />
+>   <HelloWorld msg="Hello Vue 3.0 + Vite" />
+> </template>
+> 
+> <script>
+> import HelloWorld from './components/HelloWorld.vue'
+> 
+> export default {
+>   name: 'App',
+>   components: {
+>     HelloWorld
+>   }
+> }
+> </script>
+> 
+> <style scoped>
+>     //scoped表示这里的CS只作用于该文件
+> </style>
+> ```
+>
+> `HelloWorld.vue`
+>
+> ```vue
+> <template>
+>   <h1>{{ msg }}</h1>
+>   <button @click="count++">count is: {{ count }}</button>
+>   <p>Edit <code>components/HelloWorld.vue</code> to test hot module replacement.</p>
+> </template>
+> 
+> <script>
+> export default {
+>   name: 'HelloWorld',
+>   props: {
+>     msg: String
+>   },
+>   data() {
+>     return {
+>       count: 0
+>     }
+>   }
+> }
+> </script>
+> ```
+
+
+
+#### 综合例子
+
+该例子为我的本科毕设，源码暂未全部公开。具体参见毕设文档。这里的源码都是承上启下的。
+
+##### 访问服务器
+
+```sh
+npm install axios
+```
+
+服务器：
+
+```python
+@app.get("/modelinfo")
+def getModelInfo():
+    '''返回dict,键所有模型名(如large),值是模型信息dict(含参数数,文件大小,层数,GFLOPs)'''
+    with open('models/info.txt') as f:
+        modelInfos = eval(f.read())
+    return modelInfos
+```
+
+`ModelSelector.vue`：
+
+```vue
+<template>
+<div>
+    <select v-model="selectedModel">
+        <option v-for="(value, key) in modelInfo" :key="key" :value="key">
+            {{ key }}
+    </option>
+    </select>
+    <input type="text" v-model="serverUrl" placeholder="服务器连接"/>
+    <button @click="fetchModelInfo">获取模型信息</button>
+    </div>
+</template>
+
+<script>
+    import axios from 'axios';
+
+    export default {
+        data() {
+            return {
+                modelInfo: {}, // 存储模型信息
+                selectedModel: '', // 选中的模型
+                serverUrl: 'http://127.0.0.1:8000/modelinfo', // 默认的服务器连接
+            };
+        },
+        mounted() {
+            this.fetchModelInfo(); // 组件挂载时获取模型信息
+        },
+        methods: {
+            async fetchModelInfo() {
+                try {
+                    const response = await axios.get(this.serverUrl);
+                    this.modelInfo = response.data;
+                    if (Object.keys(this.modelInfo).length > 0) {
+                        this.selectedModel = Object.keys(this.modelInfo)[0]; // 默认选择第一个模型
+                    }
+                } catch (error) {
+                    console.error('获取模型信息失败:', error);
+                }
+            }
+        }
+    }
+</script>
+
+```
+
+对 `App.vue`，添加：
+
+```vue
+<script setup>
+//...
+import ModelSelector from './components/ModelSelector.vue'
+</script>
+
+<template>
+  <!-- ... -->
+  <ModelSelector />
+</template>
+
+```
+
+##### 选择框点击变化
+
+服务器回传信息：
+
+```json
+{'large': {'params': 5083298, 'GFLOPs': 1.6793352625000002, 'layers': 74, 'size': 9.775655746459961}, 'small': {'params': 1440850, 'GFLOPs': 0.44248128124999997, 'layers': 74, 'size': 2.820577621459961}, 'lite': {'params': 421354, 'GFLOPs': 0.12242517812499999, 'layers': 64, 'size': 0.8648815155029297}}
+```
+
+
+
+```vue
+<template>
+  <div>
+    <span>服务器地址：</span>
+    <input type="text" v-model="serverUrl" placeholder="服务器连接" />
+    <button @click="fetchModelInfo">重新获取模型信息</button>
+    <br/>
+    <select v-model="selectedModel">
+      <option v-for="(value, key) in modelInfo" :key="key" :value="key">
+        {{ key }}
+      </option>
+    </select>
+    <div v-if="selectedModelInfo">
+      <p>参数数目: {{ formatParams(selectedModelInfo.params) }} 个</p>
+      <p>GFLOPs: {{ selectedModelInfo.GFLOPs.toFixed(3) }}</p>
+      <p>模型层数: {{ selectedModelInfo.layers }}</p>
+      <p>模型大小: {{ selectedModelInfo.size.toFixed(3) }} MB</p>
+    </div>
+  </div>
+</template>
+
+<script>
+import axios from "axios";
+
+export default {
+  data() {
+    return {
+      modelInfo: {}, // 存储模型信息
+      selectedModel: "", // 选中的模型
+      serverUrl: "http://127.0.0.1:8000", // 默认的服务器连接
+    };
+  },
+  computed: {
+    selectedModelInfo() {
+      // 当选中模型变化时，返回该模型的详细信息
+      return this.selectedModel ? this.modelInfo[this.selectedModel] : null;
+    }
+  },
+  mounted() {
+    this.fetchModelInfo(); // 组件挂载时获取模型信息
+  },
+  methods: {
+    async fetchModelInfo() {
+      try {
+        const response = await axios.get(this.serverUrl + '/modelinfo');
+        this.modelInfo = response.data;
+        if (Object.keys(this.modelInfo).length > 0) {
+          this.selectedModel = Object.keys(this.modelInfo)[0]; // 默认选择第一个模型
+        }
+      } catch (error) {
+        console.error("获取模型信息失败:", error);
+      }
+    },
+    formatParams(value) {
+      // 将数字格式化为每三位以逗号分隔的字符串
+      return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+  },
+};
+</script>
+```
+
+##### 组件信息传递
+
+修改输入框的内容就自动加载一次 `ModelSelector`
+
+```vue
+<template>
+  <div>
+    <select v-model="selectedModel">
+      <option v-for="(value, key) in modelInfo" :key="key" :value="key">
+        {{ key }}
+      </option>
+    </select>
+    <div v-if="selectedModelInfo">
+      <p>参数数目: {{ formatParams(selectedModelInfo.params) }} 个</p>
+      <p>GFLOPs: {{ selectedModelInfo.GFLOPs.toFixed(3) }}</p>
+      <p>模型层数: {{ selectedModelInfo.layers }}</p>
+      <p>模型大小: {{ selectedModelInfo.size.toFixed(3) }} MB</p>
+    </div>
+  </div>
+</template>
+
+<script>
+import axios from "axios";
+
+export default {
+  props: ["serverUrl"],
+  data() {
+    return {
+      modelInfo: {}, // 存储模型信息
+      selectedModel: "", // 选中的模型
+    };
+  },
+  computed: {
+    selectedModelInfo() {
+      // 当选中模型变化时，返回该模型的详细信息
+      return this.selectedModel ? this.modelInfo[this.selectedModel] : null;
+    }
+  },
+  mounted() {
+    this.fetchModelInfo(); // 组件挂载时获取模型信息
+  },
+  watch: {
+    serverUrl: {
+      immediate: true, // 组件创建时立即触发
+      async handler(newUrl) {
+        await this.fetchModelInfo(newUrl);
+      }
+    }
+  },
+  methods: {
+    async fetchModelInfo() {
+      try {
+        const response = await axios.get(this.serverUrl + '/modelinfo');
+        this.modelInfo = response.data;
+        if (Object.keys(this.modelInfo).length > 0) {
+          this.selectedModel = Object.keys(this.modelInfo)[0]; // 默认选择第一个模型
+        }
+      } catch (error) {
+        console.error("获取模型信息失败:", error);
+      }
+    },
+    formatParams(value) {
+      // 将数字格式化为每三位以逗号分隔的字符串
+      return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+  },
+};
+</script>
+```
+
+`App.vue`
+
+```vue
+<template>
+  <div>
+    <span>服务器地址：</span>
+    <input type="text" v-model="serverUrl" placeholder="服务器连接" />
+    <!-- <button @click="updateServerUrl">重新获取模型信息</button> -->
+    <ModelSelector :serverUrl="serverUrl" />
+  </div>
+</template>
+
+<script>
+import ModelSelector from "./components/ModelSelector.vue";
+
+export default {
+  components: {
+    ModelSelector,
+  },
+  data() {
+    return {
+      serverUrl: "http://127.0.0.1:8000", // 默认的服务器连接
+    };
+  },
+  methods: {
+    updateServerUrl() {
+      // 这里我们仅仅触发组件的更新
+      // 由于 serverUrl 已经是响应式的，ModelSelector 组件将自动检测到其变化
+    }
+  },
+};
+</script>
+
+```
+
+> 点击按钮也更新：
+>
+> ```vue
+> <!-- App.vue -->
+> <template>
+>   <div>
+>     <span>服务器地址：</span>
+>     <input type="text" v-model="serverUrl" placeholder="服务器连接" />
+>     <button @click="reloadModelInfo">重新获取模型信息</button>
+>     <ModelSelector :serverUrl="serverUrl" :key="componentKey" />
+>   </div>
+> </template>
+> 
+> <script>
+> import ModelSelector from "./components/ModelSelector.vue";
+> 
+> export default {
+>   components: {
+>     ModelSelector,
+>   },
+>   data() {
+>     return {
+>       serverUrl: "http://127.0.0.1:8000", // 默认的服务器连接
+>       componentKey: 0, // 用于触发组件重新渲染的键
+>     };
+>   },
+>   methods: {
+>     reloadModelInfo() {
+>       this.componentKey++; // 每次点击时增加键的值
+>     }
+>   },
+> };
+> </script>
+> ```
+>
+> 点击按钮才更新：
+>
+> ```vue
+> <template>
+>   <div>
+>     <span>服务器地址：</span>
+>     <input type="text" v-model="serverUrl" placeholder="服务器连接" />
+>     <button @click="reloadModelInfo">重新获取模型信息</button>
+>     <ModelSelector ref="modelSelector" :serverUrl="serverUrl" />
+>   </div>
+> </template>
+> 
+> <script>
+> import ModelSelector from "./components/ModelSelector.vue";
+> 
+> export default {
+>   components: {
+>     ModelSelector,
+>   },
+>   data() {
+>     return {
+>       serverUrl: "http://127.0.0.1:8000", // 默认的服务器连接
+>     };
+>   },
+>   methods: {
+>     reloadModelInfo() {
+>       this.$refs.modelSelector.fetchModelInfo(this.serverUrl);
+>     }
+>   },
+> };
+> </script>
+> ```
+>
+> 在 `ModelSelector.vue` 删掉 watch
+
+##### 周期任务
+
+```vue
+<template>
+  <div>
+    <div v-if="serverInfo">
+      <p><strong>总磁盘空间:</strong> {{ serverInfo.disk.total.toFixed(3) }} GB</p>
+      ......
+      </div>
+    </div>
+    <div v-else>
+      <p>加载系统信息……</p>
+    </div>
+  </div>
+</template>
+
+<script>
+import axios from 'axios'
+
+export default {
+  props: ['serverUrl'],
+  data() {
+    return {
+      serverInfo: null,
+    }
+  },
+  created() {
+    console.log("Test", this.serverUrl);
+    this.fetchServerInfo();
+    this.interval = setInterval(this.fetchServerInfo, 1000);
+  },
+  beforeDestroy() {
+    clearInterval(this.interval);
+  },
+  methods: {
+    async fetchServerInfo() {
+      try{
+        const response = await axios.get(this.serverUrl + "/serverinfo");
+        this.serverInfo = response.data;
+      } catch (error) {
+        console.error("Error fetching server info:", error);
+      }
+    }
+  }
+}
+</script>
+```
+
+`App.vue`：
+
+```vue
+<script setup>
+import ServerInfo from "./components/ServerInfo.vue";
+</script>
+```
+
+##### 兄弟组件通信
+
+`ModelSelector.vue`
+
+```js
+watch: {
+    selectedModel(newVal) {
+        this.$emit('selectedModelUpdated', newVal); // 发射事件
+    }
+},
+```
+
+`App.vue`
+
+```vue
+<ModelSelector ref="modelSelector" :serverUrl="serverUrl"
+               @selectedModelUpdated="selectedModel = $event" />
+<modelstructure :serverUrl="serverUrl" :selectedModel="selectedModel"/>
+```
+
+```js
+data() {
+    return {
+        selectedModel: "",
+    };
+},
+```
+
+`ModelStructure.vue`
+
+```vue
+<template>
+  <div>
+    <button @click="fetchAndDisplayHtml">显示页面</button>
+  </div>
+</template>
+
+<script>
+export default {
+  props: ['serverUrl', 'selectedModel'],
+  methods: {
+    async fetchAndDisplayHtml() {
+      try {
+        // 请求URL
+        const url = this.serverUrl + '/modelstructure/' + this.selectedModel;
+        // 使用fetch请求HTML内容
+        const response = await fetch(url);
+        const htmlContent = await response.text();
+
+        // 使用window.open()创建新的标签页(覆盖当前页)
+        const newWindow = window.open();
+
+        // 将HTML内容写入新标签页
+        newWindow.document.write(htmlContent);
+        newWindow.document.close();
+      } catch (error) {
+        console.error('请求HTML内容时出错: ', error);
+      }
+    },
+  },
+};
+</script>
+```
+
+##### 路由
+
+[参考项目例子-本科中级软件实作](https://github.com/lr580/medium_homework/blob/dev/browser/src/router/index.js)
+
+新建 `router/index.js`：
+
+```js
+// 使用Vue Router 4的导入方式
+import { createRouter, createWebHistory } from 'vue-router';
+import ModelStructureContent from '../components/ModelStructureContent.vue';
+import HelloWorld from '../components/HelloWorld.vue';
+
+const routes = [
+    {
+        path: '/',
+        component: () => import("../App.vue")
+    },
+    {
+        path: '/modelstructure',
+        component: ModelStructureContent,
+    },
+    {
+        path: '/test',
+        component: HelloWorld,
+    },
+];
+
+// 创建router实例
+const router = createRouter({
+    history: createWebHistory(),
+    routes: routes,
+});
+
+export default router;
+```
+
+修改 `main.js`：
+
+```js
+import { createApp } from 'vue';
+// import "./style.css"
+import Frame from './Frame.vue';
+import router from './router/index.js'; 
+
+const app = createApp(Frame);
+app.use(router);
+app.mount('#app');
+```
+
+新建 `Frame.vue`：
+
+```vue
+<template>
+<router-view></router-view>
+</template>
+```
+
+新建 `ModelStructureContent`：
+
+```vue
+<template>
+  <div v-html="htmlContent"></div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      htmlContent: '',
+    };
+  },
+  created() {
+    const incomingContent = this.$route.query.html || '无内容';
+    this.htmlContent = incomingContent.replace(/ /g, '&nbsp;');
+    this.htmlContent = this.htmlContent.replace(/\\n/g, '<br>');
+  },
+};
+</script>
+```
+
+上面 `ModelStructure.vue` 修改新建输出部分：
+
+```js
+window.open(`/modelstructure?html=${htmlContent}`, '_blank'); 
+```
+
+##### 点击跳转
+
+随便设一个组件 `AuthorInfo.vue`，添加路由，同上格式。
+
+```vue
+<button>
+    <router-link to="/about">关于</router-link>
+</button>
+```
+
+引入样式，让样式和 button 一样，`main.js`：(router-link 渲染为 a)
+
+```js
+import "./assets/global.css"
+```
+
+```css
+button a {
+    color: black;
+    text-decoration: none;
+}
+```
+
+> 方法二：
+>
+> ```vue
+> <template>
+> <button @click="navigateToRoute">点击跳转</button>
+> </template>
+> 
+> <script>
+>     export default {
+>         methods: {
+>             navigateToRoute() {
+>                 this.$router.push('/target-route');
+>             }
+>         }
+>     }
+> </script>
+> ```
+
+##### 外部链接
+
+`APIdocButton.vue`
+
+```vue
+<template>
+  <button><a :href="fullDocsUrl">访问文档</a></button>
+</template>
+
+<script>
+export default {
+  props: ["serverUrl"],
+  computed: {
+    fullDocsUrl() {
+      return `${this.serverUrl}/docs`;
+    },
+  },
+};
+</script>
+
+<style scoped>
+a {
+  color: black;
+  text-decoration: none;
+}
+</style>
+```
+
+```vue
+<input type="text" v-model="serverUrl" placeholder="服务器连接" />
+<APIdocButton :serverUrl="serverUrl" />
 ```
 
 

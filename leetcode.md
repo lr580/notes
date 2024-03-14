@@ -1353,6 +1353,10 @@
 - 2789\.合并后数组中的最大元素
 
   贪心
+  
+- 2312\.卖木头块
+
+  **DP**
 
 ## 算法
 
@@ -39106,6 +39110,57 @@ class Solution:
     def maximumOddBinaryNumber(self, s: str) -> str:
         s1, s0 = s.count('1'), s.count('0')
         return (s1-1)*'1'+s0*'0'+'1'
+```
+
+##### 2312\.卖木头块
+
+[题目](https://leetcode.cn/problems/selling-pieces-of-wood/)
+
+设 $f_{i,j}$ 是长宽子问题 $(i,j)$ 的答案，则所求为 $f_{m,n}$。
+
+如果恰能卖 $w,h=i,j$，直接等于 $price$。
+
+垂直切割，转移：$\max_{k=1}^{j-1}f_{i,k}+f_{i,j-k}$
+
+同理水平，转移：$\max_{k=1}^{i-1} f_{k,j}+f_{i-k,j}$
+
+时间 $O(nm(n+m))=O(n^3)$
+
+```c++
+class Solution {
+public:
+    long long sellingWood(int m, int n, vector<vector<int>> &prices) {
+        int pr[m + 1][n + 1]; memset(pr, 0, sizeof(pr));
+        for (auto &p : prices) pr[p[0]][p[1]] = p[2];
+
+        long f[m + 1][n + 1];
+        for (int i = 1; i <= m; i++)
+            for (int j = 1; j <= n; j++) {
+                f[i][j] = pr[i][j];
+                for (int k = 1; k < j; k++) f[i][j] = max(f[i][j], f[i][k] + f[i][j - k]); // 垂直切割
+                for (int k = 1; k < i; k++) f[i][j] = max(f[i][j], f[k][j] + f[i - k][j]); // 水平切割
+            }
+        return f[m][n];
+    }
+};
+```
+
+ 可以折半，显然：
+
+```c++
+class Solution {
+public:
+    long long sellingWood(int m, int n, vector<vector<int>> &prices) {
+        long f[m + 1][n + 1]; memset(f, 0, sizeof(f));
+        for (auto &p : prices) f[p[0]][p[1]] = p[2];
+        for (int i = 1; i <= m; i++)
+            for (int j = 1; j <= n; j++) {
+                for (int k = 1; k <= j / 2; k++) f[i][j] = max(f[i][j], f[i][k] + f[i][j - k]); // 垂直切割
+                for (int k = 1; k <= i / 2; k++) f[i][j] = max(f[i][j], f[k][j] + f[i - k][j]); // 水平切割
+            }
+        return f[m][n];
+    }
+};
 ```
 
 
