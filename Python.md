@@ -5028,6 +5028,14 @@ def f(a: List[int]) -> int:
 > mypy code.py
 > ```
 
+含默认参数：
+
+```python
+def loadModel(modelname:str, device:str='cpu'):
+```
+
+
+
 自定义类：
 
 ```python
@@ -7572,6 +7580,38 @@ def g2(): # 分界线所在也是红色的
     plt.xlabel('x')
     plt.ylabel('y')
     plt.show()
+```
+
+###### 等高线图
+
+二元正态分布(给定半正定矩阵)的等高图：
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import multivariate_normal
+
+# 定义均值和协方差矩阵
+mean = [0, 0]
+cov = [[3, -1], [-1, 3]]  # 对角线上是方差，非对角线上是协方差
+
+# 生成网格点
+x, y = np.linspace(-3, 3, 300), np.linspace(-3, 3, 300)
+X, Y = np.meshgrid(x, y)
+
+# 多元正态分布的PDF
+pos = np.dstack((X, Y))
+rv = multivariate_normal(mean, cov)
+Z = rv.pdf(pos)
+
+# 绘制等高线图
+plt.contour(X, Y, Z, levels=10, cmap='viridis')  # 使用viridis颜色图
+plt.colorbar()  # 显示颜色条
+plt.title('二元高斯分布的等高线图')
+plt.xlabel('X')
+plt.ylabel('Y')
+plt.axis('equal')
+plt.show()
 ```
 
 
@@ -11902,6 +11942,17 @@ predictions = pipeline.predict(new_texts)
 print(predictions)  # 打印预测结果
 ```
 
+#### 数据生成
+
+##### 团
+
+两个团，各自为一类：
+
+```python
+from sklearn.datasets import make_blobs
+X, y = make_blobs(n_samples=100, centers=2, n_features=2, random_state=0)
+```
+
 
 
 #### 主成分分析
@@ -12263,6 +12314,7 @@ Sun Mar 10 18:49:18 2024
 ```python
 import torch
 model = torch.load('../yolov8n-cls.pt')
+# 用 YOLO 去加载，直接 print(model) 输出的东西差不多
 print(model) # ['model'] 是网络结构
 with open('modelinfo.txt','w') as f:
     f.write(str(model['model']))
@@ -12732,6 +12784,17 @@ d2l.plt.legend()
 
 #### 数据处理
 
+类型转换
+
+单一 tensor 转标量：
+
+```python
+tensor_value = tensor(0.6062, device='cuda:0')
+integer_value = float(tensor_value.item())
+```
+
+
+
 ##### 数据类型
 
 ###### 半精度
@@ -12967,7 +13030,7 @@ image 1/1 D:\_lr580\program\practice\dissertation\model-trail\..\data\crash\imag
 Speed: 13.0ms preprocess, 19.0ms inference, 10.0ms postprocess per image at shape (1, 3, 640, 512)
 ```
 
-传入视频的话，会对视频每帧都跑一次。使用视频 + GPU + 禁止输出参考：
+传入视频/gif的话，会对视频每帧都跑一次。使用视频 + GPU + 禁止输出参考：
 
 ```
 model(dirpath, verbose=False, device='0', stream=True)
@@ -13221,6 +13284,25 @@ res = model('../data/yolo/images/train/w1_6_462.jpg')
 print(res[0].names) # {0: 'crash', 1: 'normal'}
 print(res[0].probs.top1) # 1
 ```
+
+> 其他：(以 for res in results 为例)
+>
+> ```
+> speed: {'preprocess': 24.033069610595703, 'inference': 6.768703460693359, 'postprocess': 0.12350082397460938}
+> path: 图片绝对路径str
+> orig_shape: (720, 1280)
+> probs:
+>     data: tensor([0.6062, 0.3938], device='cuda:0')
+>     orig_shape: None
+>     shape: torch.Size([2])
+>     top1: 0
+>     top1conf: tensor(0.6062, device='cuda:0')
+>     top5: [0, 1]
+>     top5conf: tensor([0.6062, 0.3938], device='cuda:0')
+> orig_img: 张量
+> ```
+>
+> 
 
 ### 机器学习
 
@@ -14181,6 +14263,25 @@ uvicorn main:app --reload
 访问其他不存在的，比如 `http://127.0.0.1:8000/item/6`，网页显示 `{"detail":"Not Found"}`(404返回)
 
 自动文档：访问 `http://127.0.0.1:8000/docs`，或 `http://127.0.0.1:8000/redoc`
+
+#### 常用功能
+
+##### 文件上传
+
+```python
+import shutil
+@app.post("/predict")
+def postPredict(file: UploadFile = File(...)):
+    with open(f"{file.filename}", "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    return {"filename": file.filename}
+```
+
+上传的文件会在服务器根目录以上传文件名保存。
+
+> 测试的前端代码略。可以参见我的本科毕设代码。
+
+
 
 ## 数据结构
 

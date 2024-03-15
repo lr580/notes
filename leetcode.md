@@ -1357,6 +1357,10 @@
 - 2312\.卖木头块
 
   **DP**
+  
+- 2684\.矩阵中移动的最大次数
+
+  DP DFS BFS
 
 ## 算法
 
@@ -39162,6 +39166,128 @@ public:
     }
 };
 ```
+
+##### 2684\.矩阵中移动的最大次数
+
+[题目](https://leetcode.cn/problems/maximum-number-of-moves-in-a-grid)
+
+DP
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    int maxMoves(vector<vector<int>>& grid) {
+        int n=grid.size(), m=grid[0].size(),ans=0;
+        vector<int> dp[2];
+        dp[0].resize(n, 1), dp[1].resize(n, 0);
+        for(int j=1,now=1,prv=0;j<m;j++,now^=1,prv^=1) {
+            for(int i=0;i<n;i++) {
+                dp[now][i]=0;
+                if(dp[prv][i]&&grid[i][j]>grid[i][j-1]) 
+                    dp[now][i]=1;
+                if(i>0&&dp[prv][i-1]&&grid[i][j]>grid[i-1][j-1]) 
+                    dp[now][i]=1;
+                if(i+1<n&&dp[prv][i+1]&&grid[i][j]>grid[i+1][j-1]) 
+                    dp[now][i]=1;
+                if(dp[now][i]) ans=max(ans,j);
+            }
+        }
+        return ans;
+    }
+};
+```
+
+DFS vis 化
+
+```c++
+class Solution {
+public:
+    int maxMoves(vector<vector<int>> &grid) {
+        int m = grid.size(), n = grid[0].size();
+        int ans = 0;
+        function<void(int, int)> dfs = [&](int i, int j) {
+            ans = max(ans, j);
+            if (ans == n - 1) { // ans 已达到最大值
+                return;
+            }
+            // 向右上/右/右下走一步
+            for (int k = max(i - 1, 0); k < min(i + 2, m); k++) {
+                if (grid[k][j + 1] > grid[i][j]) {
+                    dfs(k, j + 1);
+                }
+            }
+            grid[i][j] = 0;
+        };
+        for (int i = 0; i < m; i++) {
+            dfs(i, 0); // 从第一列的任一单元格出发
+        }
+        return ans;
+    }
+};
+```
+
+BFS
+
+```c++
+class Solution {
+public:
+    int maxMoves(vector<vector<int>> &grid) {
+        int m = grid.size(), n = grid[0].size();
+        vector<int> vis(m, -1), q(m);
+        iota(q.begin(), q.end(), 0);
+        for (int j = 0; j < n - 1; j++) {
+            vector<int> nxt;
+            for (int i : q) {
+                for (int k = max(i - 1, 0); k < min(i + 2, m); k++) {
+                    if (vis[k] != j && grid[k][j + 1] > grid[i][j]) {
+                        vis[k] = j; // 第 k 行目前最右访问到了 j
+                        nxt.push_back(k);
+                    }
+                }
+            }
+            if (nxt.empty()) { // 无法再往右走了
+                return j;
+            }
+            q = move(nxt);
+        }
+        return n - 1;
+    }
+};
+```
+
+空间优化 BFS
+
+```c++
+class Solution {
+public:
+    int maxMoves(vector<vector<int>> &grid) {
+        int m = grid.size(), n = grid[0].size();
+        for (auto &row: grid) {
+            row[0] *= -1; // 入队标记
+        }
+        for (int j = 0; j < n - 1; j++) {
+            bool ok = false;
+            for (int i = 0; i < m; i++) {
+                if (grid[i][j] > 0) continue; // 不在队列中
+                for (int k = max(i - 1, 0); k < min(i + 2, m); k++) {
+                    if (grid[k][j + 1] > -grid[i][j]) {
+                        grid[k][j + 1] *= -1; // 入队标记
+                        ok = true;
+                    }
+                }
+            }
+            if (!ok) { // 无法再往右走了
+                return j;
+            }
+        }
+        return n - 1;
+    }
+};
+```
+
+
 
 
 

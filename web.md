@@ -18,8 +18,6 @@
 
 后缀名为html,htm的是静态网页，直接用浏览器打开；jsp,php,asp(x)是动态，浏览器无法直接打开
 
-
-
 [在线检验HTML页面是否符合规范][https://validator.w3.org/]
 
 #### 快捷键
@@ -15564,6 +15562,8 @@ data() {
 },
 ```
 
+> 格式：`@emit的事件名 = "语句/函数"`
+
 `ModelStructure.vue`
 
 ```vue
@@ -15760,7 +15760,68 @@ a {
 <APIdocButton :serverUrl="serverUrl" />
 ```
 
+##### 上传文件
 
+后端：(fastapi 为例)
+
+```python
+import shutil
+@app.post("/predict")
+def postPredict(file: UploadFile = File(...)):
+    with open(f"{file.filename}", "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    return {"filename": file.filename}
+```
+
+Vue：`FileUploader.vue`
+
+```vue
+<template>
+  <div>
+    <span>上传要预测的文件：</span>
+    <input type="file" @change="uploadFile" />
+    <button @click="submit">上传</button>
+  </div>
+</template>
+
+<script>
+import axios from "axios";
+
+export default {
+  props: ["serverUrl"],
+  data() {
+    return {
+      selectedFile: null,
+    };
+  },
+  methods: {
+    uploadFile(event) {
+      this.selectedFile = event.target.files[0];
+    },
+    async submit() {
+      const formData = new FormData();
+      formData.append("file", this.selectedFile);
+      try {
+        const response = await axios.post(this.serverUrl + "/predict/", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        console.log(response.data);
+      } catch (error) {
+        console.error(error);
+      }
+    },
+  },
+};
+</script>
+```
+
+```vue
+<FileUploader :serverUrl="serverUrl" />
+```
+
+上传的文件会在服务器根目录以上传文件名保存。
 
 ### 组件库
 
