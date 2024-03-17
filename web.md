@@ -13359,6 +13359,16 @@ npm i -g @vue/cli
 npm i -g @vue/cli-init
 ```
 
+> - i 的 `--save` 在旧版本的 npm 中使用，现在已经被省略，因为 npm 5.x 及以上版本默认会将安装的包保存到 `dependencies` 中。
+> - 当你使用 `npm install <package-name> --save` 时，会将包添加到 `dependencies` 中，并且在 `package.json` 文件中记录下来。这表示这个包是你的项目的运行时依赖。
+>
+> `-D`：
+>
+> - 等同于 `--save-dev`，表示将包添加到项目的 `devDependencies` 中，即开发时依赖。
+> - 当你使用 `npm install <package-name> -D` 时，会将包添加到 `devDependencies` 中，并且在 `package.json` 文件中记录下来。这表示这个包是开发过程中的辅助工具或者构建工具，而不是项目的运行时依赖。
+>
+> `--save` 和 `-D` 通常会根据安装的包是项目的运行时依赖还是开发时依赖来使用。一般来说，项目的运行时依赖应该保存在 `dependencies` 中，而开发时依赖应该保存在 `devDependencies` 中。
+
 检查安装：
 
 ```sh
@@ -15823,11 +15833,195 @@ export default {
 
 上传的文件会在服务器根目录以上传文件名保存。
 
+> 图片+视频：
+>
+> ```vue
+> <template>
+>   <div>
+>     <span>上传要预测的文件：</span>
+>     <input type="file" @change="uploadFile" />
+>     <button @click="submit">预测</button>
+>     <br />
+>     <img
+>       v-if="isImage(selectedFile)"
+>       :src="imageUrl"
+>       alt="Preview"
+>       style="max-width: 100%; max-height: 200px"
+>     />
+>     <video
+>       v-if="isVideo(selectedFile)"
+>       controls
+>       style="max-width: 100%; max-height: 200px"
+>     >
+>       <source :src="videoUrl" type="video/mp4" />
+>       Your browser does not support the video tag.
+>     </video>
+>   </div>
+> </template>
+> 
+> <script>
+> import axios from "axios";
+> 
+> export default {
+>   props: ["serverUrl"],
+>   data() {
+>     return {
+>       selectedFile: null,
+>       imageUrl: null,
+>       videoUrl: null,
+>       predictResult: null,
+>     };
+>   },
+>   methods: {
+>     uploadFile(event) {
+>       this.selectedFile = event.target.files[0];
+> 
+>       if (this.isImage(this.selectedFile)) {
+>         const reader = new FileReader();
+>         reader.onload = (e) => {
+>           this.imageUrl = e.target.result;
+>         };
+>         reader.readAsDataURL(this.selectedFile);
+>       } else if (this.isVideo(this.selectedFile)) {
+>         this.videoUrl = URL.createObjectURL(this.selectedFile);
+>       }
+>     },
+>     isImage(file) {
+>       return file && file.type.startsWith("image/");
+>     },
+>     isVideo(file) {
+>       return file && file.type.startsWith("video/mp4");
+>     },
+>     async submit() {
+>       const formData = new FormData();
+>       formData.append("file", this.selectedFile);
+>       try {
+>         const response = await axios.post(
+>           this.serverUrl + "/predict/",
+>           formData,
+>           {
+>             headers: {
+>               "Content-Type": "multipart/form-data",
+>             },
+>           }
+>         );
+>         this.predictResult = response.data;
+>       } catch (error) {
+>         console.error(error);
+>       }
+>     },
+>   },
+>   watch: {
+>     predictResult(newVal) {
+>       this.$emit("predictResult", newVal);
+>     },
+>   },
+> };
+> </script>
+> ```
+
+
+
 ### 组件库
+
+element 对 vue2; element plus 对 Vue3
+
+还有 vant3
 
 #### element
 
-[官网](https://element.eleme.cn/#/zh-CN/component/icon)
+[官网](https://element.eleme.cn/#/zh-CN/component/icon) [plus](https://element-plus.org/zh-CN/) [plus组件](https://element-plus.org/zh-CN/component/button.html)
+
+##### 样式
+
+在 Element Plus 中，类名 `ml-4` 是用来控制元素的左外边距（margin-left）的样式。
+
+具体来说，`ml-4` 表示在当前元素的左侧增加一个外边距，其大小为 4 个单位。这里的单位可以是像素（px）、百分比（%）、视窗宽度（vw）、视窗高度（vh）等，具体取决于你的项目设置和需求。
+
+```vue
+<template>
+<el-button-group>
+    <el-button type="primary" :icon="ArrowLeft">Previous Page</el-button>
+    <el-button type="primary">
+        Next Page<el-icon class="el-icon--right"><ArrowRight /></el-icon>
+    </el-button>
+    </el-button-group>
+
+<el-button-group class="ml-4">
+    <el-button type="primary" :icon="Edit" />
+    <el-button type="primary" :icon="Share" />
+    <el-button type="primary" :icon="Delete" />
+    </el-button-group>
+</template>
+```
+
+> 1. **Margin（外边距）**：
+>
+>    - `m`：margin 的简写
+>    - `mx`：水平方向的外边距
+>    - `my`：垂直方向的外边距
+>    - 后面跟着数字，表示外边距的大小，数字越大，外边距越大。
+>
+>    例如：
+>
+>    - `m-1`：外边距为 1
+>    - `mx-2`：水平方向的外边距为 2
+>    - `my-3`：垂直方向的外边距为 3
+>
+> 2. **Padding（内边距）**：
+>
+>    - `p`：padding 的简写
+>    - `px`：水平方向的内边距
+>    - `py`：垂直方向的内边距
+>    - 后面跟着数字，表示内边距的大小，数字越大，内边距越大。
+>
+>    例如：
+>
+>    - `p-1`：内边距为 1
+>    - `px-2`：水平方向的内边距为 2
+>    - `py-3`：垂直方向的内边距为 3
+>
+> 3. **Width（宽度）**：
+>
+>    - `w`：width 的简写
+>    - 后面跟着数字，表示宽度的大小，数字越大，宽度越大。
+>
+>    例如：
+>
+>    - `w-1/4`：宽度为容器的四分之一
+>    - `w-full`：宽度为容器的 100%
+>
+> 4. **Height（高度）**：
+>
+>    - `h`：height 的简写
+>    - 后面跟着数字，表示高度的大小，数字越大，高度越大。
+>
+>    例如：
+>
+>    - `h-16`：高度为 16 像素
+>    - `h-full`：高度为容器的 100%
+
+##### 按钮
+
+按钮组可以加自定义 vue 组件，其中里边是按钮，如：
+
+```vue
+<el-button-group type="info">
+    <el-button plain>
+        <router-link to="/help">使用帮助</router-link>
+    </el-button>
+    <APIdocButton :serverUrl="serverUrl" />
+    <el-button plain>
+        <router-link to="/about">关于</router-link>
+    </el-button>
+</el-button-group>
+```
+
+```vue
+<template>
+  <el-button><a :href="fullDocsUrl" plain>API文档</a></el-button>
+</template>
+```
 
 
 

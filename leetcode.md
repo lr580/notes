@@ -1361,6 +1361,10 @@
 - 2684\.矩阵中移动的最大次数
 
   DP DFS BFS
+  
+- 310\.最小高度树
+
+  换根DP / <u>重心</u>
 
 ## 算法
 
@@ -39286,6 +39290,268 @@ public:
     }
 };
 ```
+
+##### 310\.最小高度树
+
+[题目](https://leetcode.cn/problems/minimum-height-trees/)
+
+第一次 DFS，任意定根，维护初始根下的：
+
+- `dep` 每个节点的深度(与根节点的路径共几个点)
+- `maxdep`，`maxdi` 该点往下的每个子树里，节点深度最大的子树的深度和编号
+- `secdep`，该点往下的每个子树里，第二深的子树的深度(允许并列)
+
+然后进行换根，再次 DFS，对当前点 `u` 和它的子节点 `v` 之间的转移：
+
+- 维护 `newf` 表示当前点不走子树 `v` 的情况下，能到达的最深的长度(最长路径节点数)
+
+  对 `u` 往下，若 `v` 恰为 `maxpdi[u]`，则应该走 `secdep[u]`，长度为 `secdep[u]-dep[u]+1`，
+
+  否则，应该走 `maxpdep[u]`，长度为 长度为 `secdep[u]-dep[u]+1`，
+
+  如果 `u` 有父亲 `f`，已知父亲的 `newf` 设为 `maxf`，从 `f` 走不是 `u` 的其他子树的最深是 `maxf`，所以从 `u` 走 `f` 的最深是 `maxf+1`
+
+- 则 `maxf` 与当前子树的长度 `maxdep[u]-dep[u]+1` 取最大值，就是当前 `u` 为根的最大长度
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+const int maxn = 2e4+3;
+vector<int> e[maxn], ans;
+int dep[maxn], maxdep[maxn], secdep[maxn], maxdi[maxn]; // 当前点深度，子树最高深度，子树(非严格)次大深度，取得最高深度的点(任意)
+int minh;
+class Solution {
+    void dfs(int u, int f, int h) {
+        dep[u] = maxdep[u] = h;
+        for(auto&v: e[u]) {
+            if(v != f) {
+                dfs(v, u, h+1);
+                if(maxdep[v] > maxdep[u]) {
+                    maxdi[u] = v, maxdep[u] = maxdep[v];
+                }
+            }
+        }
+        for(auto&v: e[u]) {
+            if(v != f && (maxdep[u] != maxdep[v] || (maxdep[u] == maxdep[v] && v != maxdi[u]))) {
+                secdep[u] = max(secdep[u], maxdep[v]);
+            }
+        }
+    }
+    //maxh:不走f->u的f的其他子树的最大长度(累积)
+    void dfs2(int u, int f, int maxf) {
+        int h=maxdep[u]-dep[u]+1;
+        if(u!=f) {
+            h=max(h,maxf+1);
+        }
+        if(h < minh) {
+            ans.clear();
+            ans.push_back(u);
+            minh = h;
+        } else if(h == minh) {
+            ans.push_back(u);
+        }
+        for(auto&v: e[u]) {
+            if(v != f) {
+                int newf = (maxdi[u]!=v?maxdep[u]:secdep[u])-dep[u]+1;//走儿子
+                newf=max(newf, maxf+1);//走父亲
+                dfs2(v, u, newf);
+            }
+        }
+    }
+public:
+    vector<int> findMinHeightTrees(int n, vector<vector<int>>& edges) {
+        for(int i=0;i<n;++i) {
+            e[i].clear();
+            maxdep[i] = secdep[i] = dep[i] = 0;
+            maxdi[i] = -1;
+        }
+        for(auto &pr:edges){
+            int u=pr[0], v=pr[1];
+            e[u].emplace_back(v), e[v].emplace_back(u);
+        }
+        dfs(0, 0, 1);
+        ans.clear();
+        minh = n + 1;
+        dfs2(0, 0, 0);
+        return ans;
+    }
+};
+```
+
+
+
+设 $dist_{x,y}$ 表示 $x,y$ 节点的距离。设树的直径端点是 $(x,y)$，距离为 $maxdist$。则最小树高一定是重心，即 $\lceil\dfrac{maxdist}2\rceil$。如果直径长度(节点数)是偶数，中间两个点是答案；否则是中点。
+
+则求重心：
+
+DFS/BFS
+
+```c++
+class Solution {
+public:
+    void dfs(int u, vector<int> & dist, vector<int> & parent, const vector<vector<int>> & adj) {
+        for (auto & v : adj[u]) {
+            if (dist[v] < 0) {
+                dist[v] = dist[u] + 1;
+                parent[v] = u;
+                dfs(v, dist, parent, adj); 
+            }
+        }
+    }
+
+    int findLongestNode(int u, vector<int> & parent, const vector<vector<int>> & adj) {
+        int n = adj.size();
+        vector<int> dist(n, -1);
+        dist[u] = 0;
+        dfs(u, dist, parent, adj);
+        int maxdist = 0;
+        int node = -1;
+        for (int i = 0; i < n; i++) {
+            if (dist[i] > maxdist) {
+                maxdist = dist[i];
+                node = i;
+            }
+        }
+        return node;
+    }
+
+    vector<int> findMinHeightTrees(int n, vector<vector<int>>& edges) {
+        if (n == 1) {
+            return {0};
+        }
+        vector<vector<int>> adj(n);
+        for (auto & edge : edges) {
+            adj[edge[0]].emplace_back(edge[1]);
+            adj[edge[1]].emplace_back(edge[0]);
+        }
+        vector<int> parent(n, -1);
+        /* 找到距离节点 0 最远的节点  x */
+        int x = findLongestNode(0, parent, adj);
+        /* 找到距离节点 x 最远的节点  y */
+        int y = findLongestNode(x, parent, adj);
+        /* 找到节点 x 到节点 y 的路径 */
+        vector<int> path;
+        parent[x] = -1;
+        while (y != -1) {
+            path.emplace_back(y);
+            y = parent[y];
+        }
+        int m = path.size();
+        if (m % 2 == 0) {
+            return {path[m / 2 - 1], path[m / 2]};
+        } else {
+            return {path[m / 2]};
+        }
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    int findLongestNode(int u, vector<int> & parent, vector<vector<int>>& adj) {
+        int n = adj.size();
+        queue<int> qu;
+        vector<bool> visit(n);
+        qu.emplace(u);
+        visit[u] = true;
+        int node = -1;
+  
+        while (!qu.empty()) {
+            int curr = qu.front();
+            qu.pop();
+            node = curr;
+            for (auto & v : adj[curr]) {
+                if (!visit[v]) {
+                    visit[v] = true;
+                    parent[v] = curr;
+                    qu.emplace(v);
+                }
+            }
+        }
+        return node;
+    }
+
+    vector<int> findMinHeightTrees(int n, vector<vector<int>>& edges) {
+        if (n == 1) {
+            return {0};
+        }
+        vector<vector<int>> adj(n);
+        for (auto & edge : edges) {
+            adj[edge[0]].emplace_back(edge[1]);
+            adj[edge[1]].emplace_back(edge[0]);
+        }
+        
+        vector<int> parent(n, -1);
+        /* 找到与节点 0 最远的节点 x */
+        int x = findLongestNode(0, parent, adj);
+        /* 找到与节点 x 最远的节点 y */
+        int y = findLongestNode(x, parent, adj);
+        /* 求出节点 x 到节点 y 的路径 */
+        vector<int> path;
+        parent[x] = -1;
+        while (y != -1) {
+            path.emplace_back(y);
+            y = parent[y];
+        }
+        int m = path.size();
+        if (m % 2 == 0) {
+            return {path[m / 2 - 1], path[m / 2]};
+        } else {
+            return {path[m / 2]};
+        }
+    }
+};
+```
+
+拓扑排序：不断删掉全体叶子节点，直到剩下一个或两个点就是重心。
+
+```c++
+class Solution {
+public:
+    vector<int> findMinHeightTrees(int n, vector<vector<int>>& edges) {
+        if (n == 1) {
+            return {0};
+        }
+        vector<int> degree(n);
+        vector<vector<int>> adj(n);
+        for (auto & edge : edges){
+            adj[edge[0]].emplace_back(edge[1]);
+            adj[edge[1]].emplace_back(edge[0]);
+            degree[edge[0]]++;
+            degree[edge[1]]++;
+        }
+        queue<int> qu;
+        vector<int> ans;
+        for (int i = 0; i < n; i++) {
+            if (degree[i] == 1) {
+                qu.emplace(i);
+            }
+        }
+        int remainNodes = n;
+        while (remainNodes > 2) {
+            int sz = qu.size();
+            remainNodes -= sz;
+            for (int i = 0; i < sz; i++) {
+                int curr = qu.front();
+                qu.pop();
+                for (auto & v : adj[curr]) {
+                    if (--degree[v] == 1) {
+                        qu.emplace(v);
+                    }
+                }
+            }
+        }
+        while (!qu.empty()) {
+            ans.emplace_back(qu.front());
+            qu.pop();
+        }
+        return ans;
+    }
+};
+```
+
+
 
 
 

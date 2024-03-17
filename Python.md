@@ -10316,13 +10316,13 @@ def estimate_blur(image_path):
 
 ##### 基本信息
 
-长宽：
-
 ```python
 video = cv2.VideoCapture(video_path)
 width = video.get(cv2.CAP_PROP_FRAME_WIDTH)
 height = video.get(cv2.CAP_PROP_FRAME_HEIGHT)
 frames_count = video.get(cv2.CAP_PROP_FRAME_COUNT) # float
+fps = cap.get(cv2.CAP_PROP_FPS)
+duration_seconds = frame_count / fps
 ```
 
 
