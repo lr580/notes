@@ -1365,6 +1365,10 @@
 - 310\.最小高度树
 
   换根DP / <u>重心</u>
+  
+- 1793\.好子数组的最大分数
+
+  贪心 双指针
 
 ## 算法
 
@@ -39545,6 +39549,42 @@ public:
         while (!qu.empty()) {
             ans.emplace_back(qu.front());
             qu.pop();
+        }
+        return ans;
+    }
+};
+```
+
+##### 1793\.好子数组的最大分数
+
+[题目](https://leetcode.cn/problems/maximum-score-of-a-good-subarray)
+
+初值左右端点为 k，维护当前区间的最小值，不断扩展将大于最小值的都添加进去；当不能添加时，往左右里取较大的作新的最小值，如此往复不断扩展，直到遍历完整个区间。复杂度 $O(n)$。
+
+```c++
+class Solution {
+public:
+    int maximumScore(vector<int>& nums, int k) {
+        int n = nums.size(), ans = 0;
+        int mi = nums[k], l = k, r = k;
+        auto expand = [&]() {
+            while (l>=1 && nums[l-1] >= mi) {
+                --l;
+            }
+            while (r+1<n && nums[r+1] >= mi) {
+                ++r;
+            }
+        };
+        while(l>=0 && r<=n-1) {
+            expand();
+            ans = max(ans, mi*(r-l+1));
+            int lv = l>=1?nums[l-1]:-1;
+            int rv = r+1<n?nums[r+1]:-1;
+            if(lv>rv) {
+                --l, mi = min(mi, lv);
+            }else {
+                ++r, mi = min(mi, rv);
+            }
         }
         return ans;
     }
