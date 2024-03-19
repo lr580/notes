@@ -1369,6 +1369,10 @@
 - 1793\.好子数组的最大分数
 
   贪心 双指针
+  
+- 1969\.数组元素的最小非零乘积
+
+  贪心 构造 快速幂
 
 ## 算法
 
@@ -39590,6 +39594,44 @@ public:
     }
 };
 ```
+
+##### 1969\.数组元素的最小非零乘积
+
+[题目](https://leetcode.cn/problems/minimum-non-zero-product-of-the-array-elements)
+
+交换相当于一列(所有数同一位)里重排；显然每一位都恰有 $2^{p-1}$ 个 $1$。通过找规律，可以知道，恰好构造出 $2^{p-1}-1$ 个 $1$，$2^{p-1}-1$ 个 $2^{p}-2$(即最小位为 $0$ 其他为 $1$)和一个 $2^p-1$(全 $1$)最佳，连乘为：
+$$
+(2^p-1)(2^p-2)^{2^{p-1}-1}
+$$
+  使用快速幂求解即可。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+const ll mod = 1e9+7;
+ll qpow(ll a, ll b) {
+    ll r = 1;
+    a %= mod;
+    for(;b;b>>=1) {
+        if(b&1) {
+            r=r*a%mod;
+        }
+        a=a*a%mod;
+    }
+    return r;
+}
+class Solution {
+public:
+    int minNonZeroProduct(int p) {
+        ll ans = ((1LL << p) - 1) % mod;
+        ll v = qpow((1LL << p) - 2, (1LL << (p - 1)) - 1);
+        return ans * v % mod;
+    }
+};
+```
+
+
 
 
 

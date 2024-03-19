@@ -3987,3 +3987,51 @@ library `quotes`，将 node label 的输入从 `label={[<options>]<text>}` 简�
 - 一定记得 `usetikzlibrary`，因为自定义 style 里有 diamond
 - inner sep 表示节点内容和节点边界之间的最小距离，默认 0.3333em (new bing)
 
+## 样式排版
+
+### .cls
+
+`.cls`文件是LaTeX中用于定义文档类的文件，它控制着文档的整体布局和格式。当你使用`\documentclass`命令加载一个特定的文档类时，LaTeX会查找与之相对应的`.cls`文件。这个文件内包含了一系列的命令和环境定义，用于设定文档的标题、章节、页边距、字体、间距等方面的格式。
+
+在`\documentclass[options]{class}`命令中：
+
+- `class`指的是文档类名称，比如`article`、`report`、`book`等，或者是一个自定义的文档类，放在同目录下定义一个 `.cls` 
+- `options`是一组可选项，用来调整文档类的默认行为。这些选项可以控制文档的基本属性，如字体大小、纸张大小、是否双面打印等。
+
+`.cls` 内容是一系列的 latex 指令
+
+### 目录
+
+#### 标题排版
+
+如 `第 x 章 `, `x.y.`, `x.y.z.`：
+
+```tex
+\renewcommand\contentsname{\heiti \centering \zihao{3} 目~~~~录}
+
+\titlecontents{section}[0pt]{\bfseries \songti \zihao{-4}}
+{\thecontentslabel~}{}
+{\titlerule*[0.7em]{.}\contentspage}
+
+\titlecontents{subsection}[1\ccwd]{\songti \zihao{-4}}
+{\thecontentslabel.~~}{}
+{\titlerule*[0.7em]{.}\contentspage}
+
+\titlecontents{subsubsection}[3\ccwd]{\songti \zihao{-4}}
+{\thecontentslabel.~~}{}
+{\titlerule*[0.7em]{.}\contentspage}
+
+\renewcommand{\thesection}{第 \arabic{section} 章}
+\renewcommand{\thesubsection}{\arabic{section}.\arabic{subsection}}
+\renewcommand{\thesubsubsection}{\arabic{section}.\arabic{subsection}.\arabic{subsubsection}}
+```
+
+- `\heiti` 是设置字体为黑体的命令
+
+  `\bfseries \songti ` 宋体加粗 `\rmfamily` 新罗马体 Times New Roman
+
+- `\zihao{3}` 设置字体大小为三号（相当于大号字体）(-4 是小四)
+
+- `[0pt]` 指定了条目前的横向空间。`~` 是空格。
+
+- `\ccwd` 表示一个汉字的宽度
