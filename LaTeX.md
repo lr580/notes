@@ -2755,7 +2755,9 @@ signed main() /* 注释 */
 > ```
 >
 
-其中，每一行是 `key=value`，而 `author,title,journal,year` 必选，第一行的 ID 是 `\cite{ID}` 填写的东西。
+其中，每一行是 `key=value`，而 `author,title,journal,year` 必选，第一行的 ID 是 `\cite{ID}` 填写的东西。显示为 `[1]`（编号）且可以点击
+
+> 多个引用，为 `\cite{ID1, ID2, ...}`，显示为 `[1,3]` 等。连续的话会 `[1-4]` 等。
 
 引用声明：
 
@@ -2787,7 +2789,7 @@ signed main() /* 注释 */
 > Abstract = {This paper ...},
 > Type = {Article},
 > Affiliation = {Olsen, RN (Corresponding Author), Missouri State Univ, Dept Econ, 901 South Natl Ave, Springfield, MO 65897 USA.
->    Olsen, Reed N.; Gallaway, Terrel; Mitchell, David, Missouri State Univ, Dept Econ, Springfield, MO 65897 USA.},
+> Olsen, Reed N.; Gallaway, Terrel; Mitchell, David, Missouri State Univ, Dept Econ, Springfield, MO 65897 USA.},
 > DOI = {10.1080/09640568.2013.774268},
 > Author-Email = {reedolsen@missouristate.edu},
 > Times-Cited = {19},
@@ -2799,17 +2801,17 @@ signed main() /* 注释 */
 > Editor = {Xu, M and Wang, G},
 > Title = {Research on Urban Light Pollution and Its Prevention},
 > Booktitle = {PROCEEDINGS OF THE 2015 INTERNATIONAL CONFERENCE ON APPLIED SCIENCE AND
->    ENGINEERING INNOVATION},
+> ENGINEERING INNOVATION},
 > Series = {AER-Advances in Engineering Research},
 > Year = {2015},
 > Volume = {12},
 > Pages = {865-867},
 > Note = {International Conference on Applied Science and Engineering Innovation
->    (ASEI), Jinan, PEOPLES R CHINA, AUG 30-31, 2015},
+> (ASEI), Jinan, PEOPLES R CHINA, AUG 30-31, 2015},
 > Abstract = {With the ...},
 > Type = {Proceedings Paper},
 > Affiliation = {Hu, X (Corresponding Author), North China Elect Power Univ, Sch Elect Engn, Baoding 071003, Peoples R China.
->    Hu, Xuan, North China Elect Power Univ, Sch Elect Engn, Baoding 071003, Peoples R China.},
+> Hu, Xuan, North China Elect Power Univ, Sch Elect Engn, Baoding 071003, Peoples R China.},
 > Author-Email = {1211265271@qq.com},
 > Times-Cited = {1},
 > Unique-ID = {WOS:000375708200170},
@@ -2838,17 +2840,17 @@ signed main() /* 注释 */
 >
 > ```json
 > "latex-workshop.latex.recipes": [
->     // ...
->     {
->         "name": "xe->bib->xe->xe",
->         "tools": [
->             "xelatex",
->             "bibtex",
->             "xelatex",
->             "xelatex"
->         ]
->     },
->     //...
+>  // ...
+>  {
+>      "name": "xe->bib->xe->xe",
+>      "tools": [
+>          "xelatex",
+>          "bibtex",
+>          "xelatex",
+>          "xelatex"
+>      ]
+>  },
+>  //...
 > ],
 > ```
 >

@@ -1373,6 +1373,10 @@
 - 1969\.数组元素的最小非零乘积
 
   贪心 构造 快速幂
+  
+- 2671\.频率跟踪器
+
+  STL
 
 ## 算法
 
@@ -39627,6 +39631,67 @@ public:
         ll ans = ((1LL << p) - 1) % mod;
         ll v = qpow((1LL << p) - 2, (1LL << (p - 1)) - 1);
         return ans * v % mod;
+    }
+};
+```
+
+##### 2671\.频率跟踪器
+
+[题目](https://leetcode.cn/problems/frequency-tracker)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class FrequencyTracker {
+    unordered_map<int, int> t, s;
+public:
+    FrequencyTracker() {}
+    
+    void add(int number) {
+        ++s[number];
+        if(s[number] != 1) {
+            --t[s[number] - 1];
+        }
+        ++t[s[number]];
+    }
+    
+    void deleteOne(int number) {
+        if(!s[number]) {
+            return;
+        }
+        if(s[number] != 1) {
+            ++t[s[number] - 1];
+        }
+        --t[s[number]];
+        --s[number];
+    }
+    
+    bool hasFrequency(int frequency) {
+        return t[frequency] != 0;
+    }
+};
+```
+
+```c++
+class FrequencyTracker {
+    unordered_map<int, int> cnt; // number 的出现次数
+    unordered_map<int, int> freq; // number 的出现次数的出现次数
+public:
+    FrequencyTracker() {}
+
+    void add(int number) {
+        --freq[cnt[number]]; // 去掉一个旧的 cnt[number]
+        ++freq[++cnt[number]]; // 添加一个新的 cnt[number]
+    }
+
+    void deleteOne(int number) {
+        if (!cnt[number]) return; // 不删除任何内容
+        --freq[cnt[number]]; // 去掉一个旧的 cnt[number]
+        ++freq[--cnt[number]]; // 添加一个新的 cnt[number]
+    }
+
+    bool hasFrequency(int frequency) {
+        return freq[frequency]; // 至少有一个 number 的出现次数恰好为 frequency
     }
 };
 ```
