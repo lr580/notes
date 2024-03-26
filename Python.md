@@ -3443,6 +3443,32 @@ print("生成器的返回值",g.send(3))
 
 
 
+#### 作函数参数
+
+```python
+def generator_1(param1):
+    i = 0
+    while True:
+        yield f"Generator 1, iteration {i}, param1={param1}"
+        i += 1
+
+def generator_2(param2):
+    i = 0
+    while True:
+        yield f"Generator 2, iteration {i}, param2={param2}"
+        i += 1
+
+def higher_order_function(generator_func, *args):
+    return generator_func(*args)
+
+chosen_generator = higher_order_function(generator_1, "Parameter for Generator 1")
+
+for _ in range(5):
+    print(next(chosen_generator))
+```
+
+
+
 
 
 ## 模块

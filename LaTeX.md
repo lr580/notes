@@ -2452,6 +2452,30 @@ csvsimple 包 [官方文档](https://mirror.mwt.me/ctan/macros/latex/contrib/csv
 
 两张图并排排列，各有各的标题。则 `figure` 嵌套 `minipage` 环境。
 
+> ```tex
+> \documentclass{article}
+> \usepackage{graphicx}
+> 
+> \begin{document}
+> 
+> \begin{figure}
+>   \centering
+>   \begin{minipage}[b]{0.45\textwidth} % 左右不等宽就调这个
+>     \includegraphics[width=\textwidth]{example-image-a}
+>     \caption{第一张图的标题}
+>     \label{fig:1}
+>   \end{minipage}
+>   \hfill
+>   \begin{minipage}[b]{0.45\textwidth}
+>     \includegraphics[width=\textwidth]{example-image-b}
+>     \caption{第二张图的标题}
+>     \label{fig:2}
+>   \end{minipage}
+> \end{figure}
+> 
+> \end{document}
+> ```
+
 若并排但共享一个大标题，各有自己的子标题，在 `figure` 环境使用 `subfig` 宏包，使用 `\subfloat[子标题]{多行\label{} \includegraphics}` 命令。
 
 
@@ -2836,29 +2860,36 @@ signed main() /* 注释 */
 >
 > 那么被引用位置会出现 `[编号]`，且附录位置出现出处。
 >
+> 在 `.bib` 里出现，但没有 cite 的内容，不会出现在最终参考目录。
+>
 > 注：用 vscode 为例，需要保证 json 设置(ctrl+shift+p open user setting json)进去找 `latex-workshop.latex.recipes` 项，保证有：
 >
 > ```json
 > "latex-workshop.latex.recipes": [
->  // ...
->  {
->      "name": "xe->bib->xe->xe",
->      "tools": [
->          "xelatex",
->          "bibtex",
->          "xelatex",
->          "xelatex"
->      ]
->  },
->  //...
+> // ...
+> {
+> "name": "xe->bib->xe->xe",
+> "tools": [
+>    "xelatex",
+>    "bibtex",
+>    "xelatex",
+>    "xelatex"
+> ]
+> },
+> //...
 > ],
 > ```
 >
 > 然后使用 ctrl+shift+p 输入 latex recipe 选择 build with recipe, 选 name 对应那一项编译
-
-
-
-
+>
+> 不需要引用的话，只需要：
+>
+> ```json
+> "name": "xelatex",
+> "tools": [
+>  "xelatex"
+> ],
+> ```
 
 
 
@@ -3000,9 +3031,16 @@ font awesome [参考](https://blog.csdn.net/zzq060143/article/details/89380160) 
 多个空格：
 
 - `\quad`, `\qquad`
-- `\hspace{1cm}`
+
+- `\hspace{1cm}` 
+
+  可以代替 `\indent` 如果其不生效，如 `\hspace{\parindent}`
+
 - `\hfill` 当前行若干个 fill 里平均分配空白，直到填满
+
 - `\phantom{1cm}`
+
+
 
 ##### 作者贡献符号
 
@@ -4001,6 +4039,26 @@ library `quotes`，将 node label 的输入从 `label={[<options>]<text>}` 简�
 - `options`是一组可选项，用来调整文档类的默认行为。这些选项可以控制文档的基本属性，如字体大小、纸张大小、是否双面打印等。
 
 `.cls` 内容是一系列的 latex 指令
+
+### 通用
+
+#### 行间距
+
+全局：
+
+```tex
+\linespread{1.5} % 1.5 倍
+```
+
+部分：
+
+```tex
+\begin{spacing}{1.38} 
+	\tableofcontents % 或其他内容
+\end{spacing}
+```
+
+
 
 ### 目录
 

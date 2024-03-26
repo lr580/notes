@@ -1377,6 +1377,22 @@
 - 2671\.频率跟踪器
 
   STL
+  
+- 2642\.设计可以求最短路径的图类
+
+  Dijkstra
+  
+- 2549\.统计桌面上的不同数字
+
+  贪心
+  
+- 322\.零钱兑换
+
+  无限背包DP
+  
+- 522\.零钱兑换II
+
+  **背包DP计数**
 
 ## 算法
 
@@ -39696,11 +39712,138 @@ public:
 };
 ```
 
+##### 2642\.设计可以求最短路径的图类
+
+[题目](https://leetcode.cn/problems/design-graph-with-shortest-path-calculator/)
+
+因为题给输入有稠密图即边数 $m=O(n^2)$，且查询次数为 $t=100$，所以考虑朴素 Dijkstra 的复杂度为 $O(tn^2)$，而堆优化的复杂度为 $O(tm\log m)=O(tn^2\log n)$ 反而不优。
+
+```c++
+const int maxn = 101, maxv = 2e9;
+bool vis[maxn];
+vector<pair<int,int>> g[maxn];
+int d[maxn], n;
+class Graph {
+public:
+    Graph(int n, vector<vector<int>>& edges) {
+        for(int i=0;i<n;i++) {
+            g[i].clear();
+        }
+        for(auto& e: edges) {
+            addEdge(e);
+        }
+        ::n = n;
+    }
+    
+    void addEdge(const vector<int>& e) {
+        int u=e[0],v=e[1],w=e[2];
+        g[u].emplace_back(v, w);
+    }
+    
+    int shortestPath(int s, int t) {
+        for(int i=0;i<n;++i) {
+            d[i] = maxv;
+            vis[i] = false;
+        }
+        d[s]=0;
+        for(int h=0;h<n-1;++h) {
+            int minv = maxv, u;
+            for(int i=0;i<n;++i) {
+                if(!vis[i] && d[i]<minv) {
+                    u = i, minv = d[i];
+                }
+            }
+            vis[u] = true;
+            for(auto &pr:g[u]) {
+                int v = pr.first, w = pr.second;
+                if(!vis[v] && d[u] + w < d[v]) {
+                    d[v]=d[u]+w;
+                }
+            }
+        }
+        return d[t]==maxv?-1:d[t];
+    }
+};
+```
 
 
 
+##### 2549\.统计桌面上的不同数字
 
+[题目](https://leetcode.cn/problems/count-distinct-numbers-on-board/)
 
+对 x，一定有 `x%(x-1)=1`，所以下一天至少会出现 `x-1`，如此递归，一定能取遍 `[2,x]`。特判 x=1.
 
+```c++
+return max(1,n-1);
+```
+
+##### 322\.零钱兑换
+
+[题目](https://leetcode.cn/problems/coin-change)
+
+```c++
+const int inf = 1e9;
+class Solution {
+public:
+    int coinChange(vector<int>& coins, int n) {
+        vector<int> dp(n+1, inf);
+        dp[0] = 0;
+        for(auto&c:coins) {
+            for(int j=0;j<=n-c;++j) {
+                dp[j+c] = min(dp[j+c], dp[j]+1);
+            }
+        }
+        return dp[n]==inf?-1:dp[n];
+    }
+};
+```
+
+##### 518\.零钱兑换II
+
+[题目](https://leetcode.cn/problems/coin-change-ii/)
+
+即求 $(1+x^{c_1}+x^{2c_1}+\cdots)(1+x^{c_2}+x^{2c_2}+\cdots)\cdots$ 的 $x^{n}$ 的系数。
+
+使用多项式乘法 FFT，共 $O(nc\log n)\approx 1.3\times 10^7$。
+
+> 错误思路：先统计每个面额的总方案数并递推，会重复，如 `2+1`,`1+2`
+>
+> ```c++
+> #include <bits/stdc++.h>
+> using namespace std;
+> class Solution {
+> public:
+>     int change(int n, vector<int>& coins) {
+>         vector<int> dp(n + 1, 0);
+>         dp[0] = 1;
+>         for(int i=1;i<=n;++i) {
+>             for(auto&c:coins) {
+>                 if(i-c>=0) dp[i] += dp[i-c];
+>             }
+>             cout<<i<<" "<<dp[i]<<'\n';
+>         }
+>         return dp[n];
+>     }
+> };
+> ```
+
+正确思路：只使用前 i 种硬币的方案数递推
+
+```c++
+class Solution {
+public:
+    int change(int amount, vector<int>& coins) {
+        vector<int> dp(amount + 1);
+        dp[0] = 1;
+        for (int& coin : coins) {
+            for (int i = coin; i <= amount; i++) {
+                dp[i] += dp[i - coin];
+            }
+        }
+        return dp[amount];
+    }
+};
+```
 
 
