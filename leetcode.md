@@ -1393,6 +1393,14 @@
 - 522\.零钱兑换II
 
   **背包DP计数**
+  
+- 2580\.统计将重叠区间合并成组的方案数
+
+  模拟
+  
+- 2617\.网格图中最少访问的格子数
+
+  **DP+单调栈** / **BFS+并查集/set** **DP+线段树** **贪心+最小堆**
 
 ## 算法
 
@@ -39846,4 +39854,375 @@ public:
 };
 ```
 
+##### 2580\.统计将重叠区间合并成组的方案数
+
+[题目](https://leetcode.cn/problems/count-ways-to-group-overlapping-ranges)
+
+即求合并区间后的离散区间数对2取幂。
+
+```c++
+using ll = long long;
+const ll mod = 1e9+7;
+class Solution {
+public:
+    int countWays(vector<vector<int>>& ranges) {
+        sort(ranges.begin(), ranges.end());
+        ll ans = 1, n = ranges.size();
+        for(int l=0;l<n;l++) {
+            int r=l,lo=ranges[l][0],hi=ranges[l][1];
+            while(r+1<n) {
+                if(ranges[r+1][0]>hi) {
+                    break;
+                }
+                hi=max(hi,ranges[r+1][1]);
+                ++r;
+            }
+            l=r;
+            ans=ans*2%mod;
+        }
+        return ans;
+    }
+};
+```
+
+优雅：
+
+```c++
+class Solution {
+public:
+    int countWays(vector<vector<int>> &ranges) {
+        ranges::sort(ranges, [](auto &a, auto &b) { return a[0] < b[0]; });
+        int ans = 1, max_r = -1;
+        for (auto &p : ranges) {
+            if (p[0] > max_r) { // 无法合并
+                ans = ans * 2 % 1'000'000'007; // 新区间
+            }
+            max_r = max(max_r, p[1]); // 合并
+        }
+        return ans;
+    }
+};
+```
+
+##### 2617\.网格图中最少访问的格子数
+
+[题目](https://leetcode.cn/problems/minimum-number-of-visited-cells-in-a-grid)
+
+设 $dp_{i,j}$ 为走到 $(i,j)$ 的最少移动次数(初始除了 $0,0$ 都 $\infty$)
+
+边数过多，不能转化为最短路问题。
+
+设 $v=grid_{i,j}$ ，则往右，有：
+$$
+dp_{i,j+v}=\min(dp_{i,j+v},dp_{i,j}+1)
+$$
+往下同理。
+
+计算麻烦，无法转化为 $dp_{i,j}$，不妨逆序思考。重新设 $dp$ 为从当前格子走到右下角还需要多少步。则：
+$$
+dp_{i,j}=\min(\min_{k=j+1}^{j+g}dp_{i,k},\min_{k=i+1}^{i+g}dp_{k,j})+1
+$$
+其复杂度为 $O(nm(n+m))$。
+
+
+
+解法一：
+
+可以用 BFS 来做该 DP，问题在于每个点可达的下一个点里，根据 BFS 的特性，如果已经访问过了，就没必要访问了。可以用并查集，来跳过这些点。复杂度 $O(nm)$。将每个节点横纵指向最近未访问过的点。
+
+```c++
+class Solution {
+  using Node = tuple<int, int, int>;
+  
+  auto find(vector<int>& fa, int x) -> int {
+    return x == fa[x] ? x : fa[x] = find(fa, fa[x]);
+  }
+  void merge(vector<int>& fa, int x) {
+    fa[x] = x + 1;
+  }
+
+ public:
+  int minimumVisitedCells(vector<vector<int>>& grid) {
+    int m = grid.size();
+    int n = grid[0].size();
+    
+    vector<vector<int>> row_fas(m, vector<int>(n + 1));
+    for (int i = 0; i < m; ++i) {
+      iota(row_fas[i].begin(), row_fas[i].end(), 0);
+    }
+    vector<vector<int>> col_fas(n, vector<int>(m + 1));
+    for (int j = 0; j < n; ++j) {
+      iota(col_fas[j].begin(), col_fas[j].end(), 0);
+    }
+    
+    queue<Node> q;
+    q.emplace(1, 0, 0);
+    while (!q.empty()) {
+      auto [d, x, y] = q.front();
+      q.pop();
+      if (x == m - 1 && y == n - 1) {
+        return d;
+      }
+      
+      int g = grid[x][y];
+      
+      // right
+      for (int ny = find(row_fas[x], y + 1);
+           ny < n && ny <= g + y;
+           ny = find(row_fas[x], ny + 1)) {
+        merge(row_fas[x], ny);
+        q.emplace(d + 1, x, ny);
+      }
+      
+      // down
+      for (int nx = find(col_fas[y], x + 1);
+           nx < m && nx <= g + x;
+           nx = find(col_fas[y], nx + 1)) {
+        merge(col_fas[y], nx);
+        q.emplace(d + 1, nx, y);
+      }
+    }
+    return -1;
+  }
+};
+```
+
+解法二：同理，该思路可以用 set 实现。
+
+```c++
+class Solution {
+  using Node = tuple<int, int, int>;
+  
+ public:
+  int minimumVisitedCells(vector<vector<int>>& grid) {
+    int m = grid.size();
+    int n = grid[0].size();
+    
+    vector<set<int>> row_sets(m), col_sets(n);
+    for (auto& row_set : row_sets) {
+      for (int j = 0; j <= n; ++j) {
+        row_set.insert(j);
+      }
+    }
+    for (auto& col_set : col_sets) {
+      for (int i = 0; i <= m; ++i) {
+        col_set.insert(i);
+      }
+    }
+
+    queue<Node> q;
+    q.emplace(1, 0, 0);
+    while (!q.empty()) {
+      auto [d, x, y] = q.front();
+      q.pop();
+      if (x == m - 1 && y == n - 1) {
+        return d;
+      }
+      
+      int g = grid[x][y];
+      
+      // right
+      auto& row = row_sets[x];
+      int right_bound = min(n, g + y + 1);
+      for (auto p = row.lower_bound(y + 1); *p < right_bound; p = row.erase(p)) {
+        q.emplace(d + 1, x, *p);
+      }
+      
+      // down
+      auto& col = col_sets[y];
+      int down_bound = min(m, g + x + 1);
+      for (auto p = col.lower_bound(x + 1); *p < down_bound; p = col.erase(p)) {
+        q.emplace(d + 1, *p, y);
+      }
+    }
+    return -1;
+  }
+};
+```
+
+解法三：
+
+DP 可转化为行列的区间求 min 和单点更新，用线段树。将二维坐标拉成一维。建立两棵线段树，分别按行按列编号，可以实现区间查询。
+
+```c++
+class SegTree {
+ public:
+  static constexpr int kInf = 0x3f3f3f3f;
+
+  SegTree(int n) : n_(n), min_(n << 2, kInf), lazy_(n << 2, kInf) {}
+
+  // 区间修改
+  void update(int L, int R, int val) {
+    update(1, 1, n_, L + 1, R + 1, val); // 偏移一位
+  }
+
+  // 单点查询
+  int query(int i) {
+    return query(1, 1, n_, i + 1); // 偏移一位
+  }
+
+ private:
+  int lson(int o) { return o << 1; }
+  int rson(int o) { return o << 1 | 1; }
+
+  void spread(int o) {
+    if (lazy_[o] != kInf) {
+      min_[lson(o)] = min(min_[lson(o)], lazy_[o]);
+      min_[rson(o)] = min(min_[rson(o)], lazy_[o]);
+      lazy_[lson(o)] = min(lazy_[lson(o)], lazy_[o]);
+      lazy_[rson(o)] = min(lazy_[rson(o)], lazy_[o]);
+      lazy_[o] = kInf;
+    }
+  }
+
+  void maintain(int o) {
+    min_[o] = min(min_[lson(o)] , min_[rson(o)]);
+  }
+
+  void update(int o, int l, int r, int L, int R, int val) {
+    if (L <= l && r <= R) {
+      min_[o] = min(min_[o], val);
+      lazy_[o] = min(lazy_[o], val);
+      return;
+    }
+    spread(o);
+    int mid = (l + r) / 2;
+    if (L <= mid) {
+      update(lson(o), l, mid, L, R, val);
+    }
+    if (R > mid) {
+      update(rson(o), mid + 1, r, L, R, val);
+    }
+    maintain(o);
+  }
+
+  int query(int o, int l, int r, int i) {
+    if (l == r) {
+      return min_[o];
+    }
+    spread(o);
+    int mid = (l + r) / 2;
+    if (i <= mid) {
+      return query(lson(o), l, mid, i);
+    }
+    return query(rson(o), mid + 1, r, i);
+  }
+
+ private:
+  int n_;
+  vector<int> min_;
+  vector<int> lazy_;
+};
+
+class Solution {
+ public:
+  int minimumVisitedCells(vector<vector<int>>& grid) {
+    int m = grid.size();
+    int n = grid[0].size();
+
+    SegTree col_tree(m * n + 1);
+    SegTree row_tree(m * n + 1);
+    col_tree.update(0, 0, 1);
+    row_tree.update(0, 0, 1);
+
+    for (int i = 0; i < m; ++i) {
+      for (int j = 0; j < n; ++j) {
+        int g = grid[i][j];
+        int d = min(col_tree.query(j * m + i), row_tree.query(i * n + j));  // 到达 (i, j) 的最小值
+        col_tree.update(j * m + i + 1, j * m + min(i + g, m - 1), d + 1); // 竖直方向
+        row_tree.update(i * n + j + 1, i * n + min(j + g, n - 1), d + 1); // 水平方向
+      }
+    }
+
+    int ans = min(col_tree.query(m * n - 1), row_tree.query(m * n - 1));
+    return ans != SegTree::kInf ? ans : -1;
+  }
+};
+```
+
+解法四：将这个维护转化为单调栈。
+
+对 $\min_{k=j+1}^{j+g} f_{i,k}$，逆序枚举 $j$ 时，$k$ 取值的左边界单调减小，右边界没有单调性。当一个点可以跳到多个点，前面的点代价更小时，后面的点不会更优，因此，按 $f$ 值维护单调递增的栈保存 $(f,j)$，其中 $j$ 根据枚举特性保证了也是单调递减，二分下标，找到最大不超过 $j+g$ 的栈内下标，下标越大单调栈里 $f$ 值越优，所以可以维护行内的单调栈优化 DP。
+
+对列，同理建立一样的单调栈，并一样的查找，思路一致。
+
+```c++
+class Solution {
+public:
+    int minimumVisitedCells(vector<vector<int>> &grid) {
+        int m = grid.size(), n = grid[0].size(), mn;
+        vector<vector<pair<int, int>>> col_stacks(n); // 每列的单调栈
+        vector<pair<int, int>> row_st; // 行单调栈
+        for (int i = m - 1; i >= 0; i--) {
+            row_st.clear();
+            for (int j = n - 1; j >= 0; j--) {
+                int g = grid[i][j];
+                auto &col_st = col_stacks[j];
+                mn = i < m - 1 || j < n - 1 ? INT_MAX : 1;
+                if (g) { // 可以向右/向下跳
+                    // 在单调栈上二分查找最优转移来源
+                    auto it = lower_bound(row_st.begin(), row_st.end(), j + g, [](const auto &a, const int b) {
+                        return a.second > b;
+                    });
+                    if (it < row_st.end()) mn = it->first + 1;
+                    it = lower_bound(col_st.begin(), col_st.end(), i + g, [](const auto &a, const int b) {
+                        return a.second > b;
+                    });
+                    if (it < col_st.end()) mn = min(mn, it->first + 1);
+                }
+                if (mn < INT_MAX) {
+                    // 插入单调栈
+                    while (!row_st.empty() && mn <= row_st.back().first) {
+                        row_st.pop_back();
+                    }
+                    row_st.emplace_back(mn, j);
+                    while (!col_st.empty() && mn <= col_st.back().first) {
+                        col_st.pop_back();
+                    }
+                    col_st.emplace_back(mn, i);
+                }
+            }
+        }
+        return mn < INT_MAX ? mn : -1; // 最后一个算出的 mn 就是 f[0][0]
+    }
+};
+```
+
+解法五：设从起点到当前点 $i,j$ 走过了 $f$ 格（当前子问题），当前格值是 $g$。
+
+每一行每一列都建立小根堆，按 $f$ 值维护。并且构建可删堆，如果堆顶不可达当前点，则去掉堆顶。为此，可以设置每个堆元素保存：$f$ 值，能经由该元素到达最远的位置。当最远不可达时删掉。
+
+```c++
+class Solution {
+public:
+    int minimumVisitedCells(vector<vector<int>> &grid) {
+        int m = grid.size(), n = grid[0].size(), f;
+        using min_heap_t = priority_queue<pair<int, int>, vector<pair<int, int>>, greater<>>;
+        vector<min_heap_t> col_heaps(n); // 每一列的最小堆
+        for (int i = 0; i < m; i++) {
+            min_heap_t row_h; // 第 i 行的最小堆
+            for (int j = 0; j < n; j++) {
+                while (!row_h.empty() && row_h.top().second < j) { // 无法到达第 j 列
+                    row_h.pop(); // 弹出无用数据
+                }
+                auto &col_h = col_heaps[j];
+                while (!col_h.empty() && col_h.top().second < i) { // 无法到达第 i 行
+                    col_h.pop(); // 弹出无用数据
+                }
+
+                f = i || j ? INT_MAX : 1; // 起点算 1 个格子
+                if (!row_h.empty()) f = row_h.top().first + 1; // 从左边跳过来
+                if (!col_h.empty()) f = min(f, col_h.top().first + 1); // 从上边跳过来
+
+                int g = grid[i][j];
+                if (g && f < INT_MAX) {
+                    row_h.emplace(f, g + j); // 经过的格子数，向右最远能到达的列号
+                    col_h.emplace(f, g + i); // 经过的格子数，向下最远能到达的行号
+                }
+            }
+        }
+        return f < INT_MAX ? f : -1; // 此时的 f 是在 (m-1, n-1) 处算出来的
+    }
+};
+```
 
