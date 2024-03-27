@@ -1401,6 +1401,10 @@
 - 2617\.网格图中最少访问的格子数
 
   **DP+单调栈** / **BFS+并查集/set** **DP+线段树** **贪心+最小堆**
+  
+- 1997\.访问完所有房间的第一天
+
+  前缀和优化DP
 
 ## 算法
 
@@ -40222,6 +40226,75 @@ public:
             }
         }
         return f < INT_MAX ? f : -1; // 此时的 f 是在 (m-1, n-1) 处算出来的
+    }
+};
+```
+
+##### 1997\.访问完所有房间的第一天
+
+[题目]() [原题](https://codeforces.com/problemset/problem/407/B)
+
+设 $dp_i$ 表示刚踏入完 $i$ 格，要走到 $i+1$ 格还需要走几步(踏入这一次不算)。因为 $nextVisit_i\le i$，所以一定从 $0$ 开始一直踏到 $n-1$，即所求为 $\sum_{i=0}^{n-2}dp_i$。显然 $dp_0=2$。递推状态为 $dp_i=\sum_{j=nextVisit_i}^{i-1}dp_j$。使用前缀和优化即可，所求为 $s_{n-2}$。
+
+```c++
+using ll = long long;
+const ll mod = 1e9+7;
+class Solution {
+public:
+    int firstDayBeenInAllRooms(vector<int>& nextVisit) {
+        int n = nextVisit.size();
+        vector<int> s(n+1, 0);
+        s[1] = 2;
+        for (int i = 1; i < n; i++)
+        {
+            s[i+1] = s[i-1+1] - s[nextVisit[i]+1-1] + 2;
+            s[i+1] += s[i];
+            s[i+1] = (s[i+1]%mod + mod)%mod;
+        }
+        return s[n-1];
+    }
+};
+```
+
+> 原题：
+>
+> ```c++
+> #include <bits/stdc++.h>
+> using namespace std;
+> using ll = long long;
+> const ll mod = 1e9+7;
+> signed main() {
+>     int n, a;
+>     cin >> n;
+>     vector<int> s(n+1, 0);
+>     s[1] = 2;
+>     cin >> a;
+>     for (int i = 2; i <= n; i++)
+>     {
+>         cin >> a;
+>         s[i] = s[i-1] - s[a-1] + 2;
+>         s[i] += s[i-1];
+>         s[i] = (s[i]%mod + mod)%mod;
+>     }
+>     cout<<s[n];
+>     return 0;
+> }
+> ```
+
+优雅：
+
+```c++
+class Solution {
+public:
+    int firstDayBeenInAllRooms(vector<int>& nextVisit) {
+        const int MOD = 1'000'000'007;
+        int n = nextVisit.size();
+        vector<long> s(n);
+        for (int i = 0; i < n - 1; i++) {
+            int j = nextVisit[i];
+            s[i + 1] = (s[i] * 2 - s[j] + 2 + MOD) % MOD; // + MOD 避免算出负数
+        }
+        return s[n - 1];
     }
 };
 ```
