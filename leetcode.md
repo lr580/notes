@@ -1405,6 +1405,10 @@
 - 1997\.访问完所有房间的第一天
 
   前缀和优化DP
+  
+- 2908\.元素和最小的山形三元组I
+
+  前缀和
 
 ## 算法
 
@@ -40295,6 +40299,29 @@ public:
             s[i + 1] = (s[i] * 2 - s[j] + 2 + MOD) % MOD; // + MOD 避免算出负数
         }
         return s[n - 1];
+    }
+};
+```
+
+##### 2908\.元素和最小的山形三元组
+
+[题目](https://leetcode.cn/problems/minimum-sum-of-mountain-triplets-i/) [二倍经验2909](https://leetcode.cn/problems/minimum-sum-of-mountain-triplets-ii)
+
+前后缀和：
+
+```c++
+class Solution {
+public:
+    int minimumSum(vector<int>& nums) {
+        int n = nums.size(), mil = nums[0], ans = 1e9;
+        vector<int> mir(n, 1e8);
+        mir[n-1] = nums[n-1];
+        for(int i=n-2;i>=0;i--) mir[i] = min(mir[i+1], nums[i]);
+        for(int i=1;i<n-1;mil=min(mil, nums[i]), ++i) {
+            if(mil>=nums[i] || mir[i+1]>=nums[i]) continue;
+            ans = min(ans, nums[i] + mir[i+1] + mil);
+        }
+        return ans == 1e9 ? -1 : ans;
     }
 };
 ```
