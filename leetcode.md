@@ -1409,6 +1409,8 @@
 - 2908\.元素和最小的山形三元组I
 
   前缀和
+  
+- 2952\.需要添加的硬币的最小数量
 
 ## 算法
 
@@ -40325,4 +40327,50 @@ public:
     }
 };
 ```
+
+##### 2952\.需要添加的硬币的最小数量
+
+[题目](https://leetcode.cn/problems/minimum-number-of-coins-to-be-added)
+
+从小到大枚举硬币 $x$，设当前已经能拼凑出 $[1,cnt]$ 的硬币数。如果 $x\le cnt+1$，那么还是连续的，而且新的范围是前面连续的每个方案都选择它即 $[1,cnt+x]$。否则，不连续，先加上 $cnt+1$ 面额的硬币再说。
+
+```c++
+class Solution {
+public:
+    int minimumAddedCoins(vector<int>& coins, int target) {
+        long long cnt = 0, add = 0, i = 0, n = coins.size();
+        sort(coins.begin(), coins.end());
+        for(;cnt<target;) {
+            if(i<n&&coins[i]<=cnt+1) {
+                cnt += coins[i++];
+            }else{
+                ++add;
+                cnt+=cnt+1;
+            }
+        }
+        return add;
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    int minimumAddedCoins(vector<int> &coins, int target) {
+        ranges::sort(coins);
+        int ans = 0, s = 1, i = 0;
+        while (s <= target) {
+            if (i < coins.size() && coins[i] <= s) {
+                s += coins[i++];
+            } else {
+                s *= 2; // 必须添加 s
+                ans++;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+
 
