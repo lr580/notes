@@ -2395,6 +2395,8 @@ csvsimple 包 [官方文档](https://mirror.mwt.me/ctan/macros/latex/contrib/csv
 \end{center}
 ```
 
+> 矢量图使用 svg 宏包和 `\includesvg` 指令。还需要别的配置和安装，[参考](https://blog.csdn.net/weixin_45355094/article/details/133956844)
+
 进行图片编号，使用 figure 环境。用 `\caption` 表示图名。图名对齐指令是代码块 `[htbp]`。默认编号是图 `x`。
 
 > [浮动体](https://blog.csdn.net/m0_55746113/article/details/122792082) h此处,t顶端,b底端,p本页(按书写顺序)

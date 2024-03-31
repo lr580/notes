@@ -1412,6 +1412,12 @@
   
 - 2952\.需要添加的硬币的最小数量
 
+  贪心
+  
+- 331\.验证二叉树的前序序列化
+
+  DFS
+
 ## 算法
 
 ### 力扣其他
@@ -40368,6 +40374,102 @@ public:
             }
         }
         return ans;
+    }
+};
+```
+
+##### 331\.验证二叉树的前序序列化
+
+[题目](https://leetcode.cn/problems/verify-preorder-serialization-of-a-binary-tree/)
+
+DFS：
+
+```python
+class Solution:
+    def isValidSerialization(self, preorder: str) -> bool:
+        a=preorder.split(',')
+        p,n,ok=0,len(a),True
+        def dfs():
+            nonlocal ok,p
+            if p>=n:
+                ok=False
+                return
+            if a[p]=='#':
+                p+=1
+                return
+            p+=1
+            dfs()
+            dfs()
+        dfs()
+        return ok and p==n
+```
+
+栈：
+
+```c++
+class Solution {
+public:
+    bool isValidSerialization(string preorder) {
+        int n = preorder.length();
+        int i = 0;
+        stack<int> stk;
+        stk.push(1);
+        while (i < n) {
+            if (stk.empty()) {
+                return false;
+            }
+            if (preorder[i] == ',') {
+                i++;
+            } else if (preorder[i] == '#'){
+                stk.top() -= 1;
+                if (stk.top() == 0) {
+                    stk.pop();
+                }
+                i++;
+            } else {
+                // 读一个数字
+                while (i < n && preorder[i] != ',') {
+                    i++;
+                }
+                stk.top() -= 1;
+                if (stk.top() == 0) {
+                    stk.pop();
+                }
+                stk.push(2);
+            }
+        }
+        return stk.empty();
+    }
+};
+```
+
+优化成维护栈元素计数：
+
+```c++
+class Solution {
+public:
+    bool isValidSerialization(string preorder) {
+        int n = preorder.length();
+        int i = 0;
+        int slots = 1;
+        while (i < n) {
+            if (slots == 0) {
+                return false;
+            }
+            if (preorder[i] == ',') {
+                i++;
+            } else if (preorder[i] == '#'){
+                slots--;
+                i++;
+            } else {
+                // 读一个数字
+                while (i < n && preorder[i] != ',') {
+                    i++;
+                }
+                slots++; // slots = slots - 1 + 2
+            }
+        }
+        return slots == 0;
     }
 };
 ```
