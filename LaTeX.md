@@ -4060,7 +4060,33 @@ library `quotes`，将 node label 的输入从 `label={[<options>]<text>}` 简�
 \end{spacing}
 ```
 
+### 图表
 
+#### 编号
+
+```tex
+\counterwithin{figure}{section}
+\counterwithin{table}{section}
+\counterwithin{equation}{section}
+\renewcommand{\thefigure}{ \arabic{section}-\arabic{figure} }
+\renewcommand{\thetable}{ \arabic{section}-\arabic{table} }
+\renewcommand{\theequation}{ \arabic{section}-\arabic{equation} }
+```
+
+将图、表和公式的编号与章节号关联，并设置编号格式。例如，如果某图位于第2章且是该章的第1个图，则其编号为“ 2-1 ”。这通过 `\counterwithin` 命令实现，该命令将图表的编号重置为当前章节的编号。接着，通过 `\renewcommand` 修改 `\thefigure`、`\thetable` 和 `\theequation` 的默认显示格式，使之包含章节号和图表或公式在当前章节内的序号。
+
+> 附录额外格式：
+>
+> ```tex
+> \newcommand{\appendixformat}{
+>   \renewcommand\figurename{附图}
+>   \renewcommand\tablename{附表}
+>   \renewcommand{\thefigure}{\arabic{figure}}
+>   \renewcommand{\thetable}{\arabic{table}}
+> }
+> ```
+>
+> 
 
 ### 目录
 

@@ -1417,6 +1417,14 @@
 - 331\.验证二叉树的前序序列化
 
   DFS
+  
+- 2810\.故障键盘
+
+  STL
+  
+- P1314\.聪明的质监员
+
+  前缀和 三分/<u>二分</u>
 
 ## 算法
 
@@ -5812,6 +5820,124 @@ signed main() {
 > 3解：满足单调性，二分长度，对每个长度，cnt 数组维护所有颜色计数，并维护 s 为 cnt[i] = 1 的个数，若存在 s=长度，该长度可行
 >
 > 别人解：set+双指针即可
+
+#### 洛谷
+
+##### P1314\.聪明的质监员
+
+[题目](https://www.luogu.com.cn/problem/P1314)
+
+原式转化为前缀和，对每个 $y_i$ 的每个内层求和，结果值固定(与外层无关)，使用前缀和维护内层的 $sumv$，并维护外层的计数 $cnt$ 前缀和。即可 $O(1)$ 求每个 $y_i$。
+
+$y$ 随 $w$ 减少，则 $|y-s|$ 是单峰的凹函数。由于三分不能求有函数值连续相同的段的函数，注意到只有不同 $w_i$ 会改变 $y$，所以离散化三分要枚举的值设为 $w$。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+signed main() {
+    // freopen("P1314_4.in", "r", stdin);
+    ll n,m,s;
+    cin>>n>>m>>s;
+    vector<ll> w(n+1), v(n+1), a;
+    for(int i=1;i<=n;++i){
+        cin>>w[i]>>v[i];
+        a.emplace_back(w[i]);
+    }
+    a.emplace_back(1e9);//不加也能过
+    sort(a.begin(),a.end());
+    ll lf = 0;
+    ll rf = unique(a.begin(),a.end()) - a.begin();
+    vector<ll> l(m+1), r(m+1);
+    for(int i=1;i<=m;++i){
+        cin>>l[i]>>r[i];
+    }
+    auto getStd = [&](ll W) {
+        vector<ll> cs(n+1,0), ws(n+1,0);
+        for(int i=1;i<=n;++i){
+            cs[i]=cs[i-1]+(w[i]>=W);
+            ws[i]=ws[i-1]+(w[i]>=W?v[i]:0);
+        }
+        ll y=0;
+        for(int i=1;i<=m;++i){
+            ll cnt=cs[r[i]]-cs[l[i]-1],sumv=(ws[r[i]]-ws[l[i]-1]);
+            y+=cnt*sumv;
+        }
+        return abs(y-s);
+    };
+    ll ans = 9e18;
+    while(lf<rf){
+        ll tri = (rf-lf)/3;
+        ll lc=lf+tri, rc=rf-tri;
+        ll lv = getStd(a[lc]), rv = getStd(a[rc]);
+        ans=min({lv,rv,ans});
+        if(lv<rv) {
+            rf=rc-1;
+        } else {
+            lf=lc+1;
+        }
+    }
+    cout<<ans;
+    return 0;
+}
+```
+
+注意到 $y < s$ 时应当增大 $y$ 即减少 $w$；$y > s$ 时应当减小 $y$ 即增大 $w$，$y=s$ 时直接输出即可，可以根据 $y < s$ 与否来二分。
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+const int maxn=200010;
+int w[maxn],v[maxn],l[maxn],r[maxn];
+long long pre_n[maxn],pre_v[maxn];
+long long Y,s,sum;
+int n,m,mx=-1,mn=2147483647;
+bool check(int W)
+{	
+	Y=0,sum=0;
+	memset(pre_n,0,sizeof(pre_n));
+	memset(pre_v,0,sizeof(pre_v));
+	for(int i=1;i<=n;i++)
+	{
+		if(w[i]>=W) pre_n[i]=pre_n[i-1]+1,pre_v[i]=pre_v[i-1]+v[i];
+		else pre_n[i]=pre_n[i-1],pre_v[i]=pre_v[i-1];
+	}
+	for(int i=1;i<=m;i++)
+		Y+=(pre_n[r[i]]-pre_n[l[i]-1])*(pre_v[r[i]]-pre_v[l[i]-1]);
+		
+
+	sum=llabs(Y-s);
+	if(Y>s) return true;
+	else return false;
+	
+}
+int main(){
+//	freopen("qc.in","r",stdin);
+//	freopen("qc.out","w",stdout); 
+	scanf("%d %d %lld",&n,&m,&s); 
+	for(int i=1;i<=n;i++)
+	{
+		scanf(" %d %d",&w[i],&v[i]);
+		mx=max(mx,w[i]);
+		mn=min(mn,w[i]);	
+	}
+	for(int i=1;i<=m;i++)
+		scanf(" %d %d",&l[i],&r[i]);
+	int left=mn-1,right=mx+2,mid;  //这里有的人说要特判左右端点的check，但是其实你把left开成mn-1,right开成mx+2(注意取mx+1时即为W比所有都大，Y是0，这个情况要考虑，所以+2包含mx+1)就可以包含左右端点的check了，会简单点。
+	long long ans=0x3f3f3f3f3f3f3f3f;//ll 范围内的无穷大，近似于(maxll/2)的大小
+	while(left<=right)
+	{
+		mid=(left+right)>>1;
+		if(check(mid)) 	left=mid+1;
+		else right=mid-1;
+		if(sum<ans) ans=sum;
+	}
+	printf("%lld",ans);
+	return 0;
+} 
+```
+
+
 
 
 ### 力扣
@@ -40472,6 +40598,79 @@ public:
         return slots == 0;
     }
 };
+```
+
+##### 2810\.故障键盘
+
+[题目](https://leetcode.cn/problems/faulty-keyboard)
+
+我的 
+
+```c++
+class Solution {
+public:
+    string finalString(string s) {
+        deque<char> q;
+        bool reverse = false;
+        for (char& c : s) {
+            if(c == 'i') {
+                reverse ^= 1;
+            } else {
+                if(!reverse) {
+                    q.emplace_back(c);
+                } else {
+                    q.emplace_front(c);
+                }
+            }
+        }
+        string ans;
+        if (reverse) {
+            while(!q.empty()) {
+                ans.push_back(q.back());
+                q.pop_back();
+            }
+        }else {
+            while(!q.empty()) {
+                ans.push_back(q.front());
+                q.pop_front();
+            }
+        }
+        return ans;
+    }
+};
+```
+
+题解的：
+
+```c++
+class Solution {
+public:
+    string finalString(string s) {
+        deque<char> q;
+        bool tail = true;
+        for (char c : s) {
+            if (c == 'i') tail = !tail; // 修改添加方向
+            else if (tail) q.push_back(c); // 加尾部
+            else q.push_front(c); // 加头部
+        }
+        return tail ? string(q.begin(), q.end()) : string(q.rbegin(), q.rend());
+    }
+};
+```
+
+```python
+class Solution:
+    def finalString(self, s: str) -> str:
+        q = deque()
+        tail = True
+        for c in s:
+            if c == 'i':
+                tail = not tail  # 修改添加方向
+            elif tail:  # 加尾部
+                q.append(c)
+            else:  # 加头部
+                q.appendleft(c)
+        return ''.join(q if tail else reversed(q))
 ```
 
 

@@ -3810,6 +3810,8 @@ g = defaultdict(nd)
 
 `[]` 从左往右取下标
 
+支持 `reversed(q)`
+
 ##### priorityqueue
 
 `queue.PriorityQueue`类是一个线程安全的优先级队列实现。它提供了以下几个常用方法：
