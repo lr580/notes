@@ -1425,6 +1425,10 @@
 - P1314\.聪明的质监员
 
   前缀和 三分/<u>二分</u>
+  
+- 894\.所有可能的真二叉树
+
+  DP DFS <u>指针</u>
 
 ## 算法
 
@@ -40671,6 +40675,148 @@ class Solution:
             else:  # 加头部
                 q.appendleft(c)
         return ''.join(q if tail else reversed(q))
+```
+
+##### 894\.所有可能的真二叉树
+
+[题目](https://leetcode.cn/problems/all-possible-full-binary-trees/)
+
+可以得知，只有奇数个点数才有答案。令 $ans[i]$ 表示点数为 $i$ 的全体答案，则 $ans[i]$ 可以由全体 $(1,i-2),(3,i-4),\cdots,(i-2,1)$ 作为左右组合拼接而成。记忆化组合即可。
+
+该递推是卡特兰数，所以复杂度与卡特兰数有关，为 $O(2^K)$。
+
+```c++
+void copy(TreeNode *dest, TreeNode* src) {
+    dest->val = src->val;
+    if(src->left) {
+        dest->left = new TreeNode(0);
+        copy(dest->left, src->left);
+    }
+    if(src->right) {
+        dest->right = new TreeNode(0);
+        copy(dest->right, src->right);
+    }
+}
+vector<TreeNode*> ans[21];
+bool inited = false;
+void init() {
+    if(inited) {
+        return;
+    }
+    inited = true;
+    ans[1].emplace_back(new TreeNode(0));
+    for(int n=3;n<=19;++n) {
+        TreeNode* p = new TreeNode(0);
+        for(int ln=1,rn=n-2;ln<=n-2;ln+=2,rn-=2) {
+            for(TreeNode*l:ans[ln]) {
+                TreeNode*pl = new TreeNode(0);
+                copy(pl, l);
+                p->left = pl;
+                for(TreeNode*r:ans[rn]) {
+                    TreeNode*pr = new TreeNode(0);
+                    copy(pr, r);
+                    p->right = pr;
+                    TreeNode*q = new TreeNode(0);
+                    copy(q, p);
+                    ans[n].emplace_back(q);
+                }
+            }
+        }
+    }
+}
+class Solution
+{
+public:
+    vector<TreeNode *> allPossibleFBT(int n)
+    {
+        init();
+        return ans[n];
+    }
+};
+```
+
+击败 100%：
+
+```c++
+vector<TreeNode*> ans[21];
+bool inited = false;
+void init() {
+    if(inited) {
+        return;
+    }
+    inited = true;
+    ans[1].emplace_back(new TreeNode(0));
+    for(int n=3;n<=19;++n) {
+        for(int ln=1,rn=n-2;ln<=n-2;ln+=2,rn-=2) {
+            for(TreeNode*l:ans[ln]) {
+                for(TreeNode*r:ans[rn]) {
+                    TreeNode*p = new TreeNode(0);
+                    p->left = l;
+                    p->right = r;
+                    ans[n].emplace_back(p);
+                }
+            }
+        }
+    }
+}
+class Solution
+{
+public:
+    vector<TreeNode *> allPossibleFBT(int n)
+    {
+        init();
+        return ans[n];
+    }
+};
+```
+
+```java
+class Solution {
+    Map<Integer, List<TreeNode>> memo = new HashMap();
+
+    public List<TreeNode> allPossibleFBT(int N) {
+        if (!memo.containsKey(N)) {
+            List<TreeNode> ans = new LinkedList();
+            if (N == 1) {
+                ans.add(new TreeNode(0));
+            } else if (N % 2 == 1) {
+                for (int x = 0; x < N; ++x) {
+                    int y = N - 1 - x;
+                    for (TreeNode left: allPossibleFBT(x))
+                        for (TreeNode right: allPossibleFBT(y)) {
+                            TreeNode bns = new TreeNode(0);
+                            bns.left = left;
+                            bns.right = right;
+                            ans.add(bns);
+                        }
+                }
+            }
+            memo.put(N, ans);
+        }
+
+        return memo.get(N);
+    }
+}
+```
+
+```python
+class Solution(object):
+    memo = {0: [], 1: [TreeNode(0)]}
+
+    def allPossibleFBT(self, N):
+        if N not in Solution.memo:
+            ans = []
+            for x in xrange(N):
+                y = N - 1 - x
+                for left in self.allPossibleFBT(x):
+                    for right in self.allPossibleFBT(y):
+                        bns = TreeNode(0)
+                        bns.left = left
+                        bns.right = right
+                        ans.append(bns)
+            Solution.memo[N] = ans
+
+        return Solution.memo[N]
 ```
 
 
