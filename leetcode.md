@@ -1429,6 +1429,14 @@
 - 894\.所有可能的真二叉树
 
   DP DFS <u>指针</u>
+  
+- 2192\. 邮箱无向图中一个节点的所有祖先
+
+  DFS / 拓扑排序
+  
+- 1483\.树节点的第k个祖先
+
+  倍增
 
 ## 算法
 
@@ -40819,5 +40827,69 @@ class Solution(object):
         return Solution.memo[N]
 ```
 
+##### 2192\.邮箱无向图中一个节点的所有祖先
 
+[题目](https://leetcode.cn/problems/all-ancestors-of-a-node-in-a-directed-acyclic-graph/)
+
+```c++
+class Solution {
+public:
+    vector<vector<int>> getAncestors(int n, vector<vector<int>>& edges) {
+        vector<int> g[n];
+        for(auto&e:edges) {
+            int u=e[0],v=e[1];
+            g[u].emplace_back(v);
+        }
+        vector<vector<int>> ans(n);
+        int c=0;
+        function<void(int,int)> dfs=[&](int u,int f) {
+            for(auto&v:g[u]) {
+                if(v!=f) {
+                    if(!ans[v].size() || ans[v].back() != c) {
+                        ans[v].emplace_back(c);
+                        dfs(v,u);
+                    }
+                }
+            }
+        };
+        for(;c<n;++c) {
+            dfs(c,c);
+        }
+        return ans;
+    }
+};
+```
+
+class TreeAncestor {
+    vector<vector<int>> pa;
+public:
+    TreeAncestor(int n, vector<int> &parent) {
+        int m = 32 - __builtin_clz(n); // n 的二进制长度
+        pa.resize(n, vector<int>(m, -1));
+        for (int i = 0; i < n; i++)
+            pa[i][0] = parent[i];
+        for (int i = 0; i < m - 1; i++)
+            for (int x = 0; x < n; x++)
+                if (int p = pa[x][i]; p != -1)
+                    pa[x][i + 1] = pa[p][i];
+    }
+
+    int getKthAncestor(int node, int k) {
+        int m = 32 - __builtin_clz(k); // k 的二进制长度
+        for (int i = 0; i < m; i++) {
+            if ((k >> i) & 1) { // k 的二进制从低到高第 i 位是 1
+                node = pa[node][i];
+                if (node < 0) break;
+            }
+        }
+        return node;
+    }
+
+    // 另一种写法，不断去掉 k 的最低位的 1
+    int getKthAncestor2(int node, int k) {
+        for (; k && node != -1; k &= k - 1) // 也可以写成 ~node
+            node = pa[node][__builtin_ctz(k)];
+        return node;
+    }
+};
 
