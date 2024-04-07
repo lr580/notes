@@ -1441,6 +1441,10 @@
 - 1600\.王位继承顺序
 
   DFS
+  
+- 2009\.使数组连续的最少操作数
+
+  离散前缀和 / <u>滑动窗口</u>
 
 ## 算法
 
@@ -40965,6 +40969,64 @@ public:
 
         preorder(king);
         return ans;
+    }
+};
+```
+
+##### 2009\.使数组连续的最少操作数
+
+[题目](https://leetcode.cn/problems/minimum-number-of-operations-to-make-array-continuous)
+
+设 $s$ 是原数组的 set 化去重，对 $s$ 使用 map 维护离散前缀和，可以 $O(n\log n)$ 构建离散前缀和数组，并 $O(\log n)$ 地查询给定区间 $[l,r]$ 内有多少个互不相同的数。
+
+枚举 $s$ 的每个元素 $x$，查询得 $[x,x+n)$ 内有 $cnt$ 个互不相同的数，则如果最终目标区间为该区间，则还需要补充 $n-cnt$ 个元素，维护最小值即可。 
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    int minOperations(vector<int>& nums) {
+        map<int,int> m;
+        int c=0,n=nums.size(),ans=n;
+        set<int> s(nums.begin(),nums.end());
+        for(auto&v:s) {
+            m[v]=c++;//离散前缀和
+        }
+        m[0]=0,m[2e9]=c;
+        auto ahead = [&](int v) {
+            auto it = m.upper_bound(v);
+            return (--it)->second;
+        };
+        for(auto&vl:s) {
+            int sl = ahead(vl-1), sr = ahead(vl+n-1);
+            int cnt=sr-sl;//[vl,vl+n)内有几个互不相同的数
+            ans=min(ans,n-cnt);
+        }
+        return ans;
+    }
+};
+```
+
+当然也可以用动态开点线段树来做，略。
+
+可以使用滑动窗口，同样的思路。
+
+```c++
+class Solution {
+public:
+    int minOperations(vector<int> &nums) {
+        int n = nums.size();
+        ranges::sort(nums);
+        nums.erase(unique(nums.begin(), nums.end()), nums.end()); // 原地去重
+        int ans = 0, left = 0;
+        for (int i = 0; i < nums.size(); i++) {
+            while (nums[left] < nums[i] - n + 1) { // nums[left] 不在窗口内
+                left++;
+            }
+            ans = max(ans, i - left + 1);
+        }
+        return n - ans;
     }
 };
 ```
