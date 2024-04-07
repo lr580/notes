@@ -1437,6 +1437,10 @@
 - 1483\.树节点的第k个祖先
 
   倍增
+  
+- 1600\.王位继承顺序
+
+  DFS
 
 ## 算法
 
@@ -40884,7 +40888,7 @@ public:
         }
         return node;
     }
-
+    
     // 另一种写法，不断去掉 k 的最低位的 1
     int getKthAncestor2(int node, int k) {
         for (; k && node != -1; k &= k - 1) // 也可以写成 ~node
@@ -40892,4 +40896,76 @@ public:
         return node;
     }
 };
+
+##### 1600\.王位继承顺序
+
+[题目](https://leetcode.cn/problems/throne-inheritance)
+
+```c++
+class ThroneInheritance {
+    unordered_set<string> dead;
+    unordered_map<string, vector<string>> sons;
+    string kingName;
+public:
+    ThroneInheritance(string kingName) : kingName(kingName) {}
+    
+    void birth(string parentName, string childName) {
+        sons[parentName].emplace_back(childName);
+    }
+    
+    void death(string name) {
+        dead.insert(name);
+    }
+    
+    vector<string> getInheritanceOrder() {
+        vector<string> ans;
+        function<void(const string&)> dfs = [&](const string&u) {
+            if(!dead.count(u)) ans.emplace_back(u);
+            for(auto&v:sons[u]) dfs(v);
+        };
+        dfs(kingName);
+        return ans;
+    }
+};
+```
+
+move：
+
+```c++
+class ThroneInheritance {
+private:
+    unordered_map<string, vector<string>> edges;
+    unordered_set<string> dead;
+    string king;
+
+public:
+    ThroneInheritance(string kingName): king{move(kingName)} {}
+    
+    void birth(string parentName, string childName) {
+        edges[move(parentName)].push_back(move(childName));
+    }
+    
+    void death(string name) {
+        dead.insert(move(name));
+    }
+    
+    vector<string> getInheritanceOrder() {
+        vector<string> ans;
+
+        function<void(const string&)> preorder = [&](const string& name) {
+            if (!dead.count(name)) {
+                ans.push_back(name);
+            }
+            if (edges.count(name)) {
+                for (const string& childName: edges[name]) {
+                    preorder(childName);
+                }
+            }
+        };
+
+        preorder(king);
+        return ans;
+    }
+};
+```
 
