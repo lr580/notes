@@ -1445,6 +1445,10 @@
 - 2009\.使数组连续的最少操作数
 
   离散前缀和 / <u>滑动窗口</u>
+  
+- 2529\.正整数和负整数的最大计数
+
+  二分
 
 ## 算法
 
@@ -41027,6 +41031,21 @@ public:
             ans = max(ans, i - left + 1);
         }
         return n - ans;
+    }
+};
+```
+
+##### 2529\.正整数和负整数的最大计数
+
+[题目](https://leetcode.cn/problems/maximum-count-of-positive-integer-and-negative-integer)
+
+```c++
+class Solution {
+public:
+    int maximumCount(vector<int>& nums) {
+        int x=lower_bound(nums.begin(),nums.end(),1)-nums.begin();
+        int y=lower_bound(nums.begin(),nums.end(),0)-nums.begin()-1;
+        return max(y+1,(int)nums.size()-x);
     }
 };
 ```
