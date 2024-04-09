@@ -1449,6 +1449,10 @@
 - 2529\.正整数和负整数的最大计数
 
   二分
+  
+- 1702\.修改后的最大二进制字符串
+
+  贪心 构造
 
 ## 算法
 
@@ -41048,5 +41052,25 @@ public:
         return max(y+1,(int)nums.size()-x);
     }
 };
+```
+
+##### 1702\.修改后的最大二进制字符串
+
+[题目](https://leetcode.cn/problems/maximum-binary-string-after-change/)
+
+从左往右见到一个 0 贪心地尝试转化为 1，只要场上还有两个 0 一定能做到，可以不断操作 2 来把 1 向右移动。其结果一定是把所有 0 移动到第一个 0 的位置形成连续 0 串，然后把这个 0 串不断从左执行操作 1 变成 1 串剩一个 0。
+
+所以结论为：设前缀 1 长度为 $n1$，0 的数目为 $n0$，则答案为 $n1+n0-1$ 个 1 加上 1 个 0 加上剩下的 1。
+
+```python
+class Solution:
+    def maximumBinaryString(self, binary: str) -> str:
+        n = len(binary)
+        n0 = binary.count('0')
+        if n0 <= 1:
+            return binary
+        n1pre = binary.find('0')
+        pre = n1pre + n0 - 1
+        return pre*'1'+'0'+(n-pre-1)*'1'
 ```
 

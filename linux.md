@@ -5719,6 +5719,25 @@ scp .\DuLa-Net-master.zip root@121.37.165.73:/root
 scp -P 10022 root@218.192.110.159:/root/647.txt .
 ```
 
+### 中文输入
+
+可能 sudo
+
+看看 `locale`，如果没有 `zh_CN.UTF-8"`，则：
+
+```sh
+nano /etc/locale.gen
+```
+
+取消注释文件的这一行：`# zh_CN.UTF-8 UTF-8`
+
+```sh
+locale-gen
+update-locale LANG=zh_CN.UTF-8
+```
+
+然后重新登陆
+
 
 
 ### XSHELL
