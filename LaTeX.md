@@ -2480,7 +2480,38 @@ csvsimple 包 [官方文档](https://mirror.mwt.me/ctan/macros/latex/contrib/csv
 
 若并排但共享一个大标题，各有自己的子标题，在 `figure` 环境使用 `subfig` 宏包，使用 `\subfloat[子标题]{多行\label{} \includegraphics}` 命令。
 
-
+> 一左，两右：
+>
+> ```latex
+> \begin{figure}[htbp]
+>     \centering
+>     \begin{minipage}[b]{0.48\textwidth}
+>         \centering
+>         \includegraphics[scale=0.65]{imgs/yolo8cls_structure.png}
+>         \caption{YOLOv8-cls 模型主干部分结构图\cite{yolov8_ultralytics}}
+>         \label{fig_yolo8cls_structure}
+>     \end{minipage}
+>     \hfill
+>     \begin{minipage}[b]{0.48\textwidth}
+>         \begin{minipage}[b]{\textwidth}
+>             \centering
+>             \includegraphics[scale=0.65]{imgs/conv_structure.png}
+>             \caption{Conv 模块结构图\cite{yolov8_ultralytics}}
+>             \label{fig_conv_structure}
+>             \vspace{1cm}
+>         \end{minipage}
+>         \vfill
+>         \begin{minipage}[b]{\textwidth}
+>             \centering
+>             \includegraphics[scale=0.65]{imgs/classify_structure.png}
+>             \caption{Classify 模块结构图\cite{yolov8_ultralytics}}
+>             \label{fig_classify_structure}
+>         \end{minipage}
+>     \end{minipage}
+> \end{figure}
+> ```
+>
+> 
 
 #### 字体
 
@@ -3042,6 +3073,8 @@ font awesome [参考](https://blog.csdn.net/zzq060143/article/details/89380160) 
 
 - `\hfill` 当前行若干个 fill 里平均分配空白，直到填满
 
+  同理有 `\vfill,\vspace`
+
 - `\phantom{1cm}`
 
 
@@ -3273,13 +3306,13 @@ bm 宏包 `\bm{}` 对数学内容进行加粗。对数学公式里常规文本�
 
 
 
-### PPT
+## PPT
 
 使用 beamer。
 
 > 或 `\documentclass{ctexbeamer}`
 
-#### 基本概念
+### 基本概念
 
 每个 ppt 的 slide 的框架为：[参考](https://zhuanlan.zhihu.com/p/134659249) (外部元素)
 
@@ -3298,9 +3331,9 @@ beamer通过预定义了一些不同风格的页眉页脚和侧边栏和块。�
 
 一个完整的beamer主题包含outer，inner，font和color四部分的风格。主题大全在线预览 [在这里](https://hartwork.org/beamer-theme-matrix/)。而所有这些主题(theme)均来自内置的outertheme、innertheme、colortheme和fonttheme, 外加一些微调实现。(具体指令见 `主题` 节)
 
-#### 基本格式
+### 基本格式
 
-##### 入门
+#### 入门
 
 [参考入门教程](https://www.jianshu.com/p/711acca9dbb5)
 
@@ -3348,7 +3381,7 @@ beamer通过预定义了一些不同风格的页眉页脚和侧边栏和块。�
 
 
 
-##### 标题
+#### 标题
 
 [参考](https://baijiahao.baidu.com/s?id=1688776959310607378&wfr=spider&for=pc)
 
@@ -3370,7 +3403,7 @@ frame 里使用 `\titlepage` 生成标题页(不算第一页)，在 item 里。�
 
 
 
-##### 目录
+#### 目录
 
 作用是添加标签，即 pdf 的像电子书一样的点击跳转目录；并且可以生成单独的目录页。在每个 frame 前面使用 section，在一个 frame 里用 tableofcontents。
 
@@ -3442,7 +3475,7 @@ frame 里使用 `\titlepage` 生成标题页(不算第一页)，在 item 里。�
 
 
 
-##### 内环境
+#### 内环境
 
 默认是英文的。可以改成中文的，自定义内环境，如：
 
@@ -3495,7 +3528,7 @@ frame 里使用 `\titlepage` 生成标题页(不算第一页)，在 item 里。�
 
 
 
-##### 分栏
+#### 分栏
 
 在 frame 里用 columns 大环境，其再套 column 子环境，大括号写参数为宽度，通常用 `\textwidth` 等分。
 
@@ -3541,7 +3574,7 @@ frame 里使用 `\titlepage` 生成标题页(不算第一页)，在 item 里。�
 
 
 
-##### 代码块
+#### 代码块
 
 需要用 fragile。
 
@@ -3572,9 +3605,9 @@ signed main() /* 注释 */
 
 
 
-#### 主题
+### 主题
 
-##### 使用
+#### 使用
 
 默认主题：
 
@@ -3674,7 +3707,7 @@ signed main() /* 注释 */
 
 
 
-### 绘图
+## 绘图
 
 [参考](https://zhuanlan.zhihu.com/p/127155579)
 
@@ -3682,7 +3715,7 @@ signed main() /* 注释 */
 
 要绘图时，具体绘图指令放 `\tikz` 后边或 `tikzpicture` 代码块里
 
-#### 基本图形对象
+### 基本图形对象
 
 如果要绘制直线，直接连接坐标即可。如下面是一条折线(√的形状)：
 
@@ -3751,7 +3784,7 @@ signed main() /* 注释 */
 \draw [help lines ,step=20pt] (4,0) grid (7,2);
 ```
 
-#### 图形控制
+### 图形控制
 
 箭头：
 
@@ -3836,7 +3869,7 @@ dline/.style ={color = blue, line width =2pt}
 
 
 
-#### 节点
+### 节点
 
 先设置一个属性：
 
@@ -3890,11 +3923,11 @@ draw=blue %边框颜色}
 
 
 
-#### 流程图
+### 流程图
 
-##### 例子
+#### 例子
 
-###### 入门
+##### 入门
 
 ```tex
 \documentclass{article}
@@ -3940,7 +3973,7 @@ draw=blue %边框颜色}
 
 
 
-###### 简化arrow
+##### 简化arrow
 
 ```tex
 \documentclass{article}
@@ -3970,7 +4003,7 @@ library `quotes`，将 node label 的输入从 `label={[<options>]<text>}` 简�
 
 
 
-###### 复杂流程图案例
+##### 复杂流程图案例
 
 [参考](https://blog.csdn.net/AnInteretedName/article/details/104453770)
 

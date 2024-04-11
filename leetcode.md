@@ -1453,6 +1453,10 @@
 - 1702\.修改后的最大二进制字符串
 
   贪心 构造
+  
+- 1766\.互质树
+
+  DFS
 
 ## 算法
 
@@ -41072,5 +41076,113 @@ class Solution:
         n1pre = binary.find('0')
         pre = n1pre + n0 - 1
         return pre*'1'+'0'+(n-pre-1)*'1'
+```
+
+##### 1766\.互质树
+
+[题目](https://leetcode.cn/problems/tree-of-coprimes/)
+
+直接存储所有值的最大深度父亲：
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    vector<int> getCoprimes(vector<int>& nums, vector<vector<int>>& edges) {
+        int n = nums.size();
+        vector<vector<int>> g(n);
+        for (auto& e : edges) {
+            int u = e[0], v = e[1];
+            g[u].emplace_back(v);
+            g[v].emplace_back(u);
+        }
+        vector<vector<int>> fi(n, vector<int>(51, -1));
+        vector<vector<int>> fd(n, vector<int>(51, -1));
+        vector<int> ans(n, -1);
+        function<void(int,int,int)> dfs = [&](int u, int fa, int d) {
+            for(int v = 1; v<=50; ++v) {
+                fd[u][v]=fd[fa][v], fi[u][v]=fi[fa][v];
+            }
+            fd[u][nums[fa]] = d, fi[u][nums[fa]] = fa;
+            int mind = d+1, uans = -1;
+            for(int v = 1; v<=50; ++v) {
+                if(__gcd(v, nums[u]) == 1 && fd[u][v] < mind && fi[u][v] != u) {
+                    mind = fd[u][v], uans = fi[u][v];
+                }
+            }
+            ans[u] = uans;
+            for (int v : g[u]) {
+                if (v != fa) {
+                    dfs(v, u, d + 1);
+                }
+            }
+        };
+        dfs(0,0,0);
+        return ans;
+    }
+};
+```
+
+可以空间优化，每次遍历刚好是一条父亲链：
+
+```c++
+const int MX = 51;
+vector<int> coprime[MX];
+
+auto init = [] {
+    // 预处理：coprime[i] 保存 [1, MX) 中与 i 互质的所有元素
+    for (int i = 1; i < MX; i++) {
+        for (int j = 1; j < MX; j++) {
+            if (gcd(i, j) == 1) {
+                coprime[i].push_back(j);
+            }
+        }
+    }
+    return 0;
+}();
+
+class Solution {
+    vector<vector<int>> g;
+    vector<int> ans;
+    pair<int, int> val_depth_id[MX]; // 包含深度和节点编号
+
+    void dfs(int x, int fa, int depth, vector<int> &nums) {
+        int val = nums[x]; // x 的节点值
+        // 计算与 val 互质的数中，深度最大的节点编号
+        int max_depth = 0;
+        for (int j : coprime[val]) {
+            auto [depth, id] = val_depth_id[j];
+            if (depth > max_depth) {
+                max_depth = depth;
+                ans[x] = id;
+            }
+        }
+
+        auto tmp = val_depth_id[val]; // 用于恢复现场
+        val_depth_id[val] = {depth, x}; // 保存 val 对应的节点深度和节点编号
+        for (int y : g[x]) {
+            if (y != fa) {
+                dfs(y, x, depth + 1, nums);
+            }
+        }
+        val_depth_id[val] = tmp; // 恢复现场
+    }
+
+public:
+    vector<int> getCoprimes(vector<int> &nums, vector<vector<int>> &edges) {
+        int n = nums.size();
+        g.resize(n);
+        for (auto &e : edges) {
+            int x = e[0], y = e[1];
+            g[x].push_back(y);
+            g[y].push_back(x);
+        }
+
+        ans.resize(n, -1);
+        dfs(0, -1, 1, nums);
+        return ans;
+    }
+};
 ```
 
