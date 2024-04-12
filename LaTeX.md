@@ -3105,6 +3105,14 @@ units 包，分子左上角，分母右下角，一条斜杠，高度正常高�
 
 自动编号的数学公式： `equation` 代码块。只能放无空行的一行公式。不编号可以在代码块内写 `\nonumber` 或使用 `equation*`。
 
+> ```latex
+> \begin{equation}
+>   E = mc^2
+>   \label{eq:emc} %显示 (1)
+> \end{equation}
+> 如公式 \ref{eq:emc} 所示 %显示1
+> ```
+
 使用 `\label{标签名}` 和 `\eqref{标签名}` 进行引用公式。
 
 `align` 代码块可以进行对齐，使用 `&`。也会自动编号，不想的话使用 `\nonumber` 或 `\notag`。

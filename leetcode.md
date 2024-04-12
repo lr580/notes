@@ -1457,6 +1457,10 @@
 - 1766\.互质树
 
   DFS
+  
+- 2924\.找到冠军II
+
+  图论/签到
 
 ## 算法
 
@@ -41184,5 +41188,42 @@ public:
         return ans;
     }
 };
+```
+
+##### 2924\.找到冠军II
+
+[题目](https://leetcode.cn/problems/find-champion-ii)
+
+```python
+class Solution:
+    def findChampion(self, n: int, edges: List[List[int]]) -> int:
+        ru = [0] * n
+        for e in edges:
+            ru[e[1]] += 1
+        sum0, ans = 0, -1
+        for i in range(n):
+            if ru[i] == 0:
+                ans = i
+                sum0 += 1
+        return ans if sum0 == 1 else -1
+```
+
+常数优化：sum 不为 1 直接 return
+
+```python
+class Solution:
+    def findChampion(self, n: int, edges: List[List[int]]) -> int:
+        is_weak = [False] * n
+        for _, y in edges:
+            is_weak[y] = True  # 不是冠军
+
+        ans = -1
+        for i, weak in enumerate(is_weak):
+            if weak:
+                continue
+            if ans != -1:
+                return -1  # 冠军只能有一个
+            ans = i
+        return ans
 ```
 

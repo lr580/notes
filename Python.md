@@ -7652,6 +7652,8 @@ plt.show()
 
 图表预设定：(必须放在绘图，如scatter之前)
 
+图的大小：(宽、高)
+
 ```python
 plt.figure(figsize=(10,5))
 plt.figure(figsize=(10,5),dpi=128) #改单位
@@ -8080,6 +8082,8 @@ plt.ylim([0, 700])
 
 ```python
 plt.text(20, 30, text4, fontsize=100)
+plt.xlabel('下标值 i',fontsize=11)
+plt.ylabel('函数值 softmax(x_i/T)',fontsize=11)
 ```
 
 dpi 越高，字体辨认越好，建议 100
