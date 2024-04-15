@@ -2401,7 +2401,7 @@ csvsimple 包 [官方文档](https://mirror.mwt.me/ctan/macros/latex/contrib/csv
 
 > [浮动体](https://blog.csdn.net/m0_55746113/article/details/122792082) h此处,t顶端,b底端,p本页(按书写顺序)
 
-若有 `\label{标签名}`，可以用 `\ref{标签名}` 引用图片，显示图片标号。疑似引用需要二次编译才有效。如：
+若有 `\label{标签名}`，可以用 `\ref{标签名}` 引用图片，显示图片标号。疑似引用需要二次编译才有效。标签可以包含冒号，不能包含空格和latex使用的特殊符号如括号。如：
 
 ```tex
 \newpage

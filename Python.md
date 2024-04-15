@@ -3882,7 +3882,29 @@ print(counter1 + counter2)  # 相加: Counter({'a': 4, 'b': 3})
 print(counter1 - counter2)  # 相减: Counter({'a': 2})
 ```
 
+##### namedtuple
 
+```python
+# 一个类似于类的 Person，有三个属性
+Person = namedtuple('Person', 'name age gender') # type(Person)是type
+
+bob = Person(name="Bob", age=30, gender="Male") #type是Person
+print(bob.name)   # 输出: Bob
+print(bob[1])     # 输出: 30
+```
+
+1. 不可变性：`namedtuple` 的实例是不可变的，这意味着创建后，你不能更改其字段的值。这提供了数据的一致性。
+2. 内存效率：与常规类对象相比，`namedtuple` 占用的内存更少。
+
+> - `_fields`：是一个包含这个 `namedtuple` 所有字段名称的元组。
+> - `_asdict()`：返回一个 `OrderedDict` (dict)，按照它们被创建时的顺序包含 `namedtuple` 的字段和值。
+> - `_replace()`：创建一个新的 `namedtuple` 实例，替换指定的一些字段。
+>
+> ```python
+> print(bob._fields)  # 输出: ('name', 'age', 'gender')
+> new_bob = bob._replace(name="Robert")
+> print(new_bob.name)  # 输出: Robert
+> ```
 
 #### math
 
@@ -6175,6 +6197,25 @@ np.linspace(a,b,k)
 
 查看：`.dtype`
 
+> 如 `<U7` 数据类型：`<` 小端存储，`U` Unicode 字符串，`7` 最大字符数
+>
+> ```python
+> import numpy as np
+> data_type = np.dtype([('Name', 'U10'), ('Age', 'i4'), ('Height', 'f4')])
+> # U10表示最多10个字符的Unicode字符串，i4表示4字节的整数，f4表示4字节的浮点数
+> people_data = np.array([('Alice', 31, 160.5), ('Bob', 28, 175.0), ('Charlie', 35, 168.3)], dtype=data_type)
+> print(people_data) #array([('Alice', 31, 160.5), ('Bob', 28, 175. ), ('Charlie', 35, 168.3)], dtype=[('Name', '<U10'), ('Age', '<i4'), ('Height', '<f4')])
+> print("Names:", people_data['Name']) #['Alice' 'Bob' 'Charlie']
+> print("Ages:", people_data['Age']) #[31 28 35]
+> print("Heights:", people_data['Height']) #[160.5 175.  168.3]
+> ```
+>
+> ```python
+> string_array = np.array(['Hello', 'World', '12345', 'ABCDE'], dtype=np.dtype('U5'))
+> ```
+>
+> 
+
 ##### 大小
 
 `.size` 元素数
@@ -6325,6 +6366,17 @@ return oneHot # labels : N dimensional 1D array
 ```
 
 其中 arange 是 0,1,2, ... ,size-1 的整型 np 数组
+
+> 做映射：
+>
+> ```python
+> #wine_dataset.target_names
+> #array(['class_0', 'class_1', 'class_2'], dtype='<U7')
+> # predict_1 是下标数组
+> print(wine_dataset["target_names"][predict_1])
+> ```
+
+
 
 ##### 遍历
 
@@ -6779,6 +6831,24 @@ def depth_percentage(arr):
         depth_pct = 100 * (2 * z) / (x + y)
         depth_pct[np.isinf(depth_pct)] = np.nan  # 将无限值替换为nan
     return depth_pct
+```
+
+##### argsort
+
+返回排序后的索引下标
+
+```python
+arr = np.array([3, 1, 2])
+indices = np.argsort(arr) # 输出 array([1, 2, 0], dtype=int64)
+```
+
+##### bincount
+
+统计一个数组中各个非负整数值的出现次数，返回一个数组，其中的索引对应整数值，值对应这个整数值出现的次数。注意，`np.bincount` 只适用于非负整数数组。
+
+```python
+arr = np.array([0, 1, 1, 3, 2, 1, 7])
+count = np.bincount(arr) #array([1, 3, 1, 1, 0, 0, 0, 1], dtype=int64)
 ```
 
 
@@ -7450,6 +7520,56 @@ X = np.column_stack((np.ones(x_squared.shape), x_squared))
 coefficients = np.linalg.inv(X.T @ X) @ X.T @ y
 w_0, w_1 = coefficients
 print(w_0, w_1) #1.0555555555555551 0.9814814814814814
+```
+
+##### KNN
+
+```python
+#encoding=utf8
+import numpy as np
+
+class kNNClassifier(object):
+    def __init__(self, k):
+        '''
+        初始化函数
+        :param k:kNN算法中的k
+        '''
+        self.k = k
+        # 用来存放训练数据，类型为ndarray
+        self.train_feature = None
+        # 用来存放训练标签，类型为ndarray
+        self.train_label = None
+
+    def fit(self, feature, label):
+        '''
+        kNN算法的训练过程
+        :param feature: 训练集数据，类型为ndarray
+        :param label: 训练集标签，类型为ndarray
+        :return: 无返回
+        '''
+        self.train_feature = feature
+        self.train_label = label
+
+    def predict(self, feature):
+        '''
+        kNN算法的预测过程
+        :param feature: 测试集数据，类型为ndarray
+        :return: 预测结果，类型为ndarray或list
+        '''
+
+        predictions = []
+        # 对每个测试数据点进行预测
+        for test_point in feature:
+            # 计算测试点与所有训练点的距离
+            distances = np.sqrt(np.sum((self.train_feature - test_point) ** 2, axis=1))
+            # 获取最近的 k 个点的索引
+            k_nearest_neighbors = np.argsort(distances)[:self.k]
+            # 获取这些最近点的标签
+            k_nearest_labels = self.train_label[k_nearest_neighbors]
+            # 选择出现最频繁的标签作为预测结果
+            most_common = np.bincount(k_nearest_labels).argmax()
+            predictions.append(most_common)
+        return np.array(predictions)
 ```
 
 
@@ -11413,16 +11533,30 @@ def tree_reg_perf(galton):
 ```
 
 1. **`criterion`**：用于测量分割质量的函数。对于分类树（`DecisionTreeClassifier`），常见的选择有 `"gini"`（基尼不纯度）和 `"entropy"`（信息增益）。对于回归树（`DecisionTreeRegressor`），常用的是 `"mse"`（均方误差）和 `"friedman_mse"`。
+
+   ID3 算法：信息增益、C4.5 算法：信息增益比、CART 算法：基尼系数
+
 2. **`splitter`**：选择分割节点的策略。可以是 `"best"`（选择最佳分割）或 `"random"`（随机分割）。
+
 3. **`max_depth`**：树的最大深度。这个参数可以用来控制过拟合，因为更深的树会学习到数据中的细节和噪声。
+
 4. **`min_samples_split`**：分割内部节点所需的最小样本数。这可以是整数（最小样本量）或浮点数（代表百分比）。
+
 5. **`min_samples_leaf`**：在叶节点上所需的最小样本数。这同样可以是整数或浮点数。
+
 6. **`min_weight_fraction_leaf`**：叶节点所需的样本权重总和的最小加权分数。
+
 7. **`max_features`**：寻找最佳分割时要考虑的特征数量。可以是整数、浮点数、字符串（如 `"auto"`、`"sqrt"` 或 `"log2"`）或 `None`。
+
 8. **`random_state`**：控制随机性的种子。它在参数为 `"random"` 时选择分割器，或者在选择特征进行分割时。
+
 9. **`max_leaf_nodes`**：最大叶节点数。
+
 10. **`min_impurity_decrease`**：如果分割导致不纯度的减少大于或等于这个值，则该分割将会发生。
+
 11. **`class_weight`**：类别权重，用于处理不平衡的分类问题。
+
+决策树根节点代表最优特征；ID3/C4.5 可以是多叉树
 
 ##### 决策树分类
 
@@ -11481,6 +11615,26 @@ from sklearn.neighbors import KNeighborsRegressor
 ```
 
 对决策树回归的误差衡量例子，把 `tree=` 行换成：`knn = KNeighborsRegressor(n_neighbors=k)`。
+
+> ```python
+> from sklearn.neighbors import KNeighborsClassifier
+> from sklearn.datasets import make_blobs
+> 
+> x, y = make_blobs(n_samples=500, centers=5, random_state=8)
+> clf = KNeighborsClassifier().fit(x, y) # clf 是KNeighborsClassifier() 
+> 
+> print("模型评估：{:.2f}".format(clf.score(x, y)))#准确率
+> print(clf.predict([[1, 1]])) #[4]
+> print(clf.predict([[5, 5]]))
+> print(clf.predict([[10, 10]]))
+> ```
+
+> ```python
+> clf = KNeighborsClassifier(n_neighbors=5)
+> clf.fit(x_train, y_train)
+> ```
+
+
 
 ##### 随机森林
 
@@ -11982,7 +12136,43 @@ print(predictions)  # 打印预测结果
 
 ```python
 from sklearn.datasets import make_blobs
-X, y = make_blobs(n_samples=100, centers=2, n_features=2, random_state=0)
+X, y = make_blobs(n_samples=100, centers=2, n_features=2, random_state=0) # X 的维度是2，有2个类，共100个点
+```
+
+##### 酒
+
+```python
+from sklearn.datasets import load_wine 
+wine_dataset = load_wine() 
+# 可以取 .data 的 ndarray 和 .target 和 .target_names 的 nd 数组
+wine_dataset.data.shape # (178, 13)
+wine_dataset.target_names
+# array(['class_0', 'class_1', 'class_2'], dtype='<U7')
+```
+
+##### 花
+
+Iris 数据集包含了150个样本，分别属于三种不同的鸢尾花（Iris）种类：Setosa、Versicolour 和 Virginica。每类 50 个。
+
+Iris 数据集的每个样本包含四个特征，它们是：
+
+1. 萼片长度（sepal length）
+2. 萼片宽度（sepal width）
+3. 花瓣长度（petal length）
+4. 花瓣宽度（petal width）
+
+这些特征都是以厘米为单位的连续数值。
+
+```python
+from sklearn.datasets import load_iris
+data = load_iris()
+X = data.data          # 特征数组
+y = data.target        # 目标类别数组
+target_names = data.target_names  # 类别名称
+feature_names = data.feature_names  # 特征名称
+print("特征名称:", feature_names)
+print("前五个样本的特征数据:\n", X[:5])
+print("前五个样本的目标类别:", y[:5])
 ```
 
 

@@ -1461,6 +1461,10 @@
 - 2924\.找到冠军II
 
   图论/签到
+  
+- 924\.尽量减少恶意软件的传播
+
+  BFS / <u>连通分量(DFS/并查集)</u>
 
 ## 算法
 
@@ -41225,5 +41229,186 @@ class Solution:
                 return -1  # 冠军只能有一个
             ans = i
         return ans
+```
+
+##### 924\.尽量减少恶意软件的传播
+
+[题目](https://leetcode.cn/problems/minimize-malware-spread/)
+
+暴力删点然后暴力检查，$O(n^3)$：
+
+```c++
+class Solution {
+public:
+    int minMalwareSpread(vector<vector<int>>& graph, vector<int>& initial) {
+        int n = graph.size(), m = initial.size();
+        vector<vector<int>> g(n);
+        for(int i=0;i<n;++i) {
+            for(int j=0;j<n;++j) {
+                if(i!=j&&graph[i][j]) 
+                    g[i].push_back(j);
+            }
+        }
+        int ans, minM = n + 1;
+        for(int i=0;i<m;++i) {
+            int s = 0;
+            vector<bool> vis(n, false);
+            queue<int> q;
+            for(int j=0;j<m;++j) {
+                if(i==j) continue; // to delete
+                q.push(initial[j]);
+            }
+            while(!q.empty()) {
+                int u = q.front();
+                q.pop();
+                if(vis[u]) continue;
+                vis[u] = true;
+                ++s;
+                for(int &v: g[u]) {
+                    if(!vis[v]) q.push(v);
+                }
+            }
+            if(s<minM || (s==minM && initial[i] < ans)) {
+                minM = s, ans = initial[i];
+            }
+        }
+        return ans;
+    }
+};
+```
+
+- 用 DFS/并查集标记连通分量，求各分量的大小
+
+- 如果某个分量只有一个污染点，去掉该污染点这个分量就不会被污染；如果有多个污染点没救了
+
+  找到点数最多的只有一个污染点的分量，删掉它最好
+
+- 如果每个污染点所在的分量都有至少两个污染点，直接选权最小的点即可
+
+$O(n^2)$。
+
+```java
+class Solution {
+    public int minMalwareSpread(int[][] graph, int[] initial) {
+        // 1. Color each component.
+        // colors[node] = the color of this node.
+
+        int N = graph.length;
+        int[] colors = new int[N];
+        Arrays.fill(colors, -1);
+        int C = 0;
+
+        for (int node = 0; node < N; ++node)
+            if (colors[node] == -1)
+                dfs(graph, colors, node, C++);
+
+        // 2. Size of each color.
+        int[] size = new int[C];
+        for (int color: colors)
+            size[color]++;
+
+        // 3. Find unique colors.
+        int[] colorCount = new int[C];
+        for (int node: initial)
+            colorCount[colors[node]]++;
+
+        // 4. Answer
+        int ans = Integer.MAX_VALUE;
+        for (int node: initial) {
+            int c = colors[node];
+            if (colorCount[c] == 1) {
+                if (ans == Integer.MAX_VALUE)
+                    ans = node;
+                else if (size[c] > size[colors[ans]])
+                    ans = node;
+                else if (size[c] == size[colors[ans]] && node < ans)
+                    ans = node;
+            }
+        }
+
+        if (ans == Integer.MAX_VALUE)
+            for (int node: initial)
+                ans = Math.min(ans, node);
+
+        return ans;
+    }
+
+    public void dfs(int[][] graph, int[] colors, int node, int color) {
+        colors[node] = color;
+        for (int nei = 0; nei < graph.length; ++nei)
+            if (graph[node][nei] == 1 && colors[nei] == -1)
+                dfs(graph, colors, nei, color);
+    }
+}
+```
+
+```java
+class Solution {
+    public int minMalwareSpread(int[][] graph, int[] initial) {
+        int N = graph.length;
+        DSU dsu = new DSU(N);
+        for (int i = 0; i < N; ++i)
+            for (int j = i+1; j < N; ++j)
+                if (graph[i][j] == 1)
+                    dsu.union(i, j);
+
+        int[] count = new int[N];
+        for (int node: initial)
+            count[dsu.find(node)]++;
+
+        int ans = -1, ansSize = -1;
+        for (int node: initial) {
+            int root = dsu.find(node);
+            if (count[root] == 1) {  // unique color
+                int rootSize = dsu.size(root);
+                if (rootSize > ansSize) {
+                    ansSize = rootSize;
+                    ans = node;
+                } else if (rootSize == ansSize && node < ans) {
+                    ansSize = rootSize;
+                    ans = node;
+                }
+            }
+        }
+
+        if (ans == -1) {
+            ans = Integer.MAX_VALUE;
+            for (int node: initial)
+                ans = Math.min(ans, node);
+        }
+        return ans;
+    }
+}
+
+
+class DSU {
+    int[] p, sz;
+
+    DSU(int N) {
+        p = new int[N];
+        for (int x = 0; x < N; ++x)
+            p[x] = x;
+
+        sz = new int[N];
+        Arrays.fill(sz, 1);
+    }
+
+    public int find(int x) {
+        if (p[x] != x)
+            p[x] = find(p[x]);
+        return p[x];
+    }
+
+    public void union(int x, int y) {
+        int xr = find(x);
+        int yr = find(y);
+        p[xr] = yr;
+        sz[yr] += sz[xr];
+    }
+
+    public int size(int x) {
+        return sz[find(x)];
+    }
+}
 ```
 
