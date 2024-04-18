@@ -1465,6 +1465,10 @@
 - 924\.尽量减少恶意软件的传播
 
   BFS / <u>连通分量(DFS/并查集)</u>
+  
+- 928\.尽量减少恶意软件的传播II
+
+  爆搜 / <u>连通分量(DFS)</u>
 
 ## 算法
 
@@ -41411,4 +41415,68 @@ class DSU {
     }
 }
 ```
+
+##### 928\.尽量减少恶意软件的传播II
+
+[题目](https://leetcode.cn/problems/minimize-malware-spread-ii)
+
+暴力显然可以 $O(mn^2)$。
+
+对每个不在 initial 里的点，查看是否有不超过一个 initial 点做割点(能否同时被多个 initial 点在不经过其他 initial 下访问到)。在同一连通块(非 initial 组成一个连通块)的全部等效。DFS。
+
+```c++
+class Solution {
+public:
+    int minMalwareSpread(vector<vector<int>>& graph, vector<int>& initial) {
+        unordered_set<int> st(initial.begin(), initial.end());
+        vector<int> vis(graph.size());
+        int node_id, size;
+        function<void(int)> dfs = [&](int x) {
+            vis[x] = true;
+            size++;
+            for (int y = 0; y < graph[x].size(); y++) {
+                if (graph[x][y] == 0) {
+                    continue;
+                }
+                if (st.contains(y)) {
+                    // 按照 924 题的状态机更新 node_id
+                    // -1:无Initial点，-2有两个，otw:点ID
+                    // 注意避免重复统计，例如上图中的 0 有两条不同路径可以遇到 1
+                    if (node_id != -2 && node_id != y) {
+                        node_id = node_id == -1 ? y : -2;
+                    }
+                } else if (!vis[y]) {
+                    dfs(y);
+                }
+            }
+        };
+
+        unordered_map<int, int> cnt;
+        for (int i = 0; i < graph.size(); i++) {
+            if (vis[i] || st.contains(i)) {
+                continue;
+            }
+            node_id = -1;
+            size = 0;
+            dfs(i);
+            if (node_id >= 0) { // 只找到一个在 initial 中的节点
+                // 删除节点 node_id 可以让 size 个点不被感染
+                cnt[node_id] += size;
+            }
+        }
+
+        int max_cnt = 0;
+        int min_node_id = 0;
+        for (auto [node_id, c] : cnt) {
+            if (c > max_cnt || c == max_cnt && node_id < min_node_id) {
+                max_cnt = c;
+                min_node_id = node_id;
+            }
+        }
+        return cnt.empty() ? ranges::min(initial) : min_node_id;
+    }
+};
+```
+
+
 

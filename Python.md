@@ -6873,9 +6873,20 @@ np.seterr(divide='ignore',invalid='ignore')
 
 #### 导入导出
 
+##### csv
+
+pandas 库，假设 result 是一维 nd array
+
+```python
+result_df = pd.DataFrame(result, columns=['result'])
+result_df.to_csv('./step2/result.csv', index=False)
+```
+
+##### npz
+
 `npz` 格式，存储若干个 np 数组
 
-##### 导出
+###### 导出
 
 ```python
 import numpy as np
@@ -6884,7 +6895,7 @@ array2 = np.array([[1, 2, 3], [4, 5, 6]])
 np.savez('a.npz', a1=array1, a2=array2)
 ```
 
-##### 导入
+###### 导入
 
 `.npz` 文件导入：
 
@@ -10791,6 +10802,230 @@ print('x=', x)
 - `bound` 是 `min, max` 二元组。
 - [返回值](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.OptimizeResult.html#scipy.optimize.OptimizeResult)的 x 是取得最值的参数(np array)，还有布尔值 success 和对应字符串 message
 
+
+
+### sympy
+
+#### 符号运算
+
+##### 求导
+
+```python
+import sympy as sp
+x = sp.symbols('x')
+function = sp.log(x) / x
+derivative = sp.diff(function, x)
+print(derivative)
+```
+
+##### 积分
+
+```python
+from sympy import symbols, integrate, sin
+x = symbols('x')
+integral = integrate(sin(x)**3, x)
+print(integral)
+```
+
+##### 求和
+
+```python
+from sympy import symbols, summation
+n, i, j = symbols('n i j')
+print(summation(i,1,n))
+print(summation(summation(j,(j,1,i)),(i,1,n))) #n**3/6 + n**2/2 + n/3
+print(summation(summation(j,(j,1,i)),(i,1,n)).simplify()) # n*(n**2 + 3*n + 2)/6
+```
+
+##### 化简
+
+提取公因式等。
+
+```python
+(i**2*j-i*j*j).simplify() # i*j*(i - j)
+```
+
+##### 极限
+
+```python
+from sympy import *
+x=symbols('x')
+limit(cot(x)-1/x,x,0)
+```
+
+单侧极限：
+
+```python
+f = 1/x
+left_limit = limit(f, x, 0, '-') '-oo'
+right_limit = limit(f, x, 0, '+')
+```
+
+> ##### 解方程
+
+
+
+#### 数值运算
+
+##### 解方程
+
+```python
+from sympy import symbols, Eq, solve
+alpha = symbols('alpha')
+equation = Eq(alpha**2 + (1 - alpha)**2, 0.65) #a^2+(1-a^2)=0.65
+alpha_values = solve(equation, alpha) # list of float
+```
+
+不等式：
+
+```python
+solve(x**2+x-3>0,x)
+```
+
+
+
+### cvxpy
+
+#### 整数规划
+
+例：求整数线性规划
+$$
+\min z=40x_1+90x_2\\
+s.t.\begin{cases}
+9x_1+7x_2\le56\\
+7x_1+20x_2\ge70\\
+x_1,x_2\in N
+\end{cases}
+$$
+
+```python
+import cvxpy as cp
+import numpy as np
+
+c = np.array([40, 90])
+a = np.array([[9, 7], [-7, -20]])  #默认<=
+b = np.array([56, -70])
+x = cp.Variable(2, integer=True)
+obj = cp.Minimize(c * x)
+cons = [a * x <= b, x >= 0]
+prob = cp.Problem(obj, cons)
+prob.solve(solver='GLPK_MI')  #, verbose=True (详细输出)
+print(prob.value)  #最小值
+print(x.value)  #取得最小值的解
+# print(x.value[0])#取数组元素
+```
+
+例：01整数规划-指派问题(建房子，每栋楼由不重的一个建筑商建，给定报价数组，求方案)
+$$
+\min z=\sum_{i=1}^n\sum_{j=1}^mc_{ij}x_{ij}\\
+s.t.\begin{cases}
+\sum_{j=1}^mx_{ij}=1&,1\le i\le n\\
+\sum_{i=1}^nx_{ij}=1&,1\le j\le m\\
+x_{ij}=0\ 或\ 1&,1\le i\le n,1\le j\le m
+\end{cases}
+$$
+
+```python
+import cvxpy as cp
+import numpy as np
+c=np.array([[4, 8, 7, 15, 12],
+         	[7, 9, 17, 14, 10],
+	        [6, 9, 12, 8, 7],
+   	     	[6, 7, 14, 6, 10],
+        	[6, 9, 12, 10, 6]])
+x = cp.Variable((5,5),integer=True)
+obj = cp.Minimize(cp.sum(cp.multiply(c,x)))
+con= [0 <= x, x <= 1, cp.sum(x, axis=0, keepdims=True)==1,
+             cp.sum(x, axis=1, keepdims=True)==1]
+prob = cp.Problem(obj, con)
+prob.solve(solver='GLPK_MI')
+print("最优值为:",prob.value)
+print("最优解为：\n",x.value)
+```
+
+[更多例题参考](https://blog.csdn.net/abc1234564546/article/details/126263264)
+
+## 文件处理
+
+### csv
+
+根据某行读另一行：
+
+```python
+def read_prices(file):
+    prices = []
+    with open(file, 'r', encoding='utf8') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            prices.append(float(row['price']))
+    return prices
+```
+
+
+
+### yaml
+
+返回 dict：
+
+```python
+import yaml
+path = 'configs/config_4.yaml'
+res = yaml.load(open(path, 'r'), Loader=yaml.SafeLoader)
+print(res)
+#{'layer_specs': [784, 10], 'activation': 'None', 'learning_rate': 0.01, 'batch_size': 128, 'epochs': 100, 'early_stop': True, 'early_stop_epoch': 3, 'L2_penalty': 0, 'momentum': False, 'momentum_gamma': 0.9}
+```
+
+### pickle
+
+序列化，反序列化
+
+```python
+import pickle
+
+# 对象序列化
+my_dict = {'a': 1, 'b': 2}
+with open('example.pkl', 'wb') as f:
+    pickle.dump(my_dict, f)
+
+# 对象反序列化
+with open('example.pkl', 'rb') as f:
+    loaded_dict = pickle.load(f)
+    print(loaded_dict) # dict
+```
+
+
+
+## 文本处理
+
+### chardet
+
+常用编码：utf-8,gbk,gb2312,ascii; euc-jp (日文)
+
+##### detect
+
+检查编码，传入二进制数据，返回一个字典，其中key为encoding的元素是编码方式。
+
+据此可以设计一个返回文件编码的函数：
+
+```python
+import chardet
+def check(d):#d是文件路径，返回编码方式(str)
+    with open(d,'rb') as df:
+        dt=df.read()
+    return chardet.detect(dt)['encoding']
+```
+
+随后再正式打开文件：
+
+```python
+with open(d,'r',encoding=check(d)) as f:
+    f.read()
+```
+
+
+
+## 机器学习
+
 ### sklearn
 
 安装：
@@ -11915,7 +12150,34 @@ param_grid = {
 regr = GridSearchCV(estimator=regr0, param_grid=param_grid, cv=5)
 ```
 
-- alpha: L2 正则化参数
+
+
+```python
+from sklearn.neural_network import MLPClassifier
+mlp = MLPClassifier(solver='lbfgs',max_iter =10,
+           alpha=1e-5,hidden_layer_sizes=(3,2))
+mlp.fit(X_train, Y_train)
+result = mlp.predict(X_test)
+result_df = pd.DataFrame(result, columns=['result'])
+result_df.to_csv('./step2/result.csv', index=False)
+```
+
+- `solver`：`MLP`的求解方法`lbfgs`在小数据上表现较好，`adam`较为鲁棒，`sgd`在参数调整较优时会有最佳表现（分类效果与迭代次数）；`sgd`标识随机梯度下降；
+  - lbfgs Limited-memory Broyden-Fletcher-Goldfarb-Shanno Algorithm 准牛顿方法 适合小到中等数据集
+    - `LBFGS` 是牛顿法的一种改良，用于优化非线性问题。牛顿法通过计算损失函数的二阶导数（Hessian矩阵）来更新权重，但这在大规模数据集上非常耗时。`LBFGS` 通过近似Hessian矩阵的逆来减少计算量和内存需求。
+    - 它通常能更快地收敛，尤其是在损失函数较为平滑时。
+    - 由于其使用准牛顿方法，它可能对初始值和超参数较为敏感。
+  - SGD Stochastic Gradient Descent 迭代方法 适合大数据集
+    - `SGD` 通过每次迭代仅使用一个数据样本或一小批样本（mini-batch）来更新模型的权重，这使得它在大数据集上更有效率。
+    - 它可以处理非常大的数据集，因为不需要一次性将所有数据载入内存。
+    - `SGD` 可能需要更多的迭代次数来收敛，而且对学习率等超参数较为敏感。
+  - adam Adaptive Moment Estimation 自适应学习率方法 适合大数据集和参数多的场景
+    - `Adam` 结合了 `SGD` 的优点和其他技术（如 RMSprop）的优点，通过计算梯度的一阶矩估计和二阶矩估计来调整每个参数的学习率。
+    - 它通常比纯粹的SGD表现要好，因为它自动调整学习率，减少了手动调整的需要。
+    - `Adam` 被认为是一种相对稳定的优化方法，尤其适用于大规模和复杂的神经网络。
+- `alpha`：正则项系数，默认为`L2`正则化，具体参数需要调整；
+- `hidden_layer_sizes`：`hidden_layer_sizes=(3, 2)`设置隐藏层`size`为 `2`层隐藏层，第一层`3`个神经元，第二层`2`个神经元。
+- `max_iter`：最大训练轮数。
 
 #### 堆叠
 
@@ -12248,228 +12510,6 @@ plt.show()
 ```
 
 对样本求主成分得分
-
-### sympy
-
-#### 符号运算
-
-##### 求导
-
-```python
-import sympy as sp
-x = sp.symbols('x')
-function = sp.log(x) / x
-derivative = sp.diff(function, x)
-print(derivative)
-```
-
-##### 积分
-
-```python
-from sympy import symbols, integrate, sin
-x = symbols('x')
-integral = integrate(sin(x)**3, x)
-print(integral)
-```
-
-##### 求和
-
-```python
-from sympy import symbols, summation
-n, i, j = symbols('n i j')
-print(summation(i,1,n))
-print(summation(summation(j,(j,1,i)),(i,1,n))) #n**3/6 + n**2/2 + n/3
-print(summation(summation(j,(j,1,i)),(i,1,n)).simplify()) # n*(n**2 + 3*n + 2)/6
-```
-
-##### 化简
-
-提取公因式等。
-
-```python
-(i**2*j-i*j*j).simplify() # i*j*(i - j)
-```
-
-##### 极限
-
-```python
-from sympy import *
-x=symbols('x')
-limit(cot(x)-1/x,x,0)
-```
-
-单侧极限：
-
-```python
-f = 1/x
-left_limit = limit(f, x, 0, '-') '-oo'
-right_limit = limit(f, x, 0, '+')
-```
-
-> ##### 解方程
-
-
-
-#### 数值运算
-
-##### 解方程
-
-```python
-from sympy import symbols, Eq, solve
-alpha = symbols('alpha')
-equation = Eq(alpha**2 + (1 - alpha)**2, 0.65) #a^2+(1-a^2)=0.65
-alpha_values = solve(equation, alpha) # list of float
-```
-
-不等式：
-
-```python
-solve(x**2+x-3>0,x)
-```
-
-
-
-### cvxpy
-
-#### 整数规划
-
-例：求整数线性规划
-$$
-\min z=40x_1+90x_2\\
-s.t.\begin{cases}
-9x_1+7x_2\le56\\
-7x_1+20x_2\ge70\\
-x_1,x_2\in N
-\end{cases}
-$$
-
-```python
-import cvxpy as cp
-import numpy as np
-
-c = np.array([40, 90])
-a = np.array([[9, 7], [-7, -20]])  #默认<=
-b = np.array([56, -70])
-x = cp.Variable(2, integer=True)
-obj = cp.Minimize(c * x)
-cons = [a * x <= b, x >= 0]
-prob = cp.Problem(obj, cons)
-prob.solve(solver='GLPK_MI')  #, verbose=True (详细输出)
-print(prob.value)  #最小值
-print(x.value)  #取得最小值的解
-# print(x.value[0])#取数组元素
-```
-
-例：01整数规划-指派问题(建房子，每栋楼由不重的一个建筑商建，给定报价数组，求方案)
-$$
-\min z=\sum_{i=1}^n\sum_{j=1}^mc_{ij}x_{ij}\\
-s.t.\begin{cases}
-\sum_{j=1}^mx_{ij}=1&,1\le i\le n\\
-\sum_{i=1}^nx_{ij}=1&,1\le j\le m\\
-x_{ij}=0\ 或\ 1&,1\le i\le n,1\le j\le m
-\end{cases}
-$$
-
-```python
-import cvxpy as cp
-import numpy as np
-c=np.array([[4, 8, 7, 15, 12],
-         	[7, 9, 17, 14, 10],
-	        [6, 9, 12, 8, 7],
-   	     	[6, 7, 14, 6, 10],
-        	[6, 9, 12, 10, 6]])
-x = cp.Variable((5,5),integer=True)
-obj = cp.Minimize(cp.sum(cp.multiply(c,x)))
-con= [0 <= x, x <= 1, cp.sum(x, axis=0, keepdims=True)==1,
-             cp.sum(x, axis=1, keepdims=True)==1]
-prob = cp.Problem(obj, con)
-prob.solve(solver='GLPK_MI')
-print("最优值为:",prob.value)
-print("最优解为：\n",x.value)
-```
-
-[更多例题参考](https://blog.csdn.net/abc1234564546/article/details/126263264)
-
-## 文件处理
-
-### csv
-
-根据某行读另一行：
-
-```python
-def read_prices(file):
-    prices = []
-    with open(file, 'r', encoding='utf8') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            prices.append(float(row['price']))
-    return prices
-```
-
-
-
-### yaml
-
-返回 dict：
-
-```python
-import yaml
-path = 'configs/config_4.yaml'
-res = yaml.load(open(path, 'r'), Loader=yaml.SafeLoader)
-print(res)
-#{'layer_specs': [784, 10], 'activation': 'None', 'learning_rate': 0.01, 'batch_size': 128, 'epochs': 100, 'early_stop': True, 'early_stop_epoch': 3, 'L2_penalty': 0, 'momentum': False, 'momentum_gamma': 0.9}
-```
-
-### pickle
-
-序列化，反序列化
-
-```python
-import pickle
-
-# 对象序列化
-my_dict = {'a': 1, 'b': 2}
-with open('example.pkl', 'wb') as f:
-    pickle.dump(my_dict, f)
-
-# 对象反序列化
-with open('example.pkl', 'rb') as f:
-    loaded_dict = pickle.load(f)
-    print(loaded_dict) # dict
-```
-
-
-
-## 文本处理
-
-### chardet
-
-常用编码：utf-8,gbk,gb2312,ascii; euc-jp (日文)
-
-##### detect
-
-检查编码，传入二进制数据，返回一个字典，其中key为encoding的元素是编码方式。
-
-据此可以设计一个返回文件编码的函数：
-
-```python
-import chardet
-def check(d):#d是文件路径，返回编码方式(str)
-    with open(d,'rb') as df:
-        dt=df.read()
-    return chardet.detect(dt)['encoding']
-```
-
-随后再正式打开文件：
-
-```python
-with open(d,'r',encoding=check(d)) as f:
-    f.read()
-```
-
-
-
-## 机器学习
 
 ### torch
 
@@ -13138,6 +13178,76 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.backends.cudnn.benchmark = True # 使用cudnn加速卷积运算
 ```
 
+#### 例子
+
+##### 卷积MNIST
+
+torch 0.4:
+
+```python
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torchvision
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader
+from torch.autograd import Variable
+import torch.nn.functional as F
+
+# Define a simple neural network for MNIST
+class CNN(nn.Module):
+    def __init__(self):
+        super(CNN, self).__init__()
+        self.conv1 = nn.Sequential(         # input shape (1, 28, 28)
+            nn.Conv2d(
+                in_channels=1,              # input height
+                out_channels=16,            # n_filters
+                kernel_size=5,              # filter size
+                stride=1,                   # filter movement/step
+                padding=2,                  # if want same width and length of this image after con2d, padding=(kernel_size-1)/2 if stride=1
+            ),                              # output shape (16, 28, 28)
+            nn.ReLU(),                      # activation
+            nn.MaxPool2d(kernel_size=2),    # choose max value in 2x2 area, output shape (16, 14, 14)
+        )
+        self.conv2 = nn.Sequential(         # input shape (16, 14, 14)
+            nn.Conv2d(16, 32, 5, 1, 2),     # output shape (32, 14, 14)
+            nn.ReLU(),                      # activation
+            nn.MaxPool2d(2),                # output shape (32, 7, 7)
+        )
+        self.out = nn.Linear(32 * 7 * 7, 10)   # fully connected layer, output 10 classes
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = x.view(x.size(0), -1)           # flatten the output of conv2 to (batch_size, 32 * 7 * 7)
+        output = self.out(x)
+        return output
+
+# Load MNIST data
+transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
+trainset = torchvision.datasets.MNIST(root='./step3/mnist/', train=True, download=True, transform=transform)
+trainloader = DataLoader(trainset, batch_size=64, shuffle=True)
+
+# Initialize the network and optimizer
+net = CNN()
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
+
+# Train the network
+for epoch in range(5):  # loop over the dataset multiple times
+    for i, data in enumerate(trainloader, 0):
+        inputs, labels = data
+        inputs, labels = Variable(inputs), Variable(labels)
+        optimizer.zero_grad()  # zero the parameter gradients
+        outputs = net(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+
+# Save the trained model
+torch.save(net.state_dict(), './step3/cnn.pkl')
+print('Finished Training')
+```
+
 
 
 ### yolo
@@ -13690,7 +13800,17 @@ print(requests.post('http://127.0.0.1:8080/submit',json=pam).text)
  response.json() #dict
  ```
 
+#### response对象
 
+`response` 是由 `requests.get(url)` 生成的一个对象，它代表了向指定 URL 发出 HTTP GET 请求后收到的响应。这个 `response` 对象是 `requests` 库的一个核心部分，包含了服务器响应的所有信息，包括状态码、响应头、和响应体等。下面详细解释一下这个对象的各个部分：
+
+1. **response.status_code**: 这是一个数字，代表了服务器的响应状态码。HTTP状态码是用于表示网页服务器HTTP响应状态的3位数字代码。例如，200表示请求成功，404表示未找到，500表示服务器错误等。
+2. **response.content**: 这是服务器响应的原始内容，是一个字节串（byte string）。这对于获取如图片、文件等二进制数据特别有用。
+3. **response.text**: 如果响应的内容是文本（如HTML、JSON等），可以通过这个属性以字符串形式获取。这个属性会基于响应的字符编码（response.encoding）来解码字节数据。
+4. **response.headers**: 这是一个字典，包含了HTTP响应的所有头部。头部包含了如内容类型、内容长度、服务器信息等额外的元数据。
+5. **response.encoding**: 这是服务器声明的用于解码响应内容的编码方式。如果编码未明确声明，则`requests`将尝试根据HTTP头部来猜测。
+6. **response.json()**: 如果响应内容是JSON格式的，可以使用这个方法直接将内容解析为Python的字典或列表。这个方法是非常实用的，特别是当API返回JSON数据时。
+7. **response.raise_for_status()**: 这是一个实用方法，用于在响应的状态码不是200系列时抛出异常（HTTPError）。这可以帮助你的程序捕捉和处理如404或500等服务器错误。
 
 #### session提速
 
@@ -13805,6 +13925,22 @@ soup.find('p',class_='star-rating Four')
 ```python
 [x.text for x in soup.find_all('li')]
 ```
+
+文本搜索：
+
+```python
+# 找出包含"California"的所有标签
+tags_containing_california = [tag for tag in soup.find_all(text=lambda text: "California" in text)]
+```
+
+找到 td 并返回 tr：
+
+```python
+# 查找所有包含"California"（不区分大小写）的<tr>标签
+rows_with_california = soup.find_all('tr', {'td': lambda td: td and 'california' in td.text.lower()})
+```
+
+
 
 ##### 基本属性
 
