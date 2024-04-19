@@ -1542,7 +1542,7 @@ None 和自定义对象可以做 key，都可以唯一区分。
 
 ##### 方法
 
-添加多项：
+添加多项：(有就覆盖，没就插入)
 
 ```python
 x.update({3:50,4:False}) 
@@ -2708,8 +2708,7 @@ print(f(*[1,2,3])) # 含义同上
 
 #### 关键字参数
 
-```python
-```
+
 
 
 
@@ -4683,7 +4682,20 @@ c=datetime(2002,3,8,23,59,59)
 (b-c).days #0
 ```
 
-
+> 日期遍历：
+>
+> ```python
+> def dateIterator(begin, end):
+>     current = begin
+>     while current <= end:
+>         yield current
+>         current += timedelta(days=1)
+> # testing
+> # for date in dateIterator(datetime(2021,1,1), datetime(2024,5,1)):
+> #     print(date)
+> ```
+>
+> 
 
 
 
@@ -4825,6 +4837,15 @@ thr.start()
 
 ```python
 thr.join()
+```
+
+#### zipfile
+
+```python
+import zipfile
+with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+    zip_ref.extractall(extract_to)
+print("文件解压完成，解压到：", extract_to)
 ```
 
 
@@ -9158,6 +9179,18 @@ print(pd.merge(df1, df2, left_on='key1', right_on='key2', how='inner'))
 .rename(columns={0: 'p-value'})
 ```
 
+> 其他重命名：
+>
+> ```python
+> df_selected = df_filtered[[
+>     'date',
+>     'retail_and_recreation_percent_change_from_baseline',
+>     'grocery_and_pharmacy_percent_change_from_baseline'
+> ]].rename(columns={
+>     'retail_and_recreation_percent_change_from_baseline': 'retail_and_recreation'
+> })
+> ```
+
 也可以考虑诸如 `df.columns = df.iloc[4]`
 
 ```python
@@ -9200,8 +9233,9 @@ df = pd.DataFrame({
 })
 df2 = df.drop(columns=['A', 'B']) # 不改变 df
 df.drop(columns=['A', 'B'], inplace=True) # 改变
-df3 = df[['C']] # 只要 C 列
-df = df.drop(0) # 删第一行
+df3 = df[['C']] # 只要 C 列(多列如 [['c','d']])
+df = df.drop(0) # 删第一行(只对索引为0有效，离散索引无效)
+df = df.iloc[1:] # 下标的不要，所以切片是 1:，删第一行
 df = df.drop(df.columns[0], axis=1) # 删第一列
 ```
 
@@ -9240,6 +9274,28 @@ w.query('value >= 581') #相等就 ==
 > df1 = df.query('type=="before crush"')
 > df1 = df[df['type'] == 'before crush']
 > ```
+
+##### 子列
+
+返回都是 df，
+
+- `head(n)` 头几列，默认 5
+- `tail(n)` 尾几列，默认 5
+- `sample(n)` 随机不重几列，默认 1
+- `iloc[a:b]`中间连续下标(0开始)为 [a,b)
+
+```python
+import pandas as pd
+data = {'Name': ['Alice', 'Bob', 'Carol', 'David', 'Eva'],
+        'Age': [25, 30, 35, 40, 45],
+        'City': ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix']}
+df = pd.DataFrame(data)
+print(df.head(3))
+print(df.tail(3))
+print(df.sample(3))
+```
+
+
 
 #### 其他运算
 
@@ -13821,6 +13877,123 @@ session = requests.Session()
 session.get(url) # 多个url
 ```
 
+高并发：
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+entries = []
+with requests.Session() as session:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        dates = [date for date in dateIterator(datetime(2021, 1, 1), datetime(2024, 5, 1))]
+        results = list(executor.map(lambda date: getCaseData(date, session), dates))
+        entries.extend(filter(None, results))
+
+df = pd.DataFrame(entries)
+df.to_csv(out_file, index=False)
+```
+
+> 假设 `getCaseData` 是使用了 `session.get` 的函数
+
+处理重传：
+
+```python
+retries = Retry(total=5,
+                backoff_factor=0.1,
+                status_forcelist=[500, 502, 503, 504])
+
+adapter = HTTPAdapter(max_retries=retries, pool_connections=100, pool_maxsize=100)
+session.mount('http://', adapter)
+session.mount('https://', adapter)
+```
+
+> 完整代码：访问 github 需要挂梯子
+>
+> ```python
+> import requests
+> import bs4
+> import re
+> from datetime import datetime, timedelta
+> import pandas as pd
+> from concurrent.futures import ThreadPoolExecutor
+> from requests.adapters import HTTPAdapter
+> from requests.packages.urllib3.util.retry import Retry
+> 
+> def dateIterator(begin, end):
+>     current = begin
+>     while current <= end:
+>         yield current
+>         current += timedelta(days=1)
+> # testing
+> # for date in dateIterator(datetime(2021,1,1), datetime(2024,5,1)):
+> #     print(date)
+> 
+> def getCaseData(date, session=None, verbose=True):
+>     yy, mm, dd = date.year, date.month, date.day
+>     
+>     # scrape the HTML in the github repo
+>     url = f"https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_daily_reports_us/{mm:02d}-{dd:02d}-{yy:04d}.csv"
+>     if not session:
+>         response = requests.get(url)
+>     else: # speed up multiple requests
+>         response = session.get(url)
+>     if response.status_code == 200:
+>         html = response.content
+>         soup = bs4.BeautifulSoup(html, 'lxml')
+>         info = soup.find(text=lambda text: "California" in text)
+>         
+>         info_line = re.findall(r'\[[^\]]*california[^\]]*\]', info, re.IGNORECASE)
+>         if not len(info_line):
+>             if verbose:print(f'{date} fail - 1.')
+>             return dict()
+>         info_line = eval(info_line[0].replace('null', '""'))
+>         
+>         header = re.findall(r'\[[^\]\[]*Province_State[^\]]*\]', info, re.IGNORECASE)
+>         if not len(header):
+>             if verbose:print(f'{date} fail - 2.')
+>             return dict()
+>         header = eval(header[0])
+>         
+>         scraped_dict = dict()
+>         for key, value in zip(header, info_line):
+>             scraped_dict[key] = value
+>         
+>         result = {'date': date}
+>         keys = ['Confirmed', 'Deaths']
+>         result.update({k:int(scraped_dict[k]) for k in keys})
+>         if verbose:print(f'{date} success.')
+>         return result
+>     if verbose:print(f'{date} fail - 3.')
+>     return dict()
+> # testing
+> # print(getCaseData(datetime(2021,1,1)))
+> 
+> def getAllCaseData(out_file='case_data.csv', sample_p=False, verbose=True, max_workers=10):
+>     # using sessiong to speed up requests
+>     entries = []
+>     with requests.Session() as session:
+>         retries = Retry(total=5,
+>                 backoff_factor=0.1,
+>                 status_forcelist=[500, 502, 503, 504])
+> 
+>         adapter = HTTPAdapter(max_retries=retries, pool_connections=100, pool_maxsize=100)
+>         session.mount('http://', adapter)
+>         session.mount('https://', adapter)
+>         with ThreadPoolExecutor(max_workers=max_workers) as executor:
+>             dates = [date for date in dateIterator(datetime(2021, 1, 1), datetime(2023, 3, 9))]
+>             if sample_p:
+>                 dates = dates[:5]
+>             results = list(executor.map(lambda date: getCaseData(date, session, verbose), dates))
+>             entries.extend(filter(None, results))
+>     
+>     df = pd.DataFrame(entries)
+>     df.to_csv(out_file, index=False)
+> # testing
+> # getAllCaseData(out_file='case_data_partial.csv',sample_p=True)
+> getAllCaseData()
+> ```
+
+
+
 #### 代理
 
 ```python
@@ -13874,6 +14047,35 @@ print(soup.text) #str,标签全部退散，含\n代替
 ```
 
 第 20 行，可以固定解析器：`features='lxml'`
+
+##### 解析器
+
+`html.parser`
+
+```python
+soup = BeautifulSoup(markup, "html.parser")
+```
+
+- 优点：不需要安装额外的库，直接使用。
+- 缺点：可能不如其他外部解析器那么快，对于某些复杂或者破碎的HTML文档的解析可能不够健壮。
+
+
+
+`lxml`
+
+- `lxml` 是一个非常高效的解析器，支持 HTML 和 XML 的解析。
+- 使用方法：`soup = BeautifulSoup(markup, "lxml")` 或 `soup = BeautifulSoup(markup, "xml")`
+- 优点：速度非常快，容错能力强。
+- 缺点：需要安装 `lxml` 库。(lxml 比 xml 更强大)
+
+
+
+`html5lib`
+
+- `html5lib` 是一个非常严格的 HTML5 解析器，用来模仿 Web 浏览器的方式解析 HTML。
+- 使用方法：`soup = BeautifulSoup(markup, "html5lib")`
+- 优点：解析方式非常接近真实的 Web 浏览器，非常适合处理非常破碎的 HTML。
+- 缺点：解析速度比 `html.parser` 和 `lxml` 慢，需要安装 `html5lib` 库。
 
 ##### 遍历
 

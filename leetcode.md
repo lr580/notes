@@ -1469,6 +1469,14 @@
 - 928\.尽量减少恶意软件的传播II
 
   爆搜 / <u>连通分量(DFS)</u>
+  
+- 1883\.准时抵达会议现场的最小跳过休息次数
+
+  DP 精度
+  
+- 39\.组合总和
+
+  DFS
 
 ## 算法
 
@@ -41474,6 +41482,194 @@ public:
             }
         }
         return cnt.empty() ? ranges::min(initial) : min_node_id;
+    }
+};
+```
+
+##### 1883\.准时抵达会议现场的最小跳过休息次数
+
+[题目](https://leetcode.cn/problems/minimum-skips-to-arrive-at-meeting-on-time)
+
+压缩数组DP+long long表示分数的高精
+
+设 $dp_{i,j}$ 表示已经跳过休息了 $i$ 次，已经走了 $j$ 条街道的最小花费。设下标 $1$ 开始。
+
+初始状态：$dp_{i,0}=dp_{i-1,0}+\lceil\dfrac{dist_i}{speed}\rceil$，$dp_{0,j}=0$
+
+转移方程：
+
+- 第 $j$ 条街道休息：$\lceil dp_{i-1,j}+\dfrac{dist_i}{speed}\rceil$
+- 第 $j$ 条街道跳过休息：$dp_{i-1,j-1}+\dfrac{dist_i}{speed}$
+
+取二者的最大值为 $dp_{i,j}=\max(\lceil dp_{i-1,j}+\dfrac{dist_i}{speed}\rceil,dp_{i-1,j-1}+\dfrac{dist_i}{speed})$
+
+分数表示：它们的分母都是 $speed$，不妨把一个数 $\dfrac ab=c \dfrac{a_1}b$ 表示为除以 $b$ 的商 $c$ 和余数 $a_1$。即把任意整数 $x$ 表示为 $x\cdot speed$，当它需要上取整时，除以 $speed$ 得到商和余数，若余数不为 $0$，商加一，然后乘 $speed$ 还原。其他运算不变。
+
+```c++
+using ll = long long;
+class Solution {
+public:
+    int minSkips(vector<int>& dist, int speed, int hoursBefore) {
+        ll n = dist.size(), k = speed;
+        vector<ll> a(n+1);//a%k是余数,a/k是整数,dp同
+        for(int i=1;i<=n;++i) {
+            a[i]=dist[i-1]*k;
+        }
+        auto ceil = [&](ll x) {
+            ll a=x/k,b=x%k;
+            a+=b!=0;
+            return a*k;
+        };
+        vector<ll> dp[2];
+        dp[0].resize(n+1), dp[1].resize(n+1);
+        for(int j=0,now=0,prv=1; j<=n; ++j,now^=1,prv^=1) {
+            for(int i=1;i<=n;++i) {
+                dp[now][i] = ceil(dp[now][i-1] + a[i]/k);
+                if(j>=1) {
+                    dp[now][i] = min(dp[now][i], dp[prv][i-1] + a[i]/k);
+                }
+            }
+            if(dp[now][n] <= hoursBefore*k) {
+                return j;
+            }
+        }
+        return -1;
+    }
+};
+```
+
+如果使用浮点数，上取整前要减 eps，避免对 `x.0` 错误地上取整。
+
+```c++
+class Solution {
+private:
+    // 可忽略误差
+    static constexpr double EPS = 1e-7;
+    // 极大值
+    static constexpr double INFTY = 1e20;
+
+public:
+    int minSkips(vector<int>& dist, int speed, int hoursBefore) {
+        int n = dist.size();
+        vector<vector<double>> f(n + 1, vector<double>(n + 1, INFTY));
+        f[0][0] = 0.;
+        for (int i = 1; i <= n; ++i) {
+            for (int j = 0; j <= i; ++j) {
+                if (j != i) {
+                    f[i][j] = min(f[i][j], ceil(f[i - 1][j] + (double)dist[i - 1] / speed - EPS));
+                }
+                if (j != 0) {
+                    f[i][j] = min(f[i][j], f[i - 1][j - 1] + (double)dist[i - 1] / speed);
+                }
+            }
+        }
+        for (int j = 0; j <= n; ++j) {
+            if (f[n][j] < hoursBefore + EPS) {
+                return j;
+            }
+        }
+        return -1;
+    }
+};
+```
+
+压为一维：
+
+```c++
+class Solution {
+public:
+    int minSkips(vector<int>& dist, int speed, int hoursBefore) {
+        if (accumulate(dist.begin(), dist.end(), 0) > (long long) speed * hoursBefore) {
+            return -1;
+        }
+        int n = dist.size();
+        vector<int> f(n);
+        for (int i = 0; ; i++) {
+            int pre = 0;
+            for (int j = 0; j < n - 1; j++) {
+                int tmp = f[j + 1];
+                f[j + 1] = (f[j] + dist[j] + speed - 1) / speed * speed;
+                if (i) {
+                    f[j + 1] = min(f[j + 1], pre + dist[j]);
+                }
+                pre = tmp;
+            }
+            if (f[n - 1] + dist[n - 1] <= (long long) speed * hoursBefore) {
+                return i;
+            }
+        }
+    }
+};
+```
+
+##### 39\.组合总和
+
+[题目](https://leetcode.cn/problems/combination-sum)
+
+我的：
+
+```c++
+class Solution {
+    vector<vector<int>> res;
+    vector<int> ans;
+    vector<int>& a;
+    int n, k;
+    void dfs(int i, int s) {
+        if(s==k) {
+            res.push_back(ans);
+            return;
+        }
+        if(i>=n||s>k) {
+            return;
+        }
+        ans.push_back(a[i]);
+        dfs(i, s+a[i]);
+        ans.pop_back();
+        for(int j=i+1;j<n;++j) {
+            ans.push_back(a[i]);
+            dfs(j, s+a[j]);
+            ans.pop_back();
+        }
+    }
+public:
+    vector<vector<int>> combinationSum(vector<int>& candidates, int target) {
+        res.clear(), ans.clear();
+        a = candidates;
+        n = a.size(), k = target;
+        dfs(0,0);
+        return res;
+    }
+};
+```
+
+题解更优雅：
+
+```c++
+class Solution {
+public:
+    void dfs(vector<int>& candidates, int target, vector<vector<int>>& ans, vector<int>& combine, int idx) {
+        if (idx == candidates.size()) {
+            return;
+        }
+        if (target == 0) {
+            ans.emplace_back(combine);
+            return;
+        }
+        // 直接跳过
+        dfs(candidates, target, ans, combine, idx + 1);
+        // 选择当前数
+        if (target - candidates[idx] >= 0) {
+            combine.emplace_back(candidates[idx]);
+            dfs(candidates, target - candidates[idx], ans, combine, idx);
+            combine.pop_back();
+        }
+    }
+
+    vector<vector<int>> combinationSum(vector<int>& candidates, int target) {
+        vector<vector<int>> ans;
+        vector<int> combine;
+        dfs(candidates, target, ans, combine, 0);
+        return ans;
     }
 };
 ```

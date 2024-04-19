@@ -340,6 +340,12 @@ $$
 
 正体 mathrm (roman) $\mathrm{arccot}\ x$
 
+花体 mathscr
+$$
+\mathscr{abcdefghijklmnopqrstuvwxyz}
+$$
+
+
 ### 字符
 
 #### 一般字符
