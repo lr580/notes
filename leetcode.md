@@ -1477,6 +1477,10 @@
 - 39\.组合总和
 
   DFS
+  
+- 216\.组合总和III
+
+  DFS / 二进制枚举
 
 ## 算法
 
@@ -41669,6 +41673,93 @@ public:
         vector<vector<int>> ans;
         vector<int> combine;
         dfs(candidates, target, ans, combine, 0);
+        return ans;
+    }
+};
+```
+
+##### 216\.组合总和III
+
+[题目](https://leetcode.cn/problems/combination-sum-iii)
+
+```c++
+class Solution {
+public:
+    vector<vector<int>> combinationSum3(int k, int n) {
+        vector<vector<int>> ans;
+        vector<int> cur;
+        function<void(int,int)> dfs = [&](int v, int s) {
+            if(s>=n||cur.size()>=k) {
+                if(s==n&&cur.size()==k) {
+                    ans.emplace_back(cur);
+                }
+                return;
+            }
+            for(int i=v+1;i<=9;++i) {
+                cur.emplace_back(i);
+                dfs(i, s+i);
+                cur.pop_back();
+            }
+        };
+        dfs(0,0);
+        return ans;
+    }
+};
+```
+
+另一种爆搜：
+
+```c++
+class Solution {
+public:
+    vector<int> temp;
+    vector<vector<int>> ans;
+
+    void dfs(int cur, int n, int k, int sum) {
+        if (temp.size() + (n - cur + 1) < k || temp.size() > k) {
+            return;
+        }
+        if (temp.size() == k && accumulate(temp.begin(), temp.end(), 0) == sum) {
+            ans.push_back(temp);
+            return;
+        }
+        temp.push_back(cur);
+        dfs(cur + 1, n, k, sum);
+        temp.pop_back();
+        dfs(cur + 1, n, k, sum);
+    }
+
+    vector<vector<int>> combinationSum3(int k, int n) {
+        dfs(1, 9, k, n);
+        return ans;
+    }
+};
+```
+
+二进制枚举：
+
+```c++
+class Solution {
+public:
+    vector<int> temp;
+    vector<vector<int>> ans;
+
+    bool check(int mask, int k, int n) {
+        temp.clear();
+        for (int i = 0; i < 9; ++i) {
+            if ((1 << i) & mask) {
+                temp.push_back(i + 1);
+            }
+        }
+        return temp.size() == k && accumulate(temp.begin(), temp.end(), 0) == n; 
+    }
+
+    vector<vector<int>> combinationSum3(int k, int n) {
+        for (int mask = 0; mask < (1 << 9); ++mask) {
+            if (check(mask, k, n)) {
+                ans.emplace_back(temp);
+            }
+        }
         return ans;
     }
 };

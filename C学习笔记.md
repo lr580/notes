@@ -4497,7 +4497,23 @@ void tr(ostream &os)
 
 即便执行过tr(cout),那么在main等其他函数，也不会被改变。
 
-数组不能引用，只能指针[
+数组引用
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+int main() {
+    int a[7] = {1,4,3,7,5,8,1};
+    int (&aa)[7] = a;
+    for(int i=0;i<7;++i) {
+        aa[i]*=10;
+        cout<<a[i]<<' ';
+    }
+    return 0;
+}
+```
+
+
 
 
 
