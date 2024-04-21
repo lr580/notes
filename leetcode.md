@@ -1481,6 +1481,10 @@
 - 216\.组合总和III
 
   DFS / 二进制枚举
+  
+- 377\.组合总和IV
+
+  DP 取模
 
 ## 算法
 
@@ -41764,6 +41768,79 @@ public:
     }
 };
 ```
+
+##### 377\.组合总和IV
+
+[题目](https://leetcode.cn/problems/combination-sum-iv)
+
+设 $dp_i$ 表示和为 $i$ 的方案数，显然 $dp_0=1$，且：
+$$
+dp_i=\sum_{v\in nums}dp_{i-v}
+$$
+虽然结果不会爆，但是中间过程会爆。所以模一个任意比 int 大的数。
+
+```c++
+class Solution {
+public:
+    int combinationSum4(vector<int>& nums, int target) {
+        vector<int> dp(target+1);
+        dp[0]=1;
+        for(int j=1;j<=target;++j) {
+            for(auto&v:nums) {
+                if(j>=v) dp[j]+=dp[j-v];
+            }
+        }
+        return dp[target];
+    }
+};
+```
+
+> 如果不同组合看做同一方案就是无限背包计数：
+>
+> ```c++
+> class Solution {
+> public:
+>     int combinationSum4(vector<int>& nums, int target) {
+>         vector<int> dp(target+1);
+>         dp[0]=1;
+>         for(auto&v:nums) {
+>             // for(int j=target-v;j>=0;--j) {
+>             for(int j=0;j<=target-v;++j) {
+>                 dp[j+v]+=dp[j];
+>             }
+>         }
+>         return dp[target];
+>     }
+> };
+> ```
+>
+> 如果每个只能选一个就是01背包计数：
+>
+> ```c++
+> for(int j=target-v;j>=0;--j) {
+> ```
+
+另一种防溢出方案：
+
+```c++
+class Solution {
+public:
+    int combinationSum4(vector<int>& nums, int target) {
+        vector<int> dp(target + 1);
+        dp[0] = 1;
+        for (int i = 1; i <= target; i++) {
+            for (int& num : nums) {
+                if (num <= i && dp[i - num] < INT_MAX - dp[i]) {
+                    dp[i] += dp[i - num];
+                }
+            }
+        }
+        return dp[target];
+    }
+};
+```
+
+
 
 
 

@@ -985,7 +985,10 @@ find $pwd -maxdepth 1 | xargs ls -ld
 
 - 权限位 硬连接数 属主 属组 大小 最后修改时间 文件/目录名称
 
+统计文件数目：
 
+- 含子目录 `find 目录名 -type f | wc -l ` 
+- 不含 `ls 目录名 | wc -l`
 
 
 
