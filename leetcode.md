@@ -1489,6 +1489,10 @@
 - 1052\.爱生气的书店老板
 
   前缀和 / <u>滑动窗口</u>
+  
+- 2385\.感染二叉树需要的总时间
+
+  二叉树 DFS
 
 ## 算法
 
@@ -41895,6 +41899,135 @@ public:
             maxIncrease = max(maxIncrease, increase);
         }
         return total + maxIncrease;
+    }
+};
+```
+
+##### 2385\.感染二叉树需要的总时间
+
+[题目](https://leetcode.cn/problems/amount-of-time-for-binary-tree-to-be-infected/)
+
+静态 vector 动态增删建图：
+
+```c++
+vector<int> g[100001];
+class Solution
+{
+    void add(int u, int v) {
+        g[u].emplace_back(v);
+        g[v].emplace_back(u);
+    }
+    void build(TreeNode *u) {
+        if(u->left) {
+            add(u->val, u->left->val);
+            build(u->left);
+        }
+        if(u->right) {
+            add(u->val, u->right->val);
+            build(u->right);
+        }
+    }
+    void remove(TreeNode *u) {
+        if(!u) return;
+        g[u->val].clear();
+        remove(u->left);
+        remove(u->right);
+    }
+    int ans;
+    void dfs(int u, int f, int d) {
+        ans=max(ans,d);
+        for(auto&v:g[u]) {
+            if(v!=f) {
+                dfs(v,u,d+1);
+            }
+        }
+    }
+public:
+    int amountOfTime(TreeNode *root, int start)
+    {
+        build(root);
+        ans = 0;
+        dfs(start,0,0);
+        remove(root);
+        return ans;
+    }
+};
+```
+
+> unmap 会 T：
+>
+> ```c++
+> class Solution
+> {
+>     unordered_map<int,vector<int>> g;
+>     void add(int u, int v) {
+>         g[u].emplace_back(v);
+>         g[v].emplace_back(u);
+>     }
+>     void build(TreeNode *u) {
+>         if(u->left) {
+>             add(u->val, u->left->val);
+>             build(u->left);
+>         }
+>         if(u->right) {
+>             add(u->val, u->right->val);
+>             build(u->right);
+>         }
+>     }
+>     int ans;
+>     void dfs(int u, int f, int d) {
+>         ans=max(ans,d);
+>         for(auto&v:g[u]) {
+>             if(v!=f) {
+>                 dfs(v,u,d+1);
+>             }
+>         }
+>     }
+> public:
+>     int amountOfTime(TreeNode *root, int start)
+>     {
+>         g.clear();
+>         build(root);
+>         ans = 0;
+>         dfs(start,0,0);
+>         return ans;
+>     }
+> };
+> ```
+
+一种不建图的思路：
+
+```c++
+class Solution {
+public:
+    int max=0;
+    int  dfs(TreeNode* root, int start,int sum){
+        if(root==NULL)return -1;
+        if(sum==-1&&root->val==start){//本节点为感染节点
+            sum=0;
+        }
+        if(sum!=-1){//本节点已感染，传递到子树中
+            dfs(root->left,start,sum+1);
+            dfs(root->right,start,sum+1);
+            if(sum>max)max=sum;
+            return sum+1;
+        }else{
+            int tem=dfs(root->left,start,sum);
+            if(tem!=-1){//左子树被感染，传递到右子树
+                sum=tem;
+                dfs(root->right,start,sum+1);
+            }else{//右子树被感染，传递到左子树
+                sum=dfs(root->right,start,sum);
+                dfs(root->left,start,sum+1);
+            }
+        }
+        if(sum>max)max=sum;
+        if(sum!=-1)return sum+1;
+        return -1;
+    }
+    int amountOfTime(TreeNode* root, int start) {
+        dfs(root,start,-1);
+        return max;
     }
 };
 ```
