@@ -1485,6 +1485,10 @@
 - 377\.组合总和IV
 
   DP 取模
+  
+- 1052\.爱生气的书店老板
+
+  前缀和 / <u>滑动窗口</u>
 
 ## 算法
 
@@ -41836,6 +41840,61 @@ public:
             }
         }
         return dp[target];
+    }
+};
+```
+
+##### 1052\.爱生气的书店老板
+
+[题目]()
+
+前缀和：维护不考虑生气时的前缀和 `s1` 以及考虑生气的前缀和 `s2`。
+
+枚举冷静区间 $(r-n,r]$ ，该区间内直接对顾客数求和，即求 `s1` 的区间和，然后把 `s2` 全长减去这一段。
+
+```c++
+class Solution {
+public:
+    int maxSatisfied(vector<int>& customers, vector<int>& grumpy, int minutes) {
+        int n = customers.size();
+        vector<int> s1(n+1),s2(n+1);
+        for (int i = 0; i < n; i++) {
+            s1[n+1]=s1[i]+customers[i];
+            s2[n+1]=s2[i]+customers[i]*(1^grumpy[i]);
+        }
+        int ans = 0;
+        for(int r=minutes,l=0;r<=n;++r,++l) {//(l,r]
+            int s=s2[n]-(s2[r]-s2[l])+s1[r]-s1[l];
+            ans=max(ans,s);
+        }
+        return ans;
+    }
+};
+```
+
+滑动窗口：
+
+```c++
+class Solution {
+public:
+    int maxSatisfied(vector<int>& customers, vector<int>& grumpy, int minutes) {
+        int total = 0;
+        int n = customers.size();
+        for (int i = 0; i < n; i++) {
+            if (grumpy[i] == 0) {
+                total += customers[i];
+            }
+        }
+        int increase = 0; //使用技能时增加的顾客数
+        for (int i = 0; i < minutes; i++) {
+            increase += customers[i] * grumpy[i];
+        }
+        int maxIncrease = increase;
+        for (int i = minutes; i < n; i++) {
+            increase = increase - customers[i - minutes] * grumpy[i - minutes] + customers[i] * grumpy[i];
+            maxIncrease = max(maxIncrease, increase);
+        }
+        return total + maxIncrease;
     }
 };
 ```
