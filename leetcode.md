@@ -1493,6 +1493,10 @@
 - 2385\.感染二叉树需要的总时间
 
   二叉树 DFS
+  
+- 2739\.总行驶距离
+
+  数学
 
 ## 算法
 
@@ -42031,6 +42035,73 @@ public:
     }
 };
 ```
+
+##### 2739\.总行驶距离
+
+[题目](https://leetcode.cn/problems/total-distance-traveled/)
+
+逐个模拟：
+
+```c++
+class Solution {
+public:
+    int distanceTraveled(int mainTank, int additionalTank) {
+        int s = 0;
+        while(mainTank) {
+            if(mainTank>=5&&additionalTank) {
+                mainTank-=4;
+                additionalTank--;
+                s+=5;
+            }else{
+                s+=mainTank;
+                mainTank=0;
+            }
+        }
+        return s*10;
+    }
+};
+```
+
+```python
+class Solution:
+    def distanceTraveled(self, mainTank: int, additionalTank: int) -> int:
+        ans = 0
+        while mainTank >= 5:
+            mainTank -= 5
+            ans += 50
+            if additionalTank:
+                additionalTank -= 1
+                mainTank += 1
+        return ans + mainTank * 10
+```
+
+对数复杂度模拟：
+
+```python
+class Solution:
+    def distanceTraveled(self, mainTank: int, additionalTank: int) -> int:
+        ans = 0
+        while mainTank >= 5:
+            t = mainTank // 5
+            ans += t * 50
+            mainTank %= 5
+            t = min(t, additionalTank)
+            additionalTank -= t
+            mainTank += t
+        return ans + mainTank * 10
+```
+
+观察可知，共可以加油 $\lfloor\dfrac{mainTank-1}{4}\rfloor$ 次，因为需要启动资金所以 -1。
+
+所以可以补充这么多的燃油。
+
+```python
+class Solution:
+    def distanceTraveled(self, mainTank: int, additionalTank: int) -> int:
+        return (mainTank + min((mainTank - 1) // 4, additionalTank)) * 10
+```
+
+
 
 
 
