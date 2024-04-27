@@ -1497,6 +1497,14 @@
 - 2739\.总行驶距离
 
   数学
+  
+- 2639\.查询网格图中每一列的宽度
+
+  签到
+  
+- 1146\.快照数组
+
+  数据结构
 
 ## 算法
 
@@ -42099,6 +42107,117 @@ class Solution:
 class Solution:
     def distanceTraveled(self, mainTank: int, additionalTank: int) -> int:
         return (mainTank + min((mainTank - 1) // 4, additionalTank)) * 10
+```
+
+##### 2639\.查询网格图中每一列的宽度
+
+[题目](https://leetcode.cn/problems/find-the-width-of-columns-of-a-grid)
+
+我的：
+
+```python
+class Solution:
+    def findColumnWidth(self, grid: List[List[int]]) -> List[int]:
+        n, m = len(grid), len(grid[0])
+        ans = [0] * m
+        for i in range(m):
+            for j in range(n):
+                ans[i] = max(ans[i], len(str(grid[j][i])))
+        return ans
+```
+
+优雅：
+
+```python
+class Solution:
+    def findColumnWidth(self, grid: List[List[int]]) -> List[int]:
+        return [max(len(str(x)) for x in col)
+                for col in zip(*grid)]
+```
+
+##### 1146\.快照数组
+
+[题目](https://leetcode.cn/problems/snapshot-array)
+
+我的 map：
+
+```c++
+class SnapshotArray {
+    vector<map<int,int>> m;
+    int cnt = 0;
+public:
+    SnapshotArray(int length) {
+        m.resize(length);
+    }
+    
+    void set(int index, int val) {
+        m[index][cnt] = val;
+    }
+    
+    int snap() {
+        return cnt++;
+    }
+    
+    int get(int index, int snap_id) {
+        auto it = m[index].upper_bound(snap_id);
+        if(it == m[index].begin()) return 0;
+        it--;
+        return it->second;
+    }
+};
+```
+
+改进：插入可以到最后，而无需 map 维系修改。
+
+```c++
+class SnapshotArray {
+public:
+    SnapshotArray(int length): snap_cnt(0), data(length) {}
+    
+    void set(int index, int val) {
+        data[index].emplace_back(snap_cnt, val);
+    }
+    
+    int snap() {
+        return snap_cnt++;
+    }
+    
+    int get(int index, int snap_id) {
+        auto x = upper_bound(data[index].begin(), data[index].end(), pair{snap_id + 1, -1});
+        return x == data[index].begin() ? 0 : prev(x)->second;
+    }
+
+private:
+    int snap_cnt;
+    vector<vector<pair<int, int>>> data;
+};
+```
+
+其他思路：空间优化。
+
+```c++
+class SnapshotArray {
+    int cur_snap_id = 0;
+    unordered_map<int, vector<pair<int, int>>> history; // 每个 index 的历史修改记录
+public:
+    SnapshotArray(int) {}
+
+    void set(int index, int val) {
+        history[index].emplace_back(cur_snap_id, val);
+    }
+
+    int snap() {
+        return cur_snap_id++;
+    }
+
+    int get(int index, int snap_id) {
+        auto& h = history[index];
+        // 找快照编号 <= snap_id 的最后一次修改记录
+        // 等价于找快照编号 >= snap_id+1 的第一个修改记录，它的上一个就是答案
+        int j = ranges::lower_bound(h, make_pair(snap_id + 1, 0)) - h.begin() - 1;
+        return j >= 0 ? h[j].second : 0;
+    }
+};
 ```
 
 
