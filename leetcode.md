@@ -1505,6 +1505,10 @@
 - 1146\.快照数组
 
   数据结构
+  
+- 1329\.将矩阵按对角线排序
+
+  模拟
 
 ## 算法
 
@@ -42218,6 +42222,28 @@ public:
         return j >= 0 ? h[j].second : 0;
     }
 };
+```
+
+##### 1329\.将矩阵按对角线排序
+
+[题目](https://leetcode.cn/problems/sort-the-matrix-diagonally/)
+
+```python
+class Solution:
+    def diagonalSort(self, mat: List[List[int]]) -> List[List[int]]:
+        n, m = len(mat), len(mat[0])
+        bjs, bis = [0]*n+list(range(m)), list(range(n-1,-1,-1))+[0]*m
+        for bi, bj in zip(bis, bjs):
+            i, j, a = bi, bj, []
+            while i<n and j<m:
+                a.append(mat[i][j])
+                i, j = i+1, j+1
+            a.sort()
+            i, j, k = bi, bj, 0
+            while i<n and j<m:
+                mat[i][j] = a[k]
+                i, j, k = i+1, j+1, k+1
+        return mat
 ```
 
 

@@ -2168,6 +2168,17 @@ tuple(i for i in range(5))
 (i for i in range(5)) #返回生成器，可以 next
 ```
 
+> 不加括号或用小括号是生成器：
+>
+> ```python
+> a=[1,2,3,4,5]
+> type(v>2 for v in a) # <class 'generator'>
+> w=(v>2 for v in a) # 这里不加小括号就报错
+> print(next(w))
+> for i in w:
+>     print(i)
+> ```
+
 
 
 #### else
@@ -2748,6 +2759,15 @@ print(f(*[1,2,3])) # 含义同上
 sum([1,2,3,4,5]) #15
 sum([1,2,3,4,5],10) #25
 ```
+
+也可以对生成器求和：
+
+```python
+a=[1,2,3,4,5]
+sum(v>2 for v in a)
+```
+
+
 
 ##### abs
 
