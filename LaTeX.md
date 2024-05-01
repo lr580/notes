@@ -955,6 +955,43 @@ sequenceDiagram
     李四-->王五: 很好!
 ```
 
+```mermaid
+%%{init:{'theme':'neutral', 'fontSize':'24px'}}%%
+sequenceDiagram
+	actor u as 用户
+	participant f as 前端
+	participant b as 后端
+	u->>+f:后端服务器URL
+	f->>+b:请求模型与设备列表
+	b-->>-f:返回模型与设备列表
+	par
+        loop 定时刷新
+            f->>+b:请求服务器状态
+            b-->>-f:返回服务器运行状态
+            f-->>u:侧边栏刷新服务器状态
+        end
+	and
+	opt 更换非默认模型与设备
+        u->>f:切换所选模型与设备
+        f-->>u:刷新所选模型与设备信息
+	end
+	u->>f:选择使用特定设备<br/>点击启动特定模型
+	f->>+b:请求启动模型
+	create participant m as 模型
+    b->>+m:启动模型
+    loop
+        u->>f:上传图片或视频
+    f->>+m:请求模型预测
+    m->>-f:预测结果
+    end
+    destroy m
+    m-->>b:模型关闭
+    b-->>-f:返回模型关闭结果
+	end
+	deactivate f
+    u->>f:其他信息
+```
+
 
 
 
@@ -1231,6 +1268,24 @@ erDiagram
 Mermaid 官方有一个在线的工具，可以导出 SVG 和 PNG。
 
 注意如果 typora 转 docx，那么流程图里不得出现 `<br>`，不然会失败
+
+#### 样式
+
+在线编辑可用：[src](https://mermaid.live/)
+
+主题-在一开始加上：
+
+```json
+%%{init: {'theme': 'base'}}%%
+```
+
+支持：default, neutral, dark, forest, base
+
+字体：
+
+```js
+%%{init:{'theme':'neutral', 'fontSize':'20px'}}%%
+```
 
 
 
@@ -1673,15 +1728,27 @@ LaTeX 文章分为导言区和正文区。一篇文章中只能有一个正文�
 #### 长度单位
 
 1. `pt`：点，这是一个绝对长度单位。1 pt = 0.351 mm [参考](https://blog.csdn.net/robert_chen1988/article/details/52739825)
+
 2. `mm`：毫米。
+
 3. `cm`：厘米。1 厘米 (cm) 等于 28.453 点 (pt)。
+
 4. `in`：英寸，1英寸等于2.54厘米。
+
 5. `ex`：这是另一个相对长度单位，通常等于当前字体的小写字母 "x" 的高度。
+
+   > 通常用于垂直方向的尺寸调整，例如行高、行间距等。
+
 6. `pica`：等于12点。
+
 7. `sp`：这是一个非常小的长度，主要用于内部计算。1点等于65536 sp。
+
 8. `bp`：大点，1英寸有72大点。
+
 9. `dd`：Didot 点，主要用于欧洲的排版。1英寸有67.54 Didot 点。
+
 10. `cc`：Didot cicero，等于12 Didot 点。
+
 11. `pc`：pica，等于12点。
 
 这些单位中，`pt`、`mm`、`cm` 和 `in` 可能是最常用的。而 `em` 和 `ex` 由于是相对单位，常用于需要根据字体大小自适应的场合。
@@ -2294,7 +2361,8 @@ geometry 宏包，如：
         周二&占卜&祭祀\\
         \bottomrule
     \end{tabular}
-    \caption{云烟的课程表}\label{云烟课表}
+    \caption{云烟的课程表}\label{云烟课表}%caption在tabular上下决定了实际在上还是下
+    %caption里加\\可以标题换行
 \end{table}
 
 这是云烟在游戏中安排的角色升级训练表，如表\ref{云烟课表}所示。
@@ -2371,6 +2439,81 @@ csvsimple 包 [官方文档](https://mirror.mwt.me/ctan/macros/latex/contrib/csv
 
 ```latex
 \multicolumn{2}{|c|}{跨越两列}
+```
+
+##### 一行多个
+
+```latex
+\vspace{1cm}
+\begin{minipage}{0.45\textwidth}
+    \centering
+    \captionof{table}{HWID12 数据集对比实验结果} \label{comparison_hwid}
+    \begin{tabular}{cc}
+    \toprule 
+    模型 & 准确率 \\
+    \midrule
+    \textbf{ACYOLO-medium} & \textbf{99.4\%} \\
+    \textbf{ACYOLO-large} & \textbf{99.6\%} \\
+    \bottomrule
+    \end{tabular}
+\end{minipage}%
+\hspace{0.04\textwidth}
+\begin{minipage}{0.45\textwidth}
+    \centering
+    \captionof{table}{CCD 数据集对比实验结果} \label{comparison_ccd}
+    \begin{tabular}{cc}
+    \toprule
+    模型 & 准确率 \\
+    \midrule
+    \textbf{ACYOLO-medium} & \textbf{99.9\%} \\
+    \textbf{ACYOLO-large} & \textbf{99.9\%} \\
+    \bottomrule
+    \end{tabular}
+\end{minipage}
+```
+
+- `\caption` 在浮动环境加标题，如 figure 和 table
+- `\captionof{格式}` 在非浮动加，如 minipage，格式写 figure/table 之类，以正确编号和排版。
+
+防止警报：
+
+```latex
+\captionsetup[table]{hypcap=false} 
+```
+
+
+
+##### 行间距
+
+逐行微调：(负是减小)
+
+```latex
+\begin{tabular}{cc}
+\toprule 
+编号 & 用时 \\ [-5pt]
+\midrule
+small & 1.717s \\ [-5pt]
+medium & 1.766s \\ [-5pt]
+large & 1.853s \\ [-5pt]
+\bottomrule
+\end{tabular}
+```
+
+每行全部一起调：
+
+```tex
+\centering
+\captionof{table}{模型预测图片时间} \label{model_predicting_time}
+\renewcommand{\arraystretch}{0.65}
+\begin{tabular}{cc}
+\toprule 
+编号 & 用时 \\
+\midrule
+small & 0.059s \\
+medium & 0.084s \\
+large & 0.151s \\
+\bottomrule
+\end{tabular}
 ```
 
 

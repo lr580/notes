@@ -1509,6 +1509,14 @@
 - 1329\.将矩阵按对角线排序
 
   模拟
+  
+- 2462\.雇佣k位工人的总代价
+
+  数据结构
+  
+- 857\.雇佣k名工人的最低成本
+
+  排序+优先级队列
 
 ## 算法
 
@@ -42244,6 +42252,261 @@ class Solution:
                 mat[i][j] = a[k]
                 i, j, k = i+1, j+1, k+1
         return mat
+```
+
+##### 2462\.雇佣k位工人的总代价
+
+[题目](https://leetcode.cn/problems/total-cost-to-hire-k-workers/)
+
+- 维护两个 set，分别维护前 c 个和后 c 个 pair(cost, 下标)的最小值
+- 维护 bool 数组，判断每个元素是否被删除了
+- 选 k 次，每次选两 set 的较小值，标记 bool，然后在两个 set 里删掉该较小值
+- 维护两 set 下一次应该插入哪个值以维持有 c 个元素，通过下标指针移动实现
+
+复杂度 $O(n+c\log c+k\log c)=O(n\log n)$
+
+```c++
+using ll = long long;
+using pii = pair<int, int>;
+class Solution {
+public:
+    ll totalCost(vector<int>& costs, int k, int c) {
+        int n = costs.size();
+        vector<pii> a;
+        for(int i=0;i<n;++i) {
+            a.emplace_back(costs[i], i);
+        }
+        set<pii> lf, rf;
+        for(int i=0;i<c;++i) {
+            lf.emplace(a[i].first, a[i].second);
+            rf.emplace(a[n-i-1].first, a[n-i-1].second);
+        }
+        vector<bool> die(n, false);
+        ll ans = 0, li = c, ri = n-c-1; // next index to add
+        for(int i=0;i<k;++i) {
+            pii vl = *lf.begin(), vr = *rf.begin();
+            pii v = min(vl, vr);
+            die[v.second] = true;
+            if(vl == v) {
+                lf.erase(lf.begin());
+                while(li<n && die[a[li].second]) ++li;
+                if(li<n) lf.insert(a[li++]);
+            }
+            if(vr == v){
+                rf.erase(rf.begin());
+                while(ri>=0 && die[a[ri].second]) --ri;
+                if(ri>=0) rf.insert(a[ri--]);
+            }
+            ans += v.first;
+        }
+        return ans;
+    }
+};
+```
+
+> ```c++
+> using ll = long long;
+> using pii = pair<int, int>;
+> class Solution {
+> public:
+>     ll totalCost(vector<int>& costs, int k, int c) {
+>         int n = costs.size();
+>         vector<pii> a;
+>         for(int i=0;i<n;++i) {
+>             a.emplace_back(costs[i], i);
+>         }
+>         set<pii> lf, rf;
+>         for(int i=0;i<c;++i) {
+>             lf.emplace(a[i].first, a[i].second);
+>             rf.emplace(a[n-i-1].first, a[n-i-1].second);
+>         }
+>         vector<bool> die(n, false);
+>         ll ans = 0, li = c, ri = n-c-1; // next index to add
+>         for(int i=0;i<k;++i) {
+>             pii vl = *lf.begin(), vr = *rf.begin();
+>             pii v = min(vl, vr);
+>             die[v.second] = true;
+>             auto pl = lf.find(v), pr = rf.find(v);
+>             if(pl!=lf.end()) { // 其实可以直接看 begin 而不是 find
+>                 lf.erase(pl);
+>                 while(li<n && die[a[li].second]) ++li;
+>                 if(li<n) lf.insert(a[li++]);
+>             }
+>             if(pr!=rf.end()){
+>                 rf.erase(pr);
+>                 while(ri>=0 && die[a[ri].second]) --ri;
+>                 if(ri>=0) rf.insert(a[ri--]);
+>             }
+>             ans += v.first;
+>         }
+>         return ans;
+>     }
+> };
+> ```
+
+题解优化：
+
+- 使用优先队列而不是 map
+
+- 无需 bool 数组，当两个队列区间相撞时，只需要将它加入任意一个队列
+
+  即只要相撞，就从此不再增加元素了，从而不重
+
+- 也不需要存储下标到 pair 优先级队列了
+
+- 特判 2c+k > n 即一定相撞的情况 
+
+```c++
+class Solution {
+public:
+    long long totalCost(vector<int>& costs, int k, int candidates) {
+        int n = costs.size();
+        if (candidates * 2 + k > n) {
+            ranges::nth_element(costs, costs.begin() + k);//C++20
+            return accumulate(costs.begin(), costs.begin() + k, 0LL);
+        }
+
+        long long ans = 0;
+        priority_queue<int, vector<int>, greater<>> pre, suf;
+        for (int i = 0; i < candidates; i++) {
+            pre.push(costs[i]);
+            suf.push(costs[n - 1 - i]);
+        }
+        int i = candidates, j = n - 1 - candidates;
+        while (k--) {
+            if (pre.top() <= suf.top()) {
+                ans += pre.top();
+                pre.pop();
+                if (i <= j) {
+                    pre.push(costs[i++]);
+                }
+            } else {
+                ans += suf.top();
+                suf.pop();
+                if (i <= j) {
+                    suf.push(costs[j--]);
+                }
+            }
+        }
+        return ans;
+    }
+};
+
+```
+
+##### 857\.雇佣K名工人的最低成本
+
+[题目](https://leetcode.cn/problems/minimum-cost-to-hire-k-workers/)
+
+当确定比例 (wage/quality) 为定值时，在所有能选(即给的钱不低于 wage)的人里，一定选择 quality 前 k 小的。
+
+按照最低比例排序，按排序后顺序添加这些人，然后维护添加的人里的前 k 小的 quality，用当前最高比例乘以当前 quality 的前 k 小和，求出所有比例与当前比例的 k 小和的最小值。
+
+使用大根堆维护前 k 小，当堆元素超过 k 时，删掉堆里最大的，另开变量维护元素和即可。
+
+复杂度 $O(n\log n + k\log k)=O(n\log n)$。
+
+```c++
+class Solution {
+public:
+    double mincostToHireWorkers(vector<int>& quality, vector<int>& wage, int k) {
+        int n = quality.size();
+        vector<pair<int, int>> workers;
+        using pii = pair<int,int>;
+        vector<pii> a(n);
+        for(int i=0;i<n;++i) {
+            a[i] = {quality[i], wage[i]};
+        }
+        //按照所需最低比例的升序排序
+        sort(a.begin(), a.end(), [&](pii l, pii r){
+            // l.se/l.fi < r.se/r.fi
+            return l.second*r.first < l.first*r.second;
+        });
+        priority_queue<int> q; //维护前k小的quality, 大根堆
+        double ans = 9e18, s = 0; // s是当前前k小的quality和
+        for(int i=0;i<n;++i) {
+            double p = 1.*a[i].second/a[i].first; //当前比例
+            q.push(a[i].first);
+            s += a[i].first;
+            //cout << s << " " << a[i].first << " " << a[i].second << " " << q.top() << '\n';
+            if(q.size() > k) {
+                s -= q.top();
+                q.pop();
+            }
+            if(q.size() == k) {
+                ans = min(ans, s*p);
+            }
+        }
+        return ans;
+    }
+};
+```
+
+> 考虑样例一，不满足对比例 p = (wage/quality) 二分来判断满足人数的单调，因为 p=6 时就可以够 k=2，但是 p=7 时答案更低。失败的程序：
+>
+> ```c++
+> class Solution {
+> public:
+>     double mincostToHireWorkers(vector<int>& quality, vector<int>& wage, int k) {
+>         double lf = 1e9, rf = 0, cf, ans = 9e18;
+>         int n = quality.size();
+>         for(int i=0;i<n;++i) {
+>             double p=1.*wage[i]/quality[i];
+>             lf = min(lf, p), rf = max(rf, p);
+>         }
+>         while(abs(rf-lf)>=1e-6) {
+>             cf=(lf+rf)/2;
+>             int cnt = 0;
+>             double s = 0;
+>             for(int i=0;i<n;++i) {
+>                 if(quality[i]*cf-1e-9>=wage[i]) {
+>                     ++cnt;
+>                     s+=quality[i]*cf;
+>                 }
+>             }
+>             if(cnt>=k) {
+>                 ans = min(ans, s);
+>                 rf = cf;
+>             }else{
+>                 lf = cf;
+>             }
+>         }
+>         return ans;
+>     }
+> };
+> ```
+
+题解同理，但是提供另外的实现写法：
+
+```c++
+class Solution {
+public:
+    double mincostToHireWorkers(vector<int>& quality, vector<int>& wage, int k) {
+        int n = quality.size();
+        vector<int> h(n, 0);
+        iota(h.begin(), h.end(), 0);
+        sort(h.begin(), h.end(), [&](int& a, int& b) {
+            return quality[a] * wage[b] > quality[b] * wage[a];
+        });
+        double res = 1e9;
+        double totalq = 0.0;
+        priority_queue<int, vector<int>, less<int>> q;
+        for (int i = 0; i < k - 1; i++) {
+            totalq += quality[h[i]];
+            q.push(quality[h[i]]);
+        }
+        for (int i = k - 1; i < n; i++) {
+            int idx = h[i];
+            totalq += quality[idx];
+            q.push(quality[idx]);
+            double totalc = ((double) wage[idx] / quality[idx]) * totalq;
+            res = min(res, totalc);
+            totalq -= q.top();
+            q.pop();
+        }
+        return res;
+    }
+};
 ```
 
 

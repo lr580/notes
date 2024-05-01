@@ -1659,6 +1659,8 @@ a[:21:5] #[0,5,10,15,20]
 
 支持取下标，输出每个的 ASCII 码；支持 len，切片
 
+可以直接类型转换，如 `float(b'1.7')*2`
+
 ##### bytearray
 
 ```python
@@ -8022,6 +8024,8 @@ plt.show()
 
 #### 子图
 
+##### 不重叠
+
 ```python
 subplot(nrows, ncols, index, **kwargs)
 subplot(pos, **kwargs)
@@ -8031,7 +8035,7 @@ subplot(ax)
 
 以上函数将整个绘图区域分成 nrows 行和 ncols 列，然后从左到右，从上到下的顺序对每个子区域进行编号 `1...N` ，左上的子区域的编号为 1、右下的区域编号为 N，编号可以通过参数 index 来设置。
 
-##### 例子
+###### 例子
 
 > ```python
 > import matplotlib.pyplot as plt
@@ -8120,6 +8124,35 @@ subplot(ax)
 > plt.tight_layout()
 > plt.show()
 > ```
+
+##### 重叠
+
+三个折线图为例。
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+# 创建数据
+x = np.arange(10)
+y1 = np.random.rand(10)
+y2 = np.random.rand(10)
+y3 = np.random.rand(10)
+
+# 创建子图
+fig, ax = plt.subplots()
+
+# 绘制三条折线图
+ax.plot(x, y1, label='Line 1')
+ax.plot(x, y2, label='Line 2')
+ax.plot(x, y3, label='Line 3')
+
+# 添加图例
+ax.legend()
+
+# 显示图形
+plt.show()
+```
 
 #### 图片
 
@@ -14025,6 +14058,27 @@ response = requests.get(url, proxies=proxies)
 ```
 
 `socks5h` 与 `socks5` 的区别在于，`socks5h` 会让代理服务器来处理域名解析，而 `socks5` 则是在本地解析。需要：`pip install pysocks`。
+
+#### 文件
+
+##### 上传
+
+假设有一个接口，要求上传参数为 file，内容为一张图片，接口为 `/predict`，POST。
+
+```python
+import requests
+image_path = 'path_to_your_image.jpg'
+url = 'http://your_api_url/predict'
+with open(image_path, 'rb') as file:
+    response = requests.post(url, files={'file': file})
+if response.status_code == 200:
+    result = response.json() # 具体看服务器是不是返回json
+    print(result)
+else:
+    print('请求失败')
+```
+
+
 
 ### bs
 
