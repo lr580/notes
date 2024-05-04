@@ -916,6 +916,25 @@ graph TB
     end
 ```
 
+子图的作用可以控制多个块同一高度：
+
+```mermaid
+graph TD
+	A["Collecting data from websites"]
+	subgraph Collecting Data
+		A1["Scraping case data"]
+		A2["Requesting mobility data"]
+		A3["Requesting vaccination data"]
+	end 
+	A --> A1
+	A --> A2
+	A --> A3
+	A1 --> B1["Cleaning data by differentiation"]
+	B1 --> C["Combining datasets into single dataset"]
+	A2 --> C
+	A3 --> C
+```
+
 
 
 #### 时序图

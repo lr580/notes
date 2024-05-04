@@ -12,11 +12,7 @@
 
 python3.4是最后支持window XP的版本。不要安装最新的版本，往往会出现bugs，安装一个小版本号，如3.9是最新，安装3.8的稳定版。
 
-必须勾选add python.exe to Path，否则重装，如下图：
-
-<img src="img/image-20210227194041109.png" alt="image-20210227194041109" />
-
-使用略。
+必须勾选add python.exe to Path，使用略。
 
 ### 测试
 
@@ -8637,7 +8633,7 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 
  `.shape` 依次是行数(不含表头)、列数。是独有的类型。可以用 `[]`
 
-列名字符串区分大小写。默认每列同一个数据类型。
+**列名字符串区分大小写**。默认每列同一个数据类型。
 
 创建两行数据：
 
@@ -8656,7 +8652,7 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 
 > 如，取前两列外的每一列：`df.iloc[:, 2:]`；取定值 `.iloc[0]['A']`
 >
-> 取特定若干列：`df[['text', 'num_hashtags']]`；取一列是 series，这样取多列还是 df 类型。
+> 取特定若干列：`df[['text', 'num_hashtags']]`；取一列是 series，这样取多列还是 df 类型。(tuple 不行，一定是)
 >
 > 若干行+若干列举例：`print(df.iloc[:5][['DURATION', 'AFFECTED']])`
 >
@@ -8679,15 +8675,13 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 
 转字典 `to_dict()`，key 是列(str 或多索引就 tuple，见聚合索引), value 是 dict(行index: 值)
 
-简要统计 `.describe()` 形状 `.shape`
+简要统计 `.describe()`  (mean, std, min, 4分位数, max)(是一个 df, 索引是字符如 max)
 
 取所有列(含下表列) `df.columns`，取指定列，可以 for 和取下标，得 str，可以 `.tolist()`
 
 取行下标范围 `df.index` 有属性 `start,step,stop`，其中 stop 是第一个越界
 
 > 如果是聚合下标，见下文。
-
-取每列数据类型 `df.dtypes`，取指定列的 `df[col].dtype`。
 
 用列值进行 01 分类：`get_dummies`
 
@@ -8696,6 +8690,30 @@ pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
 > `df[col].values.shape` 是一维；`df[[col]].values.shape` 是二维(前者算 series 转；后者算一列 df 转，故第二维为 1)
 
 列赋值，可以直接把 numpy (1,n) shape 的赋值
+
+##### 数据类型
+
+取每列数据类型 `df.dtypes`，取指定列的 `df[col].dtype`。默认每列同一个数据类型。
+
+类型转化：`df[] = df[].astype(int)`；
+
+转数值：`pd.to_numeric(df[column], errors = 'coerce')`
+
+```python
+data = {
+    'date': ['2021-01-01', '2021-01-02', '2021-01-03'],
+    'value1': [10.5, 20.1, 30.7],
+    'value2': ['40', '50', '60'],
+    'value3': [70.9, 80.2, 90.8]
+}
+df = pd.DataFrame(data)
+# 转换除 'date' 列外的所有列为 int 类型
+cols_to_convert = df.columns.drop('date')
+#df.select_dtypes(include=[np.number, 'object']).columns.drop('date') 
+df[cols_to_convert] = df[cols_to_convert].astype(int)
+```
+
+
 
 #### 常规运算
 
@@ -9224,6 +9242,30 @@ df2 = pd.DataFrame({'key2': ['B', 'D', 'E', 'F'], 'value': [5, 6, 7, 8]})
 print(pd.merge(df1, df2, left_on='key1', right_on='key2', how='inner'))
 ```
 
+> ```python
+> import pandas as pd
+> from functools import reduce
+> data1 = {'date': ['2021-01-01', '2021-01-02', '2021-01-03'],
+>          'value1': [10, 20, 30]}
+> data2 = {'date': ['2021-01-01', '2021-01-02', '2021-01-04'],
+>          'value2': [40, 50, 60]}
+> data3 = {'date': ['2021-01-01', '2021-01-03', '2021-01-04'],
+>          'value3': [70, 80, 90]}
+> df1 = pd.DataFrame(data1)
+> df2 = pd.DataFrame(data2)
+> df3 = pd.DataFrame(data3)
+> dfs = [df1, df2, df3]
+> merged_df = reduce(lambda left, right: pd.merge(left, right, on='date', how='outer'), dfs)
+> print(merged_df)
+> '''      date  value1  value2  value3
+> 0  2021-01-01    10.0    40.0    70.0
+> 1  2021-01-02    20.0    50.0     NaN
+> 2  2021-01-03    30.0     NaN    80.0
+> 3  2021-01-04     NaN    60.0    90.0'''
+> ```
+
+
+
 ##### 行列重构
 
 将默认列名重命名为其他列名：
@@ -9327,6 +9369,15 @@ w.query('value >= 581') #相等就 ==
 > df1 = df.query('type=="before crush"')
 > df1 = df[df['type'] == 'before crush']
 > ```
+
+使用变量：
+
+```python
+min_date, max_date = '1900-01-01', '9999-12-31'
+case_data = case_data.query('date >= @min_date and date <= @max_date')
+```
+
+
 
 ##### 子列
 

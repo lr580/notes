@@ -1518,9 +1518,13 @@
 
   排序+优先级队列
   
-- 1235\,规划兼职工作
+- 1235\.规划兼职工作
 
   DP + 树状数组(区间max)/线段树/<u>二分搜索</u>
+  
+- 1652\.拆炸弹
+
+  前缀和 / 滑动窗口
 
 ## 算法
 
@@ -42608,6 +42612,72 @@ public:
         return f[n];
     }
 };
+```
+
+##### 1652\.拆炸弹
+
+[题目](https://leetcode.cn/problems/defuse-the-bomb/)
+
+前缀和：
+
+```python
+class Solution:
+    def decrypt(self, code: List[int], k: int) -> List[int]:
+        n, m = len(code), len(code)*2
+        s, a = [0] * (m+1), [0]*n
+        if k==0:
+            return a
+        for i in range(m):
+            s[i+1]=s[i]+code[i%n]
+        for i in range(n):
+            if k>0:
+                l,r=(i+1)%m,(i+k)%m
+            else:
+                l,r=(i-1+n)%m,(i+k+n)%m
+            print(l,r)
+            l,r=min(l,r),max(l,r)
+            a[i]=s[r+1]-s[l]
+        return a
+```
+
+滑动窗口：
+
+```python
+class Solution:
+    def decrypt(self, code: List[int], k: int) -> List[int]:
+        if k == 0:
+            return [0] * len(code)
+        res = []
+        n = len(code)
+        code += code
+        if k > 0:
+            l, r = 1, k
+        else:
+            l, r = n + k, n - 1
+        w = sum(code[l:r+1])
+        for i in range(n):
+            res.append(w)
+            w -= code[l]
+            w += code[r + 1]
+            l, r = l + 1, r + 1
+        return res
+```
+
+优雅前缀和：
+
+```python
+class Solution:
+    def decrypt(self, code: List[int], k: int) -> List[int]:
+        n = len(code)
+        ans = [0] * n
+        if k == 0:
+            return ans
+        sum = [0] * (2 * n + 10)
+        for i in range(1, 2 * n + 1):
+            sum[i] = sum[i - 1] + code[(i - 1) % n]
+        for i in range(1, n + 1):
+            ans[i - 1] = sum[i + n - 1] - sum[i + n + k - 1] if k < 0 else sum[i + k] - sum[i]
+        return ans
 ```
 
 
