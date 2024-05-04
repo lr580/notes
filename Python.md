@@ -9382,6 +9382,7 @@ def permutation_test(model, df, col, val, rounds=500):
 
 ```python
 diffs = pivot_table.diff(axis=1)
+# df['A'] = df['A'].diff()
 ```
 
 则第一列变成 NaN，第二列变成第二列减第一列……

@@ -1517,6 +1517,10 @@
 - 857\.雇佣k名工人的最低成本
 
   排序+优先级队列
+  
+- 1235\,规划兼职工作
+
+  DP + 树状数组(区间max)/线段树/<u>二分搜索</u>
 
 ## 算法
 
@@ -42505,6 +42509,103 @@ public:
             q.pop();
         }
         return res;
+    }
+};
+```
+
+##### 1235\.规划兼职工作
+
+[题目](https://leetcode.cn/problems/maximum-profit-in-job-scheduling)
+
+使用离散化处理时间单位，使得时间取值范围在 $O(n)$ 内。
+
+将 `endTime` 全体减一，避免时间重叠(原数据 `[1,3]+[3,6]=[1,6]` 不重叠，改成 `[1,2]+[3,5]`)
+
+设 $dp_i$ 表示第 $i$ 个时间单位。设一个工作为 $(l,r,w)$。则 $dp_r=\max(dp_r,\max_{j=0}^{l-1}dp_j+w)$。使用树状数组维护 dp 单点修改和区间求 max(因为修改只会让 max 更大所以可行)。
+
+将工作按 `endTime` 排序，排序后进行 DP 即可。总复杂度 $O(n\log n)$。
+
+```c++
+using work = tuple<int,int,int>;
+struct fenwick {
+    vector<int> t, a;
+    int n;
+    fenwick(int n=1) : t(n+1,0), a(n+1,0), n(n) {}
+    void update(int i, int v) {
+        // for(;i<=n;i+=i&-i) t[i] = max(a[i],v);
+        a[i]=max(a[i],v);
+        while(i<=n) {
+            // if(v>t[i]) t[i]=v;
+            // else return;
+            t[i]=max(t[i],v);
+            i+=i&-i;
+        }
+    }
+    int query(int lf, int rf) {
+        int i = rf, res = 0;
+        while(i>=lf) {
+            if(i-(i&-i)>lf) {
+                res = max(res, t[i]);
+                i-=i&-i;
+            }else {
+                res = max(res, a[i]);
+                --i;
+            }
+        }
+        return res;
+    }
+};
+class Solution {
+public:
+    int jobScheduling(vector<int>& startTime, vector<int>& endTime, vector<int>& profit) {
+        set<int> t{0};
+        for(auto&v:endTime) --v;
+        t.insert(startTime.begin(), startTime.end());
+        t.insert(endTime.begin(), endTime.end());
+        map<int,int> m;
+        int c=0, n = startTime.size();
+        for(auto&v:t) {
+            m.insert({v,++c});
+        }
+        vector<work> a(n);
+        for(int i=0;i<n;i++) {
+            a[i] = {m[endTime[i]], m[startTime[i]], profit[i]};
+        }
+        sort(a.begin(), a.end());
+        fenwick f(c); // 第i个离散时间已经被占用时的最大利润
+        for(auto&[r, l, w]: a) {
+            int maxW = f.query(1, l-1);
+            f.update(r, maxW+w);
+        }
+        return f.query(1,c);
+    }
+};
+```
+
+设 $f_i$ 表示按结束时间排序后看了前 $i$ 个工作的最大利润，则：
+$$
+f_i=\max(f_{i-1}, w_i+\max_{j} f_j), s.t.\  r_j\le l_i
+$$
+即在所有不冲突时间范围 $j$ 里，由于 $f$ 递增，$j$ 越大，$f_j$ 单调不减，所以二分找到最大 $j$ 即可。
+
+```c++
+class Solution {
+public:
+    int jobScheduling(vector<int> &startTime, vector<int> &endTime, vector<int> &profit) {
+        int n = startTime.size();
+        vector<array<int, 3>> jobs(n);
+        for (int i = 0; i < n; i++) {
+            jobs[i] = {endTime[i], startTime[i], profit[i]};
+        }
+        ranges::sort(jobs, [](auto &a, auto &b) { return a[0] < b[0]; }); // 按照结束时间排序
+
+        vector<int> f(n + 1);
+        for (int i = 0; i < n; i++) {
+            int j = upper_bound(jobs.begin(), jobs.begin() + i, array<int, 3>{jobs[i][1], INT_MAX}) - jobs.begin();
+            // 状态转移中，为什么是 j 不是 j+1：上面算的是 > 开始时间，-1 后得到 <= 开始时间，但由于还要 +1 (dp下标从1开始，其他从0)，抵消了
+            f[i + 1] = max(f[i], f[j] + jobs[i][2]);
+        }
+        return f[n];
     }
 };
 ```
