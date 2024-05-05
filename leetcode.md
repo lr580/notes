@@ -1525,6 +1525,10 @@
 - 1652\.拆炸弹
 
   前缀和 / 滑动窗口
+  
+- 741\.摘樱桃
+
+  **DP**
 
 ## 算法
 
@@ -42678,6 +42682,62 @@ class Solution:
         for i in range(1, n + 1):
             ans[i - 1] = sum[i + n - 1] - sum[i + n + k - 1] if k < 0 else sum[i + k] - sum[i]
         return ans
+```
+
+##### 741\.摘樱桃
+
+[题目](https://leetcode.cn/problems/cherry-pickup/solutions/1656418/zhai-ying-tao-by-leetcode-solution-1h3k/)
+
+等价看成有两个人，两人都只能向下向左同时同地出发，求两人最大和。
+
+两人分别 DP，但是需要判断是否两人重复走了同一个格子。
+
+因为走的步数为 $k$ 时满足 $x+y=k$，即 $y=k-x$，故设 $f_{k,x_1,x_2}$ 为两人从 $(x_1,k-x_1),(x_2,k-x_2)$ 出发，到达右下角时二人最大和。
+
+枚举二人行动的四种可能性，则当前状态由四个状态得来。由于二人同时出发，$x_1+y_1=x_2+y_2=k$，所以若 $x_1=x_2$ 必然有 $y_1=y_2$，该格子就重复到达了只能算一次。最后答案取 $f_{2n-2,n-1,n-1}$。
+
+枚举优化：走的时候总是有上下两条路径，可以让 $x_1\le x_2$ 来常数优化。
+
+```c++
+class Solution {
+public:
+    int cherryPickup(vector<vector<int>> &grid) {
+        int n = grid.size();
+        vector<vector<vector<int>>> f(n * 2 - 1, vector<vector<int>>(n, vector<int>(n, INT_MIN)));
+        f[0][0][0] = grid[0][0];
+        for (int k = 1; k < n * 2 - 1; ++k) {
+            // x 往右最远走到 k, 最少(全走y) 也走到了 k-n+1
+            for (int x1 = max(k - n + 1, 0); x1 <= min(k, n - 1); ++x1) {
+                int y1 = k - x1;
+                if (grid[x1][y1] == -1) {
+                    continue;
+                }
+                for (int x2 = x1; x2 <= min(k, n - 1); ++x2) {
+                    int y2 = k - x2;
+                    if (grid[x2][y2] == -1) {
+                        continue;
+                    }
+                    int res = f[k - 1][x1][x2]; // 都往右
+                    if (x1) {
+                        res = max(res, f[k - 1][x1 - 1][x2]); // 往下，往右
+                    }
+                    if (x2) {
+                        res = max(res, f[k - 1][x1][x2 - 1]); // 往右，往下
+                    }
+                    if (x1 && x2) {
+                        res = max(res, f[k - 1][x1 - 1][x2 - 1]); // 都往下
+                    }
+                    res += grid[x1][y1];
+                    if (x2 != x1) { // 避免重复摘同一个樱桃
+                        res += grid[x2][y2];
+                    }
+                    f[k][x1][x2] = res;
+                }
+            }
+        }
+        return max(f.back().back().back(), 0);
+    }
+};
 ```
 
 

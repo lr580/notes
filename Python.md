@@ -7473,6 +7473,25 @@ if __name__ == '__main__':
 
 ##### 线性回归
 
+###### 拟合绘图
+
+```python
+plt.figure(figsize=(10, 6))
+plt.scatter(df[colX], df[colY])
+coefficients = np.polyfit(df[colX], df[colY], 1)
+polynomial = np.poly1d(coefficients)
+x_axis = np.linspace(min(df[colX]), max(df[colX]), 100)
+y_axis = polynomial(x_axis)
+plt.plot(x_axis, y_axis, color='red', label='Regression Line')
+plt.title(f'Regression between {colX} and {colY}')
+plt.xlabel(colX)
+plt.ylabel(colY)
+plt.legend()
+plt.show()
+```
+
+
+
 ###### 梯度下降
 
 以 MSE 误差，求 $h=w_0+w_1 x^2$ 为例，梯度下降：
@@ -7936,6 +7955,17 @@ plt.axis([-12,12,-5,5])
 plt.gca().xaxis.set_major_locator(plt.MultipleLocator(1))
 ```
 
+只显示特定的几个刻度：
+
+```python
+start_date = df['date'].min()
+end_date = df['date'].max()
+middle_date = df['date'][int(len(df['date']) / 2)]
+axs[i].set_xticks([start_date, middle_date, end_date])
+```
+
+
+
 隐藏坐标轴：(与上面不会冲突)(该命令会引发warning)
 
 ```python
@@ -7962,6 +7992,14 @@ plt.axis('equal')
 ```
 
 
+
+日期：
+
+```python
+fig.autofmt_xdate()
+```
+
+这个方法用于自动格式化 x 轴上的日期标签，使它们倾斜以防止标签之间的重叠。默认情况下，日期标签可能会水平排列，当标签过多时很容易相互覆盖，导致无法清晰阅读。`fig.autofmt_xdate()` 会将这些标签倾斜（通常是45度倾斜），从而改善图表的可读性。
 
 ##### 图例
 
@@ -8149,6 +8187,10 @@ ax.legend()
 # 显示图形
 plt.show()
 ```
+
+##### 参数
+
+`plt.tight_layout()`: 这个方法自动调整子图参数，以确保图表的内容（如轴标题、轴标签等）不会相互重叠，并且整体布局看起来整洁。这是一种自动管理图表内部元素间距的方式，尤其在创建多个子图时非常有用。
 
 #### 图片
 
@@ -9083,7 +9125,24 @@ df.groupby('A').filter(lambda df:df['B'].min()>=5) #如果>5则返回空
 df.groupby('A').filter(lambda df:(df['B'].min()>=5) & (df.shape[0] > 1))
 ```
 
+##### 索引
 
+将普通列设为索引或将索引退回成普通列：
+
+```python
+data = {'Name': ['Alice', 'Bob', 'Charlie'],
+        'Age': [25, 30, 35]} #初始0-2索引，2个普通列
+df = pd.DataFrame(data)
+# 设置索引为 'Name' 列，删掉初始索引
+df.set_index('Name', inplace=True)
+# 使用 reset_index 重置索引，归还初始状态
+df_reset = df.reset_index()
+print(df_reset)
+```
+
+可以设置 `reset_index(drop=1)`，顺手把原本的索引列即上例 name 删了
+
+inplace 如果设置为 `False`（默认值），则不会修改原始 DataFrame，而是返回一个新的 DataFrame
 
 ##### 聚合索引
 
@@ -9292,20 +9351,7 @@ print(pd.merge(df1, df2, left_on='key1', right_on='key2', how='inner'))
 count_df.columns = ['U.S._STATE', 'count'] # 重命名各列
 ```
 
-将普通列设为索引或将索引退回成普通列：
 
-```python
-data = {'Name': ['Alice', 'Bob', 'Charlie'],
-        'Age': [25, 30, 35]} #初始0-2索引，2个普通列
-df = pd.DataFrame(data)
-# 设置索引为 'Name' 列，删掉初始索引
-df.set_index('Name', inplace=True)
-# 使用 reset_index 重置索引，归还初始状态
-df_reset = df.reset_index()
-print(df_reset)
-```
-
-可以设置 `reset_index(drop=1)`，顺手把原本的索引列即上例 name 删了
 
 增加一些没有的列 id 对应的值，填补缺省值：
 
@@ -9437,6 +9483,14 @@ diffs = pivot_table.diff(axis=1)
 ```
 
 则第一列变成 NaN，第二列变成第二列减第一列……
+
+##### 前缀和
+
+```python
+df['Cumulative_Sum'] = df['Values'].cumsum()
+```
+
+
 
 ##### qcut
 
@@ -9660,6 +9714,60 @@ df['host_since'] = stats.zscore(df['host_since'])
 wc = df[col].apply(pd.Series).stack().value_counts()
 wc.nlargest(k).index
 ```
+
+##### clip
+
+够将数值限制在指定的最小值和最大值之间
+
+```python
+df['Confirmed'] = df['Confirmed'].clip(lower=0) # x=max(x,0)
+```
+
+##### 相关性计算
+
+1. 皮尔逊相关系数
+
+- **定义**: 皮尔逊相关系数衡量两个数值型变量之间的线性关系程度。
+- **取值范围**: -1到+1。值+1表示完全正相关，-1表示完全负相关，0表示没有线性相关性。
+- **适用条件**: 适用于定量数据，假定数据是正态分布的，且关系是线性的。
+
+2. 斯皮尔曼等级相关系数
+
+- **定义**: 斯皮尔曼相关系数是一种基于秩的非参数相关系数，衡量两个变量的等级之间的单调关系。
+- **取值范围**: 同样是-1到+1。
+- **适用条件**: 当数据不满足正态分布，或者数据含有异常值、不是线性关系时，使用斯皮尔曼相关系数更为合适。
+
+3. 肯德尔等级相关系数
+
+- **定义**: 肯德尔相关系数基于两个变量的观察对中一致和不一致对的数量。
+- **取值范围**: -1到+1。
+- **适用条件**: 适用于分类数据，非常适合于小样本数据分析。
+
+> **卡方检验** 用于确定两个分类变量之间是否独立无关 / Fisher's Exact Test 费希尔精确检验 
+
+```python
+import pandas as pd
+data = {
+    'Feature1': [10, 20, 30, 40, 50],
+    'Feature2': [12, 24, 33, 45, 55],
+    'Feature3': [5, 15, 25, 35, 45]
+}
+df = pd.DataFrame(data)
+
+# 皮尔逊相关系数
+pearson_corr = df['Feature1'].corr(df['Feature2'])
+print(f"Pearson correlation coefficient: {pearson_corr}")
+
+# 斯皮尔曼相关系数
+spearman_corr = df['Feature1'].corr(df['Feature2'], method='spearman')
+print(f"Spearman correlation coefficient: {spearman_corr}")
+
+# 肯德尔相关系数
+kendall_corr = df['Feature1'].corr(df['Feature2'], method='kendall')
+print(f"Kendall correlation coefficient: {kendall_corr}")
+```
+
+
 
 #### 字符串
 
@@ -9979,6 +10087,13 @@ df['OUTAGE.START.TIME'] = pd.to_timedelta(df['OUTAGE.START.TIME'].astype(str))
 df['OUTAGE.START'] = df['OUTAGE.START.DATE'] + df['OUTAGE.START.TIME']
 ```
 
+##### 时间段生成
+
+```python
+pd.date_range(start='2021-01-01', periods=10)
+#DatetimeIndex(['2021-01-01', '2021-01-02', '2021-01-03', '2021-01-04','2021-01-05', '2021-01-06', '2021-01-07', '2021-01-08','2021-01-09', '2021-01-10'],dtype='datetime64[ns]', freq='D')
+```
+
 
 
 #### 绘图
@@ -10002,6 +10117,27 @@ to_frame().rename(columns={0: 'p-value'}).plot(kind='barh', width=800, height=40
 ```
 
 `kind='barh'`指定了图表的类型为水平条形图（horizontal bar chart）。
+
+##### KDE
+
+核密度估计（KDE）是一种用来估计随机变量的概率密度函数的非参数方法。它通过对数据点周围加上一个平滑的（通常是高斯）窗口，然后将这些窗口叠加起来来估计整体分布。KDE 图可以帮助我们看到数据的分布形状，例如数据的峰值、偏度和尾部特征，它是直方图的平滑版本。
+
+```python
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(0)
+data = np.random.normal(loc=0, scale=1, size=1000)
+
+df = pd.DataFrame(data, columns=['Data'])
+
+fig, ax = plt.subplots()
+df['Data'].plot.kde(ax=ax, legend=False, title='Kernel Density Plot')
+ax.set_ylabel('Probability')
+ax.grid()
+plt.show()
+```
 
 
 
@@ -11105,6 +11241,77 @@ print("最优解为：\n",x.value)
 ```
 
 [更多例题参考](https://blog.csdn.net/abc1234564546/article/details/126263264)
+
+### statsmodels
+
+#### 回归
+
+ OLS（普通最小二乘法）
+
+```python
+import statsmodels.api as sm
+X = sm.add_constant(df['Variable1'])
+y = df['Variable2']
+model = sm.OLS(y, X)
+results = model.fit()
+print(results.summary())
+```
+
+> 输出例子：
+>
+> ```
+> OLS Regression Results
+> ==============================================================================   
+> Dep. Variable:                 Deaths   R-squared:                       0.289   
+> Model:                            OLS   Adj. R-squared:                  0.288   
+> Method:                 Least Squares   F-statistic:                     259.9   
+> Date:                Sun, 05 May 2024   Prob (F-statistic):           2.56e-49   
+> Time:                        02:04:23   Log-Likelihood:                -3945.5   
+> No. Observations:                 641   AIC:                             7895.   
+> Df Residuals:                     639   BIC:                             7904.   
+> Df Model:                           1
+> Covariance Type:            nonrobust
+> ==============================================================================   
+>                  coef    std err          t      P>|t|      [0.025      0.975]   
+> ------------------------------------------------------------------------------   
+> const        266.3942     11.095     24.010      0.000     244.607     288.182   
+> total_vac   -3.05e-06   1.89e-07    -16.122      0.000   -3.42e-06   -2.68e-06   
+> ==============================================================================   
+> Omnibus:                      297.046   Durbin-Watson:                   0.811   
+> Prob(Omnibus):                  0.000   Jarque-Bera (JB):             2159.825   
+> Skew:                           1.924   Prob(JB):                         0.00   
+> Kurtosis:                      11.128   Cond. No.                     1.44e+08   
+> ============================================================================== 
+> ```
+
+> - **Dep. Variable (因变量)**: `Deaths`，表示模型的预测目标是“死亡”这一变量。
+> - **Model**: OLS，表明使用的是普通最小二乘法回归。
+> - **Method**: Least Squares，使用的方法是最小二乘法。
+> - **No. Observations (观测数量)**: 641，表示数据集中有641个观测值。
+> - **Df Residuals (残差自由度)**: 639，模型自由度为1，即模型包括一个自变量（除去常数项）。
+>
+> ### 模型拟合度
+>
+> - **R-squared (决定系数 R²)**: 0.289，说明模型能够解释总变异的28.9%。这表明模型的解释力度中等，还有大部分的变异未被模型解释。
+> - **Adj. R-squared (调整后的 R²)**: 0.288，调整 R² 考虑了自由度的影响，这里与 R² 非常接近，说明变量数量对模型的拟合不构成负担。
+>
+> ### 统计显著性
+>
+> - **F-statistic (F统计量)**: 259.9，这是模型整体统计显著性的度量。
+> - **Prob (F-statistic) (F统计量的P值)**: 2.56e-49，极其小的值表明模型非常显著，自变量对因变量有显著的解释效果。
+>
+> ### 回归系数
+>
+> - **const (常数项)**: 266.3942，表示当 `total_vac`（总疫苗接种量）为0时，预期的死亡数。
+> - **total_vac (自变量)**: -3.05e-06，表示每增加一个单位的疫苗接种，死亡数减少约0.00000305单位。系数的P值（<0.0001）表明这种关系是统计上显著的。
+>
+> ### 模型诊断
+>
+> - **Durbin-Watson**: 0.811，用于检测残差的自相关，理想值接近2。这里较低的值可能表明残差之间存在正自相关。
+> - **Omnibus/Prob(Omnibus)**: 用于测试残差的正态性。这里的显著性（p=0.000）表明残差不符合正态分布。
+> - **Jarque-Bera (JB)/Prob(JB)**: 另一个测试残差正态性的统计量，同样显著表明残差非正态。
+> - **Skew (偏度)**: 1.924，表明残差分布是正偏的（右偏）。
+> - **Kurtosis (峰度)**: 11.128，远大于正态分布的峰度3，表明残差分布具有较尖的峰和较厚的尾部。
 
 ## 文件处理
 

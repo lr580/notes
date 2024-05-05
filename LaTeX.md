@@ -2732,7 +2732,13 @@ large & 0.151s \\
 
 > 中文没有倾斜的字体，一般都是以字体代替，常以楷书代替斜体
 
+##### 中文
 
+宋体 `\songti`，黑体 `\heiti`
+
+中文字号 `\zihao{1}` (一号)，或 `-2` 小二
+
+加粗 `\textbf` 即可。
 
 ##### 字间距
 
@@ -3243,7 +3249,7 @@ font awesome [参考](https://blog.csdn.net/zzq060143/article/details/89380160) 
 
   同理有 `\vfill,\vspace`
 
-- `\phantom{1cm}`
+- `\phantom{1cm}` `专\hphantom{空白}业`
 
 
 
@@ -3254,6 +3260,22 @@ font awesome [参考](https://blog.csdn.net/zzq060143/article/details/89380160) 
 ##### 斜分数
 
 units 包，分子左上角，分母右下角，一条斜杠，高度正常高。如：`\nicefrac{1}{2}`
+
+##### 下划线
+
+例如
+
+```latex
+\newcommand{\infobox}[2]{
+  \centering % 确保内容居中
+  {\songti\zihao{4}#1：\dunderline{1pt}{\makebox[10cm][c]{#2}}}\\[0.4cm]
+    % makebox: 下划线长度
+    % [0.2cm]: 行间距
+}
+\infobox{论文题目}{我的论文题目}
+```
+
+
 
 ### 数学公式
 
