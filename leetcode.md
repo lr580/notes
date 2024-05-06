@@ -1529,6 +1529,10 @@
 - 741\.摘樱桃
 
   **DP**
+  
+- 1463\.摘樱桃II
+
+  DP(/+压缩数组)
 
 ## 算法
 
@@ -42736,6 +42740,91 @@ public:
             }
         }
         return max(f.back().back().back(), 0);
+    }
+};
+```
+
+##### 1463\.摘樱桃II
+
+[题目](https://leetcode.cn/problems/cherry-pickup-ii/)
+
+注意当前方案不存在时要设负无穷，无论是转移初始值还是 DP 初始值，不能设为 0，不然会变成从不存在的地方中途开始。也可以压缩数组，我懒。
+
+```c++
+const int maxn = 73;
+// 走了前i行，两人分别在第i列的第j,k列出发的答案
+int dp[maxn][maxn][maxn];
+class Solution {
+public:
+    int cherryPickup(vector<vector<int>>& grid) {
+        int n = grid.size(), m = grid[0].size();
+        for(int j=0;j<m;++j) {
+            for(int k=0;k<m;++k) {
+                dp[0][j][k] = -1e9;
+            }
+        }
+        dp[0][0][m-1] = grid[0][0] + grid[0][m-1];
+        for(int i=1;i<n;++i) {
+            for(int j=0;j<m;++j) {
+                for(int k=0;k<m;++k) {
+                    int mp = -1e9;
+                    for(int x=max(0,j-1);x<=min(m-1,j+1);++x) {
+                        for(int y=max(0,k-1);y<=min(m-1,k+1);++y) {
+                            mp = max(mp, dp[i-1][x][y]);
+                        }
+                    }
+                    mp += grid[i][j];
+                    if(j != k) mp += grid[i][k];
+                    dp[i][j][k] = mp;
+                }
+            }
+        }
+        int ans = 0;
+        for(int j=0;j<m;++j) {
+            for(int k=0;k<m;++k) {
+                ans = max(ans, dp[n-1][j][k]);
+            }
+        }
+        return ans;
+    }
+};
+```
+
+答案空间压缩法：
+
+```c++
+class Solution {
+public:
+    int cherryPickup(vector<vector<int>>& grid) {
+        int m = grid.size();
+        int n = grid[0].size();
+        
+        vector<vector<int>> f(n, vector<int>(n, -1)), g(n, vector<int>(n, -1));
+        f[0][n - 1] = grid[0][0] + grid[0][n - 1];
+        for (int i = 1; i < m; ++i) {
+            for (int j1 = 0; j1 < n; ++j1) {
+                for (int j2 = 0; j2 < n; ++j2) {
+                    int best = -1;
+                    for (int dj1 = j1 - 1; dj1 <= j1 + 1; ++dj1) {
+                        for (int dj2 = j2 - 1; dj2 <= j2 + 1; ++dj2) {
+                            if (dj1 >= 0 && dj1 < n && dj2 >= 0 && dj2 < n && f[dj1][dj2] != -1) {
+                                best = max(best, f[dj1][dj2] + (j1 == j2 ? grid[i][j1] : grid[i][j1] + grid[i][j2]));
+                            }
+                        }
+                    }
+                    g[j1][j2] = best;
+                }
+            }
+            swap(f, g);
+        }
+
+        int ans = 0;
+        for (int j1 = 0; j1 < n; ++j1) {
+            for (int j2 = 0; j2 < n; ++j2) {
+                ans = max(ans, f[j1][j2]);
+            }
+        }
+        return ans;
     }
 };
 ```
