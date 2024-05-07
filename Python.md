@@ -1400,6 +1400,8 @@ expandtabs 将 \t 转化 7 个空格，可以调为 n-1 个
 
 zfill(n) 补充前导零直到长度为n
 
+转置：`[::-1]`
+
 #### None
 
 表示空，不等同于0，也不等同于零元素集合(数学空集)，类型也不一样：
@@ -2979,6 +2981,8 @@ iterable自身不会被该函数改变。
 ```python
 list(reversed([1, 2, 3]))
 ```
+
+字符串转置：`''.join(reversed(str(x)))` (其实不如 `x[::-1]`)
 
 #### 控制函数
 
@@ -7678,7 +7682,48 @@ plt.show()
 plt.savefig(输出文件名含后缀)
 ```
 
+##### 折线
 
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df = pd.read_csv('results1.csv')
+df['month'] = pd.to_datetime(df['month'])
+
+plt.figure(figsize=(9,6))
+for country in df['country'].unique():
+    country_data = df[df['country'] == country]
+    plt.plot(country_data['month'], country_data['monthly_active_users'], marker='o', label=country.upper())
+
+plt.title('Monthly Active Users by Country (2023)')
+plt.xlabel('Month')
+plt.ylabel('Monthly Active Users')
+plt.legend(title='Country')
+plt.grid(True)
+plt.xticks(df['month'].unique(), rotation=45)
+plt.tight_layout() 
+
+plt.show()
+```
+
+> 数据文件参考：
+>
+> ```
+> month,country,monthly_active_users
+> 2023-01-01T00:00:00.000Z,au,2815
+> 2023-01-01T00:00:00.000Z,ca,3405
+> 2023-01-01T00:00:00.000Z,gb,7135
+> 2023-01-01T00:00:00.000Z,us,19833
+> 2023-02-01T00:00:00.000Z,au,2178
+> 2023-02-01T00:00:00.000Z,ca,2707
+> 2023-02-01T00:00:00.000Z,gb,6672
+> 2023-02-01T00:00:00.000Z,us,18391
+> 2023-03-01T00:00:00.000Z,au,13
+> 2023-03-01T00:00:00.000Z,ca,5
+> 2023-03-01T00:00:00.000Z,gb,25
+> 2023-03-01T00:00:00.000Z,us,71
+> ```
 
 ##### 散点
 
@@ -7713,6 +7758,48 @@ marker='x'; marker='o'
 > ```python
 > plt.plot(ypoints, marker = 'o', ms = 20, mec = 'r')
 > plt.plot(ypoints, marker = 'o', ms = 20, mec = '#4CAF50', mfc = '#4CAF50')
+> ```
+
+##### 柱状
+
+多个合并
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+data = pd.read_csv('results2.csv', parse_dates=['cohort_month'])
+data['cohort_month'] = data['cohort_month'].dt.strftime('%Y-%m')
+
+plt.figure(figsize=(9, 6))
+# 折线图
+# for label, df in data.groupby('cohort_month'):
+    # plt.plot(df['attr_puzzle_level'], df['number_of_completers'], label=label)
+for i, group in data.groupby('cohort_month'):
+    plt.bar(group['attr_puzzle_level'] + 0.15 * (pd.to_datetime(i).month - 7), 
+            group['number_of_completers'], 
+            width=0.3, 
+            label=f'Cohort {i}')
+
+plt.title('Completers per Level by Monthly Cohort')
+plt.xlabel('Puzzle Level')
+plt.ylabel('Number of Completers')
+plt.legend(title='Cohort Month')
+plt.grid(True)
+plt.show()
+```
+
+> ```
+> cohort_month,attr_puzzle_level,number_of_completers
+> 2023-07-01T00:00:00.000Z,1,1340
+> 2023-07-01T00:00:00.000Z,2,1258
+> 2023-07-01T00:00:00.000Z,3,1250
+> 2023-08-01T00:00:00.000Z,1,1363
+> 2023-08-01T00:00:00.000Z,2,1263
+> 2023-08-01T00:00:00.000Z,3,1215
+> 2023-09-01T00:00:00.000Z,1,1146
+> 2023-09-01T00:00:00.000Z,2,1095
+> 2023-09-01T00:00:00.000Z,3,1062
 > ```
 
 
@@ -9943,6 +10030,23 @@ def count_words(row, col, words):
 #### 时间
 
 ##### 类型
+
+> 读入：
+>
+> ```python
+> data = pd.read_csv('results2.csv', parse_dates=['cohort_month'])
+> ```
+>
+> 将会尝试将该列的数据解析为日期时间对象，而不是默认的字符串类型。
+>
+> 如：
+>
+> ```
+> cohort_month,attr_puzzle_level,number_of_completers
+> 2023-07-01T00:00:00.000Z,0,132
+> ```
+
+
 
 转换成对应数据类型：
 
@@ -14473,6 +14577,14 @@ tags_containing_california = [tag for tag in soup.find_all(text=lambda text: "Ca
 ```python
 # 查找所有包含"California"（不区分大小写）的<tr>标签
 rows_with_california = soup.find_all('tr', {'td': lambda td: td and 'california' in td.text.lower()})
+```
+
+取所有目标的文本：
+
+```python
+div_elements = soup.find_all('div', class_='Table_table-name__5rpOt')
+for div in div_elements:
+    content = div.get_text().strip()
 ```
 
 

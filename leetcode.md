@@ -1533,6 +1533,10 @@
 - 1463\.摘樱桃II
 
   DP(/+压缩数组)
+  
+- 2079\.给植物浇水
+
+  模拟
 
 ## 算法
 
@@ -42827,6 +42831,24 @@ public:
         return ans;
     }
 };
+```
+
+##### 2079\.给植物浇水
+
+[题目](https://leetcode.cn/problems/watering-plants)
+
+```python
+class Solution:
+    def wateringPlants(self, a: List[int], c: int) -> int:
+        n, s, w = len(a), 0, c
+        for i in range(n):
+            if w >= a[i]:
+                w -= a[i]
+                s += 1
+            else:
+                w = c - a[i]
+                s += 1 + 2*i
+        return s
 ```
 
 
