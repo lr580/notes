@@ -1537,6 +1537,10 @@
 - 2079\.给植物浇水
 
   模拟
+  
+- 2105\.给植物浇水II
+
+  模拟
 
 ## 算法
 
@@ -42848,6 +42852,33 @@ class Solution:
             else:
                 w = c - a[i]
                 s += 1 + 2*i
+        return s
+```
+
+##### 2105\.给植物浇水II
+
+[题目](https://leetcode.cn/problems/watering-plants-ii)
+
+```python
+class Solution:
+    def minimumRefill(self, a: List[int], ca: int, cb: int) -> int:
+        l, r, s = 0, len(a)-1, 0
+        wa, wb = ca, cb
+        while l <= r:
+            if l < r:
+                if wa >= a[l]:
+                    wa -= a[l]
+                else:
+                    s += 1
+                    wa = ca - a[l]
+                if wb >= a[r]:
+                    wb -= a[r]
+                else:
+                    s += 1
+                    wb = cb - a[r]
+            if l == r:
+                s += max(wa, wb) < a[l]
+            l, r = l + 1, r - 1
         return s
 ```
 

@@ -6440,13 +6440,22 @@ rows, cols = img1.shape
         img[(i[0], i[1]+cols)] = img2[i]
 ```
 
+##### 删除
+
+列：
+
+```python
+Y = np.delete(Y, 0, axis=1)  # 二维的Y删除第一列
+Y = Y[:, 1:]  # 删除第一列，二者等效
+```
+
 
 
 
 
 #### 常规运算
 
-##### 初等
+##### 初等函数
 
 $e^k$
 
@@ -6481,6 +6490,15 @@ np.sum(arr) # 78
 np.sum(arr, axis=1)  # 输出: array([10, 26, 42])
 np.sum(arr, axis=1, keepdims=True)  # 输出: array([[10], [26], [42]])
 ```
+
+按行/列运算，方法：[参考](https://zhuanlan.zhihu.com/p/447785621)，`.sum(axis=0/1/...)`, `.mean`，如：
+
+```python
+sumVert = ((255-img)//255).sum(axis=0)
+sumHori = ((255-img)//255).sum(axis=1)
+```
+
+
 
 ##### 求最值
 
@@ -6579,25 +6597,9 @@ print("计算概率:", probability)
 
 
 
-##### 数组
 
-均值：
 
-```python
-np.mean(arr)
-```
-
-标准差
-
-```python
-np.std(arr)
-```
-
-逆矩阵： //dack
-
-```python
-np.linalg.inv(arr)
-```
+##### min/max限定
 
 限定范围(将高于低于边界的设为边界值)：
 
@@ -6605,16 +6607,20 @@ np.linalg.inv(arr)
 np.clip(arr, minv, maxv)
 ```
 
-按行/列运算，方法：[参考](https://zhuanlan.zhihu.com/p/447785621)，`.sum(axis=0/1/...)`, `.mean`，如：
+##### 排序
+
+`np.sort`，不会改变传入的参数。除非使用对象的 `.sort` 方法
+
+参数排序：
 
 ```python
-sumVert = ((255-img)//255).sum(axis=0)
-sumHori = ((255-img)//255).sum(axis=1)
+a=np.array([1,4,3,7,5,8,1])
+a.argsort()#array([0, 6, 2, 1, 4, 3, 5], dtype=int64)
 ```
 
-排序：`np.sort`，不会改变传入的参数。除非使用对象的 `.sort` 方法
 
-求差分：
+
+##### 差分
 
 ```python
 a = np.array([1, 2, 4, 7, 11])
@@ -6623,29 +6629,6 @@ print(diff_a)  # 输出: [1 2 3 4]
 diff_a_2 = np.diff(a, n=2) #二阶差分
 print(diff_a_2)  # 输出: [1 1 1]
 ```
-
-求百分位数，如 97th 百分位数表示一个数，在一组数据中有 97% 的数据小于或等于该值，而有 3% 的数据大于该值，即分位数。
-
-```python
-data = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-percentile_97 = np.percentile(data, 97) # 9.73
-```
-
-##### 统计
-
-###### 方差
-
-```python
-import numpy as np
-# 创建一个简单的数据集
-data = np.array([1, 2])
-# 使用 NumPy 计算标准差，默认 ddof=0（总体标准差）
-numpy_std_population = np.std(data) # 即分母 N
-# 使用 NumPy 计算标准差，设置 ddof=1（样本标准差）
-numpy_std_sample = np.std(data, ddof=1) # 即分母 N-1
-```
-
-对每列分别计算：`np.std(inp, axis=0)`
 
 
 
@@ -6683,6 +6666,49 @@ X_b = np.c_[np.ones((len(X), 1)), X]
  [1. 7. 8. 9.]]'''
 ```
 
+#### 统计运算
+
+##### 均值
+
+均值：
+
+```python
+np.mean(arr)
+```
+
+##### 方差
+
+标准差：
+
+```python
+import numpy as np
+# 创建一个简单的数据集
+data = np.array([1, 2])
+# 使用 NumPy 计算标准差，默认 ddof=0（总体标准差）
+numpy_std_population = np.std(data) # 即分母 N
+# 使用 NumPy 计算标准差，设置 ddof=1（样本标准差）
+numpy_std_sample = np.std(data, ddof=1) # 即分母 N-1
+```
+
+对每列分别计算：`np.std(inp, axis=0)`
+
+方差：`np.var`
+
+参数选项：
+
+- `axis`：指定计算方差的轴。默认为 `None`，表示计算整个数组的方差。如果指定了轴的值，将沿着该轴计算方差。
+- `dtype`：指定返回结果的数据类型。默认为 None，即使用输入数组的数据类型。
+- `ddof`：计算方差时的自由度修正值。默认为 0，表示使用总体方差的无偏估计器（除以 n）。如果指定为 1，表示使用样本方差的无偏估计器（除以 n-1）。
+
+##### 百分位
+
+求百分位数，如 97th 百分位数表示一个数，在一组数据中有 97% 的数据小于或等于该值，而有 3% 的数据大于该值，即分位数。
+
+```python
+data = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+percentile_97 = np.percentile(data, 97) # 9.73
+```
+
 
 
 #### 线性代数
@@ -6714,6 +6740,20 @@ X_b = np.c_[np.ones((len(X), 1)), X]
 ```python
 coefficients = np.linalg.inv(X.T @ X) @ X.T @ y
 ```
+
+
+
+##### 外积
+
+`np.outer(a,b)` 生成矩阵 `a_i*b_j`
+
+```python
+np.outer(np.array([2,4]),np.array([-3,-6,-1]))
+#array([[ -6, -12,  -2],
+#       [-12, -24,  -4]])
+```
+
+
 
 ##### 线性回归
 
@@ -8139,6 +8179,36 @@ plt.ylabel('cwnd')
 for i in zip(xv, yv): #写文本
     plt.annotate('%s' % i[1], xy=(i[0], i[1] + 1))
 plt.show()
+```
+
+##### 日期
+
+日期格式：
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.dates import DateFormatter
+data = pd.read_csv('results3.csv')
+data['cohort'] = pd.to_datetime(data['cohort'])
+plt.plot(data['cohort'], data['avg_time_to_first_purchase'], marker='o')
+plt.title('Average Time to First Purchase')
+plt.xlabel('Cohort')
+plt.ylabel('Average Time (days)')
+
+date_formatter = DateFormatter('%Y-%m-%d')
+plt.gca().xaxis.set_major_formatter(date_formatter)
+
+# 自动调整日期标签以避免重叠
+plt.gcf().autofmt_xdate()
+plt.show()
+```
+
+```
+cohort,avg_time_to_first_purchase
+2023-01-01T00:00:00.000Z,4
+2023-02-01T00:00:00.000Z,19
+2023-04-01T00:00:00.000Z,39
 ```
 
 
@@ -11134,7 +11204,96 @@ ks_2samp(data1, data2).statistic # 只要一个结果
 observed_ks = ks_2samp(data.loc[data['group'] == 'A', 'data'], data.loc[data['group'] == 'B', 'data']).statistic
 ```
 
+##### pearsonr相关系数
 
+参数：
+
+- `x`：一维数组，表示第一个变量。
+- `y`：一维数组，表示第二个变量。
+
+返回值：
+
+- `r`：float，表示皮尔逊相关系数。
+- `p-value`：float，表示相关系数的双尾p-value。
+
+皮尔逊相关系数是衡量两个变量之间线性关系强度的度量，取值范围在-1到1之间。当相关系数为正时，表示两个变量呈正相关关系；当相关系数为负时，表示两个变量呈负相关关系；当相关系数接近0时，表示两个变量之间没有线性关系。
+
+p-value是用于判断相关系数是否显著的统计指标。一般来说，当p-value小于设定的显著性水平（例如0.05）时，我们可以拒绝原假设，认为相关系数是显著的，即两个变量之间存在线性关系。
+
+```python
+import numpy as np
+from scipy.stats import pearsonr
+size = 30
+np.random.seed(20)
+x = np.random.normal(0, 1, size)
+print("Lower noise", pearsonr(x, x + np.random.normal(0, 1, size)))
+print("Higher noise", pearsonr(x, x + np.random.normal(0, 10, size)))
+print("Linear correlation", pearsonr(x, 2 * x))
+print("Non-Linear correlation", pearsonr(x, x * x))
+```
+
+```
+Lower noise PearsonRResult(statistic=0.7868358644705058, pvalue=2.5192202761497587e-07)     
+Higher noise PearsonRResult(statistic=0.32024837368005077, pvalue=0.08447150666341614)      
+Linear correlation PearsonRResult(statistic=1.0, pvalue=0.0)
+Non-Linear correlation PearsonRResult(statistic=-0.6072362389972468, pvalue=0.0003732171990050697)
+```
+
+##### 卡方检验
+
+```
+chi2_contingency(observed, correction=True, lambda_=None)
+```
+
+参数：
+
+- `observed`：二维数组或类似数组，表示观察到的频数（observed frequencies）。
+- `correction`：bool，可选参数，默认为`True`。指定是否应用连续性校正（continuity correction）。连续性校正是为了修正在某些情况下，观察到的频数与期望频数之间的偏差。
+- `lambda_`：float或str，可选参数，默认为`None`。指定使用的独立性检验的统计方法。可选值为`None`、`'log-likelihood'`、`'pearson'`、`'mod-log-likelihood'`、`'neyman'`。若为`None`，则根据数据自动选择适当的方法。
+
+返回值：
+
+- `chi2`：float，表示卡方统计量。
+
+- `p`：float，表示卡方统计量的双尾p-value。
+
+- `dof`：int，表示自由度（degrees of freedom）。
+
+  自由度的计算公式为(df = (行数-1) * (列数-1))，独立信息的数量
+
+- `expected`：二维数组，表示期望频数（expected frequencies）。
+
+  > 是在原假设下，基于行和列的边际频数计算得到的理论上的预期频数。它表示了在两个分类变量之间不存在关联时，每个单元格中的预期观察频数。期望频数的计算基于独立性假设，它假设行和列之间没有相互作用
+
+例如：从某中学随机抽取两个班，调查他们对待文理分科的态度，结果，甲班37人赞成，27人反对；乙班39人赞成，21人反对，这两个班对待文理分科的态度是否有显著差异( α = 0.05)
+
+```python
+from scipy.stats import chi2_contingency 
+import numpy as np  
+X_data = np.array([[32, 27], [39, 21]])
+kf = chi2_contingency(X_data) 
+print('chisq-statistic=%.4f, p-value=%.4f, df=%i expected_frep=%s'%kf)
+```
+
+```
+hisq-statistic=1.0195, p-value=0.3126, df=1 expected_frep=[[35.20168067 23.79831933]
+ [35.79831933 24.20168067]]
+```
+
+ p-value值=0.3126 > 0.05，所以接受原假设，认为这两个班对待文理分科的态度无明显差别
+
+> expected 的手算：
+>
+> ```python
+> row_totals = np.sum(X_data, axis=1)
+> column_totals = np.sum(X_data, axis=0)
+> total = np.sum(row_totals)
+> expected = np.outer(row_totals, column_totals) / total
+> # chi2 = np.sum((X_data - expected)**2 / expected)
+> # 但是第五行 chi2 是 1.432 与调库结果不符合
+> ```
+>
+> 
 
 #### 优化
 
@@ -11666,6 +11825,16 @@ def simple_pipeline(data): # data: pandas DataFrame
 > print(get_R2_and_RMSE(y, yh))
 > ```
 
+##### LassoCV
+
+LassoCV（Lasso Cross-Validation）是一种基于L1正则化的线性回归模型，用于进行特征选择和回归分析。LassoCV结合了Lasso回归和交叉验证，可以自动选择最佳的正则化参数（alpha）。
+
+```python
+from sklearn.linear_model import LassoCV
+```
+
+
+
 #### 数据转换
 
 ##### bool值
@@ -12180,6 +12349,8 @@ class TimeToMinutesTransformer(BaseEstimator, TransformerMixin):
 
 pipeline 处理结果如果 0 多，可能会转换为 `<class 'scipy.sparse._csr.csr_matrix'>`，需要转化为 numpy 数组才能传 pandas。可以使用 `.toarray()` 方法传。
 
+
+
 #### 机器学习
 
 ##### 决策树回归
@@ -12470,6 +12641,23 @@ from sklearn.svm import SVR
 
 ```python
 from sklearn import svm
+#import joblib
+X = [[0, 0], [1, 1]]
+y = [0, 1]
+clf = svm.SVC()
+clf.fit(X, y)
+#joblib.dump(clf, "my_model.m")
+#clf = joblib.load("my_model.m")
+test_X = [[0.5, 0.5], [1.5, 1.5]]
+print(clf.predict(test_X))
+print(clf.score(X, y))
+print(clf.support_vectors_)
+```
+
+
+
+```python
+from sklearn import svm
 import numpy as np
 
 # 准备数据集，X为特征向量，y为对应的类别标签
@@ -12689,6 +12877,133 @@ predictions = stacking_regressor.predict(X_test)
 print("Model score:", stacking_regressor.score(X_test, y_test))
 ```
 
+#### 特征筛选
+
+##### 基于方差
+
+参数：threshold: 指定方差的阈值，低于此阈值将被剔除
+
+```python
+from sklearn.feature_selection import VarianceThreshold
+X=[[100,1,2,3],
+      [100,4,5,6],
+      [100,7,8,9],
+      [101,11,12,13]]
+selector=VarianceThreshold(1)
+selector.fit(X)
+Y = selector.transform(X)
+print(Y) # [[ 1  2  3]  [ 4  5  6]  [ 7  8  9]  [11 12 13]]
+print(selector.variances_) # [ 0.1875 13.6875 13.6875 13.6875]
+```
+
+> - inverse_transform(X):逆标准化，还原成原始数据，但对于被删除的特征值全部用0代替。
+>
+> - fit(X,[,y]):从样本数据中学习方差。
+> - transform(X):执行特征标准化,执行特征选择（删除低于阈值的特征）。
+>
+> > get_support([indices])
+> >
+> > True:返回被选出的特征的下标。 False:返回一个布尔值组成的数组，该数组指示哪些特征被选中。
+>
+> 属性：`variances_`：array，表示每个特征的方差。
+
+##### SelectKBest
+
+参数：
+
+- `score_func`：特征评分函数，用于评估每个特征与目标变量之间的相关性。常用的评分函数有：`f_classif`（用于分类问题）、`f_regression`（用于回归问题）和`chi2`（卡方检验）等。
+- `k`：选择的特征数量，即要保留的特征个数。
+
+方法：
+
+- `fit_transform(X, y)`：使用特征评分函数对特征进行评估，并返回选择后的特征矩阵。
+
+```python
+from sklearn.feature_selection import SelectKBest 
+from sklearn.feature_selection import chi2
+X = [[100,1,2,3],  
+    [100,4,5,6],
+    [100,7,8,9],
+    [101,11,12,13]]
+y=[0,1,1,0]
+X = SelectKBest(chi2,k=2).fit_transform(X,y) 
+print(X)
+''' [[ 1  2]
+ [ 4  5]
+ [ 7  8]
+ [11 12]]'''
+```
+
+##### RFE
+
+RFE（Recursive Feature Elimination）是一种递归特征消除方法，用于选择对于建模任务最重要的特征。RFE通过反复训练模型并剔除最不重要的特征，以此来确定最佳的特征子集。
+
+通过学习器返回的 `coef_` 属性 或者 `feature_importances_ `属性来获得每个特征的重要程度。
+
+用 `selector.support_` 属性获取选择的特征，使用 `selector.ranking_` 属性获取特征的排名。
+
+最终输出结果是每个特征的得分排名，特征值得分越低（1最好）表示特征越好
+
+下面代码例子对图片每个像素点排序：
+
+```python
+from sklearn.svm import SVC 
+from sklearn.datasets import load_digits 
+from sklearn.feature_selection import RFE
+digits = load_digits()
+X = digits.images.reshape((len(digits.images), -1))
+Y = digits.target
+svc = SVC(kernel="linear", C=1)
+rfe = RFE(estimator=svc,n_features_to_select=1,step=1)
+rfe.fit(X,Y)
+ranking = rfe.ranking_.reshape(digits.images[0].shape)
+print(ranking)
+```
+
+##### SelectFromModel
+
+根据模型对特征的重要性进行选择，从而选择最佳的特征子集。`SelectFromModel` 函数可以结合各种机器学习模型进行特征选择，包括线性模型、树模型和基于稀疏性的模型等。
+
+参数:
+
+- `estimator`:用来构建变压器的基本估算器(基模型)。
+- `threshold`:用于特征选择的阈值。
+- `prefit`:是否预先训练。
+
+属性:
+
+- `estimator_`:估算器。
+- `threshold_`:用于特征选择的阈值。
+
+方法:
+
+- `fit(X,[,y])`:从样本数据中学习。
+- `transform(X)`:执行特征标准化，执行特征选择（删除低于阈值的特征）
+
+```python
+from sklearn.feature_selection import SelectFromModel
+from sklearn.linear_model import LogisticRegression
+X = [[ 0.87, -1.34,  0.31 ],
+     [-2.79, -0.02, -0.85 ],
+     [-1.34, -0.48, -2.55 ],
+     [ 1.92,  1.48,  0.65 ]]
+y = [0, 1, 0, 1]
+selector = SelectFromModel(estimator=LogisticRegression()).fit(X, y)
+print(f'估算器:{selector.estimator_.coef_}')
+print(f'阙值：{selector.threshold_}')
+result = selector.transform(X)
+print(f'选择特征为:{result}')
+```
+
+```
+估算器:[[-0.3252302   0.83462377  0.49750423]]
+阙值：0.5524527319086916
+选择特征为:[[-1.34]
+ [-0.02]
+ [-0.48]
+ [ 1.48]]
+```
+
 
 
 #### 辅助功能
@@ -12824,6 +13139,19 @@ tree = best_tree
 
 #### 导入导出
 
+> ```python
+> from sklearn import svm
+> import joblib
+> X = [[0, 0], [1, 1]]
+> y = [0, 1]
+> clf = svm.SVC()
+> clf.fit(X, y)
+> joblib.dump(clf, "my_model.m")
+> clf = joblib.load("my_model.m")
+> test_X = [[0.5, 0.5], [1.5, 1.5]]
+> print(clf.predict(test_X))
+> ```
+
 ```python
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.tree import DecisionTreeClassifier
@@ -12907,6 +13235,19 @@ feature_names = data.feature_names  # 特征名称
 print("特征名称:", feature_names)
 print("前五个样本的特征数据:\n", X[:5])
 print("前五个样本的目标类别:", y[:5])
+```
+
+##### 手写数字
+
+```python
+from sklearn.datasets import load_digits 
+digits = load_digits()
+X = digits.images.reshape((len(digits.images), -1))
+Y = digits.target
+print(f'X:{X}')
+print(f'数据集X的形状：{X.shape}') # (1797, 64)
+print(f'Y:{Y}') #0-9 的一维np
+print(digits.feature_names) #['pixel_0_0', 'pixel_0_1', ..., 'pixel_7_7']
 ```
 
 
