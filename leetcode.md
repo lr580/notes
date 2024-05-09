@@ -1541,6 +1541,10 @@
 - 2105\.给植物浇水II
 
   模拟
+  
+- 2960\.统计已测试设备
+
+  模拟 / 差分
 
 ## 算法
 
@@ -42880,6 +42884,34 @@ class Solution:
                 s += max(wa, wb) < a[l]
             l, r = l + 1, r - 1
         return s
+```
+
+##### 2960\.统计已测试设备
+
+[题目](https://leetcode.cn/problems/count-tested-devices-after-test-operations)
+
+```python
+class Solution:
+    def countTestedDevices(self, a: List[int]) -> int:
+        s, n = 0, len(a)
+        for i in range(n):
+            if a[i] > 0:
+                for j in range(i+1,n):
+                    a[j] = max(0, a[j]-1)
+                s += 1
+        return s
+```
+
+懒惰操作：
+
+```python
+class Solution:
+    def countTestedDevices(self, batteryPercentages: List[int]) -> int:
+        dec = 0
+        for x in batteryPercentages:
+            if x > dec:
+                dec += 1
+        return dec
 ```
 
 
