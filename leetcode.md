@@ -1545,6 +1545,10 @@
 - 2960\.统计已测试设备
 
   模拟 / 差分
+  
+- 2391\.收集垃圾的最少总时间
+
+  模拟
 
 ## 算法
 
@@ -42912,6 +42916,68 @@ class Solution:
             if x > dec:
                 dec += 1
         return dec
+```
+
+##### 2391\.收集垃圾的最少总时间
+
+[题目](https://leetcode.cn/problems/minimum-amount-of-time-to-collect-garbage)
+
+我的前缀和：
+
+```python
+class Solution:
+    def garbageCollection(self, garbage: List[str], travel: List[int]) -> int:
+        n, r = len(garbage), 0
+        for i in range(n-2):
+            travel[i+1] += travel[i]
+        for c in 'MPG':
+            top = 0
+            for i in range(n):
+                w = garbage[i].count(c)
+                r += w
+                if w:
+                    top = i
+            if top:
+                r += travel[top - 1]
+        return r
+```
+
+其他思路：
+
+```python
+class Solution:
+    def garbageCollection(self, garbage: List[str], travel: List[int]) -> int:
+        ans = sum(map(len, garbage)) + sum(travel) * 3
+        for c in "MPG":
+            for g, t in zip(reversed(garbage), reversed(travel)):
+                if c in g:
+                    break
+                ans -= t  # 没有垃圾 c，多跑了
+        return ans
+```
+
+```python
+class Solution:
+    def garbageCollection(self, garbage: List[str], travel: List[int]) -> int:
+        ans = sum_t = 0
+        t_map = {} # 每个字母的最大行驶距离
+        for g, t in zip(garbage, [0] + travel):
+            ans += len(g)
+            sum_t += t
+            for c in g:
+                t_map[c] = sum_t
+        return ans + sum(t_map.values())
+```
+
+```python
+class Solution:
+    def garbageCollection(self, garbage: List[str], travel: List[int]) -> int:
+        ans = len(garbage[0])
+        seen = set()
+        for g, t in zip(reversed(garbage), reversed(travel)):
+            seen.update(g)
+            ans += len(g) + t * len(seen)
+        return ans
 ```
 
 
