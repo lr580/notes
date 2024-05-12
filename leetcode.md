@@ -1549,6 +1549,10 @@
 - 2391\.收集垃圾的最少总时间
 
   模拟
+  
+- 1553\.吃掉N个橘子的最少天数
+
+  记忆化搜索 / 最短路
 
 ## 算法
 
@@ -42979,6 +42983,106 @@ class Solution:
             ans += len(g) + t * len(seen)
         return ans
 ```
+
+##### 1553\.吃掉N个橘子的最少天数
+
+[题目](https://leetcode.cn/problems/minimum-number-of-days-to-eat-n-oranges)
+
+因为可以折半减少，所以答案一定是对数级的。记忆化 BFS：
+
+```c++
+class Solution {
+public:
+    int minDays(int n) {
+        using pii = pair<int,int>;
+        queue<pii> q;
+        q.push({0,n});
+        unordered_set<int> vis;
+        
+        while(!q.empty()){
+            auto [t, x] = q.front();
+            q.pop();
+            if(vis.find(x) != vis.end()) continue;
+            vis.insert(x);
+            if(x == 0) return t;
+            if(x%2==0) q.push({t+1,x/2});
+            if(x%3==0) q.push({t+1,x/3});
+            q.push({t+1,x - 1});
+        }
+        return -1;
+    }
+};
+```
+
+DFS：
+
+```python
+class Solution:
+    def minDays(self, n: int) -> int:
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int) -> int:
+            if i <= 1:
+                return i
+            return min(dfs(i // 2) + i % 2, dfs(i // 3) + i % 3) + 1
+        return dfs(n)
+```
+
+```python
+class Solution:
+    @cache
+    def minDays(self, n: int) -> int:
+        if n <= 1:
+            return n
+        return min(self.minDays(n // 2) + n % 2,
+                   self.minDays(n // 3) + n % 3) + 1
+```
+
+复杂度：
+
+- 减一、减一、除二不存在：因为等效操作是除二、减一。
+
+  同理没有减一、减一、减一、除三，因为等效于除三、减一 或 除三、减一、减一。
+
+所以结合不减的，操作等效于：$n\to \lfloor\dfrac n2\rfloor+n\bmod 2$ 和 $n\to \lfloor\dfrac n3\rfloor+n\bmod 3$。
+
+状态数分析：引理 $\lfloor\dfrac{\lfloor n/p\rfloor}{q}\rfloor=\lfloor\dfrac{n}{pq}\rfloor$。
+
+因为 $m=\lfloor\dfrac{\lfloor n/p\rfloor}{q}\rfloor$ 满足 $m\le \dfrac{\lfloor n/p\rfloor}{q}\le m+1$ 即 $qm\le\lfloor\dfrac np\rfloor\le q(m+1)$。又因为显然 $\lfloor\dfrac np\rfloor\le \dfrac np$，且 $\dfrac np< \lfloor\dfrac np\rfloor+1$，即 $qm\le \dfrac np\le q(m+1)$，故：$q\le \dfrac n{pq}\le m+1$  即与一开始等价。
+
+所以 $i=\lfloor\dfrac n{2^x3^y}\rfloor$。即状态数满足 $x,y$ 只有 $O(\log n)$ 个，复杂度为 $O(\log^2 n)$。
+
+最短路 Dijkstra：
+
+```c++
+class Solution {
+public:
+    int minDays(int n) {
+        unordered_map<int, int> dis;
+        priority_queue<pair<int, int>, vector<pair<int, int>>, greater<>> pq;
+        pq.emplace(0, n);
+        while (true) {
+            auto [dx, x] = pq.top();
+            pq.pop();
+            if (x <= 1) {
+                return dx + x;
+            }
+            if (dx > dis[x]) {
+                continue;
+            }
+            for (int d = 2; d <= 3; d++) {
+                int y = x / d;
+                int dy = dx + x % d + 1;
+                if (!dis.contains(y) || dy < dis[y]) {
+                    dis[y] = dy;
+                    pq.emplace(dy, y);
+                }
+            }
+        }
+    }
+};
+```
+
+
 
 
 
