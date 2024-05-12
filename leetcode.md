@@ -1553,6 +1553,10 @@
 - 1553\.吃掉N个橘子的最少天数
 
   记忆化搜索 / 最短路
+  
+- 994\.腐烂的橘子
+
+  BFS
 
 ## 算法
 
@@ -43080,6 +43084,33 @@ public:
         }
     }
 };
+```
+
+##### 994\.腐烂的橘子
+
+[题目](https://leetcode.cn/problems/rotting-oranges)
+
+```python
+class Solution:
+    def orangesRotting(self, grid: List[List[int]]) -> int:
+        n, m, t = grid.__len__(), grid[0].__len__(), 0
+        s = sum(sum(x == 1 for x in r) for r in grid)
+        q = []
+        for i in range(n):
+            for j in range(m):
+                if grid[i][j] == 2:
+                    q.append((i, j))
+        while q and s > 0:
+            t, p = t + 1, []
+            for ox, oy in q:
+                for dx, dy in ((-1,0),(1,0),(0,-1),(0,1)):
+                    x, y = ox + dx, oy + dy
+                    if 0 <= x < n and 0 <= y < m and grid[x][y] == 1:
+                        s -= 1
+                        p.append((x, y))
+                        grid[x][y] = 2 # 防止反复访问导致s减多
+            q = p
+        return -1 if s > 0 else t
 ```
 
 
