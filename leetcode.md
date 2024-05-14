@@ -1557,6 +1557,14 @@
 - 994\.腐烂的橘子
 
   BFS
+  
+- 2244\.完成所有任务需要的最少轮数
+
+  贪心
+  
+- 2589\.完成所有任务的最少时间
+
+  **排序+贪心 (/线段树二分/栈上前缀和+二分)**
 
 ## 算法
 
@@ -43112,6 +43120,376 @@ class Solution:
             q = p
         return -1 if s > 0 else t
 ```
+
+##### 2244\.完成所有任务需要的最少轮数
+
+[题目](https://leetcode.cn/problems/minimum-rounds-to-complete-all-tasks/)
+
+```python
+class Solution:
+    def minimumRounds(self, tasks: List[int]) -> int:
+        s = 0
+        for v in Counter(tasks).values():
+            if v == 1:
+                return -1
+            s += (v+2) // 3
+        return s
+```
+
+```python
+class Solution:
+    def minimumRounds(self, tasks: List[int]) -> int:
+        cnt = Counter(tasks)
+        if 1 in cnt.values():
+            return -1
+        return sum((c + 2) // 3 for c in cnt.values())
+```
+
+##### 2589\.完成所有任务的最少时间
+
+[题目](https://leetcode.cn/problems/minimum-time-to-complete-all-tasks)
+
+按右端点排序，则它往后的区间要么和它没交集，要么包含它的一部分后缀。
+
+朴素暴力：
+
+- 对于每一个排序后区间，尽可能填充后缀
+- 设当前区间需要 d 个运行时，[l,r] 已经有 t 个运行时了，那么往区间后缀填 d-t 个运行时
+
+> reduce 是求区间和。C++17 开始，代替 accumulate
+
+```c++
+class Solution {
+public:
+    int findMinimumTime(vector<vector<int>>& tasks) {
+        ranges::sort(tasks, [](auto& a, auto& b) { return a[1] < b[1]; });
+        int ans = 0;
+        vector<int> run(tasks.back()[1] + 1);
+        for (auto& t : tasks) {
+            int start = t[0], end = t[1], d = t[2];
+            d -= reduce(run.begin() + start, run.begin() + end + 1); // 去掉运行中的时间点
+            for (int i = end; d > 0; i--) { // 剩余的 d 填充区间后缀
+                if (!run[i]) {
+                    run[i] = true; // 运行
+                    d--;
+                    ans++;
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+线段树优化：
+
+- 查询区间求和，故维护求和变量
+
+- 更新是区间修改，但是必须线段树二分
+
+  考虑三个区间 `[3,4],2`, `[7,8],2` 和 `[1,9],6`
+
+  对 `[1,9]` 来说更新的是 6,9 两个位置，而不是无脑 `[8,9]`。
+
+  所以结合线段树二分，找到恰能区间和修改好的位置。
+
+```c++
+class Solution {
+    vector<int> cnt, todo;
+
+    void do_(int o, int l, int r) {
+        cnt[o] = r - l + 1;
+        todo[o] = true;
+    }
+
+    void spread(int o, int l, int m, int r) {
+        if (todo[o]) {
+            do_(o * 2, l, m);
+            do_(o * 2 + 1, m + 1, r);
+            todo[o] = false;
+        }
+    }
+
+    // 查询区间 [L,R]   o,l,r=1,1,u
+    int query(int o, int l, int r, int L, int R) {
+        if (L <= l && r <= R) return cnt[o];
+        int m = (l + r) / 2;
+        spread(o, l, m, r);
+        if (m >= R) return query(o * 2, l, m, L, R);
+        if (m < L) return query(o * 2 + 1, m + 1, r, L, R);
+        return query(o * 2, l, m, L, R) + query(o * 2 + 1, m + 1, r, L, R);
+    }
+
+    // 新增区间 [L,R] 后缀的 suffix 个时间点    o,l,r=1,1,u
+    // 相当于把线段树二分和线段树更新合并成了一个函数，时间复杂度为 O(log MX)
+    void update(int o, int l, int r, int L, int R, int& suffix) {
+        int size = r - l + 1;
+        if (cnt[o] == size) return; // 全部为运行中
+        if (L <= l && r <= R && size - cnt[o] <= suffix) { // 整个区间全部改为运行中
+            suffix -= size - cnt[o];
+            do_(o, l, r);
+            return;
+        }
+        int m = (l + r) / 2;
+        spread(o, l, m, r);
+        if (m < R) update(o * 2 + 1, m + 1, r, L, R, suffix); // 先更新右子树
+        if (suffix) update(o * 2, l, m, L, R, suffix); // 再更新左子树（如果还有需要新增的时间点）
+        cnt[o] = cnt[o * 2] + cnt[o * 2 + 1];
+    }
+
+public:
+    int findMinimumTime(vector<vector<int>>& tasks) {
+        ranges::sort(tasks, [](auto& a, auto& b) { return a[1] < b[1]; });
+        int u = tasks.back()[1];
+        int m = 2 << (32 - __builtin_clz(u));
+        cnt.resize(m);
+        todo.resize(m);
+        for (auto& t : tasks) {
+            int start = t[0], end = t[1], d = t[2];
+            d -= query(1, 1, u, start, end);  // 去掉运行中的时间点
+            if (d > 0) update(1, 1, u, start, end, d); // 新增时间点
+        }
+        return cnt[1];
+    }
+};
+```
+
+```python
+class Solution:
+    def findMinimumTime(self, tasks: List[List[int]]) -> int:
+        tasks.sort(key=lambda t: t[1])
+        u = tasks[-1][1]
+        m = 2 << u.bit_length()
+        cnt = [0] * m
+        todo = [False] * m
+
+        def do(o: int, l: int, r: int) -> None:
+            cnt[o] = r - l + 1
+            todo[o] = True
+
+        def spread(o: int, l: int, m: int, r: int) -> None:
+            if todo[o]:
+                todo[o] = False
+                do(o * 2, l, m)
+                do(o * 2 + 1, m + 1, r)
+
+        # 查询区间正在运行的时间点 [L,R]   o,l,r=1,1,u
+        def query(o: int, l: int, r: int, L: int, R: int) -> int:
+            if L <= l and r <= R: return cnt[o]
+            m = (l + r) // 2
+            spread(o, l, m, r)
+            if m >= R: return query(o * 2, l, m, L, R)
+            if m < L: return query(o * 2 + 1, m + 1, r, L, R)
+            return query(o * 2, l, m, L, R) + query(o * 2 + 1, m + 1, r, L, R)
+
+        # 在区间 [L,R] 的后缀上新增 suffix 个时间点    o,l,r=1,1,u
+        # 相当于把线段树二分和线段树更新合并成了一个函数，时间复杂度为 O(log u)
+        def update(o: int, l: int, r: int, L: int, R: int) -> None:
+            size = r - l + 1
+            if cnt[o] == size: return  # 全部为运行中
+            nonlocal suffix
+            if L <= l and r <= R and size - cnt[o] <= suffix:  # 整个区间全部改为运行中
+                suffix -= size - cnt[o]
+                do(o, l, r)
+                return
+            m = (l + r) // 2
+            spread(o, l, m, r)
+            if m < R: update(o * 2 + 1, m + 1, r, L, R)  # 先更新右子树
+            if suffix: update(o * 2, l, m, L, R)  # 再更新左子树（如果还有需要新增的时间点）
+            cnt[o] = cnt[o * 2] + cnt[o * 2 + 1]
+
+        for start, end, d in tasks:
+            suffix = d - query(1, 1, u, start, end)  # 去掉运行中的时间点
+            if suffix > 0: update(1, 1, u, start, end)  # 新增时间点
+        return cnt[1]
+```
+
+栈：
+
+- 线段树维护操作的时候会把若干不连续时间区间进行合并。
+- 栈上二分可以合并的长度。
+- 栈上维护当前区间的前缀和，即当前区间和往左全部区间的长度和，那么可以差分求出多个区间的和。
+- 栈上区间不相交，所以按 l/r 均有序，满足二分条件。
+
+```c++
+class Solution {
+public:
+    int findMinimumTime(vector<vector<int>>& tasks) {
+        ranges::sort(tasks, [](auto& a, auto& b) { return a[1] < b[1]; });
+        // 栈中保存闭区间左右端点，栈底到栈顶的区间长度的和
+        vector<array<int, 3>> st{{-2, -2, 0}}; // 哨兵，保证不和任何区间相交
+        for (auto& t : tasks) {
+            int start = t[0], end = t[1], d = t[2];
+            //找到 [start,end] 内的最左区间
+            auto [_, r, s] = *--lower_bound(st.begin(), st.end(), start, [](const auto& a, int b) {
+                return a[0] < b;
+            });
+            d -= st.back()[2] - s; // 去掉运行中的时间点(最左区间往右的全部区间和)
+            if (start <= r) { // start 在区间 st[i] 内
+                d -= r - start + 1; // 去掉运行中的时间点(该最左区间)
+            }
+            if (d <= 0) {
+                continue;
+            }
+            while (end - st.back()[1] <= d) { // 剩余的 d 填充区间后缀
+                auto [l, r, _] = st.back();
+                st.pop_back();
+                d += r - l + 1; // 合并区间
+            }
+            st.push_back({end - d + 1, end, st.back()[2] + d});
+        }
+        return st.back()[2];
+    }
+};
+```
+
+```python
+class Solution:
+    def findMinimumTime(self, tasks: List[List[int]]) -> int:
+        tasks.sort(key=lambda t: t[1])
+        # 栈中保存闭区间左右端点，栈底到栈顶的区间长度的和
+        st = [(-2, -2, 0)]  # 哨兵，保证不和任何区间相交
+        for start, end, d in tasks:
+            _, r, s = st[bisect_left(st, (start,)) - 1]
+            d -= st[-1][2] - s  # 去掉运行中的时间点
+            if start <= r:  # start 在区间 st[i] 内
+                d -= r - start + 1  # 去掉运行中的时间点
+            if d <= 0:
+                continue
+            while end - st[-1][1] <= d:  # 剩余的 d 填充区间后缀
+                l, r, _ = st.pop()
+                d += r - l + 1  # 合并区间
+            st.append((end - d + 1, end, st[-1][2] + d))
+        return st[-1][2]
+```
+
+
+
+> 完成区间加法和求区间最大值所在下标的线段树：(by GPT4)
+>
+> ```c++
+> #include <vector>
+> #include <iostream>
+> #include <algorithm>
+> using namespace std;
+> 
+> struct Node {
+>     int max_value;
+>     int max_index;
+>     int lazy;
+> 
+>     Node() : max_value(0), max_index(0), lazy(0) {}
+> };
+> 
+> class SegmentTree {
+> private:
+>     vector<Node> tree;
+>     int n;
+> 
+>     void build(const vector<int>& arr, int node, int start, int end) {
+>         if (start == end) {
+>             tree[node].max_value = arr[start];
+>             tree[node].max_index = start;
+>             return;
+>         }
+>         int mid = (start + end) / 2;
+>         build(arr, 2 * node + 1, start, mid);
+>         build(arr, 2 * node + 2, mid + 1, end);
+>         merge(node);
+>     }
+> 
+>     void merge(int node) {
+>         if (tree[2 * node + 1].max_value > tree[2 * node + 2].max_value) {
+>             tree[node].max_value = tree[2 * node + 1].max_value;
+>             tree[node].max_index = tree[2 * node + 1].max_index;
+>         } else {
+>             tree[node].max_value = tree[2 * node + 2].max_value;
+>             tree[node].max_index = tree[2 * node + 2].max_index;
+>         }
+>     }
+> 
+>     void updateRange(int node, int start, int end, int l, int r, int value) {
+>         if (tree[node].lazy != 0) {
+>             //不管现在最大是多少，只要+=value就直接变化
+>             tree[node].max_value += tree[node].lazy;
+>             if (start != end) {
+>                 tree[2 * node + 1].lazy += tree[node].lazy;
+>                 tree[2 * node + 2].lazy += tree[node].lazy;
+>             }
+>             tree[node].lazy = 0;
+>         }
+>         if (start > r || end < l) {
+>             return;
+>         }
+>         if (start >= l && end <= r) {
+>             tree[node].max_value += value;
+>             if (start != end) {
+>                 tree[2 * node + 1].lazy += value;
+>                 tree[2 * node + 2].lazy += value;
+>             }
+>             return;
+>         }
+>         int mid = (start + end) / 2;
+>         updateRange(2 * node + 1, start, mid, l, r, value);
+>         updateRange(2 * node + 2, mid + 1, end, l, r, value);
+>         merge(node);
+>     }
+> 
+>     Node queryRange(int node, int start, int end, int l, int r) {
+>         if (start > r || end < l) {
+>             return Node(); // Returns default node for out-of-range queries
+>         }
+>         if (tree[node].lazy != 0) {
+>             tree[node].max_value += tree[node].lazy;
+>             if (start != end) {
+>                 tree[2 * node + 1].lazy += tree[node].lazy;
+>                 tree[2 * node + 2].lazy += tree[node].lazy;
+>             }
+>             tree[node].lazy = 0;
+>         }
+>         if (start >= l && end <= r) {
+>             return tree[node];
+>         }
+>         int mid = (start + end) / 2;
+>         Node left_child = queryRange(2 * node + 1, start, mid, l, r);
+>         Node right_child = queryRange(2 * node + 2, mid + 1, end, l, r);
+>         Node result;
+>         if (left_child.max_value > right_child.max_value) {
+>             return left_child;
+>         } else {
+>             return right_child;
+>         }
+>     }
+> 
+> public:
+>     SegmentTree(const vector<int>& arr) {
+>         n = arr.size();
+>         tree.resize(4 * n);
+>         build(arr, 0, 0, n - 1);
+>     }
+> 
+>     void update(int l, int r, int value) {
+>         updateRange(0, 0, n - 1, l, r, value);
+>     }
+> 
+>     int query(int l, int r) {
+>         Node result = queryRange(0, 0, n - 1, l, r);
+>         return result.max_index;
+>     }
+> };
+> 
+> int main() {
+>     vector<int> arr = {1, 3, 5, 7, 9, 11, 3};
+>     SegmentTree st(arr);
+>     cout << "Index of max element: " << st.query(0, 6) << endl; // Query entire range
+> 
+>     st.update(0, 3, 5); // Increase first four elements by 5
+>     // st.update(4,6, -100); 
+>     cout << "Index of max element after update: " << st.query(0, 6) << endl; // Query entire range again
+> 
+>     return 0;
+> }
+> ```
 
 
 

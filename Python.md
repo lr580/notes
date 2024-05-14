@@ -1468,6 +1468,16 @@ b=[1,False,[3,4,5],'996']
 
 append在尾部添加一个元素
 
+> 不要 append 自己，这样是指向自己的指针：
+>
+> ```python
+> a = [6,5,4]
+> a.append(a)
+> print(a, a[3], a[3][3][3]) #都输出同一个内容 [6, 5, 4, [...]]
+> ```
+>
+> 
+
 pop(i)删除下标i的元素并返回，其余元素往前顶来补充，不填i代表最后元素，越界报错IndexError
 
 remove(p)删除元素p，从头到尾，每次只删除一个，找不到报错ValueError；原地修改，返回 None
@@ -1540,10 +1550,10 @@ None 和自定义对象可以做 key，都可以唯一区分。
 
 ##### 方法
 
-添加多项：(有就覆盖，没就插入)
+添加多项：(有就覆盖，没就插入) 或者用 |= 即可
 
 ```python
-x.update({3:50,4:False}) 
+x.update({3:50,4:False})  # x |= {3:50,4:False}
 ```
 
 删除一项用pop(key)，用法同list，也可以用 `del x[key]`，这两种用法不存在都会报错
@@ -1786,6 +1796,10 @@ American.printNationality()
 
 #### __属性
 
+##### eq
+
+是 `==` 调用的。与 is 区别在于 is 检查对象引用是否相同(也可以 is None)
+
 ##### len
 
 `__len__` 方法如果定义了，可以用内置函数 `len()`。通常都是 O(1) 的。
@@ -1797,6 +1811,31 @@ American.printNationality()
 ##### contain
 
  `__contains__` 方法，那么 `in` 关键字会调用这个方法来判断。如果没有实现 `__contains__` 方法，但实现了 `__iter__` 方法（或者是可迭代的），Python会通过迭代对象来查找元素；如果还没有实现 `__iter__`，但实现了 `__getitem__` 方法，Python会尝试从索引0开始，通过连续的整数索引来访问元素，直到遇到 `IndexError`。
+
+##### new
+
+静态方法，调用发生在 `__init__` 方法之前，是构造对象的第一步。如单例模式：
+
+```python
+class Singleton:
+    _instance = None  # Keep instance reference 
+    def __new__(cls):
+        if cls._instance is None:
+            print("Creating the object")
+            cls._instance = super(Singleton, cls).__new__(cls)
+        return cls._instance
+    def __init__(self):
+        print("Initializing the object")
+# Create instances of Singleton
+obj1 = Singleton()
+obj2 = Singleton()
+print(obj1 is obj2)  # Output: True
+'''Creating the object
+Initializing the object
+Initializing the object'''
+```
+
+
 
 ##### doc
 
