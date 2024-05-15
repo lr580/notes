@@ -426,7 +426,7 @@ $\{x\}(y)[z]$
 
 花括号 $\begin{cases} x+1 \\ x+2 \end{cases}$
 
-$\overbrace{3}\underbrace5\langle3,4\rangle$
+$\overbrace{3}\underbrace5\langle3,4\rangle$  $\underbrace{12}_{34}$ 
 
 $\bigl( \Bigl( \biggl( \Biggl( \quad\bigr) \Bigr) \biggr) \Biggr) $
 

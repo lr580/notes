@@ -1564,7 +1564,11 @@
   
 - 2589\.完成所有任务的最少时间
 
-  **排序+贪心 (/线段树二分/栈上前缀和+二分)**
+  **排序+贪心 (/线段树二分/栈上前缀和+二分) / 差分约束**
+  
+- 1953\.你可以工作的最大周数
+
+  贪心 构造
 
 ## 算法
 
@@ -43490,6 +43494,89 @@ class Solution:
 >     return 0;
 > }
 > ```
+
+设 $a_i$ 表示前 $i$ 个时间点一共使用了几个，有：
+
+- $a_i-a_{i-1}\ge0$
+- $a_i-a_{i-1}\le1$
+- $a_e-a_{s-1}\ge d$
+
+```c++
+class Solution {
+public:
+    int findMinimumTime(vector<vector<int>>& tasks) {
+        int mx = 0;
+        for (auto &vec : tasks) mx = max(mx, vec[1]);
+
+        vector<int> e[mx + 2], v[mx + 2];
+        //{i}<={j}+c j->i w=c
+        //{i-1}<={i}
+        // 第一个不等式
+        for (int i = 1; i <= mx; i++) {
+            e[i].push_back(i - 1);
+            v[i].push_back(0);
+        }
+        // 第二个不等式 {i}<={i-1}+1
+        for (int i = 0; i < mx; i++) {
+            e[i].push_back(i + 1);
+            v[i].push_back(1);
+        }
+        // 第三个不等式 {s-1}<={e}-d
+        for (auto &vec : tasks) {
+            e[vec[1]].push_back(vec[0] - 1);
+            v[vec[1]].push_back(-vec[2]);
+        }
+
+        // 差分约束要建立超级源点
+        int S = mx + 1;//{i}<={S}
+        for (int i = 0; i <= mx; i++) {
+            e[S].push_back(i);
+            v[S].push_back(0);
+        }
+
+        // SPFA
+        const int INF = 1e9;
+        queue<int> q;
+        int dis[mx + 2];
+        for (int i = 0; i <= mx + 1; i++) dis[i] = INF;
+        bool vis[mx + 2];
+        memset(vis, 0, sizeof(vis));
+
+        q.push(S); dis[S] = 0; vis[S] = true;
+        while (!q.empty()) {
+            int sn = q.front(); q.pop();
+            vis[sn] = false;
+            for (int i = 0; i < e[sn].size(); i++) {
+                int fn = e[sn][i], val = v[sn][i];
+                if (dis[fn] <= dis[sn] + val) continue;
+                dis[fn] = dis[sn] + val;
+                if (vis[fn]) continue;
+                q.push(fn); vis[fn] = true;
+            }
+        }
+
+        return dis[mx] - dis[0];
+    }
+};
+```
+
+##### 1953\.你可以工作的最大周数
+
+[题目](https://leetcode.cn/problems/maximum-number-of-weeks-for-which-you-can-work)
+
+每次拿最长工作插间隔其他工作，所以只要最长工作不比其他工作加起来要长，一定能完成，否则其他加起来的二倍+1就是极限了。
+
+```python
+class Solution:
+    def numberOfWeeks(self, milestones: List[int]) -> int:
+        mx = max(milestones)
+        s = sum(milestones)
+        if s - mx >= mx:
+            return s
+        return 2*(s-mx)+1
+```
+
+一种构造方案为：把所有时刻里，先从小到大安排奇数时刻，再从小到大安排偶数时刻，按照耗时逆序排序分配工作，因为时刻数(sum)半长(上取整)是最大容许的不重叠长度，恰满足。即如 `[1,2,3,4]`，则 `[4,3,4,3,4,2,4,2,3,1]`。
 
 
 

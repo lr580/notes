@@ -6715,6 +6715,8 @@ X_b = np.c_[np.ones((len(X), 1)), X]
 np.mean(arr)
 ```
 
+对每列：`axis=0`
+
 ##### 方差
 
 标准差：
@@ -6738,6 +6740,20 @@ numpy_std_sample = np.std(data, ddof=1) # 即分母 N-1
 - `axis`：指定计算方差的轴。默认为 `None`，表示计算整个数组的方差。如果指定了轴的值，将沿着该轴计算方差。
 - `dtype`：指定返回结果的数据类型。默认为 None，即使用输入数组的数据类型。
 - `ddof`：计算方差时的自由度修正值。默认为 0，表示使用总体方差的无偏估计器（除以 n）。如果指定为 1，表示使用样本方差的无偏估计器（除以 n-1）。
+
+##### 协方差
+
+$$
+conv(X,Y)=\dfrac{\sum_{i=1}^n(x_i-\overline x)\sum_{i=1}^n(y_i-\overline y)}{n-1}
+$$
+
+协方差矩阵就是多个变量两两求协方差得到的矩阵，cov 函数的输入希望是行代表特征，列代表数据的矩阵 `np.cov()`，反过来要么转置，要么 `rowvar=false`
+
+```python
+np.cov(centered_data, rowvar=False)
+```
+
+
 
 ##### 百分位
 
@@ -6830,6 +6846,45 @@ coefficients = np.polyfit(x, y, 2)
 ```
 
 高级选项，比如权重和误差估计，允许更复杂的拟合分析。
+
+##### 特征值分解
+
+```python
+eigenvalues, eigenvectors = np.linalg.eig(covariance_matrix)
+# 对特征值进行排序
+sorted_indices = np.argsort(eigenvalues)[::-1]
+sorted_eigenvalues = eigenvalues[sorted_indices]
+sorted_eigenvectors = eigenvectors[:, sorted_indices]
+# 选择前k个特征向量
+selected_eigenvectors = sorted_eigenvectors[:, :k]
+# 将数据投影到选定的特征向量上
+projected_data = np.dot(centered_data, selected_eigenvectors)
+```
+
+##### PCA
+
+```python
+import numpy as np
+def pca(data, k):
+    '''
+    对data进行PCA，并将结果返回
+    :param data:数据集，类型为ndarray
+    :param k:想要降成几维，类型为int
+    :return: 降维后的数据，类型为ndarray
+    '''
+    mean = np.mean(data, axis=0)
+    centered_data = data - mean
+    covariance_matrix = np.cov(centered_data, rowvar=False)
+    eigenvalues, eigenvectors = np.linalg.eig(covariance_matrix)
+    sorted_indices = np.argsort(eigenvalues)[::-1]
+    sorted_eigenvalues = eigenvalues[sorted_indices]
+    sorted_eigenvectors = eigenvectors[:, sorted_indices]
+    selected_eigenvectors = sorted_eigenvectors[:, :k]
+    projected_data = np.dot(centered_data, selected_eigenvectors)
+    return projected_data
+```
+
+
 
 #### 其他运算
 
@@ -13043,6 +13098,36 @@ print(f'选择特征为:{result}')
  [ 1.48]]
 ```
 
+##### PCA
+
+ fit 函数用于训练 PCA 模型； transform 函数用于将数据转换成降维后的数据，当模型训练好后，对于新输入的数据，也可以用 transform 方法来降维；fit_transform 函数用于使用数据训练 PCA 模型，同时返回降维后的数据。
+
+```python
+from sklearn.decomposition import PCA
+from sklearn.neighbors import KNeighborsClassifier
+
+def cancer_predict(train_sample, train_label, test_sample):
+    '''
+    使用PCA降维，并进行分类，最后将分类结果返回
+    :param train_sample:训练样本, 类型为ndarray
+    :param train_label:训练标签, 类型为ndarray
+    :param test_sample:测试样本, 类型为ndarray
+    :return: 分类结果
+    '''
+
+    # 使用PCA进行降维
+    pca = PCA(n_components=2)
+    train_sample = pca.fit_transform(train_sample)
+    test_sample = pca.transform(test_sample)
+
+    # 使用KNN分类器进行分类
+    knn = KNeighborsClassifier()
+    knn.fit(train_sample, train_label)
+    predictions = knn.predict(test_sample)
+
+    return predictions
+```
+
 
 
 #### 辅助功能
@@ -13275,6 +13360,19 @@ print("特征名称:", feature_names)
 print("前五个样本的特征数据:\n", X[:5])
 print("前五个样本的目标类别:", y[:5])
 ```
+
+##### 癌
+
+```python
+from sklearn import datasets
+#加载乳腺癌数据集
+cancer = datasets.load_breast_cancer()
+#X表示特征，y表示标签
+X = cancer.data
+y = cancer.target # 0良性 1恶性
+```
+
+
 
 ##### 手写数字
 
