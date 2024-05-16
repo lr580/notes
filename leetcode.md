@@ -1569,6 +1569,10 @@
 - 1953\.你可以工作的最大周数
 
   贪心 构造
+  
+- 826\.安排工作以达到最大收益
+
+  排序 双指针
 
 ## 算法
 
@@ -43577,6 +43581,23 @@ class Solution:
 ```
 
 一种构造方案为：把所有时刻里，先从小到大安排奇数时刻，再从小到大安排偶数时刻，按照耗时逆序排序分配工作，因为时刻数(sum)半长(上取整)是最大容许的不重叠长度，恰满足。即如 `[1,2,3,4]`，则 `[4,3,4,3,4,2,4,2,3,1]`。
+
+##### 826\.安排工作以达到最大收益
+
+[题目](https://leetcode.cn/problems/most-profit-assigning-work/)
+
+```python
+class Solution:
+    def maxProfitAssignment(self, difficulty: List[int], profit: List[int], worker: List[int]) -> int:
+        jobs = sorted(zip(difficulty, profit), key=lambda x: x[0])
+        mx, ans, n, i = 0, 0, len(jobs), 0
+        for v in sorted(worker):
+            while i < n and jobs[i][0] <= v:
+                mx = max(mx, jobs[i][1])
+                i += 1
+            ans += mx
+        return ans
+```
 
 
 
