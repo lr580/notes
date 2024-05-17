@@ -1573,6 +1573,10 @@
 - 826\.安排工作以达到最大收益
 
   排序 双指针
+  
+- 2644\.找出可整除性得分最大的整数
+
+  签到
 
 ## 算法
 
@@ -43598,6 +43602,43 @@ class Solution:
             ans += mx
         return ans
 ```
+
+##### 2644\.找出可整除性得分最大的整数
+
+[题目](https://leetcode.cn/problems/find-the-maximum-divisibility-score)
+
+暴力：
+
+```python
+class Solution:
+    def maxDivScore(self, nums: List[int], divisors: List[int]) -> int:
+        c = [sum(i % j == 0 for i in nums) for j in divisors]
+        mc = max(c)
+        return min(divisors[i] for i in range(len(divisors)) if c[i] == mc)
+```
+
+> 常数优化：小于 d 的整数无法被 d 整除，排序 `nums`，逆序遍历。将重复元素计数合并，设计数为 `dup`。然后 `divisors` 也排序，但是复杂度不变。
+>
+> ```python
+> class Solution:
+>     def maxDivScore(self, nums: List[int], divisors: List[int]) -> int:
+>         nums.sort(reverse=True)
+>         dup = sum(1 for x, y in pairwise(nums) if x == y)
+>         divisors.sort()
+>         max_cnt, ans = -1, 0
+>         for d in divisors:
+>             if (max_cnt - dup + 1) * d > nums[0]:
+>                 break
+>             cnt = 0
+>             for x in nums:
+>                 if x < d:
+>                     break
+>                 if x % d == 0:
+>                     cnt += 1
+>             if cnt > max_cnt:
+>                 max_cnt, ans = cnt, d
+>         return ans
+> ```
 
 
 
