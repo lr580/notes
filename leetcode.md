@@ -1577,6 +1577,10 @@
 - 2644\.找出可整除性得分最大的整数
 
   签到
+  
+- 1535\.找出数组游戏的赢家
+
+  模拟 思维
 
 ## 算法
 
@@ -43639,6 +43643,24 @@ class Solution:
 >                 max_cnt, ans = cnt, d
 >         return ans
 > ```
+
+##### 1535\.找出数组游戏的赢家
+
+[题目](https://leetcode.cn/problems/find-the-winner-of-an-array-game)
+
+```python
+class Solution:
+    def getWinner(self, arr: List[int], k: int) -> int:
+        n, j, cnt, mx = len(arr), 1, 0, arr[0]
+        while j < n and cnt < k:
+            if mx > arr[j]:
+                cnt += 1
+            else:
+                mx = arr[j]
+                cnt = 1
+            j += 1
+        return mx
+```
 
 
 
