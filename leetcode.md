@@ -1581,6 +1581,10 @@
 - 1535\.找出数组游戏的赢家
 
   模拟 思维
+  
+- 2769\.找出最大的可达成数字
+
+  签到 思维
 
 ## 算法
 
@@ -43662,11 +43666,14 @@ class Solution:
         return mx
 ```
 
+##### 2769\.找出最大的可达成数字
+
+[题目](https://leetcode.cn/problems/find-the-maximum-achievable-number)
 
 
-
-
-
+```python
+return num+2*t
+```
 
 
 
