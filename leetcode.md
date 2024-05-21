@@ -1585,6 +1585,14 @@
 - 2769\.找出最大的可达成数字
 
   签到 思维
+  
+- 1542\.找出最长的超赞子字符串
+
+  **前缀异或和**
+  
+- 2225\.找出输掉零场或一场比赛的玩家
+
+  签到
 
 ## 算法
 
@@ -43675,5 +43683,72 @@ class Solution:
 return num+2*t
 ```
 
+##### 1542\.找出最长的超赞子字符串
+
+[题目](https://leetcode.cn/problems/find-longest-awesome-substring)
+
+使用长为 10 的 01 串表示每个字符出现次数的奇偶性，该串最多有一个 1。
+
+对这样的 01 串叠异或前缀和，有：$[i,j]$ 子串的奇偶性为 $s[j]\oplus s[i-1]$。
+
+1. $[i,j]$ 长度为偶数，则每个数字出现偶数次，子段异或为 $0$。
+2. $[i,j]$ 长度为奇数，则异或恰为 $2^k$，即 $sr\oplus sl=2^k\Rightarrow sl=sr\oplus 2^k(0\le k\le 9)$。
+
+要最长，多种相同异或前缀，只保留最左的及其下标。记录所有异或前缀的下标方便查询。
+
+- 对当前右端点 $j$，若能找到与 $s_j$ 相同的异或前缀，一定是偶数长子串。
+- 枚举所有 $k$，找到异或前缀为 $s_r\oplus 2^k$ 的 $s_l$，一定是奇数，用对应下标更新。
+
+```c++
+class Solution {
+    const int D = 10; // s 中的字符种类数
+public:
+    int longestAwesome(string s) {
+        int n = s.size();
+        vector<int> pos(1 << D, n); // n 表示没有找到异或前缀和
+        pos[0] = -1; // pre[-1] = 0
+        int ans = 0, pre = 0;
+        for (int i = 0; i < n; i++) {
+            pre ^= 1 << (s[i] - '0');
+            for (int d = 0; d < D; d++) {
+                ans = max(ans, i - pos[pre ^ (1 << d)]); // 奇数
+            }
+            ans = max(ans, i - pos[pre]); // 偶数
+            if (pos[pre] == n) { // 首次遇到值为 pre 的前缀异或和，记录其下标 i
+                pos[pre] = i;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+设 $D=10$，时间 $O(nD)$，空间 $O(2^D)$。
+
+
+##### 2225\.找出输掉零场或一场比赛的玩家
+
+[题目](https://leetcode.cn/problems/find-players-with-zero-or-one-losses)
+
+```python
+class Solution:
+    def findWinners(self, matches: List[List[int]]) -> List[List[int]]:
+        a = {v[0] for v in matches} | {v[1] for v in matches}
+        s = {v:0 for v in a}
+        for u,v in matches:
+            s[v] += 1
+        s0 = sorted([k for k in s.keys() if s[k] == 0])
+        s1 = sorted([k for k in s.keys() if s[k] == 1])
+        return [s0, s1]
+```
+
+```python
+class Solution:
+    def findWinners(self, matches: List[List[int]]) -> List[List[int]]:
+        players = set(x for m in matches for x in m)
+        loss_count = Counter(loser for _, loser in matches)
+        return [sorted(x for x in players if x not in loss_count),
+                sorted(x for x, c in loss_count.items() if c == 1)]
+```
 
 

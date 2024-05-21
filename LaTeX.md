@@ -3188,6 +3188,38 @@ signed main() /* 注释 */
 
 
 
+#### 流程控制
+
+##### 条件判断
+
+`ifthen` 包。
+
+```tex
+\newboolean{mybool} % 定义一个布尔变量
+\setboolean{mybool}{true} % 设置布尔变量的值
+\ifthenelse{\boolean{mybool}}{布尔变量为真。}{是布尔变量为假。}
+```
+
+##### 循环
+
+```tex
+\usepackage{pgffor}
+```
+
+```latex
+\foreach \x in {1, 2, 3, 4, 5} {number \x \\}
+\foreach \y in {1,...,10} {\y th\\}
+
+\newboolean{isEven}
+\foreach \z in {1,...,10} {
+    \setboolean{isEven}{false}
+    \ifthenelse{\equal{\z mod 2}{0}}
+        {\setboolean{isEven}{true}}{}
+    \ifthenelse{\boolean{isEven}}
+        {\z even\\}{\z odd\\}
+}
+```
+
 
 
 #### 其他内容
@@ -4386,6 +4418,8 @@ library `quotes`，将 node label 的输入从 `label={[<options>]<text>}` 简�
 
 ### .cls
 
+#### 基本概念
+
 `.cls`文件是LaTeX中用于定义文档类的文件，它控制着文档的整体布局和格式。当你使用`\documentclass`命令加载一个特定的文档类时，LaTeX会查找与之相对应的`.cls`文件。这个文件内包含了一系列的命令和环境定义，用于设定文档的标题、章节、页边距、字体、间距等方面的格式。
 
 在`\documentclass[options]{class}`命令中：
@@ -4394,6 +4428,51 @@ library `quotes`，将 node label 的输入从 `label={[<options>]<text>}` 简�
 - `options`是一组可选项，用来调整文档类的默认行为。这些选项可以控制文档的基本属性，如字体大小、纸张大小、是否双面打印等。
 
 `.cls` 内容是一系列的 latex 指令
+
+#### 参数
+
+##### 一般
+
+与 ifelse 连用例子：
+
+`main.tex`
+
+```tex
+\documentclass[ShowText]{SCNU}
+\begin{document}
+\showorhidetext{ShowText}{HideText}
+\end{document}
+```
+
+`SCNU.cls` 同文件夹里：
+
+```tex
+\NeedsTeXFormat{LaTeX2e} % 指定这个文档类需要的最低 LaTeX 格式版本
+\ProvidesClass{SCNU}[2024/05/21 SCNU Custom Class] % 提供关于文档类的信息
+\LoadClass{article} % 若显示中文 \LoadClass{ctexart}，有待验证
+
+\RequirePackage{ifthen} % 导入包
+
+% 定义一个新的布尔变量
+\newboolean{showtext}
+
+% 定义选项并设置默认值
+\DeclareOption{ShowText}{\setboolean{showtext}{true}}
+\DeclareOption{HideText}{\setboolean{showtext}{false}}
+
+% 解析选项
+\ProcessOptions\relax
+% \ProcessKeyvalOptions*\relax 的话，遇到未定义的选项时，不会生成错误，而是忽略
+
+% 定义一个命令来显示或隐藏文本，必须在 
+\newcommand{\showorhidetext}[2]{%
+  \ifthenelse{\boolean{showtext}}{#1}{#2}%
+} 
+
+\endinput % 指示 TeX 在处理文件时停止读取该文件的剩余部分
+```
+
+
 
 ### 通用
 
