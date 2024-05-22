@@ -4472,6 +4472,19 @@ library `quotes`，将 node label 的输入从 `label={[<options>]<text>}` 简�
 \endinput % 指示 TeX 在处理文件时停止读取该文件的剩余部分
 ```
 
+##### bool
+
+```tex
+\RequirePackage{ifthen}
+% 定义 Blind 选项及 blind 命令
+\SetupKeyvalOptions{family=CUC, prefix=CUC@, setkeys=\kvsetkeys}
+\DeclareBoolOption[false]{Blind}
+
+\newcommand{\blind}[1]{%
+  \ifthenelse{\boolean{CUC@Blind}}{***}{#1}%
+} % blind 显示 ***, 否则显示 #1
+```
+
 
 
 ### 通用

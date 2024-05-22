@@ -161,16 +161,10 @@ pip install 库名 --upgrade
 pip freeze > requirements.txt
 ```
 
-先用 `pip` 安装 `pipreqs` ，然后使用：(可以直接 `pipreqs ./`)
+对当前项目，则先用 `pip` 安装 `pipreqs` ，然后使用：(可以直接 `pipreqs ./`)
 
 ```bash
 pipreqs ./ --encoding utf8
-```
-
-或
-
-```bash
-pipreqs ./ --encoding=utf8
 ```
 
 那么导出的 `requirements.txt` 可以用下面指令批量安装：
@@ -180,8 +174,6 @@ pip install -r requirement.txt
 ```
 
 > 如果里面任意一项输入不正确，如版本找不到，全部都不会安装，不会弹 error 直接结束。
-
-
 
 
 
@@ -11704,6 +11696,8 @@ print(res)
 #{'layer_specs': [784, 10], 'activation': 'None', 'learning_rate': 0.01, 'batch_size': 128, 'epochs': 100, 'early_stop': True, 'early_stop_epoch': 3, 'L2_penalty': 0, 'momentum': False, 'momentum_gamma': 0.9}
 ```
 
+中文就 open 时 `encoding='utf8'`。
+
 ### pickle
 
 序列化，反序列化
@@ -12858,7 +12852,23 @@ def model_tree_predict(X, tree, linear_models):
 
 #### 聚类
 
+##### 指标
+
+三个外部指标，取值是 [0,1], 越高越相似。
+
+- a表示两个簇划分中都被归类为同一个簇的数据点对数
+- b表示在参考簇划分中被归类为同一个簇,但在预测簇划分中被划分为不同簇的数据点对数
+- c表示在参考簇划分中被划分为不同簇,但在预测簇划分中被归类为同一个簇的数据点对数
+
+Jaccard系数(Jaccard Coefficient, JC) `a/(a+b+c)`
+
+FM指数(Fowlkes-Mallows Index, FM) `(2a)/(2a+b+c)` (或开个根号)
+
+Rand指数(Rand Index, RI) `2(a+b)/(m(m+1))` (也有其他说法),m是样本数
+
 ##### k-means
+
+![预览大图](img/UE5RNlJETEZGT21WYjQ2SXVMV1EvUT09.png)
 
 ```python
 from sklearn.cluster import KMeans
@@ -12877,7 +12887,12 @@ print("Cluster labels:")
 print(labels) # numpy 0/1/2 数组
 print("Centroids:")
 print(centroids) # 3x2 numpy 数组
+
+y_pred = kmeans.predict([[0, 0], [8, 2], [10, 3]])
+print(y_pred) # [0 2 2], np 数组
 ```
+
+![预览大图](img/RzFxNStNeG5VUnZEZldsTFYyZy81dz09.png)
 
 #### 神经网络
 

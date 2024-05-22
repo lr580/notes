@@ -15070,12 +15070,12 @@ const app = Vue.createApp({
 > package.json
 > package-lock.json
 > src/
->   assets/ #如logo.png
->   components/
->     HelloWorld.vue
->   App.vue
->   index.css
->   main.js
+> assets/ #如logo.png
+> components/
+> HelloWorld.vue
+> App.vue
+> index.css
+> main.js
 > ```
 >
 > 关于 `package-lock.json`，它是一个自动生成的文件，用于记录当前状态下实际安装的依赖树的确切版本。这意味着，通过这个文件，能够确保所有开发人员和部署环境使用完全相同版本的依赖，从而避免因版本差异引起的问题。一般建议是**不应该**将其加入 `.gitignore`，因为将 `package-lock.json` 纳入版本控制可以确保所有人使用相同的依赖版本，这有助于避免"在我机器上可以运行"的问题。
@@ -15088,14 +15088,14 @@ const app = Vue.createApp({
 > <!DOCTYPE html>
 > <html lang="en">
 > <head>
->   <meta charset="UTF-8">
->   <link rel="icon" href="/favicon.ico" />
->   <meta name="viewport" content="width=device-width, initial-scale=1.0">
->   <title>Vite App</title>
+> <meta charset="UTF-8">
+> <link rel="icon" href="/favicon.ico" />
+> <meta name="viewport" content="width=device-width, initial-scale=1.0">
+> <title>Vite App</title>
 > </head>
 > <body>
->   <div id="app"></div>
->   <script type="module" src="/src/main.js"></script>
+> <div id="app"></div>
+> <script type="module" src="/src/main.js"></script>
 > </body>
 > </html>
 > ```
@@ -15114,23 +15114,23 @@ const app = Vue.createApp({
 >
 > ```vue
 > <template>
->   <img alt="Vue logo" src="./assets/logo.png" />
->   <HelloWorld msg="Hello Vue 3.0 + Vite" />
+> <img alt="Vue logo" src="./assets/logo.png" />
+> <HelloWorld msg="Hello Vue 3.0 + Vite" />
 > </template>
 > 
 > <script>
 > import HelloWorld from './components/HelloWorld.vue'
 > 
 > export default {
->   name: 'App',
->   components: {
->     HelloWorld
->   }
+> name: 'App',
+> components: {
+>  HelloWorld
+> }
 > }
 > </script>
 > 
 > <style scoped>
->     //scoped表示这里的CS只作用于该文件
+>  //scoped表示这里的CS只作用于该文件
 > </style>
 > ```
 >
@@ -15138,22 +15138,22 @@ const app = Vue.createApp({
 >
 > ```vue
 > <template>
->   <h1>{{ msg }}</h1>
->   <button @click="count++">count is: {{ count }}</button>
->   <p>Edit <code>components/HelloWorld.vue</code> to test hot module replacement.</p>
+> <h1>{{ msg }}</h1>
+> <button @click="count++">count is: {{ count }}</button>
+> <p>Edit <code>components/HelloWorld.vue</code> to test hot module replacement.</p>
 > </template>
 > 
 > <script>
 > export default {
->   name: 'HelloWorld',
->   props: {
->     msg: String
->   },
->   data() {
->     return {
->       count: 0
->     }
->   }
+> name: 'HelloWorld',
+> props: {
+>  msg: String
+> },
+> data() {
+>  return {
+>    count: 0
+>  }
+> }
 > }
 > </script>
 > ```

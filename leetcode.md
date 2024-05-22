@@ -1593,6 +1593,10 @@
 - 2225\.找出输掉零场或一场比赛的玩家
 
   签到
+  
+- 2831\.找出最长等值子数组
+
+  滑动窗口
 
 ## 算法
 
@@ -43751,4 +43755,62 @@ class Solution:
                 sorted(x for x, c in loss_count.items() if c == 1)]
 ```
 
+##### 2831\.找出最长等值子数组
+
+[题目](https://leetcode.cn/problems/find-the-longest-equal-subarray)
+
+枚举每个值的下标列表 $a$，维护 $a_i$ 差不超过 $k$ 的最长 $a_i$ 的下标差距是为答案。$O(n)$。
+
+```c++
+class Solution {
+public:
+    int longestEqualSubarray(vector<int>& nums, int k) {
+        int n = nums.size(), ans = 0;
+        map<int, vector<int>> m;
+        for(int i = 0; i < n; ++i) {
+            m[nums[i]].emplace_back(i);
+        }
+        for(auto &[_, a] : m) {
+            int na = a.size(), l = 0, dels = 0;
+            for(int r = 1; r < na; ++r) {
+                dels += a[r] - a[r-1] - 1;
+                while(dels > k) {
+                    dels -= a[l] - a[l+1] + 1;
+                    ++l;
+                }
+                ans = max(ans, r-l+1);
+            }
+        }
+        return ans;
+    }
+};
+```
+
+实现速度：map < unmap < vector，而且也不用维护 dels 的。
+
+```c++
+class Solution {
+public:
+    int longestEqualSubarray(vector<int> &nums, int k) {
+        int n = nums.size();
+        vector<vector<int>> pos_lists(n + 1);
+        for (int i = 0; i < n; i++) {
+            int x = nums[i];
+            pos_lists[x].push_back(i - pos_lists[x].size());
+        }
+
+        int ans = 0;
+        for (auto& pos : pos_lists) {
+            int left = 0;
+            for (int right = 0; right < pos.size(); right++) {
+                while (pos[right] - pos[left] > k) { // 要删除的数太多了
+                    left++;
+                }
+                ans = max(ans, right - left + 1);
+            }
+        }
+        return ans;
+    }
+};
+```
 
