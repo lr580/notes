@@ -1597,6 +1597,10 @@
 - 2831\.找出最长等值子数组
 
   滑动窗口
+  
+- 1673\.找出最具竞争力的子序列
+
+  <u>前缀和+模拟+贪心</u> / **贪心+单调栈/ST表(维护min所在下标)**/(优先队列+滑窗)
 
 ## 算法
 
@@ -43765,8 +43769,8 @@ class Solution:
 class Solution {
 public:
     int longestEqualSubarray(vector<int>& nums, int k) {
-        int n = nums.size(), ans = 0;
-        map<int, vector<int>> m;
+        int n = nums.size(), ans = 1;
+        unordered_map<int, vector<int>> m;
         for(int i = 0; i < n; ++i) {
             m[nums[i]].emplace_back(i);
         }
@@ -43774,8 +43778,8 @@ public:
             int na = a.size(), l = 0, dels = 0;
             for(int r = 1; r < na; ++r) {
                 dels += a[r] - a[r-1] - 1;
-                while(dels > k) {
-                    dels -= a[l] - a[l+1] + 1;
+                while(dels > k && l < r) {
+                    dels -= a[l+1] - a[l] - 1;
                     ++l;
                 }
                 ans = max(ans, r-l+1);
@@ -43807,6 +43811,167 @@ public:
                     left++;
                 }
                 ans = max(ans, right - left + 1);
+            }
+        }
+        return ans;
+    }
+};
+```
+
+##### 1673\.找出最具竞争力的子序列
+
+[题目](https://leetcode.cn/problems/find-the-most-competitive-subsequence)
+
+一开始找一个最长不下降子序列准没错：(只能求起始为最小值的子序列)
+
+- 维护后缀 min，其值等于后缀 min 的地方属于最长不下降子序列
+- 如果这个过程达到 $k$ 了，直接返回答案
+
+如果还没凑够 $k$，先拿该子序列当答案的一部分，记作 $idx$(下标数组)。
+
+将当前最长不下降子序列的下标数组 $r$ 用来分段，从后往前，设 $r$ 最后两个元素(即原数组的两个下标)之间(不含端点)的下标段为 $[lf,rf)$。
+
+找到这个下标段的最小值 $mi$，将下标段内所有等于 $mi$ 的元素下标添加到答案序列里，也添加到 $r$ 里(维护有序)。
+
+如果 $[lf,rf)$ 为空，删掉 $r$ 末尾元素。因为可能 $r$ 首元素之前还有东西，所以 $r$ 前面加一个 $-1$ 下标使得最后(左)一段 $[lf,rf)$ 能囊括整个原数组。
+
+凑到 $k$ 个数为止。但是 min 函数和 v append 使得复杂度 $O(n^2)$。
+
+```python
+class Solution:
+    def mostCompetitive(self, nums: List[int], k: int) -> List[int]:
+        r, n = [], len(nums)
+        smi = [nums[-1]] * n # 后缀min
+        for i in range(n-2,-1,-1):
+            smi[i] = min(smi[i+1],nums[i])
+        for i in range(n):
+            if smi[i] == nums[i]:
+                r.append(i)
+                k -= 1
+                if k == 0:
+                    return [nums[i] for i in r]
+        r, idx = [-1] + r[::], r[::]
+        while len(r) >= 2:
+            lf, rf = r[-2]+1, r[-1]
+            if lf>=rf:
+                if lf==rf:
+                    r.pop()
+                continue
+            r.pop()
+            mi, v = min(nums[lf:rf]), []
+            for i in range(lf,rf):
+                if nums[i] == mi:
+                    v.append(i)
+            if not v:
+                continue
+            part = v[max(0,len(v)-k):]
+            r.extend(part)
+            idx.extend(part)
+            k -= len(v)
+            i += 1
+            if k<=0:
+                return [nums[i] for i in sorted(idx)]
+            r.append(rf)
+        return [] # raise
+```
+
+贪心，设已经选了 $m$ 个数，当前左端点是 $l=0$，有 $n$ 个数，则找出 $[l,n-k+m]$(一开始是 $[0, n-k]$)的最小值下标 $idx$，将 $l$ 更新为 $idx+1$ 且更新 $m$。不断找这样的数，直到找了 $k$ 次为止。
+
+贪心缘由：当前还需要 $k$ 个，最坏情况下，剩下 $k-1$ 个都要退(比当前选的下标最小的第一个数要小)，也就说后续的 $k-1$ 个都比现在选的要小是最坏情况。那么不看最后的 $k-1$ 个数的情况下，选出最小的，如果后续 $k-1$ 个真的都要小也行，如果没这么多都要小，那也无所谓，反正不会更差。
+
+可以用 ST 表或滑窗+优先队列维护。
+
+```c++
+class Solution {
+public:
+    vector<int> mostCompetitive(vector<int>& nums, int k) {
+        int n = nums.size();
+        priority_queue<pair<int, int>, vector<pair<int, int>>, greater<>> pq;
+        for (int i = 0; i < n - k + 1; ++i)
+            pq.emplace(nums[i], i);
+        vector<int> ans;
+        int l = 0;
+        for (int i = 0; i < k; ++i) {
+            while (pq.top().second < l)
+                pq.pop();
+            auto [num, idx] = pq.top();
+            pq.pop();
+            l = idx + 1;
+            ans.emplace_back(num);
+            if (i < k - 1)
+                pq.emplace(nums[n - k + i + 1], n - k + i + 1);
+        }
+        return ans;
+    }
+};
+```
+
+ ```c++
+class Solution {
+public:
+    vector<int> mostCompetitive(vector<int>& nums, int k) {
+        int n = nums.size();
+        int d = int(log2(n));
+        vector<vector<int>> lo(n, vector<int>(d + 1));
+        for (int i = 0; i < n; ++i)
+            lo[i][0] = i;
+        for (int k = 1; k <= d; ++k)
+            for (int i = 0; i < n; ++i) {
+                lo[i][k] = lo[i][k - 1];
+                int r = i + (1 << (k - 1));
+                if (r < n && nums[lo[r][k - 1]] < nums[lo[i][k]])
+                    lo[i][k] = lo[r][k - 1];
+            }
+        auto query = [&](int l, int r) {
+            int k = log2(r - l + 1);
+            int L = lo[l][k], R = lo[r - (1 << k) + 1][k];
+            if (nums[L] <= nums[R])
+                return L;
+            return R;
+        };
+        vector<int> ans;
+        int L = 0, m = 0;
+        while (m < k) {
+            int idx = query(L, n - k + m);
+            ans.emplace_back(nums[idx]);
+            L = idx + 1;
+            m++;
+        }
+        return ans;
+    }
+};
+ ```
+
+优先队列可以改成单调栈：任务是维护区间最小值的下标
+
+- 所以维护单调不降的单调栈，因为新的更小的出现之后，之前的不会更优活得也不会更久，全都图图了
+- 使用滑窗退掉非法下标
+
+```c++
+class Solution {
+public:
+    vector<int> mostCompetitive(vector<int>& nums, int k) {
+        int n = nums.size();
+        deque<int> dq;
+        for (int i = 0; i < n - k + 1; ++i) {
+            while (!dq.empty() && nums[dq.back()] > nums[i])
+                dq.pop_back();
+            dq.push_back(i);
+        }
+        vector<int> ans;
+        int l = 0;
+        for (int i = 0; i < k; ++i) {
+            while (dq.front() < l)
+                dq.pop_front();
+            int idx = dq.front();
+            int num = nums[idx];
+            dq.pop_front();
+            l = idx + 1;
+            ans.emplace_back(num);
+            if (i < k - 1) {
+                while (!dq.empty() && nums[dq.back()] > nums[n - k + 1 + i])
+                    dq.pop_back();
+                dq.push_back(n - k + 1 + i);
             }
         }
         return ans;
