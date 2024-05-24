@@ -1600,7 +1600,11 @@
   
 - 1673\.找出最具竞争力的子序列
 
-  <u>前缀和+模拟+贪心</u> / **贪心+单调栈/ST表(维护min所在下标)**/(优先队列+滑窗)
+  <u>前缀和+模拟+贪心</u> / **贪心+单调栈/ST表(维护min所在下标)**/(优先队列+滑窗)/<u>线段树+二分</u>
+  
+- 2903\.找出满足差值条件的下标I
+
+  滑动窗口+二分 / 滑动窗口
 
 ## 算法
 
@@ -43978,4 +43982,252 @@ public:
     }
 };
 ```
+
+线段树求区间最小值+利用最小值对应的下标有序表二分求大于某个值的最小下标
+
+```java
+class Solution {
+    public int[] mostCompetitive(int[] nums, int k) {
+        int n = nums.length;
+        HashMap<Integer, ArrayList<Integer>> arr = new HashMap<>();
+
+        for (int i = 0; i < n; i++) {
+            if (!arr.containsKey(nums[i]))
+                arr.put(nums[i], new ArrayList<Integer>());
+
+            arr.get(nums[i]).add(i);
+        }
+
+        SegTree sg = new SegTree(n);
+        // for(int i=1;i<=n;i++){                        
+        //     sg.update(i,nums[i-1]);   
+        // }
+        //旧的初始化方法。线段树是从1开始存的，从0开始存好像有问题，嘻嘻。😄       
+
+        sg.build(0, 1, n, nums);
+        //优化后的初始化方法，使本题运行时间减少了40%!线段树建树O(n),而不是一个一个更新O（nlogn）
+
+        int[] ret = new int[k];
+        int pre = -1;
+
+        for (int i = 0; i < k; i++) {
+            ret[i] = sg.query(pre + 2, n - k + i + 1);
+            //由于线段树是从1开始存的，而数组从下标0开始存，转换的时候要+1
+
+            int index = Collections.binarySearch(arr.get(ret[i]), pre + 1);
+
+            if (index < 0) index = -index - 1;  
+            /*ArrayList中存了值为ret[i]（当次搜索结果的所有位置）我们取哪一个呢？
+            显然是取pre+1后面的第一个（含），如果pre+1那个位置就是搜索的最小值那个
+            位置，index为正，更新pre为该位置。否则index为负，-index-1表示pre+1的
+            插入位置，即第一次取得搜索的最小值那个位置，更新pre为该位置。*/
+
+            pre = arr.get(ret[i]).get(index);
+        }
+
+        return ret;
+    }
+}
+
+//线段树求区间最值的java模板 区间更新操作O(logn) 区间查询操作O(logn)。 
+class SegTree {
+    int n;
+    int[] tree;
+
+    SegTree(int n) {
+        this.n = n;
+        tree = new int[4 * n];
+    }
+
+    void pushup(int i) {
+        tree[i] = Math.min(tree[i * 2 + 1], tree[i * 2 + 2]);
+    }
+
+    //新加入的初始化建树方法！通过传nums数组递归从而在O（n）而不是O（nlogn）时间初始化。
+    void build(int i, int l, int r, int[] nums) {
+        if (l == r) {
+            tree[i] = nums[l - 1];
+            return;
+        }
+
+        int mid = (l + r) / 2;
+        build(i * 2 + 1, l, mid, nums);
+        build(i * 2 + 2, mid + 1, r, nums);
+        pushup(i);
+    }
+
+    void update(int i, int l, int r, int x, int val) {
+        if (l == r) {
+            tree[i] = val;
+            return;
+        }
+        int mid = (l + r) / 2;
+        if (x <= mid) update(i * 2 + 1, l, mid, x, val);
+        else update(i * 2 + 2, mid + 1, r, x, val);
+        pushup(i);
+    }
+
+    int query(int i, int l, int r, int x, int y) {
+        if (x <= l && r <= y)
+            return tree[i];
+        int minn = Integer.MAX_VALUE;
+        int mid = (l + r) / 2;
+        if (x <= mid) minn = Math.min(minn, query(i * 2 + 1, l, mid, x, y));
+        if (y > mid) minn = Math.min(minn, query(i * 2 + 2, mid + 1, r, x, y));
+        return minn;
+    }
+
+    void update(int x, int val) {
+        update(0, 1, n, x, val);
+    }
+
+    int query(int left, int right) {
+        return query(0, 1, n, left, right);
+    }
+};
+```
+
+线段树求区间最小值+利用最小值对应的下标有序表二分求大于某个值的最小下标
+
+```java
+class Solution {
+    public int[] mostCompetitive(int[] nums, int k) {
+        int n = nums.length;
+        HashMap<Integer, ArrayList<Integer>> arr = new HashMap<>();
+
+        for (int i = 0; i < n; i++) {
+            if (!arr.containsKey(nums[i]))
+                arr.put(nums[i], new ArrayList<Integer>());
+
+            arr.get(nums[i]).add(i);
+        }
+
+        SegTree sg = new SegTree(n);
+        // for(int i=1;i<=n;i++){                        
+        //     sg.update(i,nums[i-1]);   
+        // }
+        //旧的初始化方法。线段树是从1开始存的，从0开始存好像有问题，嘻嘻。😄       
+
+        sg.build(0, 1, n, nums);
+        //优化后的初始化方法，使本题运行时间减少了40%!线段树建树O(n),而不是一个一个更新O（nlogn）
+
+        int[] ret = new int[k];
+        int pre = -1;
+
+        for (int i = 0; i < k; i++) {
+            ret[i] = sg.query(pre + 2, n - k + i + 1);
+            //由于线段树是从1开始存的，而数组从下标0开始存，转换的时候要+1
+
+            int index = Collections.binarySearch(arr.get(ret[i]), pre + 1);
+
+            if (index < 0) index = -index - 1;  
+            /*ArrayList中存了值为ret[i]（当次搜索结果的所有位置）我们取哪一个呢？
+            显然是取pre+1后面的第一个（含），如果pre+1那个位置就是搜索的最小值那个
+            位置，index为正，更新pre为该位置。否则index为负，-index-1表示pre+1的
+            插入位置，即第一次取得搜索的最小值那个位置，更新pre为该位置。*/
+
+            pre = arr.get(ret[i]).get(index);
+        }
+
+        return ret;
+    }
+}
+
+//线段树求区间最值的java模板 区间更新操作O(logn) 区间查询操作O(logn)。 
+class SegTree {
+    int n;
+    int[] tree;
+
+    SegTree(int n) {
+        this.n = n;
+        tree = new int[4 * n];
+    }
+
+    void pushup(int i) {
+        tree[i] = Math.min(tree[i * 2 + 1], tree[i * 2 + 2]);
+    }
+
+    //新加入的初始化建树方法！通过传nums数组递归从而在O（n）而不是O（nlogn）时间初始化。
+    void build(int i, int l, int r, int[] nums) {
+        if (l == r) {
+            tree[i] = nums[l - 1];
+            return;
+        }
+
+        int mid = (l + r) / 2;
+        build(i * 2 + 1, l, mid, nums);
+        build(i * 2 + 2, mid + 1, r, nums);
+        pushup(i);
+    }
+
+    void update(int i, int l, int r, int x, int val) {
+        if (l == r) {
+            tree[i] = val;
+            return;
+        }
+        int mid = (l + r) / 2;
+        if (x <= mid) update(i * 2 + 1, l, mid, x, val);
+        else update(i * 2 + 2, mid + 1, r, x, val);
+        pushup(i);
+    }
+
+    int query(int i, int l, int r, int x, int y) {
+        if (x <= l && r <= y)
+            return tree[i];
+        int minn = Integer.MAX_VALUE;
+        int mid = (l + r) / 2;
+        if (x <= mid) minn = Math.min(minn, query(i * 2 + 1, l, mid, x, y));
+        if (y > mid) minn = Math.min(minn, query(i * 2 + 2, mid + 1, r, x, y));
+        return minn;
+    }
+
+    void update(int x, int val) {
+        update(0, 1, n, x, val);
+    }
+
+    int query(int left, int right) {
+        return query(0, 1, n, left, right);
+    }
+};
+```
+
+##### 2903\.找出满足差值条件的下标I
+
+[题目](https://leetcode.cn/problems/find-indices-with-index-and-value-difference-i)
+
+暴力：
+
+```python
+class Solution:
+    def findIndices(self, a: List[int], im: int, vm: int) -> List[int]:
+        s = 0
+        for i in range(len(a)):
+            for j in range(i+im, len(a)):
+                if abs(a[i]-a[j]) >= vm:
+                    return [i,j]
+        return [-1,-1]
+```
+
+set：维护 pair(键值)，对当前值，在其往前维护好的区间里二分看看找不找得到，nlogn。略。
+
+单纯滑窗：设当前枚举 j，其最前是 i=j-im, 维护最前段的最值即可。
+
+```python
+class Solution:
+    def findIndices(self, nums: List[int], indexDifference: int, valueDifference: int) -> List[int]:
+        max_idx = min_idx = 0
+        for j in range(indexDifference, len(nums)):
+            i = j - indexDifference
+            if nums[i] > nums[max_idx]:
+                max_idx = i
+            elif nums[i] < nums[min_idx]:
+                min_idx = i
+            if nums[max_idx] - nums[j] >= valueDifference:
+                return [max_idx, j]
+            if nums[j] - nums[min_idx] >= valueDifference:
+                return [min_idx, j]
+        return [-1, -1]
+```
+
+
 
