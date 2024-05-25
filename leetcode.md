@@ -1605,6 +1605,10 @@
 - 2903\.找出满足差值条件的下标I
 
   滑动窗口+二分 / 滑动窗口
+  
+- 1738\.找出第 k 大的异或坐标值
+
+  前缀和 排序(nth)
 
 ## 算法
 
@@ -44227,6 +44231,89 @@ class Solution:
             if nums[j] - nums[min_idx] >= valueDifference:
                 return [min_idx, j]
         return [-1, -1]
+```
+
+##### 1738\.找出第 k 大的异或坐标值
+
+[题目](https://leetcode.cn/problems/find-kth-largest-xor-coordinate-value)
+
+异或满足前缀和性质，然后用 nth 原理求 k-th 即可。
+
+```python
+class Solution:
+    def kthLargestValue(self, matrix: List[List[int]], k: int) -> int:
+        n, m = len(matrix), len(matrix[0])
+        for i in range(n):
+            for j in range(m):
+                u = 0 if i==0 else matrix[i-1][j]
+                l = 0 if j==0 else matrix[i][j-1]
+                ul = 0 if i==0 or j==0 else matrix[i-1][j-1]
+                matrix[i][j] ^= u ^ l ^ ul
+        return sorted([v for r in matrix for v in r])[n*m-k]
+```
+
+```python
+class Solution:
+    def kthLargestValue(self, matrix: List[List[int]], k: int) -> int:
+        m, n = len(matrix), len(matrix[0])
+        pre = [[0] * (n + 1) for _ in range(m + 1)]
+        results = list()
+        for i in range(1, m + 1):
+            for j in range(1, n + 1):
+                pre[i][j] = pre[i - 1][j] ^ pre[i][j - 1] ^ pre[i - 1][j - 1] ^ matrix[i - 1][j - 1]
+                results.append(pre[i][j])
+        
+        def nth_element(left: int, kth: int, right: int, op: Callable[[int, int], bool]):
+            if left == right:
+                return
+            
+            pivot = random.randint(left, right)
+            results[pivot], results[right] = results[right], results[pivot]
+
+            # 三路划分（three-way partition）
+            sepl = sepr = left - 1
+            for i in range(left, right + 1):
+                if op(results[i], results[right]):
+                    sepr += 1
+                    if sepr != i:
+                        results[sepr], results[i] = results[i], results[sepr]
+                    sepl += 1
+                    if sepl != sepr:
+                        results[sepl], results[sepr] = results[sepr], results[sepl]
+                elif results[i] == results[right]:
+                    sepr += 1
+                    if sepr != i:
+                        results[sepr], results[i] = results[i], results[sepr]
+            
+            if sepl < left + kth <= sepr:
+                return
+            elif left + kth <= sepl:
+                nth_element(left, kth, sepl, op)
+            else:
+                nth_element(sepr + 1, kth - (sepr - left + 1), right, op)
+
+        nth_element(0, k - 1, len(results) - 1, operator.gt)
+        return results[k - 1]
+```
+
+```c++
+class Solution {
+public:
+    int kthLargestValue(vector<vector<int>>& matrix, int k) {
+        int m = matrix.size(), n = matrix[0].size();
+        vector<vector<int>> pre(m + 1, vector<int>(n + 1));
+        vector<int> results;
+        for (int i = 1; i <= m; ++i) {
+            for (int j = 1; j <= n; ++j) {
+                pre[i][j] = pre[i - 1][j] ^ pre[i][j - 1] ^ pre[i - 1][j - 1] ^ matrix[i - 1][j - 1];
+                results.push_back(pre[i][j]);
+            }
+        }
+
+        nth_element(results.begin(), results.begin() + k - 1, results.end(), greater<int>());
+        return results[k - 1];
+    }
+};
 ```
 
 
