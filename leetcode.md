@@ -1609,6 +1609,10 @@
 - 1738\.找出第 k 大的异或坐标值
 
   前缀和 排序(nth)
+  
+- 2028\.找出缺失的观测数据
+
+  构造 模拟/数学
 
 ## 算法
 
@@ -44314,6 +44318,42 @@ public:
         return results[k - 1];
     }
 };
+```
+
+##### 2028\.找出缺失的观测数据
+
+[题目](https://leetcode.cn/problems/find-missing-observations)
+
+我的构造：
+
+```python
+class Solution:
+    def missingRolls(self, rolls: List[int], mean: int, n: int) -> List[int]:
+        m = len(rolls)
+        s = (m+n)*mean
+        if sum(rolls)+n*1>s or sum(rolls)+n*6<s:
+            return []
+        ans = [1] * n
+        s -= n + sum(rolls)
+        for i in range(n):
+            v = 5 if s % 5 == 0 and s else s%5
+            ans[i] += v
+            s -= v
+            if not s:
+                break
+        return ans
+```
+
+题解的：
+
+```python
+class Solution:
+    def missingRolls(self, rolls: List[int], mean: int, n: int) -> List[int]:
+        missingSum = mean * (n + len(rolls)) - sum(rolls)
+        if not n <= missingSum <= n * 6:
+            return []
+        quotient, remainder = divmod(missingSum, n)
+        return [quotient + 1] * remainder + [quotient] * (n - remainder)
 ```
 
 

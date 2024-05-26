@@ -18,7 +18,7 @@ python3.4是最后支持window XP的版本。不要安装最新的版本，往�
 
 查看版本：
 
-```python
+```sh
 python --version
 ```
 
