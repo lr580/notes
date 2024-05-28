@@ -8565,6 +8565,76 @@ setTimeout(fuck, 0)
 
 
 
+##### 标签树生成
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script>
+    // 函数用于递归创建 HTML 标签树
+function createTree(root) {
+    if (!root) return;  // 如果节点不存在，直接返回
+
+    // 创建一个新的列表项 <li> 和列表 <ul>
+    let node = document.createElement('li');
+    node.textContent = root.name; // 设置节点名称
+
+    // 如果有子节点，则创建一个子列表 <ul>
+    if (root.children && root.children.length > 0) {
+        let childList = document.createElement('ul');
+        // 递归地为每个子节点调用 createTree，并将结果添加到子列表中
+        root.children.forEach(child => {
+            childList.appendChild(createTree(child));
+        });
+        node.appendChild(childList); // 将子列表添加到当前节点
+    }
+
+    return node; // 返回包含子节点的当前节点
+}
+
+function f() {
+    // 获取 HTML 中的根元素，你可以指定一个容器元素
+    const container = document.getElementById('treeContainer');
+
+    // 定义数据结构
+    const root = {
+            "name": "Root",
+            children: [
+                {
+                    "name": "Child 1",
+                    children: [],
+                },
+                {
+                    "name": "Child 2",
+                    children: [
+                        {
+                            "name": "Granchild 1",
+                            children: [],
+                        }
+                    ],
+                }
+        ],
+    };
+
+    // 创建树并添加到容器中
+    const treeRoot = document.createElement('ul');
+    treeRoot.appendChild(createTree(root));
+    container.appendChild(treeRoot);
+}
+
+</script>
+</head>
+<body>
+    <div id="treeContainer"></div>
+    <button onclick="f()">Create Tree</button>
+</body>
+</html>
+```
+
 
 
 ### Event
@@ -13307,9 +13377,118 @@ tsc x.ts
 node x.js
 ```
 
+# Node
 
+## nodejs
+
+### 基本指令
+
+查看版本：
+
+```sh
+node -vd
+```
+
+## npm
+
+### 基本指令
+
+查看版本：
+
+```sh
+npm -v
+```
+
+安装包：
+
+```sh
+npm install
+# 或 npm i
+```
+
+运行：
+
+```sh
+npm run dev
+```
+
+部署一个静态 HTML (本机 live 运行或挂服务器防止跨域)，一般生成到 `build/`：
+
+```sh
+npm run build
+```
+
+将其部署到 github 的 `gh-pages` 分支：(需要有 `.git` 文件，即 git init 过)
+
+```sh
+npm install --save gh-pages
+npm run build
+gh-pages -d build # build 是目录名
+```
+
+
+
+### 目录结构
+
+#### package.json
+
+一个大括号然后若干 key (字符串): value。
+
+其中，scripts 的 key 下面定义一个对象（大括号），表示`npm run xxx` 的 `xxx` 究竟运行什么。例如：
+
+```json
+"scripts": {
+    "dev": "umi dev",
+    "build": "umi build",
+    "postinstall": "umi setup",
+    "setup": "umi setup",
+    "start": "npm run dev",
+    "deploy": "gh-pages -d docs"
+},
+```
+
+
+
+### 部署
+
+#### github page
+
+以 [typeCGame](https://github.com/lr580/typeCGame) 为例。参照该项目 README.md 配好环境，可以本地自测。
+
+在项目根目录新建 `.github/workflows/` 的任意 `xxx.yml`。实现功能：每次 push 后自动在项目仓库执行 `npm run build`，并将生成的 `docs/`(原本是 `build/`) 自动部署到 `gh-pages`，有多种写法，一种写法为：
+
+```yml
+name: Build and Deploy
+on: [push]
+permissions:
+  contents: write
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
+      - name: Install and Build 🔧 
+        run: |
+          npm i
+          npm run build
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: docs # The folder the action should deploy.
+```
+
+请务必在 `.gitignore` 添加对 `docs/` 的忽略，否则部署以仓库 `docs/` 为准而不是生成的 `docs/`。
+
+之后在  仓库 settings 找到 pages，找到 build and deployment，source 选 deploy from a branch，其 branch 选 gh-pages，选 / (root)，点 save，那么每次该分支发生变化会自动发生 github action 重新部署。
+
+以本仓库为例，部署结果在：[https://lr580.github.io/typeCGame/](https://lr580.github.io/typeCGame/)。
 
 # 框架
+
+
 
 ## Vue
 

@@ -1048,6 +1048,8 @@ git checkout -b devel origin/develop
 
 
 
+> `git checkout --orphan gh-pages` 中的 `--orphan` 是 Git 命令的一部分，用来创建一个孤立的分支。具体来说，`--orphan` 选项会创建一个新的分支，该分支没有任何父提交记录。这意味着新分支上的第一个提交将成为该分支的根提交，完全独立于任何其他分支的历史记录。
+
 
 
 #### 合并
@@ -1427,6 +1429,12 @@ fork的意义是把别人的仓库当前版本克隆一份到自己的仓库
 
 - 具体参见：我的个人博客搭建建站过程。
 - 具体参见：`latex.md` 笔记的 Jekyll。
+
+#### action
+
+部署一个 npm 项目到 github page，详见：
+
+- `web.md` 的 npm - 部署。
 
 #### gist
 

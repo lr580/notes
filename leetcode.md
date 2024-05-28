@@ -1613,6 +1613,10 @@
 - 2028\.找出缺失的观测数据
 
   构造 模拟/数学
+  
+- 2981\.找出出现至少三次的最长特殊子字符串I
+
+  模拟 排序/堆
 
 ## 算法
 
@@ -44356,5 +44360,81 @@ class Solution:
         return [quotient + 1] * remainder + [quotient] * (n - remainder)
 ```
 
+##### 2981\.找出出现至少三次的最长特殊子字符串I
 
+[题目](https://leetcode.cn/problems/find-longest-special-substring-that-occurs-thrice-i/)
+
+```python
+class Solution:
+    def maximumLength(self, s: str) -> int:
+        c = Counter(s[l:r] for l in range(len(s)) for r in range(l + 1, len(s) + 1) if len(set(s[l:r]))==1)
+        try:
+            return max(len(v) for v in c.keys() if c[v]>=3)   
+        except:
+            return -1
+```
+
+```python
+c = Counter(s[l:r] for l in range(len(s)) for r in range(l + 1, len(s) + 1) if len(set(s[l:r]))==1)
+return max((len(v) for v in c.keys() if c[v]>=3), default=-1)
+```
+
+或者优化为 nlogn(排序)：
+
+```python
+from collections import *
+class Solution:
+    def maximumLength(self, s: str) -> int:
+        a = defaultdict(list)
+        cnt, prv, ans = 0, s[0], -1
+        for c in s:
+            if c != prv:
+                a[prv].append(cnt)
+                cnt, prv = 1, c
+            else:
+                cnt += 1
+        a[c].append(cnt)
+        for b in a.values():
+            c = Counter()
+            for v in b:
+                c[v] += 1
+                c[v - 1] += 2
+                ans = max(ans, v-2)
+            for v in sorted(c.keys(), reverse=True):
+                if c[v] >= 3:
+                    ans = max(ans, v)
+                    break
+        return ans if ans > 0 else -1
+```
+
+优化掉 Counter：
+
+```python
+class Solution:
+    def maximumLength(self, s: str) -> int:
+        groups = defaultdict(list)
+        cnt = 0
+        for i, ch in enumerate(s):
+            cnt += 1
+            if i + 1 == len(s) or ch != s[i + 1]:
+                groups[ch].append(cnt)  # 统计连续字符长度
+                cnt = 0
+
+        ans = 0
+        for a in groups.values():
+            a.sort(reverse=True)
+            a.extend([0, 0])  # 假设还有两个空串
+            ans = max(ans, a[0] - 2, min(a[0] - 1, a[1]), a[2])
+
+        return ans if ans else -1
+```
+
+设前三最大频分别是 a0, a1, a2
+
+- a0 的 a0-2 子串必然有 3 个，故 a0-2 是答案的一种
+- 若 a0 = a1，则一定可以取到 a0-1 (即 a1-1)
+- 若 a0 > a1，则 a0 里可以取两个 a1，一定可以取到 a1
+- 不论如何，一定可以从 a0, a1 里都拿一个 a2
+
+用堆维护前三大可以严格 On
 

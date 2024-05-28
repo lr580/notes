@@ -2864,11 +2864,12 @@ min(-1,1,key=abs) #-1
 min(1,-1,key=abs) #1
 ```
 
-default 参数：防止空数组异常
+default 参数：防止空数组异常(不然空数组会 value error)
 
 ```python
 max([-1,-2],default=0) # -1
 max([],default=0) #0
+max((len(v) for v in c.keys() if c[v]>=3), default=-1) #一定要括号
 ```
 
 ##### pow
