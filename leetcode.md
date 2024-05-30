@@ -1617,6 +1617,10 @@
 - 2981\.找出出现至少三次的最长特殊子字符串I
 
   模拟 排序/堆
+  
+- 2965\.找出缺失和重复的数字
+
+  模拟 / <u>位运算(异或)</u>
 
 ## 算法
 
@@ -44437,4 +44441,43 @@ class Solution:
 - 不论如何，一定可以从 a0, a1 里都拿一个 a2
 
 用堆维护前三大可以严格 On
+
+##### 2965\.找出缺失和重复的数字
+
+[题目](https://leetcode.cn/problems/find-missing-and-repeated-values)
+
+我的暴力：
+
+```python
+class Solution:
+    def findMissingAndRepeatedValues(self, grid: List[List[int]]) -> List[int]:
+        c = Counter([v for r in grid for v in r])
+        a = [v for v in c.keys() if c[v] == 2]
+        b = [v for v in range(1, len(grid)**2+1) if not c[v]]
+        return a+b
+```
+
+位运算优化：
+
+- 由于 $x$ 为偶数时，$x\oplus (x+1)=1$，故分组为：$(0,1),(1,2),\cdots$，可以得出结论：$\oplus_{i=1}^ni=\oplus_{i=0}^ni=\begin{cases}n,&n=4k\\1,&n=4k+1\\n+1,&n=4k+2\\0,&n=4k+3\end{cases}$
+- 由右移本质，可以扩展：$\oplus_{i=0}^n2i=2\oplus_{i=0}^ni$。任意 $ki$ 则按 $k$ 位拆成 $\log$ 个异或和的异或和，复杂度 $O(\log k)$ 即可。
+- 注意到 $(4k)^2=16k^2,(4k+2)^2=16k^2+16k+4$ 都是 $4$ 的倍数，而 $(4k+1)^2=16k^2+8k+1$ 且 $(4k+3)^2=16k^2+24k+9$ 都是除 $4$ 余 $1$，也就是说 $n^2$ 模 $4$ 要么是 $0$ 要么是 $1$。如果 $n$ 是偶数就 $0$，奇数就 $1$。 套用上述公式可以 $O(1)$ 求 $[0,n]$ 异或和。
+- 求 $\oplus grid \oplus [1,n^2]$，刚好是缺失和重复的二者的异或。参考 260 题。问题转化为 260 题，按其思路求解即可。
+
+```python
+class Solution:
+    def findMissingAndRepeatedValues(self, grid: List[List[int]]) -> List[int]:
+        n = len(grid)
+        xor_all = reduce(xor, (x for row in grid for x in row)) ^ (1 if n % 2 else n * n)
+        shift = xor_all.bit_length() - 1
+
+        ans = [0, 0]
+        for x in range(1, n * n + 1):
+            ans[x >> shift & 1] ^= x
+        for row in grid:
+            for x in row:
+                ans[x >> shift & 1] ^= x
+
+        return ans if ans[0] in (x for row in grid for x in row) else ans[::-1]
+```
 

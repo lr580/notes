@@ -15731,6 +15731,32 @@ pip install python-multipart
 
 multipart 是自动文档所需
 
+#### hello world
+
+```python
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello world"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=5808)
+```
+
+运行：
+
+```sh
+python main.py # 上述文件的名字
+```
+
+测试，浏览器或：`curl http://localhost:5808/`。
+
+> 与下面一样热插拔的话加上参数 `reload = True`。实践不可行。
+
 #### 基本
 
 `main.py`
@@ -15759,6 +15785,7 @@ def read_item(item_id: int, q: Union[str, None] = None):
 
 ```sh
 uvicorn main:app --reload
+# uvicorn main:app --host 0.0.0.0 --port 5808 --reload
 ```
 
 > `--reload` 是自动加载代码更新的意思
@@ -15774,6 +15801,8 @@ uvicorn main:app --reload
 访问其他不存在的，比如 `http://127.0.0.1:8000/item/6`，网页显示 `{"detail":"Not Found"}`(404返回)
 
 自动文档：访问 `http://127.0.0.1:8000/docs`，或 `http://127.0.0.1:8000/redoc`
+
+
 
 #### 常用功能
 

@@ -598,7 +598,15 @@ hr标签可以有如下属性：
 
 p标签，自动换行
 
+#### pre
 
+用于显示预格式化文本的标签。它有以下特点:
+
+1. 保留空格和换行: `<pre>` 标签会保留源代码中的所有空格和换行,在渲染时会按照原样显示。这使得它非常适合于显示代码片段、ASCII 艺术等需要保留格式的内容。
+2. 不解释标记: `<pre>` 标签中的内容不会被浏览器解释为 HTML 标签,而是作为纯文本显示。这意味着可以在 `<pre>` 标签中包含 HTML 标签,而不会被浏览器解析。
+3. 默认等宽字体: 浏览器会为 `<pre>` 标签中的内容使用等宽字体,通常是 `monospace` 字体,这使得代码和文本对齐更加整洁。
+
+`<code>` 标签通常与 ` <pre>` 标签一起使用,以保留代码的格式和缩进。
 
 ### div
 
@@ -3738,6 +3746,45 @@ padding可以填1到4个参数，缺省规则(TRBL)同理
 ## 杂项
 
 ### 关键字
+
+#### !important
+
+1. **提高优先级**:
+   当同一个元素有多个样式声明针对同一个 CSS 属性时,`!important` 会使该样式声明的优先级最高,覆盖其他普通的样式。
+
+   ```css
+   p { color: blue !important; }
+   p { color: red; } /* 这个样式会被忽略 */
+   ```
+
+2. **覆盖内联样式**:
+   `!important` 甚至可以覆盖内联样式,这是普通的样式声明无法做到的。
+
+   ```html
+   <p style="color: red;">This text will be blue.</p>
+   ```
+
+   ```css
+   p { color: blue !important; }
+   ```
+
+3. **慎用 `!important`**:
+   过度使用 `!important` 会导致样式难以维护和覆盖。它应该仅在必要时使用,例如:
+
+   - 覆盖第三方库提供的样式
+   - 解决特殊情况下的样式冲突
+
+4. **样式层叠顺序**:
+   即使使用了 `!important`,样式声明的层叠顺序仍然适用。更具体的选择器会覆盖较为普遍的选择器,后定义的样式也会覆盖先前的样式。
+
+   ```css
+   /* 这个样式声明会生效 */
+   #my-element { color: blue !important; }
+   .my-class { color: red !important; }
+   ```
+
+5. **性能影响**:
+   过度使用 `!important` 可能会影响页面的性能,因为浏览器需要更多的工作来解析样式的优先级。
 
 #### initial
 
@@ -7044,14 +7091,12 @@ lfa.abcd===18;
 
 
 
-模板字符串：(ES6)，以飘号开始和结束，中间插入 `${}` 表达式。
+模板字符串：(ES6)，以飘号(反引号)开始和结束，中间插入 `${}` 表达式。
 
 ```js
 let a = 580, b = 1437;
 console.log(`${a} + ${b} = ${a + b}`);//580 + 1437 = 2017
 ```
-
-
 
 
 
@@ -13340,9 +13385,15 @@ console.log(b.innerHTML, b.textContent);//含html内容和纯文本的区别
 
 # TypeScript
 
-## 安装
+## 安装与使用
 
-### linux
+### 基本概念
+
+后缀：`.ts` 或 `.tsx`(后者支持 JSX 语法)
+
+### 安装
+
+#### linux
 
 依次执行：(如果哪条指令不行就加sudo……)
 
@@ -13377,17 +13428,40 @@ tsc x.ts
 node x.js
 ```
 
+> ## 语法
+
+
+
 # Node
 
+请参见 `后端.md-node.js`
+
 ## nodejs
+
+### 安装
+
+linux [参见](https://nodejs.org/en/download/package-manager)
+
+对着做即可，如安装 20 的：
+
+```sh
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+nvm install 20
+node -v # should print `v20.14.0`
+npm -v # should print `10.7.0`
+```
+
+请不要使用 apt 安装。
 
 ### 基本指令
 
 查看版本：
 
 ```sh
-node -vd
+node -v
 ```
+
+
 
 ## npm
 
@@ -13404,6 +13478,7 @@ npm -v
 ```sh
 npm install
 # 或 npm i
+npm install 包名 --save # 写到 package.json
 ```
 
 运行：
@@ -13432,6 +13507,8 @@ gh-pages -d build # build 是目录名
 
 #### package.json
 
+##### 基本
+
 一个大括号然后若干 key (字符串): value。
 
 其中，scripts 的 key 下面定义一个对象（大括号），表示`npm run xxx` 的 `xxx` 究竟运行什么。例如：
@@ -13445,6 +13522,72 @@ gh-pages -d build # build 是目录名
     "start": "npm run dev",
     "deploy": "gh-pages -d docs"
 },
+```
+
+##### 变量
+
+以 UMI 为例，将原本是 `.umirc.ts` 的：
+
+```typescript
+import { defineConfig } from "umi";
+
+export default defineConfig({
+  // base: "/docs", // 本地
+  // publicPath: "/docs/", // 本地
+  base: "/typeCGame", // githubpages
+  publicPath: "/typeCGame/", // githubpages
+  title: "三金打字",
+  outputPath: 'docs',
+  routes: [
+    { path: "/", component: "App" }
+  ],
+  npmClient: 'yarn',
+});
+```
+
+修改为：
+
+```typescript
+import { defineConfig } from "umi";
+
+export default defineConfig({
+  base: process.env.DEPLOY_ENV === 'local' ? "/docs" : "/typeCGame",
+  publicPath: process.env.DEPLOY_ENV === 'local' ? "/docs/" : "/typeCGame/",
+  title: "三金打字",
+  outputPath: 'docs',
+  routes: [
+    { path: "/", component: "App" }
+  ],
+  npmClient: 'yarn',
+});
+```
+
+安装依赖：(deploy.yml)
+
+```sh
+npm install --save-dev cross-env
+```
+
+在 `package.json` 的 scripts 添加：
+
+```json
+"build:local": "cross-env DEPLOY_ENV=local umi build"
+```
+
+本地运行：
+
+```sh
+npm run build:local
+```
+
+同理，对 dev 的话：
+
+```json
+"dev:local": "cross-env DEPLOY_ENV=local umi dev",
+```
+
+```sh
+npm run dev:local
 ```
 
 
@@ -15239,6 +15382,8 @@ const app = Vue.createApp({
 > npm run dev
 > ```
 >
+> 如果在公网服务器 run dev，还能够直接对外可以访问。
+>
 > 项目目录：
 >
 > ```python
@@ -15303,13 +15448,13 @@ const app = Vue.createApp({
 > export default {
 > name: 'App',
 > components: {
->  HelloWorld
+> HelloWorld
 > }
 > }
 > </script>
 > 
 > <style scoped>
->  //scoped表示这里的CS只作用于该文件
+> //scoped表示这里的CS只作用于该文件
 > </style>
 > ```
 >
@@ -15326,16 +15471,389 @@ const app = Vue.createApp({
 > export default {
 > name: 'HelloWorld',
 > props: {
->  msg: String
+> msg: String
 > },
 > data() {
->  return {
->    count: 0
->  }
+> return {
+> count: 0
+> }
 > }
 > }
 > </script>
 > ```
+
+#### 基本格式
+
+一个组件(即自定义标签)就是 `xxx.vue`，一般放在 `src/components/`，组成成分：
+
+- `template` 标签，表示组件的 HTML 内容
+- `script` 标签，表示代码相关
+- `style` 标签，代表相应的样式
+
+#### script
+
+由 import 和 export 组成
+
+##### import
+
+用到的标签需要引入，以当前文件路径为 `.`；
+
+根下 `src/` 为 `@` (可以修改 `@` 指向，略)
+
+如：
+
+```js
+import CodeInput from './components/CodeInput.vue'
+import MyComponent from '@/components/MyComponent.vue'
+import MyComponent from '../../../components/MyComponent.vue'
+```
+
+如
+
+```js
+import { ElInput, ElRow, ElCol } from 'element-plus';
+```
+
+##### export
+
+在 import 下面：
+
+```js
+export default {
+    
+}
+```
+
+包含的键值对和函数：
+
+- `data() { return {键值对} }` 如：
+
+  ```js
+  data() {
+      return {
+        input: '',
+        code: '<div>Hello  World</div>\n<div>Hell Word</div>', // 示例代码
+      }
+  },
+  ```
+
+- `computed: { 属性名() {函数体} }` 对通过计算获得的属性进行定义。
+
+- `methods: {方法名(参数) {函数体}}` 供其他部分使用，如 `this.方法名`。
+
+- `props: [字符串属性名]` 父子组件通信，传入的参数。
+
+- `components: {组件名列表}` template 用到的其他标签。
+
+- `name: 字符串`。如果要 js 里递归生成自身标签比较有用。
+
+- `mounted() {函数体}` 实例被创建并插入到 DOM 中后被调用的钩子函数。
+
+- `watch:{属性名(新值){函数体}}` 监听属性变化触发函数。
+
+显然，使用属性也要 `this.属性名`。
+
+##### nexttick
+
+晚一点再触发，避免一些故障，如放在 mounted 里：
+
+```js
+this.$nextTick(() => {
+	this.attachPhysicalKeyboardEvents();
+});
+```
+
+
+
+##### components
+
+如：
+
+```vue
+<template>
+    <h1>码上速成 Code Speed-Up</h1>
+    <CodeInput code="#include <bits/stdc++.h>"/>
+    <VirtualKeyboard />
+</template>
+
+<script>
+import CodeInput from './CodeInput.vue';
+import VirtualKeyboard from './VirtualKeyboard.vue';
+import KeyboardSample from './KeyboardSample.vue';
+
+export default {
+  components: {
+    CodeInput,
+    VirtualKeyboard,
+    KeyboardSample
+  }
+}
+</script>
+```
+
+
+
+##### props
+
+父子组件通信，将要传入的参数写在 `props:{参数名:{}}`。
+
+如：`props:['code']`。
+
+###### props 例子
+
+生成 1-n 的 Div：
+
+```vue
+<template>
+  <div class="line-numbers">
+    <div v-for="n in numRows" :key="n" class="line-number">{{ n }}</div>
+  </div>
+</template>
+
+<script>
+export default {
+  props: {
+    numRows: {
+      type: Number,
+      required: true
+    }
+  }
+}
+</script>
+
+<style scoped>
+.line-numbers {
+  float: left;
+  text-align: right;
+  padding-right: 5px;
+  padding-left: 5px;
+  user-select: none; /* Prevent user selection of line numbers */
+  color: #888;
+}
+
+.line-number {
+  height: var(--line-height, 1.5em); /* Adjust line height to match your text area */
+}
+</style>
+```
+
+```vue
+<LineNumbers :numRows="numRows" />
+<LineNumbers numRows="10" />
+```
+
+
+
+##### 综合例子
+
+> 参考：
+>
+> ```vue
+> <template>
+>   <div class="code-editor">
+>     <textarea v-model="input" @input="handleInput" rows="10" placeholder="请输入代码..."></textarea>
+>     <pre v-html="formattedCode"></pre>
+>   </div>
+> </template>
+> 
+> <script>
+> export default {
+>   data() {
+>     return {
+>       input: '',
+>       code: '<div>Hello  World</div>\n<div>Hell Word</div>', // 示例代码
+>       correctCount: 0,
+>       totalCount: 0,
+>       startTime: null,
+>       endTime: null
+>     };
+>   },
+>   computed: {
+>     formattedCode() {
+>       let result = '';
+>       for (let i = 0; i < this.code.length; i++) {
+>         const inputChar = this.input[i];
+>         const codeChar = this.code[i];
+>         if (inputChar === codeChar) {
+>           result += `<span style="color: green;">${this.escapeHtml(codeChar)}</span>`;
+>         } else if (typeof inputChar === 'undefined') {
+>           result += `<span style="color: black;">${this.escapeHtml(codeChar)}</span>`;
+>         } else {
+>           result += `<span style="color: red;">${this.escapeHtml(codeChar)}</span>`;
+>         }
+>       }
+>       return result;
+>     }
+>   },
+>   methods: {
+>     escapeHtml(unsafe) {
+>       return unsafe
+>         .replace(/&/g, "&amp;")
+>         .replace(/</g, "&lt;")
+>         .replace(/>/g, "&gt;")
+>         .replace(/"/g, "&quot;")
+>         .replace(/'/g, "&#039;");
+>     },
+>     handleInput() {
+>       if (!this.startTime) {
+>         this.startTime = new Date();
+>       }
+>       this.endTime = new Date();
+>       this.correctCount = this.input.split('').filter((char, index) => char === this.code[index]).length;
+>       this.totalCount = this.input.length;
+>     }
+>   }
+> };
+> </script>
+> 
+> <style>
+>   .code-editor {
+>     display: flex;
+>   }
+>   textarea {
+>     width: 50%;
+>     margin-right: 20px;
+>   }
+>   pre {
+>     width: 50%;
+>     background-color: #f4f4f4;
+>     padding: 10px;
+>     overflow-x: auto;
+>   }
+> </style>
+> 
+> ```
+
+#### CSS
+
+##### scoped
+
+`scoped` 是一个 `<style>` 标签的特殊属性,它用于将样式局限于当前组件。
+
+自动为该组件的所有 CSS 选择器添加一个唯一的属性选择器。这样可以确保样式只应用于当前组件,而不会影响到其他组件。
+
+```css
+<style scoped>
+  .code-editor {
+    display: flex;
+  }
+</style>
+```
+
+使用 JS 动态生成的标签不会被 scope 作用。
+
+#### 流程控制
+
+##### v-if
+
+selectedLevelType 和下面的 selectedLevel 是变量名
+
+```vue
+<el-text v-if="!selectedLevelType">
+    请先选择主题。
+</el-text>
+<el-select v-else v-model="selectedLevel" class="selector" placeholder='请选择关卡'>
+</el-select>
+```
+
+
+
+##### v-for
+
+numRows 是变量名
+
+```vue
+<div v-for="n in numRows" :key="n" class="line-number">{{ n }}</div>
+```
+
+#### 事件
+
+使用 `this.$emit(事件名字符串, 值)` 来向父亲发射事件。
+
+父亲通过 `@事件名字符串='函数'` 使用函数来监听该事件的值。(也可以用表达式，则值为 `$event`)
+
+父亲通过 `:属性名='变量'` 把该值给到另一个子节点的 props 属性。
+
+##### 兄弟节点通信
+
+参见综合例子。
+
+
+
+#### 路由
+
+例子参考综合例子。
+
+#### 全局属性
+
+创建 `config.js`  到 `src/`，或其他名字。写变量属性如：
+
+```js
+export default {
+    serverURL: 'http://localhost:5802'
+};
+```
+
+在 `main.js` 添加：
+
+```js
+import config from './config.js'
+app.provide('config', config); //第一个参数是配置名字
+```
+
+在组件里使用：
+
+```js
+export default {
+  inject: ['config'], // 注入配置，按配置名字注入
+  mounted() {
+    console.log(this.config.serverURL); // 使用配置名字的对象中的服务器 URL
+  }
+};
+```
+
+
+
+#### 组件属性
+
+##### 变量
+
+[参考](https://cn.vuejs.org/guide/essentials/template-syntax.html#attribute-bindings)
+
+使用 `v-bind:属性名` 或 `:属性名`，表示该属性值是变量，然后接双引号变量名：
+
+```vue
+<div v-bind:id="dynamicId"></div>
+```
+
+##### v-model
+
+- `v-model` 是一个双向绑定指令,用于在表单输入元素（如 `<input>`、`<textarea>` 和 `<select>`）上创建双向数据绑定。
+- 它可以自动地更新元素的值,以匹配组件实例上的数据。
+
+```vue
+<input v-model="message" placeholder="编辑我">
+<p>消息: {{ message }}</p>
+```
+
+##### v-html
+
+- 它会将值作为 HTML 而不是纯文本来渲染。
+- 这意味着你可以编写 HTML 代码,它将被渲染为 HTML
+
+```vue
+<div v-html="rawHtml"></div>
+```
+
+##### @ / v-on
+
+`v-on`指令（或`@`符号作为简写）来监听DOM事件。
+
+如禁止复制或禁止粘贴：
+
+```html
+<div @copy.prevent="" @paste.prevent="">
+```
 
 
 
@@ -16203,6 +16721,332 @@ element 对 vue2; element plus 对 Vue3
   <el-button><a :href="fullDocsUrl" plain>API文档</a></el-button>
 </template>
 ```
+
+##### 网格布局
+
+一行两列：(span总和是24)
+
+```vue
+<template>
+  <el-row class="code-editor">
+    <el-col :span="12">
+      <el-input
+        type="textarea"
+        v-model="input"
+        @input="handleInput"
+        rows="10"
+        placeholder="请输入代码..."
+        :autosize="{ minRows: 10, maxRows: 10 }">
+      </el-input>
+    </el-col>
+    <el-col :span="12">
+      <pre v-html="formattedCode" class="code-display"></pre>
+    </el-col>
+  </el-row>
+</template>
+```
+
+##### 下拉选择
+
+参考综合例子-访问服务器。
+
+下面例子选择显示是 key，选中后显示是 value，都是 xxx语法。
+
+```vue
+<el-text>选择主题：</el-text>
+<el-select v-model="selectedLevelType" class="selector">
+    <el-option v-for="(value, key) in levelDesc" :key="key" :value="key">
+        {{ key }}
+    </el-option>
+</el-select>
+```
+
+```js
+data() {
+    return {
+        {"Python语法":[{"HelloWorld.py":"输出一行语句","a+b.py":"两个变量相加"}],"C++语法":[{"HelloWorld.cpp":"输出一行语句"}]}
+        selectedLevelType: ''
+    }
+},
+```
+
+option 里只能一行内容。但可以一左一右：
+
+```vue
+<el-select v-else v-model="selectedLevel" class="selector2" placeholder='请选择关卡'>
+    <el-option v-for="(value, key) in levelDesc[selectedLevelType]" :key="key" :value="key">
+        <span class="level-key">{{ key }}</span>
+        <span class="level-description">{{ value }}</span> <!--这里的value是for那个不是:value-->
+    </el-option>
+</el-select>
+```
+
+```css
+.level-key {
+    float: left;
+}
+.level-description {
+    float: right;
+    font-size: 12px; /* 小字 */
+}
+```
+
+##### 滚动条
+
+默认横竖都会加，如果没这么高就不显示条：
+
+```vue
+<el-scrollbar height="300px">
+    <el-row class="code-editor"> <!-- 假设是很多内容 -->
+        <el-col :span="1">
+            <LineNumbers :numRows="numRows" />
+        </el-col>
+    </el-row>
+</el-scrollbar>
+```
+
+
+
+#### 虚拟键盘
+
+[官网](https://github.com/hodgef/simple-keyboard) [vue3例子](https://www.cnblogs.com/ybchen292/p/18096314) [参考2](https://zhuanlan.zhihu.com/p/477622463)
+
+- 可以做任意布局的键盘，即自定义键盘几行几列每个键是啥
+- 可以做切换，即按 shift 后显示布局发生改变
+- 每个按键和显示名字可以一一对应
+- 点击按键按钮真的可以输入到指定输入框
+- 可以监听物理键盘，使得反过来按物理键盘让该键盘模拟按下效果
+- 每个按键可以有不同的布局，比如空格最长(默认每行等宽)
+
+参考代码，改自参考 2：(`VirtualKeyboard.vue`)
+
+```vue
+<template>
+  <div :class="keyboardClass"></div>
+</template>
+
+<script>
+import Keyboard from "simple-keyboard";
+import "simple-keyboard/build/css/index.css";
+
+export default {
+  name: "VirtualKeyboard",
+  props: {
+    keyboardClass: {
+      default: "simple-keyboard",
+      type: String
+    },
+    input: {
+      type: String
+    },
+    layout: {
+      type: Object,
+      default: function() {
+        return {
+          'default': [
+            '` 1 2 3 4 5 6 7 8 9 0 - = {bksp}',
+            '{tab} q w e r t y u i o p [ ] \\',
+            '{lock} a s d f g h j k l ; \' {enter}',
+            '{shift} z x c v b n m , . / {shift}',
+            '{ctrl} {win} {alt} {space} {alt} {win} {ctrl}'
+          ]
+        }
+      }
+    }
+  },
+  data() {
+    return {
+      keyboard: null
+    };
+  },
+  mounted() {
+    this.keyboard = new Keyboard(this.keyboardClass, {
+      onChange: this.onChange,
+      onKeyPress: this.onKeyPress,
+      theme: "hg-theme-default hg-layout-default myTheme",
+      layout: this.layout,
+      display: {
+        '{bksp}': "Backspace",
+        '{lock}': "Caps Lock",
+        '{enter}': "Enter", '{shift}' : "Shift",
+        '{space}': "Space", '{tab}':'Tab', '{ctrl}': "Ctrl",'{alt}': "Alt",'{win}': "Win",
+        '1': '1 !', '2': '2 @', '3': '3 #', '4': '4 $', '5': '5 %',
+        '6': '6 ^', '7': '7 &', '8': '8 *', '9': '9 (', '0': '0 )',
+        '-': '- _', '=': '= +',
+        '[': '[ {', ']': '] }', '\\': '\\ |',
+        ';': '; :', '\'': '\' "', ',': ', <', '.': '. >', '/': '/ ?',
+        '`': '` ~',
+        'a': 'A', 'b': 'B', 'c': 'C', 'd': 'D', 'e': 'E',
+        'f': 'F', 'g': 'G', 'h': 'H', 'i': 'I', 'j': 'J',
+        'k': 'K', 'l': 'L', 'm': 'M', 'n': 'N', 'o': 'O',
+        'p': 'P', 'q': 'Q', 'r': 'R', 's': 'S', 't': 'T',
+        'u': 'U', 'v': 'V', 'w': 'W', 'x': 'X', 'y': 'Y', 'z': 'Z'
+      },
+      buttonTheme: this.blankButtonTheme()
+    });
+    // 使用 $nextTick 确保键盘实例完全初始化后再设置事件监听
+    this.$nextTick(() => {
+      this.attachPhysicalKeyboardEvents();
+    });
+  },
+  methods: {
+    blankButtonTheme() {
+      return [
+        { class: "highlight", buttons: " " },
+        { class: "spacebar", buttons: "{space}" },
+        { class: "small-btn", buttons: "{shift} {ctrl} {alt} {win} {tab} {lock} {bksp} {enter}" }
+      ]
+    },
+    highlightedButtonTheme(button) {
+      return [
+        { class: "highlight", buttons: button },
+        { class: "spacebar", buttons: "{space}" },
+        { class: "small-btn", buttons: "{shift} {ctrl} {alt} {win} {tab} {lock} {bksp} {enter}" }
+      ]
+    },
+    onChange(input) {
+      this.$emit("onChange", input);
+    },
+    onKeyPress(button) {
+      this.handleKeyPress(button); // 这里可能是你需要添加自定义逻辑的地方
+      // 本程序不需要切换键盘的显示
+      // if (button === "{shift}" || button === "{lock}") this.handleShift();
+      this.$emit("onKeyPress", button);
+    },
+    handleKeyPress(button) {
+      // 更新按键高亮
+      this.keyboard.setOptions({
+        buttonTheme: this.highlightedButtonTheme(button)
+      });
+      // Remove highlight after some time
+      setTimeout(() => {
+        this.keyboard.setOptions({
+          buttonTheme: this.blankButtonTheme()
+        });
+      }, 200);
+    },
+    handleShift() { // 本程序不需要切换键盘的显示
+      let currentLayout = this.keyboard.options.layoutName;
+      let shiftToggle = currentLayout === "default" ? "default" : "default"; // 移除了 shift (否则?前是shift)
+
+      this.keyboard.setOptions({
+        layoutName: shiftToggle
+      });
+    },
+    attachPhysicalKeyboardEvents() {
+      document.addEventListener('keydown', (event) => {
+        const keyMapping = this.mapPhysicalKeyToVirtual(event.code);
+        if (keyMapping) {
+          this.keyboard.handleButtonClicked(keyMapping);
+          this.highlightKey(keyMapping);
+        }
+      });
+    },
+    mapPhysicalKeyToVirtual(code) {
+      const mapping = {
+        "KeyQ": "q", "KeyW": "w", "KeyE": "e", "KeyR": "r", "KeyT": "t", "KeyY": "y", "KeyU": "u", "KeyI": "i", "KeyO": "o", "KeyP": "p",
+        "KeyA": "a", "KeyS": "s", "KeyD": "d", "KeyF": "f", "KeyG": "g", "KeyH": "h", "KeyJ": "j", "KeyK": "k", "KeyL": "l",
+        "KeyZ": "z", "KeyX": "x", "KeyC": "c", "KeyV": "v", "KeyB": "b", "KeyN": "n", "KeyM": "m",
+        "Digit1": "1", "Digit2": "2", "Digit3": "3", "Digit4": "4", "Digit5": "5", "Digit6": "6", "Digit7": "7", "Digit8": "8", "Digit9": "9", "Digit0": "0",
+        "Space": "{space}", "Enter": "{enter}", "Backspace": "{bksp}", "ShiftLeft": "{shift}", "ShiftRight": "{shift}",
+        "Minus": "-", "Equal": "=", "BracketLeft": "[", "BracketRight": "]", "Backslash": "\\",
+        "Semicolon": ";", "Quote": "'", "Comma": ",", "Period": ".", "Slash": "/",
+        "Tab": "{tab}", 
+        "CapsLock": "{lock}", 
+        "Escape": "{esc}", 
+        "F1": "{f1}", "F2": "{f2}", "F3": "{f3}", "F4": "{f4}",
+        "F5": "{f5}", "F6": "{f6}", "F7": "{f7}", "F8": "{f8}",
+        "F9": "{f9}", "F10": "{f10}", "F11": "{f11}", "F12": "{f12}",
+        "ScrollLock": "{scrolllock}", 
+        "PauseBreak": "{pausebreak}",
+        "Insert": "{ins}", "Delete": "{del}", "Home": "{home}", "End": "{end}",
+        "PageUp": "{pageup}", "PageDown": "{pagedown}",
+        "ArrowUp": "{up}", "ArrowDown": "{down}", "ArrowLeft": "{left}", "ArrowRight": "{right}",
+        "NumLock": "{numlock}", "NumpadDivide": "/", "NumpadMultiply": "*", "NumpadSubtract": "-", 
+        "NumpadAdd": "+", "NumpadEnter": "{enter}", "Numpad1": "1", "Numpad2": "2", "Numpad3": "3",
+        "Numpad4": "4", "Numpad5": "5", "Numpad6": "6", "Numpad7": "7", "Numpad8": "8", 
+        "Numpad9": "9", "Numpad0": "0", "NumpadDecimal": ".", "Backquote": "` ~",
+        "ControlLeft": "{ctrl}", "ControlRight": "{ctrl}",
+        "AltLeft": "{alt}", "AltRight": "{alt}",
+        "MetaLeft": "{win}", "MetaRight": "{win}"
+      };
+      return mapping[code];
+    },
+    highlightKey(button) {
+      // 更新按键高亮
+      this.keyboard.setOptions({
+        buttonTheme: this.highlightedButtonTheme(button)
+      });
+      setTimeout(() => {
+        this.keyboard.setOptions({
+          buttonTheme: this.blankButtonTheme()
+        });
+      }, 200);
+    }
+  },
+
+  watch: {
+    input(input) {
+      this.keyboard.setInput(input);
+    }
+  }
+};
+</script>
+
+<style>
+.hg-theme-default .hg-button {
+  transition: background-color 0.3s ease;
+}
+
+.highlight {
+  background-color: #9ab !important; /* 使用 !important 确保覆盖默认样式 */
+}
+
+.hg-standardBtn, .hg-functionBtn {
+  height: 2rem !important;
+  font-size: 0.65rem;
+}
+
+.spacebar {
+  width: 50%; /* 空格键占据50%的宽度 */
+}
+
+.small-btn {
+  width: 6%; /* 其他控制键的宽度较小 */
+}
+
+</style>
+```
+
+使用：
+
+```vue
+<div class="m5">
+    <VirtualKeyboard/>
+</div>
+```
+
+
+
+> ## Umi
+>
+> [官网](https://umijs.org/)
+>
+> ### 基本指令
+>
+> 有 3.x 和 4 两个大版本。
+>
+> 查看版本：`umi -v` 或看 `package.json` 的 `dependencies`。
+>
+> ### 例子
+>
+> [实战例子-打字游戏](https://github.com/lr580/typeCGame) 项目启动方法见 README.md
+>
+> 目录结构 [参考](https://umijs.org/docs/guides/directory-structure)
+>
+> - `.umirc.ts` 配置文件。
+> - `src/` 源码
+>   - `app.ts` 运行时配置 (或 `app.tsx`)
 
 
 
