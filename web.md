@@ -2312,6 +2312,10 @@ p{
 <h1 id="i001">中文字体</h1>
 ```
 
+#### 根选择器
+
+`:root` 根元素，通常是 html 标签。
+
 ### 组合选择器
 
 #### 多元素选择器
@@ -2611,6 +2615,8 @@ li:hover a{
 
 ## 样式属性
 
+
+
 ### 文本属性
 
 - text-indent 行缩进大小(正/负实数) 单位em,px或%
@@ -2635,8 +2641,11 @@ li:hover a{
   - normal 忽略多余空格
   - pre 正常显示空格
   - nowrap 除非br，否则不会自动换行
+  - pre-wrap
   
 - opacity 透明度，0到1的浮点数，适用于整个标签
+
+- word-wrap (break-word) 行太长自动折叠到下一行显示
 
 ```css
 .c1{
@@ -3409,6 +3418,7 @@ div {
 
 - width 内容区宽
 - height 内容区高
+- max-height 或 max-width
 - overflow 溢出处理方式
   - visible 溢出内容呈现在元素框之外，默认
   - hidden 不可见
@@ -3744,6 +3754,30 @@ padding可以填1到4个参数，缺省规则(TRBL)同理
 - 外边距合并时，只有普通页面流中块级元素的垂直外边距会发生外边距合并，行内元素、浮动元素、绝对定位元素之间不会合并
 
 ## 杂项
+
+### 变量
+
+```css
+:root {
+  --primary-color: #007bff;
+  --secondary-color: #6c757d;
+  --font-size: 16px;
+}
+
+body {
+  color: var(--primary-color);
+  font-size: var(--font-size);
+}
+
+button {
+  background-color: var(--secondary-color);
+  color: white;
+  font-size: var(--font-size);
+  padding: 8px 16px;
+}
+```
+
+
 
 ### 关键字
 
@@ -10603,7 +10637,7 @@ open('c71.html','','left=250,width=250,left=50,top=50')
 
 ##### setTimeout
 
-第一个参数是被执行的函数或代码串，第二个参数是延时时间(单位ms)。延迟后执行目标代码。返回一个计时器ID。
+第一个参数是被执行的函数或代码串，第二个参数是延时时间(单位ms)。延迟后执行目标代码。返回一个计时器ID。离开浏览器(如打开别的网页)会暂停。
 
 ##### clearTimeout
 
@@ -13501,6 +13535,12 @@ npm run build
 gh-pages -d build # build 是目录名
 ```
 
+删包：
+
+```sh
+npm uninstall 包名
+```
+
 
 
 ### 目录结构
@@ -15549,7 +15589,7 @@ export default {
 
 - `mounted() {函数体}` 实例被创建并插入到 DOM 中后被调用的钩子函数。
 
-- `watch:{属性名(新值){函数体}}` 监听属性变化触发函数。
+- `watch:{属性名(新值){函数体}}` 监听属性变化触发函数。(或 `(旧值,新值)`)
 
 显然，使用属性也要 `this.属性名`。
 
@@ -15853,6 +15893,30 @@ export default {
 
 ```html
 <div @copy.prevent="" @paste.prevent="">
+```
+
+#### $
+
+##### $ref
+
+可以取组件，并且做修改，如：
+
+```vue
+<pre ref="pre" v-html="formattedCode" class="code-display"></pre>
+```
+
+```js
+adjustHeight() {
+    this.$nextTick(() => {
+        const textarea = this.$refs.textarea; // 确保在 template 中给 textarea 添加 ref="textarea"
+        const pre = this.$refs.pre;           // 确保在 template 中给 pre 添加 ref="pre"
+        if (textarea && pre) {
+            const maxHeight = Math.max(textarea.scrollHeight, pre.scrollHeight);
+            textarea.style.height = `${maxHeight}px`;
+            pre.style.height = `${maxHeight}px`;
+        }
+    });
+},
 ```
 
 

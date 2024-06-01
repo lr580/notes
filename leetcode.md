@@ -1621,6 +1621,10 @@
 - 2965\.找出缺失和重复的数字
 
   模拟 / <u>位运算(异或)</u>
+  
+- 2928\.给小朋友们分糖果I
+
+  枚举 / <u>枚举优化 / 容斥原理</u>
 
 ## 算法
 
@@ -44480,4 +44484,126 @@ class Solution:
 
         return ans if ans[0] in (x for row in grid for x in row) else ans[::-1]
 ```
+
+##### 2928\.给小朋友们分糖果I
+
+[题目](https://leetcode.cn/problems/distribute-candies-among-children-i)
+
+暴力：
+
+```python
+class Solution:
+    def distributeCandies(self, n: int, limit: int) -> int:
+        cnt = 0
+        for a in range(limit+1):
+            for b in range(limit+1):
+                c = n - a - b
+                cnt += 0<=c<=limit
+        return cnt
+```
+
+卡常：
+
+```python
+class Solution:
+    def distributeCandies(self, n: int, limit: int) -> int:
+        ans = 0
+
+        for i in range(limit + 1):
+            for j in range(limit + 1):
+                if i + j > n:
+                    break
+                if n - i - j <= limit:
+                    ans += 1
+        return ans
+```
+
+优化：
+
+- 第一个人拿到 $x$ 个，剩下一定要 $n-x\le 2limit$ ，则第二个人的范围是 $[l,r]$ 满足 $l=\max(0,n-x-limit)$，且 $r=\min(limit, n-x)$。
+
+```python
+class Solution:
+    def distributeCandies(self, n: int, limit: int) -> int:
+        ans = 0
+        for i in range(min(limit, n) + 1):
+            if n - i > 2 * limit:
+                continue
+            ans += min(n - i, limit) - max(0, n - i - limit) + 1
+        return ans
+```
+
+容斥：
+
+1. 因为允许空，所以转化为在 $n+3$ 个糖里插入 $2$ 个隔板 $C_{n+2}^2$。
+
+   这个方案分配里，包含：没人超、一人超、二人超、全都超。
+
+2. 至少有一个人分了超过 $limit$ 个糖，即先分 $limit+1$ 个糖给任意一个人，然后剩下的糖用第一种情况计算，即 $C_3^1C_{n-(limit+1)+2}^2$。
+
+3. 两个人都超了，即 $C_3^2C_{n-2(limit+1)+2}^2$。
+
+4. 三个人都超了，即 $C_{n-3(limit+1)+2}^2$。
+
+考虑第三种方案 $C_3^2C_{n-2(limit+1)+2}^2$ 对第四种方案的影响，
+
+1. 给第 $(1,2)$ 个人分配 $limit+1$ 时，第 $3$ 个人还是可能超，即可以达到三人都超的情况，即：
+   $$
+   (limit+1,limit+1,0)+(a,b,c),c > limit,a+b+c=n-2(limit+1)+2
+   $$
+
+2. 给第 $(1,3)$ 个人分配时，同理可能第 $2$ 个人超。设这两种方案分别都能配成某个 $(a',b',c')$。
+
+3. 同理，给 $(2,3)$ 时也可能配成同样的 $(a',b',c')$。
+
+也就是说 $(a,b,c),a,b,c > limit$ 的方案数被计算了三次。即：
+
+$C_3^2C_{n-2(limit+1)+2}^2$ 包含：两人超、3 倍全都超。
+
+同理，第二种方案 $C_3^1C_{n-(limit+1)+2}^2$：
+
+1. 第一个人分配 $limit+1$，有：1 超，12 超，13 超，123 超。
+2. 第二个人分配 $limit+1$，有：2 超，12 超，23 超，123 超。
+3. 第三个人分配 $limit+1$，有：3 超，13 超，13 超，123 超。
+
+即：$C_3^2C_{n-2(limit+1)+2}^2$ 包含：一人超、2 倍两人超、3 倍全都超。
+
+所以：四种方案容斥起来，为：
+
+1. (+) 没人超、一人超、二人超、全都超。
+2. (-) 一人超、2 倍两人超、3 倍全都超。 (1-2 = 没人超-两人超-2倍全都超)
+3. (+) 两人超、3 倍全都超。 (1-2+3 = 没人超+全都超)
+4.  (-) 全都超。 (1-2+3-4 = 没人超)
+
+```python
+def C(n,k):
+    if n<=0:
+        return 0
+    if k==1:
+        return n
+    elif k==2:
+        return n*(n-1)//2
+    raise Exception("Not implemented")
+class Solution:
+    def distributeCandies(self, n: int, k: int) -> int:
+        return C(n+2,2) - (C(3,1)*C(n-(k+1)+2,2)) + (C(3,2)*C(n-2*(k+1)+2,2)) - C(n-3*(k+1)+2,2)
+```
+
+> 附：枚举没人超、一人超、二人超、全都超的代码。
+>
+> ```python
+> n,k=[int(i) for i in input().split()]
+> d=[[] for i in range(4)]
+> for a in range(n+1):
+>     for b in range(n+1):
+>         for c in range(n+1):
+>             if a+b+c==n:
+>                 cnt = (a>k)+(b>k)+(c>k)
+>                 d[cnt].append((a,b,c))
+> for i in range(4):
+>     print(len(d[i]), end=": ")
+>     print(*(sorted(d[i])))
+> ```
+
+
 

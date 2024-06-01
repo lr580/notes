@@ -292,7 +292,7 @@ abc/*
 
 ```shell
 git rm -r --cached .
-git add .gitignore
+git add .gitignore # 或者直接跳第三行也行
 git add .
 git commit -m "..."
 ```

@@ -11522,6 +11522,12 @@ right_limit = limit(f, x, 0, '+')
 
 > ##### 解方程
 
+##### 排列组合
+
+```python
+binomial(n, k) # n选k 组合
+```
+
 
 
 #### 数值运算
