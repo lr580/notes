@@ -1629,6 +1629,10 @@
 - 3067\.在带权树网络中统计可连接服务器对数目
 
   计数 (DFS / <u>点分治</u>)
+  
+- 1103\.分糖果II
+
+  暴力 / 二分 / 数学
 
 ## 算法
 
@@ -44683,4 +44687,58 @@ class Solution:
 ```
 
 点分治解法：TODO。
+
+##### 1103\.分糖果II
+
+[题目](https://leetcode.cn/problems/distribute-candies-to-people/)
+
+暴力一天天也能过。
+
+二分：二分要完整分多少轮，然后暴力处理不完整的一轮。
+
+```python
+from typing import *
+class Solution:
+    def distributeCandies(self, candies: int, n: int) -> List[int]:
+        lf, rf, k = 0, candies, 0
+        while lf<=rf:
+            cf = (lf+rf)//2
+            if cf*n*(cf*n+1)//2<=candies:
+                lf, k = cf+1, cf
+            else:
+                rf = cf-1
+        #   1+i + (1+i+n) + (1+i+2n) + ... + (1+i+kn)
+        # = 看、(1+i) + nk(k+1)//2
+        s = [k*(1+i)+n*k*(k-1)//2 for i in range(n)]
+        r, v = candies - sum(s), n*k+1
+        for i in range(n):
+            d = min(r, v)
+            s[i] += d
+            r -= d
+            v += 1
+        return s
+```
+
+解方程：设最高发了 $p$ 个糖，则：$0\le C-\dfrac{p(p+1)}2\le p+1$ 解得：$p=\lfloor\sqrt{2C+\dfrac14}-\dfrac12\rfloor$。然后模拟即可。
+
+```python
+class Solution:
+    def distributeCandies(self, candies: int, num_people: int) -> List[int]:
+        n = num_people
+        # how many people received complete gifts
+        p = int((2 * candies + 0.25)**0.5 - 0.5) 
+        remaining = int(candies - (p + 1) * p * 0.5)
+        rows, cols = p // n, p % n
+        
+        d = [0] * n
+        for i in range(n):
+            # complete rows
+            d[i] = (i + 1) * rows + int(rows * (rows - 1) * 0.5) * n
+            # cols in the last row
+            if i < cols:
+                d[i] += i + 1 + rows * n
+        # remaining candies        
+        d[cols] += remaining
+        return d
+```
 
