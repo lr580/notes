@@ -15591,6 +15591,8 @@ export default {
 
 - `watch:{属性名(新值){函数体}}` 监听属性变化触发函数。(或 `(旧值,新值)`)
 
+- `created() {}` 创建时执行。
+
 显然，使用属性也要 `this.属性名`。
 
 ##### nexttick
@@ -15822,9 +15824,86 @@ numRows 是变量名
 
 #### 路由
 
+##### 配置文件
+
 例子参考综合例子。
 
+装包：
+
+```sh
+npm i vue-router --save
+```
+
+在 `src/router/index.js` 创建：
+
+```js
+import { createRouter, createWebHistory } from 'vue-router';
+import ModelStructureContent from '../components/ModelStructureContent.vue'; // 例子：组件路径
+const routes = [
+    {
+        path: '/',
+        component: () => import("../App.vue")
+    },
+    {
+        path: '/modelstructure',
+        component: ModelStructureContent, // 引入组件的第一种方法
+    },
+    {
+        path: '/about',
+        component: () => import("../components/AutherInfo.vue") // 第二种方法
+    }
+];
+const router = createRouter({
+    history: createWebHistory(),
+    routes: routes,
+});
+export default router;
+```
+
+在 `main.js` 创建：
+
+```js
+import router from './router/index.js';
+app.use(router);
+```
+
+把 `App.vue` 改成：
+
+```vue
+<template>
+<router-view></router-view>
+</template>
+```
+
+
+
+##### useRouter
+
+(未测试，可以用 `$router` 即可)
+
+```js
+import { useRouter } from 'vue-router'
+
+export default {
+  data() {
+    return {
+      param1: null
+    }
+  },
+  mounted() {
+    const router = useRouter()
+    this.param1 = router.currentRoute.value.query.param1
+  }
+}
+```
+
+##### 跳转
+
+
+
 #### 全局属性
+
+##### 属性
 
 创建 `config.js`  到 `src/`，或其他名字。写变量属性如：
 
@@ -15850,6 +15929,57 @@ export default {
     console.log(this.config.serverURL); // 使用配置名字的对象中的服务器 URL
   }
 };
+```
+
+##### 方法
+
+如 `src/message.js`
+
+```js
+import { ElMessage } from 'element-plus'
+
+export default {
+  install(app, options) {
+    app.config.globalProperties.$message = (params) => {
+      ElMessage({
+        message: params.message || '获取数据失败,请检查网络',
+        type: params.type || 'error',
+        duration: params.duration || 3000,
+        showClose: params.showClose || true,
+        ...options
+      })
+    }
+  }
+}
+```
+
+`main.js`
+
+```js
+import { createApp } from 'vue'
+import App from './App.vue'
+import messagePlugin from './plugins/message'
+
+const app = createApp(App)
+app.use(messagePlugin, {
+  duration: 2000   // 这里可以设置插件的全局默认配置
+})
+app.mount('#app')
+```
+
+使用：
+
+```js
+export default {
+  methods: {
+    handleError() {
+      this.$message({
+        message: '发生错误,请稍后重试',
+        type: 'error'
+      })
+    }
+  }
+}
 ```
 
 
@@ -15895,6 +16025,22 @@ export default {
 <div @copy.prevent="" @paste.prevent="">
 ```
 
+##### 获取焦点
+
+```js
+this.$refs.textarea.focus();
+```
+
+按钮点击事件后下一个东西获取焦点，一般需要 nexttick
+
+```js
+this.$nextTick(() => {
+    this.$refs.textarea.focus();
+});
+```
+
+
+
 #### $
 
 ##### $ref
@@ -15917,6 +16063,22 @@ adjustHeight() {
         }
     });
 },
+```
+
+##### $router
+
+参见路由。
+
+如：`http://localhost:3000/scoreboard?level=HelloWorld.py&levelType=Python%E8%AF%AD%E6%B3%95` 的：
+
+```js
+console.log(this.$route.query);
+```
+
+是对象：
+
+```js
+{level: 'HelloWorld.py', levelType: 'Python语法'}
 ```
 
 
@@ -16786,6 +16948,18 @@ element 对 vue2; element plus 对 Vue3
 </template>
 ```
 
+图标与悬停文字：
+
+```vue
+<el-button circle icon="Histogram" title="查看排行榜"/>
+```
+
+```js
+import { Histogram } from "@element-plus/icons-vue";//同文件
+```
+
+
+
 ##### 网格布局
 
 一行两列：(span总和是24)
@@ -16867,6 +17041,75 @@ option 里只能一行内容。但可以一左一右：
         </el-col>
     </el-row>
 </el-scrollbar>
+```
+
+##### 弹窗
+
+[参考](https://element-plus.org/zh-CN/component/message.html)
+
+```js
+import { ElMessage } from 'element-plus';
+ElMessage({
+    message: '获取关卡代码失败,请检查网络',
+    type: 'error',
+    duration: 3000, // 默认
+    showClose: true // 默认 false
+});
+```
+
+##### 表格
+
+data 是对象的数组，用对象键值渲染
+
+```vue
+<template>
+    <div class="line">
+        <el-text class="levelname"><b>关卡：</b>[{{levelType}}] {{level}} <b>玩家战绩排行榜</b> <a href="/">回到主页</a> </el-text>
+    </div>
+    <div v-if="data">
+        <el-table :data="data" height="520px" table-layout="auto">
+            <el-table-column prop="name" sortable label="姓名" min-width="200" align="center"/>
+            <el-table-column prop="timePretty" label="用时" min-width="80" align="center"/>
+            <el-table-column prop="speed" sortable label="速度(字符/分钟)" min-width="150" align="center"/>
+            <el-table-column prop="date" sortable label="提交时间" min-width="260" align="center"/>
+        </el-table>
+    </div>
+    <div v-else> 暂无数据。</div>
+</template>
+<script>
+import axios from 'axios';
+export default {
+  data() {
+    return {
+        level : '',
+        levelType : '',
+        data: '',
+    };
+  },
+  inject: ['config'],
+  async mounted() {
+    this.level = this.$route.query.level;
+    this.levelType = this.$route.query.levelType;
+    try {
+        const response = await axios.get(this.config.serverURL + `/getRank/${this.levelType}/${this.level}`);
+        this.data = response.data;
+    } catch(error) {
+        console.error('获取关卡代码失败:', error);
+    }
+  }
+}
+</script>
+<style scoped>
+.levelname {
+    font-size: 18px;
+}
+a {
+    text-decoration: none;
+}
+.line {
+    margin-bottom: 12px;
+}
+</style>
 ```
 
 

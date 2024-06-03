@@ -11731,6 +11731,30 @@ with open('example.pkl', 'rb') as f:
     print(loaded_dict) # dict
 ```
 
+### pydantic
+
+1. **数据验证**: `pydantic` 允许您定义数据模型,并对输入数据进行验证。这有助于确保数据的完整性和正确性。
+2. **数据转换**: `pydantic` 可以将输入数据自动转换为正确的数据类型,这对于处理 API 响应或其他复杂数据很有帮助。
+3. **数据序列化**: `pydantic` 支持将模型转换为 JSON 或其他格式,方便数据的传输和存储。
+4. **类型提示**: `pydantic` 利用 Python 的类型注解系统,提供了强大的类型提示功能,有助于编写更可靠和可维护的代码。
+
+```python
+from pydantic import BaseModel
+class User(BaseModel):
+    id: int
+    name: str
+    email: str
+    age: int
+user_data = {
+    "id": "1", # 自动转 int
+    "name": "Alice",
+    "email": "alice@example.com",
+    "age": 30.9 # 转int
+}
+user = User(**user_data)
+print(user.dict()) #{'id': 1, 'name': 'Alice', 'email': 'alice@example.com', 'age': 30}
+```
+
 
 
 ## 文本处理
@@ -15807,6 +15831,46 @@ uvicorn main:app --reload
 访问其他不存在的，比如 `http://127.0.0.1:8000/item/6`，网页显示 `{"detail":"Not Found"}`(404返回)
 
 自动文档：访问 `http://127.0.0.1:8000/docs`，或 `http://127.0.0.1:8000/redoc`
+
+#### 跨域
+
+post 可能发生
+
+```python
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+#### POST
+
+需要检查数据，不然会出错。[例子参考](https://github.com/lr580/codeSpeedUp)
+
+```python
+from pydantic import BaseModel
+class SubmitScoreData(BaseModel):
+    name: str
+    time: str
+    score: int
+@app.post('/submitScore')
+def submitScore(data : SubmitScoreData):
+    print(data.dict())
+    return {"message":"ok"}
+```
+
+```js
+let data = {
+    name: 'abc',
+    time: '字符串就行',
+    score: 580
+};
+await axios.post(this.config.serverURL + '/submitScore', data);
+```
 
 
 

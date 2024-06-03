@@ -1625,6 +1625,10 @@
 - 2928\.给小朋友们分糖果I
 
   枚举 / <u>枚举优化 / 容斥原理</u>
+  
+- 3067\.在带权树网络中统计可连接服务器对数目
+
+  计数 (DFS / <u>点分治</u>)
 
 ## 算法
 
@@ -44605,5 +44609,78 @@ class Solution:
 >     print(*(sorted(d[i])))
 > ```
 
+##### 3067\.在带权树网络中统计可连接服务器对数目
 
+[题目](https://leetcode.cn/problems/count-pairs-of-connectable-servers-in-a-weighted-tree-network/)
+
+暴力计数：枚举每个点，然后求出所有符合距离的点数，对该点的每个子树，乘法原理即可。
+
+```python
+class Solution:
+    def countPairsOfConnectableServers(self, edges: List[List[int]], signalSpeed: int) -> List[int]:
+        n = len(edges) + 1
+        g = [[] for _ in range(n)]
+        for u, v, w in edges:
+            g[u].append((v,w))
+            g[v].append((u,w))
+        ans = [0 for _ in range(n)]
+        def dfs(u, f, s):
+            cnt = s and s % signalSpeed == 0
+            for v, w in g[u]:
+                if v != f:
+                    cnt += dfs(v, u, s + w)
+            return cnt
+        for i in range(n):
+            cnt = dfs(i, i, 0)
+            for v, w in g[i]:
+                cnt2 = dfs(v, i, w)
+                ans[i] += cnt2 * (cnt - cnt2)
+        return [x//2 for x in ans]
+```
+
+没法换根 DP：
+
+- 以三个子树(有效和分别为 $a,b,c$，则方案数的计算：
+  $$
+  \dfrac12(a(b+c)+b(a+c)+c(a+b))=ab+ac+bc
+  $$
+
+- 四个子树为例：
+  $$
+  \dfrac12(a(b+c+d)+b(a+c+d)+c(a+b+d)+d(a+b+c))=ab+ac+ad+bc+bd+cd
+  $$
+
+- 也就是说求两两的组合。一种计算方法：$\dfrac12\sum(s-s_i)s_i$
+
+  另一种计算方法：$ab+(a+b)c$；以及 $ab+(a+b)c+(a+b+c)d$。
+
+  以此推广即可。
+
+```python
+class Solution:
+    def countPairsOfConnectableServers(self, edges: List[List[int]], signalSpeed: int) -> List[int]:
+        n = len(edges) + 1
+        g = [[] for _ in range(n)]
+        for x, y, wt in edges:
+            g[x].append((y, wt))
+            g[y].append((x, wt))
+
+        def dfs(x: int, fa: int, s: int) -> int:
+            cnt = 0 if s % signalSpeed else 1
+            for y, wt in g[x]:
+                if y != fa:
+                    cnt += dfs(y, x, s + wt)
+            return cnt
+
+        ans = [0] * n
+        for i, gi in enumerate(g):
+            s = 0
+            for y, wt in gi:
+                cnt = dfs(y, i, wt)
+                ans[i] += cnt * s
+                s += cnt
+        return ans
+```
+
+点分治解法：TODO。
 
