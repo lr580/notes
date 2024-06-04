@@ -13521,6 +13521,15 @@ npm install 包名 --save # 写到 package.json
 npm run dev
 ```
 
+> 关闭运行：(windows)
+>
+> ```sh
+> tasklist | findstr "npm run dev"
+> taskkill /F /PID <PID>
+> ```
+>
+> 
+
 部署一个静态 HTML (本机 live 运行或挂服务器防止跨域)，一般生成到 `build/`：
 
 ```sh
@@ -17111,6 +17120,10 @@ a {
 }
 </style>
 ```
+
+##### 抽屉
+
+一种弹出式网页，可以内嵌。
 
 
 

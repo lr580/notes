@@ -1633,6 +1633,10 @@
 - 1103\.分糖果II
 
   暴力 / 二分 / 数学
+  
+- 3072\.将元素分配到两个数组中II
+
+  pb\_ds / <u>离散化+树状数组</u>
 
 ## 算法
 
@@ -44686,7 +44690,150 @@ class Solution:
         return ans
 ```
 
-点分治解法：TODO。
+点分治解法：
+
+```c++
+struct custom_hash {
+    static uint64_t splitmix64(uint64_t x) {
+        // http://xorshift.di.unimi.it/splitmix64.c
+        x += 0x9e3779b97f4a7c15;
+        x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9;
+        x = (x ^ (x >> 27)) * 0x94d049bb133111eb;
+        return x ^ (x >> 31);
+    }
+ 
+    size_t operator()(uint64_t x) const {
+        static const uint64_t FIXED_RANDOM = chrono::steady_clock::now().time_since_epoch().count();
+        return splitmix64(x + FIXED_RANDOM);
+    }
+};
+
+class Solution {
+public:
+    vector<int> countPairsOfConnectableServers(vector<vector<int>>& edges, int signalSpeed) {
+        const int n = edges.size() + 1;
+        vector<vector<pair<int, int>>> g(n);
+        for (int i = 0; i < edges.size(); i++) {
+            int u = edges[i][0], v = edges[i][1], w = edges[i][2];
+            g[u].push_back({v, w});
+            g[v].push_back({u, w});
+        }
+        vector<int> allpath(get_all_path(g, signalSpeed));
+        vector<int> indfn(n), outdfn(n), dis(n);
+        unordered_map<int, vector<int>, custom_hash> dismap;
+        //也可以不用custom_hash
+        int tot = 0;
+        function<void(int)> dfs = [&](int u) -> void {
+            indfn[u] = outdfn[u] = tot++;
+            dismap[dis[u]].push_back(indfn[u]);
+            for (int i = 0; i < g[u].size(); i++) {
+                auto [v, w] = g[u][i];
+                g[v].erase(find(g[v].begin(), g[v].end(), make_pair<>(u, w)));
+                dis[v] = (dis[u] + w) % signalSpeed;
+                dfs(v);
+                outdfn[u] = outdfn[v];
+            }
+        };
+        dis[0] = 0;
+        dfs(0);
+        auto query_dis_subtree = [&](int u, int d) -> int {
+            vector<int> &pos = dismap[d];
+            auto it1 = lower_bound(pos.begin(), pos.end(), indfn[u]);
+            auto it2 = upper_bound(pos.begin(), pos.end(), outdfn[u]);
+            return it2 - it1;
+        };
+        vector<int> ans(n);
+        //u出发的答案数
+        function<void(int)> dfs2 = [&](int u) -> void {
+            int pre = 0;
+            for (auto [v, w] : g[u]) {
+                dfs2(v);
+               //u走的v刚好差距m故同余
+                int cur = query_dis_subtree(v, dis[u]);
+                ans[u] += cur * pre; //乘法原理
+                pre += cur;
+            }
+            int uptree = allpath[u] - pre;
+            ans[u] += uptree * pre;
+        };
+        dfs2(0);
+        return ans;
+    }
+	//点分治求每个点出发的长为m倍的路径数
+    vector<int> get_all_path(vector<vector<pair<int, int>>> &g, int m) {
+        const int n = g.size();
+        vector<int> ans(n), vis(n);
+        function<void(int)> dfs = [&](int u) -> void {
+            if (vis[u]) return;
+            function<int(int, int)> get_siz = [&](int u, int f) -> int {
+                if (vis[u]) return 0;
+                int ans = 1;
+                for (auto [v, w] : g[u]) {
+                    if (v != f)
+                        ans += get_siz(v, u);
+                }
+                return ans;
+            };
+            int siz = get_siz(u, -1);
+            int center = -1, centermx = 0x3f3f3f3f;
+            function<int(int, int)> get_center = [&](int u, int f) -> int {
+                if (vis[u]) return 0;
+                int ans = 1;
+                int mx = 0;
+                for (auto [v, w] : g[u]) {
+                    if (v == f) continue;
+                    int cur = get_center(v, u);
+                    mx = max(mx, cur);
+                    ans += cur;
+                }
+                mx = max(mx, siz - ans);
+                if (mx < centermx) {
+                    centermx = mx;
+                    center = u;
+                }
+                return ans;
+            };
+            get_center(u, -1);
+            //cout << u << ' ' << center << endl;
+            vis[center] = 1;
+            //求每条边的 距离和起点
+            function<void(int, int, int, vector<pair<int, int>> &)> dfs3 = [&](int u, int f, int d, vector<pair<int, int>> &r) -> void {
+                if (vis[u]) return;
+                d %= m;
+                r.push_back({d, u});
+                for (auto [v, w] : g[u]) {
+                    if (v == f) continue;
+                    dfs3(v, u, d + w, r);
+                }
+            };
+            unordered_map<int, int> mp;//每个距离有几个点
+            mp[0]++;
+            for (auto [v, w] : g[center]) {
+                vector<pair<int, int>> r;
+                dfs3(v, center, w, r);
+                for (auto [d, _] : r) mp[d]++;
+            }
+            for (auto [v, w] : g[center]) {
+                vector<pair<int, int>> r;
+                dfs3(v, center, w, r);
+                //当前点分治区域，v子树与剩下子树的组合
+                for (auto [d, _] : r) mp[d]--;
+                for (auto [d, u] : r) {
+                //重心到u距离为d,经过重心可达的距离为m的有这么多
+                    ans[u] += mp[(m - d) % m];
+                }
+                for (auto [d, _] : r) mp[d]++;
+            }
+            
+            ans[center] += mp[0] - 1;
+            for (auto [v, w] : g[center]) dfs(v);
+        };
+        dfs(0);
+        //for (int i = 0; i < n; i++) cout << ans[i] << ' ';
+        return ans;
+    }
+};
+```
 
 ##### 1103\.分糖果II
 

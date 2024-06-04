@@ -9859,7 +9859,28 @@ result_df.head()  # 展示前几行以检查结果
 > print(dynamic_transformed_df)
 > ```
 >
-> 
+
+写法四：`get_dummies`
+
+```python
+import pandas as pd
+data = {
+    'color': ['red', 'blue', 'blue', 'red', 'blue'],
+    'size': ['small', 'large', 'medium', 'small', 'large'],
+    'price': [50, 75, 60, 45, 80]
+}
+df = pd.DataFrame(data)
+pd.get_dummies(df)
+'''price  color_blue  color_red  size_large  size_medium  size_small
+0     50           0          1           0            0           1
+1     75           1          0           1            0           0
+2     60           1          0           0            1           0
+3     45           0          1           0            0           1
+4     80           1          0           1            0           0
+'''
+```
+
+
 
 ##### value_counts
 
@@ -12480,6 +12501,45 @@ class TimeToMinutesTransformer(BaseEstimator, TransformerMixin):
 
 pipeline 处理结果如果 0 多，可能会转换为 `<class 'scipy.sparse._csr.csr_matrix'>`，需要转化为 numpy 数组才能传 pandas。可以使用 `.toarray()` 方法传。
 
+#### 统计特征
+
+sklearn.metrics
+
+##### 例子
+
+```python
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier # 导入随机森林模型
+from sklearn.model_selection import train_test_split  # 导入数据集划分模块
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import classification_report
+
+data_path ='/data/bigfiles/6e36e995-2472-4362-8f4e-bae6da732da2'
+df = pd.read_csv(data_path,sep=';')
+features=pd.get_dummies(df.iloc[:,:-1])
+
+df['y'] = df['y'].replace(to_replace=['no', 'yes'], value=[0, 1])
+labels=df.loc[:,'y']
+
+x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=1)# 按4：1的比例划分训练和测试集
+
+# 任务4. 构建模型， 并对训练集X_train训练
+RFC=RandomForestClassifier(n_estimators=164,random_state=90)
+RFC.fit(x_train,y_train)
+
+print('\n训练集上的得分为：{}'.format(RFC.score(x_train,y_train)))# 给出训练的精度
+x_pre_test=RFC.predict(x_test)# 对于测试集x_test进行预测
+print(classification_report(y_test, x_pre_test))# 其他指标计算
+
+
+x_pro_test = RFC.predict_proba(x_test)# 预测测试集概率值
+print("验证集的预测可能性：{}".format(x_pro_test))
+auc=roc_auc_score(y_test, x_pro_test[:, 1])#计算验证集的auc值,参数为预测值和概率估计
+print("auc的值：{}".format(auc))
+```
+
 
 
 #### 机器学习
@@ -12887,6 +12947,23 @@ def model_tree_predict(X, tree, linear_models):
     return predictions
 ```
 
+##### 贝叶斯分类
+
+朴素贝叶斯分类器
+
+```python
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
+iris = load_iris()
+X, y = iris.data, iris.target
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+clf = GaussianNB()
+clf.fit(X_train, y_train)
+accuracy = clf.score(X_test, y_test)
+print("Accuracy:", accuracy)
+```
+
 
 
 #### 聚类
@@ -12991,7 +13068,148 @@ result_df.to_csv('./step2/result.csv', index=False)
 - `hidden_layer_sizes`：`hidden_layer_sizes=(3, 2)`设置隐藏层`size`为 `2`层隐藏层，第一层`3`个神经元，第二层`2`个神经元。
 - `max_iter`：最大训练轮数。
 
-#### 堆叠
+#### 集成学习
+
+集成学习（ensemble learning）通过构建并结合多个学习器来完成学习任务，有时也被称为多分类器系统（multi-classifier system）、基于委员会的学习（committee-based learning）等。  
+
+如果所有的单个学习器都是同类的，例如都是决策树，或者都是神经网络，那么这个集成就叫做同质（Homogeneous）；反之，如果既有决策树又有神经网络，那么集成就叫做异质（heterogeneous）的
+
+##### voting投票
+
+硬投票：分类器预测的结果的最大值作为预测值，少数服从多数。有好有坏。
+
+软投票：对所有分类器的类别概率求平均，然后给出平均概率最高的类别作为预测。(也就是向量加权和里，向量分量最大的那个分量)
+
+```python
+from sklearn.ensemble import VotingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+# 实例化过程
+lr = LogisticRegression() # 逻辑回归
+dt = DecisionTreeClassifier() # 决策树
+svm = SVC() # 若是soft voting，则probability=True
+voting = VotingClassifier(
+    estimators=[('lr',lr),('rf',dt),('svc',svm)],
+    voting='hard' # 硬投票法
+)
+```
+
+```python
+from sklearn import datasets
+from sklearn.model_selection import cross_val_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import VotingClassifier
+iris = datasets.load_iris() # 读取数据集
+X, y = iris.data[:,1:3], iris.target # 划分数据集
+# 任务1. 构建逻辑回归器clf1，随机森林分类器clf2，并将random_state设置为1
+clf1 = LogisticRegression(random_state=1)
+clf2 = RandomForestClassifier(random_state=1)
+clf3 = GaussianNB() # 贝叶斯分类器
+# 任务2. 使用投票法将三个模型clf1,clf2,clf3结合起来， 分别命名为 lr、rf、gnb，并使用软投票
+eclf = VotingClassifier(estimators=[('lr', clf1), ('rf', clf2), ('gnb', clf3)], voting='soft')
+
+for clf, clf_name in zip([clf1, clf2, clf3, eclf],['Logistic Regrsssion', 'Random Forest', 'naive Bayes', 'Ensemble']):
+    scores = cross_val_score(clf, X, y, cv=5, scoring='accuracy')
+    print('Accuracy: {:.2f} (+/- {:.2f}) [{}]'.format(scores.mean(), scores.std(), clf_name))
+```
+
+
+
+##### boosting
+
+根据前一个学习器的训练效果对样本分布进行调整，再根据新的样本分布训练下一个学习器，如此迭代M次，最后将一系列弱学习器组合成一个强学习器
+
+AdaBoost 的具体流程为先对每个样本赋予相同的初始权重，每一轮学习器训练过后都会根据其表现对每个样本的权重进行调整，增加分错样本的权重，这样先前做错的样本在后续就能得到更多关注，按这样的过程重复训练出M个学习器，最后进行加权组合
+
+AdaBoost使用的是指数损失，这个损失函数的缺点是对于异常点非常敏感，因而通常在噪音比较多的数据集上表现不佳。Gradient Boosting在这方面进行了改进，使得可以使用任何损失函数 (只要损失函数是连续可导的)，这样一些比较robust的损失函数就能得以应用，使模型抗噪音能力更强。  
+
+Boosting的基本思想是通过某种方式使得每一轮基学习器在训练过程中更加关注上一轮学习错误的样本，区别在于是采用何种方式。 AdaBoost采用的是增加上一轮学习错误样本的权重的策略，而在Gradient Boosting中则将负梯度作为上一轮基学习器犯错的衡量指标，在下一轮学习中通过拟合负梯度来纠正上一轮犯的错误。
+
+具体理论略。
+
+构建Boosting分类器：
+
+```python
+ada = AdaBoostClassifier(n_estimators=1000, learning_rate=0.1, random_state=0)
+ada.fit(X_train, y_train) # 其他同理
+```
+
+构建GBDT分类器：  
+
+```python
+gbdt =GradientBoostingClassifier(n_estimators=1000, learning_rate=0.1, random_state=0)
+```
+
+构建XGBoost分类器：  
+
+```python
+xgb=xgboost.XGBClassifier(n_estimators=1000, learning_rate=0.1)
+```
+
+##### bagging
+
+和Boosting 不同，它的弱学习器之间没有依赖关系，可以并行生成
+
+Bagging的个体弱学习器的训练集是通过随机采样得到的，通过T次的随机采样，我们就可以得到T个采样集，对于这T个采样集，我们可以分别独立的训练出T个弱学习器，再对这T个弱学习器通过集合策略来的到最终的强学习器。从训练集进行一系列的子抽样，得到子训练集，训练成基模型，测试集被用来在整个基模型上进行预测，得到的综合预测结果。
+
+参数：
+
+```
+base_estimator : 对象或无，可选（默认=无）
+基本估计量适合数据集的随机子集。如果为None，则基本估计量为决策树。
+n_estimators : int，可选（默认值为10）
+集合中的基本估计量。
+max_samples : int或float，可选（默认值= 1.0）
+从X抽取以训练每个基本估计量的样本数。
+如果为int，则抽取样本 max_samples。
+如果float，则抽取本 max_samples * X.shape[0]
+max_features : int或float，可选（默认值= 1.0）
+从X绘制以训练每个基本估计量的要素数量。
+如果为int，则绘制特征 max_features。
+如果是浮动的，则绘制特征 max_features * X.shape[1]
+bootstrap : 布尔值，可选（默认= True）
+是否抽取样本进行替换。如果为False，则执行不替换的采样。
+oob_score : 布尔变量，可选（默认为False）
+是否使用现成的样本来估计泛化误差。
+warm_start : 布尔变量，可选（默认= False）
+设置为True时，请重用上一个调用的解决方案以适合并为集合添加更多估计量，否则，仅适合一个全新的集合。
+n_jobs : int或None（可选）（默认为None）
+fit和 并行运行的作业数predict。None除非joblib.parallel_backend上下文中，否则表示1 。-1表示使用所有处理器。
+random_state : 整型，RandomState实例或无，可选（默认值：无）
+如果为int，则random_state是随机数生成器使用的种子；否则为false。
+```
+
+```python
+import pandas as pd
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import BaggingClassifier
+from sklearn.metrics import accuracy_score
+ 
+
+data=load_breast_cancer()# 读入乳腺癌数据集，并按照训练集7:测试集3的比例划分数据集
+x=pd.DataFrame(data.data)
+y=data.target
+X_train,X_test,y_train,y_test=train_test_split(x,y,random_state=0,test_size=0.3)
+tree = DecisionTreeClassifier(criterion='entropy', max_depth=None)# 构建决策树模型
+tree = tree.fit(X_train, y_train)
+y_train_pred = tree.predict(X_train)# 度量单个决策树的准确性
+y_test_pred = tree.predict(X_test)
+tree_train = accuracy_score(y_train, y_train_pred)
+tree_test = accuracy_score(y_test, y_test_pred)
+
+# 任务1. 构建Bagging模型，生成500个决策树，并训练
+bag = BaggingClassifier(base_estimator=tree, n_estimators=500, max_samples=1.0, max_features=1.0, bootstrap=True, bootstrap_features=False, n_jobs=1, random_state=1)
+bag.fit(X_train, y_train)
+```
+
+
+
+##### 堆叠
 
 Stacking（堆叠泛化）是一种集成学习技术，它首先使用多个不同的模型进行训练，然后用另一个模型来综合这些模型的预测。基本思想是利用原始模型的预测作为输入，以及正确的输出（目标变量），来训练一个新的模型来做出最终预测。这个新模型可以学习如何最好地结合原始模型的预测，以提高整体性能。
 
