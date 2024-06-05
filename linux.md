@@ -5471,6 +5471,8 @@ chkconfig mysql on
 
 #### 后台应用
 
+##### &
+
 例如有后台应用如下：(`writing.py`)
 
 ```python
@@ -5503,6 +5505,15 @@ kill -9 %1 #-9是强制
 可以用 `fg 数字` 调前台。`bg` 放后台。
 
 > 如果有 ` print(datetime.datetime.now())`，则无论前后台，shell 都会死命输出。
+
+##### nohup
+
+no hang up
+
+```sh
+# 后台运行：nohup python server.py &
+# 关闭后台运行：ps aux | grep server.py 然后 kill -9 PID (PID 是第二列值)
+```
 
 
 

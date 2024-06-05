@@ -1637,6 +1637,10 @@
 - 3072\.将元素分配到两个数组中II
 
   pb\_ds / <u>离散化+树状数组</u>
+  
+- 2938\.区分黑球与白球
+
+  贪心 逆向/组合数学
 
 ## 算法
 
@@ -44888,4 +44892,34 @@ class Solution:
         d[cols] += remaining
         return d
 ```
+
+##### 2938\.区分黑球和白球
+
+[题目](https://leetcode.cn/problems/separate-black-and-white-balls)
+
+把所有球移到最右边重叠减去把连续后缀 1 移到最右边重叠。
+
+```python
+class Solution:
+    def minimumSteps(self, s: str) -> int:
+        n, n1 = len(s), s.count('1')
+        s1 = sum(n - i - 1 for i in range(n) if s[i]=='1')
+        return s1 - n1*(n1-1)//2
+```
+
+逆向：把 0 全部挪到左边，当前 0 要动多少位就是它前面有几个 1，前缀和即可。
+
+```python
+class Solution:
+    def minimumSteps(self, s):
+        ans, sum = 0, 0
+        for i in range(len(s)):
+            if s[i] == '1':
+                sum += 1
+            else:
+                ans += sum
+        return ans
+```
+
+
 

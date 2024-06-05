@@ -5313,6 +5313,23 @@ print(zlib.compress(b'hello!'*20)) #b'x\x9c\xcbH\xcd\xc9\xc9W\xcc\xa0;\t\x00|B,%
 print(zlib.decompress(b'x\x9cKLLJJ\x1c\x06\x18\x00\xe9]L-')) #b'aabb'*50
 ```
 
+#### keyword
+
+输出所有关键字的字符串列表
+
+```python
+import keyword
+print(keyword.kwlist)
+```
+
+#### builtin
+
+```python
+import builtins
+builtin_functions = [func for func in dir(builtins) if callable(getattr(builtins, func))]
+builtin_functions
+```
+
 
 
 # 库

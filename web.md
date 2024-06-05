@@ -3425,6 +3425,8 @@ div {
   - scroll 修剪，可以通过滚动条查看隐藏部分(无论是否溢出都会出现横竖滚动条)
   - auto 自动处理(可能会出现滚动条，但不会一边溢出时两边都出)
 
+[横滚上方](https://blog.csdn.net/a460550542/article/details/132740564)
+
 ### 边框
 
 可以设置四条边框(从top开始顺时针)，分别设置或同时设置，其开头为：
@@ -4856,6 +4858,10 @@ console.log(b[1]());
 
 - 前导+运算符等效于`0+`二元运算符并固定左边是`0`。
 
+- `...a` 对数组展开，类似于 python的 `*a` (是副本，各元素浅拷贝)如拼接：
+
+  `c=[...a, ...b]`
+  
   
 
 
@@ -6762,6 +6768,8 @@ let d=p.concat(q).concat(r)
 ```
 
 > 不能使用+运算符直接连接，这样等效于String(p)+String(q)，即不具备python的列表+运算符特性。
+
+浅拷贝等价于：`a=[...b, ...c]`，其中 `...b` 类似 python `*b`
 
 ##### join
 
@@ -13528,7 +13536,8 @@ npm run dev
 > taskkill /F /PID <PID>
 > ```
 >
-> 
+
+
 
 部署一个静态 HTML (本机 live 运行或挂服务器防止跨域)，一般生成到 `build/`：
 
@@ -15602,6 +15611,10 @@ export default {
 
 - `created() {}` 创建时执行。
 
+- `direcive: { 关键字: {函数(){} } }`
+
+- `setup() {}` 创建前被执行。其 return 的对象挂入到 data 里。
+
 显然，使用属性也要 `this.属性名`。
 
 ##### nexttick
@@ -16015,6 +16028,8 @@ export default {
 <p>消息: {{ message }}</p>
 ```
 
+本质上是一个语法糖，它结合了 props 和 events。
+
 ##### v-html
 
 - 它会将值作为 HTML 而不是纯文本来渲染。
@@ -16048,7 +16063,45 @@ this.$nextTick(() => {
 });
 ```
 
+##### inject
 
+子组件可以直接 inject 使用这些数据。父组件也可以动态更新 provide 的数据 (待测试)
+
+```js
+// 父组件 JavaScript
+import ChildComponent from './ChildComponent.vue'
+
+export default {
+  components: {
+    ChildComponent
+  },
+  provide: {
+    count: 0
+  },
+  methods: {
+    updateCount() {
+      this.provide.count++
+    }
+  }
+}
+```
+
+```vue
+<!-- 子组件模板 -->
+<button @click="handleClick">Count: {{ count }}</button>
+```
+
+```js
+// 子组件 JavaScript
+export default {
+  inject: ['count'],
+  methods: {
+    handleClick() {
+      this.$inject.count++
+    }
+  }
+}
+```
 
 #### $
 
@@ -16073,6 +16126,8 @@ adjustHeight() {
     });
 },
 ```
+
+可以由此，父组件操作子组件，即子组件定义一个方法，父组件通过引用来调用该方法。[项目例子CodeMirrorInput](https://github.com/lr580/codeSpeedUp)
 
 ##### $router
 
@@ -17123,7 +17178,32 @@ a {
 
 ##### 抽屉
 
-一种弹出式网页，可以内嵌。
+一种弹出式网页，可以内嵌。[参考](https://element-plus.org/zh-CN/component/drawer.html)
+
+##### 输入框
+
+不允许输入空格：自定义 `v-no-whitespace` [参考(ScoreSubmit)](https://github.com/lr580/codeSpeedUp)
+
+```vue
+<el-input v-model="name" placeholder="请输入名称" clearable 
+          minlength=1 maxlength=20 v-no-whitespace show-word-limit
+          :style="{ width: '260px' }" />
+```
+
+在 `export default` 对象里，添加：
+
+```js
+directives: {
+    noWhitespace: {
+        beforeMount(el, binding, vnode) {
+            el.addEventListener('input', function(e) {
+                e.target.value = e.target.value.replace(/\s/g, ''); // 移除所有类型的空格
+                vnode.component?.emit('update:modelValue', e.target.value); // 强制更新v-model
+            });
+        }
+    }
+},
+```
 
 
 
@@ -17344,6 +17424,145 @@ export default {
 <div class="m5">
     <VirtualKeyboard/>
 </div>
+```
+
+#### 代码输入
+
+vue-codemirror [官网](https://github.com/surmon-china/vue-codemirror?tab=readme-ov-file)
+
+##### 基本例子
+
+[参考](https://www.yisu.com/jc/725988.html) [配置项大全](https://www.jb51.net/javascript/2888264n2.htm) [配置用法](https://blog.csdn.net/senmage/article/details/103742854) [codemirror6 issue1](https://github.com/surmon-china/vue-codemirror/issues/174) [issue2](https://github.com/surmon-china/vue-codemirror/issues/214)
+
+```sh
+npm install vue-codemirror --save
+npm i @codemirror/lang-javascript
+npm i @codemirror/theme-one-dark
+```
+
+- `@ready="log('ready', $event)"` 等是监听事件即 console.log
+- `:autofocus` 是自动获取焦点
+- `tab` 相关两行设置，其中 `:indent` 监听 tab。
+- 支持 js 的代码提示补全。支持特定主题。(有切换主题代码，这里略)
+
+```vue
+<template>
+  <codemirror
+    v-model="code"
+    placeholder="Code gose here..."
+    :indent-with-tab="true"
+    :tabSize="2"
+    :extensions="extensions"
+    @ready="log('ready', $event)"
+    @change="log('change', $event)"
+    @focus="log('focus', $event)"
+    @blur="log('blur', $event)"
+  />
+</template>
+
+<script>
+import { Codemirror } from "vue-codemirror";
+import { javascript } from "@codemirror/lang-javascript";
+import { oneDark } from "@codemirror/theme-one-dark";
+
+import { ref } from "vue";
+export default {
+  components: {
+    Codemirror,
+  },
+  setup() {
+    const code = ref(`console.log('Hello, world!')`); // 初始文本
+    const extensions = [javascript(), oneDark];
+
+    return {
+      code,
+      extensions,
+      log: console.log, // 定义简写
+    };
+  },
+};
+</script>
+```
+
+非 setup 写法：
+
+```vue
+<template>
+  <codemirror
+    v-model="code"
+    placeholder="Code gose here..."
+    :indent-with-tab="true"
+    :tabSize="2"
+    :extensions="extensions"
+  />
+</template>
+
+<script>
+import { Codemirror } from "vue-codemirror";
+import { javascript } from "@codemirror/lang-javascript";
+export default {
+  data() {
+    return {
+        code: "console.log('Hello world!')",
+        extensions: [javascript()],
+    };
+  },
+  components: {
+    Codemirror,
+  }
+};
+</script>
+```
+
+##### 自动折行
+
+extensions 代替了 options，在 codemirror 6 或更高版本。
+
+```sh
+npm install @codemirror/view@latest
+```
+
+```vue
+<template>
+  <codemirror
+    v-model="code"
+    placeholder="请输入代码..."
+    :indent-with-tab="true"
+    :extensions="extensions" 
+  />
+</template>
+
+<script>
+import { Codemirror } from "vue-codemirror";
+import { javascript } from "@codemirror/lang-javascript";
+import { EditorView } from '@codemirror/view';
+export default {
+  data() {
+    return {
+        code: "console.log('Hello world!')",
+        extensions: [javascript(), EditorView.lineWrapping]
+    };
+  },
+  components: {
+    Codemirror,
+  }
+};
+</script>
+```
+
+##### 样式修改
+
+直接动 CSS 即可。
+
+##### 点击获取焦点
+
+
+
+##### 语言支持
+
+```sh
+npm i @codemirror/lang-python
+npm i @codemirror/lang-cpp
 ```
 
 
