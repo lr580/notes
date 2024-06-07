@@ -1641,6 +1641,10 @@
 - 2938\.区分黑球与白球
 
   贪心 逆向/组合数学
+  
+- 3040\.相同分数的最大操作数目II
+
+  爆搜
 
 ## 算法
 
@@ -44919,6 +44923,92 @@ class Solution:
             else:
                 ans += sum
         return ans
+```
+
+##### 3040\.相同分数的最大操作数目II
+
+[题目](https://leetcode.cn/problems/maximum-number-of-operations-with-the-same-score-ii)
+
+避免初始化 vis 的 BFS
+
+枚举所有状态，即全体区间 $[l,r]$ 与三个得分(三种操作作为起始)，共 $O(3n^2)$ 的时空复杂度。可以使用 int 型 vis 来多次询问而避免初始化数组。
+
+```c++
+using state = tuple<int,int,int>; //undeal: [l, r] score
+int vis[2001][2001][3], c = 0;
+class Solution {
+public:
+    int maxOperations(vector<int>& nums) {
+        ++c;
+        int n = nums.size(), ans = 0;
+        queue<state> q;
+        int v[] = {nums[0]+nums[1], nums[n-2]+nums[n-1],nums[0]+nums[n-1]};
+        q.push({2, n-1, 0});
+        q.push({0, n-3, 1});
+        q.push({1, n-2, 2});
+        while(!q.empty()) {
+            auto [l, r, s] = q.front();
+            q.pop();
+            ans = max(ans, (n-(r-l+1))/2);
+            if(r-l+1<2) continue;
+            if(vis[l][r][s] == c) continue;
+            vis[l][r][s] = c;
+            if(nums[l]+nums[l+1] == v[s]) {
+                q.push({l+2,r,s});
+            }
+            if(nums[r-1]+nums[r] == v[s]) {
+                q.push({l,r-2,s});
+            }
+            if(nums[l]+nums[r] == v[s]) {
+                q.push({l+1,r-1,s});
+            }
+        }
+        return ans;
+    }
+};
+```
+
+DFS：
+
+```c++
+class Solution {
+public:
+    int maxOperations(vector<int>& nums) {
+        int n = nums.size();
+        int memo[n][n];
+
+        auto helper = [&](int i, int j, int target) -> int {
+            memset(memo, -1, sizeof(memo));
+            function<int(int, int)> dfs = [&](int i, int j) -> int {
+                if (i >= j) {
+                    return 0;
+                }
+                if (memo[i][j] != -1) {
+                    return memo[i][j];
+                }
+                int ans = 0;
+                if (nums[i] + nums[i + 1] == target) {
+                    ans = max(ans, 1 + dfs(i + 2, j));
+                }
+                if (nums[j - 1] + nums[j] == target) {
+                    ans = max(ans, 1 + dfs(i, j - 2));
+                }
+                if (nums[i] + nums[j] == target) {
+                    ans = max(ans, 1 + dfs(i + 1, j - 1));
+                }
+                memo[i][j] = ans;
+                return ans;
+            };
+            return dfs(i, j);
+        };
+
+        int res = 0;
+        res = max(res, helper(0, n - 1, nums[0] + nums[n - 1]));
+        res = max(res, helper(0, n - 1, nums[0] + nums[1]));
+        res = max(res, helper(0, n - 1, nums[n - 2] + nums[n - 1]));
+        return res;
+    }
+};
 ```
 
 

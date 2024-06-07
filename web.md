@@ -13556,7 +13556,7 @@ gh-pages -d build # build 是目录名
 删包：
 
 ```sh
-npm uninstall 包名
+npm uninstall 包名 # npm uni
 ```
 
 
@@ -15806,6 +15806,20 @@ export default {
 
 使用 JS 动态生成的标签不会被 scope 作用。
 
+##### 动态类别
+
+```vue
+<div :class="{ 'expanded': !keyboardVisible }">
+```
+
+```css
+.expanded {
+  margin-bottom: 10px;
+}
+```
+
+
+
 #### 流程控制
 
 ##### v-if
@@ -16017,6 +16031,8 @@ export default {
 ```vue
 <div v-bind:id="dynamicId"></div>
 ```
+
+
 
 ##### v-model
 
@@ -17554,15 +17570,71 @@ export default {
 
 直接动 CSS 即可。
 
-##### 点击获取焦点
+##### 禁止复制
+
+```js
+import { EditorView, keymap } from "@codemirror/view";
+
+// 创建禁止粘贴的扩展，如果复制就copy(event)
+const noCopyExtension = EditorView.domEventHandlers({
+  paste(event) { 
+    event.preventDefault();
+    alert("复制功能已被禁用。");
+  }
+});
+
+// ... (data 里的 extensions 列表)
+baseExtensions: [EditorView.lineWrapping, noCopyExtension], 
+```
+
+##### 热键禁用
+
+如禁止剪切
+
+```js
+const additionalKeymaps = keymap.of([
+  { key: "Mod-x", run: () => true }, // 禁止剪切
+]); // 如 Mod-Shift-z // ctrl+shift+z
+
+// ... (data 里的 extensions 列表)
+baseExtensions: [EditorView.lineWrapping, noCopyExtension, additionalKeymaps], 
+```
+
+> 可以尝试：
+>
+> ```js
+> // 创建禁止复制的扩展
+> const noCopyExtension = EditorView.domEventHandlers({
+>   paste(event) {
+>     event.preventDefault();
+>     alert("复制功能已被禁用。");
+>   },
+>   keydown(event) {
+>     // 禁用 Ctrl+Z, Ctrl+Shift+Z, Ctrl+Y (考虑了 Mac 上的 Cmd 键)
+>     // if ((event.ctrlKey || event.metaKey) && 
+>     //     (event.key === 'z' || event.key === 'Z' || event.key === 'y' || event.key === 'Y')) {
+>     //   if (event.shiftKey || !event.shiftKey) {
+>     //     event.preventDefault();
+>     //     alert("撤销和重做功能已被禁用。");
+>     //   }
+>     // }
+>   }
+> });
+> 
+> ```
 
 
+
+> ##### 点击获取焦点
+>
+> 暂未实现。
 
 ##### 语言支持
 
 ```sh
 npm i @codemirror/lang-python
 npm i @codemirror/lang-cpp
+npm i @codemirror/lang-java
 ```
 
 
