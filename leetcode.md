@@ -1645,6 +1645,10 @@
 - 3040\.相同分数的最大操作数目II
 
   爆搜
+  
+- 881\.救生艇
+
+  贪心 + (multiset二分 / <u>双指针</u>)
 
 ## 算法
 
@@ -45007,6 +45011,55 @@ public:
         res = max(res, helper(0, n - 1, nums[0] + nums[1]));
         res = max(res, helper(0, n - 1, nums[n - 2] + nums[n - 1]));
         return res;
+    }
+};
+```
+
+##### 881\.救生艇
+
+[题目]()
+
+multiset 二分：每个最重的人找一个尽量重的人搭配。
+
+```c++
+class Solution {
+public:
+    int numRescueBoats(vector<int>& people, int limit) {
+        multiset<int> m(people.begin(), people.end());
+        int ans = 0;
+        while(m.size()) {
+            ++ans;
+            int v = *m.rbegin();
+            m.erase(--m.end());
+            auto it = m.upper_bound(limit - v);
+            if(it != m.begin()) {
+                m.erase(--it);
+            }
+        }
+        return ans;
+    }
+};
+```
+
+双指针滑动：考虑现在最轻的人，不断看最重的人能不能和他搭，找到第一个和他能搭的一起坐；所有不能和他搭的一定也不能和其他人搭全部自己坐。
+
+```c++
+class Solution {
+public:
+    int numRescueBoats(vector<int> &people, int limit) {
+        int ans = 0;
+        sort(people.begin(), people.end());
+        int light = 0, heavy = people.size() - 1;
+        while (light <= heavy) {
+            if (people[light] + people[heavy] > limit) {
+                --heavy;
+            } else {
+                ++light;
+                --heavy;
+            }
+            ++ans;
+        }
+        return ans;
     }
 };
 ```
