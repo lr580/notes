@@ -1649,6 +1649,10 @@
 - 881\.救生艇
 
   贪心 + (multiset二分 / <u>双指针</u>)
+  
+- 419\.甲板上的战舰
+
+  BFS / 枚举
 
 ## 算法
 
@@ -45062,6 +45066,67 @@ public:
         return ans;
     }
 };
+```
+
+##### 419\.甲板上的战舰
+
+[题目](https://leetcode.cn/problems/battleships-in-a-board)
+
+BFS：
+
+```python
+from collections import deque
+class Solution:
+    def countBattleships(self, board: List[List[str]]) -> int:
+        n,m,c=len(board),len(board[0]),0
+        dx,dy=[-1,0,1,0],[0,-1,0,1]
+        def bfs(x0,y0):
+            q = deque([(x0,y0)])
+            while q:
+                x,y=q.popleft()
+                for i in range(4):
+                    x1,y1=x+dx[i],y+dy[i]
+                    if 0<=x1<n and 0<=y1<m and board[x1][y1]=='X':
+                        board[x1][y1]='.'
+                        q.append((x1,y1))
+        for i in range(n):
+            for j in range(m):
+                if board[i][j]=='X':
+                    bfs(i,j)
+                    c += 1
+        return c
+```
+
+横竖消：
+
+```python
+class Solution:
+    def countBattleships(self, board: List[List[str]]) -> int:
+        ans = 0
+        m, n = len(board), len(board[0])
+        for i, row in enumerate(board):
+            for j, ch in enumerate(row):
+                if ch == 'X':
+                    row[j] = '.'
+                    for k in range(j + 1, n):
+                        if row[k] != 'X':
+                            break
+                        row[k] = '.'
+                    for k in range(i + 1, m):
+                        if board[k][j] != 'X':
+                            break
+                        board[k][j] = '.'
+                    ans += 1
+        return ans
+```
+
+枚举起点：
+
+```python
+class Solution:
+    def countBattleships(self, board: List[List[str]]) -> int:
+        return sum(ch == 'X' and not (i > 0 and board[i - 1][j] == 'X' or j > 0 and board[i][j - 1] == 'X')
+                   for i, row in enumerate(board) for j, ch in enumerate(row))
 ```
 
 

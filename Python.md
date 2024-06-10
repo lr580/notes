@@ -3829,7 +3829,7 @@ __import__('a')
 
 ### 常用标准库
 
-#### collection
+#### collections
 
 集合类
 
@@ -3853,7 +3853,15 @@ g = defaultdict(nd)
 
 ##### queue
 
-有 `get` 出队并取队首，`put` 插入
+`import queue` (不在 collections)
+
+```
+q = queue.Queue()
+```
+
+有 `get` 出队并取队首，`put` 插入。
+
+如果是多线程环境，建议使用 `queue.Queue`；对于单线程环境，`collections.deque` 往往是更快的选择
 
 ##### deque
 
