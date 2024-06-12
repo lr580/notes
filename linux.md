@@ -834,6 +834,18 @@ ctrl+n 在新窗口打开当前目录的副本
 
 `#`后可以打注释，如`uname #注释`
 
+多行注释 here-document
+
+```sh
+: <<'END_COMMENT'
+这里的所有内容都将被视为注释，
+不会对脚本产生任何影响。
+你可以在这里添加任意多行文本，
+shell 不会执行这些文本。
+END_COMMENT
+
+```
+
 
 
 ##### 通配符
@@ -853,11 +865,385 @@ ctrl+n 在新窗口打开当前目录的副本
 
 用分号和 `&&` 都可以单行执行多行指令，区别在于 `&&` 只有前一个指令成功才执行上一个。`;` 上一个失败了下一个也执行。都是顺序串行。
 
+用了分号就可以多个语句一行
+
 
 
 后台运行：`xxx &`
 
 关闭终端不结束后台运行：`nohub xxx &`
+
+#### 编程
+
+[参考](https://zhuanlan.zhihu.com/p/684371371)
+
+##### 执行sh
+
+> 可能要加权限，如 `chmod u+x abc.sh`
+
+```sh
+./abc.sh
+sh abc.sh
+bash abc.sh 
+```
+
+`#!/bin/bash` 是一行特殊的代码，常被称为“shebang”或“hashbang”。这行代码通常位于 Unix 或 Linux 脚本文件的第一行。它的目的是指示系统应该使用哪个解释器来执行脚本文件的剩余部分
+
+##### 变量
+
+定义变量：
+
+```sh
+A=100 #变量名=值 不能有空格，变量命名规则：不能数字开头；一般习惯大写
+echo $A #输出变量
+unset A # 删除变量
+readonly B=2 #静态变量，无法撤销和修改
+set # 显示所有变量
+declare -i i=0 # 整数型变量i (bash语法，sh不一定可以)
+```
+
+变量分为，系统变量和用户自定义变量。系统变量：`$HOME、$PWD、$SHELL、$USER`
+
+运算：
+
+```sh
+lsres=`ls`#使用反引号运行里边的命令，把结果复制给变量名
+lsres=$(ls) #等价表达式
+echo $lsres
+```
+
+环境变量：(与普通变量一样都用 `$` 输出)
+
+```sh
+env # 查看所有环境变量
+export 变量名=变量值 # 仅在当前的shell会话中有效
+```
+
+持久生效要写到文件，然后 source 该文件，文件如下：
+
+- `/etc/environment` 系统启动时被读取
+- `/etc/profile` 所有登录的shell用户
+- `~/.profile` 当前用户的登录到 shell (一般这些文件是 sh 脚本)
+- `~/.bashrc` 非登录的打开 shell
+
+source：执行后在该 shell 得到这些变量(当然文件里有 echo 也会输出)
+
+```sh
+source .bashrc # source 啥都可以，是一个脚本就行
+. .bashrc # 简写 source 为 .
+```
+
+与 sh 的差别：通过 `sh` 执行的脚本或命令不会影响当前 shell 的环境变量
+
+- sh 启动一个新的子shell来执行脚本，source 在当前执行
+
+##### 数值运算
+
+> 直接算不行：
+
+> ```sh
+> a=100
+> b=$a*2
+> echo $b #100*2
+> ```
+
+可以 expr：
+
+```sh
+a=100
+b=$(expr 5 + 3) #+两边一定要有空格，不然就是 5+3
+echo $(expr 10 - 3)
+echo $(expr 5 \* 2) # 转义，不然 * 是通配符
+# expr a*2 是查找并输出a开头2结尾的文件名
+echo $(expr 4 / 3) # 整数下取整
+```
+
+简写为双小括号，不需要转义和空格了：
+
+```sh
+echo $((7/3*3))
+a=100
+echo $((a++)) #100，同理有 ++a
+echo $a #101
+```
+
+也可以 let：(bash)
+
+```sh
+let "a=4*3"
+```
+
+复杂算术运算，使用 bc：(需要安装)
+
+```sh
+echo $(echo "scale=2; 10 / 3" | bc) # 小数点2位
+echo $(echo "3 ^ 3" | bc) # 27
+echo $(echo "scale=2; sqrt(8)" | bc)
+```
+
+
+
+##### 引号
+
+双引号与单引号区别：双引号解析变量。
+
+```sh
+num=200
+echo "num=$num" #num=200
+echo 'num=$num' #num=$num
+```
+
+反引号：里边内容认为是命令，执行并把结果替换，如：
+
+```sh
+echo "today is `date`" # today is Wed Jun 12 11:41:00 CST 2024
+```
+
+##### 存在性赋值
+
+```sh
+# ${num:-val} 若num存在，返回num，否则返回val
+echo ${num:-580} #580
+num=1437
+echo ${num:-580} #1437
+```
+
+```sh
+# {num:=val} 若num存在，返回num，不存在赋值为val再返回
+echo ${def:=500}
+echo $def
+echo ${def:=5000} #500
+```
+
+
+
+##### 参数
+
+执行 sh 脚本时：
+
+- `$#` 参数数目
+- `$*` 所有参数
+- `$1` 第一个参数，`$2` 第二个参数……
+- `$?` 命令执行后返回状态
+- `$0` 当前进程名
+- `$$` 当前进程号
+
+```sh
+echo "参数数目:$#"
+echo "参数内容:$*"
+echo "param1:$1, param2:$2"
+ls
+echo "ls的结果：$?"
+echo "进程名 $0, 进程号 $$"
+```
+
+> ```
+> (base) lr584@lr580:~$ sh test.sh 123 45a
+> 参数数目:2
+> 参数内容:123 45a
+> param1:123, param2:45a
+> acm  acm2  chinook.db  go  hw2.db  miniconda3  scnu_acm  scnuoj  test.sh  test.sqlite  test1.sqlite  tmp.sh
+> ls的结果：0
+> 进程名 test.sh, 进程号 25095
+> ```
+
+##### ()
+
+由子shell执行：(写成一个 `.sh`)
+
+```sh
+data=1437
+(
+	data=580
+	echo "$data"
+)
+echo "$data"
+```
+
+若仍然由当前 shell 执行就 `{}`
+
+##### 字符串
+
+```sh
+str="abcdefghi"
+echo ${#str} #字符串长度9
+echo ${str:3} #下标从0开始，取下标3和往后的所有内容
+#若3往左越界如-1同0，往右越界如100则空串
+echo ${str:3:4} #3开始，取4个(不足就取到结尾); -1 就取到最后一个(不含最后一个)，以此类推
+echo ${str/a/ABC} #替换第一个a为ABC，不修改原本的，查无忽略
+echo ${str//a/ABC} #替换所有
+```
+
+##### test
+
+###### 文件
+
+测试文件：`test -? 文件名`，可以用方括号简写，如：
+
+```
+-e 是否存在
+-d 是目录
+-f 是文件
+-r 可读
+-w 可写
+-x 可执行
+-L 符号链接
+-c 字符设备
+-b 块设备
+-s 非空
+```
+
+```sh
+read -p "输入文件名：" fileName
+test -e $fileName
+[ -e $fileName ] # 首尾加空格
+echo $?
+```
+
+###### 字符串
+
+字符串测试：(test)
+
+四种操作符 `= != -z -n` (相等，不等，空串，非空)
+
+```sh
+test -z "abc"
+echo $? #1 空串的话就 0
+test "abc" = "def" #1
+```
+
+###### 数值比较
+
+test，有：`-eq -ne -gt -ge -le -lt`
+
+###### 逻辑连接
+
+`|| &&` 或 `-a -o !`。如：`test ! -x file` 或 `test 2 -lt 3 && test 5 -gt 3`
+
+##### 逻辑连接
+
+`&&` 左边命令成功(返回 0)右边命令才执行
+
+`||` 左边命令失败右边命令才执行
+
+```sh
+test 1 -eq 1 && echo "success"
+test 1 -eq 1 || echo "fail" # 不输出
+```
+
+##### read
+
+```sh
+read -p "输入文件名：" fileName
+```
+
+##### if
+
+不一定要缩进
+
+```sh
+read -p "输入整数：" n
+if [ $n -eq 580 ]; then echo "1437580!" 
+fi
+```
+
+```sh
+read -p "输入整数：" n
+if [ $((n%2)) -eq 0 ]; then
+    echo "偶数"
+else
+    echo "奇数"
+fi
+```
+
+```sh
+read -p "输入整数：" n
+if [ $n -eq 1 ]; then echo "一"
+elif [ $n -eq 2 ]; then echo "二"
+fi
+```
+
+##### case
+
+```sh
+read -p "输入yes或no:" c
+case $c in
+  yes | y* | Y*) #如输入是yyy
+    echo "是"
+    ;; # break
+  no | n* | N*)
+    echo "否"
+    ;;
+  *)
+    echo "也许是"
+    ;;
+esac
+```
+
+##### for
+
+```bash
+declare -i i=0
+for ((i=0;i<=10;++i)) do
+echo $i; done # 这个 bash 特有，sh 不行
+```
+
+```sh
+for i in 1 1 4 5 1 4
+do echo $i; done # do 不能放上面不然和 4 一样看成 i=do
+```
+
+
+
+```sh
+i=0
+while [ $i -le 10 ]; do
+    echo $i
+    i=$((i+1))
+done
+```
+
+until：条件成立退出，与 while 相反：
+
+```sh
+i=0
+until [ $i -eq 10 ]; do echo $i; 
+i=$((++i)); done
+```
+
+```sh
+i=0
+until [ $i -eq 10 ]; do
+    echo $i
+    i=$((i + 1))
+done
+# 压行：until [ $i -eq 10 ]; do echo $i;i=$((i + 1));done
+```
+
+显然有 break 和 continue 能用于循环和 case(break only)
+
+##### 函数
+
+b使用前必须定义
+
+> 如果分文件，可以一个文件(如 `fun.sh` 写定义)，然后另一个文件通过 `source fun.sh` 的方式导入函数的定义
+
+返回值一般规定为：`return 0` 无错，`return 1` 有错。当然可以用自己的定义
+
+同理可以使用参数，不需要定义参数列表，直接用 `$数字` 即可。
+
+```sh
+function my_max() { # function 可以不写 直接 my_max() { 则可以 sh
+#写了 function 就只能 bash
+	if [ $1 -gt $2 ]; then
+		return $1
+	else
+		return $2
+	fi
+}
+my_max 3 4
+echo $?
+```
 
 
 
@@ -2639,7 +3025,7 @@ free -s 10
 
  `echo abc`
 
-
+转义符加 `-e`：`echo -e "##\n##"`
 
 #### 帮助指令
 
@@ -2780,12 +3166,6 @@ ubuntu 版本查看 `lsb_release -a`
 查看Linux识别的网卡接口的设备信息
 
 如，查看启动信息：
-
-
-
-##### date
-
-直接输入以查看当前日期
 
 
 

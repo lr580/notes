@@ -1653,6 +1653,10 @@
 - 419\.甲板上的战舰
 
   BFS / 枚举
+  
+- 2813\.子序列最大优雅度
+
+  排序 数据结构 贪心+枚举+模拟 / <u>反悔贪心</u>
 
 ## 算法
 
@@ -45127,6 +45131,136 @@ class Solution:
     def countBattleships(self, board: List[List[str]]) -> int:
         return sum(ch == 'X' and not (i > 0 and board[i - 1][j] == 'X' or j > 0 and board[i][j - 1] == 'X')
                    for i, row in enumerate(board) for j, ch in enumerate(row))
+```
+
+贪心+枚举：
+
+- 从选了 $k$ 类开始不断往下枚举，一直看选了 $k, k-1,\cdots,2,1$ 类的答案。
+- 选 $k$ 类的方案为，对每类找出最大元素，选前 $k$ 大的类的最大元素。
+- 从选 $i$ 类递推到选 $i-1$ 类的转移：找到当前选的类里利润和最小的已选类，把这类的元素全删了，然后再贪心地补全 $k$ 个元素：从剩下可选的 $i-1$ 类的没选元素里不断挑出最大的。
+- 特判一些边界：例如共有不足 $k$ 类的，提前从上一步提到的转移策略凑够 $k$ 个元素，以及考虑一些其他边界情况（具体看代码）。
+
+具体到实现：
+
+- 维护当前所选的元素和 $sum$，当前选了几个元素 $cnt$ 和当前有几类 $m$。
+- 使用二元组可重有序集 multiset $q$ 维护还没选择的元素，可以 $O(\log n)$ 实现：①找到最大元素、②插入和删除任意一个元素。
+- 使用集合 $alive$ 维护当前所选的类别，可以 $O(\log n)$ 实现①增删和②存在性判断。
+- 使用数组 $num$ 维护每类当前选了几个元素，当删除该类时直接 $O(1)$ 做更改。
+- 使用数组 $typeSum$ 和可重有序集 multiset $typeSums$ 共同维护每个类别当前所选元素的总和，可以 $O(\log n)$ 实现：①找到最大元素和的类别；②修改/增删任意一个元素和。
+
+总复杂度 $O(n\log n)$。
+
+```c++
+using ll = long long;
+using pll = pair<ll, ll>;
+class Solution {
+public:
+    ll findMaximumElegance(vector<vector<int>>& items, int k) {
+        int n = items.size();
+        multiset<pll> q; // 待加入元素
+        vector<pll> mx(n+1, {-1,-1}); //每类最大的元素
+        for(auto&v:items) {
+            pll node = {v[0], v[1]};
+            q.insert(node);
+            mx[v[1]] = max(mx[v[1]], node);
+        }
+        sort(mx.begin(), mx.end(), greater<pll>());
+        ll m = 0; // 有几个类
+        ll sum = 0; // 元素和
+        ll ans = 0;
+        int cnt = 0; // 有几个元素
+        vector<int> num(n+1, 0); // 每类选了几个
+        vector<ll> typeSum(n+1, 0); // 每类的和
+        multiset<pll> typeSums; // 每类的和
+        set<int> alive; // 可选的类别
+        auto select = [&](pll node) { // 选择元素
+            // cout << "Start select\n";
+            q.erase(q.find(node));
+            if(!alive.count(node.second)) {
+                return;
+            }
+            ++cnt;
+            sum += node.first;
+            ans = max(ans, sum + m*m);
+            ++num[node.second];
+            ll oldSum = typeSum[node.second];
+            typeSum[node.second] += node.first;
+            auto it = typeSums.find({oldSum, node.second});
+            if(it != typeSums.end()) {
+                typeSums.erase(it);
+            }
+            typeSums.insert({typeSum[node.second], node.second});
+            // cout << "Select " << node.first << " " << node.second << " cnt = " << cnt << " ,sum = " << sum << '\n';
+        };
+        auto remove = [&](int type) { // 删除全类的元素
+            m -= num[type] == 0 ? 0 : 1;
+            cnt -= num[type];
+            sum -= typeSum[type];
+            auto it = typeSums.find({typeSum[type], type});
+            typeSum[type] = num[type] = 0;
+            if(it != typeSums.end()) {
+                typeSums.erase(it);
+            }
+            alive.erase(type);
+            // cout << "Remove " << type << " cnt = " << cnt << " ,sum = " << sum << '\n';
+        };
+        
+        for(int i = 0; i < k && mx[i].first >= 0; ++i) { // k 个类每类选一个
+            ++m;
+            alive.insert(mx[i].second);
+            select(mx[i]);
+        }
+        // cout << "Done init\n";
+        while(cnt < k && q.size()) {
+            auto node = *q.rbegin();
+            select(node);
+        }
+        // cout << "Done expanded\n";
+        while(q.size() && m && typeSums.size()) {
+            int minType = typeSums.begin()->second;
+            // cout << "Start Remove "<< minType <<"\n";
+            remove(minType);
+            while(cnt < k && q.size()) {
+                select(*q.rbegin());
+            }
+        }
+        return ans;
+    }
+};
+```
+
+反悔贪心：按利润排序，先选前 $k$ 个；对第 $k+1$ 个项目，要选它就要从前 $k$ 个里移除它，移除必然让总利润单调变小。
+
+- 若新项目与前面的类别相同，类别数不变不会更优，不选它。
+- 如果类别不一样，选一个最小利润移除(栈维护)(排序了故单调)：
+  - 要移除的类别只出现了一次，则类别数不变，答案不优，不选它来移除。
+  - 要移除的出现了多次，则移除后类别数加一，选择。
+
+```c++
+class Solution {
+public:
+    long long findMaximumElegance(vector<vector<int>>& items, int k) {
+        // 把利润从大到小排序
+        ranges::sort(items, [](const auto &a, const auto &b) { return a[0] > b[0]; });
+        long long ans = 0, total_profit = 0;
+        unordered_set<int> vis;
+        stack<int> duplicate; // 重复类别的利润
+        for (int i = 0; i < items.size(); i++) {
+            int profit = items[i][0], category = items[i][1];
+            if (i < k) {
+                total_profit += profit; // 累加前 k 个项目的利润
+                if (!vis.insert(category).second) { // 重复类别
+                    duplicate.push(profit);
+                }
+            } else if (!duplicate.empty() && vis.insert(category).second) { // 之前没有的类别
+                total_profit += profit - duplicate.top(); // 选一个重复类别中的最小利润替换
+                duplicate.pop();
+            } // else：比前面的利润小，而且类别还重复了，选它只会让 total_profit 变小，vis.size() 不变，优雅度不会变大
+            ans = max(ans, total_profit + (long long) vis.size() * (long long) vis.size());
+        }
+        return ans;
+    }
+};
 ```
 
 
