@@ -1303,7 +1303,9 @@ print(-float('-inf')/9-9) #是inf
 
 `r''` 代表里面的转义符一律当普通字符。
 
-`b''` 二进制字符串(只能有ASACII)，type 为 bytes 
+`b''` 二进制字符串(只能有ASACII)，type 为 bytes  
+
+> 普通字符串通过 `.encode()` 方法转化为二进制字符串；逆运算为 `.decode`
 
 `f''` 格式化(占位符用, 3.6+)
 
@@ -5277,11 +5279,27 @@ print(args.experiment) #上面那个experiment;或args.p
 
 - `help` 参数提供了这个选项的简短描述。当用户在命令行中运行程序并带上 `-h` 或 `--help` 时，这些帮助信息会显示出来。
 
+#### urllib
+
+> 提供了多种处理 URL 的功能,如发送 HTTP 请求、解析 URL、编码/解码 URL 等
+
+将字符串转化为 URL 编码，如空格转义：
+
+```python
+import urllib.parse
+urllib.parse.quote('你好！ a+b=c/d') # 得到字符串 '%E4%BD%A0%E5%A5%BD%EF%BC%81%20a%2Bb%3Dc/d'
+```
+
+
+
 #### hashlib
+
+> 它提供了多种常见的加密算法,如 MD5、SHA-1、SHA-256 等
 
 md5 加密一个文件或二进制文本，返回32字符的十六进制字符串：
 
 ```python
+import hashlib
 hashlib.md5(b'aba').hexdigest()
 def md5(path):
     with open(path,'rb') as f:
@@ -11312,6 +11330,23 @@ mosaiced_image.show()
 ### scipy
 
 [官网](https://scipy.org/)
+
+#### 数值计算
+
+##### 定积分
+
+```python
+import numpy as np
+from scipy.integrate import quad
+def integrand(x):
+    return np.cos(x)**4
+a = np.pi / 4
+b = np.pi / 2
+result, error = quad(integrand, a, b)
+print(result, error)
+```
+
+
 
 #### 数据处理
 

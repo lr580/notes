@@ -1657,6 +1657,10 @@
 - 2813\.子序列最大优雅度
 
   排序 数据结构 贪心+枚举+模拟 / <u>反悔贪心</u>
+  
+- 2786\.访问数组中的位置使分数最大
+
+  DP
 
 ## 算法
 
@@ -45261,6 +45265,54 @@ public:
         return ans;
     }
 };
+```
+
+##### 2786\.访问数组中的位置使分数最大
+
+[题目](https://leetcode.cn/problems/visit-array-positions-to-maximize-score/)
+
+先按奇偶性合并区间，对合并后的区间做 DP，选当前区间时，要么选上一个奇偶不同的区间并付出代价递推，要么直接从上上一个区间递推。
+
+```c++
+using ll = long long;
+class Solution {
+public:
+    ll maxScore(vector<int>& nums, int x) {
+        vector<ll> a;
+        ll n = nums.size(), sum = nums[0];
+        nums.emplace_back(nums.back()+1);
+        for(int i=1;i<=n;++i) {
+            if(nums[i]%2!=nums[i-1]%2) {
+                a.emplace_back(sum);
+                sum = nums[i];
+            } else {
+                sum += nums[i];
+            }
+        }
+        ll s[] = {a[0], (ll)-1e18}, m = a.size();
+        for(int i=1;i<m;++i) {
+            s[i%2] = max(s[i%2]+a[i], s[(i+1)%2]+a[i]-x);
+        }
+        return max(s[0],s[1]);
+    }
+};
+```
+
+不用合并：
+
+```java
+class Solution {
+    public long maxScore(int[] nums, int x) {
+        int num = nums[0];
+        long[] dp = {num, num};
+        dp[1- (num & 1)] -=x;
+        for (int i = 1; i < nums.length; i++) {
+            num = nums[i];
+            dp[num & 1] = num + Math.max(dp[num & 1] , dp[1 - (num & 1)] - x);
+        }
+        return Math.max(dp[0] , dp[1]);
+    }
+}
 ```
 
 
