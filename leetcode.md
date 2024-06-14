@@ -1661,6 +1661,10 @@
 - 2786\.访问数组中的位置使分数最大
 
   DP
+  
+- 2779\.数组的最大美丽值
+
+  排序+二分 / 排序+滑动窗口 / 差分 / 离散差分 / 线段树
 
 ## 算法
 
@@ -45313,6 +45317,73 @@ class Solution {
         return Math.max(dp[0] , dp[1]);
     }
 }
+```
+
+##### 2779\.数组的最大美丽值
+
+[题目](https://leetcode.cn/problems/maximum-beauty-of-an-array-after-applying-operation)
+
+离散差分：
+
+```python
+from collections import defaultdict
+class Solution:
+    def maximumBeauty(self, nums: List[int], k: int) -> int:
+        a, s, ans = defaultdict(int), 0, 0
+        for v in nums:
+            a[v - k] += 1
+            a[v + k + 1] -= 1
+        for k in a:
+            s += a[k]
+            ans = max(ans, s)
+        return ans
+```
+
+线段树：略。
+
+连续差分：空间换时间(避免排序)。
+
+```python
+class Solution:
+    def maximumBeauty(self, nums: List[int], k: int) -> int:
+        n = len(nums)
+        d = [0] * (int(1e5) + 5)
+        for i in range(n):
+            x = nums[i]
+            l = max(x - k, 0)
+            r = min(x + k, int(1e5))
+            d[l] += 1
+            d[r + 1] -= 1
+        return max(accumulate(d))
+```
+
+二分：因为求子序列所以排序无关。对每个值 $x$，找到最大下标满足不超过 $x+2k$。
+
+```python
+class Solution:
+    def maximumBeauty(self, nums: List[int], k: int) -> int:
+        n = len(nums)
+        nums.sort()
+        res = 0
+        for i, x in enumerate(nums):
+            r = bisect_left(nums, x + 2 * k + 1) - 1 # find <= x + 2*k
+            res = max(res, r - i + 1)
+        return res
+```
+
+滑动窗口：枚举 r，维护最左下标 l，满足区间 $[l,r]$ 内元素最大值最小值相差不超过 $2k$。排序后显然最小是最左。
+
+```python
+class Solution:
+    def maximumBeauty(self, nums: List[int], k: int) -> int:
+        nums.sort()
+        res = 0
+        left = 0
+        for right, x in enumerate(nums):
+            while x - nums[left] > k * 2:
+                left += 1
+            ans = max(ans, right - left + 1)
+        return ans
 ```
 
 

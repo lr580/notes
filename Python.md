@@ -4998,6 +4998,8 @@ from itertools import *
 
 - 前缀和 `list(accumulate(nums, initial=0))`  (增加首元素0,即对 [0]+nums 叠，长度加一；不加该参数长度不变原地叠)
 
+  `list(accumulate(numbers, lambda x, y: x * y))` 前缀积(或 `operator.mul` 为参数)
+
 - `pairwise(a)` 返回 a 相邻两个元素值组成的元组的迭代器
 
 例：
@@ -5307,6 +5309,12 @@ def md5(path):
 ```
 
 #### operator
+
+基本运算的函数写法：
+
+```python
+operator.mul(3,5) # 3*5
+```
 
 可以用作排序依据：
 
