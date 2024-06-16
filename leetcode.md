@@ -1665,6 +1665,14 @@
 - 2779\.数组的最大美丽值
 
   排序+二分 / 排序+滑动窗口 / 差分 / 离散差分 / 线段树
+  
+- 521\.最长特殊序列I
+
+  签到 思维
+  
+- 522\.最长特殊序列II
+
+  思维 字符串
 
 ## 算法
 
@@ -45383,6 +45391,45 @@ class Solution:
             while x - nums[left] > k * 2:
                 left += 1
             ans = max(ans, right - left + 1)
+        return ans
+```
+
+##### 521\.最长特殊序列I
+
+[题目](https://leetcode.cn/problems/longest-uncommon-subsequence-i)
+
+```python
+class Solution:
+    def findLUSlength(self, a: str, b: str) -> int:
+        return -1 if a==b else max(len(a), len(b))
+```
+
+##### 522\.最长特殊序列II
+
+[题目](https://leetcode.cn/problems/longest-uncommon-subsequence-ii/)
+
+暴力：$O(n^2m)$
+
+```python
+class Solution:
+    def findLUSlength(self, strs: List[str]) -> int:
+        ans = -1
+        for i, s in enumerate(strs):
+            rep = False
+            for j, t in enumerate(strs):
+                p = 0
+                if i == j:
+                    continue
+                for k in t:
+                    if s[p] == k:
+                        p += 1
+                        if p == len(s):
+                            rep = True
+                            break
+                if rep:
+                    break
+            if not rep:
+                ans = max(ans, len(s))
         return ans
 ```
 
