@@ -1673,6 +1673,10 @@
 - 522\.最长特殊序列II
 
   思维 字符串
+  
+- 2288\.价格减免
+
+  小模拟 字符串
 
 ## 算法
 
@@ -45431,6 +45435,57 @@ class Solution:
             if not rep:
                 ans = max(ans, len(s))
         return ans
+```
+
+##### 2288\.价格减免
+
+[题目](https://leetcode.cn/problems/apply-discount-to-prices/)
+
+```python
+class Solution:
+    def discountPrices(self, sentence: str, discount: int) -> str:
+        d = 1 - discount / 100
+        a = sentence.split(' ')
+        for i, w in enumerate(a):
+            if w[0] == '$' and w[1:].isdigit():
+                a[i] = f"${int(w[1:]) * d :.2f}"
+        return ' '.join(a)
+```
+
+```python
+class Solution:
+    def discountPrices(self, sentence: str, discount: int) -> str:
+        a, r = sentence.split(), []
+        for w in a:
+            if w[0] == '$' and w[1:].isdigit():
+                r.append('$%.2f'%(float(w[1:]) * (1 - discount / 100)))
+            else:
+                r.append(w)
+        return ' '.join(r)
+```
+
+```c++
+class Solution {
+public:
+    string discountPrices(string sentence, int discount) {
+        double d = 1 - discount / 100.0;
+        stringstream ss(sentence);
+        string ans, w;
+        while (ss >> w) { // 一边分割，一边加到答案中
+            if (!ans.empty()) {
+                ans += ' ';
+            }
+            if (w.length() > 1 && w[0] == '$' && all_of(w.begin() + 1, w.end(), ::isdigit)) {
+                stringstream s;
+                s << fixed << setprecision(2) << '$' << stoll(w.substr(1)) * d;
+                ans += s.str();
+            } else {
+                ans += w;
+            }
+        }
+        return ans;
+    }
+};
 ```
 
 
