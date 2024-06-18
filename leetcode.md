@@ -1677,6 +1677,10 @@
 - 2288\.价格减免
 
   小模拟 字符串
+  
+- 2713\.矩阵中严格递增的单元格数
+
+  **DP**
 
 ## 算法
 
@@ -45484,6 +45488,44 @@ public:
             }
         }
         return ans;
+    }
+};
+```
+
+##### 2713\.矩阵中严格递增的单元格
+
+[题目](https://leetcode.cn/problems/maximum-strictly-increasing-cells-in-a-matrix)
+
+- 相同元素值分组
+- 维护每一行和每一列当前计算出来的最大步数
+- 关键见解：不要上下一组两两算，当前组的每个元素值，它的计算方法为它所在最大行和最大列转移而来
+- 先算出这一组每个值，然后再用这一组来更新最大行列值
+
+```c++
+class Solution {
+public:
+    int maxIncreasingCells(vector<vector<int>>& mat) {
+        int m = mat.size(), n = mat[0].size();
+        map<int, vector<pair<int, int>>> g;
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                g[mat[i][j]].emplace_back(i, j); // 相同元素放在同一组，统计位置
+            }
+        }
+
+        vector<int> row_max(m), col_max(n);
+        for (auto& [_, pos] : g) {
+            vector<int> mx; // 先把最大值算出来，再更新 row_max 和 col_max
+            for (auto& [i, j] : pos) {
+                mx.push_back(max(row_max[i], col_max[j]) + 1);
+            }
+            for (int k = 0; k < pos.size(); k++) {
+                auto& [i, j] = pos[k];
+                row_max[i] = max(row_max[i], mx[k]); // 更新第 i 行的最大 f 值
+                col_max[j] = max(col_max[j], mx[k]); // 更新第 j 列的最大 f 值
+            }
+        }
+        return ranges::max(row_max);
     }
 };
 ```
