@@ -1681,6 +1681,10 @@
 - 2713\.矩阵中严格递增的单元格数
 
   **DP**
+  
+- 2748\.美丽下标对的数目
+
+  枚举
 
 ## 算法
 
@@ -45528,6 +45532,38 @@ public:
         return ranges::max(row_max);
     }
 };
+```
+
+##### 2748\.美丽下标对的数目
+
+[题目](https://leetcode.cn/problems/number-of-beautiful-pairs)
+
+```python
+class Solution:
+    def countBeautifulPairs(self, nums: List[int]) -> int:
+        s, n = 0, len(nums)
+        for i in range(n):
+            for j in range(i+1,n):
+                if gcd(nums[j]%10, int(str(nums[i])[0])) == 1:
+                    s += 1
+        return s 
+```
+
+优化：维护前缀计数
+
+```python
+class Solution:
+    def countBeautifulPairs(self, nums: List[int]) -> int:
+        ans = 0
+        cnt = [0] * 10
+        for x in nums:
+            for y, c in enumerate(cnt):
+                if c and gcd(y, x % 10) == 1:
+                    ans += c
+            while x >= 10: 
+                x //= 10
+            cnt[x] += 1  # 统计最高位的出现次数
+        return ans
 ```
 
 
