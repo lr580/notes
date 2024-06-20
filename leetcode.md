@@ -1685,6 +1685,10 @@
 - 2748\.美丽下标对的数目
 
   枚举
+  
+- LCP61\. 气温变化趋势
+
+  签到
 
 ## 算法
 
@@ -45566,5 +45570,39 @@ class Solution:
         return ans
 ```
 
+##### LCP61\.气温变化趋势
 
+[题目](https://leetcode.cn/problems/6CE719/)
+
+```python
+class Solution:
+    def temperatureTrend(self, temperatureA: List[int], temperatureB: List[int]) -> int:
+        n, cnt, ans = len(temperatureA), 0, 0
+        def trend(x, y):
+            return 1 if x > y else 2 if x < y else 3
+        for i in range(1,n):
+            if trend(temperatureA[i-1], temperatureA[i]) == trend(temperatureB[i-1], temperatureB[i]):
+                cnt += 1
+            else:
+                cnt = 0
+            ans = max(ans, cnt)
+        return ans
+```
+
+简化：
+
+```python
+class Solution:
+    def temperatureTrend(self, temperatureA: List[int], temperatureB: List[int]) -> int:
+        ans = same = 0
+        for (a1, b1), (a2, b2) in pairwise(zip(temperatureA, temperatureB)):
+            if (a1 > a2) - (a1 < a2) == (b1 > b2) - (b1 < b2):
+                same += 1
+                ans = max(ans, same)
+            else:
+                same = 0
+        return ans
+```
+
+两个 bool (大于与小于) 只能成立最多一个，刚好对应三种离散取值。
 
