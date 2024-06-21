@@ -1689,6 +1689,10 @@
 - LCP61\. 气温变化趋势
 
   签到
+  
+- 2663\.字典序最小的美丽字符串
+
+  **构造 模拟 贪心**
 
 ## 算法
 
@@ -45605,4 +45609,108 @@ class Solution:
 ```
 
 两个 bool (大于与小于) 只能成立最多一个，刚好对应三种离散取值。
+
+##### 2663\.字典序最小的美丽字符串
+
+[题目](https://leetcode.cn/problems/lexicographically-smallest-beautiful-string)
+
+考虑下面两个例子：
+
+```
+ponponponponp k=16
+ponponponpooa 2
+ponponponpopa 3
+ponponponppaa 2
+ponponpooaaaa 2
+ponponpopaaaa 3
+ponponppaaaaa 2
+ponpooaaaaaaa 2
+ponpopaaaaaaa 3
+ponppaaaaaaaa 2
+pooaaaaaaaaaa 2
+popaaaaaaaaaa 3
+ppaaaaaaaaaaa 2 -> 无法进位 fail
+```
+
+如果不 fail，如：
+
+```
+oonponponpooa |
+oonponponpopa |
+oonponponpoqa |
+oonponponppaa |
+oonponponpqaa |
+oonponponqaaa |
+oonponpooaaaa |
+oonponpopaaaa |
+oonponpoqaaaa |
+oonponppaaaaa |
+oonponpqaaaaa |
+oonponqaaaaaa |
+oonpooaaaaaaa |
+oonpopaaaaaaa |
+oonpoqaaaaaaa |
+oonppaaaaaaaa |
+oonpqaaaaaaaa |
+oonqaaaaaaaaa |
+oooaaaaaaaaaa |
+oopaaaaaaaaaa |
+oopaaaaaaaaaa |
+oopaaaaaaaaaa |
+oopabaaaaaaaa |
+oopabaaaaaaaa |
+oopabbaaaaaaa |
+oopabcaaaaaaa |
+oopabcaaaaaaa |
+oopabcaaaaaaa |
+oopabcabaaaaa |
+oopabcabaaaaa |
+oopabcabbaaaa |
+oopabcabcaaaa |
+oopabcabcaaaa |
+oopabcabcaaaa |
+oopabcabcabaa |
+oopabcabcabaa |
+oopabcabcabba |
+oopabcabcabca |
+oopabcabcabca |
+oopabcabcabca |
+oopabcabcabca
+```
+
+有结论如下：
+
+- 因为一开始美丽，所以进位新产生的回文串长度要么是 2，要么是 3
+- 每个位最多进位 3 次，考虑初始串 `dcba` 可知
+- 自增后，由于连续进位会导致 `a` 串回文，将其修改为 `abc` 循环串
+
+可以发现：一定是在 On 次数操作内可以修改完毕。
+
+```c++
+class Solution {
+public:
+    string smallestBeautifulString(string s, int k) {
+        k += 'a';
+        int n = s.length();
+        int i = n - 1; // 从最后一个字母开始
+        s[i]++; // 先加一
+        while (i < n) {
+            if (s[i] == k) { // 需要进位
+                if (i == 0) { // 无法进位
+                    return "";
+                }
+                // 进位
+                s[i] = 'a';
+                s[--i]++;
+            } else if (i && s[i] == s[i - 1] || i > 1 && s[i] == s[i - 2]) {
+                s[i]++; // 如果 s[i] 和左侧的字符形成回文串，就继续增加 s[i]
+            } else {
+                i++; // 反过来检查后面是否有回文串
+            }
+        }
+        return s;
+    }
+};
+
+```
 
