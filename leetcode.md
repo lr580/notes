@@ -1693,6 +1693,10 @@
 - 2663\.字典序最小的美丽字符串
 
   **构造 模拟 贪心**
+  
+- 503\.下一个更大元素 II
+
+  单调栈
 
 ## 算法
 
@@ -45712,5 +45716,56 @@ public:
     }
 };
 
+```
+
+##### 503\.下一个更大元素II
+
+[题目](https://leetcode.cn/problems/next-greater-element-ii/)
+
+单调栈：
+
+````c++
+class Solution {
+public:
+    vector<int> nextGreaterElements(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> a(n*2), ans(n,-1);
+        for(int i=0;i<n;++i) {
+            a[i]=a[i+n]=nums[i];
+        }
+        stack<int> s; // 单调递减
+        for(int i=0;i<n*2;++i) {
+            while(!s.empty() && a[s.top()]<a[i]) {
+                if(s.top()<n) {
+                    ans[s.top()] = a[i];
+                }
+                s.pop();
+            }
+            s.push(i);
+        }
+        return ans;
+    }
+};
+````
+
+常数优化：
+
+```c++
+class Solution {
+public:
+    vector<int> nextGreaterElements(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> ret(n, -1);
+        stack<int> stk;
+        for (int i = 0; i < n * 2 - 1; i++) {
+            while (!stk.empty() && nums[stk.top()] < nums[i % n]) {
+                ret[stk.top()] = nums[i % n];
+                stk.pop();
+            }
+            stk.push(i % n);
+        }
+        return ret;
+    }
+};
 ```
 

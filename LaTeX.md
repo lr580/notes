@@ -1870,6 +1870,8 @@ PPT排版：
 
 #### 宏包
 
+##### 概述
+
 [参考](https://blog.csdn.net/qq_37556330/article/details/106190148)
 
 类似于插件。通过安装不同的宏包可以实现一些复杂排版功能，例如插入复杂的列表表格、插入公式和特殊符号、插入代码、设置文档版式等。
@@ -1889,6 +1891,18 @@ PPT排版：
 ```tex
 \usepackage{ctex}
 \usepackage{amsmath,bm}
+```
+
+查看宏包的文档，在 sh 里：
+
+```sh
+texdoc gbt7714 # gbt7714 是包名
+```
+
+查看宏包源码所在目录(`.sty`文件)：
+
+```sh
+kpsewhich gbt7714.sty
 ```
 
 
@@ -3003,6 +3017,16 @@ signed main() /* 注释 */
 }
 \end{lstlisting}
 ```
+
+#### PDF插入
+
+(未尝试)
+
+```tex
+\usepackage{pdfpages}
+\includepdf[pages=1]{path/to/your/existing.pdf}
+```
+
 
 
 
@@ -4505,6 +4529,31 @@ library `quotes`，将 node label 的输入从 `label={[<options>]<text>}` 简�
 \end{spacing}
 ```
 
+有序、无序列表的行间距：
+
+- `topsep` 是列表前后的总垂直间距
+- `itemsep` 是列表条目之间的间距
+- `parsep` 是段落之间的间距（如果列表条目中有多个段落）
+
+全局设置：
+
+```tex
+\usepackage{enumitem}
+\setlist[itemize]{itemsep=0pt, topsep=0pt, parsep=0pt}
+\setlist[enumerate]{itemsep=0pt, topsep=0pt, parsep=0pt}
+```
+
+单独设置：
+
+```tex
+\usepackage{enumitem}
+\begin{itemize}[itemsep=0pt]  % 将列表项之间的间距设置为0pt
+  \item First item
+\end{itemize}
+```
+
+
+
 ### 图表
 
 #### 编号
@@ -4568,6 +4617,38 @@ library `quotes`，将 node label 的输入从 `label={[<options>]<text>}` 简�
 - `[0pt]` 指定了条目前的横向空间。`~` 是空格。
 
 - `\ccwd` 表示一个汉字的宽度
+
+### 参考文献
+
+#### bibliographystyle
+
+##### 修改方式
+
+找到对应的文件位置，如：
+
+```tex
+\bibliographystyle{gbt7714-numerical}
+```
+
+的位置，在 sh 下查找：
+
+```sh
+kpsewhich gbt7714-numerical.bst
+```
+
+将修改后的文件放到当前 `.tex` 目录，可以使用修改后的 `.bst`
+
+##### 取消地址显示
+
+以 `gbt7714-numerical.bst` 为例，找到：[参考](https://github.com/zepinglee/gbt7714-bibtex-style/issues/29)
+
+```tex
+#1 'show.missing.address.publisher :=
+```
+
+修改为 `#0`。
+
+如果修改后出现问题，如使用 `gbt7714` 包这样固定死了访问路径的宏包，直接修改源文件即可。具体例子参见我的毕设。
 
 # Typst
 
