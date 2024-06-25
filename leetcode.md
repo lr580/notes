@@ -1697,6 +1697,10 @@
 - 503\.下一个更大元素 II
 
   单调栈
+  
+- 2732\. 找到矩阵中的好子集
+
+  贪心 + 模拟/数学 <u>SOSDP</u>
 
 ## 算法
 
@@ -45769,3 +45773,57 @@ public:
 };
 ```
 
+上述方法的问题转化为，设某个状态 $i$ 有元素为 $a_i\neq -1$，否则为 $-1$。问题为寻找全集的一个子集的一个子集 $Y$，满足 $a_Y\neq -1$。
+
+寻找全集 $U=\{0,1,\cdots, m-1\}$ 一个子集 $S$，定义 $f_S$：
+
+- 若 $S$ 不存在子集 $Y$，满足 $a_Y\neq -1$，则 $f_S=-1$。
+- 若 $S$ 存在子集 $Y$，满足 $a_Y\neq -1$，则 $f_S$ 为任意一个 $a_Y$。
+
+因此，可以简化为：$f_S=\max_{Y\subseteq S}a_Y$。
+
+枚举全体 $S$，若 $f_S \ge 0$ 且 $a_{\complement _US}\ge 0$，则不仅 $S$ 存在子集 $Y$ 满足 $a_Y\neq -1$，且 $\complement_US$ 也满足条件，那么显然这俩集合不相交，也就是说选这两行能满足题意条件。
+
+快速求解 $f$：初始令 $f=a$，然后枚举全体子集 $S$ 和每个位 $b$，求全体去掉 $b$ 后的 $S\oplus b$ 的 max 即：$f_S=\max f_{S\oplus b}$​
+
+因为枚举 $a_{\complement_US}$ 的话，对它的子集不会更差，所以直接用 $f_{\complement_US}$ 即可。
+
+```c++
+class Solution {
+public:
+    vector<int> goodSubsetofBinaryMatrix(vector<vector<int>>& grid) {
+        int n = grid[0].size();
+        vector<int> f(1 << n, -1);
+        for (int i = 0; i < grid.size(); i++) {
+            int mask = 0;
+            for (int j = 0; j < n; j++) {
+                mask |= grid[i][j] << j;
+            }
+            if (mask == 0) {
+                return {i};
+            }
+            f[mask] = i;
+        }
+
+        int u = (1 << n) - 1;
+        for (int s = 1; s < u; s++) {
+            for (int b = 0; b < n; b++) {
+                if ((s >> b & 1) == 0) {
+                    continue;
+                }
+                f[s] = max(f[s], f[s ^ (1 << b)]);
+                int i = f[s];
+                if (i < 0) {
+                    continue;
+                }
+                int j = f[u ^ s];
+                if (j >= 0) {
+                    return {min(i, j), max(i, j)};
+                }
+            }
+        }
+        return {};
+    }
+};
+
+```
