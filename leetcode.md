@@ -1701,6 +1701,10 @@
 - 2732\. 找到矩阵中的好子集
 
   贪心 + 模拟/数学 <u>SOSDP</u>
+  
+- 2741\.特别的排列
+
+  **状压DP**
 
 ## 算法
 
@@ -45827,3 +45831,69 @@ public:
 };
 
 ```
+
+##### 2741\.特别的排列
+
+[题目](https://leetcode.cn/problems/special-permutations/)
+
+设 $dp_{i,j}$ 表示当前可选集为 $i$，现在选了第 $j$ 个数的方案数，全集二进制状态为 $u$，则答案为 $\sum_{i=0}^ndp_{u\oplus 2^i,i}$。记忆化 DFS 来爆搜这个 DP，复杂度为 $O(n2^n)$。
+
+```c++
+class Solution {
+public:
+    int specialPerm(vector<int>& nums) {
+        int n = nums.size(), u = (1 << n) - 1;
+        vector<vector<long long>> memo(u, vector<long long>(n, -1)); // -1 表示没有计算过
+        auto dfs = [&](auto&& dfs, int s, int i) -> long long {
+            if (s == 0) {
+                return 1; // 找到一个特别排列
+            }
+            auto& res = memo[s][i]; // 注意这里是引用
+            if (res != -1) { // 之前计算过
+                return res;
+            }
+            res = 0;
+            for (int j = 0; j < n; j++) {
+                if ((s >> j & 1) && (nums[i] % nums[j] == 0 || nums[j] % nums[i] == 0)) {
+                    res += dfs(dfs, s ^ (1 << j), j);
+                }
+            }
+            return res;
+        };
+        long long ans = 0;
+        for (int i = 0; i < n; i++) {
+            ans += dfs(dfs, u ^ (1 << i), i);
+        }
+        return ans % 1'000'000'007;
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    int specialPerm(vector<int>& nums) {
+        int n = nums.size(), u = (1 << n) - 1;
+        vector<vector<long long>> memo(u+1, vector<long long>(n+1, -1)); // -1 表示没有计算过
+        nums.push_back(1);
+        auto dfs = [&](auto&& dfs, int s, int i) -> long long {
+            if (s == 0) {
+                return 1; // 找到一个特别排列
+            }
+            auto& res = memo[s][i]; // 注意这里是引用
+            if (res != -1) { // 之前计算过
+                return res;
+            }
+            res = 0;
+            for (int j = 0; j < n; j++) {
+                if ((s >> j & 1) && (nums[i] % nums[j] == 0 || nums[j] % nums[i] == 0)) {
+                    res += dfs(dfs, s ^ (1 << j), j);
+                }
+            }
+            return res;
+        };
+        return dfs(dfs, u,n) % 1'000'000'007;
+    }
+};
+```
+
