@@ -1705,6 +1705,14 @@
 - 2741\.特别的排列
 
   **状压DP**
+  
+- 2734\.执行子串操作后的字典序最小
+
+  签到 贪心
+  
+- 2742\.给墙壁刷油漆
+
+  01背包DP
 
 ## 算法
 
@@ -45893,6 +45901,121 @@ public:
             return res;
         };
         return dfs(dfs, u,n) % 1'000'000'007;
+    }
+};
+```
+
+##### 2734\.执行子串操作后的字典序最小字符串
+
+[题目](https://leetcode.cn/problems/lexicographically-smallest-string-after-substring-operation)
+
+```python
+class Solution:
+    def smallestString(self, s: str) -> str:
+        a, n = [v for v in s], len(s)
+        if set(a) == {'a'}:
+            a[-1] = 'z'
+            return ''.join(a)
+        for i in range(n):
+            if s[i] != 'a':
+                for j in range(i,n):
+                    if s[j] == 'a':
+                        break
+                    a[j] = chr(ord(a[j])-1)
+                break
+        return ''.join(a)
+```
+
+优雅：
+
+```python
+class Solution:
+    def smallestString(self, s: str) -> str:
+        t = list(s)
+        for i, c in enumerate(t):
+            if c == 'a':
+                continue
+            # 继续向后遍历
+            for j in range(i, len(t)):
+                if t[j] == 'a':
+                    break
+                t[j] = chr(ord(t[j]) - 1)
+            return ''.join(t)
+        # 所有字母均为 a
+        t[-1] = 'z'
+        return ''.join(t)
+```
+
+##### 2742\.给墙壁刷油漆
+
+[题目](https://leetcode.cn/problems/painting-the-walls)
+
+01 背包：付费 $time_i$ 获得 $cost_i+1$ 的墙，要求墙数 $\ge n$ 下的最小花费。用墙做 DP。
+
+```c++
+class Solution {
+public:
+    int paintWalls(vector<int>& cost, vector<int>& time) {
+        int n = cost.size(), m = *max_element(time.begin(), time.end()) + 1;
+        int k = n + m, inf = 1e9, ans = inf;
+        vector<int> dp(k+3, inf);
+        dp[0] = 0;
+        for(int i = 0; i < n; ++i) {
+            for(int j = k; j >= time[i] + 1; --j) {
+                dp[j] = min(dp[j], dp[j-time[i]-1] + cost[i]);
+            }
+        }
+        for(int i = n; i <= k; ++i) {
+            ans = min(ans, dp[i]);
+        }
+        return ans;
+    }
+};
+```
+
+优雅：
+
+```c++
+class Solution {
+public:
+    int paintWalls(vector<int> &cost, vector<int> &time) {
+        int n = cost.size();
+        vector<int> f(n + 1, INT_MAX / 2); // 防止加法溢出
+        f[0] = 0;
+        for (int i = 0; i < n; i++) {
+            int c = cost[i], t = time[i] + 1; // 注意这里加一了
+            for (int j = n; j; j--) {
+                f[j] = min(f[j], f[max(j - t, 0)] + c);
+            }
+        }
+        return f[n];
+    }
+};
+```
+
+解法二：设 $i$ 是还要刷几个墙，$j$ 是还能免费刷几个墙，可以记忆化 DFS：
+
+```c++
+class Solution {
+public:
+    int paintWalls(vector<int>& cost, vector<int>& time) {
+        int n = cost.size();
+        vector<vector<int>> memo(n, vector<int>(n * 2 + 1, -1)); // -1 表示没有计算过
+        auto dfs = [&](auto&& dfs, int i, int j) -> int {
+            if (j > i) { // 剩余的墙都可以免费刷
+                return 0;
+            }
+            if (i < 0) { // 上面 if 不成立，意味着 j < 0，不符合题目要求
+                return INT_MAX / 2; // 防止加法溢出
+            }
+            // 注意 res 是引用
+            int& res = memo[i][j + n]; // 加上偏移量 n，防止出现负数
+            if (res != -1) { // 之前计算过
+                return res;
+            }
+            return res = min(dfs(dfs, i - 1, j + time[i]) + cost[i], dfs(dfs, i - 1, j - 1));
+        };
+        return dfs(dfs, n - 1, 0);
     }
 };
 ```
