@@ -4897,7 +4897,7 @@ ip地址有五类，局域网c类
 
 53号端口是dns服务器专用
 
-
+> [网络性能指标常用指令](https://www.xiaolincoding.com/os/9_linux_cmd/linux_network.html) [日志PV,UV分析参考](https://www.xiaolincoding.com/os/9_linux_cmd/pv_uv.html)
 
 ##### hostname
 

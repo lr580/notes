@@ -1713,6 +1713,14 @@
 - 2742\.给墙壁刷油漆
 
   01背包DP
+  
+- 2710\.移除字符串中的尾随零
+
+  签到 / 正则表达式
+  
+- 494\.目标和
+
+  折半搜索 / <u>01背包DP</u>
 
 ## 算法
 
@@ -46016,6 +46024,132 @@ public:
             return res = min(dfs(dfs, i - 1, j + time[i]) + cost[i], dfs(dfs, i - 1, j - 1));
         };
         return dfs(dfs, n - 1, 0);
+    }
+};
+```
+
+##### 2710\.移除字符串中的尾随零
+
+[题目](https://leetcode.cn/problems/remove-trailing-zeros-from-a-string/description/)
+
+各语言一句话题解：
+
+```python
+return num.rstrip('0')
+```
+
+```java
+return num.replaceAll("0+$", "");
+```
+
+```c++
+s.erase(s.begin() + 1 + s.find_last_not_of('0'), s.end()); // 原地操作
+return s;
+```
+
+
+
+##### 494\.目标和
+
+[题目](https://leetcode.cn/problems/target-sum)
+
+折半搜索 DFS，这里用二进制枚举常数优化，把后半部分搜索结果存起来，与前半部分合并
+
+时间 $O(n2^{\frac n2})$，空间 $O(2^{\frac n2})$。
+
+```c++
+class Solution {
+public:
+    int findTargetSumWays(vector<int>& nums, int target) {
+        int n = nums.size(), ans = 0;
+        int n1=n/2, n2=n-n1;
+        map<int,int> c;
+        for(int i=0;i<1<<n1;++i) {
+            int s = 0;
+            for(int j=0;j<n1;++j) {
+                if(i&(1<<j)) s+=nums[n2+j];
+                else s-=nums[n2+j];
+            }
+            ++c[s];
+        }
+        for(int i=0;i<1<<n2;++i) {
+            int s = 0;
+            for(int j=0;j<n2;++j) {
+                if(i&(1<<j)) s+=nums[j];
+                else s-=nums[j];
+            }
+            ans += c[target-s];
+        }
+        return ans;
+    }
+};
+```
+
+> 不折半的二进制枚举，理论可过：$O(2^n)$ 时间
+>
+> ```c++
+> class Solution {
+> public:
+>     int findTargetSumWays(vector<int>& nums, int target) {
+>         int n = nums.size(), ans = 0;
+>         for(int i=0;i<1<<n;++i) {
+>             int s = 0;
+>             for(int j=0;j<n;++j) {
+>                 if(i&(1<<j)) s += nums[j];
+>                 else s -= nums[j];
+>             }
+>             ans += s == target;
+>         }
+>         return ans;
+>     }
+> };
+> ```
+
+记忆化 DFS：
+
+设数组和为 $sum$，当前方案里负元素的绝对值之和为 $neg$，则正元素和为 $sum-neg$，即要求 $(sum-neg)-neg=target$ 解得 $neg=\dfrac{sum-target}2$。
+
+也就是说问题转化为，有 $n$ 个元素，选与不选（选就是进负数组），能否凑够和为 $neg$。
+
+那么直接变成 01 背包即可。
+
+```c++
+class Solution {
+public:
+    int findTargetSumWays(vector<int> &nums, int target) {
+        target += accumulate(nums.begin(), nums.end(), 0);
+        if (target < 0 || target % 2) return 0;
+        target /= 2;
+
+        int n = nums.size(), cache[n][target + 1];
+        memset(cache, -1, sizeof(cache)); // -1 表示没用访问过
+        function<int(int, int)> dfs = [&](int i, int c) -> int {
+            if (i < 0) return c == 0;
+            int &res = cache[i][c];
+            if (res != -1) return res;
+            if (c < nums[i]) return res = dfs(i - 1, c);
+            return res = dfs(i - 1, c) + dfs(i - 1, c - nums[i]);
+        };
+        return dfs(n - 1, target);
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    int findTargetSumWays(vector<int> &nums, int target) {
+        target += accumulate(nums.begin(), nums.end(), 0);
+        if (target < 0 || target % 2) return 0;
+        target /= 2;
+
+        int f[target + 1];
+        memset(f, 0, sizeof(f));
+        f[0] = 1;
+        for (int x : nums)
+            for (int c = target; c >= x; --c)
+                f[c] += f[c - x];
+        return f[target];
     }
 };
 ```
