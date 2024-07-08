@@ -1593,6 +1593,8 @@ cp a d #文件对文件 或 文件对文件夹下同名文件 或 文件夹对�
 
 concatenate
 
+> 文件太大影响运行环境，对大日志不应该 cat，建议用 less/tail [参考](https://www.xiaolincoding.com/os/9_linux_cmd/pv_uv.html)
+
 cat 主要有三大功能：
 
 1.一次显示整个文件:
@@ -3979,6 +3981,28 @@ wine  notepad #（记事本）
 wineboot #（ 重启wine）
 ```
 
+#### 文本操作
+
+##### awk
+
+以第四列（空格分隔）输出 `access.log`：
+
+```sh
+awk '{print $4}' access.log
+```
+
+##### sort
+
+多行内容排序
+
+##### uniq
+
+有序内容去重
+
+```sh
+awk '{print $4}' access.log | sort | uniq -c
+```
+
 
 
 #### 文件操作
@@ -4897,8 +4921,6 @@ ip地址有五类，局域网c类
 
 53号端口是dns服务器专用
 
-> [网络性能指标常用指令](https://www.xiaolincoding.com/os/9_linux_cmd/linux_network.html) [日志PV,UV分析参考](https://www.xiaolincoding.com/os/9_linux_cmd/pv_uv.html)
-
 ##### hostname
 
 `hostname`主机名字查看
@@ -4920,6 +4942,8 @@ sudo hostnamectl set-hostname myDebian #myDebian为修改名
 ##### ifconfig
 
 interface configure
+
+属于 `net-tools` 软件包
 
 `ifconfig` (不是ipconfig) 查看网卡信息（当前活动的）
 
@@ -4982,9 +5006,9 @@ ping 192.168.1.254
 ifconfig eth0:0 200.0.0.1/24
 ```
 
+##### ip
 
-
-
+`iproute2` 软件包
 
 ##### dhclient
 
@@ -5072,7 +5096,7 @@ arp 地址解析协议
 
 ##### netstat
 
-查看网络连接信息
+查看网络连接信息，性能不如 ss
 
 Network Statistics
 
@@ -5127,9 +5151,7 @@ pid号：进程号
 > LAST_ACK：等待所有分组死掉
 > ```
 
-
-
-
+也可以参见下文的 `socket信息`
 
 ##### ping
 
@@ -5160,7 +5182,9 @@ pid号：进程号
 -v 详细显示指令的执行过程。
 ```
 
+显示的内容主要包含 `icmp_seq`（ICMP 序列号）、`TTL`（生存时间，或者跳数）以及 `time` （往返延时），而且最后会汇总本次测试的情况，如果网络没有丢包，`packet loss` 的百分比就是 0。
 
+不过，需要注意的是，`ping` 不通服务器并不代表 HTTP 请求也不通，因为有的服务器的防火墙是会禁用 ICMP 协议的
 
 ##### telnet
 
@@ -5236,9 +5260,34 @@ service iptables status
 
 [参考](https://blog.csdn.net/solaraceboy/article/details/89190393)
 
+性能比 `netstat` 好
+
 socket statistics 的缩写。ss 命令可以用来获取socket 统计信息，它可以显示与 netstat 类似的内容。但 ss 的优势在于它能够显示更多更详细的有关TCP和连接状态的信息，而且比netstat更快速更高效
 
+可以参见下文的 `socket信息`
 
+##### sar
+
+可以使用 `sar` 命令当前网络的吞吐率和 PPS，用法是给 `sar` 增加 `-n` 参数就可以查看网络的统计信息，比如
+
+- sar -n DEV，显示网口的统计数据；
+- sar -n EDEV，显示关于网络错误的统计数据；
+- sar -n TCP，显示 TCP 的统计数据
+
+它们的含义：
+
+- `rxpck/s` 和 `txpck/s` 分别是接收和发送的 PPS，单位为包 / 秒。
+- `rxkB/s` 和 `txkB/s` 分别是接收和发送的吞吐率，单位是 KB/ 秒。
+- `rxcmp/s` 和 `txcmp/s` 分别是接收和发送的压缩数据包数，单位是包 / 秒。
+
+##### ethtool
+
+对于带宽，使用 `ethtool` 命令来查询，它的单位通常是 `Gb/s` 或者 `Mb/s`，这里小写字母 `b` ，表示比特而不是字节。我们通常提到的千兆网卡、万兆网卡等，单位也都是比特（*bit*）。如下可以看到， eth0 网卡就是一个千兆网卡：
+
+```bash
+$ ethtool eth0 | grep Speed
+ # Speed: 1000Mb/s
+```
 
 ##### getenforce
 
@@ -5398,9 +5447,81 @@ firewall-cmd --reload
 firewall-cmd --query-port=6379/tcp
 ```
 
+#### 网络指标
 
+相当于是 `网络操作` 的应用版
 
+> [网络性能指标常用指令](https://www.xiaolincoding.com/os/9_linux_cmd/linux_network.html) [日志PV,UV分析参考](https://www.xiaolincoding.com/os/9_linux_cmd/pv_uv.html)
 
+##### 性能指标
+
+- *带宽*，表示链路的最大传输速率，单位是 b/s （比特 / 秒），带宽越大，其传输能力就越强。
+- *延时*，表示请求数据包发送后，收到对端响应，所需要的时间延迟。不同的场景有着不同的含义，比如可以表示建立 TCP 连接所需的时间延迟，或一个数据包往返所需的时间延迟。
+- *吞吐率*，表示单位时间内成功传输的数据量，单位是 b/s（比特 / 秒）或者 B/s（字节 / 秒），吞吐受带宽限制，带宽越大，吞吐率的上限才可能越高。
+- *PPS*，全称是 Packet Per Second（包 / 秒），表示以网络包为单位的传输速率，一般用来评估系统对于网络的转发能力。
+
+当然，除了以上这四种基本的指标，还有一些其他常用的性能指标，比如：
+
+- *网络的可用性*，表示网络能否正常通信；
+- *并发连接数*，表示 TCP 连接数量；
+- *丢包率*，表示所丢失数据包数量占所发送数据组的比率；
+- *重传率*，表示重传网络包的比例；
+
+##### 配置查看
+
+`ifconfig` 或 `ip`
+
+IP 地址、子网掩码、MAC 地址、网关地址、MTU 大小、网口的状态以及网络包收发的统计信息
+
+第一，网口的连接状态标志。其实也就是表示对应的网口是否连接到交换机或路由器等设备，如果 `ifconfig` 输出中看到有 `RUNNING`，或者 `ip` 输出中有 `LOWER_UP`，则说明物理网络是连通的，如果看不到，则表示网口没有接网线。
+
+第二，MTU 大小。默认值是 `1500` 字节，其作用主要是限制网络包的大小，如果 IP 层有一个数据报要传，而且网络包的长度比链路层的 MTU 还大，那么 IP 层就需要进行分片，即把数据报分成若干片，这样每一片就都小于 MTU。事实上，每个网络的链路层 MTU 可能会不一样，所以你可能需要调大或者调小 MTU 的数值。
+
+第三，网口的 IP 地址、子网掩码、MAC 地址、网关地址。这些信息必须要配置正确，网络功能才能正常工作。
+
+第四，网络包收发的统计信息。通常有网络收发的字节数、包数、错误数以及丢包情况的信息，如果 `TX`（发送） 和 `RX`（接收） 部分中 errors、dropped、overruns、carrier 以及 collisions 等指标不为 0 时，则说明网络发送或者接收出问题了，这些出错统计信息的指标意义如下：
+
+- *errors* 表示发生错误的数据包数，比如校验错误、帧同步错误等；
+- *dropped* 表示丢弃的数据包数，即数据包已经收到了 Ring Buffer（这个缓冲区是在内核内存中，更具体一点是在网卡驱动程序里），但因为系统内存不足等原因而发生的丢包；
+- *overruns* 表示超限数据包数，即网络接收/发送速度过快，导致 Ring Buffer 中的数据包来不及处理，而导致的丢包，因为过多的数据包挤压在 Ring Buffer，这样 Ring Buffer 很容易就溢出了；
+- *carrier* 表示发生 carrirer 错误的数据包数，比如双工模式不匹配、物理电缆出现问题等；
+- *collisions* 表示冲突、碰撞数据包数；
+
+`ifconfig` 和 `ip` 命令只显示的是网口的配置以及收发数据包的统计信息，而看不到协议栈里的信息
+
+##### socket信息
+
+`netstat` 或 `ss`
+
+都包含了 socket 的状态（*State*）、接收队列（*Recv-Q*）、发送队列（*Send-Q*）、本地地址（*Local Address*）、远端地址（*Foreign Address*）、进程 PID 和进程名称（*PID/Program name*）等。
+
+接收队列（*Recv-Q*）和发送队列（*Send-Q*）比较特殊，在不同的 socket 状态。它们表示的含义是不同的。
+
+当 socket 状态处于 `Established`时：
+
+- *Recv-Q* 表示 socket 缓冲区中还没有被应用程序读取的字节数；
+- *Send-Q* 表示 socket 缓冲区中还没有被远端主机确认的字节数；
+
+而当 socket 状态处于 `Listen` 时：
+
+- *Recv-Q* 表示全连接队列的长度；
+- *Send-Q* 表示全连接队列的最大长度；
+
+`ss` 命令输出的统计信息相比 `netsat` 比较少，`ss` 只显示已经连接（*estab*）、关闭（*closed*）、孤儿（*orphaned*） socket 等简要统计。
+
+而 `netstat` 则有更详细的网络协议栈信息，比如上面显示了 TCP 协议的主动连接（*active connections openings*）、被动连接（*passive connection openings*）、失败重试（*failed connection attempts*）、发送（*segments send out*）和接收（*segments received*）的分段数量等各种信息
+
+##### 吞吐量
+
+sar，参见上文
+
+##### PPS
+
+ethtool，参见上文
+
+##### 连通性
+
+ping
 
 #### 网络服务
 
@@ -5895,7 +6016,15 @@ no hang up
 # 关闭后台运行：ps aux | grep server.py 然后 kill -9 PID (PID 是第二列值)
 ```
 
-
+> #### PV,UV
+>
+> [参考](https://www.xiaolincoding.com/os/9_linux_cmd/pv_uv.html)
+>
+> 用户行为：页面访问次数（*PV*）最多，访问人数（*UV*）
+>
+>  *Page View*，用户访问一个页面就是一次 PV
+>
+> *Uniq Visitor*，它代表访问人数，近似：IP 地址
 
 ## 维护
 

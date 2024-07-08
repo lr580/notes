@@ -3951,6 +3951,20 @@ print(counter1 + counter2)  # 相加: Counter({'a': 4, 'b': 3})
 print(counter1 - counter2)  # 相减: Counter({'a': 2})
 ```
 
+##### sortedlist
+
+有序集合
+
+```python
+xs = SortedList()
+xs.add(2)
+xs.add(1)
+xs.remove(1)
+print(xs[-1] - xs[0])
+```
+
+
+
 ##### namedtuple
 
 ```python
@@ -4577,6 +4591,31 @@ print(res.groupdict())
 ```
 
 直接将匹配结果直接转为字典模式，方便使用。
+
+#### heapq
+
+堆：
+
+```python
+import heapq
+heap = []
+heapq.heappush(heap, (2, '任务2'))
+heapq.heappush(heap, (1, '任务1'))
+heapq.heappush(heap, (3, '任务3'))
+while heap:
+    print(heapq.heappop(heap)) #1,2,3
+a=[1,1,4,5,1,4]
+heapq.heapify(a) #成最小堆,无返回值
+```
+
+前 k 大：
+
+```python
+max_x1, max_x2 = nlargest(2, (x + y for x, y in points)) #最大次大
+min_x1, min_x2 = nsmallest(2, (x + y for x, y in points))#最小次小
+```
+
+
 
 #### pathlib
 

@@ -1721,6 +1721,14 @@
 - 494\.目标和
 
   折半搜索 / <u>01背包DP</u>
+  
+- 3102\.最小化曼哈顿距离
+
+  **计算几何 曼哈顿距离 切比雪夫距离** <s>凸包直径</s>
+  
+- 3086\.拾起K个1需要的最少行动次数
+
+  **中位数 贪心 前缀和 +二分/+双指针**
 
 ## 算法
 
@@ -46150,6 +46158,490 @@ public:
             for (int c = target; c >= x; --c)
                 f[c] += f[c - x];
         return f[target];
+    }
+};
+```
+
+##### 3102\.最小化曼哈顿距离
+
+[题目](https://leetcode.cn/problems/minimize-manhattan-distances)
+
+切比雪夫距离：$d(A,B)=\max(|x_1-x_2|,|y_1-y_2|)$ [转化推导](https://oi-wiki.org/geometry/distance/#%E6%9B%BC%E5%93%88%E9%A1%BF%E8%B7%9D%E7%A6%BB%E4%B8%8E%E5%88%87%E6%AF%94%E9%9B%AA%E5%A4%AB%E8%B7%9D%E7%A6%BB%E7%9A%84%E7%9B%B8%E4%BA%92%E8%BD%AC%E5%8C%96) 
+
+- 将点 $(x,y)$ 变换为 $(x+y,x-y)$，原坐标系曼哈顿距离等于新坐标系切比雪夫距离
+- 将点 $(x,y)$ 变换为 $(\dfrac{x+y}2,\dfrac{x-y}2)$，原坐标系切比雪夫距离等于新坐标系曼哈顿距离
+
+求曼哈顿距离最大值，即求切比雪夫最大值，也就是横纵坐标差的最大值
+
+所以维护转化后的横纵坐标即可，暴力 set 做法：
+
+```c++
+class Solution {
+public:
+    int minimumDistance(vector<vector<int>>& points) {
+        multiset<int> xs, ys;
+        for (auto& p : points) {
+            xs.insert(p[0] + p[1]);
+            ys.insert(p[1] - p[0]);
+        }
+
+        int ans = INT_MAX;
+        for (auto& p : points) {
+            int x = p[0] + p[1], y = p[1] - p[0];
+            xs.erase(xs.find(x)); // 移除一个 x
+            ys.erase(ys.find(y)); // 移除一个 y
+
+            int dx = *xs.rbegin() - *xs.begin();
+            int dy = *ys.rbegin() - *ys.begin();
+            ans = min(ans, max(dx, dy));
+
+            xs.insert(x);
+            ys.insert(y);
+        }
+        return ans;
+    }
+};
+```
+
+直接维护最大次大、最小次小即可：
+
+```c++
+class Solution {
+    // 更新最大次大
+    void update_max(int v, int& max1, int& max2) { // 注意这里是引用
+        if (v > max1) {
+            max2 = max1;
+            max1 = v;
+        } else if (v > max2) {
+            max2 = v;
+        }
+    }
+
+    // 更新最小次小
+    void update_min(int v, int& min1, int& min2) { // 注意这里是引用
+        if (v < min1) {
+            min2 = min1;
+            min1 = v;
+        } else if (v < min2) {
+            min2 = v;
+        }
+    }
+
+public:
+    int minimumDistance(vector<vector<int>>& points) {
+        int max_x1 = INT_MIN, max_x2 = INT_MIN, max_y1 = INT_MIN, max_y2 = INT_MIN;
+        int min_x1 = INT_MAX, min_x2 = INT_MAX, min_y1 = INT_MAX, min_y2 = INT_MAX;
+
+        for (auto& p : points) {
+            int x = p[0] + p[1];
+            int y = p[1] - p[0];
+            update_max(x, max_x1, max_x2);
+            update_min(x, min_x1, min_x2);
+            update_max(y, max_y1, max_y2);
+            update_min(y, min_y1, min_y2);
+        }
+
+        int ans = INT_MAX;
+        for (auto& p : points) {
+            int x = p[0] + p[1];
+            int y = p[1] - p[0];
+            int dx = (x == max_x1 ? max_x2 : max_x1) - (x == min_x1 ? min_x2 : min_x1);
+            int dy = (y == max_y1 ? max_y2 : max_y1) - (y == min_y1 ? min_y2 : min_y1);
+            ans = min(ans, max(dx, dy));
+        }
+        return ans;
+    }
+};
+```
+
+```python
+class Solution:
+    def minimumDistance(self, points: List[List[int]]) -> int:
+        max_x1, max_x2 = nlargest(2, (x + y for x, y in points))   # x 最大次大
+        min_x1, min_x2 = nsmallest(2, (x + y for x, y in points))  # x 最小次小
+        max_y1, max_y2 = nlargest(2, (y - x for x, y in points))   # y 最大次大
+        min_y1, min_y2 = nsmallest(2, (y - x for x, y in points))  # y 最小次小
+
+        ans = inf
+        for x, y in points:
+            x, y = x + y, y - x
+            dx = (max_x2 if x == max_x1 else max_x1) - (min_x2 if x == min_x1 else min_x1)
+            dy = (max_y2 if y == max_y1 else max_y1) - (min_y2 if y == min_y1 else min_y1)
+            ans = min(ans, max(dx, dy))
+        return ans
+```
+
+
+
+错误思路：求凸包欧氏直径，删掉欧氏直径的一个端点，再求凸包新直径断定为曼哈顿直径。
+
+错误代码：
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+typedef long long ll;
+#define mn 100010
+#define cp const point &
+struct point
+{
+    ll x, y;
+    point(ll a = 0, ll b = 0) : x(a), y(b) {}
+    point operator-(cp r) const { return point(x - r.x, y - r.y); }
+    ll norm() const { return x * x + y * y; }
+};
+ll cross(cp a, cp b) { return a.x * b.y - a.y * b.x; }
+ll area(cp a, cp b, cp c) { return cross(b - a, c - a); }
+pair<point, point> diameter(vector<point>& a) { // 1-indexed
+    int n = a.size() - 1;
+    vector<point> p = a;
+    for(int i=1;i<=n;++i) {
+        if (p[i].x < p[1].x || (p[i].x == p[1].x && p[i].y < p[1].y))
+        {
+            swap(p[i], p[1]);
+        }
+    }
+    auto cmp = [&](cp a, cp b) {
+        ll v = cross(a - p[1], b - p[1]);
+        return v > 0 || (v == 0 && (a - p[1]).norm() < (b - p[1]).norm());
+    };
+    sort(p.begin()+2,p.begin()+1+n, cmp);
+    ll ss = 0;
+    vector<point> s(n+3);
+    for (ll i = 1; i <= n; ++i)
+    {
+        while (ss > 1 && cross(s[ss] - s[ss - 1], p[i] - s[ss]) <= 0)
+        {
+            --ss;
+        }
+        s[++ss] = p[i];
+    }
+    s[ss+1]=s[1];
+    if(ss<=2) {
+        return {s[2], s[1]};
+    }
+    ll ans = 0;
+    pair<point, point> res;
+     for (ll i = 1, j = 3; i <= ss; ++i)
+    {
+        while (area(s[i], s[i + 1], s[j]) <= area(s[i], s[i + 1], s[j % ss + 1]))
+        {
+            j = j % ss + 1;
+        }
+        if((s[j] - s[i]).norm() > ans) {
+            ans = (s[j] - s[i]).norm();
+            res = {s[j], s[i]};
+        }
+        if((s[j] - s[i + 1]).norm() > ans) {
+            ans = (s[j] - s[i + 1]).norm();
+            res = {s[j], s[i + 1]};
+        }
+    }
+    // cout<<"Points: \n";
+    // for(int i=1;i<=n;++i) {
+    //     cout<<p[i].x <<" " <<p[i].y<<'\n';
+    // }
+    // cout<<"Convex: \n";
+    // for(int i=1;i<=ss;++i) {
+    //     cout<<s[i].x <<" " <<s[i].y<<'\n';
+    // }
+    // cout << "diameter: " << res.first.x << " " << res.first.y << " " << res.second.x << " " << res.second.y << "\n";
+    return res;
+}
+class Solution {
+public:
+    int minimumDistance(vector<vector<int>>& points) {
+        int n = points.size();
+        vector<point> p(n+1);
+        for(int i=1;i<=n;++i) {
+            p[i].x = points[i-1][0], p[i].y = points[i-1][1];
+        }
+        auto d = diameter(p);
+        vector<point> p1 = p, p2 = p;
+        auto remove = [](vector<point>& p, point t) {
+            for(int i = 1; i < p.size(); ++i) {
+                if(p[i].x == t.x && p[i].y == t.y) {
+                    p.erase(p.begin()+i);
+                    break;
+                }
+            }
+        };
+        remove(p1, d.first), remove(p2, d.second);
+        auto distance = [&](pair<point,point> d) {
+            auto a = d.first, b = d.second;
+            return abs(a.x-b.x)+abs(a.y-b.y);
+        };
+        return min(distance(diameter(p1)), distance(diameter(p2)));
+    }
+};
+```
+
+反例：
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+# 定义计算欧式距离的函数
+def euclidean_distance(p1, p2):
+    return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+
+# 定义要画的点的坐标列表
+# points = np.array([[7,7],[9,3],[8,1],[8,8],[8,9],[5,1],[3,2],[6,9],[3,6]])
+# points = np.array([[7,7],[9,3],[8,1],[8,8],[8,9],[5,1],[6,9],[3,6]]) # 删掉[3,2]
+points = np.array([[7,7],[9,3],[8,1],[8,8],[3,2],[5,1],[6,9],[3,6]]) # 删掉[8,9]
+
+
+# 初始化变量来存储最远点对和距离
+max_manhattan_distance = 0
+max_euclidean_distance = 0
+max_manhattan_pair = None
+max_euclidean_pair = None
+
+# 计算所有点对之间的曼哈顿距离和欧式距离，并找到最大距离的点对
+for i in range(len(points)):
+    for j in range(i+1, len(points)):
+        p1 = points[i]
+        p2 = points[j]
+        manhattan_distance = np.abs(p1[0] - p2[0]) + np.abs(p1[1] - p2[1])
+        euclidean_distance = np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+        
+        if manhattan_distance > max_manhattan_distance:
+            max_manhattan_distance = manhattan_distance
+            max_manhattan_pair = (p1, p2)
+        
+        if euclidean_distance > max_euclidean_distance:
+            max_euclidean_distance = euclidean_distance
+            max_euclidean_pair = (p1, p2)
+
+# 提取点对
+p1_manhattan, p2_manhattan = max_manhattan_pair
+p1_euclidean, p2_euclidean = max_euclidean_pair
+
+# 输出最大曼哈顿距离和欧式距离
+print(f"Max Manhattan Distance (blue): {max_manhattan_distance}")
+print(f"Max Euclidean Distance (green): {max_euclidean_distance:.2f}")
+
+# 创建一个新的图形
+plt.figure()
+
+# 绘制网格
+plt.grid(True)
+
+# 绘制点
+x_coords, y_coords = zip(*points)
+plt.scatter(x_coords, y_coords, color='red', marker='o')
+
+# 绘制曼哈顿距离最远的点对之间的连线
+plt.plot([p1_manhattan[0], p2_manhattan[0]], [p1_manhattan[1], p2_manhattan[1]], linestyle='-', color='blue')
+
+# 绘制欧式距离最远的点对之间的连线
+plt.plot([p1_euclidean[0], p2_euclidean[0]], [p1_euclidean[1], p2_euclidean[1]], linestyle='-', color='green')
+
+# 设置坐标轴范围和标题
+plt.xlim(0, 10)
+plt.ylim(0, 10)
+plt.xticks(range(11))  # 设置 x 轴刻度
+plt.yticks(range(11))  # 设置 y 轴刻度
+plt.title('Points on a Grid')
+
+# 显示图形
+plt.show()
+```
+
+反例里：
+
+```
+Max Manhattan Distance (blue): 11
+Max Euclidean Distance (green): 8.25
+```
+
+其中，欧氏最大的曼哈顿值为 10。
+
+##### 3086\.拾起K个1需要的最少行动次数
+
+[题目](https://leetcode.cn/problems/minimum-moves-to-pick-k-ones)
+
+- 枚举每个位置，如果该位置及其左右的1吃掉了还有不断用操作二把相邻0改成1再吃掉足够的话，就直接这么做
+- 不够的话，先不断这么做直到耗尽了 `maxChanges`，剩下还需要凑 $c=k-maxChanges$ 个
+
+设 $1$ 的下标数组为 $pos$，问题转化为在 $pos$ 里找到 $c$ 长连续子段，求该子段中位数到其元素的距离和
+
+中位数的距离和最小，其证明参见我之前的笔记或 [here](https://leetcode.cn/problems/5TxKeK/solutions/2627350/zhuan-huan-zhong-wei-shu-tan-xin-dui-din-7r9b/)
+
+利用前缀和，可以 $O(1)$ 求出子数组中位数距离和。其求解过程参见 [here](https://leetcode.cn/problems/minimum-operations-to-make-all-array-elements-equal/solutions/2191417/yi-tu-miao-dong-pai-xu-qian-zhui-he-er-f-nf55/)
+
+其中下面代码 `s1` 的 `index*(i-left)` 是左边矩形，前缀和 `sum[i]-sum[left]` 是左边下面三角形，相减得到图解蓝色区域三角形。
+
+`s2` 的 `index` 乘积是与上面同高的矩形，前缀和是梯形，梯形减去矩形得到上面绿色三角形区域。
+
+```c++
+class Solution {
+public:
+    long long minimumMoves(vector<int> &nums, int k, int maxChanges) {
+        vector<int> pos;
+        int c = 0; // nums 中连续的 1 长度
+        for (int i = 0; i < nums.size(); i++) {
+            if (nums[i] == 0) continue;
+            pos.push_back(i); // 记录 1 的位置
+            c = max(c, 1);
+            if (i > 0 && nums[i - 1] == 1) {
+                if (i > 1 && nums[i - 2] == 1) {
+                    c = 3; // 有 3 个连续的 1
+                } else {
+                    c = max(c, 2); // 有 2 个连续的 1
+                }
+            }
+        }
+
+        c = min(c, k);
+        if (maxChanges >= k - c) {
+            // 其余 k-c 个 1 可以全部用两次操作得到
+            return max(c - 1, 0) + (k - c) * 2;
+        }
+
+        int n = pos.size();
+        vector<long long> sum(n + 1);
+        for (int i = 0; i < n; i++) {
+            sum[i + 1] = sum[i] + pos[i];
+        }
+
+        long long ans = LLONG_MAX;
+        // 除了 maxChanges 个数可以用两次操作得到，其余的 1 只能一步步移动到 pos[i]
+        int size = k - maxChanges;
+        for (int right = size; right <= n; right++) {
+            // s1+s2 是 j 在 [left, right) 中的所有 pos[j] 到 index=pos[(left+right)/2] 的距离之和
+            int left = right - size;
+            int i = left + size / 2;
+            long long index = pos[i];
+            long long s1 = index * (i - left) - (sum[i] - sum[left]);
+            long long s2 = sum[right] - sum[i] - index * (right - i);
+            ans = min(ans, s1 + s2);
+        }
+        return ans + maxChanges * 2;
+    }
+};
+```
+
+也可以用二分来枚举 `c` 的长度，更劣一些，也能做。也就是二分原数组长度，用前缀和求出这个区间的 1 够不够，够的话再计算距离和。
+
+```c++
+class Solution {
+public:
+    long long minimumMoves(vector<int>& nums, int k, int maxChanges) {
+        int n = nums.size();
+        auto f = [&](int i) -> int {
+            int x = nums[i];
+            if (i - 1 >= 0) {
+                x += nums[i - 1];
+            }
+            if (i + 1 < n) {
+                x += nums[i + 1];
+            }
+            return x;
+        };
+
+        vector<long long> indexSum(n + 1), sum(n + 1);
+        for (int i = 0; i < n; i++) {
+            indexSum[i + 1] = indexSum[i] + nums[i] * i;
+            sum[i + 1] = sum[i] + nums[i];
+        }
+        long long res = LONG_LONG_MAX;
+        for (int i = 0; i < n; i++) {
+            if (f(i) + maxChanges >= k) {
+                if (k <= f(i)) {
+                    res = min(res, (long long)k - nums[i]);
+                } else {
+                    res = min(res, (long long)2 * k - f(i) - nums[i]);
+                }
+                continue;
+            }
+            int left = 0, right = n;
+            while (left <= right) {
+                int mid = (left + right) / 2;
+                int i1 = max(i - mid, 0), i2 = min(i + mid, n - 1);
+                if (sum[i2 + 1] - sum[i1] >= k - maxChanges) {
+                    right = mid - 1;
+                } else {
+                    left = mid + 1;
+                }
+            }
+            int i1 = max(i - left, 0), i2 = min(i + left, n - 1);
+            if (sum[i2 + 1] - sum[i1] > k - maxChanges) {
+                i1++;
+            }
+            long long count1 = sum[i + 1] - sum[i1], count2 = sum[i2 + 1] - sum[i + 1];
+            res = min(res, indexSum[i2 + 1] - indexSum[i + 1] - i * count2 + i * count1 - (indexSum[i + 1] - indexSum[i1]) + 2 * maxChanges);
+        }
+        return res;
+    }
+};
+```
+
+也可以用双指针，维护左右的还要的 1。
+
+```c++
+class Solution {
+public:
+    long long minimumMoves(vector<int>& nums, int k, int maxChanges) {
+        int n = nums.size();
+        auto f = [&](int i) -> int {
+            int x = nums[i];
+            if (i - 1 >= 0) {
+                x += nums[i - 1];
+            }
+            if (i + 1 < n) {
+                x += nums[i + 1];
+            }
+            return x;
+        };
+
+        int left = 0, right = -1;
+        long long leftSum = 0, rightSum = 0;
+        long long leftCount = 0, rightCount = 0;
+        long long res = LONG_LONG_MAX;
+        for (int i = 0; i < n; i++) {
+            if (f(i) + maxChanges >= k) {
+                if (k <= f(i)) {
+                    res = min(res, (long long)k - nums[i]);
+                } else {
+                    res = min(res, (long long)2 * k - f(i) - nums[i]);
+                }
+            }
+            if (k <= maxChanges) {
+                continue;
+            }
+            while (right + 1 < n && (right - i < i - left || leftCount + rightCount + maxChanges < k)) {
+                if (nums[right + 1] == 1) {
+                    rightCount++;
+                    rightSum += right + 1;
+                }
+                right++;
+            }
+            while (leftCount + rightCount + maxChanges > k) {
+                if (right - i < i - left || right - i == i - left && nums[left] == 1) {
+                    if (nums[left] == 1) {
+                        leftCount--;
+                        leftSum -= left;
+                    }
+                    left++;
+                } else {
+                    if (nums[right] == 1) {
+                        rightCount--;
+                        rightSum -= right;
+                    }
+                    right--;
+                }
+            }
+            res = min(res, leftCount * i - leftSum + rightSum - rightCount * i + 2 * maxChanges);
+            if (nums[i] == 1) {
+                leftCount++;
+                leftSum += i;
+                rightCount--;
+                rightSum -= i;
+            }
+        }
+        return res;
     }
 };
 ```
