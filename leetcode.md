@@ -1729,6 +1729,14 @@
 - 3086\.拾起K个1需要的最少行动次数
 
   **中位数 贪心 前缀和 +二分/+双指针**
+  
+- 202\.快乐数
+
+  STL / <u>快慢指针 / 打表</u>
+  
+- 2970\.统计移除递增子数组的数目I
+
+  暴力 / <u>双指针</u>
 
 ## 算法
 
@@ -46642,6 +46650,118 @@ public:
             }
         }
         return res;
+    }
+};
+```
+
+##### 202\.快乐数
+
+[题目](https://leetcode.cn/problems/happy-number)
+
+可以证明，值不会越来越大趋于无穷，因为三位数最大得到 $999\to3\cdot 9^2=243$，大于三位数的，新得到的一定是更小的位数。所以最坏只会困在 $243$ 内的死循环。
+
+可以使用哈希表判循环：
+
+```c++
+class Solution {
+public:
+    bool isHappy(int n)
+    {
+        unordered_set<int> p;
+        while(n!=1)
+        {
+            if(p.count(n)) return false;
+            int m=n, r=0,s;
+            while(m)
+            {
+                s=m%10;
+                r+=s*s;
+                m/=10;
+            }
+            p.insert(n);
+            n=r;
+        }
+        return true;
+    }
+};
+```
+
+也可以用快慢指针：
+
+```python
+def isHappy(self, n: int) -> bool:  
+    def get_next(number):
+        total_sum = 0
+        while number > 0:
+            number, digit = divmod(number, 10)
+            total_sum += digit ** 2
+        return total_sum
+
+    slow_runner = n
+    fast_runner = get_next(n)
+    while fast_runner != 1 and slow_runner != fast_runner:
+        slow_runner = get_next(slow_runner)
+        fast_runner = get_next(get_next(fast_runner))
+    return fast_runner == 1
+```
+
+打表，可以发现有且仅有一个循环圈，即 $4\to16\to37\to58\to89\to145\to42\to20\to4$，所有大于 $243$ 的一定会在有限次数内进入 $243$ 不用考虑。
+
+```python
+def isHappy(self, n: int) -> bool:
+
+    cycle_members = {4, 16, 37, 58, 89, 145, 42, 20}
+
+    def get_next(number):
+        total_sum = 0
+        while number > 0:
+            number, digit = divmod(number, 10)
+            total_sum += digit ** 2
+        return total_sum
+
+    while n != 1 and n not in cycle_members:
+        n = get_next(n)
+
+    return n == 1
+```
+
+##### 2970\.统计移除递增子数组的数目I
+
+[题目](https://leetcode.cn/problems/count-the-number-of-incremovable-subarrays-i)
+
+可以暴力，$O(n^2)$(预处理单调前后缀)或 $O(n^3)$，略。
+
+移除子数组后，剩余部分是递增前缀+递增后缀，设后缀第一个数为 $a_j$，对固定的 $j$(也就是固定的移除右端点)，求有多少不同的子数组，设前缀最后一个数为 $a_i$，则必然有 $a_i < a_j$。
+
+倒序枚举 $j$，直到 $a_j\ge a_{j+1}$，因为此时后缀不再满足题设。而 $j$ 越小，$a_j$ 严格单调递减，则满足条件的 $a_i$ 必然也单调递减，也就是说 $a_{j+1}$ 都不满足的 $i$ 一定不会满足 $a_j$，所以满足单调性，可以滑动窗口。
+
+则对固定的 $(i,j)$，有 $[0,j-1],[1,j-1],\cdots,[i+1,j-1]$ 可以删除(最后一个区间即恰把不单调的删掉，其他则删多) ，即共有 $i+2$ 个区间满足。若 $i=-1$ 也满足该情况。要求 $i,j$ 间必须有一个数，即 $j-i\ge 2$。
+
+若 $i=n-1$ 直接输出 $\dfrac{n(n+1)}2$ 即全体子数组，此时满足 $i=j-1$。也就是说只要原数组不是严格递增，一定满足 $j-i\ge 2$。
+
+```c++
+class Solution {
+public:
+    int incremovableSubarrayCount(vector<int> &a) {
+        int n = a.size();
+        int i = 0;
+        while (i < n - 1 && a[i] < a[i + 1]) {
+            i++;
+        }
+        if (i == n - 1) { // 每个非空子数组都可以移除
+            return n * (n + 1) / 2;
+        }
+
+        int ans = i + 2; // 不保留后缀的情况，一共 i+2 个
+        // 枚举保留的后缀为 a[j:]
+        for (int j = n - 1; j == n - 1 || a[j] < a[j + 1]; j--) {
+            while (i >= 0 && a[i] >= a[j]) {
+                i--;
+            }
+            // 可以保留前缀 a[:i+1], a[:i], ..., a[:0] 一共 i+2 个
+            ans += i + 2;
+        }
+        return ans;
     }
 };
 ```
