@@ -1268,7 +1268,7 @@ list(zip(*[((1, 1), False, 'd'), ((2, 2), True, 'e'), ((1, 3), False, 'f')]))
 
 ```python
 x=15
-x.bit_count() #数1; 15.bit_count() 报错
+x.bit_count() #数1; 15.bit_count() 报错, Python 3.10
 x.bit_length() #二进制串长度
 ```
 
@@ -1474,7 +1474,6 @@ append在尾部添加一个元素
 > print(a, a[3], a[3][3][3]) #都输出同一个内容 [6, 5, 4, [...]]
 > ```
 >
-> 
 
 pop(i)删除下标i的元素并返回，其余元素往前顶来补充，不填i代表最后元素，越界报错IndexError
 
@@ -1512,6 +1511,8 @@ count(x)统计有多少个x元素，找不到返回0
 > 判断某元素不在 list: `x not in arr` 或 `not x in arr`
 
 直接使用 del 可以删除一个下标/切片区间，并让后面元素顶上，如 `del s[1:]`
+
+可以子数组直接赋值，如 `a[l:r]=sorted(a[l:r])` (如果长度不匹配变新的长度)
 
 #### tuple
 
@@ -5042,6 +5043,8 @@ from itertools import *
   `list(accumulate(numbers, lambda x, y: x * y))` 前缀积(或 `operator.mul` 为参数)
 
 - `pairwise(a)` 返回 a 相邻两个元素值组成的元组的迭代器
+
+- `tee(a, n=2)` 返回 a 的多个迭代器，如 `x,y=tee(a)`
 
 例：
 

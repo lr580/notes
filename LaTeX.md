@@ -122,7 +122,7 @@ int a=1;
 <div STYLE="page-break-after: always;"></div>
 ```
 
-
+可以去偏好设置-markdown 开显示行号
 
 ### 其他设置
 

@@ -1737,6 +1737,10 @@
 - 2970\.统计移除递增子数组的数目I
 
   暴力 / <u>双指针</u>
+  
+- 3011\.判断一个数组是否可以变为有序
+
+  滑动窗口+排序 / <u>滑动窗口</u>
 
 ## 算法
 
@@ -46764,5 +46768,61 @@ public:
         return ans;
     }
 };
+```
+
+##### 3011\.判断一个数组是否可以变为有序
+
+[题目](https://leetcode.cn/problems/find-if-array-can-be-sorted/)
+
+滑动窗口排序：$O(n\log n)$
+
+```python
+class Solution:
+    def canSortArray(self, nums: List[int]) -> bool:
+        n, l = len(nums), 0
+        while l < n:
+            r = l+1 # [l, r) share the same bit count
+            while r < n and nums[r].bit_count() == nums[l].bit_count():
+                r += 1
+            nums[l:r] = sorted(nums[l:r])
+            l = r
+        return nums == sorted(nums)
+```
+
+更常数优化：(pariwise 递增)
+
+```python
+class Solution:
+    def canSortArray(self, nums: List[int]) -> bool:
+        n = len(nums)
+        i = 0
+        while i < n:
+            start = i
+            ones = nums[i].bit_count()
+            i += 1
+            while i < n and nums[i].bit_count() == ones:
+                i += 1
+            nums[start:i] = sorted(nums[start:i])
+        return all(x <= y for x, y in pairwise(nums))
+```
+
+方法二：若当前段每个数都大于上一组最大值，一定可以排成递增，否则不行
+
+```python
+class Solution:
+    def canSortArray(self, nums: List[int]) -> bool:
+        n = len(nums)
+        i = pre_max = 0
+        while i < n:
+            mx = 0
+            ones = nums[i].bit_count()
+            while i < n and nums[i].bit_count() == ones:
+                x = nums[i]
+                if x < pre_max:  # 无法排成有序的
+                    return False
+                mx = max(mx, x)  # 更新本组最大值
+                i += 1
+            pre_max = mx
+        return True
 ```
 
