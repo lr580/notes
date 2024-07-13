@@ -1741,6 +1741,10 @@
 - 3011\.判断一个数组是否可以变为有序
 
   滑动窗口+排序 / <u>滑动窗口</u>
+  
+- 807\.保持城市天际线
+
+  签到
 
 ## 算法
 
@@ -46826,3 +46830,27 @@ class Solution:
         return True
 ```
 
+##### 807\.保持城市天际线
+
+[题目](https://leetcode.cn/problems/max-increase-to-keep-city-skyline)
+
+我：
+
+```python
+class Solution:
+    def maxIncreaseKeepingSkyline(self, grid: List[List[int]]) -> int:
+        n, m = len(grid), len(grid[0])
+        r = [max(c) for c in grid]
+        c = [max(r) for r in [[ grid[j][i] for j in range(m)] for i in range(n)]]
+        return sum([sum(min(r[i], c[j]) for j in range(m)) for i in range(n)]) - sum(sum(b) for b in grid)
+```
+
+优雅：
+
+```python
+class Solution:
+    def maxIncreaseKeepingSkyline(self, grid: List[List[int]]) -> int:
+        rowMax = list(map(max, grid))
+        colMax = list(map(max, zip(*grid)))
+        return sum(min(rowMax[i], colMax[j]) - h for i, row in enumerate(grid) for j, h in enumerate(row))
+```
