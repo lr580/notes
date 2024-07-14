@@ -1745,6 +1745,10 @@
 - 807\.保持城市天际线
 
   签到
+  
+- 721\.账户合并
+
+  并查集 小模拟
 
 ## 算法
 
@@ -46854,3 +46858,101 @@ class Solution:
         colMax = list(map(max, zip(*grid)))
         return sum(min(rowMax[i], colMax[j]) - h for i, row in enumerate(grid) for j, h in enumerate(row))
 ```
+
+##### 721\.账户合并
+
+[题目](https://leetcode.cn/problems/accounts-merge)
+
+我的：
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    vector<vector<string>> accountsMerge(vector<vector<string>>& accounts) {
+        int n = accounts.size();
+        map<string, vector<int>> owner;
+        for(int i=0;i<n;++i) {
+            int m = accounts[i].size();
+            for(int j=1;j<m;++j) {
+                owner[accounts[i][j]].push_back(i);
+            }
+        }
+        vector<int> fa; // 并查集
+        iota(fa.begin(), fa.end(), 0);
+        auto findFa = [&](int p) {
+            while(p!=fa[p]) {
+                p=fa[p]=fa[fa[p]];
+            }
+            return p;
+        };
+        for(auto&s:owner) {
+            auto a = s.second;
+            for(int i=1;i<a.size();++i) {
+                fa[findFa(a[i])]=findFa(a[0]);
+            }
+        }
+        vector<set<string>> emails(n);
+        for(int i=0;i<n;++i) {
+            int m = accounts[i].size(), f = findFa(i);
+            for(int j=1;j<m;++j) {
+                emails[f].insert(accounts[i][j]);
+            }
+        }
+        vector<vector<string>> ans;
+        for(int i=0;i<n;++i) {
+            if(emails[i].size()) {
+                ans.push_back({accounts[i][0]});
+                for(auto&email:emails[i]) {
+                    ans.back().push_back(email);
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```python
+class UnionFind:
+    def __init__(self, n):
+        self.parent = list(range(n))
+
+    def union(self, index1: int, index2: int):
+        self.parent[self.find(index2)] = self.find(index1)
+
+    def find(self, index: int) -> int:
+        if self.parent[index] != index:
+            self.parent[index] = self.find(self.parent[index])
+        return self.parent[index]
+
+class Solution:
+    def accountsMerge(self, accounts: List[List[str]]) -> List[List[str]]:
+        emailToIndex = dict()
+        emailToName = dict()
+
+        for account in accounts:
+            name = account[0]
+            for email in account[1:]:
+                if email not in emailToIndex:
+                    emailToIndex[email] = len(emailToIndex)
+                    emailToName[email] = name
+        
+        uf = UnionFind(len(emailToIndex))
+        for account in accounts:
+            firstIndex = emailToIndex[account[1]]
+            for email in account[2:]:
+                uf.union(firstIndex, emailToIndex[email])
+        
+        indexToEmails = collections.defaultdict(list)
+        for email, index in emailToIndex.items():
+            index = uf.find(index)
+            indexToEmails[index].append(email)
+        
+        ans = list()
+        for emails in indexToEmails.values():
+            ans.append([emailToName[emails[0]]] + sorted(emails))
+        return ans
+```
+
