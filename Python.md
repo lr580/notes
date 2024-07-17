@@ -340,6 +340,20 @@ dir(__builtins__)
 
 ### 编辑器
 
+#### IDLE
+
+交互环境中，`_` 表示上一次运算的结果：
+
+```python
+# print(_) 报错，因为还没运算
+3+4
+print(_) #7
+a=1
+print(_) #7
+```
+
+
+
 #### jupyter
 
 ##### ipynb
@@ -5096,7 +5110,15 @@ q = list(chain.from_iterable((node.left, node.right) for node in q))
 
 
 
+#### mpmath
 
+```python
+import mpmath
+mpmath.mp.dps = 50
+result = mpmath.mpf(1) / 7
+print(result) #mpf('0.14285714285714285714285714285714285714285714285714281')
+# or str(result)
+```
 
 
 
@@ -5109,7 +5131,8 @@ from decimal import *
 getcontext().prec = 20
 x = Decimal('1')
 y = Decimal('7.0')
-print((x / y * y * y).quantize(Decimal('0.00'), ROUND_HALF_DOWN))
+print(x) # 50 位
+print((x / y * y * y).quantize(Decimal('0.00'), ROUND_HALF_DOWN)) # 2位
 #第二个参数可以不填
 ```
 

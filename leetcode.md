@@ -1749,6 +1749,14 @@
 - 721\.账户合并
 
   并查集 小模拟
+  
+- 2959\.关闭分部的可行集合数目
+
+  爆搜+Floyd
+  
+- 3112\.访问消失节点的最少时间
+
+  Dijkstra改
 
 ## 算法
 
@@ -46954,5 +46962,203 @@ class Solution:
         for emails in indexToEmails.values():
             ans.append([emailToName[emails[0]]] + sorted(emails))
         return ans
+```
+
+##### 2959\.关闭分部的可行集合数目
+
+[题目](https://leetcode.cn/problems/number-of-possible-sets-of-closing-branches)
+
+我的
+
+```c++
+class Solution {
+public:
+    int numberOfSets(int n, int maxDistance, vector<vector<int>>& roads) {
+        vector<vector<int>> g(n,vector<int>(n,INT_MAX/2));
+        for(int i=0;i<n;++i) g[i][i] = 0;
+        for(auto& road:roads){
+            int u = road[0], v = road[1], w = min(g[u][v], road[2]);
+            g[u][v] = g[v][u] = w;
+        }
+        bitset<11> del;
+        vector<vector<int>> f(n,vector<int>(n,0));
+        auto floyd = [&]() {
+            for(int i=0;i<n;++i) {
+                for(int j=0;j<n;++j) {
+                    f[i][j]=g[i][j];
+                }
+            }
+            for(int i=0;i<n;++i) {
+                if(del[i]) {
+                    for(int j=0;j<n;++j) {
+                        f[i][j] = f[j][i] = INT_MAX/2;
+                    }
+                }
+            }
+            for(int k=0;k<n;++k) {
+                for(int i=0;i<n;++i) {
+                    for(int j=0;j<n;++j) {
+                        if(f[i][j] > f[i][k] + f[k][j]) {
+                            f[i][j] = f[i][k] + f[k][j];
+                        }
+                    }
+                }
+            }
+        };
+        int ans = 0;
+        for(int i=0;i<1<<n;++i) {
+            for(int j=0;j<n;++j) {
+                if(i>>j&1) del[j] = 1;
+                else del[j] = 0;
+            }
+            floyd();
+            bool ok = true;
+            for(int i=0;i<n && ok;++i) {
+                for(int j=0;j<n && ok;++j) {
+                    if(!del[i] && !del[j] && f[i][j] > maxDistance) {
+                        ok = false;
+                    }
+                }
+            }
+            ans += ok;
+        }
+        return ans;
+    }
+};
+```
+
+题解的：
+
+```c++
+class Solution {
+public:
+    int numberOfSets(int n, int maxDistance, vector<vector<int>> &roads) {
+        vector<vector<int>> g(n, vector<int>(n, INT_MAX / 2)); // 防止加法溢出
+        for (int i = 0; i < n; i++) {
+            g[i][i] = 0;
+        }
+        for (auto &e: roads) {
+            int x = e[0], y = e[1], wt = e[2];
+            g[x][y] = min(g[x][y], wt);
+            g[y][x] = min(g[y][x], wt);
+        }
+
+        vector<vector<int>> f(n);
+        auto check = [&](int s) -> bool {
+            for (int i = 0; i < n; i++) {
+                if ((s >> i) & 1) {
+                    f[i] = g[i];
+                }
+            }
+
+            // Floyd
+            for (int k = 0; k < n; k++) {
+                if (((s >> k) & 1) == 0) continue;
+                for (int i = 0; i < n; i++) {
+                    if (((s >> i) & 1) == 0) continue;
+                    for (int j = 0; j < n; j++) {
+                        f[i][j] = min(f[i][j], f[i][k] + f[k][j]);
+                    }
+                }
+            }
+
+            for (int i = 0; i < n; i++) {
+                if (((s >> i) & 1) == 0) continue;
+                for (int j = 0; j < n; j++) {
+                    if ((s >> j) & 1 && f[i][j] > maxDistance) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        };
+
+        int ans = 0;
+        for (int s = 0; s < (1 << n); s++) { // 枚举子集
+            ans += check(s);
+        }
+        return ans;
+    }
+};
+```
+
+```python
+class Solution:
+    def numberOfSets(self, n: int, maxDistance: int, roads: List[List[int]]) -> int:
+        g = [[inf] * n for _ in range(n)]
+        for i in range(n):
+            g[i][i] = 0
+        for x, y, wt in roads:
+            g[x][y] = min(g[x][y], wt)
+            g[y][x] = min(g[y][x], wt)
+
+        f = [None] * n
+        def check(s: int) -> int:
+            for i, row in enumerate(g):
+                if s >> i & 1:
+                    f[i] = row[:]
+
+            # Floyd
+            for k in range(n):
+                if (s >> k & 1) == 0: continue
+                for i in range(n):
+                    if (s >> i & 1) == 0: continue
+                    for j in range(n):
+                        f[i][j] = min(f[i][j], f[i][k] + f[k][j])
+
+            for i, di in enumerate(f):
+                if (s >> i & 1) == 0: continue
+                for j, dij in enumerate(di):
+                    if s >> j & 1 and dij > maxDistance:
+                        return 0
+            return 1
+        return sum(check(s) for s in range(1 << n))  # 枚举子集
+```
+
+##### 3112\.访问消失节点的最少时间
+
+[题目](https://leetcode.cn/problems/minimum-time-to-visit-disappearing-nodes)
+
+直接 Dijkstra，松弛条件加上对当前距离是否小于 disappear 的判定即可。
+
+```c++
+class Solution {
+public:
+    vector<int> minimumTime(int n, vector<vector<int>>& edges, vector<int>& disappear) {
+        using node = pair<int,int>;
+        vector<vector<node>> g(n);
+        for(auto &e:edges) {
+            int u = e[0], v = e[1], w = e[2];
+            g[u].push_back({v,w});
+            g[v].push_back({u,w});
+        }
+        priority_queue<node, vector<node>, greater<node>> q;
+        vector<int> d(n, INT_MAX/2);
+        vector<bool> vis(n, false);
+        d[0] = 0;
+        q.push({d[0], 0});
+        while(!q.empty()) {
+            auto [dist, u] = q.top(); 
+            q.pop();
+            if(vis[u]) {
+                continue;
+            }
+            vis[u] = true;
+            for(auto [v,w]:g[u]) {
+                int newW = dist + w;
+                if(d[v] > newW && newW < disappear[v]) {
+                    d[v] = newW;
+                    q.push({d[v], v});
+                }
+            }
+        }
+        for(int i=0;i<n;++i) {
+            if(d[i] >= disappear[i]) {
+                d[i] = -1;
+            }
+        }
+        return d;
+    }
+};
 ```
 

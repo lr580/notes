@@ -288,7 +288,7 @@ abc/*
 
 
 
-配置完毕后进行更新：
+配置完毕后进行更新：(不然新增的和新删的可能无法追溯)
 
 ```shell
 git rm -r --cached .
@@ -789,7 +789,7 @@ git remote rm 远程仓库名
 git push 远程仓库名 本地分支名
 ```
 
-如果是第一次推送，加-u(则以后可以简写git push)
+如果是第一次推送，加-u(则以后可以简写git push)(全称是 `--set-upstream`)
 
 在初始化后，需要通过add,commit后才能进行push，否则会报错。
 
