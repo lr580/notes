@@ -69,7 +69,7 @@ JDK 包括 JRE。需要安装 JDK 而不是 JRE。如果安装后 shell 不能�
 一个hello world代码如下：
 
 ```java
-//注意s1是文件名，即该文件必须是s1.java (所以文件名不要用数字开头)
+//注意s1是文件名，即该文件必须是s1.java (所以文件名不要用数字开头)(文件名不区分大小写，S1.java 也行)
 public class s1 {
     public static void main(String[] args) {//main+tab补全
         System.out.println("wdnmd."); //注意是小写L 不是大写I; 自动补全代码是syso
@@ -80,6 +80,15 @@ public class s1 {
 > 输入main可以tab补全
 
 按F5运行代码，会像python在vscode一样在下方输出。
+
+> 命令行运行：
+>
+> ```sh
+> javac s1.java
+> java s1 # 运行.class
+> ```
+>
+> 
 
 > 另一个带输入的例子如下：(oj1029)
 >
@@ -980,6 +989,8 @@ Java规范没有明确的规定占内存多少字节，不同的JVM有不同的�
 
 null 是关键字，不是数据类型。是引用类型的默认值。不能强转基本数据类型。
 
+判定变量是不是 null (如 String) `==null` 或 `Objects.isnull()`(utils.Objects 包)
+
 ##### 类型转换
 
 ###### 隐式
@@ -1152,6 +1163,10 @@ System.out.println(a);
    这个传入的第一个参数也可以是字符数组/字节数组
 
 ##### 运算
+
+###### 传值
+
+在函数里修改 String 参数是传值，不会修改原始数据本身
 
 ###### 链接
 
@@ -1487,6 +1502,8 @@ StringBuilder对象，如果频繁附加字符串，速度快于String
 > 这是因为 String 的属性是不可变的，每次修改本质是用新的替换
 
 > 新建的初始容量是16字符(多出部分用append加)，每次扩容加倍。如果长度可知，可以构造时传进去，避免频繁扩容
+
+注意直接赋值 `=` 是指针相等
 
 方法：
 
@@ -3540,6 +3557,13 @@ public class c1003 {
 参数不同(数目或类型或类型顺序)构成重载。
 
 > 方法的参数类型、个数、顺序至少有一项不同，返回类型不一定相同，修饰符要相同
+>
+> 如
+>
+> ```java
+> public static void f(int a, double b) {}
+> public static void f(double a, int b) {}
+> ```
 
 多态就是多个子类共用父类的方法。
 

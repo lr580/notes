@@ -1757,6 +1757,10 @@
 - 3112\.访问消失节点的最少时间
 
   Dijkstra改
+  
+- 3096\.得到更多分数的最少关卡数目
+
+  前缀和 签到
 
 ## 算法
 
@@ -47160,5 +47164,25 @@ public:
         return d;
     }
 };
+```
+
+##### 3096\.得到更多分数的最少关卡数目
+
+[题目](https://leetcode.cn/problems/minimum-levels-to-gain-more-points)
+
+先算出 bob 全选的分数，然后 alice 一关关加分，把对应的分减给 bob
+
+```python
+class Solution:
+    def minimumLevels(self, a: List[int]) -> int:
+        bob = sum(1 if v else -1 for v in a)
+        ans, alice = -1, 0
+        for i in range(len(a)-1):
+            b = 1 if a[i] else -1
+            alice += b
+            bob -= b
+            if alice > bob:
+                return i+1
+        return -1
 ```
 
