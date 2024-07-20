@@ -1764,7 +1764,11 @@
   
 - 2850\.将石头分散到网格图的最少移动次数
 
-  排列/DFS爆搜 / **最小费用最大流**
+  排列/DFS爆搜 / <u>最小费用最大流</u>
+  
+- 1186\.删除一次得到子数组最大和
+
+  **DP**
 
 ## 算法
 
@@ -47416,4 +47420,36 @@ func abs(x int) int { if x < 0 { return -x }; return x }
 >         return ans
 > ```
 >
-> 
+
+##### 1186\.删除一次得到子数组最大和
+
+[题目](https://leetcode.cn/problems/maximum-subarray-sum-with-one-deletion)
+
+$dp_{i,k}$ 表示 $i$ 结尾，删除 $k$ 次的最大和，初始 $dp_{0,0}=arr_0,dp_{0,1}=0$
+
+转移方程：
+$$
+dp_{i,0}=\max(dp_{i-1,0},0)+arr_i
+$$
+一直不删除时，等价于经典 DP 求子段最大值，如上所示。
+
+需要删除时，要么删现在的，等价于从 $dp_{i-1,0}$ 得到现在，要么删之前的：
+$$
+dp_{i,1}=\max(dp_{i-1,1}+arr_i,dp_{i-1,0})
+$$
+
+```c++
+class Solution {
+public:
+    int maximumSum(vector<int>& arr) {
+        int dp0 = arr[0], dp1 = 0, res = arr[0];
+        for (int i = 1; i < arr.size(); i++) {
+            dp1 = max(dp0, dp1 + arr[i]);
+            dp0 = max(dp0, 0) + arr[i];
+            res = max(res, max(dp0, dp1));
+        }
+        return res;
+    }
+};
+```
+
