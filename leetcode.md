@@ -1761,6 +1761,10 @@
 - 3096\.得到更多分数的最少关卡数目
 
   前缀和 签到
+  
+- 2850\.将石头分散到网格图的最少移动次数
+
+  排列/DFS爆搜 / **最小费用最大流**
 
 ## 算法
 
@@ -47186,3 +47190,230 @@ class Solution:
         return -1
 ```
 
+##### 2850\.将石头分散到网格图的最少移动次数
+
+[题目](https://leetcode.cn/problems/minimum-moves-to-spread-stones-over-grid)
+
+起点数和终点数相同，等价于从起点到终点完美匹配的全体方案枚举
+
+```python
+from itertools import permutations
+class Solution:
+    def minimumMoves(self, grid: List[List[int]]) -> int:
+        source, target = [], []
+        for i in range(3):
+            for j in range(3):
+                for k in range(grid[i][j]-1):
+                    source.append((i,j))
+                if grid[i][j] == 0:
+                    target.append((i,j))
+        schemes = list(permutations(target))
+        n = len(source)
+        ans = 0
+        for s in schemes: # 在方案s里，s[i]代表source[i]连接到s[i]
+            cnt = 0
+            for i in range(n):
+                x1, y1 = source[i]
+                x2, y2 = s[i]
+                cnt += abs(x1-x2) + abs(y1-y2)
+            ans = min(ans)
+```
+
+答案更优雅：
+
+```python
+class Solution:
+    def minimumMoves(self, grid: List[List[int]]) -> int:
+        from_ = []
+        to = []
+        for i, row in enumerate(grid):
+            for j, cnt in enumerate(row):
+                if cnt > 1:
+                    from_.extend([(i, j)] * (cnt - 1))
+                elif cnt == 0:
+                    to.append((i, j))
+
+        ans = inf
+        for from2 in permutations(from_):
+            total = 0
+            for (x1, y1), (x2, y2) in zip(from2, to):
+                total += abs(x1 - x2) + abs(y1 - y2)
+            ans = min(ans, total)
+        return ans
+```
+
+我的 DFS：
+
+```python
+class Solution:
+    def minimumMoves(self, grid: List[List[int]]) -> int:
+        source, target = [], []
+        for i in range(3):
+            for j in range(3):
+                for k in range(grid[i][j]-1):
+                    source.append((i,j))
+                if grid[i][j] == 0:
+                    target.append((i,j))
+        n = len(source)
+        vis = [False] * n
+        ans = 99999
+        #perm = [0] * n  # 输出全排列，仅供调试输出
+        def dfs(p,s): # 当前是第p次搜索，和是s
+            if p == n:
+                nonlocal ans
+                #print('方案:',perm,'和:',s)
+                ans = min(ans, s)
+                return
+            for i in range(n):
+                if not vis[i]:
+                    vis[i] = True
+                    x1, y1 = source[p]
+                    x2, y2 = target[i]
+                    #perm[p] = i
+                    s += abs(x1-x2) + abs(y1-y2)
+                    dfs(p+1,s)
+                    vis[i] = False
+        dfs(0,0)
+        return ans
+```
+
+建图规则如下：
+
+- 从每个大于 1 的格子向每个等于 0 的格子连边，容量为 1，费用为两个格子之间的曼哈顿距离。
+- 从超级源点向每个大于 1 的格子连边，容量为格子的值减一（即移走的石子数），费用为 0。
+- 从每个等于 0 的格子向超级汇点连边，容量 1（即移入的石子数），费用为 0。
+
+答案为最大流时，对应的最小费用，复杂度为节点数、边数、最大流的乘积，即 $O(m^4n^4)$
+
+```go
+func minimumMoves(grid [][]int) int {
+	m, n := len(grid), len(grid[0])
+	src := m * n   // 超级源点
+	dst := src + 1 // 超级汇点
+	type edge struct{ to, rid, cap, cost int }
+	g := make([][]edge, m*n+2)
+	addEdge := func(from, to, cap, cost int) {
+		g[from] = append(g[from], edge{to, len(g[to]), cap, cost})
+		g[to] = append(g[to], edge{from, len(g[from]) - 1, 0, -cost})
+	}
+	for x, row := range grid {
+		for y, v := range row {
+			if v > 1 {
+				addEdge(src, x*n+y, v-1, 0)
+				for i, r := range grid {
+					for j, w := range r {
+						if w == 0 {
+							addEdge(x*n+y, i*n+j, 1, abs(x-i)+abs(y-j))
+						}
+					}
+				}
+			} else if v == 0 {
+				addEdge(x*n+y, dst, 1, 0)
+			}
+		}
+	}
+
+	// 下面是最小费用最大流模板
+	const inf int = 1e9
+	dist := make([]int, len(g))
+	type vi struct{ v, i int }
+	fa := make([]vi, len(g))
+	spfa := func() bool {
+		for i := range dist {
+			dist[i] = 1e9
+		}
+		dist[src] = 0
+		inQ := make([]bool, len(g))
+		inQ[src] = true
+		q := []int{src}
+		for len(q) > 0 {
+			v := q[0]
+			q = q[1:]
+			inQ[v] = false
+			for i, e := range g[v] {
+				if e.cap == 0 {
+					continue
+				}
+				w := e.to
+				if newD := dist[v] + e.cost; newD < dist[w] {
+					dist[w] = newD
+					fa[w] = vi{v, i}
+					if !inQ[w] {
+						q = append(q, w)
+						inQ[w] = true
+					}
+				}
+			}
+		}
+		return dist[dst] < inf
+	}
+	ek := func() (maxFlow, minCost int) {
+		for spfa() {
+			// 沿 st-end 的最短路尽量增广
+			minF := inf
+			for v := dst; v != src; {
+				p := fa[v]
+				if c := g[p.v][p.i].cap; c < minF {
+					minF = c
+				}
+				v = p.v
+			}
+			for v := dst; v != src; {
+				p := fa[v]
+				e := &g[p.v][p.i]
+				e.cap -= minF
+				g[v][e.rid].cap += minF
+				v = p.v
+			}
+			maxFlow += minF
+			minCost += dist[dst] * minF
+		}
+		return
+	}
+	_, cost := ek()
+	return cost
+}
+
+func abs(x int) int { if x < 0 { return -x }; return x }
+```
+
+
+
+> 我的假贪心：反例
+>
+> ```python
+> [[0,2,3],[2,0,1],[0,1,0]] # ans = 6
+> ```
+>
+> ```python
+> from typing import *
+> class Solution:
+>     def minimumMoves(self, grid: List[List[int]]) -> int:
+>         ans = 0
+>         while True:
+>             zeros = [(x,y) for y in range(3) for x in range(3) if grid[x][y]==0]
+>             if not zeros:
+>                 break
+>             schemes = [] # 所有最优解
+>             for (x1, y1) in zeros:
+>                 schemes.append([])
+>                 for x2 in range(3):
+>                     for y2 in range(3):
+>                         if grid[x2][y2] <= 1:
+>                             continue
+>                         d = abs(x1-x2)+abs(y1-y2)
+>                         if len(schemes[-1]) and schemes[-1][0][0] < d:
+>                             break
+>                         schemes[-1].append((d,x1,y1,x2,y2))
+>             schemes.sort(key=lambda x:len(x)) # 优先选择只有唯一解的格子
+>             d,x1,y1,x2,y2 = schemes[0][0]
+>             ans += d
+>             grid[x1][y1] += 1
+>             grid[x2][y2] -= 1
+>             print(schemes)
+>             print(grid)
+>             break
+>         return ans
+> ```
+>
+> 
