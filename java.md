@@ -991,6 +991,8 @@ null 是关键字，不是数据类型。是引用类型的默认值。不能强
 
 判定变量是不是 null (如 String) `==null` 或 `Objects.isnull()`(utils.Objects 包)
 
+> 注意如果要比较 A 和 B，A 不是 null，B 可能是 null，可以 `A.equals(B)`，反过来报错
+
 ##### 类型转换
 
 ###### 隐式
@@ -1689,7 +1691,7 @@ while (tokenizer.hasMoreTokens()) {
 数据元素类型[] 数组名字; //不要写数字
 ```
 
-创建并初始化：(默认值全0)
+创建并初始化：(默认值全0，字符串全 null)
 
 ```java
 变量名 = new 类型名[长度];

@@ -1769,6 +1769,10 @@
 - 1186\.删除一次得到子数组最大和
 
   **DP**
+  
+- 2101\.引爆最多的炸弹
+
+  DFS / <u>Floyd</u>
 
 ## 算法
 
@@ -47449,6 +47453,118 @@ public:
             res = max(res, max(dp0, dp1));
         }
         return res;
+    }
+};
+```
+
+##### 2101\.引爆最多的炸弹
+
+[题目](https://leetcode.cn/problems/detonate-the-maximum-bombs)
+
+DFS：
+
+```python
+class Solution:
+    def maximumDetonation(self, bombs: List[List[int]]) -> int:
+        n = len(bombs)
+        ans = 0
+        def dfs(p):
+            vis[p] = True
+            cnt += 1
+            for j in range(n):
+                if not vis[j] and (bombs[j][0]-bombs[p][0])**2 + (bombs[j][1]-bombs[p][1])**2 <= bombs[p][2]**2:
+                    dfs(j)
+        for i in range(n):
+            vis = [False for i in range(n)]
+            cnt = 0
+            dfs(i)
+            ans = max(ans, cnt)
+        return ans
+```
+
+预处理有向图，节省遍历：(快十倍)
+
+```python
+class Solution:
+    def maximumDetonation(self, bombs: List[List[int]]) -> int:
+        n = len(bombs)
+        g = [[] for _ in range(n)]
+        for i, (x, y, r) in enumerate(bombs):
+            for j, (x2, y2, _) in enumerate(bombs):
+                dx = x - x2
+                dy = y - y2
+                if dx * dx + dy * dy <= r * r:
+                    g[i].append(j)  # i 可以引爆 j
+
+        def dfs(x: int) -> int:
+            vis[x] = True
+            cnt = 1
+            for y in g[x]:
+                if not vis[y]:
+                    cnt += dfs(y)
+            return cnt
+
+        ans = 0
+        for i in range(n):
+            vis = [False] * n
+            ans = max(ans, dfs(i))
+        return ans
+```
+
+Floyd 最短路求可达：若 $i$ 可达 $k$，则 $i$ 可达 $k$ 可达的点：$f_i|=f_k$
+
+Python 可以用 int 来做 bitset。
+
+```python
+class Solution:
+    def maximumDetonation(self, bombs: List[List[int]]) -> int:
+        n = len(bombs)
+        f = [0] * n
+        for i, (x, y, r) in enumerate(bombs):
+            for j, (x2, y2, _) in enumerate(bombs):
+                dx = x - x2
+                dy = y - y2
+                if dx * dx + dy * dy <= r * r:
+                    f[i] |= 1 << j  # i 可以到达 j
+
+        for k in range(n):
+            for i in range(n):
+                if f[i] >> k & 1:  # i 可以到达 k
+                    f[i] |= f[k]  # i 也可以到 k 可以到达的点
+
+        return max(s.bit_count() for s in f)  # 集合大小的最大值
+```
+
+```c++
+class Solution {
+public:
+    int maximumDetonation(vector<vector<int>>& bombs) {
+        int n = bombs.size();
+        vector<bitset<100>> f(n);
+        for (int i = 0; i < n; i++) {
+            long long x = bombs[i][0], y = bombs[i][1], r = bombs[i][2];
+            for (int j = 0; j < n; j++) {
+                long long dx = x - bombs[j][0];
+                long long dy = y - bombs[j][1];
+                if (dx * dx + dy * dy <= r * r) {
+                    f[i].set(j); // i 可以到达 j
+                }
+            }
+        }
+
+        for (int k = 0; k < n; k++) {
+            for (auto& fi : f) {
+                if (fi.test(k)) { // i 可以到达 k
+                    fi |= f[k]; // i 也可以到 k 可以到达的点
+                }
+            }
+        }
+
+        size_t ans = 0;
+        for (auto& s : f) {
+            ans = max(ans, s.count()); // 集合大小的最大值
+        }
+        return ans;
     }
 };
 ```
