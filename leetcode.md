@@ -1773,6 +1773,10 @@
 - 2101\.引爆最多的炸弹
 
   DFS / <u>Floyd</u>
+  
+- 3098\.求出所有子序列的能量和
+
+  **DP** / ***DP+前缀和优化***
 
 ## 算法
 
@@ -47567,5 +47571,225 @@ public:
         return ans;
     }
 };
+```
+
+##### 3098\.求出所有子序列的能量和
+
+[题目](https://leetcode.cn/problems/find-the-sum-of-subsequence-powers/)
+
+排序后，最小差一定在相邻位置取得。
+
+方法一：设 $dp_{i,p,v}$ 表示 $i$ 结尾，长为 $p$，能量为 $v$ 的子序列数目。则答案为 $\sum _i\sum_vv\cdot dp_{i,k,v}$。转移方程：枚举 $j < i$，设 $diff=nums_i-nums_j$，枚举 $dp_{j,p-1,v}$ 的全体 $p,v$，将新的差值 $v'$ 更新为 $\min(diff,v)$，则：
+$$
+dp_{i,p,v'}=\sum_{j=0}^{i-1}\sum_{p=2}^k\sum_{v\in dp_{j,p-1}}dp_{j,p-1,v}
+$$
+初始值为 $dp_{i,1,\infty}=1$。状态数：$v$ 有 $O(n^2)$，故有 $O(n^3k)$ 空间复杂度，且时间复杂度为 $O(n^4k)$。
+
+```python
+class Solution:
+    mod = int(1e9 + 7)
+    inf = float('inf')
+
+    def sumOfPowers(self, nums: List[int], k: int) -> int:
+        n = len(nums)
+        res = 0
+        d = [[defaultdict(int) for _ in range(k + 1)] for _ in range(n)]
+        nums.sort()
+
+        for i in range(n):
+            d[i][1][self.inf] = 1
+            for j in range(i):
+                diff = abs(nums[i] - nums[j])
+                for p in range(2, k + 1):
+                    for v, cnt in d[j][p - 1].items():
+                        d[i][p][min(diff, v)] = (d[i][p][min(diff, v)] + cnt) % self.mod
+
+            for v, cnt in d[i][k].items():
+                res = (res + v * cnt % self.mod) % self.mod
+
+        return res
+```
+
+> 前缀和优化：对 $dp_{i,p,v}$ 的 $i$ 叠前缀和得到 $sum$，复杂度为 $O(n^3k+n^2\log n)$。即：
+> $$
+> dp_{i,p,v}=\sum_{p=2}^k sum_{p-1,v}
+> $$
+> 设按 $v$ 叠的前缀和叫 $suf_{i,p}$，则 $sum_{p,0}=\sum suf_{i,p}$，……算了看不懂懒得看了
+>
+> 那么有新的 $i$ 时，对全体 $j < i$，离散化所有的差值，对 $diff$，二分找到 $\ge diff$ 的首位置 $pos$，因为 $i$ 增大，固定 $j$，$diff$ 一定不会变小，也就是说，可行的 $j$ 会在原本全体可行的基础上，增加一部分，设原本在 $border_{j,p}$，将其拉到 $diff$ 处，在这个过程，
+>
+> ```c++
+> class Solution {
+> public:
+>     static constexpr int mod = 1e9 + 7;
+>     static constexpr int inf = 0x3f3f3f3f;
+>     int sumOfPowers(vector<int>& nums, int k) {
+>         int n = nums.size();
+>         sort(nums.begin(), nums.end());
+>         vector<int> vals;
+>         for (int i = 0; i < n; i++) {
+>             for (int j = 0; j < i; j++) {
+>                 vals.push_back(nums[i] - nums[j]);
+>             }
+>         }
+>         vals.push_back(inf);
+>         sort(vals.begin(), vals.end());
+>         vals.erase(unique(vals.begin(), vals.end()), vals.end());
+> 
+>         vector<vector<vector<int>>> d(n, vector(k + 1, vector(vals.size(), 0)));
+>         vector<vector<int>> border(n, vector(k + 1, 0));
+>         vector<vector<int>> sum(k + 1, vector(vals.size(), 0));
+>         vector<vector<int>> suf(n, vector(k + 1, 0));
+> 
+>         for (int i = 0; i < n; i++) {
+>             for (int j = 0; j < i; j++) {
+>                 int pos = lower_bound(vals.begin(), vals.end(), nums[i] - nums[j]) - vals.begin();
+>                 for (int p = 1; p <= k; p++) {
+>                     while (border[j][p] < pos) {
+>                         sum[p][border[j][p]] = (sum[p][border[j][p]] - suf[j][p] + mod) % mod;
+>                         sum[p][border[j][p]] = (sum[p][border[j][p]] + d[j][p][border[j][p]]) % mod;
+>                         suf[j][p] = (suf[j][p] - d[j][p][border[j][p]] + mod) % mod;
+>                         border[j][p]++;
+>                         sum[p][border[j][p]] = (sum[p][border[j][p]] + suf[j][p]);
+>                     }
+>                 }
+>             }
+> 
+>             d[i][1][vals.size() - 1] = 1;
+>             for (int p = 2; p <= k; p++) {
+>                 for (int v = 0; v < vals.size(); v++) {
+>                     d[i][p][v] = sum[p - 1][v];
+>                 }
+>             }
+>             for (int p = 1; p <= k; p++) {
+>                 for (int v = 0; v < vals.size(); v++) {
+>                     suf[i][p] = (suf[i][p] + d[i][p][v]) % mod;
+>                 }
+>                 sum[p][0] = (sum[p][0] + suf[i][p]) % mod;
+>             }
+>         }
+> 
+>         int res = 0;
+>         for (int i = 0; i < n; i++) {
+>             for (int v = 0; v < vals.size(); v++) {
+>                 res = (res + 1ll * vals[v] * d[i][k][v] % mod) % mod;
+>             }
+>         }
+>         return res;
+>     }
+> };
+> ```
+
+
+
+
+
+方法二：
+
+$O(n^2)$ 枚举每个相邻位置为取得答案的地方，考虑下面的计数重复：设差值分别为 `3,1,1,3`，且 `k=2`，则方案为 `(3,1),(3,1),(1,1),(1,3),(1,3)`，对第一个 `1`，算 3 个，那么对第二个 `1` 只能算 2 个。所以问题不重不漏地转化为：
+
+- 设当前在 $(i,j)$ 位置取得最小差 $d$，则 $i$ 之前的严格大于 $d$，$j$ 之后的大于等于 $d$
+
+- 则 $\le i$ 的地方选 $x$ 个元素，$\ge j$ 的地方就要选 $k-x$ 个元素的子序列
+
+  设前面方案数为 $dp1$，后面为 $dp2$，即求 $d\sum_{x=1}^k dp1_x dp2_{k-x}$
+
+求解子问题：对子数组 $a$，问长为 $\le k$ 的，两两差大于等于 $d$ 的各种长度子序列的方案数，即如何求 $dp1,dp2$，设为 $ans$。
+
+设 $dp_{i,j}$ 是选择了长为 $j$ 的子序列，该子序列的最后一项下标为 $i$ 的方案数，则 $ans_j=\sum_{i=0}^{n-1} dp_{i,j}$，且初始值为 $dp_{0,1}=1$。
+
+每个 $i$ 可以由任意 $j < i$ 转移得到，要求满足 $s_i-s_j \ge d$，则 $\forall k$，$dp_{i,k}=\sum_j dp_{j,k-1}$
+
+```python
+def f(nums, lower_diff):
+    # nums 取包含第一项的子序列，使得两两差至少为 lower_diff
+    n = len(nums)
+    dp = [[0] * k for _ in range(n)]
+    dp[0][1] = 1
+    for i in range(1, n):
+        # 枚举前一项
+        for j in range(i):
+            if nums[i] - nums[j] < lower_diff: break
+            # 两项距离不小于 lower_diff 时开始更新
+            for v in range(k - 1):
+                # 结束元素由 j 变成 i
+                # 相当于新增一个长度，v 变为 v + 1
+                dp[i][v+1] += dp[j][v]
+                dp[i][v+1] %= mod
+    # 最后统计每个位置结束的数组个数
+    ans = [0] * k
+	for i in range(n):
+        for j in range(k):
+            ans[j] += dp[i][j]
+    return ans
+```
+
+将这个 $O(n^3)$ 的 DP 优化成 $O(n^2)$。设 $dp$ 按第一维度的前缀和为 $dpa$，最大 $j$ 为 $j'$，则 $dp_{i,k}=dpa_{j,k-1}$。也就是，$dpa$ 的最后一行就是 $ans$。
+
+```python
+def f(nums, lower_diff):
+    n = len(nums)
+    dp = [[0] * k for _ in range(n)]
+    dp_acc = [[0] * k for _ in range(n + 1)]
+    pt = 0
+    dp[0][1] = 1
+    dp_acc[1][1] = 1
+    for i in range(1, n):
+        while pt < i and nums[i] - nums[pt] >= lower_diff:
+            pt += 1
+        
+        for v in range(k - 1):
+            dp[i][v+1] = dp_acc[pt][v]
+            dp[i][v+1] %= mod
+        
+        for v in range(k):
+            dp_acc[i+1][v] = dp_acc[i][v] + dp[i][v]
+            dp_acc[i+1][v] %= mod
+
+    return dp_acc[-1]
+```
+
+不理解为什么 vs 是作差：(第二个 vs 可以不作差，但是第一个必须要)
+
+```python
+class Solution:
+    def sumOfPowers(self, nums: List[int], k: int) -> int:
+        nums.sort()
+        n = len(nums)
+        mod = 10 ** 9 + 7
+        
+        def f(nums, lower_diff):
+            n = len(nums)
+            dp = [[0] * k for _ in range(n)]
+            dp_acc = [[0] * k for _ in range(n + 1)]
+            pt = 0
+            dp[0][1] = 1
+            dp_acc[1][1] = 1
+            for i in range(1, n):
+                while pt < i and nums[i] - nums[pt] >= lower_diff:
+                    pt += 1
+                
+                for v in range(k - 1):
+                    dp[i][v+1] = dp_acc[pt][v]
+                    dp[i][v+1] %= mod
+                
+                for v in range(k):
+                    dp_acc[i+1][v] = dp_acc[i][v] + dp[i][v]
+                    dp_acc[i+1][v] %= mod
+
+            return dp_acc[-1]
+        
+        ans = 0
+        for i in range(n):
+            for j in range(i):
+                v = nums[i] - nums[j]
+                vs = [nums[j] - nums[idx] for idx in range(j, -1, -1)]
+                dp1 = f(vs, v + 1)
+                vs = [nums[idx] - nums[i] for idx in range(i, n)]
+                dp2 = f(vs, v)
+                for x in range(1, k):
+                    ans += dp1[x] * dp2[k - x] * v
+                    ans %= mod
+        return ans
 ```
 
