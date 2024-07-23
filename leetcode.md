@@ -1777,6 +1777,10 @@
 - 3098\.求出所有子序列的能量和
 
   **DP** / ***DP+前缀和优化***
+  
+- 2766\.重新放置石块
+
+  签到
 
 ## 算法
 
@@ -47793,3 +47797,16 @@ class Solution:
         return ans
 ```
 
+2766\.重新放置石块
+
+[题目](https://leetcode.cn/problems/relocate-marbles)
+
+```python
+class Solution:
+    def relocateMarbles(self, nums: List[int], moveFrom: List[int], moveTo: List[int]) -> List[int]:
+        a = set(nums)
+        for s, t in zip(moveFrom, moveTo):
+            a.remove(s)
+            a.add(t)
+        return list(sorted(a)) # 甚至 list 都不用了
+```
