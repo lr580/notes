@@ -1781,6 +1781,10 @@
 - 2766\.重新放置石块
 
   签到
+  
+- 2844\.生成特殊数字的最少操作
+
+  签到 思维 字符串
 
 ## 算法
 
@@ -47810,3 +47814,60 @@ class Solution:
             a.add(t)
         return list(sorted(a)) # 甚至 list 都不用了
 ```
+
+##### 2844\.生成特殊数字的最少操作
+
+[题目](https://leetcode.cn/problems/minimum-operations-to-make-a-special-number)
+
+我的：
+
+```python
+class Solution:
+    def minimumOperations(self, num: str) -> int:
+        num = str(num)
+        n = len(num)
+        def f(t): # 最短能得到子序列t的子串长度
+            j=len(t)-1
+            for i in range(n-1,-1,-1):
+                if t[j]==num[i]:
+                    j-=1
+                    if j==-1:
+                        print(t,i,n-i)
+                        return n-i
+            return 99999
+        ans = min(f('00'),f('25'),f('50'),f('75'))-2
+        return min(ans,n-('0'in num))
+```
+
+题解优雅：
+
+```python
+class Solution:
+    def minimumOperations(self, num: str) -> int:
+        n = len(num)
+        def f(tail: str) -> int:
+            i = num.rfind(tail[1])
+            if i <= 0:
+                return n
+            # 也可以写 num[:i].rfind(tail[0])，但切片需要额外空间
+            i = num.rfind(tail[0], 0, i)
+            return n if i < 0 else n - i - 2
+        return min(n - ('0' in num), f("00"), f("25"), f("50"), f("75"))
+```
+
+```python
+class Solution:
+    def minimumOperations(self, num: str) -> int:
+        n = len(num)
+        found0 = found5 = False
+        for i in range(n - 1, -1, -1):
+            c = num[i]
+            if found0 and c in "05" or found5 and c in "27":
+                return n - i - 2
+            if c == '0':
+                found0 = True
+            elif c == '5':
+                found5 = True
+        return n - found0
+```
+

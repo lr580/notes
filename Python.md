@@ -1365,7 +1365,7 @@ split(str)分割文本，返回list，如果分割失败，返回只有自身为
 
 find(str)查找从左到右出现的第一个str，并返回该str首元素的下标，如果没找到返回-1
 
-rfind(str)查找从右到左第一次出现的。
+rfind(str)查找从右到左第一次出现的。`rfind(str,l,r)` 从这个范围找
 
 replace(a,b)将str中所有的子字符串a替换为子字符串b，如果没有返回原str。
 
