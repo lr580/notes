@@ -1785,6 +1785,14 @@
 - 2844\.生成特殊数字的最少操作
 
   签到 思维 字符串
+  
+- 2740\.找出分区值
+
+  签到 贪心 排序
+  
+- 3106\.满足距离约束且字典序最小的字符串
+
+  贪心
 
 ## 算法
 
@@ -47869,5 +47877,62 @@ class Solution:
             elif c == '5':
                 found5 = True
         return n - found0
+```
+
+##### 2740\.找出分区值
+
+[题目](https://leetcode.cn/problems/find-the-value-of-the-partition)
+
+```python
+class Solution:
+    def findValueOfPartition(self, nums: List[int]) -> int:
+        nums.sort()
+        ans = 1e12
+        for i in range(len(nums)-1):
+            ans = min(ans, nums[i+1]-nums[i])
+        return ans
+```
+
+优雅：
+
+```python
+class Solution:
+    def findValueOfPartition(self, nums: List[int]) -> int:
+        nums.sort()
+        return min(y - x for x, y in pairwise(nums))
+```
+
+##### 3106\.满足距离约束且字典序最小的字符串
+
+[题目](https://leetcode.cn/problems/lexicographically-smallest-string-after-operations-with-constraint)
+
+```python
+class Solution:
+    def getSmallestString(self, s: str, k: int) -> str:
+        n, c, t = len(s), 0, []
+        for i in range(n):
+            for j in range(ord('a'), ord('z')+1):
+                d=min(abs(ord(s[i])-j), abs(ord(s[i])-(j+26)))
+                if d+c<=k:
+                    t.append(chr(j))
+                    c+=d
+                    break
+        return ''.join(t)
+```
+
+减掉一层循环的优化：
+
+```python
+class Solution:
+    def getSmallestString(self, s: str, k: int) -> str:
+        s = list(s)
+        for i, c in enumerate(map(ord, s)):
+            dis = min(c - ord('a'), ord('z') - c + 1)
+            if dis > k:
+                s[i] = chr(c - k)
+                break
+            s[i] = 'a'
+            k -= dis
+        return ''.join(s)
 ```
 
