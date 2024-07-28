@@ -1793,6 +1793,10 @@
 - 3106\.满足距离约束且字典序最小的字符串
 
   贪心
+  
+- 699\.掉落的方块
+
+  暴力 / <u>STL+二分</u> / 线段树 / 动态开点线段树
 
 ## 算法
 
@@ -47934,5 +47938,205 @@ class Solution:
             s[i] = 'a'
             k -= dis
         return ''.join(s)
+```
+
+##### 699\.掉落的方块
+
+[题目](https://leetcode.cn/problems/falling-squares)
+
+注意大约点数为 $2q\log m$ 其中 $m$ 是值域大小，$q$ 是询问次数。注意多次询问初始化。
+
+——不过考虑到离散化后也就 $2n$ 个点，其实不如离散化。
+
+```c++
+const int maxn = 1e3 * 63;
+struct node {
+    int ls, rs, max, laz;
+} t[maxn] = {};
+int cnt = 1;
+int newNode() {
+    ++cnt;
+    t[cnt].ls = t[cnt].rs = t[cnt].max = t[cnt].laz = 0;
+    return cnt;
+}
+void pushdown(int r, int lf, int rf) {
+    if(!t[r].ls) t[r].ls = newNode();
+    if(!t[r].rs) t[r].rs = newNode();
+    if(!t[r].laz) return;
+    int cf = (lf+rf)>>1;
+    t[t[r].ls].max = max(t[t[r].ls].max, t[r].laz);
+    t[t[r].rs].max = max(t[t[r].rs].max, t[r].laz);
+    t[t[r].ls].laz = max(t[t[r].ls].laz, t[r].laz);
+    t[t[r].rs].laz = max(t[t[r].rs].laz, t[r].laz);
+    t[r].laz = 0;
+};
+void pushup(int r) { 
+    t[r].max = max(t[t[r].ls].max, t[t[r].rs].max); 
+}
+void update(int r, int lf, int rf, int lc, int rc, int v) {
+    if(lc <= lf && rf <= rc) {
+        v = max(t[r].max, v);
+        t[r].max = t[r].laz = v;
+        return;
+    }
+    pushdown(r, lf, rf);
+    int cf = (lf+rf)>>1;
+    if(lc<=cf) {
+        update(t[r].ls, lf, cf, lc, rc, v);
+    }
+    if(rc>=cf+1) {
+        update(t[r].rs, cf+1, rf, lc, rc, v);
+    }
+    pushup(r);
+}
+int query(int r, int lf, int rf, int lc, int rc) {
+    if(lc <= lf && rf <= rc) {
+        return t[r].max;
+    }
+    pushdown(r, lf, rf);
+    int res = 0;
+    int cf = (lf+rf)>>1;
+    if(lc<=cf) {
+        res = max(res, query(t[r].ls, lf, cf, lc, rc));
+    }
+    if(rc>=cf+1) {
+        res = max(res, query(t[r].rs, cf+1, rf, lc, rc));
+    }
+    return res;
+}
+class Solution {
+public:
+    vector<int> fallingSquares(vector<vector<int>>& positions) {
+        int n = positions.size();
+        int m = 0, m0 = 0;
+        for(auto& p:positions) m0 = max(m0, p[0]);
+        for(auto& p:positions) m = max(m, p[1]+m0);
+        vector<int> ans;
+        cnt = 0;
+        newNode();
+        for(auto&p:positions) {
+            int l = p[0], r = p[0]+p[1]-1;
+            int top = query(1,1,m,l,r);
+            update(1,1,m,l,r,top+p[1]);
+            ans.push_back(query(1, 1, m, 1, m));
+        }
+        return ans;
+    }
+};
+```
+
+指针式写法：
+
+- 根节点不用调用 query，直接查 max 值即可。
+
+```java
+class Solution {
+    int N = (int)1e9;
+    class Node {
+        // ls 和 rs 分别代表当前区间的左右子节点
+        Node ls, rs;
+        // val 代表当前区间的最大高度，add 为懒标记
+        int val, add;
+    }
+    Node root = new Node();
+    void update(Node node, int lc, int rc, int l, int r, int v) {
+        if (l <= lc && rc <= r) {
+            node.add = v;
+            node.val = v;
+            return ;
+        }
+        pushdown(node);
+        int mid = lc + rc >> 1;
+        if (l <= mid) update(node.ls, lc, mid, l, r, v);
+        if (r > mid) update(node.rs, mid + 1, rc, l, r, v);
+        pushup(node);
+    }
+    int query(Node node, int lc, int rc, int l, int r) {
+        if (l <= lc && rc <= r) return node.val;
+        pushdown(node);
+        int mid = lc + rc >> 1, ans = 0;
+        if (l <= mid) ans = query(node.ls, lc, mid, l, r);
+        if (r > mid) ans = Math.max(ans, query(node.rs, mid + 1, rc, l, r));
+        return ans;
+    }
+    void pushdown(Node node) {
+        if (node.ls == null) node.ls = new Node();
+        if (node.rs == null) node.rs = new Node();
+        if (node.add == 0) return ;
+        node.ls.add = node.add; node.rs.add = node.add;
+        node.ls.val = node.add; node.rs.val = node.add;
+        node.add = 0;
+    }
+    void pushup(Node node) {
+        node.val = Math.max(node.ls.val, node.rs.val);
+    }
+    public List<Integer> fallingSquares(int[][] ps) {
+        List<Integer> ans = new ArrayList<>();
+        for (int[] info : ps) {
+            int x = info[0], h = info[1], cur = query(root, 0, N, x, x + h - 1);
+            update(root, 0, N, x, x + h - 1, cur + h);
+            ans.add(root.val);
+        }
+        return ans;
+    }
+}
+```
+
+暴力思路：甚至不需要排序 $O(n^2)$，暴力枚举每一个在新区间内的原方块，把当前方块抬高。记录每个当前方块的高度。最后叠该高度数组的前缀 max 即可。
+
+```python
+class Solution:
+    def fallingSquares(self, positions: List[List[int]]) -> List[int]:
+        n = len(positions)
+        heights = [0] * n
+        for i, (left1, side1) in enumerate(positions):
+            right1 = left1 + side1 - 1
+            heights[i] = side1
+            for j in range(i):
+                left2, right2 = positions[j][0], positions[j][0] + positions[j][1] - 1
+                if right1 >= left2 and right2 >= left1:
+                    heights[i] = max(heights[i], heights[j] + side1)
+        for i in range(1, n):
+            heights[i] = max(heights[i], heights[i - 1])
+        return heights
+```
+
+有序集合：当对一个区间更改时，整个区间原本各种不同的高度都可以去除，也就是说虽然有对 $[l,r]$ 的遍历访问，但均摊复杂度应当是 $O(n\log n)$。
+
+- 考虑现在修改了 $[l,r]$，假设原本这里应该的长度是 $rHeight$，比如原本有 $[1,10]=3$，修改了 $[2,5]=4$，那么应该让 $[6,10]=3$，这就是 $right+1$ 的意义
+- 所以在这种修改下，当前已修改的最大点是 $p$，一定有 $p+1$ 的高度被记录。不会重叠，例如第一次修改了 $[100,199]$，那么设置了 $h[100]=h,h[200]=0$，第二次要修改比如恰好是 $[200,299]$，就会取得 $h[200]$。也就是说 $map$ 里的两个点 $[p1,v1],[p2,v2]$ 代表了 $[p1,p2)$ 的高度是 $v1$，$\ge p2$ 的高度是 $v2$。
+
+```c++
+class Solution {
+public:
+    vector<int> fallingSquares(vector<vector<int>>& positions) {
+        int n = positions.size();
+        vector<int> ret(n);
+        map<int, int> heightMap;
+        heightMap[0] = 0; // 初始时从 0 开始的所有点的堆叠高度都是 0
+        for (int i = 0; i < n; i++) {
+            int size = positions[i][1];
+            int left = positions[i][0], right = positions[i][0] + positions[i][1] - 1;
+            auto lp = heightMap.upper_bound(left), rp = heightMap.upper_bound(right);
+            int rHeight = prev(rp)->second; // 记录 right + 1 对应的堆叠高度（如果 right + 1 不在 heightMap 中）
+
+            // 更新第 i 个掉落的方块的堆叠高度
+            int height = 0;
+            for (auto p = prev(lp); p != rp; p++) {
+                height = max(height, p->second + size);
+            }
+
+            // 清除 heightMap 中位于 (left, right] 内的点
+            heightMap.erase(lp, rp);
+
+            heightMap[left] = height; // 更新 left 的变化
+            if (rp == heightMap.end() || rp->first != right + 1) { // 如果 right + 1 不在 heightMap 中，更新 right + 1 的变化
+                heightMap[right + 1] = rHeight;
+            }
+            ret[i] = i > 0 ? max(ret[i - 1], height) : height;
+        }
+        return ret;
+    }
+};
 ```
 
