@@ -1797,6 +1797,10 @@
 - 699\.掉落的方块
 
   暴力 / <u>STL+二分</u> / 线段树 / 动态开点线段树
+  
+- 2961\.双模幂运算
+
+  快速幂
 
 ## 算法
 
@@ -48140,3 +48144,31 @@ public:
 };
 ```
 
+##### 2961\.双模幂运算
+
+[题目](https://leetcode.cn/problems/double-modular-exponentiation)
+
+```python
+class Solution:
+    def getGoodIndices(self, v: List[List[int]], target: int) -> List[int]:
+        def pow(a,b,p):
+            r=1
+            while b:
+                if b&1:
+                    r=r*a%p
+                a=a*a%p
+                b>>=1
+            return r
+        ans = []
+        for i in range(len(v)):
+            if pow(pow(v[i][0],v[i][1],10),v[i][2],v[i][3])==target:
+                ans.append(i)
+        return ans
+```
+
+```python
+class Solution:
+    def getGoodIndices(self, variables: List[List[int]], target: int) -> List[int]:
+        return [i for i, (a, b, c, m) in enumerate(variables)
+                if pow(pow(a, b, 10), c, m) == target]
+```
