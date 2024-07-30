@@ -1801,6 +1801,10 @@
 - 2961\.双模幂运算
 
   快速幂
+  
+- 3111\.覆盖所有点的最少矩形数目
+
+  贪心
 
 ## 算法
 
@@ -6311,6 +6315,33 @@ int main(){
 	printf("%lld",ans);
 	return 0;
 } 
+```
+
+#### NOIP
+
+##### 494\.游戏通关
+
+[题目](http://www.noip.ac.cn/p/494)
+
+枚举打前 i 关，然后一直打第 i 关
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+const ll mn = 2e5+3;
+ll n, m, x[mn], y[mn], ans=9e18, s1;
+signed main() {
+    ios::sync_with_stdio(false), cin.tie(0), cout.tie(0);
+    cin >> n >> m;
+    for (ll i = 1; i <= n; ++i) cin >> x[i] >> y[i];
+    for (ll i = 1; i <= min(n,m); ++i) {
+        s1 += x[i] + y[i];
+        ans = min(ans, s1 + (m - i) * y[i]);
+    }
+    cout << ans;
+    return 0;
+}
 ```
 
 
@@ -48172,3 +48203,35 @@ class Solution:
         return [i for i, (a, b, c, m) in enumerate(variables)
                 if pow(pow(a, b, 10), c, m) == target]
 ```
+
+##### 3111\.覆盖所有点的最少矩形数目
+
+[题目](https://leetcode.cn/problems/minimum-rectangles-to-cover-points)
+
+```python
+class Solution:
+    def minRectanglesToCoverPoints(self, points: List[List[int]], w: int) -> int:
+        points.sort(key=lambda x:x[0])
+        ans, prv = 0, -1
+        for i in range(len(points)):
+            if points[i][0] > prv:
+                prv = points[i][0] + w
+                ans += 1
+        return ans
+```
+
+另一种 for：
+
+```python
+class Solution:
+    def minRectanglesToCoverPoints(self, points: List[List[int]], w: int) -> int:
+        points.sort(key=lambda p: p[0])
+        ans = 0
+        x2 = -1
+        for x, _ in points:
+            if x > x2:
+                ans += 1
+                x2 = x + w
+        return ans
+```
+

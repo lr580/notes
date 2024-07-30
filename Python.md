@@ -4377,6 +4377,7 @@ $ 行结尾
 ```python
 (0|[1-9][0-9]*) 匹配零和非零开头的数字
 [\[|\<|\{|\(|（|【](.{1,}?)[\]|\>|\}|\)|）|】] 匹配括号里的内容
+\b[wW]ord\b word单词
 ```
 
 
@@ -4618,7 +4619,7 @@ print(r2.group(1) if r2 else '-1')
 
 例：身份证 1102231990xxxxxxxx
 
-```
+```python
 import re
 s = '1102231990xxxxxxxx'
 res = re.search('(?P<province>\d{3})(?P<city>\d{3})(?P<born_year>\d{4})',s)
@@ -4627,7 +4628,7 @@ print(res.groupdict())
 
 此分组取出结果为：
 
-```
+```python
 {'province': '110', 'city': '223', 'born_year': '1990'}
 ```
 
