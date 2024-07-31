@@ -1805,6 +1805,10 @@
 - 3111\.覆盖所有点的最少矩形数目
 
   贪心
+  
+- LCP40\.心算挑战
+
+  贪心 / +<u>nth_element 优化排序</u>
 
 ## 算法
 
@@ -48233,5 +48237,97 @@ class Solution:
                 ans += 1
                 x2 = x + w
         return ans
+```
+
+##### LCP40\.心算挑战
+
+[题目](https://leetcode.cn/problems/uOAnQW)
+
+贪心选最大的，然后如果是奇数，要么把最小的奇数换成最大未选偶数，要么把最小的偶数换成最大未选奇数
+
+```python
+class Solution:
+    def maxmiumScore(self, cards: List[int], cnt: int) -> int:
+        cards.sort(reverse=True)
+        s, minOdd, minEven = 0, -1, -1
+        for i in range(cnt):
+            s += cards[i]
+            if cards[i] % 2 == 1:
+                minOdd = i
+            if cards[i] % 2 == 0:
+                minEven = i
+        if s % 2 == 0:
+            return s
+        nextOdd, nextEven = -1, -1
+        for i in range(cnt, len(cards)):
+            if nextOdd == -1 and cards[i] % 2 == 1:
+                nextOdd = i
+            if nextEven == -1 and cards[i] % 2 == 0:
+                nextEven = i
+            if nextOdd != -1 and nextEven != -1:
+                break
+        ans = 0
+        if minOdd != -1 and nextEven != -1:
+            ans = max(ans, s + cards[nextEven] - cards[minOdd])
+        if minEven != -1 and nextOdd != -1:
+            ans = max(ans, s + cards[nextOdd] - cards[minEven])
+        return ans
+```
+
+另一种写法：(快一点)
+
+```python
+class Solution:
+    def maxmiumScore(self, cards: List[int], cnt: int) -> int:
+        cards.sort(reverse=True)
+        s = sum(cards[:cnt])  # 最大的 cnt 个数之和
+        if s % 2 == 0:  # s 是偶数
+            return s
+
+        def replace_sum(x: int) -> int:
+            for v in cards[cnt:]:
+                if v % 2 != x % 2:  # 找到一个最大的奇偶性和 x 不同的数
+                    return s - x + v  # 用 v 替换 s
+            return 0
+
+        x = cards[cnt - 1]
+        ans = replace_sum(x)  # 替换 x
+        for v in cards[cnt - 1::-1]:
+            if v % 2 != x % 2:  # 找到一个最小的奇偶性和 x 不同的数
+                ans = max(ans, replace_sum(v))  # 替换
+                break
+        return ans
+```
+
+可以用 nth element 优化排序，只需要找到前 cnt 大的全体和，这个过程只需要线性即可。
+
+```c++
+class Solution {
+public:
+    int maxmiumScore(vector<int>& cards, int cnt) {
+        ranges::nth_element(cards, cards.end() - cnt);
+        int s = reduce(cards.end() - cnt, cards.end(), 0); // 最大的 cnt 个数之和
+        if (s % 2 == 0) { // s 是偶数
+            return s;
+        }
+
+        int n = cards.size();
+        // 加进来的最大偶数/奇数
+        int mx[2] = {INT_MIN / 2, INT_MIN / 2}; // 除 2 防止最下面减法溢出
+        for (int i = 0; i < n - cnt; i++) {
+            int v = cards[i];
+            mx[v % 2] = max(mx[v % 2], v);
+        }
+
+        // 要去掉的最小偶数/奇数
+        int mn[2] = {INT_MAX / 2, INT_MAX / 2};
+        for (int i = n - cnt; i < n; i++) {
+            int v = cards[i];
+            mn[v % 2] = min(mn[v % 2], v);
+        }
+
+        return max(s + max(mx[0] - mn[1], mx[1] - mn[0]), 0);
+    }
+};
 ```
 
