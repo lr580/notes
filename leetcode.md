@@ -1808,7 +1808,11 @@
   
 - LCP40\.心算挑战
 
-  贪心 / +<u>nth_element 优化排序</u>
+  反悔贪心 / +<u>nth_element 优化排序</u>
+  
+- 3128\.直角三角形
+
+  签到 组合数学(乘法原理)
 
 ## 算法
 
@@ -48329,5 +48333,38 @@ public:
         return max(s + max(mx[0] - mn[1], mx[1] - mn[0]), 0);
     }
 };
+```
+
+##### 3128\.直角三角形
+
+[题目](https://leetcode.cn/problems/right-triangles)
+
+```python
+class Solution:
+    def numberOfRightTriangles(self, grid: List[List[int]]) -> int:
+        n, m, ans = len(grid), len(grid[0]), 0
+        r, c = [0] * n, [0] * m
+        for i in range(n):
+            for j in range(m):
+                r[i] += grid[i][j]
+                c[j] += grid[i][j]
+        for i in range(n):
+            for j in range(m):
+                v = grid[i][j]
+                ans += v * (r[i] - v) * (c[j] - v)
+        return ans
+```
+
+更优雅：
+
+```python
+class Solution:
+    def numberOfRightTriangles(self, grid: List[List[int]]) -> int:
+        col_sum = [sum(col) - 1 for col in zip(*grid)]  # 提前减一
+        ans = 0
+        for row in grid:
+            row_sum = sum(row) - 1
+            ans += row_sum * sum(cs for x, cs in zip(row, col_sum) if x)
+        return ans
 ```
 
