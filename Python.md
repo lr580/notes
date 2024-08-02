@@ -5338,7 +5338,16 @@ class Solution:
 
 - `insort_right(arr, v)` 将 `v` 插入到 `arr`，返回 None，保持有序，插入到相同元素的右
 
-二分答案：[例题](https://leetcode.cn/problems/maximum-number-of-alloys/solutions/2446024/er-fen-da-an-fu-ti-dan-by-endlesscheng-3jdr/)
+二分答案：
+
+- 01 二分：False 在左，True 在右，check 传入 int 作为参数，返回布尔值
+
+```python
+# 注意 range 并不会创建 list，它是 O(1) 的
+bisect_left(range(1_000_000_001), True, key=check)
+```
+
+[例题](https://leetcode.cn/problems/maximum-number-of-alloys/solutions/2446024/er-fen-da-an-fu-ti-dan-by-endlesscheng-3jdr/)
 
 ```python
 class Solution:

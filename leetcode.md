@@ -1813,6 +1813,10 @@
 - 3128\.直角三角形
 
   签到 组合数学(乘法原理)
+  
+- 3143\.正方形中的最多点数
+
+  排序+枚举 / <u>二分 / 枚举(+最值维护)</u>
 
 ## 算法
 
@@ -48366,5 +48370,79 @@ class Solution:
             row_sum = sum(row) - 1
             ans += row_sum * sum(cs for x, cs in zip(row, col_sum) if x)
         return ans
+```
+
+##### 3143\.正方形中的最多点数
+
+[题目](https://leetcode.cn/problems/maximum-points-inside-the-square/)
+
+按坐标离原点的切比雪夫距离(横纵坐标的较大值)排序，半边长大于等于该距离时，点进入正方形。枚举同距离的全体点，不断扩大正方形直到有重复点为止。
+
+复杂度取排序复杂度 $O(n\log n)$
+
+```python
+class Solution:
+    def maxPointsInsideSquare(self, points: List[List[int]], s: str) -> int:
+        a = list(zip(points, s))
+        def dis(x):
+            return max(abs(x[0]), abs(x[1]))
+        a.sort(key=lambda x:dis(x[0]))
+        ans, included, i, n, ok = 0, set(), 0, len(a), True
+        def add():
+            nonlocal ok, i
+            if a[i][1] in included:
+                ok = False
+            included.add(a[i][1])
+            i += 1
+        while i < n:
+            d = dis(a[i][0])
+            add()
+            while i<n and dis(a[i][0]) == d:
+                add()
+            if ok:
+                ans = max(ans, len(included))
+            else:
+                break
+        return ans
+```
+
+二分边长：
+
+```python
+class Solution:
+    def maxPointsInsideSquare(self, points: List[List[int]], s: str) -> int:
+        ans = 0
+        def check(size: int) -> bool:
+            vis = set()
+            for (x, y), c in zip(points, s):
+                if abs(x) <= size and abs(y) <= size:
+                    if c in vis:
+                        return True
+                    vis.add(c)
+            nonlocal ans
+            ans = len(vis)
+            return False
+        # 注意 range 并不会创建 list，它是 O(1) 的
+        bisect_left(range(1_000_000_001), True, key=check)
+        return ans
+```
+
+优化到 On 的切比雪夫枚举，只需要对每个字母，保存前两大(非严格)切比雪夫值即可，并把所有的次小值求一个 min，那么半边长不超过该 min 值。
+
+```python
+class Solution:
+    def maxPointsInsideSquare(self, points: List[List[int]], s: str) -> int:
+        min_d = defaultdict(lambda: inf)
+        min2 = inf
+        for (x, y), c in zip(points, s):
+            d = max(abs(x), abs(y))
+            if d < min_d[c]:
+                # d 是目前最小的，那么 min_d[c] 是次小的
+                min2 = min(min2, min_d[c])
+                min_d[c] = d
+            else:
+                # d 可能是次小的
+                min2 = min(min2, d)
+        return sum(d < min2 for d in min_d.values())
 ```
 
