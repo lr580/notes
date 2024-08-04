@@ -60,6 +60,8 @@ Syntactic sugar ，糖衣语法。指对语言功能无影响，但更方便程�
 
 官网找JDK8 (或其他稳定版)安装 然后参考[这里](https://www.zhihu.com/question/278838022/answer/1709832515) 配置vscode环境(ctrl+shift+p找那个插件配置)(搜索java home可以找到配置，然后此时上方会有setting.json可以找)
 
+> [官网](https://www.oracle.com/java/technologies/downloads/?er=221886#jdk22-windows) windows installer 会安装并自动覆盖路径path
+
 版本号里$x$与$1.x$相同，如JDK8就是JDK1.8，是目前最主流版本。前者是Oracle收购Sun前版本号，后者是收购后。
 
 JDK 包括 JRE。需要安装 JDK 而不是 JRE。如果安装后 shell 不能运行 javac 就是 JRE。检测：`java -version`, `javac -version`。
@@ -81,13 +83,8 @@ public class s1 {
 
 按F5运行代码，会像python在vscode一样在下方输出。
 
-> 命令行运行：
->
-> ```sh
-> javac s1.java
-> java s1 # 运行.class
-> ```
->
+
+
 > 
 
 > 另一个带输入的例子如下：(oj1029)
@@ -118,6 +115,23 @@ public class s1 {
 > 可以通过,某个工程打包的jar在同一个服务器,不同的端口启动
 >
 > `java -jar **.jar --server.port=8091`
+
+### 命令行
+
+```sh
+java -version
+javac -version
+javac s1.java
+java s1 # 运行.class
+javac *.java
+javac -source 8 -target 8 *.java #java8
+# 9+ 可以 release
+#52.是java8, 61.是java17
+javap -verbose Turtle.class | findstr "major version # 版本查询，linux findstr->Grep
+java -jar CritterGUI.jar
+```
+
+
 
 ### 项目建立
 

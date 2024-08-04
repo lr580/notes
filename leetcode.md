@@ -1817,6 +1817,14 @@
 - 3143\.正方形中的最多点数
 
   排序+枚举 / <u>二分 / 枚举(+最值维护)</u>
+  
+- 572\.另一棵树的子树
+
+  爆搜 / 树哈希 /<u> DFS序+KMP</u>
+  
+- 600\.不含连续1的非负整数
+
+  数位DP
 
 ## 算法
 
@@ -48445,4 +48453,340 @@ class Solution:
                 min2 = min(min2, d)
         return sum(d < min2 for d in min_d.values())
 ```
+
+##### 572\.另一棵树的子树
+
+[题目](https://leetcode.cn/problems/subtree-of-another-tree)
+
+树哈希，我的写法：
+
+```python
+class Solution:
+    def isSubtree(self, root: Optional[TreeNode], subRoot: Optional[TreeNode]) -> bool:
+        h = set()
+        mod = int(1e18)+1
+        def dfs(p, record=True):
+            lh = rh = 0
+            if p.left:
+                lh = dfs(p.left)
+            if p.right:
+                rh = dfs(p.right)
+            v = (lh * 7 + rh * 11 + p.val * 2 + 1) % mod
+            if record:
+                h.add(v)
+            return v
+        dfs(root)
+        return dfs(subRoot, False) in h
+```
+
+暴力检查：
+
+```c++
+class Solution {
+public:
+    bool check(TreeNode *o, TreeNode *t) {
+        if (!o && !t) {
+            return true;
+        }
+        if ((o && !t) || (!o && t) || (o->val != t->val)) {
+            return false;
+        }
+        return check(o->left, t->left) && check(o->right, t->right);
+    }
+
+    bool dfs(TreeNode *o, TreeNode *t) {
+        if (!o) {
+            return false;
+        }
+        return check(o, t) || dfs(o->left, t) || dfs(o->right, t);
+    }
+
+    bool isSubtree(TreeNode *s, TreeNode *t) {
+        return dfs(s, t);
+    }
+};
+```
+
+考虑对两个树转成 DFS 序字符串，引入空指针(左空、右空，可以一样也可以不一样，唯一的区别在于效率，当不一样时做匹配常数会快很多)，空指针可以定义为任意值(如点数+1，整数无穷等)，然后用 KMP 等手段做个字符串匹配即可
+
+```c++
+class Solution {
+public:
+    vector <int> sOrder, tOrder;
+    int maxElement, lNull, rNull;
+
+    void getMaxElement(TreeNode *o) {
+        if (!o) {
+            return;
+        }
+        maxElement = max(maxElement, o->val);
+        getMaxElement(o->left);
+        getMaxElement(o->right);
+    }
+
+    void getDfsOrder(TreeNode *o, vector <int> &tar) {
+        if (!o) {
+            return;
+        }
+        tar.push_back(o->val);
+        if (o->left) {
+            getDfsOrder(o->left, tar);
+        } else {
+            tar.push_back(lNull);
+        }
+        if (o->right) {
+            getDfsOrder(o->right, tar);
+        } else {
+            tar.push_back(rNull);
+        }
+    }
+
+    bool kmp() {
+        int sLen = sOrder.size(), tLen = tOrder.size();
+        vector <int> fail(tOrder.size(), -1);
+        for (int i = 1, j = -1; i < tLen; ++i) {
+            while (j != -1 && tOrder[i] != tOrder[j + 1]) {
+                j = fail[j];
+            }
+            if (tOrder[i] == tOrder[j + 1]) {
+                ++j;
+            }
+            fail[i] = j;
+        }
+        for (int i = 0, j = -1; i < sLen; ++i) {
+            while (j != -1 && sOrder[i] != tOrder[j + 1]) {
+                j = fail[j];
+            }
+            if (sOrder[i] == tOrder[j + 1]) {
+                ++j;
+            }
+            if (j == tLen - 1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool isSubtree(TreeNode* s, TreeNode* t) {
+        maxElement = INT_MIN;
+        getMaxElement(s);
+        getMaxElement(t); // 不执行也行，就 maxElement = 2000 即可
+        lNull = maxElement + 1;
+        rNull = maxElement + 2; // +1 也行
+
+        getDfsOrder(s, sOrder);
+        getDfsOrder(t, tOrder);
+
+        return kmp();
+    }
+};
+```
+
+树哈希，可以防止冲突，如有双哈希 f,g 那么还可以加上 fg, f+g，一种哈希为：
+$$
+f_o=v_o+31\cdot f_l\cdot p(s_l)+179\cdot f_r\cdot p(s_r)
+$$
+其中 $p$ 代表第几个质数，$s$ 是子树大小。
+
+```c++
+class Solution {
+public:
+    static constexpr int MAX_N = 1000 + 5;
+    static constexpr int MOD = int(1E9) + 7;
+
+    bool vis[MAX_N];
+    int p[MAX_N], tot;
+    void getPrime() {
+        vis[0] = vis[1] = 1; tot = 0;
+        for (int i = 2; i < MAX_N; ++i) {
+            if (!vis[i]) p[++tot] = i;
+            for (int j = 1; j <= tot && i * p[j] < MAX_N; ++j) {
+                vis[i * p[j]] = 1;
+                if (i % p[j] == 0) break;
+            }
+        }
+    }
+
+    struct Status {
+        int f, s; // f 为哈希值 | s 为子树大小
+        Status(int f_ = 0, int s_ = 0) 
+            : f(f_), s(s_) {}
+    };
+
+    unordered_map <TreeNode *, Status> hS, hT;
+
+    void dfs(TreeNode *o, unordered_map <TreeNode *, Status> &h) {
+        h[o] = Status(o->val, 1);
+        if (!o->left && !o->right) return;
+        if (o->left) {
+            dfs(o->left, h);
+            h[o].s += h[o->left].s;
+            h[o].f = (h[o].f + (31LL * h[o->left].f * p[h[o->left].s]) % MOD) % MOD;
+        }
+        if (o->right) {
+            dfs(o->right, h);
+            h[o].s += h[o->right].s;
+            h[o].f = (h[o].f + (179LL * h[o->right].f * p[h[o->right].s]) % MOD) % MOD;
+        }
+    }
+
+    bool isSubtree(TreeNode* s, TreeNode* t) {
+        getPrime();
+        dfs(s, hS);
+        dfs(t, hT);
+
+        int tHash = hT[t].f;
+        for (const auto &[k, v]: hS) {
+            if (v.f == tHash) {
+                return true;
+            }
+        } 
+
+        return false;
+    }
+};
+```
+
+离谱暴力字符串匹配：`return str(subRoot) in str(root)`
+
+我的暴力 DFS
+
+```python
+class Solution:
+    def isSubtree(self, root: Optional[TreeNode], subRoot: Optional[TreeNode]) -> bool:
+        # 检查p1为根的树是否恰好完全是p2为根的树
+        def dfs(p1, p2): 
+            if not p1 and not p2:
+                return True
+            elif p1 and p2 and p1.val == p2.val:
+                curOk = True
+                leftOk = dfs(p1.left, p2.left)
+                rightOk = dfs(p1.right, p2.right)
+                return curOk and leftOk and rightOk
+            else:
+                return False
+            
+        # 检查p1为根的树的所有子树里，是否存在一个子树恰好完全是p2为根的树
+        def search(p1, p2):
+            if not p1:
+                return False
+            curExist = dfs(p1, p2)
+            leftExist = search(p1.left, p2)
+            rightExist = search(p1.right, p2)
+            return curExist or leftExist or rightExist
+        
+        return search(root, subRoot)
+```
+
+##### 600\.不含连续1的非负整数
+
+[题目](https://leetcode.cn/problems/non-negative-integers-without-consecutive-ones)
+
+设 $f_{i,j}$ 是 $i$ 位 01 串，从左第 $i$ 位是 $j$，有：$f_{1,0}=f_{1,1}=1$ 且 $f_{i,0}=f_{i-1,0}+f_{i-1,1},$ $f_{i,1}=f_{i-1,0}$
+
+对一个 01 串 $a$，如果没有 $1$ 连续，那么每个 $1$ 的下标 $i$(从右往左数)，对应的 $f_{i,0}$ 都可以取，代表取遍 $[0, 2^i)$ 的范围，这样取过一次之后，发现恰好还剩下 $n$ 本身还没取，加上它即可。
+
+若有 $1$ 连续，那么设第一个连续的 $11$ 的右边 $1$ 的下标是 $i$(从右往左数)，则只能选 $10$，且因为本来 $n$ 这里是 $11$，所以往右任取都不会超过 $11$，所以往右任取是 $f_{i+1,1}+f_{i+1,0}=f_{i,0}$，此时不需要加上 $n$ 本身因为 $n$ 不可取。
+
+```python
+# f[i][j] i位的01串，第i位为j的合法方案数
+f = [[0, 0] for i in range(35)]
+f[1] = [1, 1]
+for i in range(2, 33): # 斐波那契
+    f[i][0] = f[i - 1][0] + f[i - 1][1]
+    f[i][1] = f[i - 1][0]
+class Solution:
+    def findIntegers(self, n: int) -> int:
+        a = bin(n)[2:]
+        s, n = 1, len(a)
+        for i in range(n):
+            if i > 0 and a[i] == a[i-1] == '1':
+                s += f[n-i][0] - 1
+                # f[i][0]+f[i][1]=f[i+1][0]
+                break
+            if a[i] == '1':
+                s += f[n-i][0]
+        return s
+```
+
+```java
+class Solution {
+    static int N = 50;
+    // f[i][j] 为考虑二进制长度为 i，而且最高位为 j（0 or 1）时的合法数个数（值不超过）
+    // 如 f[2][1] 代表二进制长度为 2，且（值不超过）最高位为 1 的合法数的个数为 3 个：10、01、00
+    static int[][] f = new int[N][2];
+    static {
+        f[1][0] = 1; f[1][1] = 2;
+        for (int i = 1; i < N - 1; i++) {
+            f[i + 1][0] = f[i][1];
+            f[i + 1][1] = f[i][0] + f[i][1];
+        }
+    }
+    int getLen(int n) {
+        for (int i = 31; i >= 0; i--) {
+            if (((n >> i) & 1) == 1) return i;
+        }
+        return 0;
+    }
+    public int findIntegers(int n) {
+        int len = getLen(n);
+        int ans = 0, prev = 0;
+        for (int i = len; i >= 0; i--) {
+            // 当前位是 0 还是 1
+            int cur = ((n >> i) & 1); 
+            // 由于始终要满足小于等于的要求，如果当前位本来为 1 的话，填成 0 的话，后面的低位无论怎么填，都是满足小于等于的要求的，因此将 f[i + 1][0] 累加到答案
+            if (cur == 1) ans += f[i + 1][0]; 
+            // 出现连续位为 1，分支结束，方案数被计算完
+            if (prev == 1 && cur == 1) break; 
+            prev = cur;
+            if (i == 0) ans++;
+        }
+        return ans;
+    }
+}
+```
+
+数位 DP 写法：pre1：上一个是不是 1，limit：该位是否限制取值范围(被 n)
+
+- 不考虑 pre1 时，如果被限制，能不能填 1 看当前位原本有没有 1；如果不被限制就能填
+- 如果要填 1，限制性不变(显然，都往大了取限制还在)
+- 如果限制还在，填 0，但可以填 1，限制解除
+
+```python
+class Solution:
+    def findIntegers(self, n: int) -> int:
+        s = str(bin(n))[2:]
+        @cache
+        def f(i: int, pre1: bool, is_limit: bool) -> int:
+            if i == len(s):
+                return 1
+            up = int(s[i]) if is_limit else 1
+            res = f(i + 1, False, is_limit and up == 0)  # 填 0
+            if not pre1 and up == 1:  # 可以填 1
+                res += f(i + 1, True, is_limit)  # 填 1
+            return res
+        return f(0, False, True)
+```
+
+```c++
+class Solution {
+public:
+    int findIntegers(int n) {
+        int m = __lg(n), dp[m + 1][2];
+        memset(dp, -1, sizeof(dp));
+        function<int(int, bool, bool)> f = [&](int i, bool pre1, bool is_limit) -> int {
+            if (i < 0) return 1;
+            if (!is_limit && dp[i][pre1] >= 0) return dp[i][pre1];
+            int up = is_limit ? n >> i & 1 : 1;
+            int res = f(i - 1, false, is_limit && up == 0); // 填 0
+            if (!pre1 && up == 1) res += f(i - 1, true, is_limit); // 填 1
+            if (!is_limit) dp[i][pre1] = res;
+            return res;
+        };
+        return f(m, false, true); // i 从 m 往小枚举，方便位运算
+    }
+};
+```
+
+
 
