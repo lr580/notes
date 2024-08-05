@@ -5034,8 +5034,12 @@ def Decode(Binary): # 解密
 1. 版本要求：
    - `@cache` 是在 Python 3.9 中引入的。
    - `@lru_cache` 在较早的版本中就已经存在（Python 3.2 及以上版本）。
+   
 2. 缓存策略：
    - `@cache` 本质上是 `@lru_cache(maxsize=None)` 的简化版本。它不限制缓存大小，所以会缓存所有调用的结果。
+   
+     对一个函数名如 `f`，可以调用 `f.cache_clear()` 来清除缓存。
+   
    - `@lru_cache` 允许你指定一个 `maxsize` 参数，用于限制缓存的大小。如果设置了 `maxsize`，它将采用“最近最少使用”（LRU）策略来淘汰旧的缓存项。
 
 ```python
@@ -5244,6 +5248,8 @@ print(glob.escape('?[]*.py'))
 
   类比 rust，`Optional` 是 `Union` 特况，表示还可以是 `None`
 
+  `Optional[xx]` 要么是 None，要么是 xx
+
 - `Callable` 可调用对象如函数
 
 例如：
@@ -5290,6 +5296,7 @@ class Node:
 class Solution:
     def connect(self, root: 'Node') -> 'Node':
         ...
+# Optional[Node] 则：None 或 Node
 ```
 
 #### bisect

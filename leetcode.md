@@ -1825,6 +1825,10 @@
 - 600\.不含连续1的非负整数
 
   数位DP
+  
+- 3129\.找出所有稳定的二进制数组I
+
+  **DP / DP + 容斥原理** (生成函数优化)
 
 ## 算法
 
@@ -48788,5 +48792,186 @@ public:
 };
 ```
 
+##### 3129\.找出所有稳定的二进制数组
 
+[题目](https://leetcode.cn/problems/find-all-possible-stable-binary-arrays-i)
+
+设 $dp_{i,j,k}$ 表示填了 $i$ 个 $0$，$j$ 个 $1$，最后(也就是第 $i+j$ 位)填的是 $k$。
+
+- $k=0,j=0,0\le i\le\min(zero, limit)$ 也就是只填 $0$ 时，方案唯一，没有长超过 $limit$ 的子数组所以都合法，故 $dp_{i,j,0}=1$
+
+  $i > limit$ 时，都不合法，故 $dp_{i,j,0}=0$
+
+- $i>0,j>0$ 时，$dp_{i,j,0}$ 只能由 $dp_{i-1,j,0}$ 和 $dp_{i-1,j,1}$ 得来，也就是说现在选了 $0$，选之前的数目肯定是 $i-1,j$，而 $k$ 无限制。
+
+  - 如果 $dp_{i-1,j,1}$，有 $1,0$ 怎么都合法
+
+  - 如果 $dp_{i-1,j,0}$，如果 $i\le limit$ 也合法
+
+    当 $i > limit$ 时，如果前面的数是 $limit$ 个 $0$ 不可行，要在全体 $dp_{i-1,j,0}$ 的成分里剔除这种情况，也就是拿出了 $limit$ 个 $0$，还剩下 $i-1-limit$ 个 $0$。因为本来所有 $dp_{i-1,j,0}$ 的方案都是合法的，所以放了 $limit$ 个 $0$ 之后，一定是放 $1$，也就是说如果放 $0$ 方案数一定是 $0$，即 $dp_{i-limit-1,j,0}=0$，所以只需要减去 $dp_{i-limit-1,j,1}$ 即可。
+
+    如果减多了，那就是计算多了一个不合法的状态，注意本身 $dp_{i-limit-1,j,0}$ 是存在方案的，但它不会贡献到 $dp_{i-1,j,0}$ 去。
+
+- 对 $k=1$，类比可得。
+
+因为状态数只有这么多，转移是 $O(1)$ 的，所以时空复杂度为 $O(zero\cdot one)$
+
+递归写法：10s
+
+```python
+class Solution:
+    def numberOfStableArrays(self, zero: int, one: int, limit: int) -> int:
+        MOD = 1_000_000_007
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int, j: int, k: int) -> int:
+            if i == 0:
+                return 1 if k == 1 and j <= limit else 0
+            if j == 0:
+                return 1 if k == 0 and i <= limit else 0
+            if k == 0:
+                return (dfs(i - 1, j, 0) + dfs(i - 1, j, 1) - (dfs(i - limit - 1, j, 1) if i > limit else 0)) % MOD
+            else:  # else 可以去掉，这里仅仅是为了代码对齐
+                return (dfs(i, j - 1, 0) + dfs(i, j - 1, 1) - (dfs(i, j - limit - 1, 0) if j > limit else 0)) % MOD
+        ans = (dfs(zero, one, 0) + dfs(zero, one, 1)) % MOD
+        dfs.cache_clear()  # 防止爆内存
+        return ans
+```
+
+循环写法：3.5s
+
+```python
+class Solution:
+    def numberOfStableArrays(self, zero: int, one: int, limit: int) -> int:
+        MOD = 1_000_000_007
+        f = [[[0, 0] for _ in range(one + 1)] for _ in range(zero + 1)]
+        for i in range(1, min(limit, zero) + 1):
+            f[i][0][0] = 1
+        for j in range(1, min(limit, one) + 1):
+            f[0][j][1] = 1
+        for i in range(1, zero + 1):
+            for j in range(1, one + 1):
+                f[i][j][0] = (f[i - 1][j][0] + f[i - 1][j][1] - (f[i - limit - 1][j][1] if i > limit else 0)) % MOD
+                f[i][j][1] = (f[i][j - 1][0] + f[i][j - 1][1] - (f[i][j - limit - 1][0] if j > limit else 0)) % MOD
+        return sum(f[-1][-1]) % MOD
+```
+
+容斥原理：93ms
+
+```python
+MOD = 1_000_000_007
+MX = 1001
+
+fac = [0] * MX  # f[i] = i!
+fac[0] = 1
+for i in range(1, MX):
+    fac[i] = fac[i - 1] * i % MOD
+
+inv_f = [0] * MX  # inv_f[i] = i!^-1
+inv_f[-1] = pow(fac[-1], -1, MOD)
+for i in range(MX - 1, 0, -1):
+    inv_f[i - 1] = inv_f[i] * i % MOD
+
+def comb(n: int, m: int) -> int:
+    return fac[n] * inv_f[m] * inv_f[n - m] % MOD
+
+class Solution:
+    def numberOfStableArrays(self, zero: int, one: int, limit: int) -> int:
+        if zero > one:
+            zero, one = one, zero  # 保证空间复杂度为 O(min(zero, one))
+        f0 = [0] * (zero + 3)
+        for i in range((zero - 1) // limit + 1, zero + 1):
+            f0[i] = comb(zero - 1, i - 1)
+            for j in range(1, (zero - i) // limit + 1):
+                f0[i] = (f0[i] + (-1 if j % 2 else 1) * comb(i, j) * comb(zero - j * limit - 1, i - 1)) % MOD
+
+        ans = 0
+        for i in range((one - 1) // limit + 1, min(one, zero + 1) + 1):
+            f1 = comb(one - 1, i - 1)
+            for j in range(1, (one - i) // limit + 1):
+                f1 = (f1 + (-1 if j % 2 else 1) * comb(i, j) * comb(one - j * limit - 1, i - 1)) % MOD
+            ans = (ans + (f0[i - 1] + f0[i] * 2 + f0[i + 1]) * f1) % MOD
+        return ans
+```
+
+还能用多项式优化到 $O(n\log n)$：[参考](https://leetcode.cn/problems/find-all-possible-stable-binary-arrays-ii/solutions/2758768/on15de-suan-fa-zu-he-ji-shu-by-hqztrue-3c8r/)
+
+- $n$ 无区别球放 $m$ 有区别盒，不允许空，隔板法在 $n-1$ 个空隙里放 $m-1$ 个隔板：$\binom{n-1}{m-1}$。
+
+- 把 $0$ 分成连续的 $i$ 组，等效于 $\binom{zero-1}{i-1}$，$1$ 同理。分别记作 $f_0[i]$ 和 $f_1[i]$
+
+  例如方案 `10110001` 有 $2$ 组 $0$ 和 $3$ 组 $1$。
+
+- 把 $1$ 分成 $i$ 组，有：
+
+  - 首尾都是 $1$，那么隔着 $i-1$ 个空隙，这些空隙是 $0$，即有 $i-1$ 组 $0$
+  - 同理，首 $1$ 尾 $0$ 或尾 $1$ 首 $0$，有 $i$ 组 $0$
+  - 首尾都是 $0$，有 $i+1$ 组 $0$
+
+- 由于 $01$ 独立，当把 $1$ 分成 $i$ 组时，要把所有对应 $0$ 的情况算上，即总方案数为，乘法原理：
+  $$
+  f_1[i]\cdot(f_0[i-1]+2f_0[i]+f_0[i+1])
+  $$
+
+- 考虑 limit，则对一个方案 $f_0[i]$，参考力扣 2929(给小朋友们分糖果，我在上文写了题解，要：减去至少有 $1$ 个组里连续 $limit$ 个 $0$ 的方案，加上至少 $2$ 组连续，减去……
+
+- 有 $j$ 组超过 $limit$，这 $j$ 组的方案数是 $\binom ij$，把这 $j$ 个组先放入 $limit$ 个，剩下再隔板，即 $\binom{zero-j\cdot limit-1}{i-1}$，乘起来即 $\binom ij \binom{zero-j\cdot limit-1}{i-1}$
+
+- $j\ge 1$，且 $zero - j\cdot limit \ge i$ 即 $1\le j\le\lfloor\dfrac{zero-i}{zero}\rfloor$
+
+  故：
+  $$
+  f_0[i]=\binom{zero-1}{i-1}+\sum_{1\le j\le\lfloor\frac{zero-i}{zero}\rfloor}(-1)^j\binom ij\binom{zero-j\cdot limit-1}{i-1}
+  $$
+  同理可得 $f_1[i]$。
+
+- 再套上求和，合法的 $i$ 包括 $i\le one, i\le zero+1,i\cdot limit\ge one$，即 $i\ge\lceil\dfrac{one}{limit}\rceil$，其中
+
+  - $i\le zero+1$ 不判也行，把越界的 $f_0$ 设为 $0$ 即可
+
+  - $i\cdot limit\ge one$ 不判也行，那就判组合数越界，即 $m<0$ 或 $m> n$
+
+    若不然，有 $i\cdot limit < one$，也就是说根据鸽巢原理，每个 $i$ 都放 $limit$ 个都有剩余，那么再放一定会超过 $limit$ 个，即导致 $f_1[i]=0$
+
+  - 判了会快很多，都不判可以做成 $1\le i\le one$
+
+- 常数优化：$(-1)^j=1-2(j\bmod 2)$。
+
+```python
+MOD = 1_000_000_007
+MX = 1001
+
+fac = [0] * MX  # f[i] = i!
+fac[0] = 1
+for i in range(1, MX):
+    fac[i] = fac[i - 1] * i % MOD
+
+inv_f = [0] * MX  # inv_f[i] = i!^-1
+inv_f[-1] = pow(fac[-1], -1, MOD)
+for i in range(MX - 1, 0, -1):
+    inv_f[i - 1] = inv_f[i] * i % MOD
+
+def comb(n: int, m: int) -> int:
+    if m < 0 or m > n: return 0
+    return fac[n] * inv_f[m] * inv_f[n - m] % MOD
+
+class Solution:
+    def numberOfStableArrays(self, zero: int, one: int, limit: int) -> int:
+        if zero > one:
+            zero, one = one, zero  # 保证空间复杂度为 O(min(zero, one))
+        f0 = [0] * max(one + 3, zero + 3)
+        for i in range((zero - 1) // limit + 1, zero + 1):
+            f0[i] = comb(zero - 1, i - 1)
+            for j in range(1, (zero - i) // limit + 1):
+                f0[i] = (f0[i] + (-1 if j % 2 else 1) * comb(i, j) * comb(zero - j * limit - 1, i - 1)) % MOD
+
+        ans = 0
+        for i in range(one + 1):
+            f1 = comb(one - 1, i - 1)
+            for j in range(1, (one - i) // limit + 1):
+                f1 = (f1 + (-1 if j % 2 else 1) * comb(i, j) * comb(one - j * limit - 1, i - 1)) % MOD
+            ans = (ans + (f0[i - 1] + f0[i] * 2 + f0[i + 1]) * f1) % MOD
+        return ans
+```
+
+复杂度分析：$\lceil\dfrac{one}{limit}\rceil\le i\le\min(one,zero+1)$ 且 $1\le j\le\lfloor\dfrac{zero-i}{limit}\rfloor$ 故复杂度为 $O(\dfrac{zero\cdot one}{limit})=O(n^2)$ 但快很多。
 
