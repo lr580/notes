@@ -1829,6 +1829,14 @@
 - 3129\.找出所有稳定的二进制数组I
 
   **DP / DP + 容斥原理** (生成函数优化)
+  
+- 1443\.收集树上所有苹果的最少时间
+
+  DFS
+  
+- 3131\.找出与数组相加的整数I
+
+  签到 排序
 
 ## 算法
 
@@ -48974,4 +48982,45 @@ class Solution:
 ```
 
 复杂度分析：$\lceil\dfrac{one}{limit}\rceil\le i\le\min(one,zero+1)$ 且 $1\le j\le\lfloor\dfrac{zero-i}{limit}\rfloor$ 故复杂度为 $O(\dfrac{zero\cdot one}{limit})=O(n^2)$ 但快很多。
+
+##### 1443\.收集树上所有苹果的最少时间
+
+[题目](https://leetcode.cn/problems/minimum-time-to-collect-all-apples-in-a-tree)
+
+```python
+class Solution:
+    def minTime(self, n: int, edges: List[List[int]], hasApple: List[bool]) -> int:
+        s = 0
+        g = [[] for i in range(n)]
+        for u, v in edges:
+            g[u].append(v)
+            g[v].append(u)
+        def dfs(u, fa):
+            nonlocal s
+            exist = hasApple[u] # 当前子树 u 有无苹果
+            for v in g[u]:
+                if v == fa:
+                    continue
+                vExist = dfs(v, u)
+                if vExist:
+                    s += 2 # 该子树 v 有苹果，走它，一来一回两次
+                exist |= vExist
+            return exist
+        dfs(0, -1)
+        return s
+```
+
+##### 3131\.找出与数组相加的整数I
+
+[题目](https://leetcode.cn/problems/find-the-integer-added-to-array-i)
+
+保证有解所以排序后作差
+
+```python
+class Solution:
+    def addedInteger(self, nums1: List[int], nums2: List[int]) -> int:
+        nums1.sort()
+        nums2.sort()
+        return nums2[0]-nums1[0]
+```
 
