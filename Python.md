@@ -1538,6 +1538,22 @@ count(x)统计有多少个x元素，找不到返回0
 
 二维数组求转置：`list(zip(*a))` (注：里边变成了 tuple)
 
+##### 迭代器
+
+用 iter 将 list 转迭代器
+
+in 操作：不断遍历迭代器，找到符合就 True，不然一直找查无就 False
+
+```python
+a=iter([1,4,4,6,8])
+print(4 in a) # True
+list(a) # [4, 6, 8]
+print(1 in a) # False
+list(a) # []
+```
+
+
+
 #### tuple
 
 元组，是定义之后不可以修改的列表：
@@ -1635,7 +1651,7 @@ x>y #False
 x|y>y #True
 ```
 
-
+sorted 转 list
 
 ##### frozenset
 
@@ -2968,6 +2984,15 @@ all([[True,True],[True,False,True]]) # True
 
 是否有 true
 
+> 可以配合 iter 用，如：
+>
+> ```python
+> it = iter(nums1[i:])
+> # 判断 {nums2[j] - x} 是否为 nums1[i:] 的子序列
+> # in 会消耗迭代器
+> if all(v - x in it for v in nums2):
+> ```
+
 
 
 #### 数组函数
@@ -3054,7 +3079,7 @@ sorted('ac12我是什么')
 sorted([0,5,5.1,-9]) #[-9,0,5,5.1]
 ```
 
-iterable自身不会被该函数改变。
+iterable自身不会被该函数改变。对 set 用返回 list
 
 ##### reversed
 
@@ -3065,6 +3090,10 @@ list(reversed([1, 2, 3]))
 ```
 
 字符串转置：`''.join(reversed(str(x)))` (其实不如 `x[::-1]`)
+
+##### iter
+
+列表转迭代器，如 `iter([1,4,4,6,8])`
 
 #### 控制函数
 

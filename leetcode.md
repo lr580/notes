@@ -1837,6 +1837,10 @@
 - 3131\.找出与数组相加的整数I
 
   签到 排序
+  
+- 3132\.找出与数组相加的整数II
+
+  枚举+排序+双指针 / <u>排序+双指针</u>
 
 ## 算法
 
@@ -49022,5 +49026,70 @@ class Solution:
         nums1.sort()
         nums2.sort()
         return nums2[0]-nums1[0]
+```
+
+##### 3132\.找出与数组相加的整数II
+
+[题目](https://leetcode.cn/problems/find-the-integer-added-to-array-ii)
+
+有效的 $x$ 一定是在排序后相差不超过 $2$ 的下标对取得，即最多可能有 $O(5n)=O(n)$ 个候选 $x$。枚举全体 $x$，看看 $nums1-x$ 是否有至少 $n-2$ 个元素与 $nums2$ 相等，既然排序了，这一步双指针即可，需 $O(n)$。故总复杂度为 $O(n^2)$。
+
+```python
+class Solution:
+    def minimumAddedInteger(self, nums1: List[int], nums2: List[int]) -> int:
+        n = len(nums1)
+        nums1.sort()
+        nums2.sort()
+        d = set()
+        for i in range(n):
+            for j in range(max(0,i-2),min(i+2,n-3)+1):
+                d.add(nums2[j]-nums1[i])
+        for x in sorted(d):
+            j = 0
+            for i in range(n):
+                if nums1[i] + x == nums2[j]:
+                    j += 1
+                    if j == n - 2:
+                        break
+            if j == n - 2:
+                return x
+```
+
+进一步地，一定不可能前三个元素都删除，所以前三个元素至少有一个是对的，枚举哪一个匹配数组贰的第一个元素即可，然后套排序+双指针。显然地，排序后，下标越大，元素值越大，距离目标越小，即 $x$ 越小，故逆序枚举即可。
+
+```python
+class Solution:
+    def minimumAddedInteger(self, nums1: List[int], nums2: List[int]) -> int:
+        nums1.sort()
+        nums2.sort()
+        # 枚举保留 nums1[2] 或者 nums1[1] 或者 nums1[0]
+        # 倒着枚举是因为 nums1[i] 越大答案越小，第一个满足的就是答案
+        for i in range(2, 0, -1):
+            x = nums2[0] - nums1[i]
+            # 在 {nums1[i] + x} 中找子序列 nums2
+            j = 0
+            for v in nums1[i:]:
+                if nums2[j] == v + x:
+                    j += 1
+                    # nums2 是 {nums1[i] + x} 的子序列
+                    if j == len(nums2):
+                        return x
+        # 题目保证答案一定存在
+        return nums2[0] - nums1[0]
+```
+
+```python
+class Solution:
+    def minimumAddedInteger(self, nums1: List[int], nums2: List[int]) -> int:
+        nums1.sort()
+        nums2.sort()
+        for i in range(2, 0, -1):
+            x = nums2[0] - nums1[i]
+            it = iter(nums1[i:])
+            # 判断 {nums2[j] - x} 是否为 nums1[i:] 的子序列
+            # in 会消耗迭代器，找到就停，找不到一直找不回头
+            if all(v - x in it for v in nums2):
+                return x
+        return nums2[0] - nums1[0]
 ```
 
