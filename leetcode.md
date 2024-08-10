@@ -1841,6 +1841,14 @@
 - 3132\.找出与数组相加的整数II
 
   枚举+排序+双指针 / <u>排序+双指针</u>
+  
+- 1971\.寻找图中是否存在路径
+
+  签到 DFS
+
+- 2540\.找到 Alice 和 Bob 可以相遇的建筑
+
+  离线 + map二分 / <u>离线 + 堆 / 离线 + 单调栈二分 / 在线 + 线段树二分</u>
 
 ## 算法
 
@@ -49091,5 +49099,243 @@ class Solution:
             if all(v - x in it for v in nums2):
                 return x
         return nums2[0] - nums1[0]
+```
+
+##### 1971\.寻找图中是否存在路径
+
+[题目](https://leetcode.cn/problems/find-if-path-exists-in-graph/)
+
+```python
+class Solution:
+    def validPath(self, n: int, edges: List[List[int]], source: int, destination: int) -> bool:
+        g = [[] for i in range(n)]
+        vis = [False] * n
+        for u, v in edges:
+            g[u].append(v)
+            g[v].append(u)
+        def dfs(u):
+            vis[u] = True
+            for v in g[u]:
+                if not vis[v]:
+                    dfs(v)
+        dfs(source)
+        return vis[destination]
+```
+
+##### 2540\.找到Alice和Bob可以相遇的建筑
+
+[题目](https://leetcode.cn/problems/find-building-where-alice-and-bob-can-meet)
+
+对一个询问的下标 $ia < ib$，特判：① $ia=ib$ 或 ② $h[ia] < h[ib]$，其他情况：
+
+- 按 $ib$ 维护询问插入列表，存储 $h'=1+\max(h[ia],h[ib])$ 表示至少要达到 $h'$ 才能解决这个询问，至少要在大于 $i'=\max(ia,ib)$ 的 $h$ 数组才能处理该询问。
+
+- 将插入列表按 $i'$ 排序，维护待处理询问的 `map`，键是 $h'$，值是所有该键的可以处理的询问的下标。
+
+- 顺序遍历 $h$ 数组，每次将 $i'\le i$ 的全体询问的 $h'$ 更新到 map 里。之后查询该 map 的所有不超过 $h[i]$ 的键值对，这些询问可以跳到 $i$ 解决，把这些询问删除。
+
+  注意 map 可以二分查找上界，由于每个元素最多被插入和删除(一次性访问，访问完就删)一次，故均摊访问次数为 $O(n)$，故复杂度为 $O(n\log n)$。 
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    vector<int> leftmostBuildingQueries(vector<int>& heights, vector<vector<int>>& queries) {
+        int n = heights.size(), m = queries.size();
+        vector<int> ans(m, -1);
+        using pii = pair<int,int>;
+        using node = tuple<int,int,int>;
+        vector<node> ins; // (index to insert, query value >= is ok), index of query
+        for(int i = 0; i < m; i++) {
+            int ia = min(queries[i][0], queries[i][1]);
+            int ib = max(queries[i][0], queries[i][1]);
+            if(ia == ib || heights[ia] < heights[ib]) {
+                ans[i] = ib;
+                continue;
+            }
+            int idx = max(ia, ib);
+            int val = 1+max(heights[queries[i][0]], heights[queries[i][1]]);
+            ins.push_back({idx, val, i});
+        }
+        sort(ins.begin(), ins.end());
+        map<int, vector<int>> q;
+        int j=0;
+        for(int i = 0; i < n; i++) {
+            while(j<ins.size() && get<0>(ins[j]) <= i) {
+                int _, val, idx;
+                tie(_, val, idx) = ins[j];
+                // cout << i << " " << val << " " << idx << "aaa\n";
+                q[val].push_back(idx);
+                ++j;
+            }
+            auto it = q.begin(), lim = q.upper_bound(heights[i]);
+            while(it != lim) {
+                for(int idx : it->second) {
+                    ans[idx] = i;
+                    // cout << i << " " << it->first << " " << idx << "www\n";
+                }
+                ++it;
+            }
+            q.erase(q.begin(), lim);
+        }
+        return ans;
+    }
+};
+```
+
+优化：
+
+询问离线：存储到对应 $ib$ 的 vector 里套成二维 vector 即可不用排序
+
+要处理的询问构成最小堆，每次取出全体 $\le h[i]$ 的元素即可
+
+```python
+class Solution:
+    def leftmostBuildingQueries(self, heights: List[int], queries: List[List[int]]) -> List[int]:
+        ans = [-1] * len(queries)
+        qs = [[] for _ in heights]
+        for i, (a, b) in enumerate(queries):
+            if a > b:
+                a, b = b, a  # 保证 a <= b
+            if a == b or heights[a] < heights[b]:
+                ans[i] = b  # a 直接跳到 b
+            else:
+                qs[b].append((heights[a], i))  # 离线询问
+
+        h = []
+        for i, x in enumerate(heights):
+            while h and h[0][0] < x:
+                # 堆顶的 heights[a] 可以跳到 heights[i]
+                ans[heappop(h)[1]] = i
+            for q in qs[i]:
+                heappush(h, q)  # 后面再回答
+        return ans
+```
+
+解法二：换成单调栈二分，倒序遍历 $h$，每次如果当前 $h[i]$ 更高，那么后面不比 $h[i]$ 高的都作废了因为 $i$ 更优。故维护单调递减的栈。对于当前下标 $i'$ 的全体询问，二分栈找到是否存在栈元素满足即可。具体而言：
+
+-  设单调栈是递减的，其取反数组是递增的，对取反数组，找到 upper-1 即可
+
+```c++
+class Solution {
+public:
+    vector<int> leftmostBuildingQueries(vector<int>& heights, vector<vector<int>>& queries) {
+        vector<int> ans(queries.size());
+        vector<vector<pair<int, int>>> qs(heights.size());
+        for (int i = 0; i < queries.size(); i++) {
+            int a = queries[i][0], b = queries[i][1];
+            if (a > b) {
+                swap(a, b); // 保证 a <= b
+            }
+            if (a == b || heights[a] < heights[b]) {
+                ans[i] = b; // a 直接跳到 b
+            } else {
+                qs[b].emplace_back(heights[a], i); // 离线询问
+            }
+        }
+
+        vector<int> st;
+        for (int i = heights.size() - 1; i >= 0; i--) {
+            for (auto& [ha, qi] : qs[i]) {
+                // 取反后，相当于找 < -ha 的最大下标，这可以先找 >= -ha 的最小下标，然后减一得到
+                auto it = ranges::lower_bound(st, -ha, {}, [&](int j) { return -heights[j]; });
+                ans[qi] = it > st.begin() ? *prev(it) : -1;
+            }
+            while (!st.empty() && heights[i] >= heights[st.back()]) {
+                st.pop_back();
+            }
+            st.push_back(i);
+        }
+        return ans;
+    }
+};
+```
+
+```python
+class Solution:
+    def leftmostBuildingQueries(self, heights: List[int], queries: List[List[int]]) -> List[int]:
+        ans = [-1] * len(queries)
+        qs = [[] for _ in heights]
+        for i, (a, b) in enumerate(queries):
+            if a > b:
+                a, b = b, a  # 保证 a <= b
+            if a == b or heights[a] < heights[b]:
+                ans[i] = b  # a 直接跳到 b
+            else:
+                qs[b].append((heights[a], i))  # 离线询问
+
+        st = []
+        for i in range(len(heights) - 1, -1, -1):
+            for ha, qi in qs[i]:
+                # 取反后，相当于找 < -ha 的最大下标，这可以先找 >= -ha 的最小下标，然后减一得到
+                j = bisect_left(st, -ha, key=lambda i: -heights[i]) - 1
+                if j >= 0:
+                    ans[qi] = st[j]
+            while st and heights[i] >= heights[st[-1]]:
+                st.pop()
+            st.append(i)
+        return ans
+```
+
+在线：求区间 $[i'+1,n)$ 里第一个 $\ge h'$ 的位置，使用线段树二分，维护 max h 值，区间查询最左的 $> v$ 的下标或查无 $-1$。
+
+```c++
+class Solution {
+    vector<int> mx;
+
+    // 用 heights 初始化线段树，维护区间最大值
+    void build(int o, int l, int r, vector<int>& heights) {
+        if (l == r) {
+            mx[o] = heights[l];
+            return;
+        }
+        int m = (l + r) / 2;
+        build(o * 2, l, m, heights);
+        build(o * 2 + 1, m + 1, r, heights);
+        mx[o] = max(mx[o * 2], mx[o * 2 + 1]);
+    }
+
+    // 返回 [L,n-1] 中第一个 > v 的值的下标
+    // 如果不存在，返回 -1
+    int query(int o, int l, int r, int L, int v) {
+        if (mx[o] <= v) { // 区间最大值 <= v
+            return -1; // 没有 > v 的数
+        }
+        if (l == r) { // 找到了
+            return l;
+        }
+        int m = (l + r) / 2;
+        if (L <= m) {
+            int pos = query(o * 2, l, m, L, v); // 递归左子树
+            if (pos >= 0) { // 找到了
+                return pos;
+            }
+        }
+        return query(o * 2 + 1, m + 1, r, L, v); // 递归右子树
+    }
+
+public:
+    vector<int> leftmostBuildingQueries(vector<int>& heights, vector<vector<int>>& queries) {
+        int n = heights.size();
+        mx.resize(4 << __lg(n));
+        build(1, 0, n - 1, heights);
+
+        vector<int> ans;
+        for (auto& q : queries) {
+            int a = q[0], b = q[1];
+            if (a > b) {
+                swap(a, b); // 保证 a <= b
+            }
+            if (a == b || heights[a] < heights[b]) {
+                ans.push_back(b); // a 直接跳到 b
+            } else {
+                // 线段树二分，找 [b+1,n-1] 中的第一个 > heights[a] 的位置
+                ans.push_back(query(1, 0, n - 1, b + 1, heights[a]));
+            }
+        }
+        return ans;
+    }
+};
 ```
 
