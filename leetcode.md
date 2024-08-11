@@ -1849,6 +1849,10 @@
 - 2540\.找到 Alice 和 Bob 可以相遇的建筑
 
   离线 + map二分 / <u>离线 + 堆 / 离线 + 单调栈二分 / 在线 + 线段树二分</u>
+  
+- 1035\.不相交的线
+
+  DP+前缀和 / <u>LCS DP</u>
 
 ## 算法
 
@@ -49335,6 +49339,65 @@ public:
             }
         }
         return ans;
+    }
+};
+```
+
+##### 1035\.不相交的线
+
+[题目](https://leetcode.cn/problems/uncrossed-lines)
+
+设 $dp_{i,j}$ 是考虑前 $i,j$ 个点，把 $i,j$ 对连接的答案，则：
+$$
+dp_{i,j}=\max_{u < i, v < j} dp_{u,v}+[nums1_i=nums2_j]
+$$
+即：枚举全体之前的线 $u,v$，在它之后马上连接 $i,j$，做到不交叉判断。
+
+对 $dp$ 叠前缀和，但是在计算完 $i$ 行后再更新这一行的前缀和，避免 $u=i$
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    int maxUncrossedLines(vector<int>& nums1, vector<int>& nums2) {
+        int n = nums1.size(), m = nums2.size();
+        vector<vector<int>> dp(n+1, vector<int>(m+1, 0));
+        int ans = 0;
+        for(int i = 1; i <= n; i++){
+            for(int j = 1; j <= m; j++){
+                dp[i][j]=dp[i-1][j-1]+(nums1[i-1]==nums2[j-1]);   
+                ans=max(ans,dp[i][j]);
+            }
+            for(int j=1;j<=m;++j) {
+                dp[i][j]=max({dp[i-1][j-1],dp[i][j],dp[i-1][j],dp[i][j-1]});
+            }
+        }
+        return ans;
+    }
+};
+```
+
+优雅：该问题的本质是求 LCS
+
+```c++
+class Solution {
+public:
+    int maxUncrossedLines(vector<int>& nums1, vector<int>& nums2) {
+        int m = nums1.size(), n = nums2.size();
+        vector<vector<int>> dp(m + 1, vector<int>(n + 1));
+        for (int i = 1; i <= m; i++) {
+            int num1 = nums1[i - 1];
+            for (int j = 1; j <= n; j++) {
+                int num2 = nums2[j - 1];
+                if (num1 == num2) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1;
+                } else {
+                    dp[i][j] = max(dp[i - 1][j], dp[i][j - 1]);
+                }
+            }
+        }
+        return dp[m][n];
     }
 };
 ```
