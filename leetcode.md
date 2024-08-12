@@ -1854,6 +1854,10 @@
 
   DP+前缀和 / <u>LCS DP</u>
 
+- 676\.实现一个魔法字典
+
+  字符串 暴力/预处理 / <u>字典树+DFS</u> 
+
 ## 算法
 
 ### 力扣其他
@@ -49400,5 +49404,159 @@ public:
         return dp[m][n];
     }
 };
+```
+
+##### 676\.实现一个魔法字典
+
+[题目](https://leetcode.cn/problems/implement-magic-dictionary)
+
+暴力：$O(qnl)$
+
+```python
+class MagicDictionary:
+    def __init__(self):
+        self.d = []
+    def buildDict(self, dictionary: List[str]) -> None:
+        self.d = dictionary
+    def search(self, searchWord: str) -> bool:
+        for w in self.d:
+            if len(w) != len(searchWord):
+                continue
+            cnt = 0
+            for i in range(len(w)):
+                cnt += searchWord[i] == w[i]
+            if cnt == len(w) - 1:
+                return True
+        return False
+```
+
+- 常数优化：有两个不一样就 break，快两倍
+
+```python
+class MagicDictionary:
+    def __init__(self):
+        self.d = []
+    def buildDict(self, dictionary: List[str]) -> None:
+        self.d = dictionary
+    def search(self, searchWord: str) -> bool:
+        for w in self.d:
+            if len(w) != len(searchWord):
+                continue
+            cnt = 0
+            for i in range(len(w)):
+                cnt += searchWord[i] != w[i]
+                if cnt > 1:
+                    break
+            if cnt == 1:
+                return True
+        return False
+```
+
+预处理：每个字符可以变成 26 个变种，一个长为 $l$ 的可以变成 $26l$ 个，则预处理为 $O(26nl)$，查询为 $O(ql)$。
+
+字典树回溯：建字典树，在树上搜索，找到第一个不匹配位置，该位置尝试换成所有其他字母，则预处理 $O(nl)$，查询 $O(26ql)$。
+
+```c++
+struct Trie {
+    bool is_finished;
+    Trie* child[26];
+
+    Trie() {
+        is_finished = false;
+        fill(begin(child), end(child), nullptr);
+    }
+};
+
+class MagicDictionary {
+public:
+    MagicDictionary() {
+        root = new Trie();
+    }
+    
+    void buildDict(vector<string> dictionary) {
+        for (auto&& word: dictionary) {
+            Trie* cur = root;
+            for (char ch: word) {
+                int idx = ch - 'a';
+                if (!cur->child[idx]) {
+                    cur->child[idx] = new Trie();
+                }
+                cur = cur->child[idx];
+            }
+            cur->is_finished = true;
+        }
+    }
+    
+    bool search(string searchWord) {
+        function<bool(Trie*, int, bool)> dfs = [&](Trie* node, int pos, bool modified) {
+            if (pos == searchWord.size()) {
+                return modified && node->is_finished;
+            }
+            int idx = searchWord[pos] - 'a';
+            if (node->child[idx]) {
+                if (dfs(node->child[idx], pos + 1, modified)) {
+                    return true;
+                }
+            }
+            if (!modified) {
+                for (int i = 0; i < 26; ++i) {
+                    if (i != idx && node->child[i]) {
+                        if (dfs(node->child[i], pos + 1, true)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        };
+
+        return dfs(root, 0, false);
+    }
+
+private:
+    Trie* root;
+};
+```
+
+```python
+class Trie:
+    def __init__(self):
+        self.is_finished = False
+        self.child = dict()
+
+
+class MagicDictionary:
+
+    def __init__(self):
+        self.root = Trie()
+
+    def buildDict(self, dictionary: List[str]) -> None:
+        for word in dictionary:
+            cur = self.root
+            for ch in word:
+                if ch not in cur.child:
+                    cur.child[ch] = Trie()
+                cur = cur.child[ch]
+            cur.is_finished = True
+
+    def search(self, searchWord: str) -> bool:
+        def dfs(node: Trie, pos: int, modified: bool) -> bool:
+            if pos == len(searchWord):
+                return modified and node.is_finished
+            
+            ch = searchWord[pos]
+            if ch in node.child:
+                if dfs(node.child[ch], pos + 1, modified):
+                    return True
+                
+            if not modified:
+                for cnext in node.child:
+                    if ch != cnext:
+                        if dfs(node.child[cnext], pos + 1, True):
+                            return True
+            
+            return False
+        
+        return dfs(self.root, 0, False)
 ```
 
