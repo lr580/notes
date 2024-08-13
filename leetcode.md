@@ -1857,6 +1857,10 @@
 - 676\.实现一个魔法字典
 
   字符串 暴力/预处理 / <u>字典树+DFS</u> 
+  
+- 3152\.特殊数组II
+
+  ST表 / <u>前缀和</u>
 
 ## 算法
 
@@ -49559,4 +49563,54 @@ class MagicDictionary:
         
         return dfs(self.root, 0, False)
 ```
+
+##### 3152\.特殊数组II
+
+[题目](https://leetcode.cn/problems/special-array-ii)
+
+把每两个元素看成一个节点建立 $n-1$ 个布尔值元素的 ST 表，查询区间段是否全为真即可。
+
+```python
+class Solution:
+    def isArraySpecial(self, nums: List[int], queries: List[List[int]]) -> List[bool]:
+        n = len(nums)
+        if n==1:
+            return [True]*len(queries)
+        lg2 = [0] * n
+        for i in range(2,n):
+            lg2[i]=lg2[i//2]+1
+        st = [[0 for i in range(2+lg2[n-1])] for j in range(n-1)]
+        for i in range(n-1):
+            st[i][0] = nums[i]%2!=nums[i+1]%2
+        for j in range(1, len(st[0])):
+            for i in range(n-(1<<j)):
+                st[i][j]=st[i][j-1] and st[i+(1<<(j-1))][j-1]
+        ans = []
+        for l,r in queries:
+            if l==r:
+                ans.append(True)
+                continue
+            r -= 1
+            p = lg2[r-l+1]
+            ans.append(st[l][p] and st[r-(1<<p)+1][p])
+        return ans
+```
+
+前缀和即可，相等为 0，不相等为 1，转化为对 01 数组查询是否有 1，直接看 $s_r=s_l$ 是否成立即可
+
+- 常数优化：奇偶性相等，即异或后最低位是 1，再 xor 1 取反
+
+```python
+class Solution:
+    def isArraySpecial(self, nums: List[int], queries: List[List[int]]) -> List[bool]:
+        s = list(accumulate((x % 2 == y % 2 for x, y in pairwise(nums)), initial=0))
+        return [s[from_] == s[to] for from_, to in queries]
+```
+
+ ```python
+class Solution:
+    def isArraySpecial(self, nums: List[int], queries: List[List[int]]) -> List[bool]:
+        s = list(accumulate(((x ^ y ^ 1) & 1 for x, y in pairwise(nums)), initial=0))
+        return [s[from_] == s[to] for from_, to in queries]
+ ```
 
