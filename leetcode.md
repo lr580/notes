@@ -1861,6 +1861,10 @@
 - 3152\.特殊数组II
 
   ST表 / <u>前缀和</u>
+  
+- 3148\.矩阵中的最大得分
+
+  DP / <u>二维前缀和</u>
 
 ## 算法
 
@@ -49613,4 +49617,44 @@ class Solution:
         s = list(accumulate(((x ^ y ^ 1) & 1 for x, y in pairwise(nums)), initial=0))
         return [s[from_] == s[to] for from_, to in queries]
  ```
+
+##### 3148\.矩阵中的最大得分
+
+[题目](https://leetcode.cn/problems/maximum-difference-score-in-a-grid)
+
+DP，对每个点，选择从它左边或上边的点开始走，如果本来左边或上边已经负了就重新开始，不然就继承之前走到左边/上边的路径继续走。
+
+```python
+class Solution:
+    def maxScore(self, grid: List[List[int]]) -> int:
+        n, m = len(grid), len(grid[0])
+        dp = [[0 for i in range(m)] for j in range(n)]
+        for i in range(1,n):
+            dp[i][0] = max(0, dp[i-1][0]) + grid[i][0] - grid[i-1][0]
+        for j in range(1,m):
+            dp[0][j] = max(0, dp[0][j-1]) + grid[0][j] - grid[0][j-1]
+        for i in range(1,n):
+            for j in range(1,m):
+                vl = max(0, dp[i-1][j]) + grid[i][j] - grid[i-1][j]
+                vu = max(0, dp[i][j-1]) + grid[i][j] - grid[i][j-1]
+                dp[i][j] = max(vl, vu)
+        dp[0][0] = -1e9
+        return max(max(dp[i]) for i in range(n))
+```
+
+一步一步走，从 $a\to b\to c$，等价于 $c-b+b-a=c-a$，即满足距离可加性，所以只需要，对每个当前点，找到以它为右下角的子矩阵里，最小的元素，等价于从最小元素直接转移到当前点，则维护二维前缀 min 即可。
+
+```python
+class Solution:
+    def maxScore(self, grid: List[List[int]]) -> int:
+        ans = -inf
+        m, n = len(grid), len(grid[0])
+        f = [[inf] * (n + 1) for _ in range(m + 1)]
+        for i, row in enumerate(grid):
+            for j, x in enumerate(row):
+                mn = min(f[i + 1][j], f[i][j + 1])
+                ans = max(ans, x - mn)
+                f[i + 1][j + 1] = min(mn, x)
+        return ans
+```
 
