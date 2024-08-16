@@ -1865,6 +1865,14 @@
 - 3148\.矩阵中的最大得分
 
   DP / <u>二维前缀和</u>
+  
+- 3097\.或值至少为 K 的最短子数组
+
+  **LogTrick + 二分/滑动窗口**
+  
+- 3117\.划分数组得到的最小的值之和
+
+  <u>记忆化DFS / (LogTrick(二分/滑动窗口)/ST表 + (单调栈/线段树)优化DP)</u>
 
 ## 算法
 
@@ -49657,4 +49665,396 @@ class Solution:
                 f[i + 1][j + 1] = min(mn, x)
         return ans
 ```
+
+##### 3117\.划分数组得到最小的值之和
+
+[题目](https://leetcode.cn/problems/minimum-sum-of-values-by-dividing-array)
+
+定理：共有 $O(n\log\max nums)$ 个不同的子数组 and 值。
+
+证明：令 $u=\max nums$，从某个左端点开始的 and 值， 最多有 $\log u$ 个 $1$，不断右移右端点，$1$ 的数目一定在减少，且 $0$ 位置不可能变回 $1$，所以整个变化最多有 $\log u$ 个不同的可能性，共有 $n$ 个左端点，故共有不超过 $n\log u$ 个 and 值。
+
+以当前位置、当前组数、当前组 and 值三者为状态 DP，复杂度不会超过 $O(nm\log u)$。
+
+注意 DFS 一定要设置返回值，否则，考虑样例二：
+
+```
+nums = [2,3,5,7,7,7,5], andValues = [0,7,5]
+```
+
+考虑下面的代码：
+
+```c++
+class Solution {
+public:
+    int minimumValueSum(vector<int>& nums, vector<int>& andValues) {
+        int n = nums.size(), m = andValues.size(), ans = 1e9;
+        using node = tuple<int,int,int>;
+        set<node> vis;
+        //当前要选第p个元素，已经选了q个组，当前组的and值是s，and之和是sm
+        function<void(int,int,int,int)> dfs = [&](int p, int q, int s, int sum) {
+            cout<<p<<" "<<q<<" "<<s<<" "<<sum<<'\n';
+            if(q==m||p==n){
+                if(q==m&&p==n) {
+                    ans = min(ans, sum);
+                }
+                return;
+            }
+            if(vis.count({p,q,s})) return;
+            vis.insert({p,q,s});
+            dfs(p+1, q, s&nums[p], sum);
+             if((s&nums[p])==andValues[q]){
+                dfs(p+1, q+1, -1, sum+nums[p]);
+            }
+        };
+        dfs(0,0,-1,0);
+        return ans == 1e9 ? -1 : ans;
+    }
+};
+```
+
+输出为：
+
+```
+0 0 -1 0
+1 0 2 0
+2 0 2 0
+3 0 0 0
+4 0 0 0
+5 0 0 0
+6 0 0 0
+7 0 0 0
+7 1 -1 5
+6 1 -1 7
+7 1 5 7
+5 1 -1 7
+6 1 7 7
+7 1 5 7
+6 2 -1 14
+7 2 5 14
+7 3 -1 19
+4 1 -1 7
+5 1 7 7
+6 1 7 7
+6 2 -1 14
+5 2 -1 14
+6 2 7 14
+7 2 5 14
+7 3 -1 19
+3 1 -1 5
+4 1 7 5
+5 1 7 5
+5 2 -1 12
+4 2 -1 12
+5 2 7 12
+6 2 7 12
+```
+
+对 `6 2 7` 状态来说，第一次以 14 的和到达这个状态，之后即便有更小的 `6 2 7`，但是因为已经 vis 过了，所以不会以更小的状态继续往下走。而如果要更新最小的重新 DFS 复杂度将不再正确。
+
+也就是说，希望对 `6 2 7` 这个状态，DFS 结束时它得到的是从它往后走的最多的值和，这样才满足无后效性，因此不能往前加 sum，只能往后加 sum，要做到这一点就需要用到返回值。
+
+> 这份代码用 `[]` 就 CE，据说是力扣自己的问题，可以把 tuple 换成 `array<int,3>`。
+>
+> ```c++
+> #include <bits/stdc++.h>
+> using namespace std;
+> class Solution {
+> public:
+>  int minimumValueSum(vector<int>& nums, vector<int>& andValues) {
+>      int n = nums.size(), m = andValues.size(), ans = 1e9;
+>      using node = tuple<int,int,int>;
+>      map<node,int> vis;
+>      //当前要选第p个元素，已经选了q个组，当前组的and值是s
+>      //返回从p,q,s这个状态继续往后走p+1往后的子数组还能获得多少的和，无解返回无穷
+>      function<int(int,int,int)> dfs = [&](int p, int q, int s) {
+>          //if (n - p < m - q) return (int)1e9;
+>          if(q==m||p==n){
+>              if(q==m&&p==n) {
+>                  return 0;
+>              }
+>              return (int)1e9;
+>          }
+>          node state = {p,q,s};
+>          // 若换成 return vis[state] 则 CE
+>          if(vis.contains(state)) return vis.find(state)->second;
+>          int res = dfs(p+1, q, s&nums[p]);
+>          if((s&nums[p])==andValues[q]){
+>              int res2 = dfs(p+1, q+1, (1<<30)-1)+nums[p];
+>              res = min(res, res2);
+>          }
+>          // 若下两行换成 return vis[state] = res; 则 CE
+>          vis.insert({state, res});
+>          return vis.find(state)->second;
+>      };
+>      ans = dfs(0,0,(1<<30)-1);
+>      return ans == 1e9 ? -1 : ans;
+>  }
+> };
+> ```
+
+把 function 换成 auto && 或 auto &，不然会慢很多，理由未知，据说是闭包的缘故
+
+![image-20240816121700135](img/image-20240816121700135.png)
+
+因此代码为：
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    int minimumValueSum(vector<int>& nums, vector<int>& andValues) {
+        int n = nums.size(), m = andValues.size(), inf = INT_MAX/2;
+        unordered_map<long long,int> vis;
+        //当前要选第p个元素，已经选了q个组，当前组的and值是s
+        //返回从p,q,s这个状态继续往后走p+1往后的子数组还能获得多少的和，无解返回无穷
+        auto dfs = [&](auto&dfs, int p, int q, int s) {
+            if (n - p < m - q) return inf;
+            if (q == m) {
+                return p == n ? 0 : inf;
+            }
+            s&=nums[p];
+            long long state = (long long)p<<36|(long long)q<<32|s;
+            if(vis.contains(state)) return vis[state];
+            int res = dfs(dfs,p+1, q, s);
+            if(s==andValues[q]){
+                res = min(res, dfs(dfs,p+1, q+1, -1)+nums[p]);
+            }
+            return vis[state] = res;
+        };
+        int ans = dfs(dfs,0,0,-1);
+        return ans >= inf ? -1 : ans;
+    }
+};
+```
+
+定义 $f_{j,i+1}$ 表示把 $[0,i]$ 分成 $j$ 段的最小子数组之和，第 $j$ 段下标范围若为 $[k,i]$，则转移方程为：$f_{j,i+1}=nums_i+\min_k f_{j-1,k}$，且必须满足 $[k,i]$ 的 and 和符合要求，设 and 和为 $t$。初始值为 $f_{0,0}=0$，且 $f_{0,i}=\infty, f_{j,0}=\infty$。所求为 $f_{m,n}$
+
+对给定的 $t=andValues_{j-1}$，固定 $i$，$k$ 的可行范围是一定是连续的 $k\in [l,r]$。当移动 $i$ 往右时，该范围也会右移，所以可以使用单调队列转移。考虑到第一维的转移方程，可以滚动数组优化。(跨过这道题接着往下看)
+
+##### 3209\.子数组按位与值为 K 的数目
+
+[题目](https://leetcode.cn/problems/number-of-subarrays-with-and-value-of-k)
+
+首先看子问题：LC3209 子数组按位与值为 K 的数目
+
+解法一：把二进制数看成集合，按位与就是交集，若 $a\& b = a$，则 $a$ 是子集，$b$ 是超集。
+
+设原数组是 $A$，对当前元素 $i$，新数组 $B$ 是从 $i$ 往前的 and 和，即当前到 $i$ 为止时，$B_j=A_j\& A_{j+1}\&\cdots\& A_i$。首先考虑快速计算出 $B$。
+
+令 $i-1$ 时是 $B'$，$i$ 时是 $B$，令 $i$ 处的元素值是 $x$。显然有递推方程 $B_j=B'_j\& x$。注意到 $B_j=B_{j+1}\& x$。当 $B_{j}\& x=B_j$ 时，有 $B_{j-1}=B_j\& x=B_j$，且 $B_{j-2}=B_{j-1}\& x$，又因为 $B_{j-1}=B_j$，所以 $B_{j-2}=B_j\& x$，又因为 $B_j\& x=B_j$，所以 $B_{j-2}=B_j$，以此类推，必然满足 $\forall k < j,B_k=B_j$。所以当 $B_j\& x=B_j$ 时，不用再往前更新了。
+
+复杂度分析：维护 $B$ 的变化过程，每个 $B$ 的元素经过 and 操作后，$1$ 的数目不会增加，只有两种情况：①不变；②减少。如果不变，则不用更新之前的，如果减少，最坏情况只减少 $\log v\le 32$ 次。所以复杂度是 $O(n\log v)$ 的。
+
+在 $B$ 的基础上，可以二分、滑动窗口求解答案均可。
+
+> 二分：
+>
+> ```c++
+> class Solution {
+> public:
+>     long long countSubarrays(vector<int>& nums, int k) {
+>         long long ans = 0;
+>         for (int i = 0; i < nums.size(); i++) {
+>             int x = nums[i];
+>             for (int j = i - 1; j >= 0 && (nums[j] & x) != nums[j]; j--) {
+>                 nums[j] &= x;
+>             }
+>             ans += upper_bound(nums.begin(), nums.begin() + i + 1, k) -
+>                    lower_bound(nums.begin(), nums.begin() + i + 1, k);
+>         }
+>         return ans;
+>     }
+> };
+> ```
+>
+> 使用双指针的滑动窗口：
+>
+> ```c++
+> class Solution {
+> public:
+>     long long countSubarrays(vector<int>& nums, int k) {
+>         long long ans = 0;
+>         int left = 0, right = 0;
+>         for (int i = 0; i < nums.size(); i++) {
+>             int x = nums[i];
+>             for (int j = i - 1; j >= 0 && (nums[j] & x) != nums[j]; j--) {
+>                 nums[j] &= x;
+>             }
+>             while (left <= i && nums[left] < k) {
+>                 left++;
+>             }
+>             while (right <= i && nums[right] <= k) {
+>                 right++;
+>             }
+>             ans += right - left;
+>         }
+>         return ans;
+>     }
+> };
+> ```
+>
+> 直接计数的滑动窗口：
+>
+> ```c++
+> class Solution {
+> public:
+>     long long countSubarrays(vector<int>& nums, int k) {
+>         long long ans = 0;
+>         int cnt = 0;
+>         for (int i = 0; i < nums.size(); i++) {
+>             int x = nums[i];
+>             cnt += x == k;
+>             for (int j = i - 1; j >= 0 && (nums[j] & x) != nums[j]; j--) {
+>                 cnt -= nums[j] == k;
+>                 nums[j] &= x;
+>                 cnt += nums[j] == k;
+>             }
+>             ans += cnt;
+>         }
+>         return ans;
+>     }
+> };
+> ```
+
+因此对应到本题：
+
+- 考虑 $f$ 的转移方程，显然，可以维护一个单调队列，求出 $[l,r]$ 内的最小值
+
+```c++
+class Solution {
+public:
+    int minimumValueSum(vector<int>& nums, vector<int>& andValues) {
+        const int INF = INT_MAX / 2;
+        int n = nums.size();
+        vector<int> f(n + 1, INF);
+        vector<int> new_f(n + 1);
+
+        f[0] = 0;
+        for (int target : andValues) {
+            auto a = nums;
+            int left = 0, right = 0;
+            deque<int> q; // 单调队列，保存 f 的下标
+            int qi = 0; // 单调队列目前处理到 f[qi]
+
+            new_f[0] = INF;
+            for (int i = 0; i < n; i++) {
+                int x = a[i];
+                for (int j = i - 1; j >= 0 && (a[j] & x) != a[j]; j--) {
+                    a[j] &= x;
+                }
+                while (left <= i && a[left] < target) {
+                    left++;
+                }
+                while (right <= i && a[right] <= target) {
+                    right++;
+                }
+
+                // 上面这段的目的是求出子数组右端点为 i 时，子数组左端点的最小值和最大值+1
+                // 下面是单调队列的滑窗过程
+
+                if (left < right) {
+                    // 单调队列：右边入
+                    for (; qi < right; qi++) {
+                        while (!q.empty() && f[qi] <= f[q.back()]) {
+                            q.pop_back();
+                        }
+                        q.push_back(qi);
+                    }
+
+                    // 单调队列：左边出
+                    while (q.front() < left) {
+                        q.pop_front();
+                    }
+
+                    // 单调队列：计算答案
+                    new_f[i + 1] = f[q.front()] + x; // 队首就是最小值
+                } else {
+                    new_f[i + 1] = INF;
+                }
+            }
+            swap(f, new_f);
+        }
+        return f[n] < INF ? f[n] : -1;
+    }
+};
+```
+
+> 另一种写法：只维护 $B$ 里发生变化的有用元素值
+>
+> ```c++
+> class Solution {
+> public:
+>     int minimumValueSum(vector<int>& nums, vector<int>& andValues) {
+>         const int INF = INT_MAX / 2;
+>         int n = nums.size();
+>         vector<int> f(n + 1, INF);
+>         vector<int> new_f(n + 1);
+> 
+>         f[0] = 0;
+>         for (int target : andValues) {
+>             vector<pair<int, int>> a; // logTrick 子数组 AND 和子数组左端点
+>             deque<int> q; // 单调队列，保存 f 的下标
+>             int qi = 0; // 单调队列目前处理到 f[qi]
+> 
+>             new_f[0] = INF;
+>             for (int i = 0; i < n; i++) {
+>                 int x = nums[i];
+>                 for (auto& [and_, _] : a) {
+>                     and_ &= x;
+>                 }
+>                 a.emplace_back(x, i);
+> 
+>                 // 原地去重，并去掉 AND 值小于 target 的数据
+>                 int j = 0, last = -1;
+>                 for (auto& p : a) {
+>                     int and_ = p.first;
+>                     if (and_ >= target && and_ != last) {
+>                         a[j++] = p;
+>                         last = and_;
+>                     }
+>                 }
+>                 a.resize(j);
+> 
+>                 // 上面这段的目的是求出子数组右端点为 i 时，子数组左端点的最小值和最大值
+>                 // 下面是单调队列的滑窗过程
+> 
+>                 if (!a.empty() && a[0].first == target) {
+>                     // 现在 a[0].second 和 a[1].second-1 分别是子数组左端点的最小值和最大值
+>                     int r = a.size() > 1 ? a[1].second - 1 : i;
+> 
+>                     // 单调队列：右边入
+>                     for (; qi <= r; qi++) {
+>                         while (!q.empty() && f[qi] <= f[q.back()]) {
+>                             q.pop_back();
+>                         }
+>                         q.push_back(qi);
+>                     }
+> 
+>                     // 单调队列：左边出
+>                     while (q.front() < a[0].second) {
+>                         q.pop_front();
+>                     }
+> 
+>                     // 单调队列：计算答案
+>                     new_f[i + 1] = f[q.front()] + x; // 队首就是最小值
+>                 } else {
+>                     new_f[i + 1] = INF;
+>                 }
+>             }
+>             swap(f, new_f);
+>         }
+>         return f[n] < INF ? f[n] : -1;
+>     }
+> };
+> ```
+
+其他做法：
+
+- 单调队列可以换成线段树。
+- logTrick 可以换成 ST 表+二分。
+- (TODO) [src](https://leetcode.cn/problems/minimum-sum-of-values-by-dividing-array/solutions/2739224/onm-jie-fa-shuang-zhan-hua-dong-chuang-k-0zoz/) 双栈优化滑动窗口，能够得到 $O(nm)$ 的解法。
+
+
 
