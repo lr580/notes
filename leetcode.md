@@ -1872,7 +1872,11 @@
   
 - 3117\.划分数组得到的最小的值之和
 
-  <u>记忆化DFS / (LogTrick(二分/滑动窗口)/ST表 + (单调栈/线段树)优化DP)</u>
+  <u>记忆化DFS / (LogTrick(二分/滑动窗口)/ST表二分 + (单调栈/线段树)优化DP)</u>
+  
+- 3137\.K 周期字符串需要的最少操作次数
+
+  签到 思维 字符串
 
 ## 算法
 
@@ -50056,5 +50060,15 @@ public:
 - logTrick 可以换成 ST 表+二分。
 - (TODO) [src](https://leetcode.cn/problems/minimum-sum-of-values-by-dividing-array/solutions/2739224/onm-jie-fa-shuang-zhan-hua-dong-chuang-k-0zoz/) 双栈优化滑动窗口，能够得到 $O(nm)$ 的解法。
 
+3137\.K 周期字符串需要的最少操作次数
 
+[题目](https://leetcode.cn/problems/minimum-number-of-operations-to-make-word-k-periodic)
 
+把每个换成出现次数最多的
+
+```python
+class Solution:
+    def minimumOperationsToMakeKPeriodic(self, word: str, k: int) -> int:
+        c = Counter(word[i:i+k] for i in range(0,len(word),k))
+        return len(word)//k - max(c.values())
+```
