@@ -30950,6 +30950,39 @@ public:
 };
 ```
 
+```c++
+const int MOD = 1'000'000'007;
+const int MX = 100'001;
+
+int f[MX][2][3];
+
+auto init = [] {
+    f[0][0][0] = f[0][0][1] = f[0][0][2] = f[0][1][0] = f[0][1][1] = f[0][1][2] = 1;
+    for (int i = 1; i < MX; i++) {
+        for (int j = 0; j < 2; j++) {
+            for (int k = 0; k < 3; k++) {
+                int& res = f[i][j][k];
+                res = f[i - 1][j][0];
+                if (j == 0) {
+                    res = (res + f[i - 1][1][0]) % MOD;
+                }
+                if (k < 2) {
+                    res = (res + f[i - 1][j][k + 1]) % MOD;
+                }
+            }
+        }
+    }
+    return 0;
+}();
+
+class Solution {
+public:
+    int checkRecord(int n) {
+        return f[n][0][0];
+    }
+};
+```
+
 显然可以滚动：
 
 ```c++
@@ -30993,7 +31026,7 @@ public:
 };
 ```
 
-矩阵快速幂加速 DP 递推：对上述状态 $j,k$ 压缩为 $3j+k$，得到复杂度为 $O(6^3\log n)$ 的解法。
+矩阵快速幂加速 DP 递推：对上述状态 $j,k$ 压缩为 $3j+k$，得到复杂度为 $O(6^3\log n)$ 的解法。可以具体参考灵茶山。
 
 ```c++
 class Solution {
