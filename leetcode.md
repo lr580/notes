@@ -1877,6 +1877,10 @@
 - 3137\.K 周期字符串需要的最少操作次数
 
   签到 思维 字符串
+  
+- 2492\.两个城市间路径的最小分数
+
+  DFS
 
 ## 算法
 
@@ -50072,3 +50076,28 @@ class Solution:
         c = Counter(word[i:i+k] for i in range(0,len(word),k))
         return len(word)//k - max(c.values())
 ```
+
+##### 2492\.两个城市间路径的最小分数
+
+[题目](https://leetcode.cn/problems/minimum-score-of-a-path-between-two-cities/)
+
+```python
+class Solution:
+    def minScore(self, n: int, roads: List[List[int]]) -> int:
+        ans = 1e5
+        g = [[] for i in range(n+1)]
+        for u,v,w in roads:
+            g[u].append((v,w))
+            g[v].append((u,w))
+        vis = [False for i in range(n+1)]
+        def dfs(u):
+            nonlocal ans
+            vis[u] = True
+            for v,w in g[u]:
+                ans = min(ans, w)
+                if not vis[v]:
+                    dfs(v)
+        dfs(1)
+        return ans
+```
+
