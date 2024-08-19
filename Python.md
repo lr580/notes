@@ -4093,6 +4093,8 @@ gcd(-3,-6) #3
 
 - `(0, a) = (a, 0) = |a|`, `(a, b) = (|a|, |b|)`
 
+3.8+ comb(a,b) 求a个数选b个的组合数，要求a,b非负整数，有comb(0,0)=comb(i,0)=1
+
 #### random
 
 无需置随机数种子，也可置，可非 int 如 `random.seed(time.time())`
@@ -5080,6 +5082,16 @@ def fibonacci_mod(n):
         return n
     return (fibonacci_mod(n - 1) + fibonacci_mod(n - 2)) % MOD
 print(fibonacci_mod(400))
+```
+
+可以直接对函数使用，表示某个函数的计算结果缓存记忆化
+
+```python
+from math import comb
+from functools import cache
+comb=cache(comb)
+comb(10000000,10000000-30000)>1 #slow
+comb(10000000,10000000-30000)>1 #in a flash
 ```
 
 

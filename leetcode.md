@@ -1881,6 +1881,18 @@
 - 2492\.两个城市间路径的最小分数
 
   DFS
+  
+- 802\.找到最终的安全状态
+
+  环 DFS / <u>拓扑排序</u>
+  
+- 1559\.二维网格图中探测环
+
+  DFS / <u>并查集</u>
+  
+- 3154\.到达第K级台阶的方案数
+
+  组合数学 / <u>DP(记忆化DFS)</u>
 
 ## 算法
 
@@ -50132,5 +50144,256 @@ class Solution:
                     dfs(v)
         dfs(1)
         return ans
+```
+
+##### 802\.找到最终的安全状态
+
+[题目](https://leetcode.cn/problems/find-eventual-safe-states)
+
+题意：问每个点是否在环内或可以到达一个环内，返回不满足该条件的点
+
+我的染色策略：
+
+```python
+class Solution:
+    def eventualSafeNodes(self, g: List[List[int]]) -> List[int]:
+        n, ans = len(g), []
+        vis = [0] * n # 0:未访问, 1:已访问, 2:已访问且经由它可以到达环
+        def dfs(u):
+            vis[u] = 1
+            cur.add(u)
+            # print(u,cur,'vis')
+            for v in g[u]:
+                print(u,v)
+                if not vis[v]:
+                    vis[u] = max(vis[u], dfs(v))
+                elif v in cur or vis[v] == 2:
+                    # print(u,v,'cycle')
+                    vis[u] = 2
+            cur.remove(u)
+            return vis[u]
+        for i in range(n):
+            # print('new ', i)
+            cur = set()
+            if not vis[i]:
+                dfs(i)
+            if vis[i] == 1:
+                ans.append(i)
+        return ans
+```
+
+题解的策略：0 未访问，1 正在 DFS 栈或环上，2 安全 (DFS 完毕，不在环)
+
+```python
+class Solution:
+    def eventualSafeNodes(self, graph: List[List[int]]) -> List[int]:
+        n = len(graph)
+        color = [0] * n
+        def safe(x: int) -> bool:
+            if color[x] > 0:
+                return color[x] == 2
+            color[x] = 1
+            for y in graph[x]:
+                if not safe(y):
+                    return False
+            color[x] = 2
+            return True
+        return [i for i in range(n) if safe(i)]
+```
+
+解法二：对反图拓扑排序，所有能被拓扑过程消掉的点都是安全的
+
+```python
+class Solution:
+    def eventualSafeNodes(self, graph: List[List[int]]) -> List[int]:
+        rg = [[] for _ in graph]
+        for x, ys in enumerate(graph):
+            for y in ys:
+                rg[y].append(x)
+        in_deg = [len(ys) for ys in graph]
+
+        q = deque([i for i, d in enumerate(in_deg) if d == 0])
+        while q:
+            for x in rg[q.popleft()]:
+                in_deg[x] -= 1
+                if in_deg[x] == 0:
+                    q.append(x)
+
+        return [i for i, d in enumerate(in_deg) if d == 0]
+```
+
+##### 1559\.二维网格图中探测环
+
+[题目](https://leetcode.cn/problems/detect-cycles-in-2d-grid)
+
+注意是 x1,y1 != xf, yf (不能 x1!=xf and x2!=yf)不然就是和 f 点横纵都不能相等，至少一个不等即可
+
+```python
+class Solution:
+    def containsCycle(self, grid: List[List[str]]) -> bool:
+        has = False
+        n, m = len(grid), len(grid[0])
+        vis = [[False for i in range(m)] for i in range(n)]
+        dx, dy = [-1,0,1,0], [0,-1,0,1]
+        def dfs(x, y, xf, yf):
+            '''当前点：上一个点'''
+            vis[x][y] = True
+            for i in range(4):
+                x2, y2 = x+dx[i], y+dy[i]
+                if 0<=x2<n and 0<=y2<m and (x2, y2) != (xf, yf) and grid[x][y] == grid[x2][y2]:
+                    if not vis[x2][y2]:
+                        dfs(x2, y2, x, y)
+                    else:
+                        nonlocal has
+                        has = True
+        for x in range(n):
+            for y in range(m):
+                if not vis[x][y] and not has:
+                    dfs(x, y, -1, -1)
+        return has
+```
+
+并查集：边不重的枚举，每个点只需要枚举它的左和上即可，看看和左上是否在同一个并查集。
+
+```python
+class UnionFind {
+public:
+    vector<int> parent;
+    vector<int> size;
+    int n;
+    int setCount;
+    
+public:
+    UnionFind(int _n): n(_n), setCount(_n), parent(_n), size(_n, 1) {
+        iota(parent.begin(), parent.end(), 0);
+    }
+    
+    int findset(int x) {
+        return parent[x] == x ? x : parent[x] = findset(parent[x]);
+    }
+    
+    void unite(int x, int y) {
+        if (size[x] < size[y]) {
+            swap(x, y);
+        }
+        parent[y] = x;
+        size[x] += size[y];
+        --setCount;
+    }
+    
+    bool findAndUnite(int x, int y) {
+        int parentX = findset(x);
+        int parentY = findset(y);
+        if (parentX != parentY) {
+            unite(parentX, parentY);
+            return true;
+        }
+        return false;
+    }
+};
+
+class Solution {
+public:
+    bool containsCycle(vector<vector<char>>& grid) {
+        int m = grid.size();
+        int n = grid[0].size();
+        UnionFind uf(m * n);
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (i > 0 && grid[i][j] == grid[i - 1][j]) {
+                    if (!uf.findAndUnite(i * n + j, (i - 1) * n + j)) {
+                        return true;
+                    }
+                }
+                if (j > 0 && grid[i][j] == grid[i][j - 1]) {
+                    if (!uf.findAndUnite(i * n + j, i * n + j - 1)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+};
+```
+
+##### 3154\.到达第K级台阶的方案数
+
+[题目](https://leetcode.cn/problems/find-number-of-ways-to-reach-the-k-th-stair/)
+
+1. 如果 jump 0 次，不向下走，到达编号 1
+
+   向下走，到达编号 0
+
+2. 如果 jump 1 次，到达编号 2
+
+   jump 1 次，下 1 次，有两种方案(先 jump or 先下)，到达编号 1
+
+   jump 1 次，下 2 次，一定是 jump 在中，只有 1 种方案，到达编号 0
+
+3. 如果 jump 2 次，到达编号 4
+
+   jump 2 次，下 1 次，有 3 种方案，到达编号 3
+
+   jump 2 次，下 2 次，相当于是两个 jump 的三个缝隙里选两个，有 3 种方案，到达编号 2
+
+   jump 2 次，下 3 次，到达编号 1
+
+4. 以此类推，jump $n$ 次，到达编号 $1+\sum_{i=0}^{n-1}2^i=2^n$
+
+   $n$ 个 jump 会形成 $n+1$ 个缝隙，填入 $0\le i\le n+1$ 个下，有方案 $C_{n+1}^i$ 个，到达编号 $2^n-i$ 
+
+考虑 $2^n > k$ 只需要 $n\approx 32$，所以预处理出所有情况即可。
+
+$O(\log^2k)$ 预处理，力扣判题机制是每个测试点共用全局变量，所以可以做到 $O(1)$ 过单个测试点。
+
+```python
+# C[i][j] 表示从 i 个元素选 j 个的组合方案数 
+C = [[0 for i in range(34)] for j in range(34)]
+C[0][0] = 1
+for i in range(1, 32): # 杨辉三角
+    C[i][0] = 1
+    for j in range(1,i+1):
+        C[i][j] = C[i-1][j-1] + C[i-1][j]
+from collections import defaultdict
+s = defaultdict(int) # s[i] 表示到台阶 i 的方案数
+for i in range(32): # jump i 次
+    for j in range(0, i+2): # 向下走 j 次
+        n = (1<<i) - j
+        s[n] += C[i+1][j]
+class Solution:
+    def waysToReachStair(self, k: int) -> int:
+        return s[k]
+```
+
+不预处理，那么枚举每个 jump 的次数，可以求出下的次数，复杂度为每次询问 $O(\log k)$。
+
+```python
+comb = cache(comb)  # 记忆化
+class Solution:
+    def waysToReachStair(self, k: int) -> int:
+        ans = 0
+        for j in range(30):
+            m = (1 << j) - k
+            if 0 <= m <= j + 1:
+                ans += comb(j + 1, m)
+        return ans
+```
+
+甚至可以爆搜/DP：当前在 $i$，jump 了 $j$ 次，上一次操作是否是下，状态数为 $O(\log^2 k)$
+
+```python
+class Solution:
+    def waysToReachStair(self, k: int) -> int:
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int, j: int, pre_down: bool) -> int:
+            if i > k + 1:  # 无法到达终点 k
+                return 0
+            res = 1 if i == k else 0
+            res += dfs(i + (1 << j), j + 1, False)  # 操作二
+            if i and not pre_down:
+                res += dfs(i - 1, j, True)  # 操作一
+            return res
+        return dfs(1, 0, False)
 ```
 
