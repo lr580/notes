@@ -1893,6 +1893,14 @@
 - 3154\.到达第K级台阶的方案数
 
   组合数学 / <u>DP(记忆化DFS)</u>
+  
+- 3007\.价值和小于等于K的最大数字
+
+  位运算 二分
+  
+- 3133\.数组最后一个元素的最小值
+
+  位运算
 
 ## 算法
 
@@ -50395,5 +50403,145 @@ class Solution:
                 res += dfs(i - 1, j, True)  # 操作一
             return res
         return dfs(1, 0, False)
+```
+
+##### 3007\.价值和小于等于K的最大数字
+
+[题目](https://leetcode.cn/problems/maximum-number-that-sum-of-the-prices-is-less-than-or-equal-to-k)
+
+考虑 $x=1$，对 $[0,2^p)$ 内的数字，共有 $2^p$ 个，共有 $p$ 位，对每个位，有一半的数字该位为 $0$，另一半为 $1$，所以累加价值为 $\dfrac{p2^p}2=p2^{p-1}$。意义为低 $p$ 位任意取，其他高位全为 $0$ 的答案。
+
+如果其他高位有 $s$ 个 $1$，则这 $2^p$ 个数都有 $s$ 个 $1$ 在高位，则答案更新为 $s2^p+p2^{p-1}$。
+
+对 $[1,n]$ 内的数字，因为 $0$ 的价值为 $0$，求累加价值等价于对 $[0,n]$ 内的数字。
+
+把 $n$ 从高到低考虑每一位，对当前第 $i$ 位，如果是 $1$，那么当这位变成 $0$ 时，下面的位任取，可以求出所有 $<i$ 的位任取的答案，以此类推，对每个是 $1$ 的位，用上面的办法计算一次任取，此时能够涵盖 $[0,n)$ 的累加价值，最后额外计算 $n$ 自己的累加价值即可得到 $[0,n]$ 的额外价值。
+
+以 $n=(11010)_2=26$ 为例，令 $i$ 是从右往左算从 $0$ 开始，可以把 $[0,26]$ 拆成：
+
+- $i=4$，计算 `0????`，即 $[0,2^4)$ 的累加价值，$s=0$
+- $i=3$，计算 `10???`，即 $[2^4+0,2^4+2^3)$ 的累加价值，$s=1$
+- $i=2$，不计算。
+- $i=1$，计算 `1100?`，即 $[2^4+2^3+0,2^4+2^3+2^1)$ 的累加价值，$s=2$
+- $i=0$，不计算。
+- 最后算是 $n=2^4+2^3+2^1$ 的价值，把这些区间加起来，即得 $[0,n]$ 的累加价值。
+
+这个计算过程是 $O(\log n)$ 的。该过程参考代码为：、
+
+```python
+def calc(n): # 求 n 的累加价值, x = 1
+    left = 0 # 更高位的二进制 1 数目
+    b = bin(n)[2:]
+    m = len(b)
+    res = 0
+    # 求 [1,n) 的累加价值
+    for i in range(m-1,-1,-1): #<i的位全部可变，>=i的位全部不可变
+        if b[m-1-i] == '1':
+            c = 1<<i #这个范围有几个数
+            res += left * c # >=i 的位有 left 个 1，有 c 个数
+            res += (c*i+1)//2 # <i 有 i 个位，期望每个位有 0.5 个 1，上取整可以不必要
+            left += 1
+    res += left # n 自己
+    return res
+```
+
+现在考虑 $x\neq 1$，只需要做两个变动：
+
+- 显然按照上面 $i$ 的定义，$i=x-1,2x-1,3x-1,\cdots$ 这些位才算答案。
+- 也就是说只有 $(i+1)\bmod x=0$ 的位的 $1$ 才需要算到 $s$ 里。
+- 并且低 $i$ 位，即 $[0,i)$ 里，只有 $\lfloor\dfrac ik\rfloor$ 个位贡献答案。
+
+变动后代码见最终代码。
+
+不妨设 $f(n)$ 为 $[1,n]$ 的累加价值，显然 $f(n)$ 是 $n$ 的单调不减函数，所以二分即可找到最大满足题意的 $n$。
+
+```python
+class Solution:
+    def findMaximumNumber(self, k: int, x: int) -> int:
+        def calc(n): # 求 n 的累加价值
+            left = 0 # 更高位的二进制 1 数目
+            b = bin(n)[2:]
+            m = len(b)
+            res = 0
+            # 求 [1,n) 的累加价值
+            for i in range(m-1,-1,-1): #<i的位全部可变，>=i的位全部不可变
+                if b[m-1-i] == '1':
+                    c = 1<<i #这个范围有几个数
+                    res += left * c # >=i 的位有 left 个 1，有 c 个数
+                    # <i 有 i 个位，分别是 [0,i)，其中 x, 2x, ... 共有 i//x 个 x 倍位，期望每个位有 0.5 个 1
+                    res += (c*(i//x))//2 
+                    left += (i+1)%x==0
+            res += left # n 自己
+            return res
+        lf, rf, ans = 1, int(1e20), 1
+        while lf <= rf:
+            cf = (lf+rf)>>1
+            if calc(cf) <= k:
+                lf = cf + 1
+                ans = max(ans, cf)
+            else:
+                rf = cf - 1
+        return ans
+```
+
+最差情况 $k$ 没有贡献位，则把它扩大 $2^{x+1}$ 倍，一定有一个位是贡献位，且有 $2^{x+1}k$ 个数，则有 $2^{x}k$ 个价值至少，因为 $x\ge1$，所以 $2^xk\ge k$，则扩大 $2^{x+1}$ 倍即可。(一说 $2^x$ 但我证不出来)
+
+##### 3133\.数组最后一个元素的最小值
+
+[题目](https://leetcode.cn/problems/minimum-array-end)
+
+我的：
+
+```python
+class Solution:
+    def minEnd(self, n: int, x: int) -> int:
+        b = bin(x)[2:]
+        b = ('0'*int(ceil(log2(n+1)))) + b
+        n -= 1
+        for i in range(len(b)-1, -1, -1):
+            if b[i] == '0':
+                val = '0' if n%2==0 else'1'
+                b = b[:i]+val+b[i+1:]
+                n //= 2
+                if not n:
+                    break
+        return int(b, 2)
+```
+
+- bit length 函数优化 + 0 空间：
+
+```python
+class Solution:
+    def minEnd(self, n: int, x: int) -> int:
+        bitCount = (n-1).bit_length() + x.bit_count()
+        res, j = x, 0
+        m = n - 1
+        for i in range(bitCount):
+            if ((res >> i) & 1) == 0:
+                if ((m >> j) & 1) != 0:
+                    res |= (1 << i)
+                j += 1
+        return res
+```
+
+```c++
+class Solution {
+public:
+    long long minEnd(int n, int x) {
+        int bitCount = 64 - __builtin_clz(n) - __builtin_clz(x);
+        long long res = x;
+        long long m = n - 1;
+        int j = 0;
+        for (int i = 0; i < bitCount; ++i) {
+            if (((res >> i) & 1) == 0) {
+                if ((m >> j) & 1) {
+                    res |= (1LL << i);
+                }
+                j++;
+            }
+        }
+        return res;
+    }
+};
 ```
 
