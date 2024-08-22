@@ -1901,6 +1901,10 @@
 - 3133\.数组最后一个元素的最小值
 
   位运算
+  
+- 3145\.大数组元素的乘积
+
+  位运算 二分/<u>倍增</u> 差分 快速幂 扩展欧拉公式
 
 ## 算法
 
@@ -50543,5 +50547,247 @@ public:
         return res;
     }
 };
+```
+
+##### 3145\.大数组元素的乘积
+
+[题目](https://leetcode.cn/problems/find-products-of-elements-of-big-array/)
+
+分解成几个子问题：
+
+1. 统计 $[1,n]$ 内各个位的二进制 1 的个数
+
+   显然 $0$ 没有二进制 $1$，故求 $[1,n]$ 与 $[0,n]$ 等价。
+
+   把 $n$ 二进制分解为 $2^{p_0}+2^{p_1}+\cdots+2^{p_k},p_0 > p_1 > \cdots > p_k$，那么可以把 $[0,n]$ 分解成下面的区间：
+   $$
+   [0,2^{p_0}),[2^{p_0},2^{p_0}+2^{p_1}),[2^{p_0}+2^{p_1},2^{p_0}+2^{p_1}+2^{p_2}),
+   \cdots,
+   $$
+   即共有 $k$ 个区间 $\forall 0\le i < k$：$[\sum_{l=0}^{i-1}2^{p_{l}},\sum_{l=0}^{i-1}2^{p_{l}}+2^{p_i})$
+
+   对于第 $i$ 个区间，长度是 $l=2^{p_i}$，二进制位编号从低到高从 $0$ 开始：
+
+   - 所有 $< p_i$ 的二进制位都是自由变化的，有一半概率这些位是 $1$，另一半是 $0$，所以所有这些位加上 $0.5l$ 个计数
+   - 所有 $\ge p_i$ 的位都是固定的，这些位里 $\forall j\le i,p_j$ 的二进制位都为 $1$，所以这些位 $p_j$ 都要加上 $l$ 个计数
+
+   其时间复杂度为 $O(\log^2 n)$，代码如下：
+
+   ```python
+   def bitcount(n): # 求 [1,n] 内各个位的二进制1的个数
+       m = n.bit_length()
+       b = [int(i) for i in bin(n)[2:][::-1]]
+       res = b[::] # n 自己
+       for i in range(m-1,-1,-1):
+           if (n>>i)&1:
+               for j in range(i-1,-1,-1):
+                   res[j] += (1<<(i-1)) if i>0 else 0
+               for j in range(i+1, m):
+                   res[j] += (1<<i) * b[j]
+       return res
+   ```
+
+2. 经由该代码，可以求出 $[1,n]$ 的二进制 $1$ 的总数，对其返回值数组求和即可。记作 $f(n)$
+
+   存在更快捷的办法，即 for 优化掉，可以 $O(\log n)$ 求得总数，原理类似：
+
+   ```python
+   def bitsum(n): # 求 [1,n] 内各个位的二进制1的总数
+       m = n.bit_length()
+       res = 0
+       c = 0 # 更高位 1 的个数
+       for i in range(m-1,-1,-1):
+           if (n>>i)&1:
+               res += (1<<i) * c # 高位计数
+               res += ((1<<i) >> 1) * i # 低位计数
+               c += 1
+       return res + c # 加上 n 自己
+   ```
+
+3. 因此，对某个求和值 $s$，可以二分倒推出最大的 $n$ 满足 $f(n)\le s$。总复杂度为 $O(\log^2n)$
+
+   ```python
+   def find(s): # 找到[1,n]二进制1之和不超过s的最大n
+       lf, rf, ans = 1, s, 0
+       while lf <= rf:
+           cf = (lf+rf)>>1
+           if bitsum(cf) <= s:
+               ans = cf
+               lf = cf + 1
+           else:
+               rf = cf - 1
+       return ans
+   ```
+
+4. 对于求和值 $s$，找到最大 $n$ 和 $s'=f(n)\le s$ 后，若 $f(n)\neq s$，利用 $n+1$ 的二进制位的一部分，按照题意可以凑出长为 $s$ 的题意数组，按照每个二进制位出现的频率得到频次数组，总复杂度取第一步 `bitcount` 的复杂度为 $O(\log^2 n)$
+
+   ```python
+   def solve(s): # 求共有 s 个 1 的记数数组
+       n = find(s)
+       bc = bitcount(n) + [0] # 加元素防止越界
+       n += 1  # 下一个不算完的数
+       s0 = sum(bc)
+       i = 0 # 当前二进制位下标
+       while s0 < s:
+           if (n>>i)&1:
+               bc[i] += 1
+               s0 += 1
+           i += 1
+       return bc
+   ```
+
+5. 对于原问题 $[l,r]$，因为下标起始定义的不同，在上述代码下即 $[l+1,r+1]$。
+
+   要求 $[l+1,r+1]$ 的频次数组，即求 $[1,r+1]$ 的频次数组减去 $[1,l]$ 的频次数组。
+
+   之后，对该数组每个元素使用快速幂(可以用扩展欧拉定义降低幂次，若如此复杂度为 $O(\log n\log p)$)，其总复杂度为 $O(\log^2 n)$，其中 $n=r$。
+
+   然后再用取模公式将快速幂结果连乘即可。
+
+   > 注意到 $p$ 不是质数，不能用逆元，也就是说不能像对 $[1,r+1]$ 求乘积，再对 $[1,l]$ 求乘积逆元，然后二者相乘。
+
+   ```python
+   ans = []
+   for l, r, p in queries:
+       br, bl = solve(r+1), solve(l)
+       for i in range(min(len(br), len(bl))):
+           br[i] -= bl[i]
+       br = [pow(1<<i,v,p) for i,v in enumerate(br)]
+       ans.append(reduce(lambda x,y: x*y%p, br, 1))
+   return ans
+   ```
+
+总复杂度为 $O(q\log^2 n)\approx1.25\times 10^6$。完整代码：
+
+```python
+def bitcount(n): # 求 [1,n] 内各个位的二进制1的个数
+    m = n.bit_length()
+    b = [int(i) for i in bin(n)[2:][::-1]]
+    res = b[::] # n 自己
+    for i in range(m-1,-1,-1):
+        if (n>>i)&1:
+            for j in range(i-1,-1,-1):
+                res[j] += (1<<i)>>1
+            for j in range(i+1, m):
+                res[j] += (1<<i) * b[j]
+    return res
+def bitsum(n): # 求 [1,n] 内各个位的二进制1的总数
+    m = n.bit_length()
+    res = 0
+    c = 0 # 更高位 1 的个数
+    for i in range(m-1,-1,-1):
+        if (n>>i)&1:
+            res += (1<<i) * c # 高位计数
+            res += ((1<<i) >> 1) * i # 低位计数
+            c += 1
+    return res + c # 加上 n 自己
+def find(s): # 找到[1,n]二进制1之和不超过s的最大n
+    lf, rf, ans = 1, s, 0
+    while lf <= rf:
+        cf = (lf+rf)>>1
+        if bitsum(cf) <= s:
+            ans = cf
+            lf = cf + 1
+        else:
+            rf = cf - 1
+    return ans
+def solve(s): # 求共有 s 个 1 的记数数组
+    n = find(s)
+    bc = bitcount(n) + [0] # 加元素防止越界
+    n += 1  # 下一个不算完的数
+    s0 = sum(bc)
+    i = 0 # 当前二进制位下标
+    while s0 < s:
+        if (n>>i)&1:
+            bc[i] += 1
+            s0 += 1
+        i += 1
+    return bc
+from functools import reduce
+class Solution:
+    def findProductsOfElements(self, queries: List[List[int]]) -> List[int]:
+        ans = []
+        for l, r, p in queries:
+            br, bl = solve(r+1), solve(l)
+            for i in range(min(len(br), len(bl))):
+                br[i] -= bl[i]
+            br = [pow(1<<i,v,p) for i,v in enumerate(br)]
+            ans.append(reduce(lambda x,y: x*y%p, br, 1))
+        return ans
+```
+
+> 如果用扩展欧拉定理，理论上可以简化到 $O(q\log n\log p)\approx 4\times 10^5$。
+
+扩欧代码：
+
+```python
+# 书接上文
+# 用埃氏筛O(n)求[1,n]的欧拉函数
+mn = 100003
+isprime = [True] * mn
+phi = [0] * mn
+isprime[1] = 0
+phi[1] = 1
+prime = []
+for i in range(2, mn):
+    if isprime[i]:
+        prime.append(i)
+        phi[i] = i - 1
+    j = 0
+    while j < len(prime) and prime[j] * i < mn:
+        isprime[i*prime[j]] = False
+        if i % prime[j]:
+            phi[i*prime[j]] = phi[i] * phi[prime[j]]
+        else:
+            phi[i*prime[j]] = phi[i] * prime[j]
+            break
+        j += 1
+from math import gcd
+def getpow(a,b,p):
+    if gcd(a,p) == 1:
+        b = b % phi[p]
+    elif b > phi[p]:
+        b = b % phi[p] + phi[p]
+    return pow(a,b,p)
+from functools import reduce
+class Solution:
+    def findProductsOfElements(self, queries: List[List[int]]) -> List[int]:
+        ans = []
+        for l, r, p in queries:
+            br, bl = solve(r+1), solve(l)
+            for i in range(min(len(br), len(bl))):
+                br[i] -= bl[i]
+            br = [getpow(1<<i,v,p) for i,v in enumerate(br)]
+            ans.append(reduce(lambda x,y: x*y%p, br, 1))
+        return ans
+```
+
+题解，还可以优化，用倍增法试填 $1$。并且可以把求和转化为指数和，即求和时 $2^i$ 内我已经推出是 $(1+1+\cdots+1)2^{i-1}=i2^{i-1}$。求幂，变成了底数是 $2$，指数为 $(0+1+2+3+\cdots+ {i-1})=\dfrac{i(i-1)}{2}$。再乘以计数 $2^{i-1}$。这些细节不重要。可以回头再看。详见灵茶山。复杂度优化了一个对数。
+
+```python
+class Solution:
+    def findProductsOfElements(self, queries: List[List[int]]) -> List[int]:
+        def sum_e(k: int) -> int:
+            res = n = cnt1 = sum_i = 0
+            for i in range((k + 1).bit_length() - 1, 0, -1):
+                c = (cnt1 << i) + (i << (i - 1))  # 新增的幂次个数
+                if c <= k:
+                    k -= c
+                    res += (sum_i << i) + ((i * (i - 1) // 2) << (i - 1))
+                    sum_i += i  # 之前填的 1 的幂次之和
+                    cnt1 += 1  # 之前填的 1 的个数
+                    n |= 1 << i  # 填 1
+            # 最低位单独计算
+            if cnt1 <= k:
+                k -= cnt1
+                res += sum_i
+                n |= 1  # 最低位填 1
+            # 剩余的 k 个幂次，由 n 的低 k 个 1 补充
+            for _ in range(k):
+                lb = n & -n
+                res += lb.bit_length() - 1
+                n ^= lb  # 去掉最低位的 1（置为 0）
+            return res
+        return [pow(2, sum_e(r + 1) - sum_e(l), mod) for l, r, mod in queries]
 ```
 
