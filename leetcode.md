@@ -1905,6 +1905,14 @@
 - 3145\.大数组元素的乘积
 
   位运算 二分/<u>倍增</u> 差分 快速幂 扩展欧拉公式
+  
+- 1466\.重新规划路线
+
+  DFS
+  
+- 3146\.两个字符串的排列差
+
+  签到 STL(哈希)
 
 ## 算法
 
@@ -50791,3 +50799,41 @@ class Solution:
         return [pow(2, sum_e(r + 1) - sum_e(l), mod) for l, r, mod in queries]
 ```
 
+##### 1466\.重新规划路线
+
+[题目](https://leetcode.cn/problems/reorder-routes-to-make-all-paths-lead-to-the-city-zero)
+
+更优：用正负号表示第二维信息，省去边权编码。[参考npy](https://leetcode.cn/problems/reorder-routes-to-make-all-paths-lead-to-the-city-zero/submissions/558043578/) [.](https://leetcode.cn/u/hungry-sutherlandlfx/)
+
+```python
+class Solution:
+    def minReorder(self, n: int, connections: List[List[int]]) -> int:
+         g=[[]for i in range(n)]
+         for u,v in connections:
+             g[v].append(u)
+             g[u].append(-v)
+         vis=[0 for i in range(n)]
+         ans=0
+         def dfs(u):
+             vis[u]=1
+             nonlocal ans
+             for i in g[u]:
+                 if i < 0 and vis[-i]==0:
+                     ans+=1
+                     dfs(-i)
+                 if i>0 and vis[i]==0:
+                     dfs(i)
+         dfs(0)
+         return ans
+```
+
+##### 3146\.两个字符串的排列差
+
+[题目](https://leetcode.cn/problems/permutation-difference-between-two-strings)
+
+```python
+class Solution:
+    def findPermutationDifference(self, s: str, t: str) -> int:
+        d = {v:i for i,v in enumerate(s)}
+        return sum(abs(i-d[v]) for i,v in enumerate(t))
+```
