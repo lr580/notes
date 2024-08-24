@@ -1913,6 +1913,10 @@
 - 3146\.两个字符串的排列差
 
   签到 STL(哈希)
+  
+- 698\.划分为k个相等的子集
+
+  状压 + 记忆化DFS/<u>(优化) / DP</u>
 
 ## 算法
 
@@ -50837,3 +50841,155 @@ class Solution:
         d = {v:i for i,v in enumerate(s)}
         return sum(abs(i-d[v]) for i,v in enumerate(t))
 ```
+
+##### 698\.划分为k个相等的子集
+
+[题目](https://leetcode.cn/problems/partition-to-k-equal-sum-subsets)
+
+注意到总和一定是 $\sum nums\div k$。
+
+按下面办法记忆化 DFS，我认为复杂度为 $O(n2^n)$，即 state 和 p 的复杂度，但我无法证明。虽然最坏复杂度可能是 $O(n^22^n)$。
+
+```python
+class Solution:
+    def canPartitionKSubsets(self, nums: List[int], k: int) -> bool:
+        if sum(nums) % k != 0:
+            return False
+        s = sum(nums) // k
+        valid = False
+        nums.sort() # 方便剪枝
+        @cache # 不加就 TLE
+        # [2,9,4,7,3,2,10,5,3,6,6,2,7,5,2,4], k=7
+        def dfs(i, state, p, sum):
+            #当前有哪些位被选了(state)，凑够了p个s，当前p+1组的和为sum，当前在判断第i位
+            if p==k and i==len(nums):
+                nonlocal valid
+                valid = True
+                return
+            if valid or i>=len(nums):
+                return
+            #当前组选第i位
+            if (state>>i)&1==0: #第i位还没被选
+                if sum+nums[i]==s:#凑满一组
+                    dfs(0,state|(1<<i),p+1,0)
+                elif sum+nums[i]<s:
+                    dfs(i+1,state|(1<<i),p,sum+nums[i])
+            #当前组不选第i位
+            dfs(i+1,state,p,sum)
+        dfs(0,0,0,0)
+        return valid
+```
+
+- i 用 for 优化
+- p 直接判 state 是不是全满即可，而且能选满一定恰好为 s
+
+因此直接 dfs 两个状态，保证 $O(n2^n)$。
+
+```python
+class Solution:
+    def canPartitionKSubsets(self, nums: List[int], k: int) -> bool:
+        if sum(nums) % k != 0:
+            return False
+        s, n = sum(nums) // k, len(nums)
+        valid = False
+        nums.sort()
+        @cache
+        def dfs(state, sum):
+            #当前有哪些位被选了(state)，当前最后一组的和为sum
+            nonlocal valid
+            if valid or state == (1<<n)-1:
+                valid = True
+                return
+            for i in range(n):
+                if (state>>i)&1==0 and sum+nums[i]<=s:
+                    dfs(state|(1<<i),(sum+nums[i])%s)
+        dfs(0,0)
+        return valid
+```
+
+再剪两刀：
+
+```python
+class Solution:
+    def canPartitionKSubsets(self, nums: List[int], k: int) -> bool:
+        if sum(nums) % k != 0:
+            return False
+        s, n = sum(nums) // k, len(nums)
+        if nums[-1] > s:
+            return False
+        valid = False
+        nums.sort()
+        @cache
+        def dfs(state, sum):
+            nonlocal valid
+            if valid or state == (1<<n)-1:
+                valid = True
+                return
+            for i in range(n):
+                if (state>>i)&1==0 and sum+nums[i]<=s:
+                    dfs(state|(1<<i),(sum+nums[i])%s)
+                if sum+nums[i]>s:
+                    break
+        dfs(0,0)
+        return valid
+```
+
+其他写法：(常数更快)
+
+```python
+class Solution:
+    def canPartitionKSubsets(self, nums: List[int], k: int) -> bool:
+        all = sum(nums)
+        if all % k:
+            return False
+        per = all // k
+        nums.sort()  # 方便下面剪枝
+        if nums[-1] > per:
+            return False
+        n = len(nums)
+
+        @cache
+        def dfs(s, p):
+            if s == 0:
+                return True
+            for i in range(n):
+                if nums[i] + p > per:
+                    break
+                if s >> i & 1 and dfs(s ^ (1 << i), (p + nums[i]) % per):  # p + nums[i] 等于 per 时置为 0
+                    return True
+            return False
+        return dfs((1 << n) - 1, 0)
+```
+
+写成 DP：(但没有更快)
+
+- 一个二元组为 DP 数组内容，表示当前状态是否可达和当前最后组的和
+
+```python
+class Solution:
+    def canPartitionKSubsets(self, nums: List[int], k: int) -> bool:
+        all = sum(nums)
+        if all % k:
+            return False
+        per = all // k
+        nums.sort()
+        if nums[-1] > per:
+            return False
+        n = len(nums)
+        dp = [False] * (1 << n)
+        dp[0] = True
+        cursum = [0] * (1 << n)
+        for i in range(0, 1 << n):
+            if not dp[i]:
+                continue
+            for j in range(n):
+                if cursum[i] + nums[j] > per:
+                    break
+                if (i >> j & 1) == 0:
+                    next = i | (1 << j)
+                    if not dp[next]:
+                        cursum[next] = (cursum[i] + nums[j]) % per
+                        dp[next] = True
+        return dp[(1 << n) - 1]
+```
+
