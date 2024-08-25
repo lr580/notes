@@ -4309,6 +4309,14 @@ os.rename('test.txt','test.py')
 os.remove(完整文件名)
 ```
 
+强删带内容的文件夹：
+
+```python
+shutil.rmtree(路径)
+```
+
+> 如果目录不存在不报错，添加默认参数 `ignore_errors=True`
+
 复制文件：
 
 ```python
@@ -4354,6 +4362,40 @@ filecmp.cmp(路径1,路径2) #返回True如果相同
 ```python
 file_size = os.path.getsize(file_path)
 file_size_mb = file_size / (1024 * 1024)
+```
+
+#### shutil
+
+复制文件：
+
+```python
+import shutil
+shutil.copyfile(原完整文件名,新完整文件名) #返回新完整文件名
+```
+
+> 复制文件夹：
+>
+> ```python
+> shutil.copytree(src_dir, dst_dir)
+> ```
+
+强删带内容的文件夹：
+
+```python
+shutil.rmtree(路径)
+```
+
+> 如果目录不存在不报错，添加默认参数 `ignore_errors=True`
+
+
+
+压缩文件夹：
+
+```python
+import shutil
+folder_path = '/path/to/your/folder'
+output_filename = '/path/to/your/output/archive_name' # 不需要带后缀.zip；如 'res' 即可
+shutil.make_archive(output_filename, 'zip', folder_path)
 ```
 
 
@@ -6318,7 +6360,7 @@ get 得到所显示的值
 > ```python
 > import pymysql as sql
 > oj = sql.connect(host=hosturl, user=username, password=password,
->          database='scnuoj', charset='UTF8')
+>          database='scnuoj', charset='utf8') #utf要小写
 > cur = oj.cursor()
 > cid = input('输入比赛ID:')
 > cmd_getProblem = 'select problem_id,title from problem, contest_problem where problem_id=problem.id and contest_id='+cid
@@ -6347,7 +6389,7 @@ with oj.cursor() as cur:
 with oj.cursor() as cur:
     cmd = 'SELECT * FROM t_user'
     cur.execute(cmd)
-    print(cur.fetchall())
+    print(cur.fetchall()) # 多维元组，按行列表示值，类型按数据表的
 ```
 
 

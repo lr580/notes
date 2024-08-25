@@ -4199,7 +4199,14 @@ unzip text.zip   //将压缩文件text.zip在指定目录/tmp下解压缩，如�
 unzip -n text.zip -d /tmp  //查看压缩文件目录，但不解压。
 ```
 
-
+> 拆包，合并包
+>
+> ```sh
+> zip -s 100m input.zip --out output.zip # 拆
+> zip -F output.zip --out combined.zip # 合
+> ```
+>
+> 
 
 
 
@@ -6253,6 +6260,14 @@ scp -P 10022 root@218.192.110.159:/root/647.txt .
 ```
 
 > 在使用`scp`命令（或其他文件传输工具）时，`ETA`代表“Estimated Time of Arrival”，即预计到达时间。这是一个估算值，指示在当前传输速率下，完成整个文件传输所需要的剩余时间。
+
+断点续传：[参考](https://www.cnblogs.com/sam8869/p/7419532.html)
+
+```sh
+rsync -P --rsh=ssh home.tar 192.168.205.34:/home/home.tar
+```
+
+
 
 ### 中文输入
 

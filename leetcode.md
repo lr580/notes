@@ -1917,6 +1917,10 @@
 - 698\.划分为k个相等的子集
 
   状压 + 记忆化DFS/<u>(优化) / DP</u>
+  
+- 279\. 完全平方数
+
+  BFS / DP / <u>数学</u>
 
 ## 算法
 
@@ -50991,5 +50995,91 @@ class Solution:
                         cursum[next] = (cursum[i] + nums[j]) % per
                         dp[next] = True
         return dp[(1 << n) - 1]
+```
+
+##### 633\.平方数之和
+
+[题目](https://leetcode.cn/problems/sum-of-square-numbers)
+
+BFS / DP ($O(n\sqrt n)$)
+
+```python
+N = 10000
+ans = [40 for _ in range(N+1)]
+from collections import deque
+q = deque([(0,0)])
+while q:
+    u, s = q.popleft()
+    if ans[u] != 40:
+        continue
+    ans[u] = s
+    i = 1
+    while u+i*i <= N:
+        q.append((u+i*i, s+1))
+        i += 1
+class Solution:
+    def numSquares(self, n: int) -> int:
+        return ans[n]
+```
+
+```python
+class Solution {
+public:
+    int numSquares(int n) {
+        vector<int> f(n + 1);
+        for (int i = 1; i <= n; i++) {
+            int minn = INT_MAX;
+            for (int j = 1; j * j <= i; j++) {
+                minn = min(minn, f[i - j * j]);
+            }
+            f[i] = minn + 1;
+        }
+        return f[n];
+    }
+};
+```
+
+数学：结论，当且仅当 $n=4^k(8m+7)(k,m\ge 0)$ 时是四平方和。
+
+- 先判断是不是 $4$ 平方和
+- 可以 $O(1)$ 判 $n$ 是不是完全平方数
+- 判是否存在两平方和 $n=a^2+b^2$，只需要枚举 $a$， 判断 $n-a^2$ 是否是完全平方数
+- 否则就是 $3$ 平方和
+
+复杂度 $O(\sqrt n)$。
+
+```python
+class Solution {
+public:
+    // 判断是否为完全平方数
+    bool isPerfectSquare(int x) {
+        int y = sqrt(x);
+        return y * y == x;
+    }
+
+    // 判断是否能表示为 4^k*(8m+7)
+    bool checkAnswer4(int x) {
+        while (x % 4 == 0) {
+            x /= 4;
+        }
+        return x % 8 == 7;
+    }
+
+    int numSquares(int n) {
+        if (isPerfectSquare(n)) {
+            return 1;
+        }
+        if (checkAnswer4(n)) {
+            return 4;
+        }
+        for (int i = 1; i * i <= n; i++) {
+            int j = n - i * i;
+            if (isPerfectSquare(j)) {
+                return 2;
+            }
+        }
+        return 3;
+    }
+};
 ```
 
