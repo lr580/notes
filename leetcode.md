@@ -1925,6 +1925,10 @@
 - 3134\.找出唯一性数组的中位数
 
   **二分 + 滑动窗口**
+  
+- 3144\.分割字符频率相等的最少子字符串
+
+  BFS / <u>记忆化DFS / DP</u>
 
 ## 算法
 
@@ -51147,5 +51151,125 @@ class Solution:
             return False
 
         return bisect_left(range(len(set(nums))), True, 1, key=check)
+```
+
+##### 3144\.分割字符频率相等的最少子字符串
+
+[题目](https://leetcode.cn/problems/minimum-substring-partition-of-equal-character-frequency/)
+
+设 $ans_i$ 是下标段 $[0,i)$ 的子字符串最少可以由几个平衡串构成。
+
+- 初始状态：空串由 $0$ 个平衡串构成，即 $ans_0=0$
+- 转移方程：枚举全体 $i\le j<n$，检查 $[i,j]$ 是否是平衡串，如果是，那么把原本的 $[0,i)$ 子字符串加上 $[i,j]$ 这段平衡串，得到 $[0,j]=[0,j+1)$。
+
+共有 $n$ 个状态，每个状态最坏情况可以转移到 $O(n)$ 个新的状态，且转移之前需要判断该状态是否是平衡串，设判断一次的复杂度是 $f$，则复杂度为 $O(n^2f)$。
+
+下面考虑如何判断 $[i,j]$ 是否是平衡串。
+
+1. 暴力枚举 $[i,j]$ 的每个字符，将其用 dict 等办法计数，然后看看各字母计数值是否相等，则 $f=O(n)$，因为可能 $|i-j|\approx n$。故不可行。
+2. 维护滑动窗口/指针，假设已经计算了 $[i,j-1]$ 的各字母计数值，那么加多一个新字母 $s_j$ 就能得到 $[i,j]$，并且最多有 $26$ 个字母，故 $f=O(26)$，其实可以过题了。实测 7773ms
+3. 还能继续优化。另外设计一个新的一个 dict，维护每个计数值出现的次数，只需要看看这个 dict 是否只有一个元素即可，故 $f=O(1)$。实测 4301ms。
+4. 另一种优化思路，见下文。设有 $k$ 个字母，字母出现的最大次数是 $maxCnt$，即 $i-j+1=k\cdot maxCnt$。故 $f=O(1)$。
+
+可以使用 BFS 推这个过程。
+
+第二种方法判断平衡串的代码：
+
+```python
+from collections import *
+class Solution:
+    def minimumSubstringsInPartition(self, s: str) -> int:
+        n = len(s)
+        ans = [10000 for i in range(n+1)]
+        q = deque([(0, 0)]) # (p,t) 表示下标[0,p)内可以最少分割成t个平衡串
+        while q:
+            p, t = q.popleft()
+            if ans[p] != 10000:
+                continue
+            ans[p] = t
+            count = defaultdict(int) # 每个字符出现的频次
+            for i in range(p, n):
+                # O(1) 维护是否每个字符出现频次相同
+                count[s[i]] += 1
+                ok = len(set(count.values())) == 1
+                # 只有一种出现频次, 即 [p, i] 是平衡串
+                if ok:
+                    # [0, p) + [p, i] = [0, i+1)
+                    q.append((i+1, t+1))
+        return ans[n]
+```
+
+第三种方法判断平衡串的代码：
+
+```python
+from collections import *
+class Solution:
+    def minimumSubstringsInPartition(self, s: str) -> int:
+        n = len(s)
+        ans = [10000 for i in range(n+1)]
+        q = deque([(0, 0)]) # (p,t) 表示下标[0,p)内可以最少分割成t个平衡串
+        while q:
+            p, t = q.popleft()
+            if ans[p] != 10000:
+                continue
+            ans[p] = t
+            count = defaultdict(int) # 每个字符出现的频次
+            freq  = defaultdict(int) # 每个频次出现的次数
+            for i in range(p, n):
+                # O(1) 维护是否每个字符出现频次相同
+                count[s[i]] += 1
+                cnt = count[s[i]]
+                if cnt != 1:
+                    freq[cnt-1] -= 1
+                    if freq[cnt-1] == 0:
+                        del freq[cnt-1]
+                freq[cnt] += 1
+                 # 只有一种出现频次, 即 [p, i] 是平衡串
+                if len(freq) == 1:
+                    # [0, p) + [p, i] = [0, i+1)
+                    q.append((i+1, t+1))
+        return ans[n]
+```
+
+考虑 DP，即：$dp_i=\min_{j=0}^i dp(j-1)+1, s.t. [i,j] 平衡$，初始 $dfs(-1)=0$。
+
+平衡的条件：设有 $k$ 个字母，字母出现的最大次数是 $maxCnt$，即 $i-j+1=k\cdot maxCnt$。3571ms。
+
+```python
+class Solution:
+    def minimumSubstringsInPartition(self, s: str) -> int:
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int) -> int:
+            if i < 0:
+                return 0
+            res = inf
+            cnt = defaultdict(int)
+            max_cnt = 0
+            for j in range(i, -1, -1):
+                cnt[s[j]] += 1
+                max_cnt = max(max_cnt, cnt[s[j]])
+                if i - j + 1 == len(cnt) * max_cnt:
+                    res = min(res, dfs(j - 1) + 1)
+            return res
+        return dfs(len(s) - 1)
+
+```
+
+DP：3344ms
+
+```python
+class Solution:
+    def minimumSubstringsInPartition(self, s: str) -> int:
+        n = len(s)
+        f = [0] + [inf] * n
+        for i in range(n):
+            cnt = defaultdict(int)
+            max_cnt = 0
+            for j in range(i, -1, -1):
+                cnt[s[j]] += 1
+                max_cnt = max(max_cnt, cnt[s[j]])
+                if i - j + 1 == len(cnt) * max_cnt:
+                    f[i + 1] = min(f[i + 1], f[j] + 1)
+        return f[n]
 ```
 
