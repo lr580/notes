@@ -5407,6 +5407,8 @@ class Solution:
   bisect_left([],0) #0
   ```
 
+  `(arr, v, lo=0, hi=None, key=None)`，指定二分的下标范围是 $[lo,hi)$，对数组元素执行 key 函数得到的返回值进行比较(即映射函数)。
+
 - `bisect_right(arr, v)` 第一个 $> v$ 的最小下标，对应 upper bound
 
   ```python

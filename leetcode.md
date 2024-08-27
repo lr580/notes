@@ -1921,6 +1921,10 @@
 - 279\. 完全平方数
 
   BFS / DP / <u>数学</u>
+  
+- 3134\.找出唯一性数组的中位数
+
+  **二分 + 滑动窗口**
 
 ## 算法
 
@@ -51081,5 +51085,67 @@ public:
         return 3;
     }
 };
+```
+
+##### 3134\.找出唯一性数组的中位数
+
+[题目](https://leetcode.cn/problems/find-the-median-of-the-uniqueness-array)
+
+二分+滑动窗口，注意数组长度是 $m=\lfloor \dfrac{n(n+1)}2\rfloor$，要找到中间元素，即第 $mid=\lceil\dfrac m2\rceil$ 个元素，也就是找到最小的 $c$，使得 $\ge mid$ 个区间的 distinct 值 $\le c$。
+
+> 注意是先除二下取整，再除二上取整，不要直接除以四。
+
+```python
+from collections import defaultdict
+class Solution:
+    def medianOfUniquenessArray(self, nums: List[int]) -> int:
+        n = len(nums)
+        lf, rf, ans, mid = 1, n, n, (n*(n+1)+1)//4-1
+        while lf <= rf:
+            cf = (lf+rf)>>1
+            b, cnt, l = defaultdict(int), 0, 0
+            for r in range(n):
+                b[nums[r]] += 1
+                while len(b) > cf:
+                    b[nums[l]] -= 1
+                    if not b[nums[l]]:
+                        del b[nums[l]]
+                    l += 1
+                cnt += r - l + 1 # 元素种类 <=cf 的区间数
+            if cnt >= mid:
+                ans = cf
+                rf = cf - 1
+            else:
+                lf = cf + 1
+        return ans
+```
+
+- `rf=len(set(nums))` 可以快一秒。
+
+调库写法：
+
+```python
+class Solution:
+    def medianOfUniquenessArray(self, nums: List[int]) -> int:
+        n = len(nums)
+        k = (n * (n + 1) // 2 + 1) // 2
+
+        def check(upper: int) -> bool:
+            cnt = l = 0
+            freq = defaultdict(int)
+            for r, in_ in enumerate(nums):
+                freq[in_] += 1  # 移入右端点
+                while len(freq) > upper:  # 窗口内元素过多
+                    out = nums[l]
+                    freq[out] -= 1  # 移出左端点
+                    if freq[out] == 0:
+                        del freq[out]
+                    l += 1
+                cnt += r - l + 1  # 右端点固定为 r 时，有 r-l+1 个合法左端点
+                if cnt >= k:
+                    return True
+            return False
+
+        return bisect_left(range(len(set(nums))), True, 1, key=check)
 ```
 
