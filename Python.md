@@ -11764,6 +11764,19 @@ print('x=', x)
 - `bound` 是 `min, max` 二元组。
 - [返回值](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.OptimizeResult.html#scipy.optimize.OptimizeResult)的 x 是取得最值的参数(np array)，还有布尔值 success 和对应字符串 message
 
+#### .mat存取
+
+##### 读取
+
+```python
+from scipy.io import loadmat
+data = loadmat('train_labelset_1.mat')
+# print(type(data)) ：dict
+print(data.keys()) # 如 dict_keys(['__header__', '__version__', '__globals__', 'label'])
+print(data['label']) # 类型如 <class 'numpy.ndarray'>
+# [[ 1  0 -1 -1  0  1 -1  0  1  1  0 -1  0  1 -1]]
+```
+
 
 
 ### sympy

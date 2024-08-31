@@ -1933,6 +1933,10 @@
 - 3153\.所有数对中数位不同之和
 
   组合数学 计数
+  
+- 1450\.在既定时间做作业的学生人数
+
+  签到 / 差分 / 二分
 
 ## 算法
 
@@ -51512,5 +51516,40 @@ class Solution:
                 cnt[i][d] += 1
                 i += 1
         return ans
+```
+
+##### 1450\.在既定时间做作业的学生人数
+
+[题目](https://leetcode.cn/problems/number-of-students-doing-homework-at-a-given-time)
+
+```c++
+class Solution:
+    def busyStudent(self, startTime: List[int], endTime: List[int], queryTime: int) -> int:
+        return sum(startTime[i] <= queryTime <= endTime[i] for i in range(len(startTime)))
+```
+
+差分：
+
+```c++
+class Solution:
+    def busyStudent(self, startTime: List[int], endTime: List[int], queryTime: int) -> int:
+        maxEndTime = max(endTime)
+        if queryTime > maxEndTime:
+            return 0
+        cnt = [0] * (maxEndTime + 2)
+        for s, e in zip(startTime, endTime):
+            cnt[s] += 1
+            cnt[e + 1] -= 1
+        return sum(cnt[:queryTime + 1])
+```
+
+二分：
+
+```python
+class Solution:
+    def busyStudent(self, startTime: List[int], endTime: List[int], queryTime: int) -> int:
+        startTime.sort()
+        endTime.sort()
+        return bisect_right(startTime, queryTime) - bisect_left(endTime, queryTime)
 ```
 
