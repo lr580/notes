@@ -1937,6 +1937,10 @@
 - 1450\.在既定时间做作业的学生人数
 
   签到 / 差分 / 二分
+  
+- 2024\.考试的最大困扰度
+
+  滑动窗口
 
 ## 算法
 
@@ -51553,3 +51557,25 @@ class Solution:
         return bisect_right(startTime, queryTime) - bisect_left(endTime, queryTime)
 ```
 
+##### 2024\.考试的最大困扰度
+
+[题目](https://leetcode.cn/problems/maximize-the-confusion-of-an-exam)
+
+```python
+class Solution:
+    def maxConsecutiveAnswers(self, answerKey: str, k: int) -> int:
+        n = len(answerKey)
+        # 把字符 y 改成 x，返回最多能得到多长的 x
+        def solve(x, y): 
+            lf = 0 # 当前区间 [lf, rf] 可以全改成 x
+            cnty = 0 # [lf, rf] 有几个 y
+            maxLen = 0 # 最长的区间长度
+            for rf in range(n):
+                cnty += answerKey[rf] == y
+                while cnty > k:
+                    cnty -= answerKey[lf] == y
+                    lf += 1
+                maxLen = max(maxLen, rf - lf + 1)
+            return maxLen
+        return max(solve('T', 'F'), solve('F', 'T'))
+```
