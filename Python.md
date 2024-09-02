@@ -798,6 +798,10 @@ open(文件路径, 打开方式(='r'))
 fp = open('a.txt', 'r')
 ```
 
+注意 `/` 开头表示根目录，在 windows 表示当前磁盘，如 `/a.txt` 等于 `D:/a.txt`。
+
+> `\` 是 windows 标准的路径分隔符；在类 Unix 系统（如 Linux 和 macOS）中，`/` 是标准的路径分隔符
+
 常用的打开方式标识符有：
 
 - r 只读，没有则FileNotFoundError
@@ -1585,7 +1589,7 @@ y={}#空字典
 
 `[]` 与 `get()` 的区别，前者查无 `KeyError`，后者返回 None。`get(key, default)` 可以规定查无返回什么。
 
-None 和自定义对象可以做 key，都可以唯一区分。
+None 和自定义对象(则是指针)可以做 key，都可以唯一区分。
 
 ##### 方法
 
@@ -1608,6 +1612,29 @@ x.update({3:50,4:False})  # x |= {3:50,4:False}
 get(key,p=None)如果存在key返回key对应的value，否则返回p
 
 copy()副本
+
+##### 对象作key
+
+```python
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+a1 = TreeNode(1, TreeNode(2), TreeNode(3))
+a2 = TreeNode(1, TreeNode(2), TreeNode(3))
+b1 = TreeNode(3, None, None)
+b2 = TreeNode(3, None, None)
+b3 = b1
+print(a1 == a2, b1 == b2, b1 == b3) # False False True
+d = dict()
+d[a1] = 1
+print(a1 in d, a2 in d) # True False
+d[b1] = 1
+print(b1 in d, b2 in d, b3 in d) # True False True
+```
+
+
 
 #### set
 
@@ -1750,6 +1777,20 @@ a.func() #使用成员函数
 ```
 
 大同C++，从略。
+
+对象的 `==` 默认是指针相等，属性全一样也不 `==`，但 `a=b` 后满足 `a==b`，此时 `b` 是 `a` 的指针。
+
+```python
+class Node:
+    def __init__(self, val=0):
+        self.val = val
+b1 = Node(3)
+b3 = b1
+b3.val *= 10
+print(b1.val, b3.val) # 30, 30
+```
+
+
 
 主要介绍特殊方法和特殊属性，即带双下划线的内容：
 
@@ -4207,6 +4248,8 @@ os.getcwd()
 os.path.abspath('.')
 ```
 
+> 注意绝对路径不是根目录，根目录(`/`)以 windows 为例是当前磁盘如 `/a.txt` 是 `D:/a.txt`。
+
 获取当前运行程序的文件夹路径和程序相对路径：
 
 ```python
@@ -4218,6 +4261,8 @@ dn,fn=os.path.split(__file__)
 > \_\_file\_\_与sys.argv[0]的区别：前者是存储路径，后者是运行路径，举个例子：
 >
 >  a.py载入了b.py，在a import b，那么b内的\_\_file\_\_指向b，其他都指向a
+
+`\` 是 windows 标准的路径分隔符；在类 Unix 系统（如 Linux 和 macOS）中，`/` 是标准的路径分隔符。在编写跨平台代码时，建议使用 `os.path` 模块（在 Python 中）来处理路径，以便在不同操作系统上保持兼容性
 
 拼接路径：
 

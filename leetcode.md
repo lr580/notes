@@ -1941,6 +1941,14 @@
 - 2024\.考试的最大困扰度
 
   滑动窗口
+  
+- 113\.路径总和II
+
+  DFS / BFS 输出方案
+  
+- 2708\.一个小组的最大实力值
+
+  二进制枚举 / 爆搜 / <u>贪心</u>
 
 ## 算法
 
@@ -51579,3 +51587,69 @@ class Solution:
             return maxLen
         return max(solve('T', 'F'), solve('F', 'T'))
 ```
+
+##### 113\.路径总和II
+
+[题目]()
+
+具备一般性的 bfs 输出路径(对非树的结构来 bfs 也能同理搬用)
+
+> 注意对象可以直接作 dict 的 key，与对象指针相同则判断为同一个 key，即哪怕成员都一样也不会判断为 == 而键冲突
+
+```python
+class Solution:
+    def pathSum(self, root: Optional[TreeNode], targetSum: int) -> List[List[int]]:
+        if not root:
+            return []
+        q = deque([(root, root.val)])
+        ans = []
+        pre = dict()
+        while q:
+            u, s = q.popleft()
+            # 树状结构无需 vis 数组
+            if not u.left and not u.right and s == targetSum:
+                path = []
+                while u != root:
+                    path.append(u.val)
+                    u = pre[u]
+                path.append(u.val) # u == root
+                ans.append(path[::-1])
+                continue
+            for v in (u.left, u.right):
+                if v: # != None
+                    pre[v] = u
+                    q.append((v, s + v.val))
+        return ans
+```
+
+##### 2708\.一个小组的最大实力值
+
+[题目](https://leetcode.cn/problems/maximum-strength-of-a-group)
+
+二进制枚举：
+
+```python
+class Solution:
+    def maxStrength(self, nums: List[int]) -> int:
+        n, ans = len(nums), max(nums)
+        for i in range(1<<n):
+            s = 1
+            for j in range(n):
+                if (i>>j)&1:
+                    s *= nums[j]
+            ans = max(ans, s)
+        return ans
+```
+
+维护当前最小和最大的乘积，贪心即可：
+
+```python
+class Solution:
+    def maxStrength(self, nums: List[int]) -> int:
+        mn = mx = nums[0]
+        for x in nums[1:]:
+            mn, mx = min(mn, x, mn * x, mx * x), \
+                     max(mx, x, mn * x, mx * x)
+        return mx
+```
+
