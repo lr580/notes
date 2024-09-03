@@ -1949,6 +1949,10 @@
 - 2708\.一个小组的最大实力值
 
   二进制枚举 / 爆搜 / <u>贪心</u>
+  
+- 2860\.让所有学生保持开心的分组方法数
+
+  排序 枚举
 
 ## 算法
 
@@ -51653,3 +51657,20 @@ class Solution:
         return mx
 ```
 
+##### 2860\.让所有学生保持开心的分组方法数
+
+[题目](https://leetcode.cn/problems/happy-students)
+
+排序，枚举所有选 i 个人的情况
+
+```python
+from typing import *
+class Solution:
+    def countWays(self, nums: List[int]) -> int:
+        nums.sort()
+        ans, n = nums[0] > 0, len(nums)
+        for i in range(n-1):
+            if nums[i] < i+1 < nums[i+1]:
+                ans += 1
+        return ans + 1
+```
