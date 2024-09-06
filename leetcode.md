@@ -1953,6 +1953,10 @@
 - 2860\.让所有学生保持开心的分组方法数
 
   排序 枚举
+  
+- 3176\.求出最长好子序列I
+
+  DP <u>前缀和优化</u>
 
 ## 算法
 
@@ -51673,4 +51677,99 @@ class Solution:
             if nums[i] < i+1 < nums[i+1]:
                 ans += 1
         return ans + 1
+```
+
+##### 3176\.求出最长好子序列I
+
+[题目](https://leetcode.cn/problems/find-the-maximum-length-of-a-good-subsequence-i)
+
+显然好想的 DP，$O(n^2k)$，最后一个是第 $i$ 个，已经不等了 $j$ 次的长度是 $dp_{i,j}$
+
+```python
+class Solution:
+    def maximumLength(self, nums: List[int], k: int) -> int:
+        n = len(nums)
+        dp = [[-1] * 51 for _ in range(n)]
+        ans = 0
+
+        for i in range(n):
+            dp[i][0] = 1
+            for l in range(k + 1):
+                for j in range(i):
+                    add = 1 if nums[i] != nums[j] else 0
+                    if l - add >= 0 and dp[j][l - add] != -1:
+                        dp[i][l] = max(dp[i][l], dp[j][l - add] + 1)
+                ans = max(ans, dp[i][l])
+        return ans
+```
+
+优化：把 $i$ 改成 $x$，即元素值，且 $dp_{x,j}$ 表示至多 $j$ 个不等，最后一个是 $x$ 的长度。每遇到一个 $x$，则 $f_{x,j}$ 对全体 $j$ 加一。且还可以找到 $f_{y,j-1},y\neq x$，转移到 $x$ 来。
+
+- 对每个 $j$，维护最大长度 $mx$，其对应的数值 $num$，还有严格次大长度 $mx2$($\neq num$ 的最大长度)。则，如果 $x\neq num$，得到从 $mx$ 转移过来，不然，从 $mx2$ 转移过来。每次更新完某个 $dp_{x,j}$ 后维护每个 $j$ 的三元组 $(mx,mx2,num)$
+
+```python
+class Solution:
+    def maximumLength(self, nums: List[int], k: int) -> int:
+        fs = {}
+        records = [[0] * 3 for _ in range(k + 1)]
+        for x in nums:
+            if x not in fs:
+                fs[x] = [0] * (k + 1)
+            f = fs[x]
+            for j in range(k, -1, -1):
+                f[j] += 1
+                if j > 0:
+                    mx, mx2, num = records[j - 1]
+                    f[j] = max(f[j], (mx if x != num else mx2) + 1)
+
+                # records[j] 维护 fs[.][j] 的 mx, mx2, num
+                v = f[j]
+                p = records[j]
+                if v > p[0]:
+                    if x != p[2]:
+                        p[2] = x
+                        p[1] = p[0]
+                    p[0] = v
+                elif x != p[2] and v > p[1]:
+                    p[1] = v
+        return records[k][0]
+```
+
+但是，如果用到 $mx2$，其答案不会比直接用 $f_j+1$ 更优：
+
+```python
+class Solution:
+    def maximumLength(self, nums: List[int], k: int) -> int:
+        dp = defaultdict(lambda: [0] * (k + 1))
+        zd = [0] * (k + 1)
+
+        for v in nums:
+            tmp = dp[v]
+            for j in range(k + 1):
+                tmp[j] += 1
+                if j > 0:
+                    tmp[j] = max(tmp[j], zd[j - 1] + 1)    
+            for j in range(k + 1):
+                zd[j] = max(zd[j], tmp[j])
+                if j > 0:
+                    zd[j] = max(zd[j], zd[j - 1])
+        
+        return zd[k]
+```
+
+插入 0 避免特判
+
+```python
+class Solution:
+    def maximumLength(self, nums: List[int], k: int) -> int:
+        fs = {}
+        mx = [0] * (k + 2)
+        for x in nums:
+            if x not in fs:
+                fs[x] = [0] * (k + 1)
+            f = fs[x]
+            for j in range(k, -1, -1):
+                f[j] = max(f[j], mx[j]) + 1
+                mx[j + 1] = max(mx[j + 1], f[j])
+        return mx[-1]
 ```
