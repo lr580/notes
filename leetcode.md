@@ -1957,6 +1957,14 @@
 - 3176\.求出最长好子序列I
 
   DP <u>前缀和优化</u>
+  
+- 977\.有序数组的平方
+
+  滑动窗口双指针
+  
+- 2115\.从给定原材料中找到所有可以做出的菜
+
+  拓扑排序
 
 ## 算法
 
@@ -51773,3 +51781,109 @@ class Solution:
                 mx[j + 1] = max(mx[j + 1], f[j])
         return mx[-1]
 ```
+
+##### 977\.有序数组的平方
+
+[题目](https://leetcode.cn/problems/squares-of-a-sorted-array)
+
+滑动窗口/双指针，显然：
+
+```c++
+class Solution {
+public:
+    vector<int> sortedSquares(vector<int>& nums) {
+        int n = nums.size();
+        int negative = -1;
+        for (int i = 0; i < n; ++i) {
+            if (nums[i] < 0) {
+                negative = i;
+            } else {
+                break;
+            }
+        }
+
+        vector<int> ans;
+        int i = negative, j = negative + 1;
+        while (i >= 0 || j < n) {
+            if (i < 0) {
+                ans.push_back(nums[j] * nums[j]);
+                ++j;
+            }
+            else if (j == n) {
+                ans.push_back(nums[i] * nums[i]);
+                --i;
+            }
+            else if (nums[i] * nums[i] < nums[j] * nums[j]) {
+                ans.push_back(nums[i] * nums[i]);
+                --i;
+            }
+            else {
+                ans.push_back(nums[j] * nums[j]);
+                ++j;
+            }
+        }
+
+        return ans;
+    }
+};
+```
+
+还可以简化实现，逆序填充，更简单：
+
+```python
+class Solution:
+    def sortedSquares(self, nums: List[int]) -> List[int]:
+        n = len(nums)
+        ans = [0] * n
+        
+        i, j, pos = 0, n - 1, n - 1
+        while i <= j:
+            if nums[i] * nums[i] > nums[j] * nums[j]:
+                ans[pos] = nums[i] * nums[i]
+                i += 1
+            else:
+                ans[pos] = nums[j] * nums[j]
+                j -= 1
+            pos -= 1
+        
+        return ans
+```
+
+##### 2115\.从给定原材料中找到所有可以做出的菜
+
+[题目](https://leetcode.cn/problems/find-all-possible-recipes-from-given-supplies)
+
+对每一个子序列 $s$，看成一条链，建图 $s_{i-1}\to s_i$，边 $u\to v$ 的含义是 $u$ 一定在 $v$ 前面，所以存在传递性，即 $u\to v,v\to w$，则显然有 $u\to w$ 成立而无需显式表示这条边。
+
+拓扑唯一的条件是，拓扑时队列里总是只有一个元素。
+
+```python
+class Solution:
+    def findAllRecipes(self, recipes: List[str], ingredients: List[List[str]], supplies: List[str]) -> List[str]:
+        n = len(recipes)
+        # 图
+        depend = defaultdict(list)
+        # 入度统计
+        cnt = Counter()
+        for i in range(n):
+            for ing in ingredients[i]:
+                depend[ing].append(recipes[i])
+            cnt[recipes[i]] = len(ingredients[i])
+        
+        ans = list()
+        # 把初始的原材料放入队列
+        q = deque(supplies)
+        
+        # 拓扑排序
+        while q:
+            cur = q.popleft()
+            if cur in depend:
+                for rec in depend[cur]:
+                    cnt[rec] -= 1
+                    # 如果入度变为 0，说明可以做出这道菜
+                    if cnt[rec] == 0:
+                        ans.append(rec)
+                        q.append(rec)
+        return ans
+```
+
