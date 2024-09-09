@@ -1965,6 +1965,14 @@
 - 2115\.从给定原材料中找到所有可以做出的菜
 
   拓扑排序
+  
+- 2181\.合并零之间的节点
+
+  链表
+  
+- 338\.比特位计数
+
+  二进制 DP
 
 ## 算法
 
@@ -51885,5 +51893,191 @@ class Solution:
                         ans.append(rec)
                         q.append(rec)
         return ans
+```
+
+##### 2181\.合并零之间的节点
+
+[题目](https://leetcode.cn/problems/merge-nodes-in-between-zeros)
+
+原地：
+
+```python
+class Solution:
+    def mergeNodes(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        tail = head
+        cur = head.next
+        while cur.next:
+            if cur.val:
+                tail.val += cur.val
+            else:
+                tail = tail.next
+                tail.val = 0
+            cur = cur.next
+        tail.next = None
+        return head
+```
+
+```java
+class Solution {
+    public ListNode mergeNodes(ListNode head) {
+        ListNode tail = head;
+        for (ListNode cur = head.next; cur.next != null; cur = cur.next) {
+            if (cur.val != 0) {
+                tail.val += cur.val;
+            } else {
+                tail = tail.next;
+                tail.val = 0;
+            }
+        }
+        tail.next = null;
+        return head;
+    }
+}
+```
+
+```c++
+class Solution {
+public:
+    ListNode* mergeNodes(ListNode* head) {
+        auto tail = head;
+        for (auto cur = head->next; cur->next; cur = cur->next) {
+            if (cur->val) {
+                tail->val += cur->val;
+            } else {
+                tail = tail->next;
+                tail->val = 0;
+            }
+        }
+        // 注：这里没有 delete 剩余节点，可以自行补充
+        tail->next = nullptr;
+        return head;
+    }
+};
+```
+
+不原地：
+
+```c++
+class Solution {
+public:
+    ListNode* mergeNodes(ListNode* head) {
+        ListNode* dummy = new ListNode();
+        ListNode* tail = dummy;
+        
+        int total = 0;
+        for (ListNode* cur = head->next; cur; cur = cur->next) {
+            if (cur->val == 0) {
+                ListNode* node = new ListNode(total);
+                tail->next = node;
+                tail = tail->next;
+                total = 0;
+            }
+            else {
+                total += cur->val;
+            }
+        }
+        
+        return dummy->next;
+    }
+};
+```
+
+```java
+class Solution {
+    public ListNode mergeNodes(ListNode head) {
+        ListNode dummy = new ListNode();
+        ListNode tail = dummy;
+        int total = 0;
+        for (ListNode cur = head.next; cur != null; cur = cur.next) {
+            if (cur.val == 0) {
+                ListNode node = new ListNode(total);
+                tail.next = node;
+                tail = tail.next;
+                total = 0;
+            } else {
+                total += cur.val;
+            }
+        }
+        
+        return dummy.next;
+    }
+}
+```
+
+```python
+class Solution:
+    def mergeNodes(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        dummy = tail = ListNode()
+        total = 0
+        cur = head.next
+
+        while cur:
+            if cur.val == 0:
+                node = ListNode(total)
+                tail.next = node
+                tail = tail.next
+                total = 0
+            else:
+                total += cur.val
+            
+            cur = cur.next
+        
+        return dummy.next
+```
+
+##### 338\.比特位计数
+
+[题目](https://leetcode.cn/problems/counting-bits)
+
+一行调库略。手写：Brian Kernighan 算法，`x&(x-1)` 一定把最低 1 改成 0，手推一次易证。
+
+```python
+class Solution:
+    def countBits(self, n: int) -> List[int]:
+        def countOnes(x: int) -> int:
+            ones = 0
+            while x > 0:
+                x &= (x - 1)
+                ones += 1
+            return ones
+        
+        bits = [countOnes(i) for i in range(n + 1)]
+        return bits
+```
+
+还可以 DP，$O(n)$，维护最高的 $2^n$ 整数幂为 `highBit`，每个数从它减掉 `highBit` 转移。
+
+```python
+class Solution:
+    def countBits(self, n: int) -> List[int]:
+        bits = [0]
+        highBit = 0
+        for i in range(1, n + 1):
+            if i & (i - 1) == 0:
+                highBit = i
+            bits.append(bits[i - highBit] + 1)
+        return bits
+```
+
+或者更简单的从低位转移：
+
+```python
+class Solution:
+    def countBits(self, n: int) -> List[int]:
+        bits = [0]
+        for i in range(1, n + 1):
+            bits.append(bits[i >> 1] + (i & 1))
+        return bits
+```
+
+或者从少 1 个 1 的开始转移：
+
+```python
+class Solution:
+    def countBits(self, n: int) -> List[int]:
+        bits = [0]
+        for i in range(1, n + 1):
+            bits.append(bits[i & (i - 1)] + 1)
+        return bits
 ```
 

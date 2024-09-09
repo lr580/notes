@@ -1291,12 +1291,12 @@ list(zip(*[((1, 1), False, 'd'), ((2, 2), True, 'e'), ((1, 3), False, 'f')]))
 位运算方法(变量可用)：
 
 ```python
-x=15
+x=15 # 或 (15).bit_count()，但 15.bit_count() 不行
 x.bit_count() #数1; 15.bit_count() 报错, Python 3.10
 x.bit_length() #二进制串长度
 ```
 
-可以当 bitset 来用
+可以当 bitset 来用 [bit_count实现](https://github.com/python/cpython/blob/main/Objects/longobject.c)，[bit_length实现](https://github.com/python/cpython/issues/47689)
 
 #### float
 
