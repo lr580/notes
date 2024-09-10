@@ -1973,6 +1973,10 @@
 - 338\.比特位计数
 
   二进制 DP
+  
+- 2552\.统计上升四元组
+
+  **DP 组合数学 枚举**
 
 ## 算法
 
@@ -52080,4 +52084,76 @@ class Solution:
             bits.append(bits[i & (i - 1)] + 1)
         return bits
 ```
+
+##### 2552\.统计上升四元组
+
+[题目](https://leetcode.cn/problems/count-increasing-quadruplets)
+
+枚举 $j,k$，维护 $great_{k,x}$ 表示 $k$ 后面比 $x$ 大的元素数，$less_{j,x}$ 表示 $j$ 前面比 $x$ 大的元素，容易 DP 维护这两者。则答案为 $\sum_j\sum_k less_{j,a_k}\cdot great_{k,a_j}$
+
+```python
+class Solution:
+    def countQuadruplets(self, nums: List[int]) -> int:
+        n = len(nums)
+        great = [0] * n
+        great[-1] = [0] * (n + 1)
+        for k in range(n - 2, 1, -1):
+            great[k] = great[k + 1].copy()  # 也可以写 great[k+1][:]
+            for x in range(1, nums[k + 1]):
+                great[k][x] += 1
+
+        ans = 0
+        less = [0] * (n + 1)
+        for j in range(1, n - 1):
+            for x in range(nums[j - 1] + 1, n + 1):
+                less[x] += 1
+            for k in range(j + 1, n - 1):
+                if nums[j] > nums[k]:
+                    ans += less[nums[k]] * great[k][nums[j]]
+        return ans
+```
+
+还可以优化，$j$ 后面有 $n-1-j$ 个元素，其中设 $x=a_k$，$j$ 后比 $x$ 大有 $great_{j,x}$ 个，则比 $x$ 不大有 $n-1-j-great_{j,x}$ 个元素，一共有 $x$ 个元素比 $x$ 不大，则 $j$ 前面有 $x-(n-1-j-great_{j,x})$ 个元素比 $x$ 不大
+
+```python
+class Solution:
+    def countQuadruplets(self, nums: List[int]) -> int:
+        n = len(nums)
+        great = [0] * n
+        great[-1] = [0] * (n + 1)
+        for k in range(n - 2, 0, -1):
+            great[k] = great[k + 1].copy()
+            for x in range(1, nums[k + 1]):
+                great[k][x] += 1
+
+        ans = 0
+        for j in range(1, n - 1):
+            for k in range(j + 1, n - 1):
+                x = nums[k]
+                if nums[j] > x:
+                    ans += (x - n + 1 + j + great[j][x]) * great[k][nums[j]]
+        return ans
+```
+
+另一种思路，枚举 $l$，维护在这之前的 132 的个数和 12 的个数，空间更优：
+
+```python
+class Solution:
+    def countQuadruplets(self, nums: List[int]) -> int:
+        cnt4 = 0
+        cnt3 = [0] * len(nums)
+        for l in range(2, len(nums)):
+            cnt2 = 0
+            for j in range(l):
+                if nums[j] < nums[l]:  # 3 < 4
+                    cnt4 += cnt3[j]
+                    # 把 j 当作 i，把 l 当作 k，现在 nums[i] < nums[k]，即 1 < 2
+                    cnt2 += 1
+                else:  # 把 l 当作 k，现在 nums[j] > nums[k]，即 3 > 2
+                    cnt3[j] += cnt2
+        return cnt4
+```
+
+
+
 
