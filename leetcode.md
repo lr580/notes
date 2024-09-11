@@ -1977,6 +1977,10 @@
 - 2552\.统计上升四元组
 
   **DP 组合数学 枚举**
+  
+- 2555\.两个线段获得的最多奖品
+
+  滑动窗口 前缀和(max)
 
 ## 算法
 
@@ -52154,6 +52158,77 @@ class Solution:
         return cnt4
 ```
 
+##### 2555\.两个线段获得的最多奖品
 
+[题目](https://leetcode.cn/problems/maximize-win-from-two-segments)
 
+先倒着滑动窗口一次，维护后缀 max 表示对当前后缀区间只选一次的最大长度；然后顺着滑动窗口，当前前缀最大长度+后缀最大的最大值就是答案。
+
+```c++
+class Solution {
+public:
+    int maximizeWin(vector<int>& prizePositions, int k) {
+        int n = prizePositions.size();
+        vector<int> rmx(n+1, 0);
+        for (int r = n - 1, l = n - 1; l >= 0; l--) {
+            while (prizePositions[r] - prizePositions[l] > k) {
+                --r;
+            }
+            rmx[l] = max(rmx[l+1], r-l+1);
+        }
+        int lmx = 0, ans = 0;
+        for (int l = 0, r = 0; r < n; r++) {
+            while (prizePositions[r] - prizePositions[l] > k) {
+                ++l;
+            }
+            lmx = max(lmx, r-l+1);
+            ans = max(ans, lmx + rmx[r+1]);
+        }
+        return ans;
+    }
+};
+```
+
+一次遍历，选定 l 之后选 l 的前缀 mx 即可
+
+```python
+class Solution:
+    def maximizeWin(self, prizePositions: List[int], k: int) -> int:
+        n = len(prizePositions)
+        if k * 2 + 1 >= prizePositions[-1] - prizePositions[0]:
+            return n
+        ans = left = 0
+        mx = [0] * (n + 1)
+        for right, p in enumerate(prizePositions):
+            while p - prizePositions[left] > k:
+                left += 1
+            ans = max(ans, mx[left] + right - left + 1)
+            mx[right + 1] = max(mx[right], right - left + 1)
+        return ans
+```
+
+可以枚举 l，记录 l 的前缀 max 和它的 r，空间 O1：
+
+```python
+class Solution:
+    def maximizeWin(self, prizePositions: List[int], k: int) -> int:
+        n = len(prizePositions)
+        if k * 2 + 1 >= prizePositions[-1] - prizePositions[0]:
+            return n
+        ans = mx = left = right = 0
+        for mid, p in enumerate(prizePositions):
+            # 把 prizePositions[mid] 视作第二条线段的左端点，计算第二条线段可以覆盖的最大奖品下标
+            while right < n and prizePositions[right] - p <= k:
+                right += 1
+            # 循环结束后，right-1 是第二条线段可以覆盖的最大奖品下标
+            ans = max(ans, mx + right - mid)
+            # 把 prizePositions[mid] 视作第一条线段的右端点，计算第一条线段可以覆盖的最小奖品下标
+            while p - prizePositions[left] > k:
+                left += 1
+            # 循环结束后，left 是第一条线段可以覆盖的最小奖品下标
+            mx = max(mx, mid - left + 1)
+        return ans
+```
+
+当然不用滑窗可以用二分解决 l/r 问题，略。
 
