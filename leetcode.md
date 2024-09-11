@@ -1981,6 +1981,10 @@
 - 2555\.两个线段获得的最多奖品
 
   滑动窗口 前缀和(max)
+  
+- 2576\.求出最多标记下标
+
+  排序 贪心 二分/<u>双指针</u>
 
 ## 算法
 
@@ -52231,4 +52235,58 @@ class Solution:
 ```
 
 当然不用滑窗可以用二分解决 l/r 问题，略。
+
+##### 2576\.求出最多标记下标
+
+[题目](https://leetcode.cn/problems/find-the-maximum-number-of-marked-indices)
+
+排序后，二分配对次数，对固定的次数 k，选出前 k 小元素和前 k 大元素，分别配对，如果这都不行，那其他方案一定更不能配对出 k 个。
+
+```python
+class Solution:
+    def maxNumOfMarkedIndices(self, nums: List[int]) -> int:
+        n, ans = len(nums), 0
+        lf, rf = 1, n // 2
+        nums.sort()
+        while lf <= rf:
+            cf = (lf + rf) >> 1
+            l, r, ok = 0, n - cf, True
+            for i in range(cf):
+                ok &= nums[l + i] * 2 <= nums[r + i]
+            if ok:
+                ans = cf * 2
+                lf = cf + 1
+            else:
+                rf = cf - 1
+        return ans
+```
+
+注意可以负下标
+
+```python
+class Solution:
+    def maxNumOfMarkedIndices(self, nums: List[int]) -> int:
+        nums.sort()
+        left, right = 0, len(nums) // 2 + 1  # 开区间
+        while left + 1 < right:
+            k = (left + right) // 2
+            if all(nums[i] * 2 <= nums[i - k] for i in range(k)):
+                left = k
+            else:
+                right = k
+        return left * 2  # 最多匹配 left 对，有 left * 2 个数
+```
+
+双指针：首先找到第一个能匹配左一的元素，接着找到第二个能匹配左二的元素，那么右二往前最坏是第一次找到的右一，所以可行。右一定从一半往后开始找，防止重叠，也就是全匹配最差也是从一半开始的右一开始的。
+
+```python
+class Solution:
+    def maxNumOfMarkedIndices(self, nums: List[int]) -> int:
+        nums.sort()
+        i = 0
+        for x in nums[(len(nums) + 1) // 2:]:
+            if nums[i] * 2 <= x:  # 找到一个匹配
+                i += 1
+        return i * 2
+```
 
