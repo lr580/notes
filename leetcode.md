@@ -1989,6 +1989,10 @@
 - 2398\.预算内的最多机器人数目
 
   滑动窗口 单调栈
+  
+- 2390\.从字符串中移除星号
+
+  签到 栈
 
 ## 算法
 
@@ -52325,4 +52329,20 @@ public:
         return res;
     }
 };
+```
+
+##### 2390\.从字符串中移除星号
+
+[题目](https://leetcode.cn/problems/removing-stars-from-a-string)
+
+```python
+class Solution:
+    def removeStars(self, s: str) -> str:
+        a = []
+        for c in s:
+            if c == '*':
+                a.pop()
+            else:
+                a.append(c)
+        return ''.join(a)
 ```
