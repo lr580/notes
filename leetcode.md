@@ -1985,6 +1985,10 @@
 - 2576\.求出最多标记下标
 
   排序 贪心 二分/<u>双指针</u>
+  
+- 2398\.预算内的最多机器人数目
+
+  滑动窗口 单调栈
 
 ## 算法
 
@@ -52290,3 +52294,35 @@ class Solution:
         return i * 2
 ```
 
+##### 2398\.预算内的最多机器人数目
+
+[题目](https://leetcode.cn/problems/maximum-number-of-robots-within-budget)
+
+一种思路是二分长度，枚举固定长度是否存在满足的，用优先级队列做，可以 $O(n\log^2n)$。二分也可以去掉，滑动窗口可以做到，并且可以把队列换成单调栈。
+
+```c++
+class Solution {
+public:
+    int maximumRobots(vector<int>& chargeTimes, vector<int>& runningCosts, long long budget) {
+        int res = 0, n = chargeTimes.size();
+        long long runningCostSum = 0;
+        deque<int> q;
+        for (int i = 0, j = 0; i < n; i++) {
+            runningCostSum += runningCosts[i];
+            while (!q.empty() && chargeTimes[q.back()] <= chargeTimes[i]) {
+                q.pop_back();
+            }
+            q.push_back(i);
+            while (j <= i && (i - j + 1) * runningCostSum + chargeTimes[q.front()] > budget) {
+                if (!q.empty() && q.front() == j) {
+                    q.pop_front();
+                }
+                runningCostSum -= runningCosts[j];
+                j++;
+            }
+            res = max(res, i - j + 1);
+        }
+        return res;
+    }
+};
+```
