@@ -1993,6 +1993,18 @@
 - 2390\.从字符串中移除星号
 
   签到 栈
+  
+- 2332\.坐上公交的最晚时间
+
+  模拟 双指针
+  
+- 815\.公交路线
+
+  BFS
+  
+- 2848\.与车相交的点
+
+  前缀和差分
 
 ## 算法
 
@@ -52346,3 +52358,177 @@ class Solution:
                 a.append(c)
         return ''.join(a)
 ```
+
+##### 2332\.坐上公交的最晚时间
+
+[题目](https://leetcode.cn/problems/the-latest-time-to-catch-a-bus)
+
+模拟，如果一辆车没坐满，可以踩点坐它，如果坐满了，踩点抢一个人
+
+```python
+from typing import *
+class Solution:
+    def latestTimeCatchTheBus(self, buses: List[int], passengers: List[int], capacity: int) -> int:
+        buses.sort()
+        passengers.sort()
+        n, pi, ans = len(passengers), 0, 0
+        for x in buses:
+            cnt = 0
+            while pi < n and cnt < capacity and passengers[pi] <= x:
+                pi += 1
+                cnt += 1
+            if cnt < capacity: # 没坐满
+                ans = x
+            else:
+                ans = passengers[pi-1]
+        vis = set(passengers[:pi])
+        while ans in vis:
+            ans -= 1
+        return ans
+```
+
+省掉 set 的做法：
+
+```python
+class Solution:
+    def latestTimeCatchTheBus(self, buses: List[int], passengers: List[int], capacity: int) -> int:
+        buses.sort()
+        passengers.sort()
+
+        # 模拟乘客上车
+        j = 0
+        for t in buses:
+            c = capacity
+            while c and j < len(passengers) and passengers[j] <= t:
+                j += 1
+                c -= 1
+
+        # 寻找插队时机
+        j -= 1
+        ans = buses[-1] if c else passengers[j]
+        while j >= 0 and ans == passengers[j]:  # 往前找没人到达的时刻
+            ans -= 1
+            j -= 1
+        return ans
+```
+
+##### 815\.公交路线
+
+所有共站的车相互连边建图，对建好的图走 BFS 最短路即可。
+
+邻接表或矩阵均可：
+
+```c++
+class Solution {
+public:
+    int numBusesToDestination(vector<vector<int>>& routes, int source, int target) {
+        if (source == target) {
+            return 0;
+        }
+
+        int n = routes.size();
+        vector<vector<int>> edge(n, vector<int>(n));
+        unordered_map<int, vector<int>> rec;
+        for (int i = 0; i < n; i++) {
+            for (int site : routes[i]) {
+                for (int j : rec[site]) {
+                    edge[i][j] = edge[j][i] = true;
+                }
+                rec[site].push_back(i);
+            }
+        }
+
+        vector<int> dis(n, -1);
+        queue<int> que;
+        for (int bus : rec[source]) {
+            dis[bus] = 1;
+            que.push(bus);
+        }
+        while (!que.empty()) {
+            int x = que.front();
+            que.pop();
+            for (int y = 0; y < n; y++) {
+                if (edge[x][y] && dis[y] == -1) {
+                    dis[y] = dis[x] + 1;
+                    que.push(y);
+                }
+            }
+        }
+
+        int ret = INT_MAX;
+        for (int bus : rec[target]) {
+            if (dis[bus] != -1) {
+                ret = min(ret, dis[bus]);
+            }
+        }
+        return ret == INT_MAX ? -1 : ret;
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    int numBusesToDestination(vector<vector<int>>& routes, int source, int target) {
+        // 记录经过车站 x 的公交车编号
+        unordered_map<int, vector<int>> stop_to_buses;
+        for (int i = 0; i < routes.size(); i++) {
+            for (int x : routes[i]) {
+                stop_to_buses[x].push_back(i);
+            }
+        }
+
+        // 小优化：如果没有公交车经过起点或终点，直接返回
+        if (!stop_to_buses.contains(source) || !stop_to_buses.contains(target)) {
+            // 注意原地 TP 的情况
+            return source != target ? -1 : 0;
+        }
+
+        // BFS
+        unordered_map<int, int> dis;
+        dis[source] = 0;
+        queue<int> q;
+        q.push(source);
+        while (!q.empty()) {
+            int x = q.front(); // 当前在车站 x
+            q.pop();
+            int dis_x = dis[x];
+            for (int i : stop_to_buses[x]) {  // 遍历所有经过车站 x 的公交车 i
+                for (int y : routes[i]) { // 遍历公交车 i 的路线
+                    if (!dis.contains(y)) { // 没有访问过车站 y
+                        dis[y] = dis_x + 1; // 从 x 站上车然后在 y 站下车
+                        q.push(y);
+                    }
+                }
+                routes[i].clear(); // 标记 routes[i] 遍历过
+            }
+        }
+
+        return dis.contains(target) ? dis[target] : -1;
+    }
+};
+```
+
+##### 2848\.与车相交的点
+
+[题目](https://leetcode.cn/problems/points-that-intersect-with-cars)
+
+差分：
+
+```python
+class Solution:
+    def numberOfPoints(self, nums: List[List[int]]) -> int:
+        C = max(y for _, y in nums)
+        diff = [0] * (C + 2)
+        for x, y in nums:
+            diff[x] += 1
+            diff[y + 1] -= 1
+        
+        ans = count = 0
+        for i in range(1, C + 1):
+            count += diff[i]
+            if count > 0:
+                ans += 1
+        return ans
+```
+
