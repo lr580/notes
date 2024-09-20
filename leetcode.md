@@ -2013,6 +2013,10 @@
 - 2376\.统计特殊整数
 
   DFS打表+二分 / <u>数位DP / 组合数学</u>
+  
+- 2374\.边积分最高的节点
+
+  签到
 
 ## 算法
 
@@ -52692,5 +52696,30 @@ public:
         return ans + 1;
     }
 };
+```
+
+##### 2374\.边积分最高的节点
+
+[题目](https://leetcode.cn/problems/node-with-highest-edge-score/)
+
+防止炸 int
+
+```java
+class Solution {
+    public int edgeScore(int[] edges) {
+        int n = edges.length;
+        long[] s = new long[n];
+        for (int i = 0; i < n; i++) {
+            s[edges[i]] += i;
+        }
+        int ans = 0;
+        for (int i = 0; i < n; i++) {
+            if (s[i] > s[ans]) {
+                ans = i;
+            }
+        }
+        return ans;
+    }
+}
 ```
 
