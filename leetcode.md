@@ -2005,6 +2005,14 @@
 - 2848\.与车相交的点
 
   前缀和差分
+  
+- 2414\.最长的字母序连续子字符串的长度
+
+  签到 模拟
+
+- 2376\.统计特殊整数
+
+  DFS打表+二分 / <u>数位DP / 组合数学</u>
 
 ## 算法
 
@@ -52530,5 +52538,159 @@ class Solution:
             if count > 0:
                 ans += 1
         return ans
+```
+
+##### 2414\.最长的字母序连续子字符串的长度
+
+[题目](https://leetcode.cn/problems/length-of-the-longest-alphabetical-continuous-substring)
+
+```python
+class Solution:
+    def longestContinuousSubstring(self, s: str) -> int:
+        ans, prv, cnt = 1, '0', 0
+        for c in s:
+            if ord(prv) + 1 == ord(c):
+                cnt += 1
+            else:
+                cnt = 1
+            ans = max(ans, cnt)
+            prv = c
+        return ans
+```
+
+```python
+class Solution:
+    def longestContinuousSubstring(self, s: str) -> int:
+        ans = cnt = 1
+        for x, y in pairwise(map(ord, s)):
+            cnt = cnt + 1 if x + 1 == y else 1
+            ans = max(ans, cnt)
+        return ans
+```
+
+##### 2376\.统计特殊整数
+
+[题目](https://leetcode.cn/problems/count-special-integers)
+
+显然最差情况不会超过 $\sum_{i=1}^{10}i! < 11!$ 个数，暴力 DFS 出所有这些数并排序为有序列表，对其二分出下标就是符合的数目。
+
+```python
+a=set()
+def dfs(x, bin):
+    if x in a or x > 2e9:
+        return
+    a.add(x)
+    for i in range(10):
+        if bin & (1 << i):
+            dfs(x * 10 + i, bin ^ (1 << i))
+for i in range(1,10):
+    dfs(i, 0b1111111111 ^ (1 << i))
+a=sorted(list(a))
+from bisect import bisect_right
+class Solution:
+    def countSpecialNumbers(self, n: int) -> int:
+        return bisect_right(a, n)
+```
+
+数位 DP：
+
+- 定义 i 是构造了前 i 位(i从高往低，i=0是最高位)
+- mask 是之前选过的全部数的二进制状态
+- `isLimit` 是当前是否受到 n 的约束
+- `isNum` 表示比 i 更高的位是否用了，如果用了这位不可以跳过，用以区分 `0b010` 的高 0 是无效的
+
+记忆化存储内容为 i 和 mask：
+
+```python
+class Solution:
+    def countSpecialNumbers(self, n: int) -> int:
+        s = str(n)
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int, mask: int, is_limit: bool, is_num: bool) -> int:
+            if i == len(s):
+                return 1 if is_num else 0  # is_num 为 True 表示得到了一个合法数字
+            res = 0
+            if not is_num:  # 可以跳过当前数位
+                res = dfs(i + 1, mask, False, False)
+            # 如果前面没有填数字，则必须从 1 开始（因为不能有前导零）
+            low = 0 if is_num else 1
+            # 如果前面填的数字都和 n 的一样，那么这一位至多填 s[i]（否则就超过 n 啦）
+            up = int(s[i]) if is_limit else 9
+            for d in range(low, up + 1):  # 枚举要填入的数字 d
+                if mask >> d & 1 == 0:  # d 不在 mask 中，说明之前没有填过 d
+                    res += dfs(i + 1, mask | (1 << d), is_limit and d == up, True)
+            return res
+        return dfs(0, 0, True, False)
+```
+
+```c++
+class Solution {
+public:
+    int countSpecialNumbers(int n) {
+        string s = to_string(n);
+        int m = s.length();
+        vector<vector<int>> memo(m, vector<int>(1 << 10, -1)); // -1 表示没有计算过
+        auto dfs = [&](auto&& dfs, int i, int mask, bool is_limit, bool is_num) -> int {
+            if (i == m) {
+                return is_num; // is_num 为 true 表示得到了一个合法数字
+            }
+            if (!is_limit && is_num && memo[i][mask] != -1) {
+                return memo[i][mask]; // 之前计算过
+            }
+            int res = 0;
+            if (!is_num) { // 可以跳过当前数位
+                res = dfs(dfs, i + 1, mask, false, false);
+            }
+            // 如果前面填的数字都和 n 的一样，那么这一位至多填数字 s[i]（否则就超过 n 啦）
+            int up = is_limit ? s[i] - '0' : 9;
+            // 枚举要填入的数字 d
+            // 如果前面没有填数字，则必须从 1 开始（因为不能有前导零）
+            for (int d = is_num ? 0 : 1; d <= up; d++) {
+                if ((mask >> d & 1) == 0) { // d 不在 mask 中，说明之前没有填过 d
+                    res += dfs(dfs, i + 1, mask | (1 << d), is_limit && d == up, true);
+                }
+            }
+            if (!is_limit && is_num) {
+                memo[i][mask] = res; // 记忆化
+            }
+            return res;
+        };
+        return dfs(dfs, 0, 0, true, false);
+    }
+};
+```
+
+组合数学：[src](https://leetcode.cn/problems/count-special-integers/solutions/1746836/c-fen-lei-tao-lun-ji-ke-by-muriyatensei-hvi3/), [src2](https://leetcode.cn/problems/count-special-integers/solutions/1747240/6151-tong-ji-te-shu-zheng-shu-po-su-de-m-yty1/)
+
+- 设当前恰有 i 位，最高位可以选 0-9，共 9 种，剩下还剩 9 个数，要选 i 个，是排列 $A_9^{i-1}=9!\div (10-i)!$
+
+- 受到 n 限制下，当前在从左第 q 位，本来有 $[0,s[q])$ 可以选择，减去更高位已经选了的，位运算即可，那么得出当前位可以选几个数
+
+  那么现在位选了，比现在位高的 q 位也选了，还剩下 10-1-q 位可以选择，共有 $k$ 位，还一共要选 $k-q-1$ 个，即 $A_{10-1-q}^{k-q-1}=(9-q)!\div (10-k)!$
+
+- 最高位不能是 0，减去一个 $A_9^{k-1}$，然后加上自己
+
+- 注意在遍历过程中如果遇到了重复数字，那么往下肯定都不合法，也不用加自己了
+
+```c++
+int f[11]{1}, fas[11]{0};//f[i] 阶乘; fas[i] i位数的可行全排列
+auto init = []{
+    for (int i = 1; i < 11; ++i) f[i] = f[i - 1] * i;
+    for (int i = 1; i < 10; ++i) fas[i+1] = fas[i] + 9 * f[9] / f[10-i];
+    return 1;
+}();
+class Solution {
+public:
+    int countSpecialNumbers(int n) {
+        auto s = to_string(n);//ans 初始化为 【对于位数小于n的情况数】 减 【0开头的全排列数】
+        int mask = 0, k = s.size(), ans = fas[k] - f[9] / f[10 - k]; 
+        for (int q = 0; q < k; ++q) {
+            ans += (f[9 - q] / f[10 - k]) * __builtin_popcount(((1 << (s[q] - '0')) - 1) & ~mask);
+            if (mask >> (s[q] - '0') & 1) return ans;
+            mask |= 1 << (s[q] - '0');
+        }
+        return ans + 1;
+    }
+};
 ```
 
