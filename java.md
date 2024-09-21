@@ -1206,7 +1206,7 @@ length，无参数
 
 ###### 查找
 
-indexOf，加char或字符串，用法同js，第二个参数是起始位置(对lastIndexOf 是结束)
+indexOf，加char或字符串，用法同js，第二个参数是起始位置(对lastIndexOf 是结束)，查无 -1
 
 同理有lastIndexOf方法
 

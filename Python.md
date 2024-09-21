@@ -3138,6 +3138,15 @@ list(reversed([1, 2, 3]))
 
 列表转迭代器，如 `iter([1,4,4,6,8])`
 
+##### next
+
+传入迭代器，返回第一个元素，第二个参数是查无返回，可不填(则查无报错 StopIteration)
+
+```python
+next((i for i in range(10) if i>6), -1) # 7
+next((i for i in range(10) if i>60), -1) # -1
+```
+
 #### 控制函数
 
 ##### eval/exec

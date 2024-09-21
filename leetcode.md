@@ -2017,6 +2017,10 @@
 - 2374\.边积分最高的节点
 
   签到
+  
+- 997\.找到小镇的法官
+
+  签到 图论
 
 ## 算法
 
@@ -52721,5 +52725,30 @@ class Solution {
         return ans;
     }
 }
+```
+
+##### 997\.找到小镇的法官
+
+[题目](https://leetcode.cn/problems/find-the-town-judge/)
+
+```python
+class Solution:
+    def findJudge(self, n: int, trust: List[List[int]]) -> int:
+        ru, cu = [0 for i in range(n+1)], [0 for i in range(n+1)]
+        for u,v in trust:
+            ru[v] += 1
+            cu[u] += 1
+        for i in range(1,1+n):
+            if ru[i] == n-1 and cu[i] == 0:
+                return i
+        return -1
+```
+
+```python
+class Solution:
+    def findJudge(self, n: int, trust: List[List[int]]) -> int:
+        inDegrees = Counter(y for _, y in trust)
+        outDegrees = Counter(x for x, _ in trust)
+        return next((i for i in range(1, n + 1) if inDegrees[i] == n - 1 and outDegrees[i] == 0), -1)
 ```
 
