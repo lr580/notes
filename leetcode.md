@@ -2021,6 +2021,14 @@
 - 997\.找到小镇的法官
 
   签到 图论
+  
+- 1014\.最佳观光组合
+
+  前缀和
+  
+- 2207\.字符串中最多数目的子序列
+
+  前缀和 / <u>贪心</u>
 
 ## 算法
 
@@ -52750,5 +52758,81 @@ class Solution:
         inDegrees = Counter(y for _, y in trust)
         outDegrees = Counter(x for x, _ in trust)
         return next((i for i in range(1, n + 1) if inDegrees[i] == n - 1 and outDegrees[i] == 0), -1)
+```
+
+##### 1014\.最佳观光组合
+
+[题目](https://leetcode.cn/problems/best-sightseeing-pair/)
+
+对每个 i，找到 i 后面最大的 $values[j]-j$，即维护后缀 max，相加即可。
+
+```python
+class Solution:
+    def maxScoreSightseeingPair(self, values: List[int]) -> int:
+        n=len(values)
+        mx, ans = values[-1]-(n-1), 0
+        for i in range(n-2, -1, -1):
+            ans=max(ans,mx+values[i]+i)
+            mx=max(mx, values[i]-i)
+        return ans
+```
+
+也可以前缀 max：
+
+```python
+class Solution:
+    def maxScoreSightseeingPair(self, values: List[int]) -> int:
+        ans = 0
+        mx = values[0] + 0
+        for j in range(1, len(values)):
+            ans = max(ans, mx + values[j] - j)
+            # 边遍历边维护
+            mx = max(mx, values[j] + j)
+        return ans
+```
+
+##### 2207\.字符串中最多数目的子序列
+
+[题目](https://leetcode.cn/problems/maximize-number-of-subsequences-in-a-string)
+
+先统计原本有几个子序列，前/后缀和可以做到，然后对每个间隙，假设这个位置：
+
+- 插入 $pattern_0$，子序列增加的个数等于它后面的 $pattern_1$ 的个数
+- 插入 $pattern_1$，子序列增加的个数等于它前面的 $pattern_0$ 的个数
+
+前后数目可以用前后缀和维护。维护最大值即可。
+
+```python
+class Solution:
+    def maximumSubsequenceCount(self, text: str, pattern: str) -> int:
+        n = len(text)
+        sa, sc = [0] * (n+2), [0] * (n+2)
+        for i in range(n):
+            sa[i+1] = (text[i] == pattern[0]) + sa[i]
+        for i in range(n-1,-1,-1):
+            sc[i+1] = (text[i] == pattern[1]) + sc[i+2]
+        sa[n+1], sc[0] = sa[n], sc[1]
+        s = ans = 0
+        for i in range(1,1+n):
+            s += (text[i-1] == pattern[0]) * sc[i+1]
+        for i in range(n+1):
+            ans = max(ans, s + sa[i], s + sc[i+1])
+        return ans
+```
+
+贪心：如果 $pattern_0$ 更多，在第一个 $pattern_0$ 前面的间隙插入 $pattern_1$，反之同理。
+
+```python
+class Solution:
+    def maximumSubsequenceCount(self, text: str, pattern: str) -> int:
+        x, y = pattern
+        ans = cnt_x = cnt_y = 0
+        for c in text:
+            if c == y:
+                ans += cnt_x
+                cnt_y += 1
+            if c == x:
+                cnt_x += 1
+        return ans + max(cnt_x, cnt_y)
 ```
 
