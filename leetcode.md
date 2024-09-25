@@ -2029,6 +2029,10 @@
 - 2207\.字符串中最多数目的子序列
 
   前缀和 / <u>贪心</u>
+  
+- 2306\.公司命名
+
+  **组合数学 枚举**
 
 ## 算法
 
@@ -52834,5 +52838,56 @@ class Solution:
             if c == x:
                 cnt_x += 1
         return ans + max(cnt_x, cnt_y)
+```
+
+##### 2306\.公司命名
+
+[题目](https://leetcode.cn/problems/naming-a-company)
+
+按首字母分组，存储后缀(不能存储下标，不然无法去并集，下表不一样但后缀相同无法处理)
+
+对两个组 $a,b$，假设它们的共同后缀是 $c=a\cup b$ 集合，则 $a$ 里不在 $c$ 的全体后缀可以与 $b$ 里不在 $c$ 的全体后缀组合，注意题意没有重复串，所以不会数漏，该贡献为：
+$$
+2(|a|-|c|)(|b|-|c|)
+$$
+设有 $n$ 个字符串，长度是 $m$，字符集大小为 $\Sigma$，共有 $\Sigma^2$ 个组对，注意到枚举第一组的 `for 26` 恰好是全体字符串，此时总长度为 $O(nm)$，每个组要和 $\Sigma$ 个组求交，每 $\Sigma$ 次求交的复杂度为 $O(nm)$，一共求交 $\Sigma^2$ 次，故复杂度为 $O(nm\Sigma)$
+
+```python
+class Solution:
+    def distinctNames(self, ideas: List[str]) -> int:
+        groups = defaultdict(set)
+        for s in ideas:
+            groups[s[0]].add(s[1:])  # 按照首字母分组
+
+        ans = 0
+        for a, b in combinations(groups.values(), 2):  # 枚举所有组对
+            m = len(a & b)  # 交集的大小
+            ans += (len(a) - m) * (len(b) - m)
+        return ans * 2  # 乘 2 放到最后
+```
+
+解法二，按后缀分组，那么每个组的实际集合长度都 $\le \Sigma$，且记录每个首字母的技=计数。对于当前字母的首字母 $b$，找到它的后缀的全部其他首字母 $a$，那么如果换算到解法一，那么 $a,b$ 两组就这个后缀有一个贡献。统计所有的贡献，然后按上述解法办法计算。复杂度有所优化，首先统计贡献部分 $O(nm+n\Sigma)$，计算部分只有 $O(\Sigma^2)$。
+
+```python
+class Solution:
+    def distinctNames(self, ideas: List[str]) -> int:
+        size = [0] * 26  # 集合大小
+        intersection = [[0] * 26 for _ in range(26)]  # 交集大小
+        groups = defaultdict(list)  # 后缀 -> 首字母列表
+        for s in ideas:
+            b = ord(s[0]) - ord('a')
+            size[b] += 1  # 增加集合大小
+            g = groups[s[1:]]
+            for a in g:  # a 是和 s 有着相同后缀的字符串的首字母
+                intersection[a][b] += 1  # 增加交集大小
+                intersection[b][a] += 1
+            g.append(b)
+
+        ans = 0
+        for a in range(1, 26):  # 枚举所有组对
+            for b in range(a):
+                m = intersection[a][b]
+                ans += (size[a] - m) * (size[b] - m)
+        return ans * 2  # 乘 2 放到最后
 ```
 
