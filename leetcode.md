@@ -2033,6 +2033,10 @@
 - 2306\.公司命名
 
   **组合数学 枚举**
+  
+- 2535\.数组元素和与数字和的绝对差
+
+  签到
 
 ## 算法
 
@@ -52891,3 +52895,12 @@ class Solution:
         return ans * 2  # 乘 2 放到最后
 ```
 
+##### 2535\.数组元素和与数字和的绝对差
+
+[题目](https://leetcode.cn/problems/difference-between-element-sum-and-digit-sum-of-an-array)
+
+```python
+class Solution:
+    def differenceOfSum(self, nums: List[int]) -> int:
+        return abs(sum(nums) - sum(sum(int(d) for d in str(x)) for x in nums))
+```
