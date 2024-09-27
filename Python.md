@@ -6965,7 +6965,7 @@ a=np.array([1,4,3,7,5,8,1])
 a.argsort()#array([0, 6, 2, 1, 4, 3, 5], dtype=int64)
 ```
 
-
+逆序排序 `np.sort(a)[::-1]`
 
 ##### 差分
 
@@ -9098,7 +9098,7 @@ pd.read_csv(fp, names=['id', 'name', 'date', 'text'])
 print(audiometric.head())
 ```
 
-查看行号 `.index`，列 `.columns`，各列信息 `.info()`
+查看行号 `.index`，列 `.columns`，各列信息 `.info()`，**列名区分大小写**
 
 求列的相关系数：
 
@@ -9152,6 +9152,8 @@ df = pd.DataFrame(data)
 ```python
 pd.DataFrame([{'name':'lr580','value':580},{'name':'lr581','value':581}])
 ```
+
+也可以用二维列表构造。
 
 复制：`df_copy = pd.DataFrame(df)`
 
@@ -10758,6 +10760,8 @@ plt.show()
 
 #### 基础操作
 
+##### 打开
+
 安装：(window cmd命令)
 
 ```cmd
@@ -10776,7 +10780,7 @@ from openpyxl import *
 wb = load_workbook(路径)
 ```
 
-新建文件：(自带名为`sheet`的初始sheet表单)
+新建文件：(自带名为 `Sheet` 的初始sheet表单)
 
 ```python
 wb = Workbook()
@@ -10788,7 +10792,7 @@ wb = Workbook()
 wb.save(路径)
 ```
 
-
+##### 工作表
 
 读取sheet表格，可以用`worksheets`按数字从左到右顺序或用`wb`实例的key名(sheet名字符串)：
 
@@ -10797,11 +10801,28 @@ sheet0 = wb.worksheets[0]
 sheet1 = wb['Sheet1']
 ```
 
+返回当前活跃单元表：
+
+```python
+sh = wb.active
+```
+
 创建sheet表格：
 
 ```python
 wb.create_sheet(index=0,title='sheet名字')
+wb.create_sheet('论文统计表')
 ```
+
+重命名 sheet：
+
+```python
+sh.title = '论文统计表'
+```
+
+
+
+##### 单元格
 
 获取某个单元格cell的数据、坐标(字符串)：
 
@@ -10812,26 +10833,72 @@ sheet0['A1'].coordinate
 
 > value有就是字符串，没有就是None
 
+```python
+# 通过行列索引访问单元格，例如第一行第一列
+cell_value = ws.cell(row=1, column=1).value  # 行列索引从 1 开始
+```
+
+
+
 按行或列遍历：
 
 ```python
 sheet.iter_rows() #用于for，元素是行，再for之得每个单元格
 sheet.iter_cols() #同理
+# 或
+for col in sh.columns:
+    for cell in col:
 ```
 
 行数，列数即 `sheet.max_row` , `.max_column`。
 
-自适应某列列宽：(如第一列)
+##### 样式
 
 ```python
-sh2.column_dimensions['A'].auto_size = True
+from openpyxl.styles import Alignment
+# 自动调整列宽
+for col in sh.columns:
+    max_length = 0
+    column = col[0].column_letter  # 获取列字母
+    for cell in col:
+        try:
+            if cell.value:
+                max_length = max(max_length, len(str(cell.value)))
+        except:
+            pass
+    adjusted_width = max_length + 2  # 添加一些空白边距
+    sh.column_dimensions[column].width = adjusted_width
+
+# 设置居中对齐
+for row in sh.iter_rows():
+    for cell in row:
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+```
+
+```python
+# 自动筛选 - 就是在第一行有点击下拉的筛选搜索框
+sh.auto_filter.ref = "A1:F1"
 ```
 
 
 
+> 自适应某列列宽：(如第一列) 疑似不行
+>
+
+> ```python
+> sh2.column_dimensions['A'].auto_size = True
+> ```
+>
+
+##### 其他
+
+更多内容：如字体、边框填充、超链接、excel公式、合并单元格，暂时用不上，这里不做笔记，需要用时见[这里](https://blog.csdn.net/liyuanjinglyj/article/details/87895700)
+
+#### 例子
+
 举例：
 
-1: 批量读取
+##### 批量读取
 
 ```python
 from openpyxl import *
@@ -10844,7 +10911,7 @@ for col in sheet.iter_cols(): #按列遍历
         print(cell.coordinate, cell.value)
 ```
 
-2: 创建一个九九乘法表并保存
+##### 创建一个九九乘法表并保存
 
 ```c++
 from openpyxl import *
@@ -10858,6 +10925,8 @@ for i in range(1, 10):
 wb.save('99mul.xlsx')
 ```
 
+##### Excel行与数字转换
+
 > 附：大的数字转EXCEL行，可以用进制的方法，递推公式是$c=(x-1)\mod26,\quad x=(x-1)/26$，新生成的$c$位于最开头，即unshift操作
 >
 > 参考C++代码如下：(原题：`蓝桥杯真题EXCEL地址`)
@@ -10867,12 +10936,12 @@ wb.save('99mul.xlsx')
 > int n; std::string x;
 > signed main()
 > {
->  for(scanf("%d",&n);n;n=(n-1)/26) x=(char)('A'+(n-1)%26 )+x;
->  return std::cout<<x,0;
+> for(scanf("%d",&n);n;n=(n-1)/26) x=(char)('A'+(n-1)%26 )+x;
+> return std::cout<<x,0;
 > }
 > ```
 
-> 更多内容：如字体、边框填充、超链接、excel公式、合并单元格，暂时用不上，这里不做笔记，需要用时见[这里](https://blog.csdn.net/liyuanjinglyj/article/details/87895700)
+
 
 ### plotly
 

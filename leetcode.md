@@ -2037,6 +2037,10 @@
 - 2535\.数组元素和与数字和的绝对差
 
   签到
+  
+- 2516\.每种字符至少取K个
+
+  二分+前缀和 / <u>滑动窗口</u>
 
 ## 算法
 
@@ -52904,3 +52908,37 @@ class Solution:
     def differenceOfSum(self, nums: List[int]) -> int:
         return abs(sum(nums) - sum(sum(int(d) for d in str(x)) for x in nums))
 ```
+
+##### 2516\.每种字符至少取K个
+
+[题目](https://leetcode.cn/problems/take-k-of-each-character-from-left-and-right)
+
+我的思路：枚举左端点，二分右端点，使用后缀和求得右边的字符数。
+
+题解：滑动窗口，枚举右端点(将可能出现不合法)，不断增大左端点直到合法
+
+```python
+class Solution:
+    def takeCharacters(self, s: str, k: int) -> int:
+        cnt = [0] * 3
+        ans = len(s)
+
+        for c in s:
+            cnt[ord(c) - ord('a')] += 1
+        if cnt[0] >= k and cnt[1] >= k and cnt[2] >= k:
+            ans = min(ans, len(s))
+        else:
+            return -1
+
+        l = 0
+        for r, ch in enumerate(s):
+            cnt[ord(ch) - ord('a')] -= 1
+            while l < r and (cnt[0] < k or cnt[1] < k or cnt[2] < k):
+                cnt[ord(s[l]) - ord('a')] += 1
+                l += 1
+            if cnt[0] >= k and cnt[1] >= k and cnt[2] >= k:
+                ans = min(ans, len(s) - (r - l + 1))
+
+        return ans
+```
+

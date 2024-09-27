@@ -524,7 +524,7 @@ $$
 
 #### 特殊符号
 
-$\circledast\circledcirc\circleddash\divideontimes\odot\ominus\oplus\oslash\otimes\boxplus\boxdot\boxtimes\Box\square$
+$\circ \circledast\circledcirc\circleddash\divideontimes\odot\ominus\oplus\oslash\otimes\boxplus\boxdot\boxtimes\Box\square$
 
 $\nabla \triangle \triangledown \vartriangle \square \blacksquare \blacktriangle \blacktriangledown $ $\bigstar \diamond$
 
@@ -3063,6 +3063,7 @@ signed main() /* 注释 */
 > @article{ID1,
 > 	author = {lr580},
 > 	title = {普通文献},
+> 	% title = {Graph neural network for traffic forecasting: {A} survey}, title 里大括号如 {A} 不会显示在正文，即正文显示 A survey
 > 	journal = {ACM顶刊},
 > 	year = {2202},
 > 	volumn = {10},
@@ -3090,6 +3091,8 @@ signed main() /* 注释 */
 ```
 
 之后调用即可。(第二行的位置出现引用列表)
+
+> 如果遇到 `I found no \citation commands`，而且确认没错，把生成的临时文件全删了再次编译。
 
 默认只有引用过的会列出来。使得 `bib` 文件全部参考文献被列出的话，使用 `\nocite{*}`。
 
