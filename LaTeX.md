@@ -2644,6 +2644,8 @@ large & 0.151s \\
 可以发现，ISBN图的纵坐标处
 ```
 
+##### HTBP
+
 > chatGPT:
 >
 > - h：表示该元素应放在当前位置，如果它会导致页面水平溢出，则将其移到下一行。
@@ -2656,6 +2658,10 @@ large & 0.151s \\
 > `[H]` 是一个特殊的页面对齐参数，表示该元素应放在下一页，如果它会导致页面垂直溢出，则将其移到下一页。
 >
 > 因此，与 `[htbp]` 相比，`[H]` 更倾向于在下一页中放置元素，而不是尽可能放在当前位置或其他位置。但同时，由于 `[H]` 不会考虑页面水平
+>
+> `!` 是一个强制符号，告诉 LaTeX 忽略某些限制，以便更倾向于遵循你提供的定位参数
+>
+> - `[!t]` 是尽量在页面顶部放置这个图形，若有必要，可以忽略某些常规限制
 
 
 
@@ -3063,12 +3069,13 @@ signed main() /* 注释 */
 > @article{ID1,
 > 	author = {lr580},
 > 	title = {普通文献},
-> 	% title = {Graph neural network for traffic forecasting: {A} survey}, title 里大括号如 {A} 不会显示在正文，即正文显示 A survey
+> 	% title = {Graph neural network for traffic forecasting: {A} survey}, title 里大括号如 {A} 不会显示在正文，即正文显示 A survey，但大括号里的内容会全部大写
 > 	journal = {ACM顶刊},
 > 	year = {2202},
 > 	volumn = {10},
 > 	number = {3},
 > 	pages = {200}
+> 	% GPT： 可以插入任意键值对如 hello = {World}
 > }
 > @article{ID2,
 > 	author = {lr580},

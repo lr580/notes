@@ -2041,6 +2041,10 @@
 - 2516\.每种字符至少取K个
 
   二分+前缀和 / <u>滑动窗口</u>
+  
+- 2286\.以组为单位定音乐会的门票
+
+  线段树二分
 
 ## 算法
 
@@ -52940,5 +52944,236 @@ class Solution:
                 ans = min(ans, len(s) - (r - l + 1))
 
         return ans
+```
+
+##### 2286\.以组为单位订音乐会的门票
+
+[题目](https://leetcode.cn/problems/booking-concert-tickets-in-groups/)
+
+时间击败 90%，空间击败 100% 的线段树二分
+
+维护长为 $n$ 的线段树，维护两个信息：区间最大值 $mx$，区间和 $sum$。
+
+- 实现初始 $[1,n]=m$，区间查询，区间修改(赋值)，查询叶子节点 $a$
+- 实现线段树二分(A)找到最左点 $x$ 满足该点值 $\ge k$
+- 实现线段树二分(B)找到最左点 $x$ 满足区间和 $[1,x]\ge k$
+
+对 gather：
+
+- 二分(A)找到最左点 $l$，把该点修改为 $a_l-k$
+
+对 scatter：
+
+- 二分(B)找到 $r$，把 $[1,r-1]$ 修改为 $0$，把 $r$ 修改为 $a_r - (k-[1,r-1])$
+
+scatter, gather 都判断边界，不可修改就返回
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+const int maxn = 5e4 + 1, maxm = maxn << 2;
+using ll = long long;
+struct SegTr {
+    int mx[maxm], laz[maxm], loc[maxm];
+    ll sum[maxm];
+    void pushup(int p) {
+        mx[p] = max(mx[p<<1], mx[p<<1|1]);
+        sum[p] = sum[p<<1] + sum[p<<1|1];
+    }
+    void build(int p, int lf, int rf, int m) {
+        laz[p] = 0;
+        if(lf==rf) {
+            mx[p]=sum[p]=m;
+            loc[lf]=p;
+            return;
+        }
+        int cf=(lf+rf)>>1;
+        build(p<<1, lf, cf, m);
+        build(p<<1|1, cf+1, rf, m);
+        pushup(p);
+    }
+    void pushdown(int p, int lf, int rf) {
+        if(laz[p]) {
+            int cf=(lf+rf)>>1;
+            laz[p<<1] = laz[p];
+            mx[p<<1] = laz[p];
+            sum[p<<1] = (cf-lf+1)*laz[p];
+            laz[p<<1|1] = laz[p];
+            mx[p<<1|1] = laz[p];
+            sum[p<<1|1] = (rf-cf)*laz[p];
+            laz[p] = 0;
+        }
+    }
+    ll query(int p, int lf, int rf, int l, int r) {
+        if(l>r) return 0;
+        if(l<=lf && rf<=r) return sum[p];
+        int cf=(lf+rf)>>1;
+        ll res=0;
+        pushdown(p, lf, rf);
+        if(l<=cf) res+=query(p<<1, lf, cf, l, r);
+        if(cf<r) res+=query(p<<1|1, cf+1, rf, l, r);
+        return res;
+    }
+    //区间[l,r]每个值变化为v
+    void modify(int p, int lf, int rf, int l, int r, int v) {
+        if(l>r) return;
+        if(l<=lf && rf<=r) {
+            mx[p] = v;
+            laz[p] = v;
+            sum[p] = (rf-lf+1)*v;
+            return;
+        }
+        int cf = (lf+rf)>>1;
+        pushdown(p, lf, rf);
+        if(l<=cf) modify(p<<1, lf, cf, l, r, v);
+        if(cf<r) modify(p<<1|1, cf+1, rf, l, r, v);
+        pushup(p);
+    }
+    //找到最小点，满足该点值>=k
+    int findMin(int p, int lf, int rf, int k) {
+        if(mx[p]<k) return -1;
+        if(lf==rf) return lf;
+        int cf = (lf+rf)>>1;
+        pushdown(p, lf, rf);
+        if(mx[p<<1]>=k) return findMin(p<<1, lf, cf, k);
+        return findMin(p<<1|1, cf+1, rf, k);
+    }
+    //找到最小点x，满足[1,x]的和>=k
+    int findMinSum(int p, int lf, int rf, int k) {
+        if(sum[p]<k) return -1;
+        if(lf==rf) return lf;
+        int cf = (lf+rf)>>1;
+        pushdown(p, lf, rf);
+        if(sum[p<<1]>=k) 
+            return findMinSum(p<<1, lf, cf, k);
+        return findMinSum(p<<1|1, cf+1, rf, k-sum[p<<1]);
+    }
+} t;
+class BookMyShow {
+    int n, m;
+public:
+    BookMyShow(int n, int m) {
+        this->n = n;
+        this->m = m;
+        t.build(1, 1, n, m);
+    }
+    
+    vector<int> gather(int k, int maxRow) {
+        int r = t.findMin(1, 1, n, k);
+        if(r==-1 || r-1>maxRow) {
+            return {};
+        }
+        int left = t.sum[t.loc[r]];
+        int c = m - left + 1;
+        t.modify(1,1,n,r,r,left-k);
+        return {r-1,c-1};
+    }
+    
+    bool scatter(int k, int maxRow) {
+        int r = t.findMinSum(1, 1, n, k);
+        if(r==-1 || r-1>maxRow) {
+            return false;
+        }
+        int s = t.query(1,1,n,1,r-1); // [1,r-1]
+        t.modify(1,1,n,1,r-1,0);
+        t.modify(1,1,n,r,r,t.sum[t.loc[r]]-(k-s));
+        return true;
+    }
+};
+```
+
+题解：
+
+- 对 scatter，每排最多被填满一次，如果当前要填满很多排，那么没填满的操作最多做一次，其他排只会被填一次，所以均摊下来，最多做 n+q 次单点查询，所以可以省略区间修改
+- 只需要单点修改、查询、二分查询单点，那么将简单很多；可以把 1,n 改成 0, n-1 也可以的，与 p<<1, p<<1|1 无关不影响
+
+```c++
+class BookMyShow {
+    int n, m;
+    vector<int> mn;
+    vector<int long> sum;
+
+    // 把下标 i 上的元素值增加 val
+    void update(int o, int l, int r, int i, int val) {
+        if (l == r) {
+            mn[o] += val;
+            sum[o] += val;
+            return;
+        }
+        int m = (l + r) / 2;
+        if (i <= m) {
+            update(o * 2, l, m, i, val);
+        } else {
+            update(o * 2 + 1, m + 1, r, i, val);
+        }
+        mn[o] = min(mn[o * 2], mn[o * 2 + 1]);
+        sum[o] = sum[o * 2] + sum[o * 2 + 1];
+    }
+
+    // 返回区间 [L,R] 内的元素和
+    long long querySum(int o, int l, int r, int L, int R) {
+        if (L <= l && r <= R) {
+            return sum[o];
+        }
+        long long res = 0;
+        int m = (l + r) / 2;
+        if (L <= m) {
+            res = querySum(o * 2, l, m, L, R);
+        }
+        if (R > m) {
+            res += querySum(o * 2 + 1, m + 1, r, L, R);
+        }
+        return res;
+    }
+
+    // 返回区间 [0,R] 中 <= val 的最靠左的位置，不存在时返回 -1
+    int findFirst(int o, int l, int r, int R, int val) {
+        if (mn[o] > val) {
+            return -1; // 整个区间的元素值都大于 val
+        }
+        if (l == r) {
+            return l;
+        }
+        int m = (l + r) / 2;
+        if (mn[o * 2] <= val) {
+            return findFirst(o * 2, l, m, R, val);
+        }
+        if (R > m) {
+            return findFirst(o * 2 + 1, m + 1, r, R, val);
+        }
+        return -1;
+    }
+
+public:
+    BookMyShow(int n, int m) : n(n), m(m), mn(2 << (__lg(n) + 1)), sum(2 << (__lg(n) + 1)) {}
+
+    vector<int> gather(int k, int maxRow) {
+        // 找第一个能倒入 k 升水的水桶
+        int r = findFirst(1, 0, n - 1, maxRow, m - k);
+        if (r < 0) { // 没有这样的水桶
+            return {};
+        }
+        int c = querySum(1, 0, n - 1, r, r);
+        update(1, 0, n - 1, r, k); // 倒水
+        return {r, c};
+    }
+
+    bool scatter(int k, int maxRow) {
+        // [0,maxRow] 的接水量之和
+        long long s = querySum(1, 0, n - 1, 0, maxRow);
+        if (s > (long long) m * (maxRow + 1) - k) {
+            return false; // 水桶已经装了太多的水
+        }
+        // 从第一个没有装满的水桶开始
+        int i = findFirst(1, 0, n - 1, maxRow, m - 1);
+        while (k) {
+            int left = min(m - (int) querySum(1, 0, n - 1, i, i), k);
+            update(1, 0, n - 1, i, left); // 倒水
+            k -= left;
+            i++;
+        }
+        return true;
+    }
+};
 ```
 

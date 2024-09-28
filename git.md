@@ -303,10 +303,6 @@ git commit -m "..."
 
 
 
-
-
-
-
 检查：
 
 ```sh
@@ -314,10 +310,6 @@ git check-ignore -v front/.vscode/extension.json
 ```
 
 如果应该被 ignore，就会输出内容
-
-
-
-
 
 ### 版本库
 
@@ -1371,7 +1363,9 @@ Git 提供了一个叫做 git config 的工具，专门用来配置或读取相�
 
 此外，Git 还会尝试找寻 /etc/gitconfig 文件，只不过看当初 Git 装在什么目录，就以此作为根目录来定位
 
+#### 大文件
 
+对大文件的管理，参考 [LFS](https://git-lfs.com/)
 
 ## 托管平台
 
