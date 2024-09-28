@@ -2045,6 +2045,10 @@
 - 2286\.以组为单位定音乐会的门票
 
   线段树二分
+  
+- 2073\.买票需要的时间
+
+  签到 数学
 
 ## 算法
 
@@ -53175,5 +53179,27 @@ public:
         return true;
     }
 };
+```
+
+##### 2073\.买票需要的时间
+
+[题目](https://leetcode.cn/problems/time-needed-to-buy-tickets)
+
+$\le k$ 的买票数不超过 $ticket_k$，往后的不超过 $ticket_{k-1}$
+
+```python
+class Solution:
+    def timeRequiredToBuy(self, tickets: List[int], k: int) -> int:
+        ans = sum([min(tickets[i], tickets[k]) for i in range(k+1)])
+        ans += sum([min(tickets[i], tickets[k]-1) for i in range(k+1, len(tickets))])
+        return ans
+```
+
+更简洁：
+
+```python
+class Solution:
+    def timeRequiredToBuy(self, tickets: List[int], k: int) -> int:
+        return sum(min(t, tickets[k] - (i > k)) for i, t in enumerate(tickets))
 ```
 
