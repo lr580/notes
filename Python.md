@@ -2122,6 +2122,17 @@ and or not
 (1 and 2 and 3 or 4 and 8 or 5 and 6 and 7)==3
 ```
 
+如果存在假值，and返回第一个假值，or返回最后一个
+
+```python
+1 and 0 and False#0
+1 and False and 0#False
+0 or False#False
+False or 0#0
+```
+
+
+
 ### 变量
 
 命名规范同C语言
@@ -4078,14 +4089,17 @@ print(counter1 - counter2)  # 相减: Counter({'a': 2})
 
 ##### sortedlist
 
-有序集合
+有序列表，不满足集合的元素唯一性
 
 ```python
-xs = SortedList()
+from sortedcontainers import sortedlist
+xs = sortedlist.SortedList()
+# sortedlist.SortedList(list(range(1,1+n)))
 xs.add(2)
 xs.add(1)
-xs.remove(1)
-print(xs[-1] - xs[0])
+xs.remove(1) # 多个的话删一个
+print(xs[-1] - xs[0]) # 取元素用[]
+print(2 in a)
 ```
 
 
@@ -4113,6 +4127,31 @@ print(bob[1])     # 输出: 30
 > new_bob = bob._replace(name="Robert")
 > print(new_bob.name)  # 输出: Robert
 > ```
+
+#### heapq
+
+堆：
+
+```python
+import heapq
+heap = []
+heapq.heappush(heap, (2, '任务2'))
+heapq.heappush(heap, (1, '任务1'))
+heapq.heappush(heap, (3, '任务3'))
+while heap:
+    print(heapq.heappop(heap)) #1,2,3
+a=[1,1,4,5,1,4]
+heapq.heapify(a) #成最小堆,无返回值
+```
+
+前 k 大：
+
+```python
+max_x1, max_x2 = nlargest(2, (x + y for x, y in points)) #最大次大
+min_x1, min_x2 = nsmallest(2, (x + y for x, y in points))#最小次小
+```
+
+
 
 #### math
 
@@ -4771,29 +4810,6 @@ print(res.groupdict())
 ```
 
 直接将匹配结果直接转为字典模式，方便使用。
-
-#### heapq
-
-堆：
-
-```python
-import heapq
-heap = []
-heapq.heappush(heap, (2, '任务2'))
-heapq.heappush(heap, (1, '任务1'))
-heapq.heappush(heap, (3, '任务3'))
-while heap:
-    print(heapq.heappop(heap)) #1,2,3
-a=[1,1,4,5,1,4]
-heapq.heapify(a) #成最小堆,无返回值
-```
-
-前 k 大：
-
-```python
-max_x1, max_x2 = nlargest(2, (x + y for x, y in points)) #最大次大
-min_x1, min_x2 = nsmallest(2, (x + y for x, y in points))#最小次小
-```
 
 
 

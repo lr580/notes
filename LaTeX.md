@@ -395,7 +395,7 @@ $\%$ 需要转义，否则代表单行注释，如 $1+2%难道不等于%3吗$ �
 
 四方向\left/right/up/downarrow $\uparrow$
 
-左右\to \gets $\to \gets$
+左右\to \gets $\to \gets$ $\leftrightarrow, \leftrightarrows$ 
 
 - 大左右 $\xleftarrow[下]{1+2+3}\xrightarrow{x}$
 - 双线 $\Leftarrow$ $\Leftrightarrow$ $\iff$ 
@@ -648,7 +648,7 @@ $\sin \arctan \cosh \exp \log \ln \min \max \gcd$
 
 $\angle \measuredangle \sphericalangle$
 
-$\cong$
+$\cong$ $\triangleq$ 
 
 $\overset{\LARGE{\frown}}{OA}$
 
@@ -3069,7 +3069,6 @@ signed main() /* 注释 */
 > @article{ID1,
 > 	author = {lr580},
 > 	title = {普通文献},
-> 	% title = {Graph neural network for traffic forecasting: {A} survey}, title 里大括号如 {A} 不会显示在正文，即正文显示 A survey，但大括号里的内容会全部大写
 > 	journal = {ACM顶刊},
 > 	year = {2202},
 > 	volumn = {10},
@@ -3085,6 +3084,23 @@ signed main() /* 注释 */
 > }
 > ```
 >
+
+> 大括号里的大括号：
+>
+> 大括号里的内容大小写原样保持，如果是非大括号的则只有首单词大写，如：
+>
+> ```tex
+> title = {BiG {DatA} {Analytics} In {Intelligent} {Transportation} {Systems}: {A} {Survey}},
+> ```
+>
+> 的结果为：
+>
+> ```
+> Big DatA Analytics in Intelligent Transportation
+> Systems: A Survey
+> ```
+>
+> 
 
 其中，每一行是 `key=value`，而 `author,title,journal,year` 必选，第一行的 ID 是 `\cite{ID}` 填写的东西。显示为 `[1]`（编号）且可以点击
 

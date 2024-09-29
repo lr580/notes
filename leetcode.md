@@ -2049,6 +2049,10 @@
 - 2073\.买票需要的时间
 
   签到 数学
+  
+- 1845\.座位预约管理系统
+
+  堆/优先级队列
 
 ## 算法
 
@@ -53201,5 +53205,51 @@ class Solution:
 class Solution:
     def timeRequiredToBuy(self, tickets: List[int], k: int) -> int:
         return sum(min(t, tickets[k] - (i > k)) for i, t in enumerate(tickets))
+```
+
+##### 1845\.座位预约管理系统
+
+[题目](https://leetcode.cn/problems/seat-reservation-manager)
+
+```python
+from sortedcontainers import sortedlist
+class SeatManager:
+    def __init__(self, n: int):
+        self.a = sortedlist.SortedList(list(range(1,1+n)))
+    def reserve(self) -> int:
+        v = self.a[0]
+        self.a.remove(v)
+        return v
+    def unreserve(self, seatNumber: int) -> None:
+        self.a.add(seatNumber)
+```
+
+正解：优先队列
+
+```python
+class SeatManager:
+    def __init__(self, n: int):
+        self.available = list(range(1, n + 1))  # 有序数组无需堆化
+    def reserve(self) -> int:
+        return heappop(self.available)
+
+    def unreserve(self, seatNumber: int) -> None:
+        heappush(self.available, seatNumber)
+```
+
+```python
+class SeatManager:
+    def __init__(self, _: int):
+        self.seats = 0  # 一开始没有椅子
+        self.available = []
+
+    def reserve(self) -> int:
+        if self.available:  # 有空出来的椅子
+            return heappop(self.available)  # 坐编号最小的
+        self.seats += 1  # 添加一把新的椅子
+        return self.seats
+
+    def unreserve(self, seatNumber: int) -> None:
+        heappush(self.available, seatNumber)  # 有人离开了椅子
 ```
 
