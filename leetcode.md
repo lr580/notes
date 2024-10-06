@@ -2056,7 +2056,27 @@
   
 - 134\.加油站
 
-  前缀和+滑动窗口+单调队列 / <u></u>
+  前缀和+滑动窗口+单调队列 / <u>贪心</u>
+  
+- 2187\.完成旅途的最少时间
+
+  二分答案
+  
+- 1227\.飞机座位分配概率
+
+  概率 (数学归纳 / <u>DP + 错位相减优化</u>)
+  
+- 983\.最低票价
+
+  DP / (<u>+双指针优化</u>)
+  
+- 1870\.准时到达的列车最小时速
+
+  二分答案
+  
+- 1928\.规定时间内到达终点的最小花费
+
+  **Bellman Ford+DP / Dijkstra**
 
 ## 算法
 
@@ -53333,5 +53353,202 @@ class Solution:
             else:
                 i += cnt + 1
         return -1
+```
+
+##### 2187\.完成旅途的最少时间
+
+[题目](https://leetcode.cn/problems/minimum-time-to-complete-trips)
+
+二分答案。一种上下界参考 [here](https://leetcode.cn/problems/minimum-time-to-complete-trips/solutions/1295955/er-fen-da-an-python-yi-xing-gao-ding-by-xwvs8/)，略。
+
+```python
+class Solution:
+    def minimumTime(self, time: List[int], totalTrips: int) -> int:
+        f = lambda x: sum(x // t for t in time)
+        min_t = min(time)
+        avg = (totalTrips - 1) // len(time) + 1
+        # bisect_left 需要用左闭右开区间
+        left = min_t * avg
+        right = min(max(time) * avg, min_t * totalTrips)
+        return bisect_left(range(right), totalTrips, left, key=f)
+```
+
+##### 1227\.飞机座位分配概率
+
+[题目](https://leetcode.cn/problems/airplane-seat-assignment-probability/)
+
+$n=1$，必然符合，下面讨论 $n>1$。
+
+第 $i$ 个人有 $\dfrac1n$ 概率：
+
+1. 坐到自己座位，剩下人都坐到自己座位，符合题意。
+
+2. 坐到最后一个人的座位上，不符合题意。
+
+3. 坐到第 $n-1$ 个人座位上，则第 $n-1$ 个人有 $2$ 个位置可以选，有 $\dfrac12$ 概率坐到最后一个座位，即 $\dfrac12$ 概率不符合题意。
+
+4. 坐到第 $n-2$ 个人座位上，则第 $n-2$ 个人有 $3$ 个位置可以选
+
+   1. 坐到第 $n-1$ 个人座位上，第 $n-1$ 个人按照上述讨论 $\dfrac12$ 不符合题意，总 $\dfrac13\cdot\dfrac12$ 概率不符合题意。
+   2. 坐到最后一个人的座位上，共 $\dfrac13$ 概率不符合题意。
+
+   加起来，有 $\dfrac13(\dfrac12+1)=\dfrac12$ 概率不符合题意。
+
+5. 坐到第 $n-3$ 个人座位上，则第 $n-3$ 个人有 $4$ 个位置可以选
+
+   1. 坐到第 $n-2$ 个人座位上，第 $n-2$ 个人按照上述讨论 $\dfrac12$ 不符合题意，总 $\dfrac14\cdot\dfrac12$ 概率不符合题意。
+   2. 坐到第 $n-1$ 个人座位上，第 $n-1$ 个人按照上述讨论 $\dfrac12$ 不符合题意，总 $\dfrac14\cdot\dfrac12$ 概率不符合题意。
+   3. 坐到最后一个人的座位上，共 $\dfrac14$ 概率不符合题意。
+
+   加起来，有 $\dfrac14(\dfrac12+\dfrac12+1)=\dfrac12$ 概率不符合题意。
+
+6. 根据数学归纳，当前坐到第 $n-i$ 个人座位上，则有 $i+1$ 个座位可以选，且：
+
+   已知坐到 $n-j(0<j<i)$ 个座位时有 $\dfrac12$ 不符合题意，共有 $i-1$ 个这样的 $j$，即概率为 $\dfrac1{i+1}(\dfrac{i-1}2+1)=\dfrac1{i+1}(\dfrac{i+1}2)=\dfrac12$ 不符合题意。 
+
+因此，$0<i<n$，共有 $n-2$ 个这样的 $i$，且 $i=n$ 时概率为 $1$，不符合题意的概率总和为：
+$$
+\dfrac {n-2}n\cdot\dfrac12+\dfrac1n=\dfrac{n-2+2}{2n}=\dfrac{2n}{n}=\dfrac12
+$$
+即符合题意的概率为 $1-\dfrac12=\dfrac12$。
+
+```python
+class Solution:
+    def nthPersonGetsNthSeat(self, n: int) -> float:
+        return 1 if n==1 else 0.5
+```
+
+题解 DP 优化：设 $f(n)$ 是 $n$ 的答案。
+
+第一个人选第一个座位符合概率 1.0，选最后一个座位 0 概率符合，选第 $i$ 个座位，则 $<i$ 的座位都是好的，第 $i$ 个人要随便坐，等效于 $[i,n]$ 区间的子问题，长为 $n-i+1$ 个人即求 $f(n-i+1)$，即：
+$$
+f(n)=\dfrac1n\cdot1+\dfrac1n\cdot 0+\dfrac1n\sum_{i=2}^{n-1}f(n-i+1)
+$$
+即：$nf(n)=1+\sum_{i=2}^{n-1}f(n-i+1)$ ①。
+
+要 $O(n^2)$ 递推，考虑优化。
+
+用 $n-1$ 替换 $f(n)$，得到 ②，原式为 ①，则 $①-②$ 得：
+$$
+nf(n)-(n-1)f(n-1)=1+\sum_{i=2}^{n-1}f(n-i+1)-(1+\sum_{i=2}^{n-2}f(n-i))
+$$
+即 $nf(n)-(n-1)f(n-1)=f(n-1)\to f(n)=f(n-1)$。
+
+初始值 $f(1)=1,f(2)=0.5$。
+
+##### 983\.最低票价
+
+[题目](https://leetcode.cn/problems/minimum-cost-for-tickets)
+
+```python
+class Solution:
+    def mincostTickets(self, days: List[int], costs: List[int]) -> int:
+        last_day = days[-1]
+        days = set(days)
+        f = [0] * (last_day + 1)
+        for i in range(1, last_day + 1):
+            if i not in days:
+                f[i] = f[i - 1]
+            else:
+                f[i] = min(f[i - 1] + costs[0], 
+                           f[max(i - 7, 0)] + costs[1],
+                           f[max(i - 30, 0)] + costs[2])
+        return f[-1]
+```
+
+三指针优化，维护每一个转移项指针，容易理解：
+
+```python
+class Solution:
+    def mincostTickets(self, days: List[int], costs: List[int]) -> int:
+        f = [0] * (len(days) + 1)
+        j = k = 0
+        for i, d in enumerate(days):
+            while days[j] <= d - 7:
+                j += 1
+            while days[k] <= d - 30:
+                k += 1
+            f[i + 1] = min(f[i] + costs[0], f[j] + costs[1], f[k] + costs[2])
+        return f[-1]
+```
+
+##### 1870\.准时到达的列车最小时速
+
+[题目](https://leetcode.cn/problems/minimum-speed-to-arrive-on-time)
+
+二分答案，二分边界细节：[src](https://leetcode.cn/problems/minimum-speed-to-arrive-on-time/solutions/791209/bi-mian-fu-dian-yun-suan-de-xie-fa-by-en-9fc6/)
+
+```python
+class Solution:
+    def minSpeedOnTime(self, dist: List[int], hour: float) -> int:
+        n = len(dist)
+        h100 = round(hour * 100)  # 下面不会用到任何浮点数
+        delta = h100 - (n - 1) * 100
+        if delta <= 0:  # 无法到达终点
+            return -1
+
+        max_dist = max(dist)
+        if h100 <= n * 100:  # 特判
+            # 见题解中的公式
+            return max(max_dist, (dist[-1] * 100 - 1) // delta + 1)
+
+        def check(v: int) -> bool:
+            t = n - 1  # n-1 个上取整中的 +1 先提出来
+            for d in dist[:-1]:
+                t += (d - 1) // v
+            return (t * v + dist[-1]) * 100 <= h100 * v
+
+        h = h100 // (n * 100)
+        return bisect_left(range((max_dist - 1) // h + 1), True, 1, key=check)
+```
+
+##### 1928\.规定时间内到达终点的最小花费
+
+[题目](https://leetcode.cn/problems/minimum-cost-to-reach-destination-in-time)
+
+Bellman Ford：设 $f_{t,i}$ 是恰好 $t$ 分钟到达 $i$ 的最少费用。即求 $f[\forall][n-1]$。对全体边做 $maxTime$ 次扩展。复杂度 $O(m\cdot maxTime)$。
+
+```python
+class Solution:
+    def minCost(self, maxTime: int, edges: List[List[int]], passingFees: List[int]) -> int:
+        n = len(passingFees)
+        f = [[float("inf")] * n for _ in range(maxTime + 1)]
+        f[0][0] = passingFees[0]
+        for t in range(1, maxTime + 1):
+            for i, j, cost in edges:
+                if cost <= t:
+                    f[t][i] = min(f[t][i], f[t - cost][j] + passingFees[i])
+                    f[t][j] = min(f[t][j], f[t - cost][i] + passingFees[j])
+
+        ans = min(f[t][n - 1] for t in range(1, maxTime + 1))
+        return -1 if ans == float("inf") else ans
+```
+
+用 Dijkstra 处理，分层图最短路，费用是边权，时间做分层，复杂度 $O(nT\log(nT))$
+
+```python
+class Solution:
+    def minCost(self, maxTime: int, edges: List[List[int]], passingFees: List[int]) -> int:
+        n = len(passingFees)
+        g = [[] for _ in range(n)]  # 用邻接表存储图
+        for u, v, time in edges:
+            g[u].append((v, time))  # 添加边 u -> v
+            g[v].append((u, time))  # 添加边 v -> u
+
+        dist = [[float("inf")] * (maxTime + 1) for _ in range(n)]  # 初始化距离数组
+        dist[0][0] = passingFees[0]  # 起点费用
+        pq = [(dist[0][0], 0, 0)]  # (最小费用, 当前节点, 累计时间)
+        
+        while pq:
+            cost, city, curTime = heapq.heappop(pq)
+            for neighbor, edgeTime in g[city]:
+                newCost = cost + passingFees[neighbor]  # 通行费
+                newTime = curTime + edgeTime  # 总时间
+                if newTime <= maxTime and newCost < dist[neighbor][newTime]:
+                    dist[neighbor][newTime] = newCost
+                    heapq.heappush(pq, (newCost, neighbor, newTime))
+
+        res = min(dist[-1])
+        return res if res != float("inf") else -1
 ```
 
