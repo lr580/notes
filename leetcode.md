@@ -2053,6 +2053,10 @@
 - 1845\.座位预约管理系统
 
   堆/优先级队列
+  
+- 134\.加油站
+
+  前缀和+滑动窗口+单调队列 / <u></u>
 
 ## 算法
 
@@ -53251,5 +53255,83 @@ class SeatManager:
 
     def unreserve(self, seatNumber: int) -> None:
         heappush(self.available, seatNumber)  # 有人离开了椅子
+```
+
+##### 134\.加油站
+
+[题目](https://leetcode.cn/problems/gas-station)
+
+像scnuoj的21年天梯周游山区这道题。[here](https://oj.socoding.cn/p/1433)
+
+令 $a_i=gas_i-cost_i$，化环为链，即 $a_{i+n}=a_i$。构造 $a$ 的前缀和 $s$。
+
+则对正确的起点下标 $t$，需要满足：$\forall 0\le i<n$ 有：$\sum_{j=0}^ia_{t+j}\ge0$ 即 $s_{t+i}-s_{t-1}\ge 0$，即：$\forall i\in[0,n-1],s_{t+i}\ge s_{t-1}$，即 $\min_{i=0}^{n-1}s_{t+i}\ge s_{t-1}$。
+
+也就是找到 $t$，满足 $[t,t+n-1]$ 的 $s$ 最小值不小于 $s_{t-1}$。
+
+求所有长为 $n$ 的区间的最小值，可以用滑动窗口+单调队列，或 ST 表。这里用前者，时空复杂度 $O(n)$。
+
+```python
+from collections import deque
+class Solution:
+    def canCompleteCircuit(self, gas: List[int], cost: List[int]) -> int:
+        if sum(gas) < sum(cost): return -1
+        n, m = len(gas), len(gas)*2
+        s = [0 for i in range(m+2)]
+        for i in range(1,n+1):
+            s[i+n] = s[i] = gas[i-1] - cost[i-1] + s[i-1]
+        st = deque() # 严格单调递增
+        for i in range(1,m+1):
+            while st and s[st[-1]] >= s[i]:
+                st.pop()
+            st.append(i)
+            t = i + 1 - n
+            while st and st[0] < t:
+                st.popleft()
+            if t >= 1 and s[st[0]] >= s[t-1]:
+                return t - 1
+        return -1
+```
+
+贪心：假设从 $x$ 最远能到达 $y$，即：
+$$
+s_y-s_{x-1}<0,\forall i\in[x,y), s_i-s_{x-1}\ge 0
+$$
+即：
+$$
+\sum_{i=x}^ygas_i<\sum_{i=x}^ycost_i,\quad
+\forall j\in[x,y),\sum_{i=x}^jgas_i\ge\sum_{i=x}^jcost_i
+$$
+对任意 $z\in[x,y]$，
+$$
+\begin{align}
+\sum_{i=z}^y gas_i&=\sum_{i=x}^y gas_i-\sum_{i=x}^{z-1} gas_i\\
+&<\sum_{i=x}^y cost_i-\sum_{i=x}^{z-1} gas_i\\
+&\le\sum_{i=x}^y cost_i-\sum_{i=x}^{z-1} cost_i\\
+&=\sum_{i=z}^y cost_i
+\end{align}
+$$
+即 $\sum_{i=z}^y gas_i < \sum_{i=z}^y cost_i$，也就是说：如果 $x$ 最远到达 $y$，那么 $z\in[x,y]$，最远也只能到达 $y$。所以初始 $x=0$，不断找到最远的 $y$，把 $y$ 设置为新的 $x$。直到发现长度为 $n$。
+
+```python
+class Solution:
+    def canCompleteCircuit(self, gas: List[int], cost: List[int]) -> int:
+        n = len(gas)
+        i = 0
+        while i < n:
+            sum_of_gas = sum_of_cost = 0
+            cnt = 0
+            while cnt < n:
+                j = (i + cnt) % n
+                sum_of_gas += gas[j]
+                sum_of_cost += cost[j]
+                if sum_of_cost > sum_of_gas:
+                    break
+                cnt += 1
+            if cnt == n:
+                return i
+            else:
+                i += cnt + 1
+        return -1
 ```
 
