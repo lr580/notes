@@ -2077,6 +2077,10 @@
 - 1928\.规定时间内到达终点的最小花费
 
   **Bellman Ford+DP / Dijkstra**
+  
+- 871\.最低加油次数
+
+  **DP / 贪心+堆**
 
 ## 算法
 
@@ -53550,5 +53554,44 @@ class Solution:
 
         res = min(dist[-1])
         return res if res != float("inf") else -1
+```
+
+##### 871\.最低加油次数
+
+[题目](https://leetcode.cn/problems/minimum-number-of-refueling-stops)
+
+设 $dp_i$ 表示加油 $i$ 次能走多远，则 $dp_0=startFuel$。当考虑第 $i$ 个加油站时，假设到达该站之前加油了 $0\le j\le i$ 次，一定要 $dp_j\le station_{i,0}$，新油量为 $dp_j+station_{i,1}$，需要倒序遍历 $j$，防止反复加油。复杂度 $O(n^2)$。
+
+```python
+class Solution:
+    def minRefuelStops(self, target: int, startFuel: int, stations: List[List[int]]) -> int:
+        dp = [startFuel] + [0] * len(stations)
+        for i, (pos, fuel) in enumerate(stations):
+            for j in range(i, -1, -1):
+                if dp[j] >= pos:
+                    dp[j + 1] = max(dp[j + 1], dp[j] + fuel)
+               #else: break
+        return next((i for i, v in enumerate(dp) if v >= target), -1)
+```
+
+贪心：对每个位置，不断往前开，发现无法到达下一个站时，在历史已知的站里选择最大油量(优先队列维护)的站加油。
+
+```python
+class Solution:
+    def minRefuelStops(self, target: int, startFuel: int, stations: List[List[int]]) -> int:
+        n = len(stations)
+        ans, fuel, prev, h = 0, startFuel, 0, []
+        for i in range(n + 1):
+            curr = stations[i][0] if i < n else target
+            fuel -= curr - prev
+            while fuel < 0 and h:
+                fuel -= heappop(h)
+                ans += 1
+            if fuel < 0:
+                return -1
+            if i < n:
+                heappush(h, -stations[i][1])
+                prev = curr
+        return ans
 ```
 
