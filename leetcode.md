@@ -2081,6 +2081,10 @@
 - 871\.最低加油次数
 
   **DP / 贪心+堆**
+  
+- 1436\.旅行终点站
+
+  签到 set
 
 ## 算法
 
@@ -53595,3 +53599,21 @@ class Solution:
         return ans
 ```
 
+1436\.旅行终点站
+
+[题目](https://leetcode.cn/problems/destination-city)
+
+$A\cup B-B=(A-B)\cup(B-B)=A-B$
+
+```python
+class Solution:
+    def destCity(self, paths: List[List[str]]) -> str:
+        return next(iter(set(v[1] for v in paths) - set(v[0] for v in paths)))
+```
+
+```python
+class Solution:
+    def destCity(self, paths: List[List[str]]) -> str:
+        citiesA = {path[0] for path in paths}
+        return next(path[1] for path in paths if path[1] not in citiesA)
+```

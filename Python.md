@@ -1661,6 +1661,8 @@ s=set("aab") #逐个字符
 
 - `issubset(set)` bool
 
+- 取首个元素 `next(iter(set))` 如无报错 `StopIteration`，不报缺省就 `next(iter(set), None)`
+
 ##### 运算
 
 交集 & 并集 | 取异^ 减法 - 包含关系(不等号)
