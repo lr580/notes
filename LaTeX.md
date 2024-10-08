@@ -668,7 +668,7 @@ $\vec{\vec{虽然可以这样但是很无聊啊}}$
 
 $\overleftarrow{sh}$
 
-夹角：$\hat{(\vec{a},\vec{b})}$ $\cos<\widehat{\vec a,\vec b}>$
+夹角：$\hat{(\vec{a},\vec{b})}$ $\cos<\widehat{\vec a,\vec b}>$ 内积 $\langle\alpha,\beta\rangle$ 
 
 ##### 初等函数
 
@@ -2085,7 +2085,7 @@ geometry 宏包，如：
 	\title{标题，不用引号}
 	%\subtitle{Mathematical Aspect of Deep Learning}
 	\author{作者}
-	%\institute{Your School Name}
+	%\institute{Your School Name} %GPT: institute 这个命令并不是 ctexart 文档类的标准命令
 	\date{\today} %也可以自己写年月日
 	\maketitle
 \end{document}
@@ -2315,6 +2315,8 @@ geometry 宏包，如：
 ```
 
 可以用 `discription` 包和 `\item{名字}` 做名字加粗列表，如：
+
+> ctexart 不需要再引入一次这个包，不然会报错。
 
 ```tex
 \begin{description}
@@ -3116,6 +3118,8 @@ signed main() /* 注释 */
 之后调用即可。(第二行的位置出现引用列表)
 
 > 如果遇到 `I found no \citation commands`，而且确认没错，把生成的临时文件全删了再次编译。
+>
+> 可以用相对路径如 `\bibliography{../article/thesis.bib}`
 
 默认只有引用过的会列出来。使得 `bib` 文件全部参考文献被列出的话，使用 `\nocite{*}`。
 
@@ -3216,7 +3220,11 @@ signed main() /* 注释 */
 > ],
 > ```
 
+##### 脚注
 
+`\footnote{内容}` 实现脚注。此时在正文有上标数字，页底各个上标的内容注解。
+
+使用 `\renewcommand{\thefootnote}{计数器}` 实现更改计数，默认是阿拉伯数字。如可以改为 `\Roman{footnote}`。
 
 #### 页眉页脚
 
@@ -3323,14 +3331,6 @@ latex 会自动给长单词跨行加 `-` 连接符。
 
 
 
-##### 脚注
-
-`\footnote{内容}` 实现脚注。此时在正文有上标数字，页底各个上标的内容注解。
-
-使用 `\renewcommand{\thefootnote}{计数器}` 实现更改计数，默认是阿拉伯数字。如可以改为 `\Roman{footnote}`。
-
-
-
 ##### 转义
 
 常用：`\{ \}`
@@ -3371,7 +3371,11 @@ latex 会自动给长单词跨行加 `-` 连接符。
 \usepackage[colorlinks,linkcolor=red,anchorcolor=blue,citecolor=green]{hyperref}
 ```
 
+**`\url{}`**:如 `GitHub\footnote{\url{https://github.com/}}`
 
+- 用于直接显示网址。
+- 自动处理特殊字符，并且以等宽字体显示。
+- 生成的链接通常是不可自定义的（即链接文本与URL相同）
 
 ##### 图标
 

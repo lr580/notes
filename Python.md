@@ -4061,7 +4061,7 @@ heapq.heapify(a) #成最小堆,无返回值
 
 ##### counter
 
-记录数的频次可以用 Counter ，传入一个列表，输出元组列表，依次表示数字和频次，用 `.most_common()` 方法转元素列表，输入参数表示取多少个。如果想要按大小取，可以先对传入的列表排序。可以减法作差。
+记录数的频次可以用 Counter ，传入一个列表，输出元组列表，依次表示数字和频次，用 `.most_common()` 方法转元素列表，输入参数表示取多少个。如果想要按大小取，可以先对传入的列表排序。可以减法作差(最多减到0)。
 
 可以用 `sum(.values())` 的办法求总计数和。
 
@@ -4087,6 +4087,15 @@ counter2 = Counter(a=1, b=2)
 
 print(counter1 + counter2)  # 相加: Counter({'a': 4, 'b': 3})
 print(counter1 - counter2)  # 相减: Counter({'a': 2})
+```
+
+加减例子：
+
+```python
+a=Counter('aab')
+b=Counter('bbc')
+a+b#Counter({'b': 3, 'a': 2, 'c': 1})
+a-b#Counter({'a': 2})
 ```
 
 ##### sortedlist

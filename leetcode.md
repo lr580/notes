@@ -2085,6 +2085,10 @@
 - 1436\.旅行终点站
 
   签到 set
+  
+- 3171\.找到按位或最接近K的子数组
+
+  二分答案+滑动窗口+卡常 / <u>位运算枚举优化(logtrick)</u>
 
 ## 算法
 
@@ -53617,3 +53621,117 @@ class Solution:
         citiesA = {path[0] for path in paths}
         return next(path[1] for path in paths if path[1] not in citiesA)
 ```
+
+##### 3171\.找到按位或最接近K的子数组
+
+[题目](https://leetcode.cn/problems/find-subarray-with-bitwise-or-closest-to-k)
+
+二分答案，假设答案是 $cf$，使用滑动窗口，对固定 $r$，若 $[l,r]$ 的或超过 $k+cf$，则代表绝对值不符合题意，则不断缩减 $l$ 直到或不超过 $k+cf$，若答案也不低于 $k-cf$，则 $cf$ 满足题意。使用数组桶维护每个位在 $[l,r]$ 的出现次数来滑动，不要使用 `unordered_map / map` 常数过大无法过题(至少慢一倍)。每次对窗口增加删除一个数或求当前或的复杂度为 $O(\log\max a)=O(32)$。二分界限为 $\min(|\max a-k|,|\min a-k|)\approx O(\log\max a)$，故复杂度为 $O(n\log^2 a_i)$。
+
+```c++
+#include <iostream>
+#include <vector>
+#include <climits> // For INT_MAX
+using namespace std;
+
+class Solution {
+public:
+    int minimumDifference(vector<int>& nums, int k) {
+        int n = nums.size();
+        // int lf = 0, rf = INT_MAX, ans = INT_MAX;
+        int lim = min(abs(k-*max_element(nums.begin(), nums.end())), abs(k-*min_element(nums.begin(), nums.end())));
+        int lf = 0, rf = lim, ans = lim;
+
+        const int MAX_BITS = 32;
+        auto get = [](int bit_count[MAX_BITS]) {
+            int sum = 0;
+            for (int i = 0; i < MAX_BITS; ++i) {
+                if (bit_count[i] >= 1) {
+                    sum += (1 << i);
+                }
+            }
+            return sum;
+        };
+
+        while (lf <= rf) {
+            int cf = (lf + rf) / 2;
+            int l = 0;
+            bool ok = false;
+            int bit_count[MAX_BITS] = {0}; 
+            for (int r = 0; r < n; ++r) {
+                for (int i = 0; i < MAX_BITS; ++i) {
+                    if (nums[r] & (1 << i)) {
+                        bit_count[i]++;
+                    }
+                }
+
+                while (l < r && get(bit_count) - k > cf) {
+                    for (int i = 0; i < MAX_BITS; ++i) {
+                        if (nums[l] & (1 << i)) {
+                            bit_count[i]--;
+                        }
+                    }
+                    l++;
+                }
+
+                if (abs(get(bit_count) - k) <= cf) {
+                    ok = true;
+                    break;
+                }
+            }
+
+            if (ok) {
+                ans = min(ans, cf);
+                rf = cf - 1;
+            } else {
+                lf = cf + 1;
+            }
+        }
+
+        return ans;
+    }
+};
+```
+
+优化：考虑对 $O(n^2)$ 枚举全体子数组暴力进行优化(注意枚举顺序是 $r\to l$，且注意叠了后缀或。
+
+```c++
+// 暴力算法，会超时
+class Solution {
+public:
+    int minimumDifference(vector<int>& nums, int k) {
+        int ans = INT_MAX;
+        for (int i = 0; i < nums.size(); i++) {
+            int x = nums[i];
+            ans = min(ans, abs(x - k)); // 单个元素也算子数组
+            for (int j = i - 1; j >= 0; j--) {
+                nums[j] |= x; // 现在 nums[j] = 原数组 nums[j] 到 nums[i] 的 OR
+                ans = min(ans, abs(nums[j] - k));
+            }
+        }
+        return ans;
+    }
+};
+```
+
+当位集合 $a_i\subseteq a_j$ 时，所有集合 $[k,i](k\le j)$ 的结果等价于 $[k,j]$ 的结果。而不满足子集时，最多增长 $\log a$ 次，故复杂度为 $O(n\log a)$。
+
+```c++
+class Solution {
+public:
+    int minimumDifference(vector<int>& nums, int k) {
+        int ans = INT_MAX;
+        for (int i = 0; i < nums.size(); i++) {
+            int x = nums[i];
+            ans = min(ans, abs(x - k));
+            // 如果 x 是 nums[j] 的子集，就退出循环
+            for (int j = i - 1; j >= 0 && (nums[j] | x) != nums[j]; j--) {
+                nums[j] |= x;
+                ans = min(ans, abs(nums[j] - k));
+            }
+        }
+        return ans;
+    }
+};
+```
+
