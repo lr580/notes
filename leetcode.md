@@ -53871,3 +53871,120 @@ public:
 };
 ```
 
+##### 3164\.优质数对的总数II
+
+[题目](https://leetcode.cn/problems/find-the-number-of-good-pairs-ii)
+
+质因数分解，设 $u=\max a$，则 $O(n\sqrt{\dfrac uk}+m)$，统计全体 $\dfrac ak$ 的因数计数，看看每个 $b$ 是多少个因数。
+
+```java
+class Solution {
+    public long numberOfPairs(int[] nums1, int[] nums2, int k) {
+        Map<Integer, Integer> cnt = new HashMap<>();
+        for (int x : nums1) {
+            if (x % k != 0) {
+                continue;
+            }
+            x /= k;
+            for (int d = 1; d * d <= x; d++) { // 枚举因子
+                if (x % d > 0) {
+                    continue;
+                }
+                cnt.merge(d, 1, Integer::sum); // cnt[d]++
+                if (d * d < x) {
+                    cnt.merge(x / d, 1, Integer::sum); // cnt[x/d]++
+                }
+            }
+        }
+
+        long ans = 0;
+        for (int x : nums2) {
+            ans += cnt.getOrDefault(x, 0);
+        }
+        return ans;
+    }
+}
+```
+
+> 理论上也可以预处理调和级数 nlogn 得到 $[1,n]$ 的质因数。但是挂了：
+>
+> ```java
+> package opack;
+> 
+> import java.util.ArrayList;
+> 
+> class Solution {
+>     public static int MX = 1000000, b[] = new int[1+MX];
+>     public static ArrayList<Integer> f[] = new ArrayList[1+MX];
+>     static {
+>         for(int i=1;i<=MX;++i) {
+>             f[i] = new ArrayList<>();
+>         }
+>         for(int i=1;i<=MX;++i) {
+>             for(int j=i;j<=MX;j+=i) {
+>                 f[j].add(i);
+>             }
+>         }
+>     }
+>     public long numberOfPairs(int[] nums1, int[] nums2, int k) {
+>         for(int y:nums2) {
+>             if(y*k<=MX) {
+>                 b[y*k]+=1;
+>             }
+>         }
+>         long ans = 0;
+>         for(int x:nums1) {
+>             for(int xi:f[x]) {
+>                 ans+=b[xi];
+>             }
+>         }
+>         for(int y:nums2) {
+>             if(y*k<=MX) {
+>                 b[y*k]-=1;
+>             }
+>         }
+>         return ans;
+>     }
+> }
+> ```
+
+对 $b$ 合并计数，则枚举 $b$ 的全体倍数，它是枚举 $[1,n]$ 全体倍数的子集，复杂度不会超过 $n\log n$，其中 $n=u$，故复杂度为 $O(n+m+\dfrac uk\log m)$
+
+- 每个 $b_i$ 需要枚举 $\dfrac u{b_i}$ 次，共 $u(\sum\dfrac 1{b_i})$，其中 $\sum\dfrac1{b_i}<\sum_{i=1}^{\max b}\dfrac 1i\approx\log\max b$
+
+```java
+class Solution {
+    public long numberOfPairs(int[] nums1, int[] nums2, int k) {
+        Map<Integer, Integer> cnt1 = new HashMap<>();
+        for (int x : nums1) {
+            if (x % k == 0) {
+                cnt1.merge(x / k, 1, Integer::sum); // cnt1[x/k]++
+            }
+        }
+        if (cnt1.isEmpty()) {
+            return 0;
+        }
+
+        Map<Integer, Integer> cnt2 = new HashMap<>();
+        for (int x : nums2) {
+            cnt2.merge(x, 1, Integer::sum); // cnt2[x]++
+        }
+
+        long ans = 0;
+        int u = Collections.max(cnt1.keySet());
+        for (Map.Entry<Integer, Integer> e : cnt2.entrySet()) {
+            int x = e.getKey();
+            int cnt = e.getValue();
+            int s = 0;
+            for (int y = x; y <= u; y += x) { // 枚举 x 的倍数
+                if (cnt1.containsKey(y)) {
+                    s += cnt1.get(y);
+                }
+            }
+            ans += (long) s * cnt;
+        }
+        return ans;
+    }
+}
+```
+
