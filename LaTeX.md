@@ -1769,6 +1769,8 @@ LaTeX 文章分为导言区和正文区。一篇文章中只能有一个正文�
 
 #### 长度单位
 
+##### 固定单位
+
 1. `pt`：点，这是一个绝对长度单位。1 pt = 0.351 mm [参考](https://blog.csdn.net/robert_chen1988/article/details/52739825)
 
 2. `mm`：毫米。
@@ -1798,6 +1800,53 @@ LaTeX 文章分为导言区和正文区。一篇文章中只能有一个正文�
 **没有像素单位 `px`。**
 
 `em` 是一个相对长度单位，它的具体长度取决于当前字体的大小。在计算机排版中，`em` 的长度通常等于当前字体的点数大小。例如，对于 10pt 的字体，1em 将等于 10pt。它经常用于设置水平或垂直的空间，如缩进或行距。
+
+##### 变量单位
+
+**`\textwidth`**
+
+- 表示文本区域的宽度，即去掉边距后可用的宽度。
+- 通常用于设置表格、图形等的宽度。
+
+**`\textheight`**
+
+- 表示文本区域的高度，去掉页眉和页脚后的可用高度。
+- 常用于控制页面中的内容高度。
+
+**`\paperwidth`**
+
+- 表示整个页面的宽度，包括所有的边距。
+- 用于需要在页面级别设置元素时。
+
+**`\paperheight`**
+
+- 表示整个页面的高度，包括所有的边距。
+- 通常与 `\textheight` 一起使用。
+
+**`\marginparwidth`**
+
+- 表示边注区域的宽度，通常用于设置页面边距中的注释或边注。
+
+**`\marginparsep`**
+
+- 表示边注与正文之间的间距。
+
+**`\columnwidth`**
+
+- 在多列布局中，表示每一列的宽度。
+- 在单列布局中，通常等于 `\textwidth`。
+
+**`\baselineskip`**
+
+- 表示两行文本之间的基线距离，通常用于控制行间距。
+
+**`\parindent`**
+
+- 表示段落的缩进量。
+
+**`\parskip`**
+
+- 表示段落之间的垂直间距，通常用于控制段落之间的空隙。
 
 ### 导言区
 
@@ -2332,6 +2381,10 @@ geometry 宏包，如：
 
 ##### 基础
 
+使用 `table` 代码块，里边可以有：`\centering\caption{}`，以及 `\label{}`
+
+> 注意不是有 label 才有编号，不写 label 也有编号，就像 footnote 一样。
+
 使用 `tabular` 代码块接 `{}`，填参数，有多少个 `|` 就有多少条竖线，有多少个，竖线之间可以填 `c,l,r` 之一表示这个列的对齐方式。
 
 表格内用 `\hline` 表示一条横线，用 `&` 表示跳到行内下一列，用 `\\` 表示跳行。如：
@@ -2347,6 +2400,8 @@ geometry 宏包，如：
     \hline
 \end{tabular}
 ```
+
+##### 列间距
 
 > 为了使内容在表格中自动换行，可以使用 `p{width}` 列类型来指定列的宽度。当内容超过指定的宽度时，它会自动换行。
 >
@@ -2379,6 +2434,63 @@ geometry 宏包，如：
 \end{tabular}
 ```
 
+##### 行间距
+
+逐行微调：(负是减小)
+
+```latex
+\begin{tabular}{cc}
+\toprule 
+编号 & 用时 \\ [-5pt]
+\midrule
+small & 1.717s \\ [-5pt]
+medium & 1.766s \\ [-5pt]
+large & 1.853s \\ [-5pt]
+\bottomrule
+\end{tabular}
+```
+
+每行全部一起调：
+
+```tex
+\centering
+\captionof{table}{模型预测图片时间} \label{model_predicting_time}
+\renewcommand{\arraystretch}{0.65}
+\begin{tabular}{cc}
+\toprule 
+编号 & 用时 \\
+\midrule
+small & 0.059s \\
+medium & 0.084s \\
+large & 0.151s \\
+\bottomrule
+\end{tabular}
+```
+
+##### 表大小
+
+[参考](https://download.csdn.net/blog/column/11925364/129104359) 表格太宽，可以强制到页宽。`graphicx` 宏包：
+
+```tex
+%\resizebox{宽}{高}{内容} 其中 ! 意为保持长宽比
+\resizebox{\linewidth}{!}{ (tabular 块在这里) }
+```
+
+`longtable` 的自动列宽，加上 `tabu` 包，但字体大小不变：
+
+```tex
+\begin{longtabu} to \textwidth {|X|X|X|X|X|X|X|}
+```
+
+> X 是各列等宽，用 c 也行。
+>
+
+##### 多行单元格
+
+`makecell` 宏包，`\makecell{第一行 \\ 第二行}` [参考](https://download.csdn.net/blog/column/11925364/129104359)
+
+##### 跨行列
+
 跨多列使用 `\multicolumn{列数}{表格参数}{内容}`，如：
 
 ```tex
@@ -2392,7 +2504,7 @@ geometry 宏包，如：
 \end{tabular}
 ```
 
-跨多列要宏包 `multirow`，指令为 `\multirow{}{宽度}{}`，宽度可以用 `*`，或自定义如 `1cm`,`1in`，[参考](http://www.ctex.org/documents/packages/table/multirow.htm)。在多列的最上使用，其他地方留空，如：
+跨多行要宏包 `multirow`，指令为 `\multirow{}{宽度}{}`，宽度可以用 `*`，或自定义如 `1cm`,`1in`，[参考](http://www.ctex.org/documents/packages/table/multirow.htm)。在多列的最上使用，其他地方留空，如：
 
 ```tex
 \usepackage{multirow}
@@ -2402,6 +2514,38 @@ geometry 宏包，如：
     &3&4\\
 \end{tabular}
 ```
+
+> 某一行中创建一个跨越多行的单元格
+>
+> ```latex
+> \multirow{行数}{宽度}{内容}
+> ```
+>
+> 如：
+>
+> ```latex
+> \multirow{2}{*}{姓名}
+> % * 是文本的宽度将自动调整，可以固定如 3cm
+> ```
+>
+> 可以中括号可选参数，用于指定额外的垂直偏移量，正数是向上，如：
+>
+> ```latex
+> \multirow{3}{1in}[-1.5cm]{\includegraphics{avatar2.png}}
+> ```
+>
+> 跨列：
+>
+> ```latex
+> \multicolumn{列数}{对齐方式}{内容}
+> ```
+>
+> 对其方式可以写 `c,l,r` 的其中一个字母。
+>
+> ```latex
+> \multicolumn{2}{|c|}{跨越两列}
+> ```
+>
 
 ##### 三线表
 
@@ -2470,40 +2614,7 @@ csvsimple 包 [官方文档](https://mirror.mwt.me/ctan/macros/latex/contrib/csv
 > Nanjing,17.45,1430.6,6.8482,2719.8,31.9
 > ```
 
-##### 跨行
-
-某一行中创建一个跨越多行的单元格
-
-```latex
-\multirow{行数}{宽度}{内容}
-```
-
-如：
-
-```latex
-\multirow{2}{*}{姓名}
-% * 是文本的宽度将自动调整，可以固定如 3cm
-```
-
-可以中括号可选参数，用于指定额外的垂直偏移量，正数是向上，如：
-
-```latex
-\multirow{3}{1in}[-1.5cm]{\includegraphics{avatar2.png}}
-```
-
-跨列：
-
-```latex
-\multicolumn{列数}{对齐方式}{内容}
-```
-
-对其方式可以写 `c,l,r` 的其中一个字母。
-
-```latex
-\multicolumn{2}{|c|}{跨越两列}
-```
-
-##### 一行多个
+##### 一行多表
 
 ```latex
 \vspace{1cm}
@@ -2543,39 +2654,39 @@ csvsimple 包 [官方文档](https://mirror.mwt.me/ctan/macros/latex/contrib/csv
 \captionsetup[table]{hypcap=false} 
 ```
 
+##### 跨页表
 
-
-##### 行间距
-
-逐行微调：(负是减小)
-
-```latex
-\begin{tabular}{cc}
-\toprule 
-编号 & 用时 \\ [-5pt]
-\midrule
-small & 1.717s \\ [-5pt]
-medium & 1.766s \\ [-5pt]
-large & 1.853s \\ [-5pt]
-\bottomrule
-\end{tabular}
-```
-
-每行全部一起调：
+- `\endfirsthead` 第一页的表头部分
+- `\endhead` 其余页的表头部分
+- `\endlastfoot`  最后一页的表尾部分
+- `\endfoot` 其余页的表尾部分
+- 自动居中，无需 `\centerting`，否则报错。
+- `\label` 放一个就行，不管放几个最后 `\ref` 的都是第一页
 
 ```tex
-\centering
-\captionof{table}{模型预测图片时间} \label{model_predicting_time}
-\renewcommand{\arraystretch}{0.65}
-\begin{tabular}{cc}
-\toprule 
-编号 & 用时 \\
-\midrule
-small & 0.059s \\
-medium & 0.084s \\
-large & 0.151s \\
-\bottomrule
-\end{tabular}
+\begin{longtable}{|c|c|c|}
+    \caption{交通流量预测的时间序列数据集表格}\label{table:timedataset}
+    \\ \hline
+    Header 1 & Header 2 & Header 3 \\ \hline
+    \endfirsthead
+ 
+    \caption{交通流量预测的时间序列数据集表格（续表）}
+    \\ \hline
+    Header 1 & Header 2 & Header 3 \\ \hline
+    \endhead
+
+    \hline
+    \multicolumn{3}{|r|}{\textit{接下页}} \\ \hline % Continued on next page
+    \endfoot
+ 
+    \hline
+    \endlastfoot
+ 
+    Row 1 & Data 1 & Data 1 \\ \hline
+    Row 2 & Data 2 & Data 2 \\ \hline
+    Row 3 & Data 3 & Data 3 \\ \hline
+    % 继续添加行来测试跨页
+ \end{longtable}
 ```
 
 
@@ -2739,6 +2850,10 @@ large & 0.151s \\
 ```tex
 {\small 稍稍吐槽。}{\Large 我觉得不行！}{\footnotesize 但是你说了算}{\tiny QwQ} %记得加空格，不然报错
 ```
+
+> 也可以用 `small` 等字号代码块，里边套个表格都行。
+>
+> 注意 `\caption` 和标题的组合是 `\caption{\字号 内容}`，而不是`\字号{\cap...}`，但这样的话 `表1` 与标题大小不一样可能
 
 可以用 `\fontsize{字体尺寸}{行距}` 定义字体，使用 `\selectfont` 使用字体(记得要空格，跟后面的正文文字)。使用 `\par` 分段。如：
 
@@ -3065,6 +3180,8 @@ signed main() /* 注释 */
 
 [参考](https://zhuanlan.zhihu.com/p/397026871)
 
+###### .bib格式
+
 如果想要在多个论文使用同样的参考文献，可以用 `bibtex` 封装。新建 `.bib` 文件，存放参考文献条目。内容格式如：
 
 > ```tex
@@ -3102,9 +3219,12 @@ signed main() /* 注释 */
 > Systems: A Survey
 > ```
 >
-> 
 
 其中，每一行是 `key=value`，而 `author,title,journal,year` 必选，第一行的 ID 是 `\cite{ID}` 填写的东西。显示为 `[1]`（编号）且可以点击
+
+在 `.bib` 里出现，但没有 cite 的内容，不会出现在最终参考目录。如果一个东西都没有 cite 会报错。
+
+###### 使用方法
 
 > 多个引用，为 `\cite{ID1, ID2, ...}`，显示为 `[1,3]` 等。连续的话会 `[1-4]` 等。不会自动排序，即可能出现诸如 `[45-46,12,3,5]` 的结果
 
@@ -3123,6 +3243,31 @@ signed main() /* 注释 */
 
 默认只有引用过的会列出来。使得 `bib` 文件全部参考文献被列出的话，使用 `\nocite{*}`。
 
+###### 样式
+
+在 tex 的附录位置输入：(其中 `ref` 是同目录文件名，`unsrt` 表示按引用顺序排序，若 `plain` 就是按文件顺序)
+
+```tex
+\bibliography{ref}
+\bibliographystyle{unsrt}
+```
+
+默认是普通正文 `[数字]`。希望引用是上标纯数字形式，则：
+
+```tex
+\usepackage[numbers, super]{natbib} 
+```
+
+加上中括号即上标 `[数字]`：(会多一个空空格在 `[` 后，理由未知)
+
+```tex
+\renewcommand{\cite}[1]{\textsuperscript{[\citenum{#1}]}}
+```
+
+
+
+###### cite名
+
 在文献网站，点击导出 `BibTex` 即可出现条目，复制粘贴即可。
 
 > 可以用 `zotero` 管理参考文献。
@@ -3133,64 +3278,23 @@ signed main() /* 注释 */
 > @article{WOS:000334906300005,
 > Author = {Olsen, Reed N. and Gallaway, Terrel and Mitchell, David},
 > Title = {Modelling US light pollution},
-> Journal = {JOURNAL OF ENVIRONMENTAL PLANNING AND MANAGEMENT},
-> Year = {2014},
-> Volume = {57},
-> Number = {6},
-> Pages = {883-903},
-> Month = {JUN 3},
-> Abstract = {This paper ...},
-> Type = {Article},
-> Affiliation = {Olsen, RN (Corresponding Author), Missouri State Univ, Dept Econ, 901 South Natl Ave, Springfield, MO 65897 USA.
-> Olsen, Reed N.; Gallaway, Terrel; Mitchell, David, Missouri State Univ, Dept Econ, Springfield, MO 65897 USA.},
-> DOI = {10.1080/09640568.2013.774268},
-> Author-Email = {reedolsen@missouristate.edu},
-> Times-Cited = {19},
-> Unique-ID = {WOS:000334906300005},
-> DA = {2023-02-18},
-> }
-> @inproceedings{ WOS:000375708200170,
-> Author = {Hu, Xuan},
-> Editor = {Xu, M and Wang, G},
-> Title = {Research on Urban Light Pollution and Its Prevention},
-> Booktitle = {PROCEEDINGS OF THE 2015 INTERNATIONAL CONFERENCE ON APPLIED SCIENCE AND
-> ENGINEERING INNOVATION},
-> Series = {AER-Advances in Engineering Research},
-> Year = {2015},
-> Volume = {12},
-> Pages = {865-867},
-> Note = {International Conference on Applied Science and Engineering Innovation
-> (ASEI), Jinan, PEOPLES R CHINA, AUG 30-31, 2015},
-> Abstract = {With the ...},
-> Type = {Proceedings Paper},
-> Affiliation = {Hu, X (Corresponding Author), North China Elect Power Univ, Sch Elect Engn, Baoding 071003, Peoples R China.
-> Hu, Xuan, North China Elect Power Univ, Sch Elect Engn, Baoding 071003, Peoples R China.},
-> Author-Email = {1211265271@qq.com},
-> Times-Cited = {1},
-> Unique-ID = {WOS:000375708200170},
-> DA = {2023-02-18},
+> % ...
 > }
 > ```
->
+> 
 > 那么根据第一行内容(被引用名字，我们可以引用 `WOS:000334906300005` 和 `WOS:000375708200170`)
->
-> 在 tex 的附录位置输入：(其中 `ref` 是同目录文件名，`unsrt` 表示按引用顺序排序，若 `plain` 就是按文件顺序)
->
-> ```tex
-> \bibliography{ref}
-> \bibliographystyle{unsrt}
-> ```
->
+> 
 > 在需要引用的位置输入如：
->
+> 
 > ```tex
 > \cite{WOS:000334906300005}
 > ```
->
+> 
 > 那么被引用位置会出现 `[编号]`，且附录位置出现出处。
->
-> 在 `.bib` 里出现，但没有 cite 的内容，不会出现在最终参考目录。如果一个东西都没有 cite 会报错。
->
+> 
+
+###### vscode
+
 > 注：用 vscode 为例，需要保证 json 设置(ctrl+shift+p open user setting json)进去找 `latex-workshop.latex.recipes` 项，保证有：
 >
 > ```json
@@ -3199,24 +3303,24 @@ signed main() /* 注释 */
 > {
 > "name": "xe->bib->xe->xe",
 > "tools": [
->    "xelatex",
->    "bibtex",
->    "xelatex",
->    "xelatex"
+> "xelatex",
+> "bibtex",
+> "xelatex",
+> "xelatex"
 > ]
 > },
 > //...
 > ],
 > ```
->
+> 
 > 然后使用 ctrl+shift+p 输入 latex recipe 选择 build with recipe, 选 name 对应那一项编译
->
+> 
 > 不需要引用的话，只需要：
->
+> 
 > ```json
 > "name": "xelatex",
 > "tools": [
->  "xelatex"
+> "xelatex"
 > ],
 > ```
 
@@ -3225,6 +3329,16 @@ signed main() /* 注释 */
 `\footnote{内容}` 实现脚注。此时在正文有上标数字，页底各个上标的内容注解。
 
 使用 `\renewcommand{\thefootnote}{计数器}` 实现更改计数，默认是阿拉伯数字。如可以改为 `\Roman{footnote}`。
+
+注意多页脚注编号连续(即不会新开一页就从1开始)。
+
+复用脚注 [参考](https://blog.csdn.net/Bear_Kai/article/details/77860339)：
+
+```tex
+PeMS\footnote{\url{http://pems.dot.ca.gov/}\label{pems}} 是 pems\textsuperscript{\ref{pems}}。
+```
+
+> 不能在 `description` 块使用，否则不正常，理由未知。
 
 #### 页眉页脚
 

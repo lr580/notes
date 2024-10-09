@@ -9775,9 +9775,11 @@ public class foreach {
 
 Collections 静态操作：
 
-- sort
+- sort(list) 原地操作
 
 - reverse
+
+- min, max
 
 - binarySearch(list, value)
 
@@ -10186,11 +10188,13 @@ public class c1403 {
 
 - entrySet() 返回键值对数组用于遍历
 
+- computeIfAbsent(k, f) java8 如果不存在则创建
+
 - merge(key, init, f) 如果key不存在将值设为 init, 否则与原有值通过f函数合并；求和频次使用如 `.merge("key", 1, Integer::sum)`，其中：
 
   > ```java
   > public static int sum(int a, int b) { //Integer::sum
-  >     return a + b;
+  >  return a + b;
   > }
   > ```
 
@@ -10278,6 +10282,21 @@ public class c1405 {
     }
 }
 ```
+
+map 套 set，不存在则创建：
+
+```java
+TreeMap<Integer, TreeSet<String>> m2 = new TreeMap<>();
+
+// 将字符串按照出现次数分组
+for (Map.Entry<String, Integer> entry : m1.entrySet()) {
+    int key = -entry.getValue(); // 取负值作为键
+    TreeSet<String> set = m2.computeIfAbsent(key, k -> new TreeSet<>()); // 若不存在则创建
+    set.add(entry.getKey()); // 添加字符串到 TreeSet
+}
+```
+
+
 
 > TreeMap包含几个重要的成员变量：root、size、comparator。其中root是红黑树的根节点。它是Entry类型，Entry是红黑树的节点，它包含了红黑树的6个基本组成：key、value、left、right、parent和color。Entry节点根据根据Key排序，包含的内容是value
 >
