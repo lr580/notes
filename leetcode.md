@@ -2088,7 +2088,7 @@
   
 - 3171\.找到按位或最接近K的子数组
 
-  二分答案+滑动窗口+卡常 / <u>位运算枚举优化(logtrick)</u>
+  二分答案+滑动窗口+卡常 / <u>位运算枚举优化(logtrick)</u> / 滑动窗口+bin / <u>滑动窗口+栈</u>
 
 ## 算法
 
@@ -53728,6 +53728,138 @@ public:
             for (int j = i - 1; j >= 0 && (nums[j] | x) != nums[j]; j--) {
                 nums[j] |= x;
                 ans = min(ans, abs(nums[j] - k));
+            }
+        }
+        return ans;
+    }
+};
+```
+
+另一种 logtrick 的实现形式，更好理解，但复杂度差一些，每个位按最后出现的下标排序，然后对右端点不断向前扩展，最多扩展 32 次。
+
+```c++
+class Solution {
+public:
+    int minimumDifference(vector<int>& nums, int k) {
+        int n = nums.size();
+        vector<int> bits_max_pos(31, -1);
+        vector<pair<int, int>> pos_to_bit;
+        int res = INT_MAX;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j <= 30; j++) {
+                if (nums[i] >> j & 1) {
+                    bits_max_pos[j] = i;
+                }
+            }
+            pos_to_bit.clear();
+            for (int j = 0; j <= 30; j++) {
+                if (bits_max_pos[j] != -1) {
+                    pos_to_bit.push_back(make_pair(bits_max_pos[j], j));
+                }
+            }
+            sort(pos_to_bit.begin(), pos_to_bit.end(), greater<pair<int, int>>());
+            int val = 0;
+            for (int j = 0, p = 0; j < pos_to_bit.size(); ) {
+                while (j < pos_to_bit.size() && pos_to_bit[j].first == pos_to_bit[p].first) {
+                    val |= 1 << pos_to_bit[j].second;
+                    j++;
+                }
+                res = min(res, abs(val - k));
+                p = j;
+            }
+        }
+        return res;
+    }
+};
+```
+
+对自己的二分答案，去掉二分答案，每次滑动窗口只需要让它刚好小于 k，在这之前取右端 min，刚好小于后是左端 min。则复杂度为 $O(n\log a)$
+
+```c++
+#include <iostream>
+#include <vector>
+#include <climits> // For INT_MAX
+using namespace std;
+
+class Solution {
+public:
+    int minimumDifference(vector<int>& nums, int k) {
+        int n = nums.size();
+        int ans = 2e9;
+
+        const int MAX_BITS = 32;
+        auto get = [](int bit_count[MAX_BITS]) {
+            int sum = 0;
+            for (int i = 0; i < MAX_BITS; ++i) {
+                if (bit_count[i] >= 1) {
+                    sum += (1 << i);
+                }
+            }
+            return sum;
+        };
+
+        int l = 0;
+        int bit_count[MAX_BITS] = {0}; 
+        for (int r = 0; r < n; ++r) {
+            for (int i = 0; i < MAX_BITS; ++i) {
+                if (nums[r] & (1 << i)) {
+                    bit_count[i]++;
+                }
+            }
+            ans = min(ans, abs(k-get(bit_count)));
+
+            while (l < r && get(bit_count) > k) {
+                for (int i = 0; i < MAX_BITS; ++i) {
+                    if (nums[l] & (1 << i)) {
+                        bit_count[i]--;
+                    }
+                }
+                ans = min(ans, abs(k-get(bit_count)));
+                l++;
+            }
+
+            ans = min(ans, abs(k-get(bit_count)));
+        }
+
+        return ans;
+    }
+};
+```
+
+更进一步地，因为 or 没有逆运算，所以无法方便移动滑动窗口左端点。优化到 $O(n)$。考虑当前窗口是 $[l,r]$，当移动左端点时，需要找到 $[l+1,r]$ 的或。
+
+从右端点开始，不断构造前缀 or，这样 $a_{l+1}$ 就是 $[l+1,r]$ 的或。
+
+当右端点移动到 $r$ 时，维护一个新的变量 $rightOr$ 表示，表示从 $[r+1,r']$ 的或。因此窗口分为两部分，$[l,r],[r+1,r']$。且 $a_l$ 与 $rightOr$ 的或是窗口答案。第一部分是栈。
+
+当左部完全消失时，把右部变成新的左部，重新计算一次后缀或。设 $bottom=r$。
+
+在这个过程里，均摊下来一定是 $O(n)$ 的，因为每个点最多叠一次后缀。
+
+原问题：或 $>k$ 时，求 or 最小；否则，求 or 最大。当然用绝对值也行。
+
+```c++
+class Solution {
+public:
+    int minimumDifference(vector<int>& nums, int k) {
+        int ans = INT_MAX, left = 0, bottom = 0, right_or = 0;
+        for (int right = 0; right < nums.size(); right++) {
+            right_or |= nums[right];
+            while (left <= right && (nums[left] | right_or) > k) {
+                ans = min(ans, (nums[left] | right_or) - k);
+                if (bottom <= left) {
+                    // 重新构建一个栈
+                    // 由于 left 即将移出窗口，只需计算到 left+1
+                    for (int i = right - 1; i > left; i--) {
+                        nums[i] |= nums[i + 1];
+                    }
+                    bottom = right;
+                    right_or = 0;
+                }
+                left++;
+            }
+            if (left <= right) {
+                ans = min(ans, k - (nums[left] | right_or));
             }
         }
         return ans;
