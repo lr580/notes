@@ -2484,6 +2484,8 @@ large & 0.151s \\
 
 > X 是各列等宽，用 c 也行。
 >
+> - `X[n]` 语法可以让你定义每列的相对宽度，数字越大表示该列相对宽度越大
+> - 可以 `X[c] 或 c/l/r`
 
 ##### 多行单元格
 
@@ -3323,6 +3325,36 @@ signed main() /* 注释 */
 > "xelatex"
 > ],
 > ```
+
+###### Zotero better bibtex
+
+Zotoro 文件里是导出全部，要导出部分就在我的文库右击文件夹导出分类。[参考](https://blog.csdn.net/Misty_Yee/article/details/139998087)
+
+插件的 [安装教程](https://retorque.re/zotero-better-bibtex/installation/index.html) 与 [下载](https://github.com/retorquere/zotero-better-bibtex/releases)，配置教程参考：[src](https://zhuanlan.zhihu.com/p/682273751)
+
+删除多余导出字段：编辑-首选项-bibtex首选项-导出-字段-不导出的字段，如：(任选一行)
+
+> ```
+> volumn,issn,shorttitle,url,doi,abstract,number,urldate,file,isbn
+> abstract,note,file,keywords
+> ```
+
+杂项里关闭使用大括号xxx [参考](https://zhuanlan.zhihu.com/p/458340252?utm_id=0)
+
+导出额外字段，以存档位置为例：
+
+```c++
+if (this.item.archiveLocation) {
+    this.add({ name: 'archive_location', value: this.item.archiveLocation });
+}
+
+```
+
+引用标题(关键字)修改：默认引用格式公式是 `auth.lower + shorttitle(3,3) + year`，改成：`ArchiveLocation` (参考 [here](https://retorque.re/zotero-better-bibtex/citing/index.html) 的 Direct access to unprocessed fields)，如果没有这个条目，会以 `zotero-数字` 来规定。
+
+注意，要在我的文库，全选论文（文件夹不行），右击刷新引用。
+
+导出时，导出选项用 better biblatex，也可以首选项-导出-默认设置
 
 ##### 脚注
 

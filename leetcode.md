@@ -2093,6 +2093,10 @@
 - 3164\.优质数对的总数II
 
   <u>数论 倍数(因数) 质因数分解/调和级数枚举</u>
+  
+- 224\.基本计算器
+
+  栈 模拟
 
 ## 算法
 
@@ -6808,9 +6812,6 @@ int main() {
   return 0;
 }
 ```
-
-
-
 
 ### 力扣
 
@@ -53986,5 +53987,93 @@ class Solution {
         return ans;
     }
 }
+```
+
+##### 224\.基本计算器
+
+[题目](https://leetcode.cn/problems/basic-calculator)
+
+通用 `+-*/^ ()` 的，运算数可以为负数的计算器，也适用于 [基本计算器II](https://leetcode.cn/problems/basic-calculator-ii)：
+
+- 遇到空格跳过或先事先替换
+- 处理负数，`-x` 等同于 `0-x`，在下面两种情况加：最开始；前一个字符为 `(+-` 且当前字符不是数字
+- 使用优先级实现，$\le$ 上一个优先级时计算。
+
+```python
+from collections import deque
+import math
+
+class Solution:
+    def calculate(self, s: str) -> int:
+        # 存放所有的数字
+        nums = deque()
+        # 为了防止第一个数为负数，先往 nums 加个 0
+        nums.append(0)
+        # 将所有的空格去掉
+        s = s.replace(" ", "")
+        # 存放所有的操作符
+        ops = deque()
+        n = len(s)
+        i = 0
+
+        # 运算符优先级定义，数字越大优先级越高
+        precedence = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3}
+        
+        while i < n:
+            c = s[i]
+            if c == '(':
+                ops.append(c)
+            elif c == ')':
+                # 计算到最近一个左括号为止
+                while ops and ops[-1] != '(':
+                    self.calc(nums, ops)
+                ops.pop()  # 弹出 '('
+            else:
+                if self.isNum(c):
+                    u = 0
+                    j = i
+                    # 将从 i 位置开始后面的连续数字整体取出，加入 nums
+                    while j < n and self.isNum(s[j]):
+                        u = u * 10 + int(s[j])
+                        j += 1
+                    nums.append(u)
+                    i = j - 1  # 更新 i 到数字的最后一个字符
+                else:
+                    # 如果是连续的符号，处理负号前的情况
+                    if i > 0 and (s[i - 1] == '(' or s[i - 1] == '+' or s[i - 1] == '-'):
+                        nums.append(0)
+                    
+                    # 按照优先级处理操作符
+                    while ops and ops[-1] != '(' and precedence.get(ops[-1], 0) >= precedence.get(c, 0):
+                        self.calc(nums, ops)
+                    
+                    ops.append(c)
+            i += 1
+        
+        # 最后清算所有剩余的运算符
+        while ops:
+            self.calc(nums, ops)
+        
+        return nums[-1]
+
+    def calc(self, nums: deque, ops: deque):
+        if len(nums) < 2 or not ops:
+            return
+        b = nums.pop()
+        a = nums.pop()
+        op = ops.pop()
+        if op == '+':
+            nums.append(a + b)
+        elif op == '-':
+            nums.append(a - b)
+        elif op == '*':
+            nums.append(a * b)
+        elif op == '/':
+            nums.append(int(a / b))  # 地板除法
+        elif op == '^':
+            nums.append(int(math.pow(a, b)))  # 幂运算
+
+    def isNum(self, c: str) -> bool:
+        return c.isdigit()
 ```
 

@@ -619,11 +619,21 @@ conda deactivate
 
 vscode 调用 conda 环境：ctrl+shift+p 输入 python，选择：选择编译器，选刚刚的环境，对 jupyter ipynb 同理。
 
+#### 其他
+
+如果出现了两个 `(base)` 这样的环境名在 cmd，可以：[参考](https://blog.csdn.net/bcfd_yundou/article/details/139242662)
+
+```sh
+conda config --set auto_activate_base False
+```
+
 
 
 ### 其他
 
 `.pyc` 文件可以删除。
+
+
 
 
 
@@ -3182,6 +3192,8 @@ while True:
 ```
 
 可以使用global参数（为dict）临时给一个代码str里可能会出现的变量赋值(否则会在其他代码内找)，如果有local参数，则优先级高于global的。
+
+注意括号层数有限制，求表达式求值如 3e5 的规模会炸。
 
 ###### exec
 
@@ -12198,6 +12210,22 @@ with open('example.pkl', 'rb') as f:
     loaded_dict = pickle.load(f)
     print(loaded_dict) # dict
 ```
+
+### h5py
+
+h5 文件是 HDF5 格式的文件，主要用于存储大型数据集，如科学计算和机器学习。要查看行数，可以使用 Python 的 `h5py` 库来读取数据集
+
+```python
+import h5py
+with h5py.File('NYC2014.h5', 'r') as file:
+    datasets = list(file.keys())  # 列出所有顶层数据集
+    print(datasets)
+    dataset = file['data']  # 替换为实际数据集名称(某个datasets里字符串)
+    row_count = dataset.shape[0]  # 获取行数
+    print(f'行数: {row_count}')
+```
+
+
 
 ### pydantic
 
