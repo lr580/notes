@@ -2097,6 +2097,14 @@
 - 224\.基本计算器
 
   栈 模拟
+  
+- 258\.各位相加
+
+  数论 同余
+  
+- 3158\.求出出现两次数字的XOR值
+
+  位运算 bitset
 
 ## 算法
 
@@ -54075,5 +54083,52 @@ class Solution:
 
     def isNum(self, c: str) -> bool:
         return c.isdigit()
+```
+
+##### 258\.各位相加
+
+[题目](https://leetcode.cn/problems/add-digits/solutions)
+
+已知 $n=\sum_{i=0}^{n-1}a_i10^i$，由于 $10^i\equiv1\pmod9$，故 $n\equiv\sum_{i=1}^{n-1}a_i\pmod9$。
+
+设 $f(n)=\sum_{i=1}^{n-1}a_i$，则 $f(f(n))\equiv f(n)\equiv n\pmod 9$。所以答案一定是 $n\bmod9$，特别地，模数为 $0$ 时为 $9(n>0)$。
+
+```python
+class Solution:
+    def addDigits(self, num: int) -> int:
+        return (num - 1) % 9 + 1 if num else 0
+```
+
+C/Java，有负数取模就是负数，python是正数。所以C/java不用特判。
+
+```java
+class Solution {
+    public int addDigits(int num) {
+        return (num - 1) % 9 + 1;
+    }
+}
+```
+
+##### 3158\.求出出现两次数字的XOR值
+
+[题目](https://leetcode.cn/problems/find-the-xor-of-numbers-which-appear-twice)
+
+bitset 存每个数是否出现过一次，这么小 ll 就是 bitset
+
+```java
+class Solution {
+    public int duplicateNumbersXOR(int[] nums) {
+        int ans = 0;
+        long vis = 0;
+        for (int x : nums) {
+            if ((vis >> x & 1) > 0) {
+                ans ^= x;
+            } else {
+                vis |= 1L << x;
+            }
+        }
+        return ans;
+    }
+}
 ```
 

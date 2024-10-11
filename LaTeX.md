@@ -596,6 +596,8 @@ $$
 
 ###### 分式
 
+
+
 $1/2$  $123/456$除法式子是直接的
 
 $\frac{23}{457}$分式就不是了，记得\frac和两个大括号
@@ -741,7 +743,7 @@ $\large{\overset{c_1+c_2\\c1+2c_3\\}{—}}$
 
 ###### 数论
 
-暂无
+$a\equiv b\mod c,a\equiv b\bmod c,a\equiv b\pmod c$
 
 #### 离散数学
 
@@ -2189,6 +2191,13 @@ geometry 宏包，如：
 > \titleformat{\section}{\centering\Large\bfseries}{\thesection}{1em}{}
 > ```
 
+可以编号与引用：
+
+```tex
+\subsubsection{出租车数据}\label{subsubsection:taxidata}
+参见\ref{subsubsection:taxidata} 一节。
+```
+
 
 
 ##### 目录
@@ -2402,6 +2411,12 @@ geometry 宏包，如：
 ```
 
 ##### 列间距
+
+全部一起调：
+
+```tex
+\setlength{\tabcolsep}{2pt} % 默认 6
+```
 
 > 为了使内容在表格中自动换行，可以使用 `p{width}` 列类型来指定列的宽度。当内容超过指定的宽度时，它会自动换行。
 >
@@ -3270,7 +3285,9 @@ signed main() /* 注释 */
 
 ###### cite名
 
-在文献网站，点击导出 `BibTex` 即可出现条目，复制粘贴即可。
+citation keyword，即 id 字段(区分于 author字段)，{第一行
+
+在文献网站，点击导出 `BibTex` 即可出现条目，复制粘贴即可。区分大小写。
 
 > 可以用 `zotero` 管理参考文献。
 
@@ -3284,7 +3301,7 @@ signed main() /* 注释 */
 > }
 > ```
 > 
-> 那么根据第一行内容(被引用名字，我们可以引用 `WOS:000334906300005` 和 `WOS:000375708200170`)
+> 那么根据第一行内容(被引用名字，我们可以引用 `WOS:000334906300005`)
 > 
 > 在需要引用的位置输入如：
 > 
