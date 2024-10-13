@@ -2105,6 +2105,14 @@
 - 3158\.求出出现两次数字的XOR值
 
   位运算 bitset
+  
+- 1884\.鸡蛋掉落-两枚鸡蛋
+
+  DP / 数学
+  
+- 887\.鸡蛋掉落
+
+  **DP+(二分优化/单调决策优化/逆向思维)**
 
 ## 算法
 
@@ -54131,4 +54139,245 @@ class Solution {
     }
 }
 ```
+
+##### 1884\.鸡蛋掉落-两枚鸡蛋
+
+[题目](https://leetcode.cn/problems/egg-drop-with-2-eggs-and-n-floors/)
+
+设 $n$ 层答案为 $dp_n$，显然 $dp_1=1$。枚举第一次丢鸡蛋丢在第 $i$ 层，若 $f\le i$，最坏情况是 $f=i-1$，第二枚鸡蛋一定要从最低一层层丢，一共要 $i$ 次；否则，若 $f>i$，鸡蛋没坏，但丢了一次，剩下的是 $n-i$ 层子问题，即：
+$$
+dp_i=\min_{j=1}^i \max(j,dp_{i-j}+1)
+$$
+
+```python
+class Solution:
+    def twoEggDrop(self, n: int) -> int:
+        dp = [0, 1] + [1e9] * (n-1)
+        for i in range(2, n+1):
+            for j in range(1,i+1):
+                dp[i] = min(dp[i], max(j, dp[i-j]+1))
+        return dp[n]
+```
+
+观察规律，发现 $dp=1,2,2,3,3,3,\cdots$，故设 $x$ 最大出现在 $i$，则 $\dfrac{x(x+1)}2\le i$ 解得 $i=dp_n=\lceil\dfrac{\sqrt{8n+1}-1}2\rceil$。
+
+```python
+class Solution:
+    def twoEggDrop(self, n: int) -> int:
+        return int(ceil((-1+(1+8*n)**0.5)/2))
+```
+
+证明：假设已知 $m$，求最大的 $n$。
+
+1. 若已知 $dp_n=m$，设第一次丢在 $x$ 层，一定丢在第 $x\le m$ 层。若丢在 $x>m$，则 $\max$ 第一项 $x>m$，不符合已知。且贪心在 $x=m$ 会比 $x<m$ 更好。
+2. 接下来，还需要最多丢 $m-1$ 次，还剩下 $n-m$ 层，则最好丢升 $m-1$ 层。总结，第 $i$ 次丢跨了 $m-i+1$ 层，求和为 $m+\cdots+1=\dfrac{m(m+1)}2$，覆盖的层数不能低于 $n$，解得 $n$。
+
+优化掉 ceil：$\lceil\dfrac{\sqrt{8n+1}-1}2\rceil=\lfloor\dfrac{\sqrt{8n+1}-1+1}2\rfloor$
+
+```python
+class Solution:
+    def twoEggDrop(self, n: int) -> int:
+        return ceil(sqrt(n * 8 + 1)) // 2
+```
+
+##### 887\.鸡蛋掉落
+
+[题目]()
+
+写个暴力检验：$O(n^2k)$
+
+```python
+class Solution:
+    def superEggDrop(self, k: int, n: int) -> int:
+        dp = [[1e9] * (n + 1) for _ in range(k + 1)]
+        for i in range(n+1):
+            dp[1][i] = i
+        for i in range(2, k+1):
+            dp[i][0] = 0
+            for j in range(1, n+1):
+                for l in range(1, j+1):
+                    dp[i][j] = min(dp[i][j], 1+max(dp[i-1][l-1], dp[i][j-l]))
+        return dp[k][n]
+```
+
+> 一开始 DP 推错了，根据：
+>
+> ```python
+> dp[i][j] = min(dp[i][j], 1+max(dp[i-1][l], dp[i][j-l]))
+> ```
+>
+> 错误地发现：
+>
+> 1. $i=1$，$dp_{i,j}$ 每个数字出现次数是 $1,2,3,4,\cdots$
+> 2. $i=2$，$dp_{i,j}$ 每个数字出现次数是 $1,3,6,10,\cdots$
+> 3. $i=3$，$dp_{i,j}$ 每个数字出现次数是 $1,4,10,20,\cdots$
+>
+> 根据高阶前缀和结论：对 $a=(1,1,\cdots)$ 的 $k$ 阶前缀和 $s_n$ 是 $\dfrac{n(n+1)\cdots(n+k-1)}{k!}=C_{n+k-1}^k$。
+>
+> > 扩展：对任意 $a$ 的 $y$ 阶前缀和 $s_{y,x}=\sum_{i=1}^xC_{y+x-i-1}^{y-1}a_i=\sum_{i=1}^xC_{x-i}^{y-1}a_i$，可以 $O(x)$ 求。要求一段前缀和的和，可以求它更高一阶的两边界值。
+>
+> 求出最大的 $k$，满足 $n\le C_{n+k-1}^k$ 即可。
+
+注意到 $dp_{k,n}$ 关于 $n$ 单调递增，设 $T_1(x)=dp_{k-1,x-1}$，且 $T_2(x)=dp_{k,n-x}$，显然是一个增函数和一个减函数。要求二者最大的最小，一定是在 $T_1,T_2$ 相交最近的两个整数位置。不妨找到最小的 $x_0$ 满足 $T_1\ge T_2$，最大 $T_1\le  T_2$ 一定是 $x_0-1$。复杂度为 $O(kn\log n)$。
+
+ ```java
+class Solution {
+    public int superEggDrop(int k, int n) {
+        int dp[][] = new int[k+1][n+1];
+        for(int i=1;i<=n;++i) {
+            dp[1][i] = i;
+        }
+        for(int i=2;i<=k;++i) {
+            for(int j=1;j<=n;++j) {
+                int lf=1,rf=j,x0=j;
+                while(lf<=rf) {
+                    int cf=(lf+rf)>>1;
+                    int t1=dp[i-1][cf-1],t2=dp[i][j-cf];
+                    if(t1>=t2) {
+                        x0=cf;
+                        rf=cf-1;
+                    } else {
+                        lf=cf+1;
+                    }
+                }
+                dp[i][j] = 1+Math.max(dp[i-1][x0-1], dp[i][j-x0]);
+                if(x0>1) {
+                    dp[i][j] = Math.min(dp[i][j], 
+                           1+Math.max(dp[i-1][x0-2], dp[i][j-x0+1]));
+                }
+            }
+        }
+        return dp[k][n];
+    }
+}
+ ```
+
+空间是稀疏的，不用算的状态可以不算。注意到不同的 $k,n$ 答案不一样，不可以预处理。
+
+```java
+class Solution {
+    Map<Integer, Integer> memo = new HashMap<Integer, Integer>();
+
+    public int superEggDrop(int k, int n) {
+        return dp(k, n);
+    }
+
+    public int dp(int k, int n) {
+        if (!memo.containsKey(n * 100 + k)) {
+            int ans;
+            if (n == 0) {
+                ans = 0;
+            } else if (k == 1) {
+                ans = n;
+            } else {
+                int lo = 1, hi = n;
+                while (lo + 1 < hi) {
+                    int x = (lo + hi) / 2;
+                    int t1 = dp(k - 1, x - 1);
+                    int t2 = dp(k, n - x);
+
+                    if (t1 < t2) {
+                        lo = x;
+                    } else if (t1 > t2) {
+                        hi = x;
+                    } else {
+                        lo = hi = x;
+                    }
+                }
+
+                ans = 1 + Math.min(Math.max(dp(k - 1, lo - 1), dp(k, n - lo)), Math.max(dp(k - 1, hi - 1), dp(k, n - hi)));
+            }
+
+            memo.put(n * 100 + k, ans);
+        }
+
+        return memo.get(n * 100 + k);
+    }
+}
+```
+
+设 $x_{opt}$ 是 $dp_{k,n}$ 的决策最优值：
+$$
+x_{opt}=\arg\min_{1\le x\le n}\max(dp_{k-1,x-1},dp_{k,n-x})
+$$
+当 $k$ 不变时，$n$ 增加，先前的 $dp_{k-1,x-1}$ 不变，因为与 $n$ 无关，而 $dp_{k,n-x}$ 增加。所以 $x_{opt}$ 一定是单调增加的。这意味着，上次在 $x_{opt}'$ 取得最优解，下一次一定不会比它更前。可以想象全体 $x$ 从原本上述解法的两条直线的交点，变成了单调递减的直线往上移动了（因为增加了），所以交点一定往右。
+
+顺便，可以把 DP 压缩数组。
+
+```java
+class Solution {
+    public int superEggDrop(int k, int n) {
+        // Right now, dp[i] represents dp(1, i)
+        int[] dp = new int[n + 1];
+        for (int i = 0; i <= n; ++i) {
+            dp[i] = i;
+        }
+
+        for (int j = 2; j <= k; ++j) {
+            // Now, we will develop dp2[i] = dp(j, i)
+            int[] dp2 = new int[n + 1];
+            int x = 1;
+            for (int m = 1; m <= n; ++m) {
+                // Let's find dp2[m] = dp(j, m)
+                // Increase our optimal x while we can make our answer better.
+                // Notice max(dp[x-1], dp2[m-x]) > max(dp[x], dp2[m-x-1])
+                // is simply max(T1(x-1), T2(x-1)) > max(T1(x), T2(x)).
+                while (x < m && Math.max(dp[x - 1], dp2[m - x]) > Math.max(dp[x], dp2[m - x - 1])) {
+                    x++;
+                }
+
+                // The final answer happens at this x.
+                dp2[m] = 1 + Math.max(dp[x - 1], dp2[m - x]);
+            }
+
+            dp = dp2;
+        }
+
+        return dp[n];
+    }
+}
+```
+
+假设可以做 $t$ 次操作，有 $k$ 个蛋，求最高的 $n$，记作 $f(t,k)=n$。若求出了 $f(t,k)$，只需要找到最小的 $t'$ 满足 $f(t',k)\ge n$。
+
+扔一个鸡蛋：
+
+- 没碎，还可以操作 $t-1$ 次，蛋数没变，往上扔，还可以覆盖 $f(t-1,k)$ 层。
+- 碎了，往下扔，还可以扔 $f(t-1,k-1)$ 层
+- 不论如何，当前层是 $1$ 层，不用再检测当前层了。
+
+所以：$f(t,k)=1+f(t-1,k-1)+f(t-1,k)$。
+
+初始状态，$f(t,1)=t,f(1,k)=1$。显然操作数 $t\le n$，故进行 $O(nk)$ 的反向 DP 即可。
+
+有 $n=O(t^k)$，故 $O(kt)=O(k\sqrt[k]n)$。
+
+```java
+class Solution {
+    public int superEggDrop(int k, int n) {
+        if (n == 1) {
+            return 1;
+        }
+        int[][] f = new int[n + 1][k + 1];
+        for (int i = 1; i <= k; ++i) {
+            f[1][i] = 1;
+        }
+        int ans = -1;
+        for (int i = 2; i <= n; ++i) {
+            for (int j = 1; j <= k; ++j) {
+                f[i][j] = 1 + f[i - 1][j - 1] + f[i - 1][j];
+            }
+            if (f[i][k] >= n) {
+                ans = i;
+                break;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+
+
+
 

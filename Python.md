@@ -46,6 +46,12 @@ import sys
 sys.executable # '...\\Python310\\pythonw.exe' 绝对路径
 ```
 
+执行短代码：
+
+```python
+python -c "import tensorflow as tf; print(tf.__version__)"
+```
+
 
 
 ### 第三方库
