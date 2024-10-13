@@ -739,6 +739,18 @@ $$
 
 $\large{\overset{c_1+c_2\\c1+2c_3\\}{—}}$
 
+分块矩阵, array 块类似 latex 控制横线竖线+嵌套，可以 `c:c` 来长虚线
+$$
+\left[\begin{array}{c|c}
+\begin{matrix}\lambda_1\\&\lambda_2\\&&\lambda_3\end{matrix}&A_{12}\\\hline O&A_{22}
+\end{array}\right]
+$$
+
+$$
+\therefore P^{-1}AP=
+\left[\begin{array}{c:cc}\lambda_0&0&0\\\hdashline&\lambda_0&1\\&&\lambda_0\end{array}\right]
+$$
+
 
 
 ###### 数论
