@@ -4186,7 +4186,7 @@ min_x1, min_x2 = nsmallest(2, (x + y for x, y in points))#最小次小
 
 常数pi和e，意义同数学
 
-sqrt 开根号，不能是负数
+sqrt 开根号，不能是负数 isqrt 下取整根号整数部分
 
 ceil,floor 上，下取整
 

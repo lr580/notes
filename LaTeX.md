@@ -1445,6 +1445,12 @@ VSCODE + 插件 `Marp for VS Code` , `Markdown All in One`
 
 ## 导出
 
+### pandoc
+
+#### word
+
+typora 直接点击导出即可。可以以某个现成 `.docx` 文章作为格式参考。[ref](https://support.typora.io/Export/#style-reference) [word格式迁移教程](https://blog.csdn.net/symoriaty/article/details/80290838)
+
 ### Jekyll
 
 #### 基本

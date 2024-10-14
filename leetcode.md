@@ -2113,6 +2113,10 @@
 - 887\.鸡蛋掉落
 
   **DP+(二分优化/单调决策优化/逆向思维)**
+  
+- 3200\.三角形的最大高度
+
+  签到 / <u>数学</u>
 
 ## 算法
 
@@ -54375,6 +54379,53 @@ class Solution {
         return ans;
     }
 }
+```
+
+##### 3200\.三角形的最大高度
+
+[题目](https://leetcode.cn/problems/maximum-height-of-a-triangle/)
+
+模拟，$O(\sqrt n)$。
+
+```python
+class Solution:
+    def maxHeightOfTriangle(self, red: int, blue: int) -> int:
+        def f(a):
+            ans, i= 1, 0
+            while a[i&1] >= ans:
+                a[i&1] -= ans
+                ans += 1
+                i ^= 1
+            return ans - 1
+        return max(f([red, blue]), f([blue, red]))
+```
+
+或：
+
+```python
+class Solution:
+    def maxHeightOfTriangle(self, red: int, blue: int) -> int:
+        cnt = [0, 0]
+        for i in count(1):
+            cnt[i % 2] += i
+            if (cnt[0] > red or cnt[1] > blue) and (cnt[0] > blue or cnt[1] > red):
+                return i - 1
+```
+
+设奇数行有 $k$ 行，则 $\sum_{i=1}^k(2i-1)=\dfrac{k(1+2k-1)}2=k^2$。
+
+同理，偶数行有 $k$ 行则 $\sum_{i=1}^k2i=\dfrac{k(2+2k)}2=k^2+k$。 
+
+分别求解 $n_o\ge k^2$ 和 $n_e\ge k^2+k$ 解得 $k\le\lfloor\sqrt n_0\rfloor$ 且 $k\le\lfloor\dfrac{\sqrt{4n_e+1}-1}2\rfloor$。取最小的做答案，设奇数行共放 $n$，偶数行放 $m$ 个，如果奇数行比较多，那么偶数行可能填不满，偶数行最多填 $m$ 个，那么奇数行最多填 $m+1\le n$ 个。否则，奇数行填不满，$n\le m$，最多填 $n$ 个偶数行。分别是 $2m+1$ 和 $n$。
+
+```python
+class Solution:
+    def maxHeightOfTriangle(self, red: int, blue: int) -> int:
+        def f(n: int, m: int) -> int:
+            odd = isqrt(n)
+            even = int((sqrt(m * 4 + 1) - 1) / 2)
+            return even * 2 + 1 if odd > even else odd * 2
+        return max(f(red, blue), f(blue, red))
 ```
 
 
