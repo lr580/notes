@@ -4292,6 +4292,10 @@ signed main() /* 注释 */
 >
 > ##### 单词跨行
 
+#### 第三方
+
+[SYSU 模板](https://github.com/Nelson-Cheung/SYSU-beamer-template)
+
 ## 绘图
 
 [参考](https://zhuanlan.zhihu.com/p/127155579)

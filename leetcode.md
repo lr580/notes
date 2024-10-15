@@ -2117,6 +2117,10 @@
 - 3200\.三角形的最大高度
 
   签到 / <u>数学</u>
+  
+- 3194\.最小元素和最大元素的最小平均值
+
+  签到
 
 ## 算法
 
@@ -54428,7 +54432,26 @@ class Solution:
         return max(f(red, blue), f(blue, red))
 ```
 
+##### 3194\.最小元素和最大元素的最小平均值
 
+[题目](https://leetcode.cn/problems/minimum-average-of-smallest-and-largest-elements)
+
+```python
+class Solution:
+    def minimumAverage(self, nums: List[int]) -> float:
+        nums.sort()
+        ans = 1e9
+        for i in range(len(nums)//2):
+            ans = min(ans, (nums[i]+nums[-i-1])/2)
+        return ans
+```
+
+```python
+class Solution:
+    def minimumAverage(self, nums: List[int]) -> float:
+        nums.sort()
+        return min(nums[i] + nums[-1 - i] for i in range(len(nums) // 2)) / 2
+```
 
 
 
