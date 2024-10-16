@@ -9379,6 +9379,14 @@ cols_to_convert = df.columns.drop('date')
 df[cols_to_convert] = df[cols_to_convert].astype(int)
 ```
 
+##### 类型转换
+
+转 list：
+
+```python
+df['column_with_values'].tolist()
+```
+
 
 
 #### 常规运算
@@ -9472,6 +9480,13 @@ df = pd.DataFrame(data)
 series = df['A'].squeeze()
 series.loc[1]
 df.loc[1, 'A'] #等价
+```
+
+支持直接 in：
+
+```python
+V0 = edges.iloc[:5, 0]
+if 300 in V0: ...
 ```
 
 应用：使用 boolean series 筛选元素：

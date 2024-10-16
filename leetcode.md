@@ -2121,6 +2121,10 @@
 - 3194\.最小元素和最大元素的最小平均值
 
   签到
+  
+- 3193\.统计逆序对的数目
+
+  **DP/DP+前缀和优化**
 
 ## 算法
 
@@ -54451,6 +54455,181 @@ class Solution:
     def minimumAverage(self, nums: List[int]) -> float:
         nums.sort()
         return min(nums[i] + nums[-1 - i] for i in range(len(nums) // 2)) / 2
+```
+
+##### 3193\.统计逆序对的数目
+
+[题目](https://leetcode.cn/problems/count-the-number-of-inversions/)
+
+设 $f_{i,j}$ 表示前 $i$ 个数逆序对数为 $j$ 的排列个数。若前面有 $k$ 个数比 $a_i$ 大，则由 $f_{i-1,j-k}$ 转移，即：$f_{i,j}=\sum_{k=0}^{\min(i,j)}f_{i-1,j-k}$。设 $req_i$ 是要求前缀 $i$ 的逆序数（如无要求定义为 $-1$），若 $req_{i-1}\ge0$，则：
+
+- 若 $j<req_{i-1}$ 或 $j-i>req_{i-1}$，则 $j-k$ 不可能遇到 $req_{i-1}$，无解，$f_{i,j}=0$。
+- 否则，只能从 $f_{i-1,req_{i-1}}$ 转移。
+
+初始条件 $f_{0,0}=1$，答案 $f_{n-1,req_{n-1}}$，显然复杂度为 $O(nm\min(n,m))=O(n^2m)$，其中 $m=\max req$。
+
+```python
+class Solution:
+    def numberOfPermutations(self, n: int, requirements: List[List[int]]) -> int:
+        MOD = 1_000_000_007
+        req = [-1] * n
+        req[0] = 0
+        for end, cnt in requirements:
+            req[end] = cnt
+        if req[0]:
+            return 0
+
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int, j: int) -> int:
+            if i == 0:
+                return 1
+            r = req[i - 1]
+            if r >= 0:
+                return dfs(i - 1, r) if r <= j <= i + r else 0
+            return sum(dfs(i - 1, j - k) for k in range(min(i, j) + 1)) % MOD
+        return dfs(n - 1, req[-1])
+```
+
+```python
+class Solution {
+    public int numberOfPermutations(int n, int[][] requirements) {
+        int[] req = new int[n];
+        Arrays.fill(req, -1);
+        req[0] = 0;
+        int m = 0;
+        for (int[] p : requirements) {
+            req[p[0]] = p[1];
+            m = Math.max(m, p[1]);
+        }
+        if (req[0] > 0) {
+            return 0;
+        }
+
+        int[][] memo = new int[n][m + 1];
+        for (int[] row : memo) {
+            Arrays.fill(row, -1); // -1 表示没有计算过
+        }
+        return dfs(n - 1, req[n - 1], req, memo);
+    }
+
+    private int dfs(int i, int j, int[] req, int[][] memo) {
+        if (i == 0) {
+            return 1;
+        }
+        if (memo[i][j] != -1) { // 之前计算过
+            return memo[i][j];
+        }
+        int res = 0;
+        int r = req[i - 1];
+        if (r >= 0) {
+            if (j >= r && j - i <= r) {
+                res = dfs(i - 1, r, req, memo);
+            }
+        } else {
+            for (int k = 0; k <= Math.min(i, j); k++) {
+                res = (res + dfs(i - 1, j - k, req, memo)) % 1_000_000_007;
+            }
+        }
+        return memo[i][j] = res; // 记忆化
+    }
+}
+```
+
+或者 DP：
+
+```python
+class Solution:
+    def numberOfPermutations(self, n: int, requirements: List[List[int]]) -> int:
+        MOD = 1_000_000_007
+        req = [-1] * n
+        req[0] = 0
+        for end, cnt in requirements:
+            req[end] = cnt
+        if req[0]:
+            return 0
+
+        m = max(req)
+        f = [[0] * (m + 1) for _ in range(n)]
+        f[0][0] = 1
+        for i in range(1, n):
+            mx = m if req[i] < 0 else req[i]
+            r = req[i - 1]
+            if r >= 0:
+                for j in range(r, min(i + r, mx) + 1):
+                    f[i][j] = f[i - 1][r]
+            else:
+                for j in range(mx + 1):
+                    f[i][j] = sum(f[i - 1][j - k] for k in range(min(i, j) + 1)) % MOD
+        return f[-1][req[-1]]
+```
+
+优化：显然 $\sum_{k=0}^{\min(i,j)}f_{i-1,j-k}$ 可以前缀和优化，并且还可以压缩数组。
+
+```python
+class Solution:
+    def numberOfPermutations(self, n: int, requirements: List[List[int]]) -> int:
+        MOD = 1_000_000_007
+        req = [-1] * n
+        req[0] = 0
+        for end, cnt in requirements:
+            req[end] = cnt
+        if req[0]:
+            return 0
+
+        m = max(req)
+        f = [0] * (m + 1)
+        f[0] = 1
+        for i in range(1, n):
+            mx = m if req[i] < 0 else req[i]
+            r = req[i - 1]
+            if r >= 0:
+                for j in range(m + 1):
+                    f[j] = f[r] if r <= j <= min(i + r, mx) else 0
+            else:
+                for j in range(1, mx + 1):  # 计算前缀和
+                    f[j] = (f[j] + f[j - 1]) % MOD
+                for j in range(mx, i, -1):  # 计算子数组和
+                    f[j] = (f[j] - f[j - i - 1]) % MOD
+        return f[req[-1]]
+```
+
+```java
+class Solution {
+    public int numberOfPermutations(int n, int[][] requirements) {
+        final int MOD = 1_000_000_007;
+        int[] req = new int[n];
+        Arrays.fill(req, -1);
+        req[0] = 0;
+        int m = 0;
+        for (int[] p : requirements) {
+            req[p[0]] = p[1];
+            m = Math.max(m, p[1]);
+        }
+        if (req[0] > 0) {
+            return 0;
+        }
+
+        int[] f = new int[m + 1];
+        f[0] = 1;
+        for (int i = 1; i < n; i++) {
+            int mx = req[i] < 0 ? m : req[i];
+            int r = req[i - 1];
+            if (r >= 0) {
+                Arrays.fill(f, 0, r, 0);
+                Arrays.fill(f, r + 1, Math.min(i + r, mx) + 1, f[r]);
+                Arrays.fill(f, Math.min(i + r, mx) + 1, m + 1, 0);
+            } else {
+                for (int j = 1; j <= mx; j++) { // 计算前缀和
+                    f[j] = (f[j] + f[j - 1]) % MOD;
+                }
+                for (int j = mx; j > i; j--) { // 计算子数组和
+                    f[j] = (f[j] - f[j - i - 1] + MOD) % MOD;
+                }
+            }
+        }
+        return f[req[n - 1]];
+    }
+}
 ```
 
 
