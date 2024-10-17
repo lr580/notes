@@ -16378,6 +16378,111 @@ with open('titles.txt', 'w', encoding=enc) as f:
 
 ![image-20220426205500774](img/image-20220426205500774.png)
 
+### boto3
+
+aws 在线平台，sagemaker 可以运行 jupyter，s3 可以存储文件 [文档](https://github.com/boto/boto3)
+
+一个 s3 有多个桶，在线运行的 jupyter 可以直接列举出每个桶(可能不全)：
+
+```python
+import boto3
+s3 = boto3.resource('s3')
+for bucket in s3.buckets.all():
+    print(bucket.name)
+```
+
+访问某个桶，列举全部文件的路径：
+
+```python
+bucket = s3.Bucket('meg-visual-moving-target')
+for obj in bucket.objects.all():
+    print(obj.key)
+```
+
+将这些内容下载到 jupyter 所在服务器：
+
+```python
+bucket.download_file(obj.key, local_path) # path 是路径
+```
+
+或者直接使用：
+
+```python
+s3_client = boto3.client('s3')
+response = s3_client.get_object(Bucket='meg-visual-moving-target', Key='visual_moving_target_project/VMT_AAQ/AAQ_VMT_Fast_45deg_all_trials.mat')
+data = response['Body'].read()
+import scipy.io
+from io import BytesIO
+mat_data = scipy.io.loadmat(BytesIO(data))
+```
+
+> 第三种办法：
+>
+> ```python
+> import s3fs
+> fs = s3fs.S3FileSystem()
+> path = 's3://meg-visual-moving-target/visual_moving_target_project/README.txt'
+> with fs.open(path, 'r') as f:
+>     print(f.read())
+> ```
+>
+> 命令行访问：
+>
+> ```sh
+> aws s3 ls s3://meg-visual-moving-target/visual_moving_target_project/VMT_AAQ/AAQ_VMT_Fast_45deg_all_trials.mat
+> ```
+>
+> 命令行下载：
+>
+> ```sh
+> aws s3 cp s3://meg-visual-moving-target/visual_moving_target_project/README.txt a.txt
+> ```
+
+
+
+> 权限问题：
+>
+> ```python
+> # 创建STS客户端
+> sts_client = boto3.client('sts')
+> 
+> # 获取当前身份信息
+> identity = sts_client.get_caller_identity()
+> print(identity)
+> ```
+>
+> 如：
+>
+> ```
+> {'UserId': 'AROAQFICF5URNVTA3BX6Q:SageMaker', 'Account': '011278871842', 'Arn': 'arn:aws:sts::011278871842:assumed-role/SageMaker-qiml-meg/SageMaker', 'ResponseMetadata': {'RequestId': '94ab9ab0-1db8-42d7-8536-d6bdaf73c17a', 'HTTPStatusCode': 200, 'HTTPHeaders': {'x-amzn-requestid': '94ab9ab0-1db8-42d7-8536-d6bdaf73c17a', 'content-type': 'text/xml', 'content-length': '443', 'date': 'Thu, 17 Oct 2024 06:47:16 GMT'}, 'RetryAttempts': 0}}
+> ```
+>
+> 登录 aws 找到 iam 服务，左侧找到 role，记住上述输出的 arn，进去修改权限
+>
+> 也可以命令行看权限：(两个key)
+>
+> ```sh
+> aws configure list
+> ```
+>
+> ```
+>       Name                    Value             Type    Location
+>       ----                    -----             ----    --------
+>    profile                <not set>             None    None
+> access_key     ****************5EHD         iam-role    
+> secret_key     ****************5L2f         iam-role    
+>     region                us-west-2      config-file    ~/.aws/config
+> ```
+>
+> 配置环境，检查这两个：
+>
+> ```sh
+> echo $AWS_ACCESS_KEY_ID
+> echo $AWS_SECRET_ACCESS_KEY
+> ```
+>
+> 
+
 ## 后端
 
 ### Flask
