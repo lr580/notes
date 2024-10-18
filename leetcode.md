@@ -2129,6 +2129,10 @@
 - 3191\.使二进制数组全部等于1的最少操作次数I
 
   贪心
+  
+- 3192\.使二进制数组全部等于1的最少操作次数II
+
+  贪心 前缀和
 
 ## 算法
 
@@ -54655,6 +54659,39 @@ class Solution {
             }
         }
         return nums[n - 2] != 0 && nums[n - 1] != 0 ? ans : -1;
+    }
+}
+```
+
+3192\.使二进制数组全部等于1的最少操作次数II
+
+[题目](https://leetcode.cn/problems/minimum-operations-to-make-binary-array-elements-equal-to-one-ii)
+
+```java
+class Solution {
+    public int minOperations(int[] nums) {
+        int n = nums.length;
+        int cnt = 0;
+        for(int v:nums) {
+            if(((v+cnt)&1)==0) {
+                cnt++;
+            }
+        }
+        return cnt;
+    }
+}
+```
+
+```java
+class Solution {
+    public int minOperations(int[] nums) {
+        int k = 0;
+        for (int x : nums) {
+            if (x == k % 2) { // 必须操作
+                k++;
+            }
+        }
+        return k;
     }
 }
 ```

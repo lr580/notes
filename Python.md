@@ -12048,6 +12048,34 @@ alpha_values = solve(equation, alpha) # list of float
 solve(x**2+x-3>0,x)
 ```
 
+##### Jordan形
+
+```python
+import sympy as sp
+A=sp.Matrix([[7,-10,-24,5],[1,0,-4,1],[1,-2,-3,1],[1,-2,-4,3]])
+J,P=A.jordan_form()
+'''J
+Matrix([
+[4, 1, 5, 2],
+[0, 1, 0, 1],
+[1, 0, 1, 0],
+[0, 1, 0, 0]])
+P
+Matrix([
+[1, 0, 0, 0],
+[0, 2, 1, 0],
+[0, 0, 2, 0],
+[0, 0, 0, 2]])
+sp.pprint(J)
+⎡4  1  5  2⎤
+⎢          ⎥
+⎢0  1  0  1⎥
+⎢          ⎥
+⎢1  0  1  0⎥
+⎢          ⎥
+⎣0  1  0  0⎦'''
+```
+
 
 
 ### cvxpy
