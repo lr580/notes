@@ -1970,6 +1970,21 @@ class Solution {
 Collections.sort(elements, CharSequence::compare);
 ```
 
+##### 流
+
+###### 最值
+
+取最大最小值：
+
+```java
+public int smallestRangeI(int[] nums, int k) {
+    int minNum = Arrays.stream(nums).min().getAsInt();
+    int maxNum = Arrays.stream(nums).max().getAsInt();
+// ...
+```
+
+
+
 ### 运算
 
 #### 基本运算

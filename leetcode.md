@@ -2133,6 +2133,10 @@
 - 3192\.使二进制数组全部等于1的最少操作次数II
 
   贪心 前缀和
+  
+- 908\.最小差值I
+
+  签到 数学/思维
 
 ## 算法
 
@@ -54692,6 +54696,20 @@ class Solution {
             }
         }
         return k;
+    }
+}
+```
+
+##### 908\.最小差值I
+
+[题目](https://leetcode.cn/problems/smallest-range-i)
+
+```java
+class Solution {
+    public int smallestRangeI(int[] nums, int k) {
+        int mx = Arrays.stream(nums).max().getAsInt();
+        int mn = Arrays.stream(nums).min().getAsInt();
+        return Math.max(0, mx - mn - 2 * k);
     }
 }
 ```
