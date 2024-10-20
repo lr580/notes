@@ -2137,6 +2137,10 @@
 - 908\.最小差值I
 
   签到 数学/思维
+  
+- 910\.最小差值II
+
+  枚举 排序 贪心
 
 ## 算法
 
@@ -6647,6 +6651,27 @@ int main(){
 	printf("%lld",ans);
 	return 0;
 } 
+```
+
+#### 稀土掘金AI刷题
+
+##### 2.计算位置x到y的最少步数
+
+```python
+from math import ceil
+def solution(x_position, y_position):
+    n = abs(x_position - y_position)
+    # 1+1+...+k+k>=n, k->len=2k
+    k1 = ceil(((1+4*n)**0.5-1)/2) * 2
+    # 1+1+...+k+k+(k+1)>=n, k->len=2k+1
+    k2 = ceil(n**0.5 - 1) * 2 + 1
+    return min(k1, k2)
+
+if __name__ == "__main__":
+    #  You can add more test cases here
+    print(solution(12, 6) == 4 )
+    print(solution(34, 45) == 6)
+    print(solution(50, 30) == 8)
 ```
 
 #### NOIP
@@ -54712,4 +54737,34 @@ class Solution {
         return Math.max(0, mx - mn - 2 * k);
     }
 }
+```
+
+##### 910\.最小差值II
+
+[题目](https://leetcode.cn/problems/smallest-range-ii)
+
+排序不影响正确性，排序后枚举分段，前半段加，后半段减；对每个分段交换任意一个加减可知答案不会更优
+
+```python
+class Solution:
+    def smallestRangeII(self, nums: List[int], k: int) -> int:
+        nums.sort()
+        ans = nums[-1] - nums[0]
+        for i in range(len(nums) - 1):
+            l1, r1 = nums[0] + k, nums[i] + k
+            l2, r2 = nums[i+1] - k, nums[-1] - k
+            ans = min(ans, max(r1,r2) - min(l1, l2))
+        return ans
+```
+
+```python
+class Solution:
+    def smallestRangeII(self, nums: List[int], k: int) -> int:
+        nums.sort()
+        ans = nums[-1] - nums[0]
+        for x, y in pairwise(nums):
+            mx = max(x + k, nums[-1] - k)
+            mn = min(nums[0] + k, y - k)
+            ans = min(ans, mx - mn)
+        return ans
 ```
