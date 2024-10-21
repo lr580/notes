@@ -1258,6 +1258,14 @@ equals(x)或equalsIgnoreCase(x)
 
 compareTo(x) 若相等返回$0$，大于返回正整数，小于返回负整数。数字大小是ascii码的差值，即首个不同的位置的自己的ascii\-x\.ascii。null 不可比较。
 
+字典序比较的排序：
+
+```java
+Collections.sort(ans, (a,b) -> String.valueOf(a).compareTo(String.valueOf(b)));
+```
+
+
+
 ###### 大小写转换
 
 toLowerCase(),toUpperCase() ，将英文、希腊字母等转换大小写
@@ -1944,6 +1952,8 @@ class Solution {
 }
 ```
 
+java8 引入 lambda 表达式
+
 ```java
 class Solution {
     public String[] sortPeople(String[] names, int[] heights) {
@@ -1961,6 +1971,14 @@ class Solution {
     }
 }
 ```
+
+按字典序排序整数：(List integer)
+
+```java
+Collections.sort(ans, (a,b) -> String.valueOf(a).compareTo(String.valueOf(b)));
+```
+
+
 
 ##### CharSequence
 

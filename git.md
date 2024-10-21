@@ -1371,6 +1371,41 @@ Git 提供了一个叫做 git config 的工具，专门用来配置或读取相�
 
 ### github
 
+#### 初始配置
+
+##### linux
+
+检查有没有 ssh key，或者使用现成的
+
+```
+ls -al ~/.ssh
+```
+
+如果看到 `id_rsa.pub` 或 `id_ed25519.pub` 文件，这表示你已经有 SSH 公钥。
+
+可以直接复制现成的如 `id_rsa.pub`
+
+测试：
+
+```sh
+ssh -T git@github.com
+```
+
+如果是新 touch 的，要注意文件的权限，如：
+
+```sh
+chmod 600 ~/.ssh/id_rsa
+chmod 700 ~/.ssh
+```
+
+成功如：
+
+```sh
+Hi lr580! You've successfully authenticated, but GitHub does not provide shell access.
+```
+
+
+
 #### pull request
 
 ##### 提交方

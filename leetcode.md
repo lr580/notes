@@ -2141,6 +2141,14 @@
 - 910\.最小差值II
 
   枚举 排序 贪心
+  
+- 386\.字典序排数
+
+  DFS / 枚举 / 排序
+  
+- 3185\.构成整天的下标对数目II
+
+  签到 枚举 计数
 
 ## 算法
 
@@ -54767,4 +54775,84 @@ class Solution:
             mn = min(nums[0] + k, y - k)
             ans = min(ans, mx - mn)
         return ans
+```
+
+##### 386\.字典序排数
+
+[题目](https://leetcode.cn/problems/lexicographical-numbers/)
+
+```java
+class Solution {
+    private int n;
+    private List<Integer> ans;
+    private void dfs(int a) {
+        if(a>n) {
+            return;
+        }
+        ans.add(a);
+        for(int i=0;i<=9;++i) {
+            dfs(a*10+i);
+        }
+    }
+    public List<Integer> lexicalOrder(int n) {
+        ans = new ArrayList<>();
+        this.n = n;
+        for(int i=1;i<=Math.min(9, n);++i) {
+            dfs(i);
+        }
+        return ans;
+    }
+}
+```
+
+```java
+class Solution {
+    public List<Integer> lexicalOrder(int n) {
+        List<Integer> ret = new ArrayList<Integer>();
+        int number = 1;
+        for (int i = 0; i < n; i++) {
+            ret.add(number);
+            if (number * 10 <= n) {
+                number *= 10;
+            } else {
+                while (number % 10 == 9 || number + 1 > n) {
+                    number /= 10;
+                }
+                number++;
+            }
+        }
+        return ret;
+    }
+}
+```
+
+```java
+class Solution {
+    public List<Integer> lexicalOrder(int n) {
+        List<Integer> ans = new ArrayList<>(n);
+        for(int i=0;i<n;++i) {
+            ans.add(i+1);
+        }
+        Collections.sort(ans, (a,b) -> String.valueOf(a).compareTo(String.valueOf(b)));
+        return ans;
+    }
+}
+```
+
+##### 3185\.构成整天的下标对数目II
+
+[题目](https://leetcode.cn/problems/count-pairs-that-form-a-complete-day-ii/)
+
+```java
+class Solution {
+    public long countCompleteDayPairs(int[] hours) {
+        long ans = 0;
+        int bin[] = new int[24];
+        for(int h:hours) {
+            ans += bin[(24-h%24)%24];
+            bin[h%24]++;
+        }
+        return ans;
+    }
+}
 ```

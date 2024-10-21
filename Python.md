@@ -5582,6 +5582,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--experiment', type=str, default='test_momentum', help='Specify the experiment that you want to run')
 parser.add_argument('-p', type=int, default=80, help='Some port')
+parser.add_argument("-c", "--cfg", default="stdmae/STDMAE_PEMS03.py", help="training config")
 args = parser.parse_args()
 print(args.experiment) #上面那个experiment;或args.p
 ```
@@ -14265,7 +14266,13 @@ plt.show()
 
 #### 安装
 
-官网按需下载 pytorch，注意要求和本地 cuda 版本对应(如 11x 对应 11y)，不对的可以找历史版本。
+##### 安装
+
+官网按需下载 pytorch，注意要求和本地 cuda 版本对应(如 11x 对应 11y)，不对的可以找历史版本。如：(不要照抄)
+
+```sh
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
 
 导库：
 
@@ -14289,6 +14296,8 @@ torch.cuda.get_device_properties(0).total_memory / (1024**3)#最大可用
 torch.cuda.empty_cache() # 清理
 #疑似无用print(torch.cuda.memory_reserved(0) / (1024**3)) # 当前可用
 ```
+
+##### 显卡查询
 
 查看当前 n 卡显存，shell 输入 `nvidia-smi`，如下面表示利用率 99%，17G/24G
 
@@ -14315,7 +14324,32 @@ Sun Mar 10 18:49:18 2024
 +-----------------------------------------------------------------------------+
 ```
 
+或者输入 `nvcc --version`：
 
+```
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2022 NVIDIA Corporation
+Built on Wed_Sep_21_10:41:10_Pacific_Daylight_Time_2022
+Cuda compilation tools, release 11.8, V11.8.89
+Build cuda_11.8.r11.8/compiler.31833905_0
+```
+
+##### 安装驱动
+
+参考 [1](https://blog.csdn.net/qq_45174849/article/details/132940179) 官网下载 .run [如](https://www.nvidia.com/en-us/drivers/details/232742/)，但我 fail 了
+
+> gpt:
+>
+> ```sh
+> sudo add-apt-repository ppa:graphics-drivers/ppa
+> sudo apt update
+> sudo ubuntu-drivers autoinstall
+> ```
+
+遇到报错：版本不对警告
+
+- make 没有，apt 装一下
+- installed the kernel source files，`apt install linux-source`
 
 #### 模型信息
 
@@ -14998,7 +15032,9 @@ torch.save(net.state_dict(), './step3/cnn.pkl')
 print('Finished Training')
 ```
 
+### easytorch
 
+[参考](https://github.com/cnstark/easytorch)
 
 ### yolo
 
@@ -16760,6 +16796,29 @@ for element in s:
 s2 = SortedSet([5, 6, 7])
 print(s | s2)  # 并集
 print(s & s2)  # 交集
+```
+
+### easydict
+
+参考 [here](https://blog.csdn.net/weixin_44598554/article/details/134311503)
+
+```python
+from easydict import EasyDict as edict
+config = edict()
+#   config的Train、Test键也设置为字典，实现嵌套
+config.Train = edict()
+config.Test  = edict()
+config.Train.model_path = './some_path'
+
+print(config)
+#   使用edict构建的字典依然支持基本的dict方法
+print(config.keys())
+print(config.items())
+'''
+{'Train': {'model_path': './some_path'}, 'Test': {}}
+dict_keys(['Train', 'Test'])
+dict_items([('Train', {'model_path': './some_path'}), ('Test', {})])
+'''
 ```
 
 
