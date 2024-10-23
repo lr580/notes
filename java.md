@@ -10888,7 +10888,19 @@ class Solution {
 >
 > ![img](img/61A52D5795794D763D6F8D37D13AFE07.png)
 
+#### Deque
 
+此接口继承了Queue接口 [参考](https://www.cnblogs.com/dw3306/p/17361898.html)
+
+```
+*            第一个元素（头部）               最后一个元素（尾部）
+* 操作         引发异常          返回特殊值         引发异常       特殊价值
+* 插入        addFirst(e)      offerFirst(e)    addLast(e)     offerLast(e)
+* 获取并删除   removeFirst()    pollFirst()      removeLast()   pollLast()
+* 获取        getFirst()        peekFirst()      getLast()      peekLast()
+```
+
+实现：`ArrayDeque`, `LinkedList`, `ConcurrentLinkedDeque` 等
 
 #### Stack
 

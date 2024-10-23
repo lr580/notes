@@ -4018,6 +4018,16 @@ awk '{print $4}' access.log
 awk '{print $4}' access.log | sort | uniq -c
 ```
 
+##### sed
+
+`sed`（Stream Editor）是一个强大的文本处理工具，通常用于在 Linux 和 Unix 系统中处理文本流和文件。它可以进行文本替换、删除、插入和其他复杂的文本操作
+
+编辑 `/etc/apt/sources.list` 文件，将其中的 `archive.ubuntu.com` 替换为其他的镜像地址，例如：
+
+```sh
+sudo sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.aliyun.com/ubuntu/|g' /etc/apt/sources.list
+```
+
 
 
 #### 文件操作
@@ -4590,6 +4600,8 @@ ubuntu安装：`sudo apt install rpm`
 
 
 ##### yum
+
+能处理包的前置依赖
 
 ###### 准备
 

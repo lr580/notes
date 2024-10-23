@@ -2149,6 +2149,10 @@
 - 3185\.构成整天的下标对数目II
 
   签到 枚举 计数
+  
+- 3175\.找到连续赢K场比赛的第一位玩家
+
+  数据结构(队列) 模拟 思维
 
 ## 算法
 
@@ -54853,6 +54857,58 @@ class Solution {
             bin[h%24]++;
         }
         return ans;
+    }
+}
+```
+
+##### 3175\.找到连续赢K场比赛的第一位玩家
+
+[题目](https://leetcode.cn/problems/find-the-first-player-to-win-k-games-in-a-row)
+
+队列模拟，不超过 n 次比赛后最大 skill 的人一定会常胜，所以返回第一个 $\ge k$ 次赢的人或在 n 轮后的赢家即可。
+
+```java
+class Solution {
+    public int findWinningPlayer(int[] skills, int k) {
+        int n = skills.length, cnt = 0;
+        Queue<Integer> waitlist = new LinkedList<>();
+        int lastWinner = 0;
+        for(int i=1;i<n;++i) {
+            waitlist.add(i);
+        }
+        int wins[] = new int[n];
+        for(int i=0;i<n && wins[lastWinner] < k;++i) {
+            if(skills[lastWinner] > skills[waitlist.peek()]) {
+                waitlist.add(waitlist.poll());
+                wins[lastWinner]++;
+            } else {
+                int idx = waitlist.poll();
+                wins[idx]++;
+                waitlist.add(lastWinner);
+                lastWinner = idx;
+            }
+        }
+        return lastWinner;
+    }
+}
+```
+
+优化：输的人一定不会再赢
+
+```java
+class Solution {
+    public int findWinningPlayer(int[] skills, int k) {
+        int maxI = 0;
+        int win = 0;
+        for (int i = 1; i < skills.length && win < k; i++) {
+            if (skills[i] > skills[maxI]) { // 打擂台，发现新的最大值
+                maxI = i;
+                win = 0;
+            }
+            win++; // 获胜回合 +1
+        }
+        // 如果 k 很大，那么 maxI 就是 skills 最大值的下标，毕竟最大值会一直赢下去
+        return maxI;
     }
 }
 ```

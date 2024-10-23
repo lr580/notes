@@ -6602,8 +6602,6 @@ np.empty(img1.shape, img1.dtype)
 np.empty_like(img, dtype=float) #复制形状
 ```
 
-
-
 建立一数组同理，用ones
 
 建立python range：
@@ -6615,7 +6613,7 @@ np.arange(n) #同np.array(range(n)),同理可以几个a,b,k参数
 建立n阶或$n\times m$$(0,1)$对角矩阵
 
 ```python
-np.eye(3)
+np.eye(3) # 单位阵
 np.eye(4,5) #第五列无1
 ```
 
@@ -14351,7 +14349,65 @@ Build cuda_11.8.r11.8/compiler.31833905_0
 - make 没有，apt 装一下
 - installed the kernel source files，`apt install linux-source`
 
+> ……
+
+方法3：自己根据输入nvcc的提示试图下面操作成功(加速由poe提供)
+
+```sh
+sudo sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirrors.aliyun.com/ubuntu/|g' /etc/apt/sources.list # 加速
+sudo apt update
+sudo apt install nvidia-cuda-toolkit
+```
+
+
+
 #### 模型信息
+
+##### summary
+
+可能需要安装 `torchsummary`，感觉会执行模型，统计过程也会卡死(如果模型太大)
+
+```python
+import torch
+import torch.nn as nn
+from torchsummary import summary
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+class SimpleModel(nn.Module):
+    def __init__(self):
+        super(SimpleModel, self).__init__()
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=3)
+        self.fc1 = nn.Linear(32 * 26 * 26, 10)
+    def forward(self, x):
+        x = self.conv1(x)
+        x = x.view(x.size(0), -1)  # Flatten
+        x = self.fc1(x)
+        return x
+model = SimpleModel().to(device)
+summary(model, input_size=(1, 28, 28))
+input_data = torch.randn(1, 1, 28, 28).to(device)
+output = model(input_data)
+print(output)
+```
+
+```
+----------------------------------------------------------------
+        Layer (type)               Output Shape         Param #
+================================================================
+            Conv2d-1           [-1, 32, 26, 26]           
+  320
+            Linear-2                   [-1, 10]         216,330
+================================================================
+Total params: 216,650
+Trainable params: 216,650
+Non-trainable params: 0
+----------------------------------------------------------------
+Estimated Total Size (MB): 0.99
+----------------------------------------------------------------
+tensor([[-0.4007, -0.3357,  0.2146,  0.1672, -0.5485, -0.4915,  0.1027, -0.1996,
+         -0.2694, -0.3720]], device='cuda:0', grad_fn=<AddmmBackward0>)
+```
+
+
 
 ##### 基本信息
 
@@ -14402,6 +14458,8 @@ def sparsity(model):
 
 #### 创建张量
 
+##### 常规
+
 任意创建一个张量(多维数组)，下以一维数组 $[0,1,\cdots,11]$ 为例：
 
 
@@ -14416,6 +14474,7 @@ print(x)
 ```python
 print(x.shape, x.numel()) #多维里len是第一维长度,numel才是元素数目
 print(list(x.shape)) #一维列表
+x.size(i) # 第i维大小，整数，i从0开始，显然，或 x.shape[0]
 # print(x.type()) #数据类型
 ```
 
@@ -14436,9 +14495,13 @@ print(x1.shape, x2.shape, x3.shape)
 
 
 ```python
-print(torch.zeros((2,3,4)))
+print(torch.zeros((2,3,4))) # (2,3,4)括号不要也行
 print(torch.ones((2,3,4)))
 ```
+
+##### 随机
+
+###### randn
 
 服从标准正态分布 $\mu=0,\sigma=1$ 的张量(注意不等价值域是 $[0,1]$)：
 
@@ -14448,7 +14511,19 @@ print(torch.randn(2,8))
 # torch.normal(mu, sigma, shape_tuple, requires_grad=False)
 ```
 
+###### rand
+
 `[0,1)` 均匀分布： `torch.rand(n_train)`
+
+###### randint
+
+值域 `[0, input_size)`，形状为第三个参数
+
+```python
+torch.randint(0, input_size, (batch_size, sequence_length))
+```
+
+##### 转换类型
 
 将列表转化为张量或反过来：
 
@@ -14477,6 +14552,43 @@ numpy 与标量转化：
 x = torch.arange(12)
 print(x[2].item(),type(x[2].item()))
 ```
+
+##### 内存
+
+`.contiguous()` 方法用于返回一个在内存中是连续的张量副本。如果张量已经是连续的，返回的是原始张量；如果不是，则会创建一个新的连续张量
+
+```python
+src=src.contiguous()
+```
+
+##### 参数
+
+`nn.Parameter` 将张量标记为可学习的参数，使其在反向传播时被自动更新
+
+```python
+import torch
+import torch.nn as nn
+# 创建一个可学习的参数
+param = nn.Parameter(torch.randn(2, 3)) 
+print(param)
+```
+
+```python
+class MyModel(nn.Module):
+    def __init__(self):
+        super(MyModel, self).__init__()
+        self.weight = nn.Parameter(torch.randn(3, 3)) 
+        self.bias = nn.Parameter(torch.zeros(3))  
+    def forward(self, x):
+        return x @ self.weight + self.bias
+model = MyModel()
+for name, param in model.named_parameters():
+    print(name, param.shape)
+'''weight torch.Size([3, 3])
+bias torch.Size([3])'''
+```
+
+
 
 #### 运算
 
@@ -14588,6 +14700,15 @@ print(id(x))
 
 ##### 变形
 
+###### reshape
+
+> ```python
+> a.shape # 假设 a,b,c,d,1
+> a = a.reshape(a*b,c,d,1) #四维，分别的维度
+> ```
+
+###### squeeze
+
 去掉为 1 的维度，使用 squeeze。
 
 ```python
@@ -14609,6 +14730,36 @@ print(y.shape)  # torch.Size([3, 2])
 > print(z.shape)  # 输出: (3, 1)
 > ```
 
+```sh
+x = x.unsqueeze(-1) # 在最后一维增加一个新维度
+```
+
+###### view
+
+```python
+tensor = torch.arange(12)  # 生成一个包含 0 到 11 的一维张量
+print(tensor)               # 输出: tensor([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11])
+
+# 改变形状为 (3, 4)
+reshaped_tensor = tensor.view(3, 4)
+print(reshaped_tensor)
+# 输出:
+# tensor([[ 0,  1,  2,  3],
+#         [ 4,  5,  6,  7],
+#         [ 8,  9, 10, 11]])
+
+# 使用 -1 自动推断维度
+auto_reshaped_tensor = tensor.view(4, -1)
+print(auto_reshaped_tensor)
+# 输出:
+# tensor([[ 0,  1,  2],
+#         [ 3,  4,  5],
+#         [ 6,  7,  8],
+#         [ 9, 10, 11]])
+```
+
+###### flatten
+
 将除了第一个维度的其他维度全压到第二维：(GPT)
 
 ```python
@@ -14617,6 +14768,16 @@ x = torch.randn(10, 3, 32, 32)
 y = flatten(x)
 print(y.shape)  # torch.Size([10, 3072])
 ```
+
+###### transpose
+
+交换两个维度
+
+```python
+patches = patches.transpose(-1, -2)  # B, N, d, P -> B, N, P, d
+```
+
+###### permute
 
 维度重排序：
 
@@ -14630,14 +14791,47 @@ print(x.shape)  # 输出: torch.Size([2, 3, 4])
 print(y.shape)  # 输出: torch.Size([3, 2, 4])
 ```
 
-##### 线代
+```python
+history_data = history_data.permute(0, 2, 3, 1)     # 原始 [B,L*P,N,1] -> B, N, 1, L * P
+```
 
-转置： `.T` 或 `.t()`
+###### expand
+
+指针式的复制，不会分配新的内存，只是视图变化
 
 ```python
-x = torch.arange(12).reshape(3,4)
-print(x, x.T)
+import torch
+x = torch.tensor([[1, 2]])  # 形状为 (1, 2)
+expanded_x = x.expand(3, 2)  # 扩展到形状 (3, 2)
+expanded_x[0][1] += 100
+print(expanded_x)
+'''tensor([[  1, 102],
+        [  1, 102],
+        [  1, 102]])'''
 ```
+
+```python
+x = torch.tensor([[[[1, 2, 3, 4]]]])  # 形状为 (1, 1, 1, 4)
+a, b, c = 2, 3, 4  # 目标形状为 (2, 3, 4)
+expanded_x = x.expand(a, b, c, d)
+```
+
+###### []降维
+
+对 shape=1 的维度，直接取 0，可以删掉这个维度：
+
+```python
+x=torch.arange(1., 9).view(8,-1)
+'''tensor([[1.],
+...     [7.],
+        [8.]])'''
+x[:,0]
+# tensor([1., 2., 3., 4., 5., 6., 7., 8.])
+```
+
+
+
+##### 统计
 
 求和：(后两个得到的 sum 都是一行的向量)
 
@@ -14652,8 +14846,19 @@ print(x.sum(axis=1,keepdims=True)) #也就是(2,3) size 变成了 (2,1)
 
 ```python
 print(x.mean(), x.mean(axis=0), x.mean(axis=1))
-#axis=多少,就是把多少这个维度给干掉
+#axis=多少,就是把多少这个维度给干掉，如axis=1求每行的均值
 ```
+
+```python
+a = torch.tensor([[1.,1,4,5,1,4],[1,9,1,9,8,1]]) #1.改1不行，无法推断输出类型
+print(torch.mean(a, dim=1))
+```
+
+
+
+##### 算术
+
+###### 前缀和
 
 求前缀和(按行一维、按列一维、二维前缀和)
 
@@ -14663,6 +14868,52 @@ print(x)
 print(x.cumsum(axis=1))
 print(x.cumsum(axis=0))
 print(x.cumsum(axis=0).cumsum(axis=1))
+```
+
+###### unfold
+
+模拟窗口滑动 [官方文档](https://pytorch.org/docs/stable/generated/torch.Tensor.unfold.html)
+
+参数：
+
+- 要操作的维度
+- 滑动窗口大小
+- 滑动窗口步长
+
+升一维，得到若干个窗口，每个窗口是原数组的一个子区间，如：
+
+```python
+import torch
+x = torch.arange(1., 8)
+x.unfold(0,2,1)
+'''tensor([[1., 2.],
+        [2., 3.],
+        [3., 4.],
+        [4., 5.],
+        [5., 6.],
+        [6., 7.]])'''
+x.unfold(0,3,2)
+'''tensor([[1., 2., 3.],
+        [3., 4., 5.],
+        [5., 6., 7.]])'''
+```
+
+新的维度一定在最后一维：
+
+```python
+x=torch.randn(3,25,7,11) #若25改为45，则维度3,9,7,11,5
+x.unfold(1,5,5).shape #torch.Size([3, 5, 7, 11, 5])
+```
+
+
+
+##### 线代
+
+转置： `.T` 或 `.t()`
+
+```python
+x = torch.arange(12).reshape(3,4)
+print(x, x.T)
 ```
 
 只能用于一维向量的内积：
@@ -14894,6 +15145,214 @@ transform = transforms.Compose([
 
 
 > ##### 例子
+
+#### 模型层
+
+##### 基础
+
+###### Identity
+
+在某些情况下非常有用，例如，当你需要在模型中保留某个层的位置但不想对数据进行任何处理时
+
+`nn.Identity()` 接收输入并将其原样返回，不会对输入数据进行任何变换(直接return输入)
+
+###### Linear
+
+全连接层
+
+输入和输出：`nn.Linear` 接受一个大小为 `(N, *, in_features)` 的输入，其中 `N` 是批量大小，`*` 表示任意数量的附加维度，`in_features` 是输入特征的数量。它输出一个大小为 `(N, *, out_features)` 的张量。
+
+权重和偏置：该层会自动创建权重矩阵和偏置向量：
+
+- 权重矩阵的形状为 `(out_features, in_features)`
+- 偏置的形状为 `(out_features)`
+
+可以不要偏置：
+
+```python
+nn.Linear(embed_dim, embed_dim2, bias=False)
+```
+
+例子：
+
+```python
+import torch
+import torch.nn as nn
+linear_layer = nn.Linear(in_features=10, out_features=5)
+input_tensor = torch.randn(3, 10) # 或 (3,6,10)
+output_tensor = linear_layer(input_tensor)
+print(output_tensor.shape) # (3,5) # 则或 (3,6,5)
+```
+
+
+
+##### 归一化
+
+###### LayerNorm
+
+使得每个样本中的特征均值为0，方差为1。这种归一化方式有助于提高模型的稳定性和收敛速度，尤其是在处理变长输入时
+
+使用示例：
+
+```python
+import torch
+import torch.nn as nn
+layer_norm = nn.LayerNorm(normalized_shape=6)  # 例如，归一化最后一个维度大小为6
+input_tensor = torch.rand(5, 6)  # 5个样本，每个样本有6个特征，[0,1]均匀分布
+output_tensor = layer_norm(input_tensor) # 形状不变，变成均值0方差1
+print(input_tensor)
+print(output_tensor)
+mean = torch.mean(output_tensor, dim=1)  # 按行计算均值
+variance = torch.var(output_tensor, dim=1)  # 按行计算方差
+print(mean, variance) # 均值约0，方差在1附近(不严格)
+```
+
+##### 卷积层
+
+###### Conv2d
+
+参数：
+
+- **输入通道（in_channels）**：输入特征图的通道数。例如，对于彩色图像，通常为 3（红、绿、蓝）。
+
+- **输出通道（out_channels）**：卷积操作后输出特征图的通道数，通常是通过设置多个卷积核来增加特征的表示能力。
+
+- **卷积核大小（kernel_size）**：定义卷积核的尺寸，通常是一个正方形或长方形的矩阵。
+
+- **步幅（stride）**：卷积核在特征图上滑动的步长，决定了输出特征图的大小。
+
+- **填充（padding）**：在输入特征图的边缘添加的零，以控制输出特征图的尺寸。
+
+  显然核大小，步幅，填充是 h,w 两个数的 tuple
+
+```python
+import torch
+import torch.nn as nn
+class SimpleConvNet(nn.Module):
+    def __init__(self):
+        super(SimpleConvNet, self).__init__()
+        self.conv1 = nn.Conv2d(
+            in_channels=3,  # 输入通道数
+            out_channels=16,  # 输出通道数
+            kernel_size=3,  # 卷积核大小
+            stride=1,  # 步幅
+            padding=1  # 填充
+        )
+    def forward(self, x):
+        x = self.conv1(x) 
+        return x
+model = SimpleConvNet()
+# 创建一个随机输入张量，假设是一个批量大小为 1 的 RGB 图像，大小为 64x64
+input_tensor = torch.randn(1, 3, 64, 64)
+output_tensor = model(input_tensor)
+print("Output shape:", output_tensor.shape)
+# Output shape: torch.Size([1, 16, 64, 64])
+```
+
+##### 嵌入/编码
+
+###### Embedding
+
+将值域在 `[0,input_size)` 的整数单词变换为 `hidden_dim` 维向量
+
+```python
+nn.Embedding(input_size, hidden_dim)
+```
+
+```python
+import torch
+import torch.nn as nn
+input_size = 1000  # 词汇表大小
+hidden_dim = 128   # 嵌入维度
+batch_size = 32    # 批量大小
+sequence_length = 10  # 序列长度
+embedding = nn.Embedding(input_size, hidden_dim)
+# 创建随机输入：假设输入是一个批次的单词索引
+# 这里的输入形状为 (批量大小, 序列长度)
+input_indices = torch.randint(0, input_size, (batch_size, sequence_length))
+embedded_output = embedding(input_indices)
+print("输入的形状:", input_indices.shape)
+print("嵌入输出的形状:", embedded_output.shape)
+'''输入的形状: torch.Size([32, 10])
+嵌入输出的形状: torch.Size([32, 10, 128])'''
+```
+
+
+
+##### Transformer
+
+###### TransformerEncoderLayer
+
+[参考](https://zhuanlan.zhihu.com/p/674005110)
+
+- **d_model**：输入特征的维度大小（也称为模型的隐藏状态大小）。在 Transformer 模型中，输入和输出的特征维度大小通常是相同的。
+- **nhead**：自注意力机制中注意力头（attention head）的数量。自注意力机制允许模型选择输入序列中不同位置的重要信息，每个头对应一个不同的权重。
+- **dim_feedforward**：前馈神经网络中隐藏层的维度大小。
+- **dropout**：用于控制模型的过拟合程度的 dropout 比例。
+
+主要组件
+
+- 自注意力机制：使模型能够关注输入序列的不同部分。
+- 前馈神经网络：用于增强模型的表示能力。
+- 层归一化：帮助模型更快地收敛，并稳定训练过程。
+- 残差连接：有助于解决深度网络中的梯度消失问题。
+
+```python
+import torch
+import torch.nn as nn
+d_model = 512  # 嵌入维度
+nhead = 8      # 多头注意力的头数
+dim_feedforward = 2048  # 前馈网络的维度
+dropout = 0.1  # Dropout 概率
+encoder_layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, 
+        dim_feedforward=dim_feedforward, dropout=dropout)
+# 创建一个示例输入 (序列长度, 批大小, 嵌入维度)
+src = torch.rand(10, 32, d_model)  # 例如：10个时间步，32个样本
+output = encoder_layer(src)
+print(output.shape)  # 输出张量的形状 = 输入
+```
+
+###### TransformerEncoder
+
+```python
+import torch
+import torch.nn as nn
+class SimpleTransformerEncoder(nn.Module):
+    def __init__(self, input_size, num_heads, hidden_dim, num_layers):
+        super(SimpleTransformerEncoder, self).__init__()
+        # 定义 Transformer 的输入层
+        self.embedding = nn.Embedding(input_size, hidden_dim)
+        # 定义可学习的位置编码 (最大长度 100)
+        self.positional_encoding = nn.Parameter(torch.zeros(1, 100, hidden_dim))
+        encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=num_heads)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        
+    def forward(self, x):
+        x = self.embedding(x) + self.positional_encoding[:, :x.size(1), :]
+        output = self.transformer_encoder(x)
+        return output
+input_size = 1000  # 词汇表大小
+num_heads = 8      # 多头注意力机制的头数
+hidden_dim = 512   # 嵌入维度
+num_layers = 6     # Transformer Encoder 层数
+model = SimpleTransformerEncoder(input_size, num_heads, hidden_dim, num_layers)
+# 假设我们有一个随机生成的句子作为输入，句子的长度为10，批大小为2
+x = torch.randint(0, input_size, (2, 10))  # (batch_size, seq_length)
+output = model(x)
+print(x.shape) # (2,10)
+print(output.shape)  # 输出的形状为 (batch_size, seq_length, hidden_dim)
+```
+
+`mask=None` 时，表示所有位置都可以被注意力机制访问，不改变输出形状
+
+```python
+self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
+output = self.transformer_encoder(src, mask=None)
+```
+
+
+
+#### 模块
 
 #### 导入导出
 
