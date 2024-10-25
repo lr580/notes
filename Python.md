@@ -612,7 +612,8 @@ conda env list # or conda info --envs
 删除环境：
 
 ```sh
-conda env remove --name 环境名称
+conda env remove --name 环境名称 # 或 -n
+conda clean --all # 删掉包
 ```
 
 激活环境：(后续操作不会影响其他环境；每次使用前激活)

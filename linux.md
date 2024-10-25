@@ -3552,7 +3552,36 @@ watch date
 screen -d -m python stdmae/run.py --cfg='stdmae/TMAE_PEMS03.py' --gpus='0' 
 ```
 
+查看当前运行的：
 
+```sh
+screen -ls
+```
+
+如：
+
+```sh
+screen -d -m top
+```
+
+screen -ls 看到如：
+
+```
+tanzixin@amax:~$ screen -ls
+There is a screen on:
+        2106138..amax   (10/25/2024 02:27:14 AM)        (Detached)
+1 Socket in /run/screen/S-tanzixin.
+```
+
+那么 2106138 是 ID，执行：
+
+```sh
+screen -r 2106138
+```
+
+可以按 `q` 退出 `top`。(然后，输入 `exit` 或按 `Ctrl + A + D` 来关闭 `screen` 会话而不退出。
+
+按了 q 会直接关闭掉整个。在 `screen` 中可以使用 `Ctrl + A` 然后按数字键 `0` 到 `9` 来切换到指定的窗口，也可以使用 `Ctrl + A` 然后按 `N` 来切换到下一个窗口。[参考](https://blog.csdn.net/cooldream2009/article/details/142356417)
 
 ##### bg
 

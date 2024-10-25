@@ -3313,7 +3313,7 @@ citation keyword，即 id 字段(区分于 author字段)，{第一行
 >
 > ```bib
 > @article{WOS:000334906300005,
-> Author = {Olsen, Reed N. and Gallaway, Terrel and Mitchell, David},
+> Author = {Olsen, Reed N. and Gallaway, Terrel and Mitchell, David}, % 注意不能出现=，不然会报错
 > Title = {Modelling US light pollution},
 > % ...
 > }
