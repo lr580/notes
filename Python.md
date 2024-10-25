@@ -509,6 +509,20 @@ conda config --set show_channel_urls yes
 conda install numpy # 测试镜像
 ```
 
+##### linux
+
+官网 [miniconda](https://docs.anaconda.com/miniconda/) [教程](https://zhuanlan.zhihu.com/p/685496400)
+
+如：
+
+```sh
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+source ~/.bashrc
+```
+
+
+
 ##### 离线
 
 安装插件：
@@ -11986,6 +12000,25 @@ integral = integrate(sin(x)**3, x)
 print(integral)
 ```
 
+$$
+\int_0^y\int_0^x2e^{-2x-y}dxdy
+$$
+
+```python
+import sympy as sp # 大约是对的
+x, y = sp.symbols('x y')
+integrand = 2 * sp.exp(-2*x - y)
+inner_integral = sp.integrate(integrand, (x, 0, x))
+result = sp.integrate(inner_integral, (y, 0, y)) #要无穷用sp.oo
+result = sp.simplify(result)
+print(inner_integral)
+print(result) 
+```
+
+
+
+
+
 ##### 求和
 
 ```python
@@ -14480,17 +14513,6 @@ x.size(i) # 第i维大小，整数，i从0开始，显然，或 x.shape[0]
 
 > 复制：用于创建一个新的张量，该张量与原始张量共享相同的数据，但是与计算图不再有关系 `.detach()`
 
-类比 numpy，修改张量形状(可以自动计算，用 `-1` 填充)，下面几个张量完全一样：
-
-
-```python
-x1 = x.reshape(3,4)
-x2 = x.reshape(-1,4)
-x3 = x.reshape(3,-1)
-print(x1)
-print(x1.shape, x2.shape, x3.shape)
-```
-
 全 0 或 全 1 初始的张量，以三维为例：
 
 
@@ -14702,12 +14724,23 @@ print(id(x))
 
 ###### reshape
 
+类比 numpy，修改张量形状(可以自动计算，用 `-1` 填充)，下面几个张量完全一样：
+
+
+```python
+x1 = x.reshape(3,4)
+x2 = x.reshape(-1,4)
+x3 = x.reshape(3,-1)
+print(x1)
+print(x1.shape, x2.shape, x3.shape)
+```
+
 > ```python
 > a.shape # 假设 a,b,c,d,1
 > a = a.reshape(a*b,c,d,1) #四维，分别的维度
 > ```
 
-###### squeeze
+###### (un)squeeze
 
 去掉为 1 的维度，使用 squeeze。
 
@@ -14827,6 +14860,37 @@ x=torch.arange(1., 9).view(8,-1)
         [8.]])'''
 x[:,0]
 # tensor([1., 2., 3., 4., 5., 6., 7., 8.])
+```
+
+区别：如果取 `[:, [0]]` 形状不变，如：
+
+```python
+long_history_data = torch.randn(3,4,5)
+print(long_history_data[..., [0]].shape) #3,4,1
+print(long_history_data[..., 0].shape) #3,4
+```
+
+###### cat
+
+```python
+import torch
+t1 = torch.randn(3,4,5)
+t2 = torch.randn(3,4,5)
+print(torch.cat((t1,t2),0).shape) #6,4,5
+print(torch.cat((t1,t2),-1).shape) # 3,4,10
+
+tensor1 = torch.tensor([[1, 2], [3, 4]])
+tensor2 = torch.tensor([[5, 6], [7, 8]])
+result_dim0 = torch.cat((tensor1, tensor2), dim=0)
+result_dim1 = torch.cat((tensor1, tensor2), dim=1)
+print(result_dim0)
+# tensor([[1, 2],
+#         [3, 4],
+#         [5, 6],
+#         [7, 8]])
+print(result_dim1)
+# tensor([[1, 2, 5, 6],
+#         [3, 4, 7, 8]])
 ```
 
 
@@ -15184,6 +15248,50 @@ output_tensor = linear_layer(input_tensor)
 print(output_tensor.shape) # (3,5) # 则或 (3,6,5)
 ```
 
+###### Sequential
+
+多层组合在一起，可以用下标取出每一层：
+
+```python
+import torch
+import torch.nn as nn
+model = nn.Sequential(
+    nn.Linear(96, 512),
+    nn.ReLU(),
+    nn.Linear(512, 256),
+    nn.ReLU()
+)
+input_tensor = torch.randn(10, 96)  # 假设 batch_size = 10; 或 .randn(9,10,96)
+output = model(input_tensor)
+
+print(f"Input shape: {input_tensor.shape}")
+print(f"After Linear(96, 512): {model[0](input_tensor).shape}")
+print(f"After ReLU: {model[1](model[0](input_tensor)).shape}")
+print(f"After Linear(512, 256): {model[2](model[1](model[0](input_tensor))).shape}")
+print(f"After ReLU: {model[3](model[2](model[1](model[0](input_tensor)))).shape}")
+print(f"Final output shape: {output.shape}") #[10,256]
+```
+
+
+
+##### 激活层
+
+###### ReLU
+
+`ReLU(X)=MAX(0,X)`
+
+```python
+import torch
+import torch.nn as nn
+relu = nn.ReLU()
+input_tensor = torch.tensor([[-1.0, 0.0, 1.0], 
+                            [2.0, -3.0, 4.0]])
+output_tensor = relu(input_tensor)
+print(output_tensor) 
+'''tensor([[0., 0., 1.],
+        [2., 0., 4.]])'''
+```
+
 
 
 ##### 归一化
@@ -15356,9 +15464,9 @@ output = self.transformer_encoder(src, mask=None)
 
 #### 导入导出
 
-##### 导出
+##### pt/pth
 
-##### pt
+###### 常规
 
 保存模型和参数
 
@@ -15383,6 +15491,36 @@ a = {'a':1, 'b':[6]}
 torch.save(a, 'a.pt')
 b = torch.load('a.pt')
 print(b)
+```
+
+###### state_dict
+
+假设有这么一个模型：
+
+```python
+import torch
+import torch.nn as nn
+import torch.optim as optim
+class SimpleModel(nn.Module):
+    def __init__(self):
+        super(SimpleModel, self).__init__()
+        self.fc = nn.Linear(10, 1)
+    def forward(self, x):
+        return self.fc(x)
+model = SimpleModel()
+# 假设我们训练了模型后，保存它的状态字典
+torch.save({
+    'model_state_dict': model.state_dict(),
+    'optimizer_state_dict': None,  # 如果需要保存优化器状态，可以在这里保存
+}, 'simple_model_checkpoint.pth')
+```
+
+加载：(也就是把训练好的参数值放到模型里)
+
+```python
+checkpoint_dict = torch.load('simple_model_checkpoint.pth')
+model.load_state_dict(checkpoint_dict['model_state_dict'])
+model.eval()
 ```
 
 
@@ -15881,7 +16019,7 @@ print(res[0].probs.top1) # 1
 >
 > 
 
-### 机器学习
+### 杂项
 
 #### 决策树
 

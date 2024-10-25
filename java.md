@@ -2001,6 +2001,18 @@ public int smallestRangeI(int[] nums, int k) {
 // ...
 ```
 
+###### 求和
+
+```java
+int s = Arrays.stream(rewardValues).sum();
+```
+
+###### 排序去重
+
+```java
+for (int v : Arrays.stream(rewardValues).distinct().sorted().toArray())
+```
+
 
 
 ### 运算
@@ -3030,12 +3042,14 @@ UUID.randomUUID().toString()
 - negate 相反数
 - shiftLeft 左移<<(负数右移) 参数是int
 - shiftRight 右移>>(负数左移) 参数是int
+- bitLength 二进制长度
 - and or 位运算
 - compareTo
 - equals 参数rhs是Ojbect
 - min,max
 - isProbablePrime(值) 值越大，得到的结果越准确
 - toString(进制) 可以返回16进制字符串
+- `BigInteger.ONE` 1 常量
 
 如：
 
@@ -3056,6 +3070,23 @@ x = x.shiftLeft(1);
 System.out.println(x);
 System.out.println(x.and(new BigInteger("2")));
 ```
+
+当 bitset 用，如 `f` 的前 v 位向高处移动 v 然后或合并到 `f` 作 DP
+
+```java
+class Solution {
+    public int maxTotalReward(int[] rewardValues) {
+        BigInteger f = BigInteger.ONE;
+        for (int v : Arrays.stream(rewardValues).distinct().sorted().toArray()) {
+            BigInteger mask = BigInteger.ONE.shiftLeft(v).subtract(BigInteger.ONE);
+            f = f.or(f.and(mask).shiftLeft(v));
+        }
+        return f.bitLength() - 1; // 最高1位
+    }
+}
+```
+
+
 
 ###### BigDecimal
 
@@ -10932,7 +10963,7 @@ class Solution {
 
 还有别的用到再补。自行查 gpt。
 
-
+也可以用 BigInteger 来实现，参考那里的笔记。
 
 ### 流
 

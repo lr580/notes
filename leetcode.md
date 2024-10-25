@@ -2153,6 +2153,18 @@
 - 3175\.找到连续赢K场比赛的第一位玩家
 
   数据结构(队列) 模拟 思维
+  
+- 110\.平衡二叉树
+
+  DFS
+  
+- 3180\.执行操作可获得的最大总奖励I
+
+  DP /+滑动窗口/二分优化
+  
+- 3181\.执行操作可获得的最大总奖励II
+
+  DP + bitset优化 + SPJ优化
 
 ## 算法
 
@@ -54912,3 +54924,194 @@ class Solution {
     }
 }
 ```
+
+##### 110\.平衡二叉树
+
+[题目](https://leetcode.cn/problems/balanced-binary-tree)
+
+```java
+class Solution {
+    private boolean ok;
+    private int dfs(TreeNode p) {
+        if(p==null) {
+            return 0;
+        }
+        int dl = dfs(p.left), dr = dfs(p.right);
+        ok &= Math.abs(dr-dl)<=1;
+        return 1 + Math.max(dl, dr);
+    }
+    public boolean isBalanced(TreeNode root) {
+        ok = true;
+        dfs(root);
+        return ok;
+    }
+}
+```
+
+没有全局：
+
+```java
+class Solution {
+    public boolean isBalanced(TreeNode root) {
+        if (root == null) {
+            return true;
+        } else {
+            return Math.abs(height(root.left) - height(root.right)) <= 1 && isBalanced(root.left) && isBalanced(root.right);
+        }
+    }
+
+    public int height(TreeNode root) {
+        if (root == null) {
+            return 0;
+        } else {
+            return Math.max(height(root.left), height(root.right)) + 1;
+        }
+    }
+}
+```
+
+```java
+class Solution {
+    public boolean isBalanced(TreeNode root) {
+        return height(root) >= 0;
+    }
+
+    public int height(TreeNode root) {
+        if (root == null) {
+            return 0;
+        }
+        int leftHeight = height(root.left);
+        int rightHeight = height(root.right);
+        if (leftHeight == -1 || rightHeight == -1 || Math.abs(leftHeight - rightHeight) > 1) {
+            return -1;
+        } else {
+            return Math.max(leftHeight, rightHeight) + 1;
+        }
+    }
+}
+```
+
+```java
+class Solution {
+    private int getHeight(TreeNode node) {
+        if (node == null) return 0;
+        int leftH = getHeight(node.left);
+        if (leftH == -1) return -1; // 提前退出，不再递归
+        int rightH = getHeight(node.right);
+        if (rightH == -1 || Math.abs(leftH - rightH) > 1) return -1;
+        return Math.max(leftH, rightH) + 1;
+    }
+
+    public boolean isBalanced(TreeNode root) {
+        return getHeight(root) != -1;
+    }
+}
+```
+
+##### 3180\.执行操作可获得的最大总奖励I
+
+[题目](https://leetcode.cn/problems/maximum-total-reward-using-operations-i/)
+
+显然排序不影响正确性。且显然没有数字会被重复选择，即每个数字只会被选择一次。
+
+滑动窗口优化 DP，能解决大部分数据进行显著优化但注意最坏复杂度仍然为 $O(nm)$，其中 $m=2\max(a)$。
+
+设 $dp_i$ 表示当前和为 $i$ 是否可行。从 $>i$ 的第一个下标 $j_0$ 开始遍历数组 $a$，把全体 $dp_{i+a_j},j\ge j_0$ 标记为可行。
+
+```java
+import java.util.Arrays;
+
+class Solution {
+    public int maxTotalReward(int[] rewardValues) {
+        Arrays.sort(rewardValues);
+        int n = rewardValues.length;
+        int s = Arrays.stream(rewardValues).sum();
+        int m = Math.min(s, 4000);
+        int dp[] = new int[m+1];
+        dp[0] = 1;
+        int j0=0;//first index a[j0]>i
+        for(int i=0;i<=m;++i) {
+            if(dp[i]==0) continue;
+            while(j0<n&&rewardValues[j0]<=i) ++j0;
+            for(int j=j0;j<n&&rewardValues[j]+i<=m;++j) {
+                dp[rewardValues[j]+i]=1;
+            }
+        }
+        for(int i=m;i>=0;--i) {
+            if(dp[i]>0) return i;
+        }
+        return 0;
+    }
+}
+```
+
+##### 3181\.执行操作可获得的最大总奖励II
+
+[题目](https://leetcode.cn/problems/maximum-total-reward-using-operations-ii/)
+
+使用 bitset 优化，对第 $i$ 个数 $v$，对全体和 $j$，如果之前 $j-v$ 可达，那么 $j$ 可达。此外还有一个限制 $v>j-v$ (当前值大于选它之前的总奖励)，且显然 $j-v\ge0$ 不然下标越界，即 $v\le j < 2v$，此时 $dp_j|=dp_{j-v}$。对 bitset 来说：
+
+```java
+BigInteger mask = BigInteger.ONE.shiftLeft(v).subtract(BigInteger.ONE);
+f = f.or(f.and(mask).shiftLeft(v));
+```
+
+先得到 `mask` 是低 $v$ 位全是 $1$，其中 $v\le j<2v$ 等价于 $j-v< v$，即 $j-v$ 的前 $v$ 位可用。通俗而言，将 $j$ 的前 $v$ 位向高处移动 $v$ 格，放回到 $j$ 里或合并。复杂度为 $O(nm/C)$。
+
+```java
+import java.math.BigInteger;
+
+class Solution {
+    public int maxTotalReward(int[] rewardValues) {
+        BigInteger f = BigInteger.ONE;
+        for (int v : Arrays.stream(rewardValues).distinct().sorted().toArray()) {
+            BigInteger mask = BigInteger.ONE.shiftLeft(v).subtract(BigInteger.ONE);
+            f = f.or(f.and(mask).shiftLeft(v));
+        }
+        return f.bitLength() - 1;
+    }
+}
+```
+
+设 $m=\max(a)$，若数组包含 $m-1$(既然能算出 $m$ 一定包含 $m$)，则答案为 $m+(m-1)$。同理地，只要有两个不同元素和为 $m-1$，能拼成 $m-1$ 并和 $m$ 拼成最大可能答案 $m+(m-1)$。
+
+```java
+import java.math.BigInteger;
+
+class Solution {
+    public int maxTotalReward(int[] rewardValues) {
+        int m = 0;
+        for (int v : rewardValues) {
+            m = Math.max(m, v);
+        }
+        Set<Integer> set = new HashSet<>();
+        for (int v : rewardValues) {
+            if (v == m - 1) {
+                return m * 2 - 1;
+            }
+            if (set.contains(v)) {
+                continue;
+            }
+            if (set.contains(m - 1 - v)) {
+                return m * 2 - 1;
+            }
+            set.add(v);
+        }
+
+        Arrays.sort(rewardValues);
+        int pre = 0;
+        BigInteger f = BigInteger.ONE;
+        for (int v : rewardValues) {
+            if (v == pre) {
+                continue;
+            }
+            BigInteger mask = BigInteger.ONE.shiftLeft(v).subtract(BigInteger.ONE);
+            f = f.or(f.and(mask).shiftLeft(v));
+            pre = v;
+        }
+        return f.bitLength() - 1;
+    }
+}
+```
+
+复杂度不变。
