@@ -1754,6 +1754,12 @@ c = new int[] { 1, 2, 6 };
 System.out.println(c[1] | c[2] | c[0]);
 ```
 
+```java
+for(int v:new int[]{2,3,4})
+```
+
+
+
 ###### 二维
 
 声明格式：
@@ -2609,6 +2615,8 @@ Object类(对象类)是所有类的基类
 
 JDK1.5 后，提供：自动装箱(基本数据类型直接赋值给对应包装类)、自动拆箱(反过来)
 
+> 不对应：先转对应的，再转，如 Long -> long -> int
+
 ##### Integer
 
 ###### 基本
@@ -2705,6 +2713,10 @@ MIN_VALUE $-2^{31}$
 SIZE 二进制位数 32
 
 TYPE  输出int
+
+##### Long
+
+转int:`(int)(long)v`
 
 ##### Boolean
 

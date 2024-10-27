@@ -2165,6 +2165,18 @@
 - 3181\.执行操作可获得的最大总奖励II
 
   DP + bitset优化 + SPJ优化
+  
+- 684\.冗余连接
+
+  <u>并查集</u> 判环
+  
+- 685\.冗余连接II
+
+  <u>并查集</u> 判有向环
+  
+- 264\.丑数II
+
+  堆 / <u>DP+指针优化</u>
 
 ## 算法
 
@@ -55115,3 +55127,200 @@ class Solution {
 ```
 
 复杂度不变。
+
+##### 684\.冗余连接
+
+[题目](https://leetcode.cn/problems/redundant-connection)
+
+> 暴力思路：删掉边看看。
+
+用并查集。
+
+```java
+class Solution {
+    public int[] findRedundantConnection(int[][] edges) {
+        int n = edges.length;
+        int[] parent = new int[n + 1];
+        for (int i = 1; i <= n; i++) {
+            parent[i] = i;
+        }
+        for (int i = 0; i < n; i++) {
+            int[] edge = edges[i];
+            int node1 = edge[0], node2 = edge[1];
+            if (find(parent, node1) != find(parent, node2)) {
+                union(parent, node1, node2);
+            } else {
+                return edge;
+            }
+        }
+        return new int[0];
+    }
+
+    public void union(int[] parent, int index1, int index2) {
+        parent[find(parent, index1)] = find(parent, index2);
+    }
+
+    public int find(int[] parent, int index) {
+        if (parent[index] != index) {
+            parent[index] = find(parent, parent[index]);
+        }
+        return parent[index];
+    }
+}
+```
+
+##### 685\.冗余连接II
+
+[题目](https://leetcode.cn/problems/redundant-connection-ii)
+
+~~妈的看不懂题。~~考虑 `[2,1],[3,1],[4,2],[1,4]`，则对这4条边，删第二条还有环；删第三第四条还有点1两个父亲，唯一解是删第一个边。
+
+入度一定不大于 $2$。只有两种情况：
+
+1. 入度为 $2$。该点一定有两条边，删谁能成树就删谁，优先判后面的边。
+2. 有一个有向环，那么入度一定没有  $2$ 的。并查集即可。维护原本含义为每个点的子树的根。
+
+```c++
+class Solution {
+private:
+    static const int N = 1010; // 如题：二维数组大小的在3到1000范围内
+    int father[N];
+    int n; // 边的数量
+    // 并查集初始化
+    void init() {
+        for (int i = 1; i <= n; ++i) {
+            father[i] = i;
+        }
+    }
+    // 并查集里寻根的过程
+    int find(int u) {
+        return u == father[u] ? u : father[u] = find(father[u]);
+    }
+    // 将v->u 这条边加入并查集
+    void join(int u, int v) {
+        u = find(u);
+        v = find(v);
+        if (u == v) return ;
+        father[v] = u;
+    }
+    // 判断 u 和 v是否找到同一个根
+    bool same(int u, int v) {
+        u = find(u);
+        v = find(v);
+        return u == v;
+    }
+    // 在有向图里找到删除的那条边，使其变成树
+    vector<int> getRemoveEdge(const vector<vector<int>>& edges) {
+        init(); // 初始化并查集
+        for (int i = 0; i < n; i++) { // 遍历所有的边
+            if (same(edges[i][0], edges[i][1])) { // 构成有向环了，就是要删除的边
+                return edges[i];
+            }
+            join(edges[i][0], edges[i][1]);
+        }
+        return {};
+    }
+
+    // 删一条边之后判断是不是树
+    bool isTreeAfterRemoveEdge(const vector<vector<int>>& edges, int deleteEdge) {
+        init(); // 初始化并查集
+        for (int i = 0; i < n; i++) {
+            if (i == deleteEdge) continue;
+            if (same(edges[i][0], edges[i][1])) { // 构成有向环了，一定不是树
+                return false;
+            }
+            join(edges[i][0], edges[i][1]);
+        }
+        return true;
+    }
+public:
+
+    vector<int> findRedundantDirectedConnection(vector<vector<int>>& edges) {
+        int inDegree[N] = {0}; // 记录节点入度
+        n = edges.size(); // 边的数量
+        for (int i = 0; i < n; i++) {
+            inDegree[edges[i][1]]++; // 统计入度
+        }
+        vector<int> vec; // 记录入度为2的边（如果有的话就两条边）
+        // 找入度为2的节点所对应的边，注意要倒叙，因为优先返回最后出现在二维数组中的答案
+        for (int i = n - 1; i >= 0; i--) {
+            if (inDegree[edges[i][1]] == 2) {
+                vec.push_back(i);
+            }
+        }
+        // 处理图中情况1 和 情况2
+        // 如果有入度为2的节点，那么一定是两条边里删一个，看删哪个可以构成树
+        if (vec.size() > 0) {
+            if (isTreeAfterRemoveEdge(edges, vec[0])) {
+                return edges[vec[0]];
+            } else {
+                return edges[vec[1]];
+            }
+        }
+        // 处理图中情况3
+        // 明确没有入度为2的情况，那么一定有有向环，找到构成环的边返回就可以了
+        return getRemoveEdge(edges);
+    }
+};
+```
+
+##### 264\.丑数II
+
+[题目](https://leetcode.cn/problems/ugly-number-ii)
+
+证明 long long：因为 $\sqrt[3]{1690}\approx11.9\approx12$，且 $12^3=1728$。
+
+构造 $x=2^{12}3^{12}5^{12}\approx 5.3\times10^{17}<2^{63}$。故 $x$ 在 long long 内。
+
+且任意 $y=2^i3^j5^k,i\le 12,j\le 12,k\le 12$，必然有 $y\le x$。这样的 $y$ 至少有 $12^3$ 个(考虑三重 for，即乘法原理算 for 执行次数)，且它们都是丑数。即 $x$ 至少是第 $12^3+1$ 个丑数，它小于 long long，故第 $1690<1728$ 个丑数也小于 long long。
+
+显然 TreeSet java 可以当 pq 用，还能去重。
+
+```java
+import java.util.TreeSet;
+class Solution {
+    public int nthUglyNumber(int n) {
+        TreeSet<Long> t = new TreeSet<>();
+        t.add(1L);
+        for(int i=0;i<n-1;++i) {
+            long v = t.first();
+            t.remove(v);
+            for(long d: new long[]{2,3,5}) {
+                t.add(v*d);
+            }
+        }
+        return (int)(long)t.first();
+    }
+}
+```
+
+DP+指针优化。
+
+定义 $dp_i$ 是第 $i$ 个丑数，显然 $dp_1=1$。设第 $p_i$ 个丑数通过乘 $i$ 可以得到下一个丑数。用 pq 的方法选三个 $i$ 的候选 $p_i$，谁最小就用谁。考虑当前某个丑数 $x$ 通过乘 $i$ 获得了新的丑数 $xi$，则这个丑数永远不可能再通过乘 $i$ 获得新的丑数，所以对 $i$ 而言，$i$ 要乘以下一个丑数才能有机会获得新的丑数，即 $p_i$ 增加。复杂度 $O(n)$。
+
+```java
+class Solution {
+    public int nthUglyNumber(int n) {
+        int[] dp = new int[n + 1];
+        dp[1] = 1;
+        int p2 = 1, p3 = 1, p5 = 1;
+        for (int i = 2; i <= n; i++) {
+            int num2 = dp[p2] * 2, num3 = dp[p3] * 3, num5 = dp[p5] * 5;
+            dp[i] = Math.min(Math.min(num2, num3), num5);
+            if (dp[i] == num2) {
+                p2++;
+            }
+            if (dp[i] == num3) {
+                p3++;
+            }
+            if (dp[i] == num5) {
+                p5++;
+            }
+        }
+        return dp[n];
+    }
+}
+```
+
+
+
