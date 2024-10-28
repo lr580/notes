@@ -2177,6 +2177,10 @@
 - 264\.丑数II
 
   堆 / <u>DP+指针优化</u>
+  
+- 3211\.生成不含相邻零的二进制字符串
+
+  爆搜(DFS/二进制枚举) DP算复杂度
 
 ## 算法
 
@@ -55322,5 +55326,84 @@ class Solution {
 }
 ```
 
+##### 3211\.生成不含相邻零的二进制字符串
 
+[题目](https://leetcode.cn/problems/generate-binary-strings-without-adjacent-zeros)
 
+爆搜：
+
+```java
+import java.util.LinkedList;
+import java.util.List;
+class Solution {
+    private List<String> ans;
+    private int n;
+    private void dfs(String cur, int last) {
+        if(cur.length() == n) {
+            ans.add(cur);
+            return;
+        }
+        if(last == 1) {
+            dfs(cur + "0", 0);
+        }
+        dfs(cur + "1", 1);
+    }
+    public List<String> validStrings(int n) {
+        ans = new LinkedList<>();
+        this.n = n;
+        dfs("", 1);
+        return ans;
+    }
+}
+```
+
+更优雅的 DFS：
+
+```java
+class Solution {
+    public List<String> validStrings(int n) {
+        List<String> ans = new ArrayList<>();
+        char[] path = new char[n];
+        dfs(0, n, path, ans);
+        return ans;
+    }
+
+    private void dfs(int i, int n, char[] path, List<String> ans) {
+        if (i == n) {
+            ans.add(new String(path));
+            return;
+        }
+
+        // 填 1
+        path[i] = '1';
+        dfs(i + 1, n, path, ans);
+
+        // 填 0
+        if (i == 0 || path[i - 1] == '1') {
+            path[i] = '0'; // 直接覆盖
+            dfs(i + 1, n, path, ans);
+        }
+    }
+}
+```
+
+精确的时间复杂度/方案数分析：设长为 $n$ 的有效串有 $dp_n$ 个，则空串合法 $dp_0=1$，且 $dp_1=2$，对第 $n$ 位，填 $0$ 的话，上一位一定是 $1$，只有前 $n-2$ 位可变，方案数为 $dp_{n-2}$，填 $1$ 的话，前 $n-1$ 位都可变，方案数为 $dp_{n-1}$，故 $dp_n=dp_{n-1}+dp_{n-2}$，则复杂度为 $O(ndp_n)$，其中 $dp_n\approx(\dfrac{1+\sqrt5}2)^n\approx1.618^n$。
+
+二进制枚举：不能有连续2个0，若把原二进制取反，则不能有连续2个1，即这个数和它左或右移一位的按位与必然是0。
+
+```java
+class Solution {
+    public List<String> validStrings(int n) {
+        List<String> ans = new ArrayList<>();
+        int mask = (1 << n) - 1;
+        for (int x = 0; x < (1 << n); x++) {
+            if (((x >> 1) & x) == 0) {
+                int i = x ^ mask;
+                // 一种生成前导零的写法：在 i 前面插入 1<<n，转成字符串后再去掉插入的 1<<n
+                ans.add(Integer.toBinaryString((1 << n) | i).substring(1));
+            }
+        }
+        return ans;
+    }
+}
+```

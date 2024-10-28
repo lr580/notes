@@ -12081,6 +12081,15 @@ alpha_values = solve(equation, alpha) # list of float
 solve(x**2+x-3>0,x)
 ```
 
+##### 质因数分解
+
+```python
+from sympy import factorint
+print(56)  # 输出: {2: 3, 7: 1} 表示2的3次方和7的1次方, dict
+```
+
+效率挺高的，反正36位数一下子我算出来了。
+
 ##### Jordan形
 
 ```python
@@ -14522,6 +14531,14 @@ print(torch.zeros((2,3,4))) # (2,3,4)括号不要也行
 print(torch.ones((2,3,4)))
 ```
 
+##### 数据类型
+
+```python
+x = torch.tensor([[1,1,4,5,1,4],[1,9,1,9,8,1]]).float()
+```
+
+
+
 ##### 随机
 
 ###### randn
@@ -14894,6 +14911,14 @@ print(result_dim1)
 #         [3, 4, 7, 8]])
 ```
 
+###### repeat
+
+复制
+
+```python
+.repeat(2, 1, 1, 1) # 第一维复制一份，四维数据
+```
+
 
 
 ##### 统计
@@ -15021,6 +15046,10 @@ print(x.norm(), torch.norm(x)) #必须要float, l_2 范数
 print(x.abs().sum(), torch.abs(x).sum()) #l_1 范数
 ```
 
+奇异值分解：`u,s,v=torch.svd(a)`
+
+`torch.diag(v)` 向量转对角矩阵
+
 ##### 求导
 
 反向传播的基本原理是链式求导法则。
@@ -15144,6 +15173,58 @@ d2l.plt.gca().set_ylabel('Estimated probability')
 d2l.plt.legend()
 ```
 
+##### einsum
+
+爱因斯坦求和 [官网](https://pytorch.org/docs/stable/generated/torch.einsum.html) [博客](https://zhuanlan.zhihu.com/p/696260363)
+
+`->` 左边是输入的张量逗号隔开，每个字母表示一个维度大小。将 `->` 右边输出的张量，其在左边有但在右边没有的就是求和。
+
+如：
+
+- 矩阵乘法 $c_{ij}=\sum_k a_{ik}b_{kj}$
+
+  ```python
+  torch.einsum('ik,kj->ij', A, B)
+  ```
+
+- 转置 $b_{ji}=a_{ij}$
+
+  ```python
+  torch.einsum('ij->ji', [A])
+  ```
+
+- 按行求和 $b_i=\sum_j a_{ij}$
+
+  ```python
+  torch.einsum('ij->i', [A])
+  ```
+
+- 向量内积 $c=\sum_i a_ib_i$
+
+  ```python
+  c = torch.einsum('i,i->', [A, B])
+  ```
+
+- 向量外积 $c_{ij}=a_ib_j$
+
+  ```python
+  torch.einsum('i,j->ij', [A, B])
+  ```
+
+- 矩阵批量乘法 $c_{ijl}=\sum_k a_{ijk}b_{ikl}$ 其中 $i$ 是批量维度，后两个维度做乘法
+
+  ```python
+  torch.einsum('ijk,ikl->ijl', [A, B])
+  ```
+
+- 双线性变换 $d_{ij}=\sum k\sum la_{ik}b_{jkl}c_{il}$
+
+  ```python
+  D = torch.einsum('ik,jkl,il->ij', [A, B, C])
+  ```
+
+
+
 #### 数据处理
 
 类型转换
@@ -15213,6 +15294,10 @@ transform = transforms.Compose([
 
 #### 模型层
 
+```python
+import torch.nn as nn
+```
+
 ##### 基础
 
 ###### Identity
@@ -15273,7 +15358,47 @@ print(f"After ReLU: {model[3](model[2](model[1](model[0](input_tensor)))).shape}
 print(f"Final output shape: {output.shape}") #[10,256]
 ```
 
+###### ModuleList
 
+`nn.ModuleList` 是一个非常有用的工具，适合需要管理多个子模块的场景。它使得模型的构建更加灵活和简洁，尤其是在需要动态调整网络结构时。
+
+```python
+import torch
+import torch.nn as nn
+
+class MLP(nn.Module):
+    def __init__(self, input_size, hidden_sizes, output_size):
+        super(MLP, self).__init__()
+        self.layers = nn.ModuleList()
+        
+        # 创建隐藏层
+        for hidden_size in hidden_sizes:
+            self.layers.append(nn.Linear(input_size, hidden_size))
+            input_size = hidden_size # changed
+            
+        # 创建输出层
+        self.layers.append(nn.Linear(input_size, output_size))
+        
+    def forward(self, x):
+        for i, layer in enumerate(self.layers):
+            x = layer(x)
+            print(f"Layer {i + 1} output shape: {x.shape}")  # 打印每层输出的形状
+            x = torch.relu(x)  # 使用 ReLU 激活函数
+        return x
+
+# 示例用法
+input_size = 10
+hidden_sizes = [20, 30, 40, 50]
+output_size = 5
+model = MLP(input_size, hidden_sizes, output_size)
+
+# 测试模型
+input_tensor = torch.randn(1, input_size)
+output_tensor = model(input_tensor)
+print(f"Final output shape: {output_tensor.shape}")
+```
+
+也可以取下标，如 `layers[i](x)`
 
 ##### 激活层
 
@@ -15316,6 +15441,36 @@ variance = torch.var(output_tensor, dim=1)  # 按行计算方差
 print(mean, variance) # 均值约0，方差在1附近(不严格)
 ```
 
+###### BatchNorm2d
+
+每个通道独立变成均值0方差1，也就是对 `[b,c,h,w]` 的全体 `c` 个 `[b,h,w]` 独立求出每个的均值方差然后做变换
+
+```python
+import torch
+import torch.nn as nn
+residual_channels = 2
+batch_norm = nn.BatchNorm2d(residual_channels)
+input_tensor = torch.tensor([
+    [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],  # 第一个通道
+    [[7.0, 8.0, 9.0], [10.0, 11.0, 12.0], [13.0, 14.0, 15.0]] # 第二个通道
+])
+input_tensor = input_tensor.unsqueeze(0)  # 形状变为 (1, 2, 3, 3)
+output_tensor = batch_norm(input_tensor)
+print("Output tensor:\n", output_tensor)
+```
+
+```
+ tensor([[[[-1.5492, -1.1619, -0.7746],
+          [-0.3873,  0.0000,  0.3873],
+          [ 0.7746,  1.1619,  1.5492]],
+
+         [[-1.5492, -1.1619, -0.7746],
+          [-0.3873,  0.0000,  0.3873],
+          [ 0.7746,  1.1619,  1.5492]]]], grad_fn=<NativeBatchNormBackward0>
+```
+
+
+
 ##### 卷积层
 
 ###### Conv2d
@@ -15357,6 +15512,53 @@ output_tensor = model(input_tensor)
 print("Output shape:", output_tensor.shape)
 # Output shape: torch.Size([1, 16, 64, 64])
 ```
+
+###### 膨胀卷积
+
+`dialtion=1` 表示卷积核每个参数的间距是 1，即正常卷积。若 `=2`，卷积核大小从 `(a,b)` 变成 `(2a-1,2b-1)`，原本的元素隔一个空插入一次，如 `[[a,b],[c,d]]` 变成 `[[a,0,b],[0,0,0],[c,0,d]]`
+
+```python
+import torch
+import torch.nn as nn
+
+input = (torch.arange(25)+1.).reshape(1,1,5,5)
+
+conv1 = nn.Conv2d(in_channels=1, out_channels=1, kernel_size=3, stride=1, padding=0, dilation=1, bias=False)
+nn.init.ones_(conv1.weight)  # 初始化卷积核为全1
+output1 = conv1(input)
+
+conv2 = nn.Conv2d(in_channels=1, out_channels=1, kernel_size=3, stride=1, padding=0, dilation=2, bias=False)
+nn.init.ones_(conv2.weight) 
+output2 = conv2(input)
+
+print("dilation=1 输出：\n", output1)
+print("dilation=2 输出：\n", output2)
+'''dilation=1 输出：
+ tensor([[[[ 63.,  72.,  81.],
+          [108., 117., 126.],
+          [153., 162., 171.]]]], grad_fn=<ConvolutionBackward0>)
+63是s[3,3]，前三行前三列
+dilation=2 输出：
+ tensor([[[[117.]]]], grad_fn=<ConvolutionBackward0>)
+ 117是1+3+5+11+13+15+21+23+25'''
+```
+
+
+
+###### Conv1d
+
+卷积核，步幅，填充是数值而不是二元组，输入是三维而不是四维。
+
+```python
+import torch
+import torch.nn as nn
+conv1d = nn.Conv1d(in_channels=5, out_channels=10, kernel_size=7, stride=1, padding=1)
+sequence = torch.randn(1, 5, 100)  
+output = conv1d(sequence)
+print(output.shape)  # 输出形状: (1, 10, 96)
+```
+
+
 
 ##### 嵌入/编码
 
@@ -15459,9 +15661,110 @@ self.transformer_encoder = TransformerEncoder(encoder_layers, nlayers)
 output = self.transformer_encoder(src, mask=None)
 ```
 
+#### 函数
+
+```python
+import torch.nn.functional as F
+```
+
+##### 预处理
+
+###### pad
+
+- input: 要填充的输入张量。
+- pad: 填充的大小，格式为一个整数元组，指定每个维度的填充量。元组的顺序是 (右填充, 左填充, 下填充, 上填充, ...)。
+- mode: 填充模式，支持 'constant'、'reflect'、'replicate' 等。
+- value: 当 mode='constant' 时，用于填充的常数值。
+
+```python
+import torch
+import torch.nn.functional as F
+input_tensor = torch.tensor([[1, 2], [3, 4]])
+padded_tensor = F.pad(input_tensor, (1, 1, 1, 1), mode='constant', value=0)
+print(padded_tensor)
+'''tensor([[0, 0, 0, 0],
+           [0, 1, 2, 0],
+           [0, 3, 4, 0],
+           [0, 0, 0, 0]])'''
+# x = nn.functional.pad(input,(self.receptive_field-in_len,0,0,0))
+```
+
+
+
+##### 正则化
+
+###### dropout
+
+- **h**: 输入张量，通常是神经网络某一层的输出。
+- **self.dropout**: 表示 dropout 概率，值在 0 到 1 之间，定义了在每次训练时随机丢弃的神经元比例。例如，0.4 表示有 40% 的概率将某些神经元的输出置为 0。
+- **training**: 一个布尔值，指示当前是否处于训练模式。若为 `True`，则会应用 dropout；若为 `False`，则不会应用 dropout（这通常在评估或推理时使用）。
+
+```python
+import torch
+import torch.nn.functional as F
+h = torch.tensor([0.1, 0.2, 0.3, 0.4, 0.5])
+dropout_rate = 0.4
+training = True
+h_dropped = F.dropout(h, p=dropout_rate, training=training)
+print("原始张量:", h)
+print("丢弃后的张量:", h_dropped)# tensor([0.1667, 0.0000, 0.5000, 0.6667, 0.0000])
+```
+
+在 dropout 过程中，通常会对保留下来的神经元的输出进行缩放，以保持整体的期望值。具体来说，如果一个神经元以概率 `p` 被保留，它的输出会乘以 `1/(1-p)`，以补偿丢弃的影响。在本例中，保留下来的神经元的值乘以 `1/(1-0.4) = 1.6667`。(不是乘实际丢弃比例，而是 rate 超参)，丢弃数不是一定是最接近 rate 的，而是随机变化的。对多维，跟一维一样不会每个维度单独处理也不会单独放缩。
+
+##### 激活层
+
+###### relu
+
+```python
+import torch
+import torch.nn.functional as F
+input_tensor = torch.tensor([-2.0, -1.0, 0.0, 1.0, 2.0])
+output_tensor = F.relu(input_tensor)
+print(output_tensor) # tensor([0., 0., 0., 1., 2.])
+```
+
+###### softmax
+
+`softmax(xi)=xi/sum xj` 得到 [0,1] 间和为1，一般多分类
+
+```python
+import torch
+import torch.nn.functional as F
+input_scores = torch.tensor([2.0, 1.0, 0.1])
+output_probabilities = F.softmax(input_scores, dim=0)
+print(output_probabilities) # tensor([0.6590, 0.2424, 0.0986])
+```
+
+###### tanh
+
+`tanh(x)=( e^(x)-e^(-x) )/( e^(x)+e^(-x) )`
+
+```python
+import torch
+x = torch.tensor([-1.0, 0.0, 1.0, 2.0])
+tanh_x = torch.tanh(x)
+print(tanh_x)
+```
+
+###### sigmoid
+
+`sigmoid(x)=1/(1+e^(-x))`，得到 `[0,1]` 间，一般二分类
+
+```python
+import torch
+x = torch.tensor([-1.0, 0.0, 1.0, 2.0])
+sigmoid_x = torch.sigmoid(x)
+print(sigmoid_x) # tensor([0.2689, 0.5000, 0.7311, 0.8808])
+```
+
 
 
 #### 模块
+
+> ##### ModuleList
+
+
 
 #### 导入导出
 
