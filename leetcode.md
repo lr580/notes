@@ -2181,6 +2181,14 @@
 - 3211\.生成不含相邻零的二进制字符串
 
   爆搜(DFS/二进制枚举) DP算复杂度
+  
+- 50\.Pow(x,n)
+
+  快速幂
+  
+- 3216\.交换后字典序最小的字符串
+
+  签到
 
 ## 算法
 
@@ -55404,6 +55412,74 @@ class Solution {
             }
         }
         return ans;
+    }
+}
+```
+
+##### 50\.Pow(x,n)
+
+[题目](https://leetcode.cn/problems/powx-n/)
+
+注意p为最小int时取反会炸int。
+
+```java
+class Solution {
+    public double myPow(double x, int p) {
+        double ans = 1.0;
+        long n=p;
+        if(n<0) {
+            n*=-1;
+            x=1/x;
+        }
+        for(;n>0;n>>=1) {
+            if((n&1)==1) {
+                ans*=x;
+            }
+            x*=x;
+        }
+        return ans;
+    }
+}
+```
+
+##### 3216\.交换后字典序最小的字符串
+
+[题目](https://leetcode.cn/problems/lexicographically-smallest-string-after-a-swap/)
+
+```java
+class Solution {
+    public String getSmallestString(String s) {
+        int n=s.length();
+        for(int i=1;i<n;++i) {
+            int x = s.charAt(i-1);
+            int y = s.charAt(i);
+            if(x%2==y%2 && x>y) {
+                char[] c = s.toCharArray();
+                char t = c[i];
+                c[i] = c[i-1];
+                c[i-1] = t;
+                return new String(c);
+            }
+        }
+        return s;
+    }
+}
+```
+
+```java
+class Solution {
+    public String getSmallestString(String s) {
+        char[] t = s.toCharArray();
+        for (int i = 1; i < t.length; i++) {
+            char x = t[i - 1];
+            char y = t[i];
+            if (x > y && x % 2 == y % 2) {
+                t[i - 1] = y;
+                t[i] = x;
+                break;
+            }
+        }
+        return new String(t);
     }
 }
 ```

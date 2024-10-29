@@ -5197,6 +5197,29 @@ with zipfile.ZipFile(zip_path, 'r') as zip_ref:
 print("文件解压完成，解压到：", extract_to)
 ```
 
+把所有 `conv_` 开头的文件压缩：
+
+```python
+import os
+import zipfile
+
+def zip_conv_files(zip_filename, directory):
+    # 创建一个 zip 文件
+    with zipfile.ZipFile(zip_filename, 'w') as zipf:
+        # 遍历指定目录中的文件
+        for root, _, files in os.walk(directory):
+            for file in files:
+                if file.startswith("conv_"):
+                    # 获取文件的完整路径
+                    file_path = os.path.join(root, file)
+                    # 将文件添加到 zip 文件中
+                    zipf.write(file_path, os.path.relpath(file_path, directory))
+    print(f"压缩包 {zip_filename} 创建成功！")
+
+# 使用示例
+zip_conv_files('conv_files.zip', '你的目录路径')
+```
+
 
 
 #### json
@@ -6718,6 +6741,13 @@ np.linspace(1,25,25).reshape(5,5).astype(np.int8)
 output = np.uint8(output * 255)
 ```
 
+交换维度 `swapped_array = np.swapaxes(array, 0, 1)`
+
+```python
+# 将数组的维度从 (a, b, c) 变换为 (b, c, a)
+transposed_array = np.transpose(array, (1, 2, 0))
+```
+
 维度增加：`np.newaxis`，如：
 
 ```python
@@ -7086,6 +7116,13 @@ np.mean(arr)
 
 对每列：`axis=0`
 
+三维数组，对每个矩阵求均值，如：
+
+```python
+data = np.array([[[ 1, -2],[ 3, -4]],   [[-1,  2],[ 4, -5]]])
+print(np.mean(np.abs(data), axis=(1, 2))) #[2.5 ,3.]
+```
+
 ##### 方差
 
 标准差：
@@ -7120,6 +7157,19 @@ $$
 
 ```python
 np.cov(centered_data, rowvar=False)
+```
+
+```python
+import numpy as np
+data = np.array([[1, 2, 3, 4],
+                 [10,11,12,5],
+                 [9, 8, 7, 6]])
+covariance_matrix = np.cov(data, rowvar=False)
+print(covariance_matrix)
+'''[[24.33333333 22.         19.66666667  4.        ]
+ [22.         21.         20.          3.        ]
+ [19.66666667 20.         20.33333333  2.        ]
+ [ 4.          3.          2.          1.        ]]'''
 ```
 
 
@@ -11295,6 +11345,27 @@ fig.write_image("residual_plot.png")
 
 支持 `.png, .jpg, .svg, .pdf` 等。其中 SVG 是矢量图。
 
+### seaborn
+
+##### 热力图
+
+`sims` 是 6x6 二维列表，数值在 0-1
+
+```python
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+plt.figure(figsize=(8, 6))
+sns.heatmap(sims, annot=True, cmap='viridis', cbar=True)
+plt.title('Heatmap of Random 6x6 Matrix')
+plt.xlabel('Column Index')
+plt.ylabel('Row Index')
+plt.savefig(f'conv_patient_{patient}.png', dpi=300)
+plt.show()
+```
+
+
+
 ### pygal
 
 ```python
@@ -11778,6 +11849,28 @@ from scipy import stats
 df['host_since'] = stats.zscore(df['host_since'])
 ```
 
+#### 线代
+
+##### norm
+
+```python
+norm(x, ord=None, axis=None, keepdims=False)
+```
+
+**x**: 输入数组（向量或矩阵）。
+
+**ord**: 范数的类型（可选）。默认值为 `None`，表示计算欧几里得范数。常用的 `ord` 值包括：
+
+- `None` 或 `2`: L2 范数（默认）。
+- `1`: L1 范数（曼哈顿范数）。
+- `np.inf`: 无穷范数（最大绝对值）。
+- `-np.inf`: 最小绝对值。
+- `‘fro’`: Frobenius 范数（仅适用于矩阵）。
+
+**axis**: 指定计算的轴（可选）。如果不指定，则对整个数组计算范数。
+
+**keepdims**: 如果为 `True`，则保持原始数组的维度。
+
 
 
 #### 统计
@@ -11894,7 +11987,37 @@ hisq-statistic=1.0195, p-value=0.3126, df=1 expected_frep=[[35.20168067 23.79831
 > # 但是第五行 chi2 是 1.432 与调库结果不符合
 > ```
 >
-> 
+
+##### 相似性
+
+如各样本：205个长为2001的序列，每个类别有这样的样本200个，求类别相似性。
+
+```python
+def f(data):
+    data = np.transpose(data,(2,0,1))
+    return data
+data = [f(u) for u in (X_Mid_LR, X_Mid_DU, X_Mid45, X_Fast_LR, X_Fast_DU, X_Fast45)]
+import numpy as np
+from scipy.linalg import norm, logm
+
+def calculate_covariance_matrix(samples):
+    mean_over_samples = samples.mean(axis=0)
+    covariance_matrix = np.cov(mean_over_samples)
+    return covariance_matrix
+
+sims=[[0 for i in range(6)] for j in range(6)]
+for i in range(6):
+    for j in range(i+1,6):
+        conv1 = calculate_covariance_matrix(data[i])
+        conv2 = calculate_covariance_matrix(data[j])
+        # similarity = 1 / (1 + norm(conv1 - conv2)) # all = 1
+        # 上面是矩阵范数 Frobenius 范数
+        distance = norm(logm(conv1) - logm(conv2))
+        sim2 = 1/(1+distance) # # Log-Euclidean距离
+        sims[i][j]=sims[j][i]=sim2
+```
+
+
 
 #### 优化
 
@@ -13071,7 +13194,26 @@ pipeline 处理结果如果 0 多，可能会转换为 `<class 'scipy.sparse._cs
 
 sklearn.metrics
 
-##### 例子
+##### 余弦相似
+
+两两比较，vec1, vec2 里的各个，得到相似性
+
+```python
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+vec1 = np.array([[1, 0, 1], [1,1,1]])
+vec2 = np.array([[0, 1, 1], [1,1,1]])
+similarity = cosine_similarity(vec1, vec2)
+print(similarity)
+'''[[0.5        0.81649658]
+ [0.81649658 1.        ]]'''
+```
+
+
+
+
+
+##### 其他例子
 
 ```python
 import numpy as np
@@ -14537,6 +14679,11 @@ print(torch.ones((2,3,4)))
 x = torch.tensor([[1,1,4,5,1,4],[1,9,1,9,8,1]]).float()
 ```
 
+```python
+X = torch.tensor(X, dtype=torch.float32)
+y = torch.tensor(y, dtype=torch.long)
+```
+
 
 
 ##### 随机
@@ -14866,6 +15013,14 @@ x = torch.tensor([[[[1, 2, 3, 4]]]])  # 形状为 (1, 1, 1, 4)
 a, b, c = 2, 3, 4  # 目标形状为 (2, 3, 4)
 expanded_x = x.expand(a, b, c, d)
 ```
+
+###### np.newaxis
+
+```python
+X = X[:, :, np.newaxis, :]  # [a,b,c] -> [a,b,1,c]
+```
+
+
 
 ###### []降维
 
