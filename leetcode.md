@@ -2189,6 +2189,10 @@
 - 3216\.交换后字典序最小的字符串
 
   签到
+  
+- 3165\.不包含相邻元素的子序列的最大和
+
+  **带修DP 分治 线段树**
 
 ## 算法
 
@@ -55483,3 +55487,84 @@ class Solution {
     }
 }
 ```
+
+##### 3165\.不包含相邻元素的子序列
+
+[题目](https://leetcode.cn/problems/maximum-sum-of-subsequence-with-non-adjacent-elements)
+
+设 $f(A)$ 是修改前的答案。任意位置分割使得数组 $x$ 满足 $x=a+b$。
+
+定义 $f_{ij}(A)$，其中 $i$ 为 $A$ 第一个数不选(=0)/选不选都行(=1)的布尔值，$j$ 为 $A$ 最后一个数对应布尔值。显然 $f_{11}(A)=f(A)$。则：
+$$
+f_{11}(x)=\max(f_{10}(a)+f_{11}(b),f_{11}(a)+f_{01}(b))
+$$
+即：因为 $a$ 最后与 $b$ 最前相邻，故这两个位置不能同时存在选的可能性。
+
+接下来发现：
+$$
+f_{10}(x)=\max(f_{10}(a)+f_{10}(b),f_{11}(a)+f_{00}(b))
+$$
+也就是 $b$ 的最后一位跟随 $x$ 的最后一位，其他不变。那么同理：
+$$
+f_{01}(x)=\max(f_{00}(a)+f_{11}(b),f_{01}(a)+f_{01}(b))\\
+f_{00}(x)=\max(f_{00}(a)+f_{10}(b),f_{01}(a)+f_{00}(b))
+$$
+那么，把原数组 $A$ 分割成线段树的区间段，每个节点维护一个区间的 $f$，则两个区间 $a,b$ 可以推出 $x=a+b$ 这个父节点。每次做单点修改，然后每次只需要查询根节点即可。
+
+对于初始状态，设区间 $[i,i]$ 的元素值是 $v$，则任意一端不选都一定是 $0$，即 $f_{01}(i)=f_{10}(i)=f_{00}(i)=0$，且 $f_{11}(i)=\max(v,0)$。
+
+```java
+class Solution {
+    public int maximumSumSubsequence(int[] nums, int[][] queries) {
+        int n = nums.length;
+        // 4 个数分别保存 f00, f01, f10, f11
+        long[][] t = new long[2 << (32 - Integer.numberOfLeadingZeros(n))][4];
+        build(t, nums, 1, 0, n - 1);
+
+        long ans = 0;
+        for (int[] q : queries) {
+            update(t, 1, 0, n - 1, q[0], q[1]);
+            ans += t[1][3]; // 注意 f11 没有任何限制，也就是整个数组的打家劫舍
+        }
+        return (int) (ans % 1_000_000_007);
+    }
+
+    private void maintain(long[][] t, int o) {
+        long[] a = t[o * 2];
+        long[] b = t[o * 2 + 1];
+        t[o][0] = Math.max(a[0] + b[2], a[1] + b[0]);
+        t[o][1] = Math.max(a[0] + b[3], a[1] + b[1]);
+        t[o][2] = Math.max(a[2] + b[2], a[3] + b[0]);
+        t[o][3] = Math.max(a[2] + b[3], a[3] + b[1]);
+    }
+
+    // 用 nums 初始化线段树
+    private void build(long[][] t, int[] nums, int o, int l, int r) {
+        if (l == r) {
+            t[o][3] = Math.max(nums[l], 0);
+            return;
+        }
+        int m = (l + r) / 2;
+        build(t, nums, o * 2, l, m);
+        build(t, nums, o * 2 + 1, m + 1, r);
+        maintain(t, o);
+    }
+
+    // 把 nums[i] 改成 val
+    private void update(long[][] t, int o, int l, int r, int i, int val) {
+        if (l == r) {
+            t[o][3] = Math.max(val, 0);
+            return;
+        }
+        int m = (l + r) / 2;
+        if (i <= m) {
+            update(t, o * 2, l, m, i, val);
+        } else {
+            update(t, o * 2 + 1, m + 1, r, i, val);
+        }
+        maintain(t, o);
+    }
+}
+```
+
+任何可分治信息的带修维护都可以用线段树。
