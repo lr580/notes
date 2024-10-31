@@ -12213,6 +12213,15 @@ print(56)  # 输出: {2: 3, 7: 1} 表示2的3次方和7的1次方, dict
 
 效率挺高的，反正36位数一下子我算出来了。
 
+##### 级数
+
+```python
+import sympy as sp
+n=sp.symbols('n')
+s=sp.Sum(1/n,(n,1,sp.oo))#调和级数
+print(s.doit())
+```
+
 ##### Jordan形
 
 ```python

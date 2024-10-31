@@ -2193,6 +2193,10 @@
 - 3165\.不包含相邻元素的子序列的最大和
 
   **带修DP 分治 线段树**
+  
+- 3259\.超级饮料的最大强化能量
+
+  DP
 
 ## 算法
 
@@ -55568,3 +55572,25 @@ class Solution {
 ```
 
 任何可分治信息的带修维护都可以用线段树。
+
+##### 3259\.超级饮料的最大强化能量
+
+[题目](https://leetcode.cn/problems/maximum-energy-boost-from-two-drinks)
+
+```java
+class Solution {
+    public long maxEnergyBoost(int[] energyDrinkA, int[] energyDrinkB) {
+        int n = energyDrinkA.length;
+        long dp[][] = new long[2][n+1];
+        for(int i=1;i<=n;++i) {
+            dp[0][i]=dp[0][i-1]+energyDrinkA[i-1];
+            dp[1][i]=dp[1][i-1]+energyDrinkB[i-1];
+            if(i>1) {
+                dp[0][i]=Math.max(dp[0][i], dp[1][i-2]+energyDrinkA[i-1]);
+                dp[1][i]=Math.max(dp[1][i], dp[0][i-2]+energyDrinkB[i-1]);
+            }
+        }
+        return Math.max(dp[0][n],dp[1][n]);
+    }
+}
+```
