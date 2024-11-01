@@ -2197,6 +2197,10 @@
 - 3259\.超级饮料的最大强化能量
 
   DP
+  
+- 2479\.图中最大星和
+
+  图 排序 / <u>快速选择排序</u>
 
 ## 算法
 
@@ -55594,3 +55598,19 @@ class Solution {
     }
 }
 ```
+
+##### 2497\.图中最大星和
+
+[题目](https://leetcode.cn/problems/maximum-star-sum-of-a-graph)
+
+```python
+class Solution:
+    def maxStarSum(self, vals: List[int], edges: List[List[int]], k: int) -> int:
+        g = [[] for _ in vals]
+        for x, y in edges:
+            if vals[y] > 0: g[x].append(vals[y])
+            if vals[x] > 0: g[y].append(vals[x])
+        return max(v + sum(nlargest(k, a)) for v, a in zip(vals, g))
+```
+
+快速选择排序可以优化到线性复杂度。略。

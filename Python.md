@@ -4188,7 +4188,7 @@ a=[1,1,4,5,1,4]
 heapq.heapify(a) #成最小堆,无返回值
 ```
 
-前 k 大：
+前 k 大：(堆的复杂度，nlogk)，第一个参数k可以是任意整数，比数组大就取完整个数组。nlargest降序返回
 
 ```python
 max_x1, max_x2 = nlargest(2, (x + y for x, y in points)) #最大次大
@@ -12183,6 +12183,24 @@ right_limit = limit(f, x, 0, '+')
 
 ```python
 binomial(n, k) # n选k 组合
+```
+
+##### 矩阵
+
+```python
+import sympy as sp
+t = sp.symbols('t')
+# 定义矩阵P和P^(-1)
+P = sp.Matrix([[1, 0, 1], 
+               [0, 1, 0],
+               [1, 1, 0]])
+P_inv = P.inv()
+# 定义矩阵A
+A = sp.Matrix([[1, 0, 0], 
+               [0, 2, 1], 
+               [0, 0, 2]])
+e_At = P * sp.diag(sp.exp(t), sp.exp(2*t), sp.exp(2*t)) * P_inv
+print(e_At)
 ```
 
 

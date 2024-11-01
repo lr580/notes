@@ -1920,6 +1920,12 @@ int dest[] = Arrays.stream(xx).mapToInt(Integer::valueOf).toArray();// Integer[]
 
 使用归并排序或 timsort(归并+插入+二分)
 
+返回值含义：(结论：升序 o1-o2 (即o1-o2<0 ,o1<o2)；逆序 o2-o1)
+
+- 负：把o1排o2前
+- = o1=o2
+- 正：把o1排o2后
+
 结构体：以 height 逆序为例
 
 ```java
