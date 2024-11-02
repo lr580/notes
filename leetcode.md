@@ -2205,6 +2205,10 @@
 - 3226\.使两个整数相等的位更改次数
 
   签到 位运算
+  
+- 638\.大礼包
+
+  DP 记忆化DFS 多维分组背包
 
 ## 算法
 
@@ -55661,4 +55665,172 @@ class Solution:
 class Solution:
     def minChanges(self, n: int, k: int) -> int:
         return -1 if k & ~n else (n ^ k).bit_count()
+```
+
+##### 638\.大礼包
+
+[题目](https://leetcode.cn/problems/shopping-offers)
+
+复杂度看似 $11^{6}\times 100\approx 10\times^8$ 但是能过。做了个多维长度不一样转一维的映射。
+
+```java
+import java.util.Arrays;
+import java.util.List;
+class Solution {
+    private int base[] = new int[6];
+    private int n;
+    private int toi(int[] p) {
+        int idx=p[0];
+        for(int i=1;i<n;++i) {
+            idx=idx+p[i]*base[i-1];
+        }
+        return idx;
+    }
+    private int[] fromi(int idx) {
+        int p[] = new int[n];
+        for(int i=n-1;i>0;--i) {
+            p[i]=idx/base[i-1];
+            idx%=base[i-1];
+        }
+        p[0]=idx;
+        return p;
+    }
+    private int dp[], w[][], c[], m;
+    private int dfs(int idx) {
+        if(dp[idx] != Integer.MIN_VALUE) {
+            return dp[idx];
+        }
+        int p[] = fromi(idx);
+        int ans = Integer.MAX_VALUE/2;
+        for(int i=0;i<m;++i) {
+            boolean ok = true;
+            int p2[] = new int[n];
+            for(int j=0;j<n;++j) {
+                p2[j] = p[j] - w[i][j];
+                if(p2[j]<0) {
+                    ok = false;
+                    break;
+                }
+            }
+            if(ok) {
+                ans = Math.min(ans, c[i]+dfs(toi(p2)));
+            }
+        }
+        dp[idx] = ans;
+        //System.out.println(idx+" "+Arrays.toString(p)+" "+dp[idx]);
+        return dp[idx];
+    }
+    public int shoppingOffers(List<Integer> price, List<List<Integer>> special,
+            List<Integer> needs) {
+        n = price.size();
+        for(int i=0;i<n;++i) {
+            base[i]=needs.get(i)+1;
+        }
+        for(int i=1;i<n;++i) {
+            base[i]*=base[i-1];
+        }
+        dp = new int[base[n-1]];
+        Arrays.fill(dp, Integer.MIN_VALUE);
+        dp[0]=0;
+        m = special.size() + n;
+        c = new int[m];
+        w = new int[m][n];
+        for(int i=0;i<n;++i) {
+            w[i][i]=1;
+            c[i]=price.get(i);
+        }
+        for(int i=n;i<m;++i) {
+            for(int j=0;j<n;++j) {
+                w[i][j] = special.get(i-n).get(j);
+            }
+            c[i] = special.get(i-n).get(n);
+        }
+        dfs(base[n-1]-1);
+        return dp[base[n-1]-1];
+    }
+}
+```
+
+优雅：`List/tuple` 直接做 Key，省的坐标变换。非大礼包做初始值。可以兼职(效果一般般)。稀疏化 DP 数组效果明显，我的代码 300ms，下面的代码同样是 jvav 才 8ms。
+
+```python
+from functools import lru_cache
+
+class Solution:
+    def shoppingOffers(self, price: List[int], special: List[List[int]], needs: List[int]) -> int:
+        n = len(price)
+
+        # 过滤不需要计算的大礼包，只保留需要计算的大礼包
+        filter_special = []
+        for sp in special:
+            if sum(sp[i] for i in range(n)) > 0 and sum(sp[i] * price[i] for i in range(n)) > sp[-1]:
+                filter_special.append(sp)
+
+        # 记忆化搜索计算满足购物清单所需花费的最低价格
+        @lru_cache(None)
+        def dfs(cur_needs):
+            # 不购买任何大礼包，原价购买购物清单中的所有物品
+            min_price = sum(need * price[i] for i, need in enumerate(cur_needs))
+            for cur_special in filter_special:
+                special_price = cur_special[-1]
+                nxt_needs = []
+                for i in range(n):
+                    if cur_special[i] > cur_needs[i]:  # 不能购买超出购物清单指定数量的物品
+                        break
+                    nxt_needs.append(cur_needs[i] - cur_special[i])
+                if len(nxt_needs) == n:  # 大礼包可以购买
+                    min_price = min(min_price, dfs(tuple(nxt_needs)) + special_price)
+            return min_price
+
+        return dfs(tuple(needs))
+```
+
+```java
+class Solution {
+    Map<List<Integer>, Integer> memo = new HashMap<List<Integer>, Integer>();
+
+    public int shoppingOffers(List<Integer> price, List<List<Integer>> special, List<Integer> needs) {
+        int n = price.size();
+
+        // 过滤不需要计算的大礼包，只保留需要计算的大礼包
+        List<List<Integer>> filterSpecial = new ArrayList<List<Integer>>();
+        for (List<Integer> sp : special) {
+            int totalCount = 0, totalPrice = 0;
+            for (int i = 0; i < n; ++i) {
+                totalCount += sp.get(i);
+                totalPrice += sp.get(i) * price.get(i);
+            }
+            if (totalCount > 0 && totalPrice > sp.get(n)) {
+                filterSpecial.add(sp);
+            }
+        }
+
+        return dfs(price, special, needs, filterSpecial, n);
+    }
+
+    // 记忆化搜索计算满足购物清单所需花费的最低价格
+    public int dfs(List<Integer> price, List<List<Integer>> special, List<Integer> curNeeds, List<List<Integer>> filterSpecial, int n) {
+        if (!memo.containsKey(curNeeds)) {
+            int minPrice = 0;
+            for (int i = 0; i < n; ++i) {
+                minPrice += curNeeds.get(i) * price.get(i); // 不购买任何大礼包，原价购买购物清单中的所有物品
+            }
+            for (List<Integer> curSpecial : filterSpecial) {
+                int specialPrice = curSpecial.get(n);
+                List<Integer> nxtNeeds = new ArrayList<Integer>();
+                for (int i = 0; i < n; ++i) {
+                    if (curSpecial.get(i) > curNeeds.get(i)) { // 不能购买超出购物清单指定数量的物品
+                        break;
+                    }
+                    nxtNeeds.add(curNeeds.get(i) - curSpecial.get(i));
+                }
+                if (nxtNeeds.size() == n) { // 大礼包可以购买
+                    minPrice = Math.min(minPrice, dfs(price, special, nxtNeeds, filterSpecial, n) + specialPrice);
+                }
+            }
+            memo.put(curNeeds, minPrice);
+        }
+        return memo.get(curNeeds);
+    }
+}
 ```
