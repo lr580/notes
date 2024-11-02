@@ -2201,6 +2201,10 @@
 - 2479\.图中最大星和
 
   图 排序 / <u>快速选择排序</u>
+  
+- 3226\.使两个整数相等的位更改次数
+
+  签到 位运算
 
 ## 算法
 
@@ -55614,3 +55618,47 @@ class Solution:
 ```
 
 快速选择排序可以优化到线性复杂度。略。
+
+##### 3226\.使两个整数相等的位更改次数
+
+[题目](https://leetcode.cn/problems/number-of-bit-changes-to-make-two-integers-equal)
+
+```python
+class Solution:
+    def minChanges(self, n: int, k: int) -> int:
+        ans = 0
+        while not (n==0 and k==0):
+            if (n&1)==0 and (k&1)==1:
+                return -1
+            ans += (n&1)!=(k&1)
+            n, k = n >> 1, k >> 1
+        return ans
+```
+
+```python
+class Solution:
+    def minChanges(self, n: int, k: int) -> int:
+        return -1 if n & k != k else (n ^ k).bit_count()
+```
+
+```java
+class Solution {
+    public int minChanges(int n, int k) {
+        return (n & k) != k ? -1 : Integer.bitCount(n ^ k);
+    }
+}
+```
+
+```python
+class Solution:
+    def minChanges(self, n: int, k: int) -> int:
+        return -1 if n | k != n else (n ^ k).bit_count()
+```
+
+或k-n=空：
+
+```python
+class Solution:
+    def minChanges(self, n: int, k: int) -> int:
+        return -1 if k & ~n else (n ^ k).bit_count()
+```

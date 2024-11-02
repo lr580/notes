@@ -12200,7 +12200,8 @@ A = sp.Matrix([[1, 0, 0],
                [0, 2, 1], 
                [0, 0, 2]])
 e_At = P * sp.diag(sp.exp(t), sp.exp(2*t), sp.exp(2*t)) * P_inv
-print(e_At)
+# 同理有 sp.cos sp.sin
+print(e_At) # 或 sp.pprint(P) # 更好看的矩阵
 ```
 
 

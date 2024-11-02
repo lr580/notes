@@ -958,7 +958,9 @@ long x = 123456789012L;
 System.out.println(x << 1);
 ```
 
+位运算：`.bit_count()` (1的个数)
 
+位长：`32 - Integer.numberOfLeadingZeros(x)`
 
 ##### 浮点类型
 
