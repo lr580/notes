@@ -128,7 +128,9 @@ Git 可以理解 kdiff3，tkdiff，meld，xxdiff，emerge，vimdiff，gvimdiff�
 
 当然，你也可以指定使用自己开发的工具
 
+#### 样式
 
+右击 git bash 的窗口顶部栏行弹出菜单 options，可以修改字体大小等选项
 
 ### SSH
 
@@ -938,7 +940,7 @@ git clone 仓库地址 目录
 
 > 仓库地址也可以是HTTP或git开头的超链接，如`git://github.com/schacon/grit.git`
 
-
+注意，同样从无到有是抓取远程仓库，`git pull`  不会获取 remote 信息，而且事先要 git init，而 `git clone` 会获取 remote 信息。
 
 #### 更名
 
