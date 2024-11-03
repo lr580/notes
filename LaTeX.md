@@ -1540,7 +1540,7 @@ In this project, we studied the effectiveness of spice challenges in building te
 
 Here's what a Markdown table looks like. Note that the code for this table was generated _automatically_ from a DataFrame, using
 
-```py
+​```py
 print(counts[['Quarter', 'Count']].head().to_markdown(index=False))
 ```
 
@@ -1564,7 +1564,7 @@ print(counts[['Quarter', 'Count']].head().to_markdown(index=False))
 
 `_config.yml` 如下：
 
-```yaml
+​```yaml
 remote_theme: pages-themes/cayman@v0.2.0
 plugins:
 - jekyll-remote-theme # add this line to the plugins list if you already have one
@@ -2260,7 +2260,7 @@ geometry 宏包，如：
 
 > 这个命令还可以用来修改其他参数，如重置页号：`\setcounter{page}{1}`
 
-
+ 
 
 ##### 正文
 
