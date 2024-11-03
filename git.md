@@ -38,7 +38,7 @@ git config --global user.email "邮箱"
 
 ##### 代理
 
-以 v2rayN 为例，通常是 10808 端口，可以窗口在右下角看。
+以 v2rayN 为例，通常是 10808 端口，可以窗口在右下角看。clash 的话页面首页有port，一般是7890
 
 ```shell
 git config --global http.proxy sock5://127.0.0.1:10808
@@ -54,6 +54,15 @@ git config --global --unset http.proxy
 git config --global --unset https.proxy
 ```
 
+查询：[参考](https://www.cnblogs.com/XuanXiuJie/p/17949399)
+
+```sh
+git config --global --get http.proxy
+git config --global --get https.proxy
+```
+
+
+
 忽略证书错误：
 
 ```sh
@@ -66,7 +75,13 @@ git config --global http.sslVerify "false"
 git config --global http.postBuffer 524288000 #500MB
 ```
 
-
+> 尝试ping：
+>
+> ```ssh
+> ssh -T git@github.com
+> ```
+>
+> 
 
 
 
