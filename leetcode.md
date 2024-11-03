@@ -2209,6 +2209,10 @@
 - 638\.大礼包
 
   DP 记忆化DFS 多维分组背包
+  
+- 209\.长度最小的子数组
+
+  滑动窗口 / 前缀和+二分
 
 ## 算法
 
@@ -56042,4 +56046,28 @@ class Solution {
         return memo.get(curNeeds);
     }
 }
+```
+
+##### 209\.长度最小的子数组
+
+[题目](https://leetcode.cn/problems/minimum-size-subarray-sum)
+
+0ms 100%。滑动窗口。也可以前缀和+二分。
+
+```c++
+class Solution {
+public:
+    int minSubArrayLen(int target, vector<int>& nums) {
+        int ans = 1e9, s = 0, n = nums.size();
+        for(int l = 0, r = 0; r < n; r++){
+            s += nums[r];
+            while (s >= target){
+                ans = min(ans, r - l + 1);
+                s -= nums[l];
+                l++;
+            }
+        }
+        return ans == 1e9 ? 0 : ans;
+    }
+};
 ```

@@ -640,6 +640,10 @@ conda deactivate
 
 vscode 调用 conda 环境：ctrl+shift+p 输入 python，选择：选择编译器，选刚刚的环境，对 jupyter ipynb 同理。
 
+#### vscode
+
+对 code runner，右上角运行按钮有个下拉菜单，选择 run python file，下面有 python 版本信息，点一下可以切换 python 环境。
+
 #### 其他
 
 如果出现了两个 `(base)` 这样的环境名在 cmd，可以：[参考](https://blog.csdn.net/bcfd_yundou/article/details/139242662)
@@ -14479,6 +14483,8 @@ plt.show()
 
 ##### 安装
 
+python版本与torch版本的对应：`[here](https://github.com/pytorch/vision)`
+
 官网按需下载 pytorch，注意要求和本地 cuda 版本对应(如 11x 对应 11y)，不对的可以找历史版本。如：(不要照抄)
 
 ```sh
@@ -14547,6 +14553,8 @@ Build cuda_11.8.r11.8/compiler.31833905_0
 
 ##### 安装驱动
 
+###### ubuntu
+
 参考 [1](https://blog.csdn.net/qq_45174849/article/details/132940179) 官网下载 .run [如](https://www.nvidia.com/en-us/drivers/details/232742/)，但我 fail 了
 
 > gpt:
@@ -14572,7 +14580,11 @@ sudo apt update
 sudo apt install nvidia-cuda-toolkit
 ```
 
+###### windows
 
+直接在 [官网](https://www.nvidia.com/en-us/drivers/) 搜索框找对应的即可。
+
+安装 gpu toolkit，下载 [here](https://developer.nvidia.com/cuda-toolkit-archive)，选择 `nvidia-smi` 对应的版本，选的 version 10/11 是指 windows10/11。安装教程 [参考](https://blog.csdn.net/weixin_43741711/article/details/108908079)
 
 #### 模型信息
 
