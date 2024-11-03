@@ -3387,7 +3387,7 @@ Zotoro 文件里是导出全部，要导出部分就在我的文库右击文件�
 
 杂项里关闭使用大括号xxx [参考](https://zhuanlan.zhihu.com/p/458340252?utm_id=0)
 
-导出额外字段，以存档位置为例：
+导出额外字段，以存档位置为例：(postscript 里添加)
 
 ```c++
 if (this.item.archiveLocation) {
