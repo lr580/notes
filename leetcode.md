@@ -2213,6 +2213,18 @@
 - 633\.平方数之和
 
   枚举+数学(解方程) / <u>双指针 / 数学质因数分解</u>
+  
+- 3222\.求出硬币游戏的赢家
+
+  签到 数学
+  
+- 930\.和相同的二元子数组
+
+  滑动窗口 / 枚举+前缀和+STL
+  
+- 438\.找到字符串中所有字母异位词
+
+  滑动窗口
 
 ## 算法
 
@@ -56131,6 +56143,62 @@ class Solution {
       	// 例如 11 这样的用例，由于上面的 for 循环里 base * base <= c ，base == 11 的时候不会进入循环体
       	// 因此在退出循环以后需要再做一次判断
         return c % 4 != 3;
+    }
+}
+```
+
+##### 3222\.求出硬币游戏的赢家
+
+[题目](https://leetcode.cn/problems/find-the-winning-player-in-coin-game)
+
+```python
+class Solution:
+    def losingPlayer(self, x: int, y: int) -> str:
+        return "Alice" if min(x, y // 4) % 2 else "Bob"
+```
+
+##### 930\.和相同的二元子数组
+
+[题目](https://leetcode.cn/problems/binary-subarrays-with-sum/)
+
+滑动窗口三指针
+
+```java
+class Solution {
+    public int numSubarraysWithSum(int[] nums, int goal) {
+        int ans = 0, s = 0, l = 0, l2 = 0, s2 = 0, n=nums.length;
+        for(int r=0;r<n;++r) {
+            s+=nums[r];
+            s2+=nums[r];
+            while(s>goal) {
+                s-=nums[l];
+                l+=1;
+            }
+            while(s2>=goal && l2<=r) {
+                s2-=nums[l2];
+                l2+=1;
+            }
+            ans += l2-l;
+        }
+        return ans;
+    }
+}
+```
+
+前缀和：枚举右端点，记录有几个符合条件的左端点 $s_r-s_{l-1}=goal$。
+
+```java
+class Solution {
+    public int numSubarraysWithSum(int[] nums, int goal) {
+        int sum = 0;
+        Map<Integer, Integer> cnt = new HashMap<Integer, Integer>();
+        int ret = 0;
+        for (int num : nums) {
+            cnt.put(sum, cnt.getOrDefault(sum, 0) + 1);
+            sum += num;
+            ret += cnt.getOrDefault(sum - goal, 0);
+        }
+        return ret;
     }
 }
 ```

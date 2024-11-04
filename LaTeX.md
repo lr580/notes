@@ -2724,6 +2724,32 @@ csvsimple 包 [官方文档](https://mirror.mwt.me/ctan/macros/latex/contrib/csv
  \end{longtable}
 ```
 
+##### 分栏表
+
+[参考](https://blog.csdn.net/qq_36158230/article/details/125833281)
+
+在分栏情况下，一个表格占据两栏；还有其他几种变式可以看参考出处
+
+- `\begin{table*}`中的“*”表示这个表格在两栏模板中使用一栏
+
+```tex
+\begin{table*}
+\caption{This is a table with full width in single column.}
+\label{tab_fwsc}
+\begin{tabular*}{\linewidth}{cccc} //自己改宽度
+\toprule
+Col 1 & Col 2 & Col 3 & Col4\\
+\midrule
+12345 & 12345 & 123 & 12345 \\
+12345 & 12345 & 123 & 12345 \\
+12345 & 12345 & 123 & 12345 \\
+12345 & 12345 & 123 & 12345 \\
+12345 & 12345 & 123 & 12345 \\
+\bottomrule
+\end{tabular*}
+\end{table*}
+```
+
 
 
 #### 图片
