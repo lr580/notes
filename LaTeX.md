@@ -1540,7 +1540,7 @@ In this project, we studied the effectiveness of spice challenges in building te
 
 Here's what a Markdown table looks like. Note that the code for this table was generated _automatically_ from a DataFrame, using
 
-​```py
+```py
 print(counts[['Quarter', 'Count']].head().to_markdown(index=False))
 ```
 
@@ -1564,7 +1564,7 @@ print(counts[['Quarter', 'Count']].head().to_markdown(index=False))
 
 `_config.yml` 如下：
 
-​```yaml
+```yaml
 remote_theme: pages-themes/cayman@v0.2.0
 plugins:
 - jekyll-remote-theme # add this line to the plugins list if you already have one
@@ -2260,7 +2260,7 @@ geometry 宏包，如：
 
 > 这个命令还可以用来修改其他参数，如重置页号：`\setcounter{page}{1}`
 
- 
+
 
 ##### 正文
 
@@ -3374,7 +3374,9 @@ citation keyword，即 id 字段(区分于 author字段)，{第一行
 
 ###### Zotero better bibtex
 
-Zotoro 文件里是导出全部，要导出部分就在我的文库右击文件夹导出分类。[参考](https://blog.csdn.net/Misty_Yee/article/details/139998087)
+Zotero 文件里是导出全部，要导出部分就在我的文库右击文件夹导出分类。[参考](https://blog.csdn.net/Misty_Yee/article/details/139998087)
+
+> Zotero 可以同步，直接首选项设置同步登录账号即可，然后右击文件夹按同步，但 pdf 不能全部同步过去，只能同步一部分(大小限制)，注意这个同步是自动的，自己无需手动每次同步。
 
 插件的 [安装教程](https://retorque.re/zotero-better-bibtex/installation/index.html) 与 [下载](https://github.com/retorquere/zotero-better-bibtex/releases)，配置教程参考：[src](https://zhuanlan.zhihu.com/p/682273751)
 
@@ -3387,13 +3389,12 @@ Zotoro 文件里是导出全部，要导出部分就在我的文库右击文件�
 
 杂项里关闭使用大括号xxx [参考](https://zhuanlan.zhihu.com/p/458340252?utm_id=0)
 
-导出额外字段，以存档位置为例：(postscript 里添加)
+导出额外字段，以存档位置为例：
 
 ```c++
 if (this.item.archiveLocation) {
     this.add({ name: 'archive_location', value: this.item.archiveLocation });
 }
-
 ```
 
 引用标题(关键字)修改：默认引用格式公式是 `auth.lower + shorttitle(3,3) + year`，改成：`ArchiveLocation` (参考 [here](https://retorque.re/zotero-better-bibtex/citing/index.html) 的 Direct access to unprocessed fields)，如果没有这个条目，会以 `zotero-数字` 来规定。

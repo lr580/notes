@@ -10006,6 +10006,7 @@ set会跳过重复数据。传入数据有重复值或可变元素改变了自�
   哈希冲突不会覆盖元素，而是开散列表(大了转红黑树)
 
 - TreeSet 实现了 `java.util.SortedSet` ，按递增顺序排序，不能 null
+  
   - `NavigableSet`
 
 
@@ -16194,6 +16195,77 @@ public static void toClipboard(String s) {
 
 
 ### 其他
+
+#### 匿名函数
+
+##### 基本
+
+`参数列表 -> 返回值;` 的表达式，java8，无参数写 `()`，多个参数加括号如 `(a,b)->`
+
+或 `{一堆代码; return 返回值;}` 也就是返回值改成函数体。
+
+该函数的类型是：(`java.util.function.`)
+
+- 零个参数一个返回值 `Supplier`，使用 `.get` 调用
+- 一个参数一个返回值 `Function`，使用 `.apply` 调用
+- 两个参数一个返回值 `BiFunction`，使用 `.apply` 调用
+- 多个参数一个返回值，实现接口 `@FunctionalInterface`，自定义调用名
+
+```java
+import java.util.Arrays;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+//@FunctionalInterface 有没有都行
+interface myfunc {
+    int go(int a, int b, int c);
+}
+
+public class TestLambda {
+    static private int[] mymap(int a[], Function<Integer, Integer> map) {
+        for (int i=0;i<a.length;++i) {
+            a[i] = map.apply(a[i]);
+        }
+        return a;
+    }
+
+    public static void main(String[] args) {
+        Function<Integer, Integer> square = x -> x * x;
+        System.out.println(square.apply(6)); //36
+        Supplier<Integer> lr = () -> 580;
+        System.out.println(lr.get()); //580
+        BiFunction<Integer, Integer, Integer> add = (a, b) -> a + b;
+        System.out.println(add.apply(1, 2)); // 3
+        myfunc f = (a, b, c) -> a * b * c;
+        System.out.println(f.go(2, 3, 4)); //24
+        int a[] = new int[]{1, 2, 3, 4};
+        int b[] = mymap(mymap(a, square), square); // square 换成 x -> x * x 等 any 也行
+        System.out.println(Arrays.toString(a)); // [1, 16, 81, 256]
+        System.out.println(Arrays.toString(b)); // [1, 16, 81, 256]
+    }
+}
+```
+
+```java
+public class TestLambda2 {
+    public static void main(String[] args) {
+        BiFunction<Integer, Integer, Integer> qpow = (a,p) -> {
+          int r=1;
+          for(;p>0;p>>=1) {
+              if((p&1)==1) r=r*a;
+              a=a*a;
+          }
+          return r;
+        };
+        System.out.println(qpow.apply(2,10));
+    }
+}
+```
+
+递归：Y combinator，略，太麻烦了。
+
+
 
 #### 枚举
 

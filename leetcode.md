@@ -2210,9 +2210,15 @@
 
   DP 记忆化DFS 多维分组背包
   
+<<<<<<< HEAD
 - 209\.长度最小的子数组
 
   滑动窗口 / 前缀和+二分
+=======
+- 633\.平方数之和
+
+  枚举+数学(解方程) / <u>双指针 / 数学质因数分解</u>
+>>>>>>> ce3c76e3c2ba3fa7054ba39b5d03d72552f9b51c
 
 ## 算法
 
@@ -56048,6 +56054,7 @@ class Solution {
 }
 ```
 
+<<<<<<< HEAD
 ##### 209\.长度最小的子数组
 
 [题目](https://leetcode.cn/problems/minimum-size-subarray-sum)
@@ -56071,3 +56078,92 @@ public:
     }
 };
 ```
+=======
+##### 633\.平方数之和
+
+[题目](https://leetcode.cn/problems/sum-of-square-numbers)
+
+暴力枚举开方(小心炸int，注意判 $c=0$)
+
+```java
+class Solution {
+    public boolean judgeSquareSum(int c) {
+        for(long a=0;a*a<=c;++a) {
+            long b=Math.round(Math.sqrt(c-a*a));
+            if(a*a+b*b==c) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+```
+
+```java
+class Solution {
+    public boolean judgeSquareSum(int c) {
+        for (long a = 0; a * a <= c; a++) {
+            double b = Math.sqrt(c - a * a);
+            if (b == (int) b) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+```
+
+双指针：设 $a\le b$，初始值 $a=0,b=\sqrt c$，若 $a^2+b^2=c$，有解；若 $a^2+b^2>c$，那么对现在的 $b$，任意 $a$ 都无解，当前 $b$ 减一；在剩下可能有解范围内，若 $a^2+b^2<c$，对现在 $a$，任意 $b$ 都无解，当前 $a$ 加一。
+
+```java
+class Solution {
+    public boolean judgeSquareSum(int c) {
+        long left = 0;
+        long right = (long) Math.sqrt(c);
+        while (left <= right) {
+            long sum = left * left + right * right;
+            if (sum == c) {
+                return true;
+            } else if (sum > c) {
+                right--;
+            } else {
+                left++;
+            }
+        }
+        return false;
+    }
+}
+```
+
+费马平方和定理：非负整数 $c$ 能表示为平方和当且仅当 $c$ 的所有 $4k+3$ 的质因子的幂都是偶数。即若 $(4k+3)^p|a$，则 $p$ 为偶数。[证明 TL;DR](https://wstein.org/edu/124/lectures/lecture21/lecture21/node2.html)
+
+```java
+class Solution {
+    public boolean judgeSquareSum(int c) {
+        for (int base = 2; base * base <= c; base++) {
+            // 如果不是因子，枚举下一个
+            if (c % base != 0) {
+                continue;
+            }
+
+            // 计算 base 的幂
+            int exp = 0;
+            while (c % base == 0) {
+                c /= base;
+                exp++;
+            }
+
+            // 根据 Sum of two squares theorem 验证
+            if (base % 4 == 3 && exp % 2 != 0) {
+                return false;
+            }
+        }
+
+      	// 例如 11 这样的用例，由于上面的 for 循环里 base * base <= c ，base == 11 的时候不会进入循环体
+      	// 因此在退出循环以后需要再做一次判断
+        return c % 4 != 3;
+    }
+}
+```
+
+>>>>>>> ce3c76e3c2ba3fa7054ba39b5d03d72552f9b51c
