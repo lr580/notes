@@ -2930,6 +2930,152 @@ char _ibuf[_IB],*_s,*_t;
 
 # C++ - 知识网络
 
+## 安装使用
+
+vscode C++20 参考 [here](https://www.cnblogs.com/AndreaDO/p/17854742.html)
+
+下载 mingw，对 windows 在这 [src](https://github.com/niXman/mingw-builds-binaries/releases)，选 `release-win32-seh-msvcrt...` 的
+
+解压和配 path (如 `C:\ProgramData\mingw64\bin`)，检验：cmd 输入 `gcc,g++` 有输出。
+
+项目根目录新建 `.vscode`，输入下面的文件：(所有的目录根据 path 修改，注意版本数字如 14.2.0 对不对)
+
+`launch.json` (负责弹出新窗口，没有也行，新窗口是 `externalConsole` 的 true)
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "g++.exe - 生成和调试活动文件",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "C:\\Windows\\system32\\cmd.exe",
+            "args": ["/C","${fileDirname}\\${fileBasenameNoExtension}.exe","&","pause"],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "C:\\ProgramData\\mingw64\\bin\\gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "为 gdb 启用整齐打印",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "C/C++: g++.exe 生成活动文件"
+        }
+    ]
+}
+```
+
+`tasks.json`
+
+```json
+{
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "C/C++: g++.exe 生成活动文件",
+            "command": "C:\\ProgramData\\mingw64\\bin\\g++.exe",
+            "args": [
+                "-fdiagnostics-color=always",
+                "-g",
+    "${file}",
+                "-std=c++23",
+                "-o",
+                "${fileDirname}\\${fileBasenameNoExtension}.exe"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "调试器生成的任务。"
+        }
+    ],
+    "version": "2.0.0"
+}
+```
+
+`c_cpp_properties.json`
+
+- 用注释的几个路径也行
+- 不是注释那几个路径是 `gcc -v -E -x c++ -` 里最下面输出的几个路径
+- 没有不影响跑代码，但是会报错 `#include errors detected. Please update your includePath`
+
+```json
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "C:/ProgramData/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/14.2.0/include/c++",
+                "C:/ProgramData/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/14.2.0/include/c++/x86_64-w64-mingw32",
+                "C:/ProgramData/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/14.2.0/include/c++/backward",
+                "C:/ProgramData/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/14.2.0/include",
+                "C:/ProgramData/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/14.2.0/include-fixed",
+                "C:/ProgramData/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/14.2.0/../../../../x86_64-w64-mingw32/include",
+                // "C:\\ProgramData\\mingw64\\include",
+                // "C:\\ProgramData\\mingw64\\x86_64-w64-mingw32\\include",
+                // "C:\\ProgramData\\mingw64\\lib\\gcc\\x86_64-w64-mingw32\\14.2.0\\include",
+                // "C:\\ProgramData\\mingw64\\lib\\gcc\\x86_64-w64-mingw32\\14.2.0\\include\\c++",
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "compilerPath": "C:\\ProgramData\\mingw64\\bin\\g++.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++23",
+            "intelliSenseMode": "windows-gcc-x64"
+        }
+    ],
+    "version": 4
+}
+```
+
+安装 c++ 插件 (f5 运行，选lld那个recommended即可)，配置 code runner (ctrl+alt+n 运行)，对 code runner 配置，去 extensions 页面找到这个插件点击设置图标按钮点击 settings，找到 executor map 这个项目点进去 json，有 g++ 的那一行添加 `-std=c++2a` 如：
+
+```json
+"cpp": "cd $dir && g++ -std=c++2a $fileName -o $fileNameWithoutExt && $dir$fileNameWithoutExt",
+```
+
+然后应该就可以了，跑一个代码看看：
+
+```c++
+#include <bits/stdc++.h>
+
+std::vector<int> fibonacci(int n) {
+    std::vector<int> fibs{0, 1};
+    for (int i = 2; i < n; ++i) {
+        fibs.push_back(fibs[i - 1] + fibs[i - 2]);
+    }
+    return fibs;
+}
+
+int main() {
+    int n = 10; // 生成前 10 个斐波那契数
+    auto fibs = fibonacci(n);
+    for (auto num : fibs | std::views::take(n)) {
+        std::cout << num << " ";
+    }
+    std::cout << std::endl;
+    return 0;
+}
+```
+
+
+
 ## 运算
 
 ### 万能头文件

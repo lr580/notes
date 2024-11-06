@@ -1540,7 +1540,7 @@ In this project, we studied the effectiveness of spice challenges in building te
 
 Here's what a Markdown table looks like. Note that the code for this table was generated _automatically_ from a DataFrame, using
 
-```py
+​```py
 print(counts[['Quarter', 'Count']].head().to_markdown(index=False))
 ```
 
@@ -1564,7 +1564,7 @@ print(counts[['Quarter', 'Count']].head().to_markdown(index=False))
 
 `_config.yml` 如下：
 
-```yaml
+​```yaml
 remote_theme: pages-themes/cayman@v0.2.0
 plugins:
 - jekyll-remote-theme # add this line to the plugins list if you already have one
@@ -3415,7 +3415,7 @@ Zotero 文件里是导出全部，要导出部分就在我的文库右击文件�
 
 杂项里关闭使用大括号xxx [参考](https://zhuanlan.zhihu.com/p/458340252?utm_id=0)
 
-导出额外字段，以存档位置为例：
+导出额外字段，以存档位置为例：(postscript 里添加)
 
 ```c++
 if (this.item.archiveLocation) {
