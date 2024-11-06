@@ -1918,6 +1918,29 @@ int dest[] = Arrays.stream(xx).mapToInt(Integer::valueOf).toArray();// Integer[]
 
 若 `(数组,a,b,v)`  在子段$[a,b)$搜索
 
+##### =赋值
+
+=是指针指向，如：
+
+```java
+public class arraytest {
+    public static int[] f(int[] c) {
+        c[0]++;
+        return c;
+    }
+    public static void main(String[] args) {
+        int a[] = new int[]{2,30,400};
+        int b[] = a;
+        b[0]++;
+        System.out.println(a[0]); // 3
+        int d[] = f(a);
+        System.out.println(a[0]); // 4
+        d[0]++;
+        System.out.println(a[0]); // 5
+    }
+}
+```
+
 ##### 排序
 
 使用归并排序或 timsort(归并+插入+二分)
@@ -2567,6 +2590,33 @@ public class c1603 {
 
 ```
 
+##### =赋值
+
+对象=对象是指针指向
+
+```java
+class myobj {
+    public int x;
+    public myobj(int x) {this.x=x;}
+}
+public class objtest {
+    public static myobj f(myobj c) {
+        c.x++;
+        return c;
+    }
+    public static void main(String[] args) {
+        myobj b = new myobj(3);
+        myobj a = b;
+        a.x++;
+        System.out.println(b.x); // 4
+        myobj d = f(b);
+        System.out.println(b.x); // 5
+        d.x++;
+        System.out.println(b.x); // 6
+    }
+}
+```
+
 
 
 ##### 对象
@@ -2721,6 +2771,19 @@ MIN_VALUE $-2^{31}$
 SIZE 二进制位数 32
 
 TYPE  输出int
+
+###### 自动装箱
+
+[参考](https://blog.csdn.net/admin_wuekte/article/details/128730203)
+
+`Integer a=3;` 的逻辑等价于 `Integer a=Integer.valueOf(3)`。这个从基本数据类型转换成包装类的语法特性为自动装箱。
+
+阅读源码，`Integer` 定义了 `[-128, 127]` 的 `cache` 存储这些范围的整数，当执行 `valueOf` 时，在这个范围就让对象直接指向它。否则，new 一个新的。根据 `==` 是内存相等(同一个对象)，`.equals` 是值相等(看 Integer 源码)。故有：
+
+```java
+Integer a = 1, b = 1; // a==b  a.equals(b)
+Integer a = 580, b = 580; // a!=b  a.equals(b)
+```
 
 ##### Long
 
@@ -3515,6 +3578,8 @@ public boolean equals(obj3 rhs) {
 //...
 System.out.println((new obj3(13)).equals(new obj3(13)));
 ```
+
+注意 `obj a = b` 是指针指向。
 
 ###### hashCode
 
