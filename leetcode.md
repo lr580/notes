@@ -2233,6 +2233,14 @@
 - 3255\.长度为K的子数组的能量值II
 
   枚举 / 滑动窗口
+  
+- 3235\.判断矩形的两个角落是否可达
+
+  **计算几何 DFS/并查集**
+  
+- 3242\.设计相邻元素求和服务
+
+  签到
 
 ## 算法
 
@@ -56257,6 +56265,127 @@ class Solution {
             }
         }
         return ans;
+    }
+}
+```
+
+##### 3235\.判断矩形的两个角落是否可达
+
+[题目](https://leetcode.cn/problems/check-if-the-rectangle-corner-is-reachable)
+
+```java
+class Solution {
+    public boolean canReachCorner(int X, int Y, int[][] circles) {
+        boolean[] vis = new boolean[circles.length];
+        for (int i = 0; i < circles.length; i++) {
+            long x = circles[i][0], y = circles[i][1], r = circles[i][2];
+            if (inCircle(x, y, r, 0, 0) || // 圆 i 包含矩形左下角
+                inCircle(x, y, r, X, Y) || // 圆 i 包含矩形右上角
+                // 圆 i 是否与矩形上边界/左边界相交相切
+                !vis[i] && (x <= X && Math.abs(y - Y) <= r ||
+                            y <= Y && x <= r ||
+                            y > Y && inCircle(x, y, r, 0, Y)) && dfs(i, X, Y, circles, vis)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // 判断点 (x,y) 是否在圆 (ox,oy,r) 内
+    private boolean inCircle(long ox, long oy, long r, long x, long y) {
+        return (ox - x) * (ox - x) + (oy - y) * (oy - y) <= r * r;
+    }
+
+    private boolean dfs(int i, int X, int Y, int[][] circles, boolean[] vis) {
+        long x1 = circles[i][0], y1 = circles[i][1], r1 = circles[i][2];
+        // 圆 i 是否与矩形右边界/下边界相交相切
+        if (y1 <= Y && Math.abs(x1 - X) <= r1 ||
+            x1 <= X && y1 <= r1 ||
+            x1 > X && inCircle(x1, y1, r1, X, 0)) {
+            return true;
+        }
+        vis[i] = true;
+        for (int j = 0; j < circles.length; j++) {
+            long x2 = circles[j][0], y2 = circles[j][1], r2 = circles[j][2];
+            // 在两圆相交相切的前提下，点 A 是否严格在矩形内
+            if (!vis[j] &&
+                (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) <= (r1 + r2) * (r1 + r2) &&
+                x1 * r2 + x2 * r1 < (r1 + r2) * X &&
+                y1 * r2 + y2 * r1 < (r1 + r2) * Y &&
+                dfs(j, X, Y, circles, vis)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+```
+
+##### 设计相邻元素求和服务
+
+[题目](https://leetcode.cn/problems/design-neighbor-sum-service)
+
+```java
+class NeighborSum {
+    private int ans1[], ans2[];
+    public NeighborSum(int[][] grid) {
+        int n = grid.length;
+        ans1 = new int[n*n];
+        ans2 = new int[n*n];
+        for(int i=0;i<n;++i) {
+            for(int j=0;j<n;++j) {
+                int v=grid[i][j];
+                for(int x=Math.max(0,i-1);x<Math.min(n,i+2);++x) {
+                    for(int y=Math.max(0,j-1);y<Math.min(n,j+2);++y) {
+                        int d = Math.abs(x-i)+Math.abs(y-j);
+                        int v2=grid[x][y];
+                        if(d==1) ans1[v]+=v2; else ans2[v]+=v2;
+                    }
+                }
+                ans2[v]-=v;
+            }
+        }
+    }
+    
+    public int adjacentSum(int value) {
+        return ans1[value];
+    }
+    
+    public int diagonalSum(int value) {
+        return ans2[value];
+    }
+}
+```
+
+```java
+class NeighborSum {
+    private static final int[][] DIRS = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, 1}, {-1, 1}, {-1, -1}, {1, -1}};
+
+    private final int[][] s;
+
+    public NeighborSum(int[][] grid) {
+        int n = grid.length;
+        s = new int[n * n][2];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                int v = grid[i][j];
+                for (int k = 0; k < 8; k++) {
+                    int x = i + DIRS[k][0];
+                    int y = j + DIRS[k][1];
+                    if (0 <= x && x < n && 0 <= y && y < n) {
+                        s[v][k / 4] += grid[x][y];
+                    }
+                }
+            }
+        }
+    }
+
+    public int adjacentSum(int value) {
+        return s[value][0];
+    }
+
+    public int diagonalSum(int value) {
+        return s[value][1];
     }
 }
 ```
