@@ -2241,6 +2241,10 @@
 - 3242\.设计相邻元素求和服务
 
   签到
+  
+- 540\.有序数组中的单一元素
+
+  二分
 
 ## 算法
 
@@ -6773,6 +6777,18 @@ if __name__ == "__main__":
     print(solution(34, 45) == 6)
     print(solution(50, 30) == 8)
 ```
+
+##### 20\.比赛配对问题
+
+~~即 $a_1=0,a_n=a_{\lceil\frac n2\rceil}+\lfloor\dfrac n2\rfloor$。~~每配对一次少一个队伍，最后要变成 1 个队伍，故 $n-1$。
+
+```python
+def solution(n: int) -> int:
+    return n-1
+    return 0 if n==1 else solution((n+1)//2)+n//2
+```
+
+
 
 #### NOIP
 
@@ -56389,3 +56405,47 @@ class NeighborSum {
     }
 }
 ```
+
+##### 540\.有序数组中的单一元素
+
+[题目](https://leetcode.cn/problems/single-element-in-a-sorted-array)
+
+二分。已知目标前面的成对都是偶数下标开始，后面都是奇数下标开始。要么按偶数二分。
+
+```java
+class Solution {
+    public int singleNonDuplicate(int[] nums) {
+        int low = 0, high = nums.length - 1;
+        while (low < high) {
+            int mid = (high - low) / 2 + low;
+            mid -= mid & 1;
+            if (nums[mid] == nums[mid + 1]) {
+                low = mid + 2;
+            } else {
+                high = mid;
+            }
+        }
+        return nums[low];
+    }
+}
+```
+
+要么直接看相邻，左右的相邻都可以用 $\oplus1$ 求。
+
+```java
+class Solution {
+    public int singleNonDuplicate(int[] nums) {
+        int low = 0, high = nums.length - 1;
+        while (low < high) {
+            int mid = (high - low) / 2 + low;
+            if (nums[mid] == nums[mid ^ 1]) {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+        return nums[low];
+    }
+}
+```
+
