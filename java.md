@@ -1835,6 +1835,15 @@ Arrays.fill(a, 2, 5, 998244353);
 System.out.println(a[4]);
 ```
 
+二维数组 for fill
+
+```java
+int dp[][] = new int[m][m];
+for (int i = 0; i < m; i++) {
+    Arrays.fill(dp[i], 1000000000);
+}
+```
+
 ###### sort
 
 `Arrays.sort(数组)`升序排序一个数组(数值和字符串排序依据不一样)

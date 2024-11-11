@@ -7125,6 +7125,7 @@ np.mean(arr)
 ```python
 data = np.array([[[ 1, -2],[ 3, -4]],   [[-1,  2],[ 4, -5]]])
 print(np.mean(np.abs(data), axis=(1, 2))) #[2.5 ,3.]
+#做了abs，故(1+2+3+4)/4=2.5
 ```
 
 ##### 方差
@@ -7496,6 +7497,20 @@ pandas 库，假设 result 是一维 nd array
 ```python
 result_df = pd.DataFrame(result, columns=['result'])
 result_df.to_csv('./step2/result.csv', index=False)
+```
+
+##### npy
+
+单个数组，只能用于 NumPy 数组
+
+```python
+import numpy as np
+array = np.array([[1, 2, 3], [4, 5, 6]])
+np.save('my_array.npy', array)
+loaded_array = np.load('my_array.npy')
+print(loaded_array)
+'''[[1 2 3]
+ [4 5 6]]'''
 ```
 
 ##### npz
@@ -13195,6 +13210,31 @@ train_data, val_data = train_test_split(data, test_size=0.2, random_state=42)
 
 随机数生成器的种子，默认参数 `random_state`，如设置为某个整数
 
+##### kfold
+
+```python
+from sklearn.model_selection import KFold
+X = [100,200,300,400,500,600]
+kf = KFold(3)
+for fold, (train_index, test_index) in enumerate(kf.split(X)):
+    print(f"Fold {fold}")
+    print("Train Index:", train_index)
+    print("Test Index:", test_index) # val index
+    print("Train:", X[train_index])
+    print("Test:", X[test_index])
+'''Fold 0
+Train Index: [2 3 4 5]
+Test Index: [0 1]
+Fold 1
+Train Index: [0 1 4 5]
+Test Index: [2 3]
+Fold 2
+Train Index: [0 1 2 3]
+Test Index: [4 5]'''
+```
+
+
+
 ##### 时间
 
 pandas 的 datetime 和 timedelta 分别转实数：
@@ -14608,7 +14648,8 @@ class SimpleModel(nn.Module):
         x = self.fc1(x)
         return x
 model = SimpleModel().to(device)
-summary(model, input_size=(1, 28, 28))
+summary(model, input_size=(1, 28, 28)) # 主要是这行，下面的行随便
+# 维度可以是3或者4,4的话就是batch
 input_data = torch.randn(1, 1, 28, 28).to(device)
 output = model(input_data)
 print(output)
@@ -15485,7 +15526,113 @@ transform = transforms.Compose([
 
 
 
-> ##### 例子
+#### 数据集层
+
+##### DataLoader
+
+```python
+import torch
+from torch.utils.data import DataLoader
+data = [
+    ([1.0, 2.0], 0),
+    ([2.0, 3.0], 1),
+    ([3.0, 4.0], 0),
+    ([4.0, 5.0], 1) ]
+features = torch.tensor([item[0] for item in data], dtype=torch.float32)
+labels = torch.tensor([item[1] for item in data], dtype=torch.long)
+dataset = list(zip(features, labels))
+# 是否打乱;可以加num_workers=4线程数
+dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
+for batch_features, batch_labels in dataloader:
+    print("特征:", batch_features)
+    print("标签:", batch_labels)
+```
+
+```
+特征: tensor([[2., 3.],
+        [3., 4.]])
+标签: tensor([1, 0])
+特征: tensor([[1., 2.],
+        [4., 5.]])
+标签: tensor([0, 1])
+```
+
+##### TensorDataset
+
+结果同上面例子。
+
+```python
+import torch
+from torch.utils.data import DataLoader, TensorDataset
+features = torch.tensor([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0]], dtype=torch.float32)
+labels = torch.tensor([0, 1, 0, 1], dtype=torch.long)
+dataset = TensorDataset(features, labels)
+dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
+for batch_features, batch_labels in dataloader:
+    print("特征:", batch_features)
+    print("标签:", batch_labels)
+```
+
+
+
+##### Dataset
+
+每个 for 相当于把 for 调用 getitem
+
+```python
+import torch
+from torch.utils.data import Dataset, DataLoader
+class SimpleDataset(Dataset):
+    def __init__(self):
+        self.data = [
+            ([1.0, 2.0], 0),
+            ([2.0, 3.0], 1),
+            ([3.0, 4.0], 2),
+            ([4.0, 5.0], 3)
+        ]
+    def __len__(self):
+        return len(self.data)
+    def __getitem__(self, idx):
+        features, label = self.data[idx]
+        return torch.tensor(features, dtype=torch.float32), torch.tensor(label, dtype=torch.long)
+dataset = SimpleDataset()
+dataloader = DataLoader(dataset, batch_size=2, shuffle=True) 
+for batch_features, batch_labels in dataloader:
+    print("特征:", batch_features)
+    print("标签:", batch_labels)
+```
+
+```
+特征: tensor([[1., 2.],
+        [3., 4.]])
+标签: tensor([0, 2])
+特征: tensor([[2., 3.],
+        [4., 5.]])
+标签: tensor([1, 3])
+```
+
+##### Subset
+
+上面代码 `Dataset` 例子承接：(相当于 for indices 调用 getitem)
+
+```python
+from torch.utils.data import Dataset, DataLoader, Subset
+indices = [0, 2]  # 选择第 0 和第 2 个样本
+subset = Subset(dataset, indices)
+dataloader = DataLoader(subset, batch_size=1)
+for batch_features, batch_labels in dataloader:
+    print("特征:", batch_features)
+    print("标签:", batch_labels)
+```
+
+```
+特征: tensor([[1., 2.]])
+标签: tensor([0])
+特征: tensor([[3., 4.]])
+标签: tensor([2])
+```
+
+
 
 #### 模型层
 
@@ -15599,6 +15746,8 @@ print(f"Final output shape: {output_tensor.shape}")
 
 ###### ReLU
 
+poe 增加模型的非线性表达能力
+
 `ReLU(X)=MAX(0,X)`
 
 ```python
@@ -15640,6 +15789,8 @@ print(mean, variance) # 均值约0，方差在1附近(不严格)
 
 每个通道独立变成均值0方差1，也就是对 `[b,c,h,w]` 的全体 `c` 个 `[b,h,w]` 独立求出每个的均值方差然后做变换
 
+poe 用于加速训练过程并提高模型稳定性。
+
 ```python
 import torch
 import torch.nn as nn
@@ -15663,6 +15814,8 @@ print("Output tensor:\n", output_tensor)
           [-0.3873,  0.0000,  0.3873],
           [ 0.7746,  1.1619,  1.5492]]]], grad_fn=<NativeBatchNormBackward0>
 ```
+
+###### AdaptiveAvgPool2d
 
 
 
@@ -17542,6 +17695,8 @@ with open('titles.txt', 'w', encoding=enc) as f:
 
 aws 在线平台，sagemaker 可以运行 jupyter，s3 可以存储文件 [文档](https://github.com/boto/boto3)
 
+#### 连接
+
 一个 s3 有多个桶，在线运行的 jupyter 可以直接列举出每个桶(可能不全)：
 
 ```python
@@ -17558,6 +17713,8 @@ bucket = s3.Bucket('meg-visual-moving-target')
 for obj in bucket.objects.all():
     print(obj.key)
 ```
+
+#### 读取
 
 将这些内容下载到 jupyter 所在服务器：
 
@@ -17641,7 +17798,30 @@ mat_data = scipy.io.loadmat(BytesIO(data))
 > echo $AWS_SECRET_ACCESS_KEY
 > ```
 >
-> 
+
+#### 写入
+
+```python
+import s3fs
+fs = s3fs.S3FileSystem()
+bucket_name = 'megbatches'
+folder_name = 'testfolder/'
+file_name = 'example.txt'
+file_content = 'This is a sample text for S3 storage.'
+
+path = f's3://{bucket_name}/{folder_name}{file_name}'
+print(path)
+
+with fs.open(path, 'w') as f:
+    f.write(file_content)
+
+print(f'Successfully uploaded {file_name} to {path}')
+
+with fs.open(path, 'r') as f:
+    print(f.read())
+```
+
+
 
 ## 后端
 
