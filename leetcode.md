@@ -2249,6 +2249,14 @@
 - 1547\.切棍子的最小成本
 
   <u>区间DP</u>
+  
+- 3258\.统计满足K约束的子字符串数量I
+
+  滑动窗口+容斥 / <u>滑动窗口</u> / 签到
+  
+- 3261\.统计满足K约束的子字符串数量II
+
+  **莫队+滑动窗口 / 滑动窗口+二分+前缀和 / 滑动窗口+预处理+前缀和**
 
 ## 算法
 
@@ -56574,3 +56582,296 @@ class Solution {
     }
 }
 ```
+
+##### 3258\.统计满足K约束的子字符串数量I
+
+[题目](https://leetcode.cn/problems/count-substrings-that-satisfy-k-constraint-i)
+
+容斥 a or b = a + b - ab。三次滑动窗口。用了接口自定义函数复用代码。
+
+```java
+class Solution {
+    private String s;
+    private int k;
+
+    interface constraint {
+        public boolean f(int n0, int n1);
+    }
+
+    class Con0 implements constraint {
+        public boolean f(int n0, int n1) {
+            return n0 <= k;
+        }
+    }
+
+    class Con1 implements constraint {
+        public boolean f(int n0, int n1) {
+            return n1 <= k;
+        }
+    }
+
+    class Con01 implements constraint {
+        public boolean f(int n0, int n1) {
+            return n0 <= k && n1 <= k;
+        }
+    }
+
+    private constraint con0 = new Con0(), con1 = new Con1(), con01 = new Con01();
+
+    private int solve(constraint cons) {
+        int ans = 0, n = s.length(), n0 = 0, n1 = 0;
+        for (int l = 0, r = 0; r < n; ++r) {
+            n0 += s.charAt(r) == '0' ? 1 : 0;
+            n1 += s.charAt(r) == '1' ? 1 : 0;
+            while (!cons.f(n0, n1)) {
+                n0 -= s.charAt(l) == '0' ? 1 : 0;
+                n1 -= s.charAt(l) == '1' ? 1 : 0;
+                ++l;
+            }
+            ans += r - l + 1;
+        }
+        return ans;
+    }
+
+    public int countKConstraintSubstrings(String s, int k) {
+        this.s = s;
+        this.k = k;
+        return solve(con0) + solve(con1) - solve(con01);
+    }
+}
+```
+
+ 直接反向思考，while !(a or b) 即 while !a and !b，不用三次的。
+
+```java
+class Solution {
+    public int countKConstraintSubstrings(String S, int k) {
+        char[] s = S.toCharArray();
+        int ans = 0;
+        int left = 0;
+        int[] cnt = new int[2];
+        for (int i = 0; i < s.length; i++) {
+            cnt[s[i] & 1]++;
+            while (cnt[0] > k && cnt[1] > k) {
+                cnt[s[left] & 1]--;
+                left++;
+            }
+            ans += i - left + 1;
+        }
+        return ans;
+    }
+}
+```
+
+##### 3261\.统计满足K约束的子字符串数量II
+
+[题目](https://leetcode.cn/problems/count-substrings-that-satisfy-k-constraint-ii)
+
+使用莫队处理询问。具体逻辑：
+
+1. 先用滑动窗口求出以每个下标为区间一端，最长能到达另一端的下标，设为 `lf[i]` 是 i 为左端点的最大右端点使得 `[i, lf[i] ]` 合法，`rf[i]` 是 i 为右端点的最小左端点使得 `[ rf[i], i]` 合法。
+2. 每次使用莫队使得区间长度发生变化时：
+   1. 左端点左移，合法区间数增多，增量为新的左端点最大能到达的右边 `lf[l]`，与当前 `r` 求 min，对左移后的 $l$，所有区间 $[l,x],x\le \min(lf[l],r)$ 合法，区间数为 $\min(lf[l],r)-l+1$。
+   2. 右端点右移，合法区间数增多，增量为新的右端点最大能到达的左边 `rf[r]`，与当前 `l` 求 max，对右移后的 $r$，所有区间 $[x,r],x\ge\max(rf[r],l)$ 合法，区间数为 $r-\max(rf[r],l)+1$。
+   3. 左端点右移，合法区间数减少，减量为旧的左端点最大能到达的右边 `lf[l]`，与当前 `r` 求 min，对左移前的 $l$，所有区间 $[l,x],x\le \min(lf[l],r)$ 合法，区间数为 $\min(lf[l],r)-l+1$。
+   4. 右端点左移，合法区间数减少，减量为旧的右端点最大能到达的左边 `rf[r]`，与当前 `l` 求 max，对右移前的 $r$，所有区间 $[x,r],x\ge\max(rf[r],l)$ 合法，区间数为 $r-\max(rf[r],l)+1$。
+
+[思路参考](https://leetcode.cn/problems/count-substrings-that-satisfy-k-constraint-ii/solutions/2885202/mo-dui-hua-dong-chuang-kou-by-audience-n-72rr/)
+
+```c++
+import java.util.Arrays;
+
+class Solution {
+    // lf[i]表示i为左端点，最长合法区间为[ i, lf[i] ]
+    // rf[i]表示i为右端点，最长合法区间为[ rf[i], i ]
+    int lf[], rf[];
+
+    void predeal(String s, int k) {
+        int b[] = new int[2], n = s.length(), l, r;
+        lf = new int[n];
+        rf = new int[n];
+        for (l = 0, r = 0; r < n; ++r) {
+            ++b[s.charAt(r) & 1];
+            while (b[0] > k && b[1] > k) {
+                lf[l] = r - 1;
+                --b[s.charAt(l) & 1];
+                ++l;
+            }
+        }
+        while (l < r) {
+            lf[l++] = n - 1;
+        }
+        b[0] = b[1] = 0;
+        for (l = n - 1, r = n - 1; l >= 0; --l) {
+            ++b[s.charAt(l) & 1];
+            while (b[0] > k && b[1] > k) {
+                rf[r] = l + 1;
+                --b[s.charAt(r) & 1];
+                --r;
+            }
+        }
+        while (l < r) {
+            rf[r--] = 0;
+        }
+        System.out.println(Arrays.toString(lf));
+        System.out.println(Arrays.toString(rf));
+    }
+
+    int sq;
+
+    class Node implements Comparable<Node> {
+        int l, r, i;
+
+        public Node(int l, int r, int i) {
+            this.l = l;
+            this.r = r;
+            this.i = i;
+        }
+
+        @Override
+        public int compareTo(Node o) {
+            if (l / sq != o.l / sq)
+                return l - o.l;
+            if ((l / sq & 1) == 1)
+                return r - o.r;
+            return o.r - r;
+        }
+    }
+
+    public long[] countKConstraintSubstrings(String s, int k, int[][] queries) {
+        int n = s.length(), m = queries.length;
+        predeal(s, k);
+
+        sq = (int) Math.sqrt(m);
+        Node q[] = new Node[m];
+        for (int i = 0; i < m; ++i) {
+            q[i] = new Node(queries[i][0], queries[i][1], i);
+        }
+        Arrays.sort(q);
+        long ans[] = new long[m];
+        long sum = 0;
+        for (int i = 0, l = 0, r = -1; i < m; ++i) {
+            while (l > q[i].l) {
+                --l;
+                sum += Math.min(r, lf[l]) - l + 1;
+            }
+            while (r < q[i].r) {
+                ++r;
+                sum += r - Math.max(l, rf[r]) + 1;
+            }
+            while (l < q[i].l) {
+                sum -= Math.min(r, lf[l]) - l + 1;
+                l++;
+            }
+            while (r > q[i].r) {
+                sum -= r - Math.max(l, rf[r]) + 1;
+                r--;
+            }
+            ans[q[i].i] = sum;
+        }
+        return ans;
+    }
+}
+```
+
+设 $i$ 为右端点，最左是 $left[i]$，则 $i$ 的方案数是 $i-left[i]+1$。同上理。对询问 $[l,r]$，求每个 $i\in[l,r]$ 的方案数之和。显然 $left$ 单调递增。
+
+- 若 $left[r]\le l$，显然任意 $left[i]\le l$，共有 $\sum_{i=1}^{r-l+1}i=\dfrac{(r-l+2)(r-l+1)}{2}$ 个区间。
+- 否则，二分 $left$，求最大 $j$ 满足 $left[j]< l$，则 $[l,r]=[l,j]\cup[j+1,r]$，对 $[l,j]$，可以按上面计算。对 $[j+1,r]$，即求 $\sum_{j'=j+1}^r i-left[j']+1$，求 $left$ 前缀和。(或 $left[j]\le l$)
+
+```java
+class Solution {
+public:
+    vector<long long> countKConstraintSubstrings(string s, int k, vector<vector<int>>& queries) {
+        int n = s.length();
+        vector<int> left(n);
+        vector<long long> sum(n + 1);
+        int cnt[2]{}, l = 0;
+        for (int i = 0; i < n; i++) {
+            cnt[s[i] & 1]++;
+            while (cnt[0] > k && cnt[1] > k) {
+                cnt[s[l++] & 1]--;
+            }
+            left[i] = l;
+            // 计算 i-left[i]+1 的前缀和
+            sum[i + 1] = sum[i] + i - l + 1;
+        }
+
+        vector<long long> ans(queries.size());
+        for (int i = 0; i < queries.size(); i++) {
+            int l = queries[i][0], r = queries[i][1];
+            int j = lower_bound(left.begin() + l, left.begin() + r + 1, l) - left.begin(); //或Upper
+            ans[i] = sum[r + 1] - sum[j] + (long long) (j - l + 1) * (j - l) / 2;
+        }
+        return ans;
+    }
+};
+```
+
+预处理全体 $l\in [0,n)$ 的 $j$ 答案。使用双指针/滑动窗口再整一次，可以把二分优化掉。
+
+```c++
+class Solution {
+public:
+    vector<long long> countKConstraintSubstrings(string s, int k, vector<vector<int>>& queries) {
+        int n = s.length();
+        vector<int> left(n);
+        vector<long long> sum(n + 1);
+        int cnt[2]{}, l = 0;
+        for (int i = 0; i < n; i++) {
+            cnt[s[i] & 1]++;
+            while (cnt[0] > k && cnt[1] > k) {
+                cnt[s[l++] & 1]--;
+            }
+            left[i] = l;
+            sum[i + 1] = sum[i] + i - l + 1;
+        }
+
+        vector<int> right(n);
+        l = 0;
+        for (int i = 0; i < n; i++) {
+            while (l < n && left[l] < i) {
+                l++;
+            }
+            right[i] = l;
+        }
+
+        vector<long long> ans(queries.size());
+        for (int i = 0; i < queries.size(); i++) {
+            int l = queries[i][0], r = queries[i][1];
+            int j = min(right[l], r + 1);
+            ans[i] = sum[r + 1] - sum[j] + (long long) (j - l + 1) * (j - l) / 2;
+        }
+        return ans;
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    vector<long long> countKConstraintSubstrings(string s, int k, vector<vector<int>>& queries) {
+        int n = s.length();
+        vector<int> right(n, n);
+        vector<long long> sum(n + 1);
+        int cnt[2]{}, l = 0;
+        for (int i = 0; i < n; i++) {
+            cnt[s[i] & 1]++;
+            while (cnt[0] > k && cnt[1] > k) {
+                cnt[s[l] & 1]--;
+                right[l++] = i;
+            }
+            sum[i + 1] = sum[i] + i - l + 1;
+        }
+
+        vector<long long> ans(queries.size());
+        for (int i = 0; i < queries.size(); i++) {
+            int l = queries[i][0], r = queries[i][1];
+            int j = min(right[l], r + 1);
+            ans[i] = sum[r + 1] - sum[j] + (long long) (j - l + 1) * (j - l) / 2;
+        }
+        return ans;
+    }
+};
+```
+
