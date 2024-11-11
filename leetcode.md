@@ -2245,6 +2245,10 @@
 - 540\.有序数组中的单一元素
 
   二分
+  
+- 1547\.切棍子的最小成本
+
+  <u>区间DP</u>
 
 ## 算法
 
@@ -56449,3 +56453,124 @@ class Solution {
 }
 ```
 
+##### 1547\.切棍子的最小成本
+
+[题目](https://leetcode.cn/problems/minimum-cost-to-cut-a-stick)
+
+```java
+import java.util.Arrays;
+
+class Solution {
+    public int minCost(int n, int[] cuts) {
+        int m = cuts.length;
+        Arrays.sort(cuts);
+        int a[] = new int[m + 2];
+        for (int i = 0; i < m; ++i) {
+            a[i + 1] = cuts[i];
+        }
+        // 完成 a[l][r] 的工作的最小代价是 dp[l][r]
+        int dp[][] = new int[m + 2][m + 2];
+        for (int i = 0; i < m; ++i) {
+            Arrays.fill(dp[i], (int) 1e9);
+        }
+        a[m + 1] = n;
+        for (int i = 0; i <= m; ++i) {
+            dp[i][i] = 0;
+        }
+        for (int i = 0; i < m; ++i) {
+            dp[i][i + 1] = 0;
+        }
+        for (int len = 3; len <= m + 2; ++len) {
+            for (int l = 0, r = len - 1; r <= m + 1; ++l, ++r) {
+                for (int k = l; k <= r; ++k) {
+//                    System.out.println("sub " + l + " " + (k) + " " + (k) + " " + r + " " + dp[l][k] + " " + dp[k][r]);
+                    dp[l][r] = Math.min(dp[l][r], dp[l][k] + dp[k][r]);
+                }
+                dp[l][r] += a[r] - a[l];
+//                System.out.println(l + " " + r + " " + a[r] + " " + a[l] + " " + dp[l][r]);
+            }
+        }
+        return dp[0][m + 1];
+    }
+}
+```
+
+其他写法：区间不存在越界 0，设 `dp[l][r]` 表示把 `[l,r]` 全部切了，1-indexed all
+
+```c++
+class Solution {
+public:
+    int minCost(int n, vector<int>& cuts) {
+        int m = cuts.size();
+        sort(cuts.begin(), cuts.end());
+        cuts.insert(cuts.begin(), 0);
+        cuts.push_back(n);
+        vector<vector<int>> f(m + 2, vector<int>(m + 2));
+        for (int i = m; i >= 1; --i) {
+            for (int j = i; j <= m; ++j) {
+                f[i][j] = (i == j ? 0 : INT_MAX);
+                for (int k = i; k <= j; ++k) {
+                    f[i][j] = min(f[i][j], f[i][k - 1] + f[k + 1][j]);
+                }
+                f[i][j] += cuts[j + 1] - cuts[i - 1];
+            }
+        }
+        return f[1][m];
+    }
+};
+```
+
+也可以记忆化 DP：
+
+```java
+class Solution {
+    public int minCost(int n, int[] cuts) {
+        Arrays.sort(cuts);
+        int m = cuts.length + 2;
+        int[] newCuts = new int[m];
+        System.arraycopy(cuts, 0, newCuts, 1, m - 2);
+        newCuts[m - 1] = n;
+
+        int[][] memo = new int[m][m];
+        return dfs(0, m - 1, newCuts, memo);
+    }
+
+    private int dfs(int i, int j, int[] cuts, int[][] memo) {
+        if (i + 1 == j) { // 无需切割
+            return 0;
+        }
+        if (memo[i][j] > 0) { // 之前计算过
+            return memo[i][j];
+        }
+        int res = Integer.MAX_VALUE;
+        for (int k = i + 1; k < j; k++) {
+            res = Math.min(res, dfs(i, k, cuts, memo) + dfs(k, j, cuts, memo));
+        }
+        return memo[i][j] = res + cuts[j] - cuts[i];
+    }
+}
+```
+
+```java
+class Solution {
+    public int minCost(int n, int[] cuts) {
+        Arrays.sort(cuts);
+        int m = cuts.length + 2;
+        int[] newCuts = new int[m];
+        System.arraycopy(cuts, 0, newCuts, 1, m - 2);
+        newCuts[m - 1] = n;
+
+        int[][] f = new int[m][m];
+        for (int i = m - 3; i >= 0; i--) {
+            for (int j = i + 2; j < m; j++) {
+                int res = Integer.MAX_VALUE;
+                for (int k = i + 1; k < j; k++) {
+                    res = Math.min(res, f[i][k] + f[k][j]);
+                }
+                f[i][j] = res + newCuts[j] - newCuts[i];
+            }
+        }
+        return f[0][m - 1];
+    }
+}
+```

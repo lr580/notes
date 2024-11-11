@@ -1564,7 +1564,7 @@ print(counts[['Quarter', 'Count']].head().to_markdown(index=False))
 
 `_config.yml` 如下：
 
-​```yaml
+```yaml
 remote_theme: pages-themes/cayman@v0.2.0
 plugins:
 - jekyll-remote-theme # add this line to the plugins list if you already have one
@@ -3235,8 +3235,6 @@ signed main() /* 注释 */
 > \addcontentsline{toc}{section}{Refences}
 > ```
 
-
-
 ##### 文件调用
 
 [参考](https://zhuanlan.zhihu.com/p/397026871)
@@ -3358,7 +3356,7 @@ citation keyword，即 id 字段(区分于 author字段)，{第一行
 
 ###### 显示内容
 
-不显示某些内容，可以在 `\bibliography` 后添加
+不显示某些内容，可以在 `\bibliography` 后添加 (`biblatex`)
 
 ```tex
 \AtEveryBibitem{\clearfield{url}}  % 不显示 URL

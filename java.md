@@ -1891,6 +1891,22 @@ Arrays.sort(rs, (a,b)->{
 Integer xx[] = Arrays.copyOfRange(a2.toArray(), 0, a2.size(), Integer[].class); // Object[]转Integer[]
 ```
 
+###### arraycopy
+
+高效地复制数组中的元素。与手动循环复制数组相比，`System.arraycopy` 通常更快，因为它是由 JVM 优化的，底层实现可能使用了本地代码。
+
+```java
+public static void arraycopy(Object src, int srcPos, Object dest, int destPos, int length)
+```
+
+```java
+int[] sourceArray = {1, 2, 3, 4, 5};
+int[] destinationArray = new int[5];
+System.arraycopy(sourceArray, 0, destinationArray, 0, sourceArray.length);
+```
+
+
+
 ###### toString
 
 `Arrays.toString`
@@ -1917,6 +1933,8 @@ int dest[] = Arrays.stream(xx).mapToInt(Integer::valueOf).toArray();// Integer[]
 `Arrays.binarySearch(数组, v)` 若包含在升序数组内，返回下标，否则返回插入$v$后，$v$所应在下标的相反数。
 
 若 `(数组,a,b,v)`  在子段$[a,b)$搜索
+
+
 
 ##### =赋值
 
