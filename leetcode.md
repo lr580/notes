@@ -2257,6 +2257,14 @@
 - 3261\.统计满足K约束的子字符串数量II
 
   **莫队+滑动窗口 / 滑动窗口+二分+前缀和 / 滑动窗口+预处理+前缀和**
+  
+- 3112\.访问消失节点的最少时间
+
+  Dijkstra最短路
+  
+- 3249\.统计好节点的数目
+
+  DFS 树
 
 ## 算法
 
@@ -56875,3 +56883,102 @@ public:
 };
 ```
 
+##### 3112\.访问消失节点的最少时间
+
+[题目](https://leetcode.cn/problems/minimum-time-to-visit-disappearing-nodes)
+
+没写代码，改了人的。修改松弛条件，让同时满足 disappear。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    vector<int> minimumTime(int n, vector<vector<int>>& edges, vector<int>& disappear) {
+        vector<vector<pair<int ,int>>> g(n);
+        for(auto p :edges){
+            int a=p[0];
+            int b=p[1];
+            int w=p[2];
+            g[a].push_back({b,w});
+            g[b].push_back({a,w});
+        }
+        priority_queue<pair<int,int>,vector<pair<int,int>>,greater<pair<int,int>>> q;
+        vector<int> vis(n,0);
+        vector<int> dis(n,1e9);
+        dis[0]=0;
+        q.push({0,0});
+        while(!q.empty()){
+            auto p= q.top();
+            q.pop();
+            int now_node_minn=p.first;
+            int now_node=p.second;
+            //dis[0]=0;
+            if(vis[now_node]) continue;
+            vis[now_node]=1;
+            for(auto u:g[now_node]){
+                int this_node_minn=u.second;
+                int this_node=u.first;
+                int w=now_node_minn+this_node_minn;
+                if(vis[this_node]==0 && dis[this_node]>w && w<disappear[this_node]){
+                    dis[this_node]=w;
+                    q.push({dis[this_node],this_node});
+                }
+            }
+        }
+        for(int i=0;i<n;i++){
+            if(dis[i]==1e9){
+                dis[i]=-1;
+            }
+        }
+        return dis;
+    }
+};
+```
+
+##### 3249\.统计好节点的数目
+
+[题目](https://leetcode.cn/problems/count-the-number-of-good-nodes)
+
+```java
+import java.util.ArrayList;
+
+class Solution {
+    private ArrayList<Integer> g[];
+    private int cnt;
+
+    private int dfs(int u, int f) {
+        int uni = -1, cnt = 1;
+        for (int v : g[u]) {
+            if (v == f) {
+                continue;
+            }
+            int c = dfs(v, u);
+            cnt += c;
+            if (uni == -1) {
+                uni = c;
+            } else if (uni != c) {
+                uni = -2;
+            }
+        }
+        this.cnt += (uni != -2) ? 1 : 0;
+        return cnt;
+    }
+
+    public int countGoodNodes(int[][] edges) {
+        int n = edges.length + 1;
+        g = new ArrayList[n];
+        for (int i = 0; i < n; ++i) {
+            g[i] = new ArrayList<>();
+        }
+        for (int[] e : edges) {
+            int u = e[0], v = e[1];
+            g[u].add(v);
+            g[v].add(u);
+        }
+        cnt = 0;
+        dfs(0, -1);
+        return cnt;
+    }
+}
+```

@@ -1844,6 +1844,15 @@ for (int i = 0; i < m; i++) {
 }
 ```
 
+###### setAll
+
+如批量 arraylist 初始化：
+
+```java
+List<Integer>[] g = new ArrayList[n];
+Arrays.setAll(g, i -> new ArrayList<>());
+```
+
 ###### sort
 
 `Arrays.sort(数组)`升序排序一个数组(数值和字符串排序依据不一样)
@@ -1927,15 +1936,7 @@ System.out.println(Arrays.toString(new int[] {1,1,4,5,1,4}));
 
 
 
-###### stream
 
-是静态方法。传入一个数组参数，获得流。对流，可以使用方法 `mapToInt(方法)` ，方法是原流的方法，如 `Integer::valueOf` ，然后得到的值使用 `toArray()` 方法，可以将类数组转基本数据类型数组，如：
-
-```java
-int dest[] = Arrays.stream(xx).mapToInt(Integer::valueOf).toArray();// Integer[]转int[]
-```
-
-> java 8 新特性
 
 ###### binarySearch
 
@@ -2053,6 +2054,16 @@ Collections.sort(elements, CharSequence::compare);
 ```
 
 ##### 流
+
+###### stream
+
+是静态方法。传入一个数组参数，获得流。对流，可以使用方法 `mapToInt(方法)` ，方法是原流的方法，如 `Integer::valueOf` ，然后得到的值使用 `toArray()` 方法，可以将类数组转基本数据类型数组，如：
+
+```java
+int dest[] = Arrays.stream(xx).mapToInt(Integer::valueOf).toArray();// Integer[]转int[]
+```
+
+> java 8 新特性
 
 ###### 最值
 
@@ -4569,6 +4580,13 @@ public String stat_sum() {
         sons[i] = new TreeSet<Pair>();
     }
 }
+```
+
+泛型数组初始化：
+
+```java
+List<Integer>[] g = new ArrayList[n];
+Arrays.setAll(g, i -> new ArrayList<>());
 ```
 
 
@@ -9817,6 +9835,15 @@ import java.util.*;
 - next() 返回元素并迭代器往下，返回Object
 
 重载了 `toString`，直接输出能够输出每个元素。
+
+集合类数组初始化：
+
+```java
+List<Integer>[] g = new ArrayList[n];
+Arrays.setAll(g, i -> new ArrayList<>());
+```
+
+
 
 如：
 
