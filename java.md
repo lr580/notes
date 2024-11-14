@@ -12317,6 +12317,8 @@ public class c1711 {
 
 ```
 
+与 wait 需要一致，若同步块是 Object(自己的类).class，那么要用 Object.class.wait，同理 Object.class.notify。参见下文例子。
+
 ##### notifyAll
 
 唤醒同一个 wait 的所有线程。
@@ -13826,6 +13828,91 @@ class ZeroEvenOdd {
 ```
 
 然后三个线程执行同一个对象的这三个方法，能保证输出顺序是 01020304...
+
+#### 场景举例
+
+##### 互斥使用资源
+
+5个人1个试衣间，试衣间要用当前class同步(不然，如果用this，那其他人也可以进来)，那么notify就是叫醒这个类的在等的其他对象(感觉是栈，把最后wait的人叫醒了)
+
+```java
+import java.time.LocalTime;
+import java.util.Random;
+
+public class Clothes {
+    static boolean room = false;
+    static Random rd = new Random();
+    static class MyThread extends Thread{
+        String name;
+        MyThread(String name){
+            this.name = name;
+        }
+        @Override
+        public void run(){
+            LocalTime now = LocalTime.now();
+            System.out.println(name + " 欢迎光临 " + now);
+            System.out.println(name + " 开始挑衣服 " + now);
+            try {
+                Thread.sleep(rd.nextInt(1000,5000));
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            System.out.println(name + " 挑好衣服 " + now);
+            if (room)
+                System.out.println(name + " 正在排队等待试衣 " + now);
+            synchronized (Clothes.class){
+                while (room) { // 如果有人在使用房间，当前线程就等待
+                    try {
+                        Clothes.class.wait();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                room = true;
+                System.out.println(name + " 开始试衣 " + now);
+                try {
+                    Thread.sleep(rd.nextInt(1000,5000));
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                System.out.println(name + " 试衣结束 " + now);
+                room = false;
+                Clothes.class.notify();
+            }
+            System.out.println(name + " 开始结账 " + now);
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            System.out.println(name + " 结账离开 " + now);
+        }
+    }
+    public static void main(String[] argc){
+        MyThread t1 = new MyThread("Mike");
+        MyThread t2 = new MyThread("John");
+        MyThread t3 = new MyThread("Mary");
+        MyThread t4 = new MyThread("Bob");
+        MyThread t5 = new MyThread("Alice");
+        t1.start();
+        t2.start();
+        t3.start();
+        t4.start();
+        t5.start();
+        try {
+            t1.join();
+            t2.join();
+            t3.join();
+            t4.join();
+            t5.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+```
+
+
 
 ### 网络通信
 
