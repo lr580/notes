@@ -2265,6 +2265,18 @@
 - 3249\.统计好节点的数目
 
   DFS 树
+  
+- 3341\.到达最后一个房间的最少时间I
+
+  Dijkstra最短路
+  
+- 3239\.最少翻转次数使二进制矩阵回文I
+
+  签到
+  
+- 3240\.最少翻转次数使二进制矩阵回文II
+
+  **模拟 思维**
 
 ## 算法
 
@@ -56979,6 +56991,156 @@ class Solution {
         cnt = 0;
         dfs(0, -1);
         return cnt;
+    }
+}
+```
+
+##### 3341\.到达最后一个房间的最少时间I
+
+[题目](https://leetcode.cn/problems/find-minimum-time-to-reach-last-room-i)
+
+没写代码，改别人的
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    int minTimeToReach(vector<vector<int>>& moveTime) {
+        int n=moveTime.size();
+        int m=moveTime[0].size();
+        vector<int> g(n*m,0);
+        int t=0;
+        for(int i=0;i<n;i++){
+            for(int j=0;j<m;j++){
+                g[t]=moveTime[i][j];
+                t+=1;
+            }
+        }
+        int num_sum=n*m;
+        vector<int> dict(num_sum,1e9+100000);
+        vector<int> vis(n*m,0);
+        priority_queue<pair<int,int>,vector<pair<int,int>>,greater<pair<int,int>>> q;
+        q.push({0,0});//sum,node_number
+        
+        while(!q.empty()){
+            auto now_pair=q.top();
+            q.pop();
+            int now_node_sum=now_pair.first;
+            int now_node=now_pair.second;
+            if(vis[now_node]) continue;
+            vis[now_node]=true;
+            //cout<<now_node<<' '<<now_node_sum<<'\n';
+            int next_node;
+            auto f=[&](){
+                if(now_node_sum>g[next_node]){
+                    //cout<<next_node<<"no wait " << 1+now_node_sum << "\n";
+                    if(dict[next_node]>1+now_node_sum){
+                        dict[next_node]=1+now_node_sum;
+                        q.push({dict[next_node],next_node});
+                    }
+                }
+                else{
+                    //cout<<next_node<<"wait " << 1+g[next_node] << "\n";
+                    if(dict[next_node]>1+g[next_node]){
+                        dict[next_node]=1+g[next_node];
+                        q.push({dict[next_node],next_node});
+                    }
+                }
+            };
+            if(now_node-1>=0 && now_node%m!=0){
+                next_node=now_node-1;
+                f();
+            }
+            if(now_node+1<n*m && (now_node+1)%m!=0){
+                next_node=now_node+1;
+                f();
+            }
+            if(now_node-m>0 ){
+                next_node=now_node-m;
+                f();
+            }
+            if(now_node+m<n*m ){
+                next_node=now_node+m;
+                f();
+            }
+        }
+        return dict[n*m-1];
+    }
+};
+```
+
+##### 3239\.最少翻转次数使二进制矩阵回文I
+
+[题目](https://leetcode.cn/problems/minimum-number-of-flips-to-make-binary-grid-palindromic-i)
+
+```java
+class Solution {
+    public int minFlips(int[][] grid) {
+        int ansr = 0, ansc = 0, n=grid.length, m=grid[0].length;
+        for(int[] row:grid) {
+            for(int l=0,r=m-1;l<r;++l,--r) {
+                ansr += row[l]!=row[r]?1:0;
+            }
+        }
+        for(int i=0;i<m;++i) {
+            for(int l=0,r=n-1;l<r;++l,--r) {
+                ansc += grid[l][i]!=grid[r][i]?1:0;
+            }
+        }
+        return Math.min(ansr,ansc);
+    }
+}
+```
+
+##### 3240\.最少翻转次数使二进制矩阵回文II
+
+[题目](https://leetcode.cn/problems/minimum-number-of-flips-to-make-binary-grid-palindromic-ii)
+
+~~大呕吐，巨恶心毫无意义的分类讨论，纯属折磨人，受不了了~~，直接看灵神
+
+```java
+class Solution {
+    public int minFlips(int[][] a) {
+        int m = a.length;
+        int n = a[0].length;
+        int ans = 0;
+        for (int i = 0; i < m / 2; i++) {
+            for (int j = 0; j < n / 2; j++) {
+                int cnt1 = a[i][j] + a[i][n - 1 - j] + a[m - 1 - i][j] + a[m - 1 - i][n - 1 - j];
+                ans += Math.min(cnt1, 4 - cnt1); // 全为 1 或全为 0
+            }
+        }
+
+        if (m % 2 > 0 && n % 2 > 0) {
+            // 正中间的数必须是 0
+            ans += a[m / 2][n / 2];
+        }
+
+        int diff = 0;
+        int cnt1 = 0;
+        if (m % 2 > 0) {
+            // 统计正中间这一排
+            for (int j = 0; j < n / 2; j++) {
+                if (a[m / 2][j] != a[m / 2][n - 1 - j]) {
+                    diff++;
+                } else {
+                    cnt1 += a[m / 2][j] * 2;
+                }
+            }
+        }
+        if (n % 2 > 0) {
+            // 统计正中间这一列
+            for (int i = 0; i < m / 2; i++) {
+                if (a[i][n / 2] != a[m - 1 - i][n / 2]) {
+                    diff++;
+                } else {
+                    cnt1 += a[i][n / 2] * 2;
+                }
+            }
+        }
+		//diff>0, 若cnt%4=2,凑一个diff改成1，其他全改0，使得cnt%4=0
+        return ans + (diff > 0 ? diff : cnt1 % 4);
     }
 }
 ```
