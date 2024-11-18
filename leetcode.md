@@ -2277,7 +2277,7 @@
 - 3240\.最少翻转次数使二进制矩阵回文II
 
   **模拟 思维**
-    
+  
 - 825\.适龄的朋友
 
   排序+二分 / <u>排序+双指针 / 前缀和</u>
@@ -2285,6 +2285,10 @@
 - 661\.图片平滑器
 
   签到 前缀和
+  
+- 1202\.交换字符串中的元素
+
+  并查集
 
 ## 算法
 
@@ -57287,3 +57291,55 @@ public:
 };
 ```
 
+##### 1202\.交换字符串中的元素
+
+[题目](https://leetcode.cn/problems/smallest-string-with-swaps/)
+
+```java
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.stream.IntStream;
+
+class Solution {
+    private int fa[];
+
+    private int findfa(int x) {
+        while (x != fa[x]) {
+            x = fa[x] = fa[fa[x]];
+        }
+        return x;
+    }
+
+    public String smallestStringWithSwaps(String s, List<List<Integer>> pairs) {
+        int n = s.length();
+        // 即 fa[i]=i的长为n的数组
+        fa = IntStream.range(0, n).toArray();
+        for (List<Integer> pr : pairs) {
+            int u = pr.get(0), v = pr.get(1);
+            fa[findfa(u)] = findfa(v);
+        }
+        HashMap<Integer, List<Integer>> h = new HashMap<>();
+        for (int i = 0; i < n; ++i) {
+            int f = findfa(i);
+            if (h.get(f) == null) {
+                h.put(f, new ArrayList<>());
+            }
+            h.get(f).add(i);
+        }
+        char[] ans = new char[n];
+        for (List<Integer> g : h.values()) {
+            char c[] = new char[g.size()];
+            for (int i = 0; i < g.size(); ++i) {
+                c[i] = s.charAt(g.get(i));
+            }
+            Arrays.sort(c);
+            for (int i = 0; i < g.size(); ++i) {
+                ans[g.get(i)] = c[i];
+            }
+        }
+        return new String(ans);
+    }
+}
+```

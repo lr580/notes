@@ -993,6 +993,8 @@ if (a >= '\u4e00' && a <= '\u9fa5') {
 }//注：不完全准确，还有中文特殊符号
 ```
 
+char[]转字符串用 new String(c) 不要用 .tostring
+
 ##### 布尔类型
 
 boolean 值为 `true`/`false`。默认 false
@@ -1169,7 +1171,7 @@ System.out.println(a);
 
    ```java
    char a[] = { 'g', 'o', 'o', 'd' };
-   String b = new String(a);
+   String b = new String(a); //不能a.tostring()
    System.out.println(b);
    ```
 3. 附上第二第三个参数，代表起始下标和长度。(越界会报错)

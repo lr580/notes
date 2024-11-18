@@ -7226,7 +7226,12 @@ np.linalg.matrix_power(A, n)
 coefficients = np.linalg.inv(X.T @ X) @ X.T @ y
 ```
 
+##### 范数
 
+```python
+w = np.array([[1.],[1]]) # 向量
+w /= np.linalg.norm(w) # 单位化
+```
 
 ##### 外积
 
