@@ -1720,7 +1720,7 @@ while (tokenizer.hasMoreTokens()) {
 ```java
 变量名 = new 类型名[长度];
 变量名 = new 类型名[]{值, ...};//这时候不可以写长度，初始化或赋值
-变量名 = {值, ...};//只可以用在初始化
+变量名 = {值, ...};//只可以用在初始化 如 int[] a = {1, 2, 4, 5};
 ```
 
 声明和创建可以合在一起。
@@ -2055,15 +2055,46 @@ Collections.sort(elements, CharSequence::compare);
 
 ##### 流
 
-###### stream
+###### 转成流
 
-是静态方法。传入一个数组参数，获得流。对流，可以使用方法 `mapToInt(方法)` ，方法是原流的方法，如 `Integer::valueOf` ，然后得到的值使用 `toArray()` 方法，可以将类数组转基本数据类型数组，如：
+stream是静态方法。传入一个数组参数，获得流。对流，可以使用方法 `mapToInt(方法)` ，方法是原流的方法，如 `Integer::valueOf` ，然后得到的值使用 `toArray()` 方法，可以将类数组转基本数据类型数组，如：
 
 ```java
 int dest[] = Arrays.stream(xx).mapToInt(Integer::valueOf).toArray();// Integer[]转int[]
 ```
 
 > java 8 新特性
+
+###### 遍历
+
+迭代器
+
+```java
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.stream.IntStream;
+public class intstream {
+    public static void main(String[] args) {
+        int[] a = {1, 3, 31, 1333};
+        IntStream stream = Arrays.stream(a);
+        Iterator<Integer> it = stream.iterator();
+        while(it.hasNext()) {
+            int x = it.next();
+            System.out.println(x);
+        }
+    }
+}
+```
+
+###### 转回数组
+
+```java
+IntStream stream = IntStream.range(1,11); //[1,10]
+int[] a = stream.toArray();
+for(int x : a) {
+    System.out.println(x);
+}
+```
 
 ###### 最值
 

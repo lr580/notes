@@ -15611,6 +15611,35 @@ for batch_features, batch_labels in dataloader:
 标签: tensor([1, 3])
 ```
 
+> 根据测试，结果可知，如果要保持低内存，可以getitem动态加载：
+>
+> ```python
+> import psutil
+> import os
+> def get_memory_usage():
+>     # 获取当前进程的内存使用情况
+>     process = psutil.Process(os.getpid())
+>     mem_info = process.memory_info()
+>     print('%.4f GB'%(mem_info.rss / (1024**3)))  # 返回常驻内存集大小（RSS） (GB)
+> get_memory_usage()
+> import torch
+> from torch.utils.data import Dataset, DataLoader
+> class ArtificialLargeDataset(Dataset):
+>     def __init__(self): pass
+>     def __len__(self): return 1000
+>     def __getitem__(self, idx):   # 2e7, 76.3MB
+>         return torch.randn(10000000),torch.randn(10000000)
+> get_memory_usage() # import torch 0.25GB 大约
+> dataset = ArtificialLargeDataset()
+> dataloader=DataLoader(dataset, batch_size=2, shuffle=False)
+> # get_memory_usage() # 不变
+> for batch_features, batch_labels in dataloader:
+>     get_memory_usage() # 保持低内存(不会越来越大，不超过1GB，感觉会缓存几个数据，所以即使n是变化的(那么batchsize=1)输出很快会变成恒定的)或者周期释放，如：
+> '''def __getitem__(self, idx):   # 2e7, 76.3MB
+>     n=10000000 * (idx%5+1)
+>     return torch.randn(n),torch.randn(n) '''
+> ```
+
 ##### Subset
 
 上面代码 `Dataset` 例子承接：(相当于 for indices 调用 getitem)
@@ -16064,6 +16093,8 @@ print("丢弃后的张量:", h_dropped)# tensor([0.1667, 0.0000, 0.5000, 0.6667,
 
 ###### relu
 
+rectified linear unit
+
 ```python
 import torch
 import torch.nn.functional as F
@@ -16085,6 +16116,8 @@ print(output_probabilities) # tensor([0.6590, 0.2424, 0.0986])
 ```
 
 ###### tanh
+
+hyperbolic tangent
 
 `tanh(x)=( e^(x)-e^(-x) )/( e^(x)+e^(-x) )`
 
@@ -18240,6 +18273,8 @@ print(isFullerene)
 
 #### psutil
 
+##### 基本
+
 1. 获取系统信息：psutil 可以获取有关计算机的各种信息，如 CPU 数量、物理内存大小、磁盘分区等。
 2. 获取 CPU 信息：psutil 可以获取 CPU 的使用率、核心数、频率等信息。它还可以获取每个进程的 CPU 使用情况，包括用户态和内核态的 CPU 时间。
 3. 获取内存信息：psutil 可以获取系统的内存使用情况，包括总内存、可用内存、已使用内存等。它还可以获取每个进程的内存使用情况，包括虚拟内存和物理内存的使用量。
@@ -18294,6 +18329,30 @@ info = get_server_info()
 print(info)
 
 # {'disk': {'total': 931.4970664978027, 'free': 156.79941177368164}, 'cpu': {'usage': 45.7}, 'memory': {'total': 15.871387481689453, 'available': 4.591732025146484}, 'gpu': [{'gpu_id': 0, 'total_memory': 4096.0, 'free_memory': 3962.0}]}
+```
+
+##### 内存使用
+
+```python
+import psutil
+import os
+def get_memory_usage():
+    # 获取当前进程的内存使用情况
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+    return mem_info.rss  # 返回常驻内存集大小（RSS）
+
+def create_objects():
+    data = []
+    for i in range(1000000):
+        data.append(i)
+    return data
+initial_memory = get_memory_usage()
+print(f"初始内存使用: {initial_memory / (1024 * 1024):.2f} MB")
+create_objects()
+final_memory = get_memory_usage()
+print(f"创建后内存使用: {final_memory / (1024 * 1024):.2f} MB")
+print(f"内存增加: {(final_memory - initial_memory) / (1024 * 1024):.2f} MB")
 ```
 
 

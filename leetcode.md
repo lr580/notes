@@ -2277,6 +2277,10 @@
 - 3240\.最少翻转次数使二进制矩阵回文II
 
   **模拟 思维**
+  
+- 825\.适龄的朋友
+
+  排序+二分 / <u>排序+双指针 / 前缀和</u>
 
 ## 算法
 
@@ -57144,3 +57148,111 @@ class Solution {
     }
 }
 ```
+
+##### 825\.适龄的朋友
+
+[题目](https://leetcode.cn/problems/friends-of-appropriate-ages)
+
+我的：
+
+```java
+import java.util.Arrays;
+
+class Solution {
+    private int lower_bound(int[] a, int k) {
+        int l = 0, r = a.length - 1, ans = a.length;
+        while (l <= r) {
+            int c = (l + r) >> 1;
+            if (a[c] >= k) {
+                ans = c;
+                r = c - 1;
+            } else {
+                l = c + 1;
+            }
+        }
+        return ans;
+    }
+
+    private int upper_bound(int[] a, int k) {
+        int l = 0, r = a.length - 1, ans = a.length;
+        while (l <= r) {
+            int c = (l + r) >> 1;
+            if (a[c] > k) {
+                ans = c;
+                r = c - 1;
+            } else {
+                l = c + 1;
+            }
+        }
+        return ans;
+    }
+
+    public int numFriendRequests(int[] ages) {
+        Arrays.sort(ages);
+        int ans = 0, n = ages.length;
+        for (int i = 0; i < n; ++i) {
+            int l = upper_bound(ages, ages[i] / 2 + 7);
+            int r = upper_bound(ages, ages[i]) - 1;
+            if (ages[i] < 100) {
+                r = Math.min(r, upper_bound(ages, 100) - 1);
+            }
+//            System.out.println(l + " " + r);
+            ans += Math.max(0, r - l + 1);
+            ans -= l <= i && i <= r ? 1 : 0;
+        }
+        return ans;
+    }
+}
+```
+
+注意条件二满足的情况下，条件三一定满足。同时满足条件一二，则 $ages[x]\ge15$。双指针维护条件一二即可。
+
+```java
+class Solution {
+    public int numFriendRequests(int[] ages) {
+        int n = ages.length;
+        Arrays.sort(ages);
+        int left = 0, right = 0, ans = 0;
+        for (int age : ages) {
+            if (age < 15) {
+                continue;
+            }
+            while (ages[left] <= 0.5 * age + 7) {
+                ++left;
+            }
+            while (right + 1 < n && ages[right + 1] <= age) {
+                ++right;
+            }
+            ans += right - left;
+        }
+        return ans;
+    }
+}
+```
+
+也可以计数+前缀和。
+
+```java
+class Solution {
+public:
+    int numFriendRequests(vector<int>& ages) {
+        vector<int> cnt(121);
+        for (int age: ages) {
+            ++cnt[age];
+        }
+        vector<int> pre(121);
+        for (int i = 1; i <= 120; ++i) {
+            pre[i] = pre[i - 1] + cnt[i];
+        }
+        int ans = 0;
+        for (int i = 15; i <= 120; ++i) {
+            if (cnt[i]) {
+                int bound = i * 0.5 + 8;
+                ans += cnt[i] * (pre[i] - pre[bound - 1] - 1);
+            }
+        }
+        return ans;
+    }
+};
+```
+
