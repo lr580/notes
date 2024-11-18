@@ -2277,6 +2277,10 @@
 - 3240\.最少翻转次数使二进制矩阵回文II
 
   **模拟 思维**
+  
+- 661\.图片平滑器
+
+  签到 前缀和
 
 ## 算法
 
@@ -57141,6 +57145,33 @@ class Solution {
         }
 		//diff>0, 若cnt%4=2,凑一个diff改成1，其他全改0，使得cnt%4=0
         return ans + (diff > 0 ? diff : cnt1 % 4);
+    }
+}
+```
+
+##### 661\.图片平滑器
+
+[题目](https://leetcode.cn/problems/image-smoother/)
+
+不要原地修改，不然修改后的数据做平滑结果会不对，说不定校赛就是这样WA的。
+
+```java
+class Solution {
+    public int[][] imageSmoother(int[][] img) {
+        int n=img.length, m=img[0].length,a[][]=new int[n][m];
+        for(int i=0;i<n;++i) {
+            for(int j=0;j<m;++j) {
+                int cnt=0,s=0;
+                for(int x=Math.max(0,i-1);x<Math.min(n,i+2);++x) {
+                    for(int y=Math.max(0,j-1);y<Math.min(m,j+2);++y) {
+                        ++cnt;
+                        s+=img[x][y];
+                    }
+                }
+                a[i][j]=s/cnt;
+            }
+        }
+        return a;
     }
 }
 ```
