@@ -4859,7 +4859,43 @@ print(res.groupdict())
 
 直接将匹配结果直接转为字典模式，方便使用。
 
+##### 应用举例
 
+###### \1
+
+反向引用。表示第一个匹配到的分组
+
+```python
+import re
+text = "hello hello world"
+pattern = r"(\w+) \1"
+matches = re.findall(pattern, text)
+print(matches)  # 输出: ['hello']
+```
+
+同理有\2，等：
+
+```python
+import re
+text = "ab-ac-ac-ab ab-ac-ab-ac a-a-a-a a-b-c-d"
+pattern = r"(\w+)-(\w+)-\2-\1"
+matches = re.findall(pattern, text)
+print(matches)  # 输出: [('ab', 'ac'), ('a', 'a')]
+```
+
+应用：某个符合规则的串如 `[a-z]` 连续出现 n(设为4)次：`aaaa`√)(`abac`×)，则 `([a-z])\1{3}` (这里3就是4-1)
+
+###### ?=
+
+`(?=exp)` 表示是否匹配出来的目标后面还要满足exp，但exp不出现在结果里。类似于先匹配原本的和exp同时满足，结果里丢弃exp部分。
+
+```python
+import re
+text = "hello hello world world"
+pattern = r"(\b\w+\b)(?=\s+\1)"
+matches = re.findall(pattern, text)
+print(matches)  # 输出: ['hello', 'world']
+```
 
 #### pathlib
 
