@@ -2289,6 +2289,14 @@
 - 1202\.交换字符串中的元素
 
   并查集
+  
+- 3244\.新增道路查询后的最短距离II
+
+  二分+模拟 / <u>并查集 / 线段树</u>
+  
+- 3248\.矩阵中的蛇
+
+  签到
 
 ## 算法
 
@@ -57340,6 +57348,319 @@ class Solution {
             }
         }
         return new String(ans);
+    }
+}
+```
+
+##### 3244\.新增道路查询后的最短距离II
+
+[题目](https://leetcode.cn/problems/shortest-distance-after-road-addition-queries-ii)
+
+对 I 这道题，直接暴力 DP(从 r 开始更新 DP 即可，不需要完全 DP)，也可以 BFS
+
+```c++
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.stream.IntStream;
+
+class Solution {
+    public int[] shortestDistanceAfterQueries(int n, int[][] queries) {
+        int dp[] = IntStream.range(0, n).toArray();
+        int ans[] = new int[queries.length];
+        ArrayList<Integer> pr[] = new ArrayList[n];
+        Arrays.setAll(pr, i -> new ArrayList<>());
+        for (int j = 0; j < queries.length; ++j) {
+            int l = queries[j][0], r = queries[j][1];
+            pr[r].add(l);
+            for (int i = r; i < n; ++i) {
+                int mi = Math.min(dp[i], dp[i - 1] + 1);
+                for (int p : pr[i]) {
+                    mi = Math.min(mi, dp[p] + 1);
+                }
+                dp[i] = mi;
+            }
+            ans[j] = dp[n - 1];
+        }
+        return ans;
+    }
+}
+```
+
+根据题目数据最后一个性质，可以知道：任意区间不交叉。即：区间只存在包含关系和完全不重叠关系，不会两个区间部分重叠。
+
+模拟：维护每个区间。对新区间 $it$：
+
+- 二分找到 $<it$ 左端点的最大区间 $lf$，若 $lf$ 包含 $it$，则 $it$ 可忽略不计。
+- 否则，$lf$ 与 $it$ 完全不重叠，不停二分找 $\ge it$ 左端点的最小区间 $rf$，若 $rf$ 被 $it$ 包含，删掉 $rf$ 并找新的 $rf$，直到 $rf$ 与 $it$ 完全不重叠。
+- 把 $it$ 添加到区间内。
+
+答案是 $n-1$ 减去在维护集合的全部区间的总长度，定义区间 $[l,r]$ 长度为 $r-l-1$。
+
+复杂度 $O(q\log q)$。
+
+```java
+import java.util.TreeSet;
+
+class Interval implements Comparable<Interval> {
+    int l, r;
+
+    public Interval(int l, int r) {
+        this.l = l;
+        this.r = r;
+    }
+
+    public int len() {
+        return r - l - 1;
+    }
+
+    public int compareTo(Interval o) {
+        return l - o.l;
+    }
+
+    @Override
+    public String toString() {
+        return l + " " + r;
+    }
+}
+
+class Solution {
+    public int[] shortestDistanceAfterQueries(int n, int[][] queries) {
+        int s = n - 1, m = queries.length;
+        int ans[] = new int[m];
+        TreeSet<Interval> h = new TreeSet<>();
+        h.add(new Interval(-1, -1));
+        h.add(new Interval(n, n));
+        for (int j = 0; j < m; ++j) {
+            Interval it = new Interval(queries[j][0], queries[j][1]);
+            Interval lf = h.floor(it);
+            if (lf.l <= it.l && it.r <= lf.r) {
+                ans[j] = s;
+                continue;
+            }
+            Interval rf = h.ceiling(it);
+            while (it.l <= rf.l && rf.r <= it.r) {
+                s += rf.len();
+                h.remove(rf);
+                rf = h.ceiling(it);
+            }
+            s -= it.len();
+            h.add(it);
+            ans[j] = s;
+        }
+        return ans;
+    }
+}
+```
+
+并查集 $i$ 表示 $i\to i+1$。若连 $l,r$，就把 $l\to l+1\to\cdots\to r$ 即合并 $[l,r-1]$ 的全体并查集节点。
+
+```java
+class UnionFind {
+    public final int[] fa;
+
+    public UnionFind(int size) {
+        fa = new int[size];
+        for (int i = 1; i < size; i++) {
+            fa[i] = i;
+        }
+    }
+
+    public int find(int x) {
+        if (fa[x] != x) {
+            fa[x] = find(fa[x]);
+        }
+        return fa[x];
+    }
+}
+
+class Solution {
+    public int[] shortestDistanceAfterQueries(int n, int[][] queries) {
+        UnionFind uf = new UnionFind(n - 1);
+        int[] ans = new int[queries.length];
+        int cnt = n - 1; // 并查集连通块个数
+        for (int qi = 0; qi < queries.length; qi++) {
+            int l = queries[qi][0];
+            int r = queries[qi][1] - 1;
+            int fr = uf.find(r);
+            for (int i = uf.find(l); i < r; i = uf.find(i + 1)) {
+                uf.fa[i] = fr;
+                cnt--;
+            }
+            ans[qi] = cnt;
+        }
+        return ans;
+    }
+}
+```
+
+定义 $i$ 是区间最右，即 $nxt_i=i+1$ 初始值。使用链表合并思路。注意直接跳到右边，并更新新的跳，类似并查集模拟，所以会压缩路径，所以是均摊的。
+
+```java
+class Solution {
+    public int[] shortestDistanceAfterQueries(int n, int[][] queries) {
+        int[] nxt = new int[n - 1];
+        for (int i = 0; i < n - 1; i++) {
+            nxt[i] = i + 1;
+        }
+
+        int[] ans = new int[queries.length];
+        int cnt = n - 1;
+        for (int qi = 0; qi < queries.length; qi++) {
+            int i = queries[qi][0];
+            int r = queries[qi][1];
+            while (nxt[i] < r) {
+                cnt--;
+                int tmp = nxt[i];
+                nxt[i] = r;
+                i = tmp;
+            }
+            ans[qi] = cnt;
+        }
+        return ans;
+    }
+}
+```
+
+```java
+class Solution {
+    public int[] shortestDistanceAfterQueries(int n, int[][] queries) {
+        int[] nxt = new int[n - 1];
+        for (int i = 0; i < n - 1; i++) {
+            nxt[i] = i + 1;
+        }
+
+        int[] ans = new int[queries.length];
+        int cnt = n - 1;
+        for (int qi = 0; qi < queries.length; qi++) {
+            int l = queries[qi][0];
+            int r = queries[qi][1];
+            if (nxt[l] > 0 && nxt[l] < r) {
+                for (int i = nxt[l]; i < r;) {
+                    cnt--;
+                    int tmp = nxt[i];
+                    nxt[i] = 0;
+                    i = tmp;
+                }
+                nxt[l] = r;
+            }
+            ans[qi] = cnt;
+        }
+        return ans;
+    }
+}
+```
+
+线段树：区间内每个值都是 1，每次 把 $[l,r]$ 内的 $1$ 数量删剩一个(即删掉 $[l,r-1]$ 的 $1$)，查询就看根节点还剩几个 $1$。
+
+```python
+class Solution:
+    def shortestDistanceAfterQueries(self, n: int, queries: List[List[int]]) -> List[int]:
+        st = LazySegmentTree(n)
+        ans = []
+        for l, r in queries:
+            st.update(1,1,n,l+2,r, 0)
+            ans.append(st.cnt[1]-1)
+        return ans
+
+
+
+
+class LazySegmentTree:
+    def __init__(self, n: int):
+        self.cnt = [0] * (4 * n)
+        self.todo = [-1] * (4 * n)
+        self.build(1,1,n)
+
+    # 初始化线段树   o,l,r=1,1,n
+    def build(self, o: int, l: int, r: int) -> None:
+        if l == r:
+            self.cnt[o] = 1
+            return
+        m = (l + r) >> 1
+        self.build(o * 2, l, m)
+        self.build(o * 2 + 1, m + 1, r)
+        self.maintain(o)
+
+    # 维护区间和
+    def maintain(self, o: int) -> None:
+        self.cnt[o] = self.cnt[o * 2] + self.cnt[o * 2 + 1]
+
+    def do(self, o: int, val: int) -> None:
+        self.cnt[o] = val
+        self.todo[o] = val
+
+    def spread(self, o: int) -> None:
+        v = self.todo[o]
+        if v == 0:
+            self.do(o * 2, v)
+            self.do(o * 2 + 1, v)
+            self.todo[o] = -1
+
+    # 区间 [L,R] 内的数都更新为val   o,l,r=1,1,n
+    def update(self, o: int, l: int, r: int, L: int, R: int, val: int) -> None:
+        if L <= l and r <= R:
+            self.do(o, val)
+            return
+        self.spread(o)
+        m = (l + r) >> 1
+        if m >= L:
+            self.update(o * 2, l, m, L, R, val)
+        if m < R:
+            self.update(o * 2 + 1, m + 1, r, L, R, val)
+        self.maintain(o)
+
+    def query(self, o: int, l: int, r: int, L: int, R: int) -> int:
+        if L <= l and r <= R:
+            return self.cnt[o]
+        self.spread(o)
+        m = (l + r) >> 1
+        res = 0
+        if L <= m:
+            res = self.query(o * 2, l, m, L, R)
+        if m < R:
+            res = max(res, self.query(o * 2 + 1, m + 1, r, L, R))
+        return res
+```
+
+##### 3248\.矩阵中的蛇
+
+[题目](https://leetcode.cn/problems/snake-in-matrix)
+
+```java
+class Solution {
+    public int finalPositionOfSnake(int n, List<String> commands) {
+        HashMap<String, int[]> h = new HashMap<>();
+        h.put("UP", new int[]{-1,0});
+        h.put("DOWN", new int[]{1,0});
+        h.put("LEFT", new int[]{0,-1});
+        h.put("RIGHT", new int[]{0,1});
+        int x = 0, y = 0;
+        for(String cmd : commands) {
+            int[] d = h.get(cmd);
+            x += d[0];
+            y += d[1];
+        }
+        return x*n+y;
+    }
+}
+```
+
+更高效，只看首字母
+
+```java
+class Solution {
+    public int finalPositionOfSnake(int n, List<String> commands) {
+        int i = 0;
+        int j = 0;
+        for (String s : commands) {
+            switch (s.charAt(0)) {
+                case 'U' -> i--;
+                case 'D' -> i++;
+                case 'L' -> j--;
+                default  -> j++;
+            }
+        }
+        return i * n + j;
     }
 }
 ```

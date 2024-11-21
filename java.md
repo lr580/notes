@@ -2350,6 +2350,25 @@ System.out.println(a); //2
 System.out.println("a=" + ((5 < 5) ? 5.1 : 4));//4.0
 ```
 
+java12 可以 case -> lambda
+
+```java
+class Solution {
+    public int finalPositionOfSnake(int n, List<String> commands) {
+        int i = 0, j = 0;
+        for (String s : commands) {
+            switch (s.charAt(0)) {
+                case 'U' -> i--;
+                case 'D' -> i++;
+                case 'L' -> j--;
+                default  -> j++;
+            }
+        }
+        return i * n + j;
+    }
+}
+```
+
 
 
 #### 循环语句

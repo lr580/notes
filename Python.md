@@ -5326,6 +5326,8 @@ from itertools import *
 
 - `tee(a, n=2)` 返回 a 的多个迭代器，如 `x,y=tee(a)`
 
+- `count(i)` 从 i 开始每次不断自增的无限迭代器 (break 跳出)
+
 例：
 
 ```python
@@ -5370,6 +5372,13 @@ for item in chain.from_iterable([list1, list2, list3]):
 ```python
 # 层序遍历模板
 q = list(chain.from_iterable((node.left, node.right) for node in q))
+```
+
+```python
+from itertools import count
+for i in count(2): # 无线迭代器
+    print(i)
+    if i >= 5: break  # 仅示例，实际中会是无限的
 ```
 
 
