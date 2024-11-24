@@ -2297,6 +2297,14 @@
 - 3248\.矩阵中的蛇
 
   签到
+  
+- 3233\.统计不是特殊数字的数字数量
+
+  预处理 质数筛 + 二分 / <u>离散前缀和</u>
+  
+- 3238\.求出胜利玩家的数目
+
+  签到
 
 ## 算法
 
@@ -57664,3 +57672,127 @@ class Solution {
     }
 }
 ```
+
+欧拉筛线性处理质数+二分查找。
+
+- 特殊数字一定是质数的平方。
+- 打表预处理所有质数的平方。
+- 二分查询区间内有几个平方。
+
+预处理复杂度 $O(\sqrt{10^9})$，查询复杂度 $O(\log r)$。
+
+```java
+class Solution {
+    private static int a[], k = 0;
+
+    static {
+        // 欧拉筛
+        boolean vis[] = new boolean[31625];
+        int prime[] = new int[3405];
+        for (int i = 2; i * i <= 1e9; ++i) {
+            if (!vis[i]) {
+                prime[k++] = i;
+            }
+            for (int p : prime) {
+                if ((long) p * i * p * i > 1e9)
+                    break;
+                vis[p * i] = true;
+                if (i % p == 0)
+                    break;
+            }
+        }
+
+        a = new int[k];
+        for (int i = 0; i < k; ++i) {
+            a[i] = prime[i] * prime[i];
+        }
+    }
+
+    private static int lower_bound(int x) {
+        int l = 0, r = k- 1, ans = k;
+        while (l <= r) {
+            int c = (l + r) >> 1;
+            if (a[c] >= x) {
+                ans = c;
+                r = c - 1;
+            } else {
+                l = c + 1;
+            }
+        }
+        return ans;
+    }
+
+    public int nonSpecialCount(int l, int r) {
+        int ri = lower_bound(r + 1) - 1;
+        int li = lower_bound(l);
+        return r - l + 1 - (ri - li + 1);
+    }
+}
+```
+
+查询 $[l,r]$ 的质数平方个数，等价于查询 $[\sqrt l,\sqrt r]$ 内质数个数。
+
+使用离散前缀和优化：$[1,10^9]$ 区间能发生变化的只在平方和处，使用一个长为 $O(\sqrt{10^9})$ 的前缀和数组 $s$，表示 $[1,s^2]$ 内有几个质数。根据前缀和公式，则只需要查询 $s_{\sqrt r}-s_{\sqrt{l-1}}$ 即可。具体而言，右端点为 $[p^2,(p+1)^2)$ 内的质数数目相等，所以 $\sqrt x=\lfloor\sqrt x\rfloor$。
+
+但是开方很慢，所以不如二分。
+
+```java
+class Solution {
+    private static int s[], k = 0;
+
+    static {// 欧拉筛
+        s = new int[31625];
+        Arrays.fill(s, 1);
+        int prime[] = new int[3405];
+        for (int i = 2; i * i <= 1e9; ++i) {
+            if (1 == s[i]) {
+                prime[k++] = i;
+            }
+            for (int p : prime) {
+                if ((long)p * i * p * i > 1e9)
+                    break;
+                s[p * i] = 0;
+                if (i % p == 0)
+                    break;
+            }
+        }
+        for (int i = 2; i < s.length; ++i) {
+            s[i] += s[i - 1];
+        }
+    }
+
+    public int nonSpecialCount(int l, int r) {
+        //System.out.println((int) Math.sqrt(l-1)+" "+(int) Math.sqrt(r)+" "+s[(int) Math.sqrt(l-1)]+" "+s[(int) Math.sqrt(r)]);
+        return r - l + 1 - (s[(int) Math.sqrt(r)] - s[(int) Math.sqrt(l - 1)]);
+    }
+}
+```
+
+##### 3238\.求出胜利玩家的数目
+
+[题目](https://leetcode.cn/problems/find-the-number-of-winning-players/)
+
+```java
+class Solution {
+    public int winningPlayerCount(int n, int[][] pick) {
+        int cnt[][] = new int[n][11], ans = 0;
+        for (int p[] : pick) {
+            int x = p[0], y = p[1];
+            ++cnt[x][y];
+        }
+        for (int i = 0; i < n; ++i) {
+            boolean ok = false;
+            for (int j = 0; j <= 10; ++j) {
+                if (cnt[i][j] > i) {
+                    ok = true;
+                    break;
+                }
+            }
+            ans += ok ? 1 : 0;
+        }
+        return ans;
+    }
+}
+```
+
+
