@@ -10552,6 +10552,18 @@ for (Map.Entry<String, Integer> entry : m1.entrySet()) {
 }
 ```
 
+```java
+Map<Integer, List<Integer>> indices = new HashMap<Integer, List<Integer>>();
+int xMin = Integer.MAX_VALUE, xMax = Integer.MIN_VALUE;
+for (int i = 0; i < nums.size(); i++) { //List<List<Integer>> nums
+    for (int x : nums.get(i)) {
+        List<Integer> list = indices.getOrDefault(x, new ArrayList<Integer>());
+        list.add(i);
+        indices.put(x, list);
+    }
+}
+```
+
 
 
 > TreeMap包含几个重要的成员变量：root、size、comparator。其中root是红黑树的根节点。它是Entry类型，Entry是红黑树的节点，它包含了红黑树的6个基本组成：key、value、left、right、parent和color。Entry节点根据根据Key排序，包含的内容是value
@@ -10672,6 +10684,8 @@ public class c1608 {
 
 #### Queue
 
+##### 常规
+
 是接口，有方法如下：
 
 - `isEmpty()`
@@ -10688,6 +10702,49 @@ public class c1608 {
 
 普通队列用 linkedlist 即可
 
+##### 阻塞队列
+
+
+
+> 为了应对不同的业务场景，BlockingQueue 提供了4 组不同的方法用于插入、移除以及对队列中的元素进行检查。如果请求的操作不能得到立即执行的话，每组方法的表现是不同的。这些方法如下：
+>
+> |      | 抛异常    | 特定值   | 阻塞   | 超时                 |
+> | ---- | --------- | -------- | ------ | -------------------- |
+> | 插入 | add(e)    | offer(e) | put(e) | offer(e, time, unit) |
+> | 移除 | remove()  | poll()   | take() | poll(time, unit)     |
+> | 检查 | element() | peek()   |        |                      |
+
+> - 抛异常：如果操作无法立即执行，则抛一个异常；
+> - 特定值：如果操作无法立即执行，则返回一个特定的值(一般是 true / false)。
+> - 阻塞：如果操作无法立即执行，则该方法调用将会发生阻塞，直到能够执行；
+> - 超时：如果操作无法立即执行，则该方法调用将会发生阻塞，直到能够执行。但等待时间不会超过给定值，并返回一个特定值以告知该操作是否成功(典型的是true / false)。
+>
+> BlockingQueue(任意时刻只有一个线程可以进行take或者put操作)是一个接口，它的实现类有ArrayBlockingQueue、DelayQueue、 LinkedBlockingQueue、PriorityBlockingQueue、SynchronousQueue等。它们的区别主要体现在存储结构上或对元素操作上的不同，但是对于put与take操作的原理是类似的。
+>
+> ArrayBlockingQueue的构造函数，它初始化了put和take函数中用到的关键成员变量，这两个变量的类型分别是ReentrantLock和Condition。ReentrantLock是AbstractQueuedSynchronizer（AQS）的子类，它的newCondition函数返回的Condition实例，是定义在AQS类内部的ConditionObject类，该类可以直接调用AQS相关的函数。
+>
+> put函数会在队列末尾添加元素，如果队列已经满了，无法添加元素的话，就一直阻塞等待到可以加入为止。函数的源码如下所示。put函数使用了wait/notify的机制。与一般生产者-消费者的实现方式不同，同步队列使用ReentrantLock和Condition相结合的机制，即先获得锁，再等待，而不是synchronized和wait的机制。
+>
+> take函数在队列为空时会被阻塞，一直到阻塞队列加入了新的元素。
+>
+> ArrayBlockingQueue并没有使用Object.wait，而是使用的Condition.await，Condition对象可以提供和Object的wait和notify一样的行为，但是后者必须先获取synchronized这个内置的monitor锁才能调用，而Condition则必须先获取ReentrantLock。这两种方式在阻塞等待时都会将相应的锁释放掉，但是Condition的等待可以中断，这是二者唯一的区别。
+>
+> await函数的流程大致如下图所示。await函数主要有三个步骤，一是调用addConditionWaiter函数，在condition wait queue队列中添加一个节点，代表当前线程在等待一个消息。然后调用fullyRelease函数，将持有的锁释放掉，调用的是AQS的函数。最后一直调用isOnSyncQueue函数判断节点是否被转移到sync queue队列上，也就是AQS中等待获取锁的队列。如果没有，则进入阻塞状态，如果已经在队列上，则调用acquireQueued函数重新获取锁。
+>
+> ![img](img/37DE256DECC211F4D5230BF7A654E128.png)
+>
+> signal函数将condition wait queue队列中队首的线程节点转移等待获取锁的sync queue队列中。这样的话，await函数中调用isOnSyncQueue函数就会返回true，导致await函数进入最后一步重新获取锁的状态。
+>
+> condition wait queue是等待消息的队列，因为阻塞队列为空而进入阻塞状态的take函数操作就是在等待阻塞队列不为空的消息。而sync queue队列则是等待获取锁的队列，take函数获得了消息，就可以运行了，但是它还必须等待获取锁之后才能真正进行运行状态。
+>
+> signal函数其实就做了一件事情，就是不断尝试调用transferForSignal函数，将condition wait queue队首的一个节点转移到sync queue队列中，直到转移成功。因为一次转移成功，就代表这个消息被成功通知到了等待消息的节点。
+>
+> ![img](img/61A52D5795794D763D6F8D37D13AFE07.png)
+
+
+
+#### PriorityQueue
+
 下有 `PriorityQueue` 优先级队列(小根堆)，构造函数可以传一个对象，其类为 `Comparator<类名> cmp` 作参数作为比较依据来自定义，需要实现 `public int compare(对象, 对象)` ，前者大返回正数；小负数，相等 $0$。原理是数组实现
 
 - `contains` 直接遍历数组 线性复杂度
@@ -10699,6 +10756,16 @@ q = new PriorityQueue<Integer>((a, b) -> (a - b)); //小根堆
 new PriorityQueue<>(Comparator.comparingDouble(PriorityNode::getPriority));
 //根据自定义类的取成员属性方法
 ```
+
+```java
+PriorityQueue<Integer> priorityQueue = new PriorityQueue<Integer>(new Comparator<Integer>() {
+    public int compare(Integer index1, Integer index2) {
+        return nums.get(index1).get(next[index1]) - nums.get(index2).get(next[index2]);
+    }
+});
+```
+
+
 
 如：
 
@@ -11073,43 +11140,6 @@ class Solution {
 > ```
 
 
-
-
-
-> 为了应对不同的业务场景，BlockingQueue 提供了4 组不同的方法用于插入、移除以及对队列中的元素进行检查。如果请求的操作不能得到立即执行的话，每组方法的表现是不同的。这些方法如下：
->
-> |      | 抛异常    | 特定值   | 阻塞   | 超时                 |
-> | ---- | --------- | -------- | ------ | -------------------- |
-> | 插入 | add(e)    | offer(e) | put(e) | offer(e, time, unit) |
-> | 移除 | remove()  | poll()   | take() | poll(time, unit)     |
-> | 检查 | element() | peek()   |        |                      |
-
-> - 抛异常：如果操作无法立即执行，则抛一个异常；
-> - 特定值：如果操作无法立即执行，则返回一个特定的值(一般是 true / false)。
-> - 阻塞：如果操作无法立即执行，则该方法调用将会发生阻塞，直到能够执行；
-> - 超时：如果操作无法立即执行，则该方法调用将会发生阻塞，直到能够执行。但等待时间不会超过给定值，并返回一个特定值以告知该操作是否成功(典型的是true / false)。
->
-> BlockingQueue(任意时刻只有一个线程可以进行take或者put操作)是一个接口，它的实现类有ArrayBlockingQueue、DelayQueue、 LinkedBlockingQueue、PriorityBlockingQueue、SynchronousQueue等。它们的区别主要体现在存储结构上或对元素操作上的不同，但是对于put与take操作的原理是类似的。
->
-> ArrayBlockingQueue的构造函数，它初始化了put和take函数中用到的关键成员变量，这两个变量的类型分别是ReentrantLock和Condition。ReentrantLock是AbstractQueuedSynchronizer（AQS）的子类，它的newCondition函数返回的Condition实例，是定义在AQS类内部的ConditionObject类，该类可以直接调用AQS相关的函数。
->
-> put函数会在队列末尾添加元素，如果队列已经满了，无法添加元素的话，就一直阻塞等待到可以加入为止。函数的源码如下所示。put函数使用了wait/notify的机制。与一般生产者-消费者的实现方式不同，同步队列使用ReentrantLock和Condition相结合的机制，即先获得锁，再等待，而不是synchronized和wait的机制。
->
-> take函数在队列为空时会被阻塞，一直到阻塞队列加入了新的元素。
->
-> ArrayBlockingQueue并没有使用Object.wait，而是使用的Condition.await，Condition对象可以提供和Object的wait和notify一样的行为，但是后者必须先获取synchronized这个内置的monitor锁才能调用，而Condition则必须先获取ReentrantLock。这两种方式在阻塞等待时都会将相应的锁释放掉，但是Condition的等待可以中断，这是二者唯一的区别。
->
-> await函数的流程大致如下图所示。await函数主要有三个步骤，一是调用addConditionWaiter函数，在condition wait queue队列中添加一个节点，代表当前线程在等待一个消息。然后调用fullyRelease函数，将持有的锁释放掉，调用的是AQS的函数。最后一直调用isOnSyncQueue函数判断节点是否被转移到sync queue队列上，也就是AQS中等待获取锁的队列。如果没有，则进入阻塞状态，如果已经在队列上，则调用acquireQueued函数重新获取锁。
->
-> ![img](img/37DE256DECC211F4D5230BF7A654E128.png)
->
-> signal函数将condition wait queue队列中队首的线程节点转移等待获取锁的sync queue队列中。这样的话，await函数中调用isOnSyncQueue函数就会返回true，导致await函数进入最后一步重新获取锁的状态。
->
-> condition wait queue是等待消息的队列，因为阻塞队列为空而进入阻塞状态的take函数操作就是在等待阻塞队列不为空的消息。而sync queue队列则是等待获取锁的队列，take函数获得了消息，就可以运行了，但是它还必须等待获取锁之后才能真正进行运行状态。
->
-> signal函数其实就做了一件事情，就是不断尝试调用transferForSignal函数，将condition wait queue队首的一个节点转移到sync queue队列中，直到转移成功。因为一次转移成功，就代表这个消息被成功通知到了等待消息的节点。
->
-> ![img](img/61A52D5795794D763D6F8D37D13AFE07.png)
 
 #### Deque
 
