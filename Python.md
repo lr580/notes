@@ -3282,6 +3282,8 @@ print(vars(obj))
 
 与不传参数的 `vars` 功能一致。返回当前位置局部变量。
 
+可以判断某个变量是否已定义： `if 'X' in locals()` 如 `X` 是变量名。
+
 ##### globals
 
 返回全局变量。与 `vars` 格式类似。
@@ -7001,7 +7003,7 @@ np.argmax(np.array([[1,5,2,5],[3,2,1,3]]),axis=1) # array([1, 0])
 
 ##### 随机
 
-种子：(设置了之后，pandas 的一些方法也会固定下来)
+种子：(设置了之后，pandas 的一些方法也会固定下来，显然取随机数是next操作，所以每次设置seed之后做同一个随机操作，上一个不等于下一个，但是已知操作序列结果一定可知)
 
 ```python
 np.random.seed(23)
@@ -14817,7 +14819,19 @@ X = torch.tensor(X, dtype=torch.float32)
 y = torch.tensor(y, dtype=torch.long)
 ```
 
+##### 深浅拷贝
 
+```python
+import numpy as np
+import torch
+np_array = np.array([[1, 2], [3, 4]])
+tensor_from_np = torch.tensor(np_array)
+# tensor_from_np_copy = torch.tensor(np_array.copy())
+tensor_from_np2 = torch.as_tensor(np_array)
+np_array[0, 0] = 99
+print(tensor_from_np) # 深拷贝
+print(tensor_from_np2) # 浅拷贝，被修改
+```
 
 ##### 随机
 

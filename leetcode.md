@@ -2305,6 +2305,14 @@
 - 3238\.求出胜利玩家的数目
 
   签到
+  
+- 743\.网络延迟时间
+
+  Dijkstra 最短路
+  
+- 69\.x 的平方根
+
+  签到 数学 / <u>牛顿迭代法</u>
 
 ## 算法
 
@@ -57795,4 +57803,103 @@ class Solution {
 }
 ```
 
+##### 743\.网络延迟时间
+
+[题目](https://leetcode.cn/problems/network-delay-time)
+
+朴素 Dijkstra。
+
+```java
+import java.util.Arrays;
+
+class Solution {
+    public int networkDelayTime(int[][] times, int n, int k) {
+        int g[][] = new int[n][n];
+        for (int i = 0; i < n; ++i)
+            Arrays.fill(g[i], (int) 1e9);
+        for (int[] e : times) {
+            g[e[0]-1][e[1]-1] = e[2];
+        }
+        int d[] = new int[n];
+        Arrays.fill(d, (int) 1e9);
+        d[k-1] = 0;
+        boolean vis[] = new boolean[n];
+        for (int i = 0; i < n - 1; ++i) {
+            int u = 0, mind = (int)1e9;
+            for (int j = 0; j < n; ++j) {
+                if (!vis[j] && d[j] < mind) {
+                    u = j;
+                    mind = d[j];
+                }
+            }
+            vis[u] = true;
+            for (int v = 0; v < n; ++v) {
+                if (!vis[v] && d[v] > d[u] + g[u][v]) {
+                    d[v] = d[u] + g[u][v];
+                }
+            }
+        }
+        
+        int mx = 0;
+        for (int i = 0; i < n; ++i) {
+            if (d[i] == (int) 1e9)
+                return -1;
+            mx = Math.max(mx, d[i]);
+        }
+        return mx;
+    }
+}
+```
+
+##### 69\.x的平方根
+
+[题目](https://leetcode.cn/problems/sqrtx/)
+
+jvav 能直接过也不知道精度准不准确：
+
+```java
+return (int)Math.sqrt(x);
+```
+
+使用指数：$\sqrt x=e^{\ln\sqrt x}=e^{0.5\ln x}$。例如当 x=2147395600 时，计算与正确值 46340 相差 1e-11，取整会得到 46339，故判断两个值：
+
+```java
+class Solution {
+    public int mySqrt(int x) {
+        if (x == 0) {
+            return 0;
+        }
+        int ans = (int) Math.exp(0.5 * Math.log(x));
+        return (long) (ans + 1) * (ans + 1) <= x ? ans + 1 : ans;
+    }
+}
+```
+
+还可以朴素二分，显而易见，略。
+
+牛顿迭代：设答案是 $C$，即求 $f(x)=x^2-C$。
+
+设 $x_0=C$，切线斜率是 $f'(x)=2x$，该切线经过点 $(x_i,x_i^2-C)$，故切线方程为 $y_i=2x_i(x-x_i)+x^2_i-C$，与横轴相交，即 $y_i=0$，解得 $x=\dfrac12(x_i+\dfrac C{x_i})$。故不断取 $x_{i+1}=x$，直到收敛。
+
+注意零点可能有多个，牛顿迭代法找到的解和初始值相关。
+
+```java
+class Solution {
+    public int mySqrt(int x) {
+        if (x == 0) {
+            return 0;
+        }
+
+        double C = x, x0 = x;
+        while (true) {
+            double xi = 0.5 * (x0 + C / x0);
+            if (Math.abs(x0 - xi) < 1e-7) {
+                break;
+            }
+            x0 = xi;
+        }
+        return (int) x0;
+    }
+}
+```
 

@@ -4207,6 +4207,46 @@ public class c1106 {
 
 ##### 匿名内部类
 
+> ```java
+> public class Main {
+>     public static void main(String[] args) {
+>         // 使用匿名内部类实现 Greeting 接口
+>         Greeting greeting = new Greeting() {
+>             @Override
+>             public void sayHello() {
+>                 System.out.println("Hello, World!");
+>             }
+>         };
+> 
+>         // 调用 sayHello 方法
+>         greeting.sayHello(); // 输出: Hello, World!
+>     }
+> }
+> ```
+>
+> ```java
+> class Animal {
+>     void sound() {
+>         System.out.println("Animal makes a sound");
+>     }
+> }
+> 
+> public class Main {
+>     public static void main(String[] args) {
+>         Animal myAnimal = new Animal() {
+>             @Override
+>             void sound() {
+>                 System.out.println("Dog barks");
+>             }
+>         };
+>         
+>         myAnimal.sound();  // 输出: Dog barks
+>     }
+> }
+> ```
+
+
+
 一般也是作为接口。语法为：
 
 ```java
@@ -11965,6 +12005,19 @@ serialVersionUID代表序列化的版本，通过定义类的序列化版本，�
 需要重写方法 `run` ，执行线程时会执行 `run` 方法**一次** ，如果需要反复执行线程，可以让线程本身是循环的或者反复启动线程。启动线程用父类的 `start()` 方法。
 
 例如：
+
+```java
+public class ThreadExample {
+    public static void main(String[] args) {
+        Thread thread1 = new Thread("the name") {
+            public void run() {
+                System.out.println(getName());
+            }
+        };
+        thread1.start();
+    }
+}
+```
 
 ```java
 public class c1801 extends Thread {
