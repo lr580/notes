@@ -2306,6 +2306,14 @@
 
   签到
   
+- 743\.网络延迟时间
+
+  Dijkstra 最短路
+  
+- 69\.x 的平方根
+
+  签到 数学 / <u>牛顿迭代法</u>
+
 - 632\.最小区间
 
   <u>贪心+指针+堆</u> / 离散化+滑动窗口+二分 / 离散化+滑动窗口
@@ -58024,4 +58032,427 @@ class Solution {
 
 
 
+二分区间长度，对给定的长度，滑动窗口维护定长区间的信息。预处理出每个点有几个列表。设有 $n$ 个列表，长度为 $l$，共有 $m$ 个点，则每次滑动的复杂度为 $O(nl+m)$。设区间最大长度是 $L=O(m)$，则二分复杂度为 $O(\log m(nl+m))=O(m\log m)$。后面可以改进把二分去掉。
 
+```java
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.TreeSet;
+
+class Solution {
+    public int[] smallestRange(List<List<Integer>> nums) {
+        int n = nums.size();
+        TreeSet<Integer> h0 = new TreeSet<>();
+        for (List<Integer> num : nums) {
+            for (int x : num) {
+                h0.add(x);
+            }
+        }
+        int m = h0.size();
+        int h[] = new int[m], tmp = 0;
+        for (int x : h0) {
+            h[tmp++] = x;
+        }
+        //System.out.println(Arrays.toString(h));
+        HashMap<Integer, List<Integer>> b = new HashMap<>();
+        for (int i = 0; i < n; ++i) {
+            for (int x : nums.get(i)) {
+                b.computeIfAbsent(x, k -> new ArrayList<>());
+                b.get(x).add(i);
+            }
+        }
+        //System.out.println(b);
+
+        int lf = 1, rf = h[m - 1] - h[0] + 1, al = -1, ar = 10000000;
+        while (lf <= rf) {
+            int cf = (lf + rf) >> 1;
+            int hits = 0, hit[] = new int[n], al0 = -1000000, ar0 = -1;
+            //System.out.println(lf+" "+rf+" "+cf);
+            for (int li = 0, ri = li - 1; li < m; ++li) {
+                while (ri + 1 < m && h[ri + 1] - h[li] + 1 <= cf) {
+                    ++ri;
+                    for (int i : b.get(h[ri])) {
+                        hits += hit[i] == 0 ? 1 : 0;
+                        ++hit[i];
+                        //System.out.println(Arrays.toString(hit)+" "+hits+" add "+i+" "+h[ri]);
+                    }
+                }
+                //System.out.println(cf+" "+h[li]+" "+h[ri]+" "+hits+" "+Arrays.toString(hit));
+                if (hits == n) {
+                    al0 = h[li];
+                    ar0 = h[ri];
+                    //System.out.println("found "+al0+" "+ar0);
+                    break;
+                }
+                for (int i : b.get(h[li])) {
+                    hits -= hit[i] == 1 ? 1 : 0;
+                    --hit[i];
+                    //System.out.println(Arrays.toString(hit)+" "+hits+" del "+i+" "+h[li]);
+                }
+            }
+            if (al0 != -1000000) {
+                al = al0;
+                ar = ar0;
+                rf = cf - 1;
+            } else {
+                lf = cf + 1;
+            }
+        }
+        return new int[] { al, ar };
+    }
+}
+```
+
+可以把二分给去掉。只要 hits 够了就可以直接删左边。维护最短的可能区间。则复杂度 $O(nl+m)=O(m)<O(2\times 10^5)$。
+
+```java
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.TreeSet;
+
+class Solution {
+    public int[] smallestRange(List<List<Integer>> nums) {
+        int n = nums.size();
+        TreeSet<Integer> h0 = new TreeSet<>();
+        for (List<Integer> num : nums) {
+            for (int x : num) {
+                h0.add(x);
+            }
+        }
+        int m = h0.size();
+        int h[] = new int[m], tmp = 0;
+        for (int x : h0) {
+            h[tmp++] = x;
+        }
+        HashMap<Integer, List<Integer>> b = new HashMap<>();
+        for (int i = 0; i < n; ++i) {
+            for (int x : nums.get(i)) {
+                b.computeIfAbsent(x, k -> new ArrayList<>());
+                b.get(x).add(i);
+            }
+        }
+
+        int al = -1, ar = 1000000;
+        int hits = 0, hit[] = new int[n];
+        for (int ri = 0, li = 0; ri < n; ++ri) {
+            for (int i : b.get(h[ri])) {
+                hits += hit[i]++ == 0 ? 1 : 0;
+            }
+            while (hits == n) {
+                if (h[ri] - h[li] < ar - al) {
+                    ar = h[ri];
+                    al = h[li];
+                }
+                for (int i : b.get(h[li])) {
+                    hits -= hit[i]-- == 1 ? 1 : 0;
+                }
+                ++li;
+            }
+        }
+
+        return new int[]{al, ar};
+    }
+}
+```
+
+不离散：(快一点)
+
+```java
+class Solution {
+    public int[] smallestRange(List<List<Integer>> nums) {
+        int size = nums.size();
+        Map<Integer, List<Integer>> indices = new HashMap<Integer, List<Integer>>();
+        int xMin = Integer.MAX_VALUE, xMax = Integer.MIN_VALUE;
+        for (int i = 0; i < size; i++) {
+            for (int x : nums.get(i)) {
+                List<Integer> list = indices.getOrDefault(x, new ArrayList<Integer>());
+                list.add(i);
+                indices.put(x, list);
+                xMin = Math.min(xMin, x);
+                xMax = Math.max(xMax, x);
+            }
+        }
+
+        int[] freq = new int[size];
+        int inside = 0;
+        int left = xMin, right = xMin - 1;
+        int bestLeft = xMin, bestRight = xMax;
+
+        while (right < xMax) {
+            right++;
+            if (indices.containsKey(right)) {
+                for (int x : indices.get(right)) {
+                    freq[x]++;
+                    if (freq[x] == 1) {
+                        inside++;
+                    }
+                }
+                while (inside == size) {
+                    if (right - left < bestRight - bestLeft) {
+                        bestLeft = left;
+                        bestRight = right;
+                    }
+                    if (indices.containsKey(left)) {
+                        for (int x: indices.get(left)) {
+                            freq[x]--;
+                            if (freq[x] == 0) {
+                                inside--;
+                            }
+                        }
+                    }
+                    left++;
+                }
+            }
+        }
+
+        return new int[]{bestLeft, bestRight};
+    }
+}
+```
+
+贪心+堆。设当前每个列表选择的数字下标分别是 `next[i]`。设最大的一个数值是 `max`，则当前右端点一定是 `max`。维护所有 next 的最小，使用堆，则该最小是左端点。
+
+将当前区间左右确定后得到候选答案。然后用指针数组，将当前列表指针右移，维护堆和 max。如此往复，每次操作删除一个元素，最后直到某个列表用完为止。
+
+```java
+class Solution {
+    public int[] smallestRange(List<List<Integer>> nums) {
+        int rangeLeft = 0, rangeRight = Integer.MAX_VALUE;
+        int minRange = rangeRight - rangeLeft;
+        int max = Integer.MIN_VALUE;
+        int size = nums.size();
+        int[] next = new int[size];
+        PriorityQueue<Integer> priorityQueue = new PriorityQueue<Integer>(new Comparator<Integer>() {
+            public int compare(Integer index1, Integer index2) {
+                return nums.get(index1).get(next[index1]) - nums.get(index2).get(next[index2]);
+            }
+        });
+        for (int i = 0; i < size; i++) {
+            priorityQueue.offer(i);
+            max = Math.max(max, nums.get(i).get(0));
+        }
+        while (true) {
+            int minIndex = priorityQueue.poll();
+            int curRange = max - nums.get(minIndex).get(next[minIndex]);
+            if (curRange < minRange) {
+                minRange = curRange;
+                rangeLeft = nums.get(minIndex).get(next[minIndex]);
+                rangeRight = max;
+            }
+            next[minIndex]++;
+            if (next[minIndex] == nums.get(minIndex).size()) {
+                break;
+            }
+            priorityQueue.offer(minIndex);
+            max = Math.max(max, nums.get(minIndex).get(next[minIndex]));
+        }
+        return new int[]{rangeLeft, rangeRight};
+    }
+}
+```
+
+
+
+##### 743\.网络延迟时间
+
+[题目](https://leetcode.cn/problems/network-delay-time)
+
+朴素 Dijkstra。
+
+```java
+import java.util.Arrays;
+
+class Solution {
+    public int networkDelayTime(int[][] times, int n, int k) {
+        int g[][] = new int[n][n];
+        for (int i = 0; i < n; ++i)
+            Arrays.fill(g[i], (int) 1e9);
+        for (int[] e : times) {
+            g[e[0]-1][e[1]-1] = e[2];
+        }
+        int d[] = new int[n];
+        Arrays.fill(d, (int) 1e9);
+        d[k-1] = 0;
+        boolean vis[] = new boolean[n];
+        for (int i = 0; i < n - 1; ++i) {
+            int u = 0, mind = (int)1e9;
+            for (int j = 0; j < n; ++j) {
+                if (!vis[j] && d[j] < mind) {
+                    u = j;
+                    mind = d[j];
+                }
+            }
+            vis[u] = true;
+            for (int v = 0; v < n; ++v) {
+                if (!vis[v] && d[v] > d[u] + g[u][v]) {
+                    d[v] = d[u] + g[u][v];
+                }
+            }
+        }
+        
+        int mx = 0;
+        for (int i = 0; i < n; ++i) {
+            if (d[i] == (int) 1e9)
+                return -1;
+            mx = Math.max(mx, d[i]);
+        }
+        return mx;
+    }
+}
+```
+
+##### 69\.x的平方根
+
+[题目](https://leetcode.cn/problems/sqrtx/)
+
+jvav 能直接过也不知道精度准不准确：
+
+```java
+return (int)Math.sqrt(x);
+```
+
+使用指数：$\sqrt x=e^{\ln\sqrt x}=e^{0.5\ln x}$。例如当 x=2147395600 时，计算与正确值 46340 相差 1e-11，取整会得到 46339，故判断两个值：
+
+```java
+class Solution {
+    public int mySqrt(int x) {
+        if (x == 0) {
+            return 0;
+        }
+        int ans = (int) Math.exp(0.5 * Math.log(x));
+        return (long) (ans + 1) * (ans + 1) <= x ? ans + 1 : ans;
+    }
+}
+```
+
+还可以朴素二分，显而易见，略。
+
+牛顿迭代：设答案是 $C$，即求 $f(x)=x^2-C$。
+
+设 $x_0=C$，切线斜率是 $f'(x)=2x$，该切线经过点 $(x_i,x_i^2-C)$，故切线方程为 $y_i=2x_i(x-x_i)+x^2_i-C$，与横轴相交，即 $y_i=0$，解得 $x=\dfrac12(x_i+\dfrac C{x_i})$。故不断取 $x_{i+1}=x$，直到收敛。
+
+注意零点可能有多个，牛顿迭代法找到的解和初始值相关。
+
+```java
+class Solution {
+    public int mySqrt(int x) {
+        if (x == 0) {
+            return 0;
+        }
+
+        double C = x, x0 = x;
+        while (true) {
+            double xi = 0.5 * (x0 + C / x0);
+            if (Math.abs(x0 - xi) < 1e-7) {
+                break;
+            }
+            x0 = xi;
+        }
+        return (int) x0;
+    }
+}
+```
+
+##### 743\.网络延迟时间
+
+[题目](https://leetcode.cn/problems/network-delay-time)
+
+朴素 Dijkstra。
+
+```java
+import java.util.Arrays;
+
+class Solution {
+    public int networkDelayTime(int[][] times, int n, int k) {
+        int g[][] = new int[n][n];
+        for (int i = 0; i < n; ++i)
+            Arrays.fill(g[i], (int) 1e9);
+        for (int[] e : times) {
+            g[e[0]-1][e[1]-1] = e[2];
+        }
+        int d[] = new int[n];
+        Arrays.fill(d, (int) 1e9);
+        d[k-1] = 0;
+        boolean vis[] = new boolean[n];
+        for (int i = 0; i < n - 1; ++i) {
+            int u = 0, mind = (int)1e9;
+            for (int j = 0; j < n; ++j) {
+                if (!vis[j] && d[j] < mind) {
+                    u = j;
+                    mind = d[j];
+                }
+            }
+            vis[u] = true;
+            for (int v = 0; v < n; ++v) {
+                if (!vis[v] && d[v] > d[u] + g[u][v]) {
+                    d[v] = d[u] + g[u][v];
+                }
+            }
+        }
+        
+        int mx = 0;
+        for (int i = 0; i < n; ++i) {
+            if (d[i] == (int) 1e9)
+                return -1;
+            mx = Math.max(mx, d[i]);
+        }
+        return mx;
+    }
+}
+```
+
+##### 69\.x的平方根
+
+[题目](https://leetcode.cn/problems/sqrtx/)
+
+jvav 能直接过也不知道精度准不准确：
+
+```java
+return (int)Math.sqrt(x);
+```
+
+使用指数：$\sqrt x=e^{\ln\sqrt x}=e^{0.5\ln x}$。例如当 x=2147395600 时，计算与正确值 46340 相差 1e-11，取整会得到 46339，故判断两个值：
+
+```java
+class Solution {
+    public int mySqrt(int x) {
+        if (x == 0) {
+            return 0;
+        }
+        int ans = (int) Math.exp(0.5 * Math.log(x));
+        return (long) (ans + 1) * (ans + 1) <= x ? ans + 1 : ans;
+    }
+}
+```
+
+还可以朴素二分，显而易见，略。
+
+牛顿迭代：设答案是 $C$，即求 $f(x)=x^2-C$。
+
+设 $x_0=C$，切线斜率是 $f'(x)=2x$，该切线经过点 $(x_i,x_i^2-C)$，故切线方程为 $y_i=2x_i(x-x_i)+x^2_i-C$，与横轴相交，即 $y_i=0$，解得 $x=\dfrac12(x_i+\dfrac C{x_i})$。故不断取 $x_{i+1}=x$，直到收敛。
+
+注意零点可能有多个，牛顿迭代法找到的解和初始值相关。
+
+```java
+class Solution {
+    public int mySqrt(int x) {
+        if (x == 0) {
+            return 0;
+        }
+
+        double C = x, x0 = x;
+        while (true) {
+            double xi = 0.5 * (x0 + C / x0);
+            if (Math.abs(x0 - xi) < 1e-7) {
+                break;
+            }
+            x0 = xi;
+        }
+        return (int) x0;
+    }
+}
+```
