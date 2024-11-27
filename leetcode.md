@@ -2313,6 +2313,11 @@
 - 69\.x 的平方根
 
   签到 数学 / <u>牛顿迭代法</u>
+
+- 632\.最小区间
+
+  <u>贪心+指针+堆</u> / 离散化+滑动窗口+二分 / 离散化+滑动窗口
+
   
 - 3206\.交替组I
 
@@ -57815,6 +57820,455 @@ class Solution {
 }
 ```
 
+二分区间长度，对给定的长度，滑动窗口维护定长区间的信息。预处理出每个点有几个列表。设有 $n$ 个列表，长度为 $l$，共有 $m$ 个点，则每次滑动的复杂度为 $O(nl+m)$。设区间最大长度是 $L=O(m)$，则二分复杂度为 $O(\log m(nl+m))=O(m\log m)$。后面可以改进把二分去掉。
+
+```java
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.TreeSet;
+
+class Solution {
+    public int[] smallestRange(List<List<Integer>> nums) {
+        int n = nums.size();
+        TreeSet<Integer> h0 = new TreeSet<>();
+        for (List<Integer> num : nums) {
+            for (int x : num) {
+                h0.add(x);
+            }
+        }
+        int m = h0.size();
+        int h[] = new int[m], tmp = 0;
+        for (int x : h0) {
+            h[tmp++] = x;
+        }
+        //System.out.println(Arrays.toString(h));
+        HashMap<Integer, List<Integer>> b = new HashMap<>();
+        for (int i = 0; i < n; ++i) {
+            for (int x : nums.get(i)) {
+                b.computeIfAbsent(x, k -> new ArrayList<>());
+                b.get(x).add(i);
+            }
+        }
+        //System.out.println(b);
+
+        int lf = 1, rf = h[m - 1] - h[0] + 1, al = -1, ar = 10000000;
+        while (lf <= rf) {
+            int cf = (lf + rf) >> 1;
+            int hits = 0, hit[] = new int[n], al0 = -1000000, ar0 = -1;
+            //System.out.println(lf+" "+rf+" "+cf);
+            for (int li = 0, ri = li - 1; li < m; ++li) {
+                while (ri + 1 < m && h[ri + 1] - h[li] + 1 <= cf) {
+                    ++ri;
+                    for (int i : b.get(h[ri])) {
+                        hits += hit[i] == 0 ? 1 : 0;
+                        ++hit[i];
+                        //System.out.println(Arrays.toString(hit)+" "+hits+" add "+i+" "+h[ri]);
+                    }
+                }
+                //System.out.println(cf+" "+h[li]+" "+h[ri]+" "+hits+" "+Arrays.toString(hit));
+                if (hits == n) {
+                    al0 = h[li];
+                    ar0 = h[ri];
+                    //System.out.println("found "+al0+" "+ar0);
+                    break;
+                }
+                for (int i : b.get(h[li])) {
+                    hits -= hit[i] == 1 ? 1 : 0;
+                    --hit[i];
+                    //System.out.println(Arrays.toString(hit)+" "+hits+" del "+i+" "+h[li]);
+                }
+            }
+            if (al0 != -1000000) {
+                al = al0;
+                ar = ar0;
+                rf = cf - 1;
+            } else {
+                lf = cf + 1;
+            }
+        }
+        return new int[] { al, ar };
+    }
+}
+```
+
+可以把二分给去掉。只要 hits 够了就可以直接删左边。维护最短的可能区间。则复杂度 $O(nl+m)=O(m)<O(2\times 10^5)$。
+
+```java
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.TreeSet;
+
+class Solution {
+    public int[] smallestRange(List<List<Integer>> nums) {
+        int n = nums.size();
+        TreeSet<Integer> h0 = new TreeSet<>();
+        for (List<Integer> num : nums) {
+            for (int x : num) {
+                h0.add(x);
+            }
+        }
+        int m = h0.size();
+        int h[] = new int[m], tmp = 0;
+        for (int x : h0) {
+            h[tmp++] = x;
+        }
+        HashMap<Integer, List<Integer>> b = new HashMap<>();
+        for (int i = 0; i < n; ++i) {
+            for (int x : nums.get(i)) {
+                b.computeIfAbsent(x, k -> new ArrayList<>());
+                b.get(x).add(i);
+            }
+        }
+
+        int al = -1, ar = 1000000;
+        int hits = 0, hit[] = new int[n];
+        for (int ri = 0, li = 0; ri < n; ++ri) {
+            for (int i : b.get(h[ri])) {
+                hits += hit[i]++ == 0 ? 1 : 0;
+            }
+            while (hits == n) {
+                if (h[ri] - h[li] < ar - al) {
+                    ar = h[ri];
+                    al = h[li];
+                }
+                for (int i : b.get(h[li])) {
+                    hits -= hit[i]-- == 1 ? 1 : 0;
+                }
+                ++li;
+            }
+        }
+
+        return new int[]{al, ar};
+    }
+}
+```
+
+不离散：(快一点)
+
+```java
+class Solution {
+    public int[] smallestRange(List<List<Integer>> nums) {
+        int size = nums.size();
+        Map<Integer, List<Integer>> indices = new HashMap<Integer, List<Integer>>();
+        int xMin = Integer.MAX_VALUE, xMax = Integer.MIN_VALUE;
+        for (int i = 0; i < size; i++) {
+            for (int x : nums.get(i)) {
+                List<Integer> list = indices.getOrDefault(x, new ArrayList<Integer>());
+                list.add(i);
+                indices.put(x, list);
+                xMin = Math.min(xMin, x);
+                xMax = Math.max(xMax, x);
+            }
+        }
+
+        int[] freq = new int[size];
+        int inside = 0;
+        int left = xMin, right = xMin - 1;
+        int bestLeft = xMin, bestRight = xMax;
+
+        while (right < xMax) {
+            right++;
+            if (indices.containsKey(right)) {
+                for (int x : indices.get(right)) {
+                    freq[x]++;
+                    if (freq[x] == 1) {
+                        inside++;
+                    }
+                }
+                while (inside == size) {
+                    if (right - left < bestRight - bestLeft) {
+                        bestLeft = left;
+                        bestRight = right;
+                    }
+                    if (indices.containsKey(left)) {
+                        for (int x: indices.get(left)) {
+                            freq[x]--;
+                            if (freq[x] == 0) {
+                                inside--;
+                            }
+                        }
+                    }
+                    left++;
+                }
+            }
+        }
+
+        return new int[]{bestLeft, bestRight};
+    }
+}
+```
+
+贪心+堆。设当前每个列表选择的数字下标分别是 `next[i]`。设最大的一个数值是 `max`，则当前右端点一定是 `max`。维护所有 next 的最小，使用堆，则该最小是左端点。
+
+将当前区间左右确定后得到候选答案。然后用指针数组，将当前列表指针右移，维护堆和 max。如此往复，每次操作删除一个元素，最后直到某个列表用完为止。
+
+```java
+class Solution {
+    public int[] smallestRange(List<List<Integer>> nums) {
+        int rangeLeft = 0, rangeRight = Integer.MAX_VALUE;
+        int minRange = rangeRight - rangeLeft;
+        int max = Integer.MIN_VALUE;
+        int size = nums.size();
+        int[] next = new int[size];
+        PriorityQueue<Integer> priorityQueue = new PriorityQueue<Integer>(new Comparator<Integer>() {
+            public int compare(Integer index1, Integer index2) {
+                return nums.get(index1).get(next[index1]) - nums.get(index2).get(next[index2]);
+            }
+        });
+        for (int i = 0; i < size; i++) {
+            priorityQueue.offer(i);
+            max = Math.max(max, nums.get(i).get(0));
+        }
+        while (true) {
+            int minIndex = priorityQueue.poll();
+            int curRange = max - nums.get(minIndex).get(next[minIndex]);
+            if (curRange < minRange) {
+                minRange = curRange;
+                rangeLeft = nums.get(minIndex).get(next[minIndex]);
+                rangeRight = max;
+            }
+            next[minIndex]++;
+            if (next[minIndex] == nums.get(minIndex).size()) {
+                break;
+            }
+            priorityQueue.offer(minIndex);
+            max = Math.max(max, nums.get(minIndex).get(next[minIndex]));
+        }
+        return new int[]{rangeLeft, rangeRight};
+    }
+}
+```
+
+
+
+二分区间长度，对给定的长度，滑动窗口维护定长区间的信息。预处理出每个点有几个列表。设有 $n$ 个列表，长度为 $l$，共有 $m$ 个点，则每次滑动的复杂度为 $O(nl+m)$。设区间最大长度是 $L=O(m)$，则二分复杂度为 $O(\log m(nl+m))=O(m\log m)$。后面可以改进把二分去掉。
+
+```java
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.TreeSet;
+
+class Solution {
+    public int[] smallestRange(List<List<Integer>> nums) {
+        int n = nums.size();
+        TreeSet<Integer> h0 = new TreeSet<>();
+        for (List<Integer> num : nums) {
+            for (int x : num) {
+                h0.add(x);
+            }
+        }
+        int m = h0.size();
+        int h[] = new int[m], tmp = 0;
+        for (int x : h0) {
+            h[tmp++] = x;
+        }
+        //System.out.println(Arrays.toString(h));
+        HashMap<Integer, List<Integer>> b = new HashMap<>();
+        for (int i = 0; i < n; ++i) {
+            for (int x : nums.get(i)) {
+                b.computeIfAbsent(x, k -> new ArrayList<>());
+                b.get(x).add(i);
+            }
+        }
+        //System.out.println(b);
+
+        int lf = 1, rf = h[m - 1] - h[0] + 1, al = -1, ar = 10000000;
+        while (lf <= rf) {
+            int cf = (lf + rf) >> 1;
+            int hits = 0, hit[] = new int[n], al0 = -1000000, ar0 = -1;
+            //System.out.println(lf+" "+rf+" "+cf);
+            for (int li = 0, ri = li - 1; li < m; ++li) {
+                while (ri + 1 < m && h[ri + 1] - h[li] + 1 <= cf) {
+                    ++ri;
+                    for (int i : b.get(h[ri])) {
+                        hits += hit[i] == 0 ? 1 : 0;
+                        ++hit[i];
+                        //System.out.println(Arrays.toString(hit)+" "+hits+" add "+i+" "+h[ri]);
+                    }
+                }
+                //System.out.println(cf+" "+h[li]+" "+h[ri]+" "+hits+" "+Arrays.toString(hit));
+                if (hits == n) {
+                    al0 = h[li];
+                    ar0 = h[ri];
+                    //System.out.println("found "+al0+" "+ar0);
+                    break;
+                }
+                for (int i : b.get(h[li])) {
+                    hits -= hit[i] == 1 ? 1 : 0;
+                    --hit[i];
+                    //System.out.println(Arrays.toString(hit)+" "+hits+" del "+i+" "+h[li]);
+                }
+            }
+            if (al0 != -1000000) {
+                al = al0;
+                ar = ar0;
+                rf = cf - 1;
+            } else {
+                lf = cf + 1;
+            }
+        }
+        return new int[] { al, ar };
+    }
+}
+```
+
+可以把二分给去掉。只要 hits 够了就可以直接删左边。维护最短的可能区间。则复杂度 $O(nl+m)=O(m)<O(2\times 10^5)$。
+
+```java
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.TreeSet;
+
+class Solution {
+    public int[] smallestRange(List<List<Integer>> nums) {
+        int n = nums.size();
+        TreeSet<Integer> h0 = new TreeSet<>();
+        for (List<Integer> num : nums) {
+            for (int x : num) {
+                h0.add(x);
+            }
+        }
+        int m = h0.size();
+        int h[] = new int[m], tmp = 0;
+        for (int x : h0) {
+            h[tmp++] = x;
+        }
+        HashMap<Integer, List<Integer>> b = new HashMap<>();
+        for (int i = 0; i < n; ++i) {
+            for (int x : nums.get(i)) {
+                b.computeIfAbsent(x, k -> new ArrayList<>());
+                b.get(x).add(i);
+            }
+        }
+
+        int al = -1, ar = 1000000;
+        int hits = 0, hit[] = new int[n];
+        for (int ri = 0, li = 0; ri < n; ++ri) {
+            for (int i : b.get(h[ri])) {
+                hits += hit[i]++ == 0 ? 1 : 0;
+            }
+            while (hits == n) {
+                if (h[ri] - h[li] < ar - al) {
+                    ar = h[ri];
+                    al = h[li];
+                }
+                for (int i : b.get(h[li])) {
+                    hits -= hit[i]-- == 1 ? 1 : 0;
+                }
+                ++li;
+            }
+        }
+
+        return new int[]{al, ar};
+    }
+}
+```
+
+不离散：(快一点)
+
+```java
+class Solution {
+    public int[] smallestRange(List<List<Integer>> nums) {
+        int size = nums.size();
+        Map<Integer, List<Integer>> indices = new HashMap<Integer, List<Integer>>();
+        int xMin = Integer.MAX_VALUE, xMax = Integer.MIN_VALUE;
+        for (int i = 0; i < size; i++) {
+            for (int x : nums.get(i)) {
+                List<Integer> list = indices.getOrDefault(x, new ArrayList<Integer>());
+                list.add(i);
+                indices.put(x, list);
+                xMin = Math.min(xMin, x);
+                xMax = Math.max(xMax, x);
+            }
+        }
+
+        int[] freq = new int[size];
+        int inside = 0;
+        int left = xMin, right = xMin - 1;
+        int bestLeft = xMin, bestRight = xMax;
+
+        while (right < xMax) {
+            right++;
+            if (indices.containsKey(right)) {
+                for (int x : indices.get(right)) {
+                    freq[x]++;
+                    if (freq[x] == 1) {
+                        inside++;
+                    }
+                }
+                while (inside == size) {
+                    if (right - left < bestRight - bestLeft) {
+                        bestLeft = left;
+                        bestRight = right;
+                    }
+                    if (indices.containsKey(left)) {
+                        for (int x: indices.get(left)) {
+                            freq[x]--;
+                            if (freq[x] == 0) {
+                                inside--;
+                            }
+                        }
+                    }
+                    left++;
+                }
+            }
+        }
+
+        return new int[]{bestLeft, bestRight};
+    }
+}
+```
+
+贪心+堆。设当前每个列表选择的数字下标分别是 `next[i]`。设最大的一个数值是 `max`，则当前右端点一定是 `max`。维护所有 next 的最小，使用堆，则该最小是左端点。
+
+将当前区间左右确定后得到候选答案。然后用指针数组，将当前列表指针右移，维护堆和 max。如此往复，每次操作删除一个元素，最后直到某个列表用完为止。
+
+```java
+class Solution {
+    public int[] smallestRange(List<List<Integer>> nums) {
+        int rangeLeft = 0, rangeRight = Integer.MAX_VALUE;
+        int minRange = rangeRight - rangeLeft;
+        int max = Integer.MIN_VALUE;
+        int size = nums.size();
+        int[] next = new int[size];
+        PriorityQueue<Integer> priorityQueue = new PriorityQueue<Integer>(new Comparator<Integer>() {
+            public int compare(Integer index1, Integer index2) {
+                return nums.get(index1).get(next[index1]) - nums.get(index2).get(next[index2]);
+            }
+        });
+        for (int i = 0; i < size; i++) {
+            priorityQueue.offer(i);
+            max = Math.max(max, nums.get(i).get(0));
+        }
+        while (true) {
+            int minIndex = priorityQueue.poll();
+            int curRange = max - nums.get(minIndex).get(next[minIndex]);
+            if (curRange < minRange) {
+                minRange = curRange;
+                rangeLeft = nums.get(minIndex).get(next[minIndex]);
+                rangeRight = max;
+            }
+            next[minIndex]++;
+            if (next[minIndex] == nums.get(minIndex).size()) {
+                break;
+            }
+            priorityQueue.offer(minIndex);
+            max = Math.max(max, nums.get(minIndex).get(next[minIndex]));
+        }
+        return new int[]{rangeLeft, rangeRight};
+    }
+}
+```
+
+
 ##### 743\.网络延迟时间
 
 [题目](https://leetcode.cn/problems/network-delay-time)
@@ -58133,3 +58587,321 @@ class Solution {
 }
 ```
 
+##### 3206\.交替组I
+
+[题目](https://leetcode.cn/problems/alternating-groups-i)
+
+```java
+class Solution {
+    public static int f(int a, int b, int c) {
+        return a != b && a== c ? 1 : 0;
+    }
+    public int numberOfAlternatingGroups(int[] colors) {
+        int n = colors.length;
+        int ans = f(colors[n-1], colors[0], colors[1]);
+        ans += f(colors[n-2], colors[n-1], colors[0]);
+        for(int i=1;i<n-1;++i) {
+            ans += f(colors[i-1],colors[i],colors[i+1]);
+        }
+        return ans;
+    }
+}
+```
+
+##### 3208\.交替组II
+
+[题目](https://leetcode.cn/problems/alternating-groups-ii)
+
+前缀和，令 $a_i$ 表示 $colors_i$ 与 $colors_{i-1}$ 是否不相等，若长为 $k-1$ 的区间 $[i-k+2,i]$ 的每个都不相等，即 $a_i$ 均为 true，则必然是交替的区间。化环为链，原长设为 $[1,n-1]$，则二倍长 $[n,2n-2]$。一共需要判断 $n$ 个点为终点的关系，即求这些区间的前缀和是否等于区间长。
+
+```java
+import java.util.Arrays;
+
+class Solution {
+    public int numberOfAlternatingGroups(int[] colors, int k) {
+        int n = colors.length;
+        int a[] = new int[n * 2];
+        for (int i = 0; i < 2 * n - 1; ++i) {
+            a[i + 1] = colors[(i + 1) % n] != colors[i % n] ? 1 : 0;
+        }
+        for (int i = 1; i < 2 * n - 1; ++i) {
+            a[i] += a[i - 1];
+        }
+        int ans = 0;
+        for (int i = n - 1; i < 2 * n - 1; ++i) {
+            ans += a[i] - a[i - k + 1] == k - 1  ? 1 : 0;
+        }
+        return ans;
+    }
+}
+```
+
+直接双指针/滑动窗口/遍历即可。
+
+```java
+class Solution {
+    public int numberOfAlternatingGroups(int[] colors, int k) {
+        int n = colors.length;
+        int ans = 0;
+        int cnt = 0;
+        for (int i = 0; i < n * 2; i++) {
+            if (i > 0 && colors[i % n] == colors[(i - 1) % n]) {
+                cnt = 0;
+            }
+            cnt++;
+            if (i >= n && cnt >= k) {
+                ans++;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+##### 3245\.交替组III
+
+[题目](https://leetcode.cn/problems/alternating-groups-iii)
+
+显然长为 $l$ 的交替段包含有长为 $k$ 的交替段 $l-(k-1)$ 个，即跳过 $k-1$ 个右端点不够长，剩下的都可以作为长为 $k$ 区间右端点。
+
+因此，设共有 $m$ 个交替段长度不小于 $k$，长度分别为 $l_1,l_2\,\cdots,l_m$，则共有 $\sum_{i=1}^m(l_i-(k-1))=\sum_{i=1}^ml_i-m(k-1)$ 个答案。
+
+使用权值树状数组显然可以维护区间和。可以维护两个信息：元素数和区间和。使用倒序结构，第一个位置存最大的区间长，这样可以避免两次 query。也就是把树状数组前缀和改成后缀和。
+
+反面思想，逆向思考，求每个相等位置。set 维护所有的结束下标 $i$ 使得 $a_i=a_{i+1}$。
+
+初始修改：
+
+- 若 set 为空，第一次插入一定导致长 $n$ 的交替区间段，手玩易知，树状数组增加这个 $n$ 记录。同理，若删除后为空，一样反向删除。
+
+否则，至少存在一个结束位置，假设结束位置 $i$ 进行增加：
+
+- 设 $< i$ 的最大结束位置是 $pre$，因为环的存在，如果没有，肯定是在 $i$ 右边最大的位置。
+- 设 $>i$ 的最小结束位置是 $nxt$，同理环的存在，如果没有，肯定是在 $i$ 左边最小的位置。
+
+那么原本 $pre,nxt$ 两结束位置，手玩易知，可以得到中间一个长为 $nxt-pre$ 的交替段 $[pre+1,nxt]$。当 $pre>nxt$ 时，设 0-indexed，要么 $i<nxt<pre$ 要么 $nxt<pre<i$。对前者，得到 $[pre+1,n-1],[0,nxt]$ 即总长度为 $n-pre+nxt$。对后者是一样的。
+
+$pre<nxt$ 时，新的两个区间是 $[pre+1,i]$ 和 $[i+1,nxt]$。区间长分别是 $i-pre,nxt-i$。若 $pre>nxt$，要么 $i<nxt<pre$ 要么 $nxt<pre<i$。讨论可知，其中某个一个区间跨越 $n$，要么是 $[pre+1,i]$ 变成 $[pre+1,n-1],[0,i]$，要么是 $[i+1,nxt]$ 变成 $[i+1,n-1],[0,nxt]$。分别长度变成 $i-pre+n$ 和 $nxt-i+n$。
+
+那么修改的增加和删除是相反的，增加就是删掉长区间加入两个短区间，而删除就是删掉两个短区间插入长区间。
+
+处理好初始值之后，可以查询。若没有结束区间，显然答案为 $n$。否则，查找 $\ge k$ 的区间段总长 $\sum_{i=1}^ml_i$ 和个数 $m$，带入上述公式。
+
+对修改，若修改值与原始值不一样，设待修改下标 $i$ 的前后 $\pm1$ 分别是 $pre,nxt$，修改前：若 $a_i==a_{pre}$，则执行删除操作，删掉结束下标 $pre$。若 $a_i==a_{nxt}$，同理删掉 $i$。修改后，若相等，则执行插入操作。
+
+```java
+class FenwickTree {
+    private final int[][] t;
+
+    public FenwickTree(int n) {
+        t = new int[n + 1][2];
+    }
+
+    // op=1，添加一个 size
+    // op=-1，移除一个 size
+    public void update(int size, int op) {
+        for (int i = t.length - size; i < t.length; i += i & -i) {
+            t[i][0] += op;
+            t[i][1] += op * size;
+        }
+    }
+
+    // 返回 >= size 的元素个数，元素和
+    public int[] query(int size) {
+        int cnt = 0, sum = 0;
+        for (int i = t.length - size; i > 0; i &= i - 1) {
+            cnt += t[i][0];
+            sum += t[i][1];
+        }
+        return new int[]{cnt, sum};
+    }
+}
+
+class Solution {
+    public List<Integer> numberOfAlternatingGroups(int[] a, int[][] queries) {
+        int n = a.length;
+        TreeSet<Integer> set = new TreeSet<>();
+        FenwickTree t = new FenwickTree(n);
+
+        for (int i = 0; i < n; i++) {
+            if (a[i] == a[(i + 1) % n]) {
+                add(set, t, n, i); // i 是一个结束位置
+            }
+        }
+
+        List<Integer> ans = new ArrayList<>();
+        for (int[] q : queries) {
+            if (q[0] == 1) {
+                if (set.isEmpty()) {
+                    ans.add(n); // 每个长为 size 的子数组都符合要求
+                } else {
+                    int[] res = t.query(q[1]);
+                    ans.add(res[1] - res[0] * (q[1] - 1));
+                }
+            } else {
+                int i = q[1];
+                if (a[i] == q[2]) { // 无影响
+                    continue;
+                }
+                int pre = (i - 1 + n) % n;
+                int nxt = (i + 1) % n;
+                // 修改前，先去掉结束位置
+                if (a[pre] == a[i]) {
+                    del(set, t, n, pre);
+                }
+                if (a[i] == a[nxt]) {
+                    del(set, t, n, i);
+                }
+                a[i] ^= 1;
+                // 修改后，添加新的结束位置
+                if (a[pre] == a[i]) {
+                    add(set, t, n, pre);
+                }
+                if (a[i] == a[nxt]) {
+                    add(set, t, n, i);
+                }
+            }
+        }
+        return ans;
+    }
+
+    // 添加一个结束位置 i
+    private void add(TreeSet<Integer> set, FenwickTree t, int n, int i) {
+        if (set.isEmpty()) {
+            t.update(n, 1);
+        } else {
+            update(set, t, n, i, 1);
+        }
+        set.add(i);
+    }
+
+    // 移除一个结束位置 i
+    private void del(TreeSet<Integer> set, FenwickTree t, int n, int i) {
+        set.remove(i);
+        if (set.isEmpty()) {
+            t.update(n, -1);
+        } else {
+            update(set, t, n, i, -1);
+        }
+    }
+
+    // op=1，添加一个结束位置 i
+    // op=-1，移除一个结束位置 i
+    private void update(TreeSet<Integer> set, FenwickTree t, int n, int i, int op) {
+        Integer pre = set.floor(i);
+        if (pre == null) {
+            pre = set.last();
+        }
+
+        Integer nxt = set.ceiling(i);
+        if (nxt == null) {
+            nxt = set.first();
+        }
+
+        t.update((nxt - pre + n - 1) % n + 1, -op); // 移除/添加旧长度
+        t.update((i - pre + n) % n, op);
+        t.update((nxt - i + n) % n, op); // 添加/移除新长度
+    }
+}
+```
+
+
+##### 743\.网络延迟时间
+
+[题目](https://leetcode.cn/problems/network-delay-time)
+
+朴素 Dijkstra。
+
+```java
+import java.util.Arrays;
+
+class Solution {
+    public int networkDelayTime(int[][] times, int n, int k) {
+        int g[][] = new int[n][n];
+        for (int i = 0; i < n; ++i)
+            Arrays.fill(g[i], (int) 1e9);
+        for (int[] e : times) {
+            g[e[0]-1][e[1]-1] = e[2];
+        }
+        int d[] = new int[n];
+        Arrays.fill(d, (int) 1e9);
+        d[k-1] = 0;
+        boolean vis[] = new boolean[n];
+        for (int i = 0; i < n - 1; ++i) {
+            int u = 0, mind = (int)1e9;
+            for (int j = 0; j < n; ++j) {
+                if (!vis[j] && d[j] < mind) {
+                    u = j;
+                    mind = d[j];
+                }
+            }
+            vis[u] = true;
+            for (int v = 0; v < n; ++v) {
+                if (!vis[v] && d[v] > d[u] + g[u][v]) {
+                    d[v] = d[u] + g[u][v];
+                }
+            }
+        }
+        
+        int mx = 0;
+        for (int i = 0; i < n; ++i) {
+            if (d[i] == (int) 1e9)
+                return -1;
+            mx = Math.max(mx, d[i]);
+        }
+        return mx;
+    }
+}
+```
+
+##### 69\.x的平方根
+
+[题目](https://leetcode.cn/problems/sqrtx/)
+
+jvav 能直接过也不知道精度准不准确：
+
+```java
+return (int)Math.sqrt(x);
+```
+
+使用指数：$\sqrt x=e^{\ln\sqrt x}=e^{0.5\ln x}$。例如当 x=2147395600 时，计算与正确值 46340 相差 1e-11，取整会得到 46339，故判断两个值：
+
+```java
+class Solution {
+    public int mySqrt(int x) {
+        if (x == 0) {
+            return 0;
+        }
+        int ans = (int) Math.exp(0.5 * Math.log(x));
+        return (long) (ans + 1) * (ans + 1) <= x ? ans + 1 : ans;
+    }
+}
+```
+
+还可以朴素二分，显而易见，略。
+
+牛顿迭代：设答案是 $C$，即求 $f(x)=x^2-C$。
+
+设 $x_0=C$，切线斜率是 $f'(x)=2x$，该切线经过点 $(x_i,x_i^2-C)$，故切线方程为 $y_i=2x_i(x-x_i)+x^2_i-C$，与横轴相交，即 $y_i=0$，解得 $x=\dfrac12(x_i+\dfrac C{x_i})$。故不断取 $x_{i+1}=x$，直到收敛。
+
+注意零点可能有多个，牛顿迭代法找到的解和初始值相关。
+
+```java
+class Solution {
+    public int mySqrt(int x) {
+        if (x == 0) {
+            return 0;
+        }
+
+        double C = x, x0 = x;
+        while (true) {
+            double xi = 0.5 * (x0 + C / x0);
+            if (Math.abs(x0 - xi) < 1e-7) {
+                break;
+            }
+            x0 = xi;
+        }
+        return (int) x0;
+    }
+}
+```

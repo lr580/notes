@@ -6749,6 +6749,8 @@ np.linspace(a,b,k)
 
 `.shape` tuple 维度(一维也是 tuple)
 
+`.nbytes` 字节数， `/2**20` 是 MB。
+
 ##### 变换
 
 插入：
@@ -7569,7 +7571,7 @@ print(loaded_array)
 
 ##### npz
 
-`npz` 格式，存储若干个 np 数组
+`npz` 格式，存储若干个 np 数组，可以压缩。对规律数据压缩良好，对随机数据能压但不会特别压缩。
 
 ###### 导出
 
@@ -7580,9 +7582,15 @@ array2 = np.array([[1, 2, 3], [4, 5, 6]])
 np.savez('a.npz', a1=array1, a2=array2)
 ```
 
+压缩导出：
+
+```python
+np.savez_compressed(f, X=X, y=y)
+```
+
 ###### 导入
 
-`.npz` 文件导入：
+`.npz` 文件导入：(不管压缩不压缩)
 
 ```python
 import numpy as np
@@ -7598,6 +7606,23 @@ specific_array = data['a1']
 
 ```python
 data = np.load('path_to_file.npy')
+```
+
+###### 小批量导入
+
+对特别大的数据，可以小批次读入，经过检验不会全部加载进内存，每次内存只占用小批次的数据量：
+
+```python
+import numpy as np
+def data_generator(npz_file, batch_size):
+    with np.load(npz_file) as data:
+        num_samples = data['X'].shape[0]
+        while True:
+            indices = np.random.choice(num_samples, batch_size, replace=False)
+            batch = data['X'][indices] 
+            yield batch
+batch_size = 32
+gen = data_generator('compressed_data.npz', batch_size)
 ```
 
 
@@ -14879,12 +14904,12 @@ na = np.array([1,1,4,5,1,4])
 print(torch.tensor(na))
 ```
 
-numpy 与标量转化：
+标量转化：(用 item())
 
 
 ```python
 x = torch.arange(12)
-print(x[2].item(),type(x[2].item()))
+print(x[2].item(),type(x[2].item())) # 2, int
 ```
 
 ##### 内存
@@ -15225,6 +15250,8 @@ print(result_dim1)
 
 ##### 统计
 
+###### sum
+
 求和：(后两个得到的 sum 都是一行的向量)
 
 ```python
@@ -15233,6 +15260,8 @@ print(x.sum(), x.sum(axis=0), x.sum(axis=1)) #按列(3,5,7);按行(3,12)
 print(x.sum(axis=[0,1])) #等效于 x.sum()
 print(x.sum(axis=1,keepdims=True)) #也就是(2,3) size 变成了 (2,1)
 ```
+
+###### mean
 
 同理，求均值操作也能这么干。
 
@@ -15244,6 +15273,21 @@ print(x.mean(), x.mean(axis=0), x.mean(axis=1))
 ```python
 a = torch.tensor([[1.,1,4,5,1,4],[1,9,1,9,8,1]]) #1.改1不行，无法推断输出类型
 print(torch.mean(a, dim=1))
+```
+
+###### max
+
+求 max：
+
+```python
+import torch # 求每行的最大值及其下标
+outputs = torch.tensor([[1.0, 2.0, 0.5],   # 第一个样本的 logits
+                        [0.5, 0.5, 2.0],   # 第二个样本的 logits
+                        [1.5, 0.5, 0.5],   # 第三个样本的 logits
+                        [0.2, 1.0, 0.8]])  # 第四个样本的 logits
+max_v, predicted = torch.max(outputs.data, 1) # 没有 1 就全局
+print(f'预测的类别索引: {predicted}')# tensor([1, 2, 0, 1])
+print(max_v) # tensor([2.0000, 2.0000, 1.5000, 1.0000])
 ```
 
 
@@ -15590,6 +15634,18 @@ transform = transforms.Compose([
 ])
 ```
 
+二维向量标准化，如均值方差都为 0.5 (MNIST 标准化)
+
+```python
+image_np_1 = np.array([[10, 100],[11, 101]],dtype=np.float32)
+transform = transforms.Compose([
+    transforms.ToTensor(),  # 将图像转换为张量
+    transforms.Normalize((0.5,), (0.5,))  # 标准化
+])
+print(transform(image_np_1)) 
+# tensor([[[ 19., 199.], [ 21., 201.]]])
+```
+
 
 
 #### 数据集层
@@ -15725,6 +15781,57 @@ for batch_features, batch_labels in dataloader:
 标签: tensor([0])
 特征: tensor([[3., 4.]])
 标签: tensor([2])
+```
+
+##### 举例
+
+###### 小批量数据集
+
+实验验证可知只占用小批量内存
+
+```python
+import numpy as np
+import torch
+from torch.utils.data import Dataset, DataLoader
+class NPZDataset(Dataset):
+    def __init__(self, npz_file):
+        self.npz_file = npz_file
+        with np.load(npz_file) as data:
+            self.X = data['X']
+            self.y = data['y'] 
+            self.num_samples = self.X.shape[0]
+    def __len__(self):
+        return self.num_samples
+    def __getitem__(self, idx):
+        return torch.tensor(self.X[idx], dtype=torch.float), torch.tensor(self.y[idx], dtype=torch.long)
+get_memory_usage()
+dataset = NPZDataset('compressed_data.npz')
+dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+# get_memory_usage()
+for batch in dataloader:
+    # get_memory_usage()
+```
+
+##### 预设数据集
+
+###### MNIST
+
+```python
+import torch
+import torchvision
+import torchvision.transforms as transforms
+# 数据预处理
+transform = transforms.Compose([
+    transforms.ToTensor(),  # 将图像转换为张量
+    transforms.Normalize((0.5,), (0.5,))  # 标准化
+])
+
+# 下载训练集和测试集
+trainset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True)
+
+testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False)
 ```
 
 
@@ -16205,11 +16312,176 @@ sigmoid_x = torch.sigmoid(x)
 print(sigmoid_x) # tensor([0.2689, 0.5000, 0.7311, 0.8808])
 ```
 
+#### 损失函数
+
+```python
+import torch.nn as nn
+```
+
+
+
+##### 交叉熵
+
+```python
+nn.CrossEntropyLoss()
+```
+
+多类别分类问题的损失函数。$C$ 个类别，$z$ 是模型预测，$y$ 是真实值，样本数 $N$。
+$$
+L=-\dfrac1N\sum_{i=1}^N\log(\dfrac{e^{z_i,y_i}}{\sum_{j=1}^Ce^{z_i,j}})
+$$
+
+```python
+import torch
+import torch.nn as nn
+# 未经过 softmax 的 logits
+logits = torch.tensor([[1.0, 2.0, 0.5], 
+                        [1.0, 0.5, 2.0]], requires_grad=True)
+labels = torch.tensor([1, 2])
+criterion = nn.CrossEntropyLoss()
+loss = criterion(logits, labels)
+print(f'计算的损失值: {loss.item()}') # 0.4643687903881073
+loss.backward()
+```
+
+#### 优化器
+
+```python
+import torch.optim as optim
+```
+
+##### Adam
+
+```python
+optimizer = optim.Adam(model.parameters(), lr=0.001)  # 优化器
+```
+
 
 
 #### 模块
 
 > ##### ModuleList
+
+##### 定义
+
+如：
+
+```python
+import torch
+import torch.nn as nn
+class SimpleNN(nn.Module):
+    def __init__(self): # MNIST 用
+        super().__init__()
+        # 或 super(SimpleNN, self).__init__()
+        self.fc1 = nn.Linear(28 * 28, 128)  # 输入层
+        self.fc2 = nn.Linear(128, 64)        # 隐藏层
+        self.fc3 = nn.Linear(64, 10)         # 输出层
+    def forward(self, x):
+        x = x.view(-1, 28 * 28)  # 将28x28的图像展平
+        x = torch.relu(self.fc1(x))  # ReLU激活函数
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+model = SimpleNN()
+```
+
+##### 训练
+
+```python
+model = SimpleNN()
+criterion = nn.CrossEntropyLoss()  # 损失函数
+optimizer = optim.Adam(model.parameters(), lr=0.001)  # 优化器
+num_epochs = 5
+for epoch in range(num_epochs):
+    for inputs, labels in trainloader:
+        optimizer.zero_grad()  # 清空梯度
+        outputs = model(inputs)  # 前向传播
+        loss = criterion(outputs, labels)  # 计算损失
+        loss.backward()  # 反向传播
+        optimizer.step()  # 更新参数
+    print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item():.4f}')
+```
+
+##### 测试
+
+```python
+correct = 0
+total = 0
+with torch.no_grad():  # 不计算梯度
+    for inputs, labels in testloader:
+        outputs = model(inputs)
+        _, predicted = torch.max(outputs.data, 1)  # 获取预测结果，在每一行寻找最大值
+        total += labels.size(0)  # 记录总样本数
+        correct += (predicted == labels).sum().item()  # 计算正确预测的样本数
+```
+
+
+
+##### 例子
+
+###### MINST
+
+```python
+import torch
+import torchvision
+import torchvision.transforms as transforms
+import torch.nn as nn
+import torch.optim as optim
+# 数据预处理
+transform = transforms.Compose([
+    transforms.ToTensor(),  # 将图像转换为张量
+    transforms.Normalize((0.5,), (0.5,))  # 标准化
+])
+
+# 下载训练集和测试集
+trainset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True)
+
+testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+testloader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False)
+
+class SimpleNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Linear(28 * 28, 128)  # 输入层
+        self.fc2 = nn.Linear(128, 64)        # 隐藏层
+        self.fc3 = nn.Linear(64, 10)         # 输出层
+
+    def forward(self, x):
+        x = x.view(-1, 28 * 28)  # 将28x28的图像展平
+        x = torch.relu(self.fc1(x))  # ReLU激活函数
+        x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+model = SimpleNN()
+
+criterion = nn.CrossEntropyLoss()  # 损失函数
+optimizer = optim.Adam(model.parameters(), lr=0.001)  # 优化器
+
+num_epochs = 5
+for epoch in range(num_epochs):
+    for inputs, labels in trainloader:
+        optimizer.zero_grad()  # 清空梯度
+        outputs = model(inputs)  # 前向传播
+        loss = criterion(outputs, labels)  # 计算损失
+        loss.backward()  # 反向传播
+        optimizer.step()  # 更新参数
+
+    print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item():.4f}')
+
+correct = 0
+total = 0
+
+with torch.no_grad():  # 不计算梯度
+    for inputs, labels in testloader:
+        outputs = model(inputs)
+        _, predicted = torch.max(outputs.data, 1)  # 获取预测结果
+        total += labels.size(0)  # 记录总样本数
+        correct += (predicted == labels).sum().item()  # 计算正确预测的样本数
+
+print(f'Accuracy of the model on the test set: {100 * correct / total:.2f}%')
+```
 
 
 
