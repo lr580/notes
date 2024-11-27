@@ -4193,6 +4193,12 @@ signed main() /* 注释 */
 \end{frame}
 ```
 
+手动在右下角添加页码：
+
+```tex
+\setbeamertemplate{footline}[frame number]
+```
+
 
 
 ### 主题
