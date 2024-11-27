@@ -2313,6 +2313,18 @@
 - 69\.x 的平方根
 
   签到 数学 / <u>牛顿迭代法</u>
+  
+- 3206\.交替组I
+
+  签到
+  
+- 3208\.交替组II
+
+  前缀和 / 滑动窗口
+  
+- 3245\.交替组III
+
+  **线段树/树状数组 + 模拟 + 二分**
 
 ## 算法
 
@@ -57899,6 +57911,224 @@ class Solution {
             x0 = xi;
         }
         return (int) x0;
+    }
+}
+```
+
+##### 3206\.交替组I
+
+[题目](https://leetcode.cn/problems/alternating-groups-i)
+
+```java
+class Solution {
+    public static int f(int a, int b, int c) {
+        return a != b && a== c ? 1 : 0;
+    }
+    public int numberOfAlternatingGroups(int[] colors) {
+        int n = colors.length;
+        int ans = f(colors[n-1], colors[0], colors[1]);
+        ans += f(colors[n-2], colors[n-1], colors[0]);
+        for(int i=1;i<n-1;++i) {
+            ans += f(colors[i-1],colors[i],colors[i+1]);
+        }
+        return ans;
+    }
+}
+```
+
+##### 3208\.交替组II
+
+[题目](https://leetcode.cn/problems/alternating-groups-ii)
+
+前缀和，令 $a_i$ 表示 $colors_i$ 与 $colors_{i-1}$ 是否不相等，若长为 $k-1$ 的区间 $[i-k+2,i]$ 的每个都不相等，即 $a_i$ 均为 true，则必然是交替的区间。化环为链，原长设为 $[1,n-1]$，则二倍长 $[n,2n-2]$。一共需要判断 $n$ 个点为终点的关系，即求这些区间的前缀和是否等于区间长。
+
+```java
+import java.util.Arrays;
+
+class Solution {
+    public int numberOfAlternatingGroups(int[] colors, int k) {
+        int n = colors.length;
+        int a[] = new int[n * 2];
+        for (int i = 0; i < 2 * n - 1; ++i) {
+            a[i + 1] = colors[(i + 1) % n] != colors[i % n] ? 1 : 0;
+        }
+        for (int i = 1; i < 2 * n - 1; ++i) {
+            a[i] += a[i - 1];
+        }
+        int ans = 0;
+        for (int i = n - 1; i < 2 * n - 1; ++i) {
+            ans += a[i] - a[i - k + 1] == k - 1  ? 1 : 0;
+        }
+        return ans;
+    }
+}
+```
+
+直接双指针/滑动窗口/遍历即可。
+
+```java
+class Solution {
+    public int numberOfAlternatingGroups(int[] colors, int k) {
+        int n = colors.length;
+        int ans = 0;
+        int cnt = 0;
+        for (int i = 0; i < n * 2; i++) {
+            if (i > 0 && colors[i % n] == colors[(i - 1) % n]) {
+                cnt = 0;
+            }
+            cnt++;
+            if (i >= n && cnt >= k) {
+                ans++;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+##### 3245\.交替组III
+
+[题目](https://leetcode.cn/problems/alternating-groups-iii)
+
+显然长为 $l$ 的交替段包含有长为 $k$ 的交替段 $l-(k-1)$ 个，即跳过 $k-1$ 个右端点不够长，剩下的都可以作为长为 $k$ 区间右端点。
+
+因此，设共有 $m$ 个交替段长度不小于 $k$，长度分别为 $l_1,l_2\,\cdots,l_m$，则共有 $\sum_{i=1}^m(l_i-(k-1))=\sum_{i=1}^ml_i-m(k-1)$ 个答案。
+
+使用权值树状数组显然可以维护区间和。可以维护两个信息：元素数和区间和。使用倒序结构，第一个位置存最大的区间长，这样可以避免两次 query。也就是把树状数组前缀和改成后缀和。
+
+反面思想，逆向思考，求每个相等位置。set 维护所有的结束下标 $i$ 使得 $a_i=a_{i+1}$。
+
+初始修改：
+
+- 若 set 为空，第一次插入一定导致长 $n$ 的交替区间段，手玩易知，树状数组增加这个 $n$ 记录。同理，若删除后为空，一样反向删除。
+
+否则，至少存在一个结束位置，假设结束位置 $i$ 进行增加：
+
+- 设 $< i$ 的最大结束位置是 $pre$，因为环的存在，如果没有，肯定是在 $i$ 右边最大的位置。
+- 设 $>i$ 的最小结束位置是 $nxt$，同理环的存在，如果没有，肯定是在 $i$ 左边最小的位置。
+
+那么原本 $pre,nxt$ 两结束位置，手玩易知，可以得到中间一个长为 $nxt-pre$ 的交替段 $[pre+1,nxt]$。当 $pre>nxt$ 时，设 0-indexed，要么 $i<nxt<pre$ 要么 $nxt<pre<i$。对前者，得到 $[pre+1,n-1],[0,nxt]$ 即总长度为 $n-pre+nxt$。对后者是一样的。
+
+$pre<nxt$ 时，新的两个区间是 $[pre+1,i]$ 和 $[i+1,nxt]$。区间长分别是 $i-pre,nxt-i$。若 $pre>nxt$，要么 $i<nxt<pre$ 要么 $nxt<pre<i$。讨论可知，其中某个一个区间跨越 $n$，要么是 $[pre+1,i]$ 变成 $[pre+1,n-1],[0,i]$，要么是 $[i+1,nxt]$ 变成 $[i+1,n-1],[0,nxt]$。分别长度变成 $i-pre+n$ 和 $nxt-i+n$。
+
+那么修改的增加和删除是相反的，增加就是删掉长区间加入两个短区间，而删除就是删掉两个短区间插入长区间。
+
+处理好初始值之后，可以查询。若没有结束区间，显然答案为 $n$。否则，查找 $\ge k$ 的区间段总长 $\sum_{i=1}^ml_i$ 和个数 $m$，带入上述公式。
+
+对修改，若修改值与原始值不一样，设待修改下标 $i$ 的前后 $\pm1$ 分别是 $pre,nxt$，修改前：若 $a_i==a_{pre}$，则执行删除操作，删掉结束下标 $pre$。若 $a_i==a_{nxt}$，同理删掉 $i$。修改后，若相等，则执行插入操作。
+
+```java
+class FenwickTree {
+    private final int[][] t;
+
+    public FenwickTree(int n) {
+        t = new int[n + 1][2];
+    }
+
+    // op=1，添加一个 size
+    // op=-1，移除一个 size
+    public void update(int size, int op) {
+        for (int i = t.length - size; i < t.length; i += i & -i) {
+            t[i][0] += op;
+            t[i][1] += op * size;
+        }
+    }
+
+    // 返回 >= size 的元素个数，元素和
+    public int[] query(int size) {
+        int cnt = 0, sum = 0;
+        for (int i = t.length - size; i > 0; i &= i - 1) {
+            cnt += t[i][0];
+            sum += t[i][1];
+        }
+        return new int[]{cnt, sum};
+    }
+}
+
+class Solution {
+    public List<Integer> numberOfAlternatingGroups(int[] a, int[][] queries) {
+        int n = a.length;
+        TreeSet<Integer> set = new TreeSet<>();
+        FenwickTree t = new FenwickTree(n);
+
+        for (int i = 0; i < n; i++) {
+            if (a[i] == a[(i + 1) % n]) {
+                add(set, t, n, i); // i 是一个结束位置
+            }
+        }
+
+        List<Integer> ans = new ArrayList<>();
+        for (int[] q : queries) {
+            if (q[0] == 1) {
+                if (set.isEmpty()) {
+                    ans.add(n); // 每个长为 size 的子数组都符合要求
+                } else {
+                    int[] res = t.query(q[1]);
+                    ans.add(res[1] - res[0] * (q[1] - 1));
+                }
+            } else {
+                int i = q[1];
+                if (a[i] == q[2]) { // 无影响
+                    continue;
+                }
+                int pre = (i - 1 + n) % n;
+                int nxt = (i + 1) % n;
+                // 修改前，先去掉结束位置
+                if (a[pre] == a[i]) {
+                    del(set, t, n, pre);
+                }
+                if (a[i] == a[nxt]) {
+                    del(set, t, n, i);
+                }
+                a[i] ^= 1;
+                // 修改后，添加新的结束位置
+                if (a[pre] == a[i]) {
+                    add(set, t, n, pre);
+                }
+                if (a[i] == a[nxt]) {
+                    add(set, t, n, i);
+                }
+            }
+        }
+        return ans;
+    }
+
+    // 添加一个结束位置 i
+    private void add(TreeSet<Integer> set, FenwickTree t, int n, int i) {
+        if (set.isEmpty()) {
+            t.update(n, 1);
+        } else {
+            update(set, t, n, i, 1);
+        }
+        set.add(i);
+    }
+
+    // 移除一个结束位置 i
+    private void del(TreeSet<Integer> set, FenwickTree t, int n, int i) {
+        set.remove(i);
+        if (set.isEmpty()) {
+            t.update(n, -1);
+        } else {
+            update(set, t, n, i, -1);
+        }
+    }
+
+    // op=1，添加一个结束位置 i
+    // op=-1，移除一个结束位置 i
+    private void update(TreeSet<Integer> set, FenwickTree t, int n, int i, int op) {
+        Integer pre = set.floor(i);
+        if (pre == null) {
+            pre = set.last();
+        }
+
+        Integer nxt = set.ceiling(i);
+        if (nxt == null) {
+            nxt = set.first();
+        }
+
+        t.update((nxt - pre + n - 1) % n + 1, -op); // 移除/添加旧长度
+        t.update((i - pre + n) % n, op);
+        t.update((nxt - i + n) % n, op); // 添加/移除新长度
     }
 }
 ```
