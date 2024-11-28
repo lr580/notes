@@ -2121,7 +2121,13 @@ int s = Arrays.stream(rewardValues).sum();
 for (int v : Arrays.stream(rewardValues).distinct().sorted().toArray())
 ```
 
+###### 异常
 
+```java
+int max = Arrays.stream(a).max().orElseThrow();
+```
+
+这里的 `Arrays.stream(a).max()` 会返回一个 `OptionalInt`，使用 `orElseThrow()` 可以在数组为空时抛出异常。
 
 ### 运算
 

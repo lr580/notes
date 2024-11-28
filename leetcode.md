@@ -2318,7 +2318,6 @@
 
   <u>贪心+指针+堆</u> / 离散化+滑动窗口+二分 / 离散化+滑动窗口
 
-  
 - 3206\.交替组I
 
   签到
@@ -2330,6 +2329,10 @@
 - 3245\.交替组III
 
   **线段树/树状数组 + 模拟 + 二分**
+  
+- 3251\.单调数组对的数目II
+
+  DP + 差分 / <u> DP + 前缀和 / 组合数学 </u>
 
 ## 算法
 
@@ -58905,3 +58908,167 @@ class Solution {
     }
 }
 ```
+
+##### 3250\.单调数组对的数目I
+
+[题目](https://leetcode.cn/problems/find-the-count-of-monotonic-pairs-i)
+
+设 $dp_{i,j}$ 表示前 $i$ 个元素的子数组，第 $i$ 个元素 $arr1_i=j$ 的方案数。
+
+初始值 $dp_{i,j}=1,s.t. 0\le j\le nums_0$。
+
+枚举 $arr1_{i-1}=j1\in [0,nums_{i-1}]$，则 $arr2_{i-1}=j2=nums_{i-1}-j1$。
+
+枚举 $arr1_i=k1\in[nums_{i-1},nums_i]$，则 $arr2_i=k2=nums_i-k1$，需要满足：$k2\le j2$ 即 $nums_i-k1\le nums_{i-1}-j1$，合并 $k1\ge nums_{i-1}$ 即：
+$$
+k1\in[\max(nums_{i-1}, nums_i-(nums_{i-1}-j1)), nums_i]
+$$
+在这个范围内，有：$dp_{i,k1}=\sum dp_{i-1,j1}$。
+
+设数组长 $n$，值域 $m$，则时间复杂度 $O(nm^2)$，空间 $O(nm)$。
+
+```java
+class Solution {
+    private static final int mod = (int) 1e9 + 7;
+
+    public int countOfPairs(int[] nums) {
+        int n = nums.length, m = Arrays.stream(nums).max().getAsInt();
+        int dp[][] = new int[n][m + 1];// 前i个元素，arr1[i]=j
+        for (int i = 0; i <= nums[0]; ++i) {
+            dp[0][i] = 1;
+        }
+        for (int i = 1; i < n; ++i) {
+            for (int j1 = 0; j1 <= nums[i - 1]; ++j1) {
+                int j2 = nums[i - 1] - j1;
+                // k2 = nums[i] - k1 <= j2 => nums[i] - j2 <= k1
+                for (int k1 = Math.max(nums[i] - j2, j1); k1 <= nums[i]; ++k1) {
+                    dp[i][k1] = (dp[i][k1] + dp[i - 1][j1]) % mod;
+                }
+            }
+        }
+        int ans = 0;
+        for (int i = 0; i <= nums[n - 1]; ++i) {
+            ans = (ans + dp[n - 1][i]) % mod;
+        }
+        return ans;
+    }
+}
+```
+
+##### 3251\.单调数组对的数目II
+
+[题目](https://leetcode.cn/problems/find-the-count-of-monotonic-pairs-ii)
+
+把上面的 for 优化，这个求和可以优化成一个差分。得到时空复杂度 $O(nm)$。
+
+```java
+import java.util.Arrays;
+
+class Solution {
+    private static final int mod = (int) 1e9 + 7;
+
+    public int countOfPairs(int[] nums) {
+        int n = nums.length, m = Arrays.stream(nums).max().getAsInt();
+        int dp[][] = new int[n][m + 2];
+        for (int i = 0; i <= nums[0]; ++i) {
+            dp[0][i] = 1;
+        }
+        for (int i = 1; i < n; ++i) {
+            for (int j = 0; j <= nums[i - 1]; ++j) {
+                int l = Math.max(j, nums[i] - (nums[i - 1] - j));
+                dp[i][l] = (dp[i][l] + dp[i - 1][j]) % mod;
+                dp[i][nums[i] + 1] = (dp[i][nums[i] + 1] - dp[i - 1][j] + mod) % mod;
+            }
+            for (int j = 1; j <= m; ++j) { // 差分 -> 原数组
+                dp[i][j] = (dp[i][j] + dp[i][j - 1]) % mod;
+            }
+        }
+        int ans = 0;
+        for (int i = 0; i <= nums[n - 1]; ++i) {
+            ans = (ans + dp[n - 1][i]) % mod;
+        }
+        return ans;
+    }
+}
+```
+
+还可以压缩数组。空间复杂度 $O(m)$。
+
+```java
+import java.util.Arrays;
+
+class Solution {
+    private static final int mod = (int) 1e9 + 7;
+
+    public int countOfPairs(int[] nums) {
+        int n = nums.length, m = Arrays.stream(nums).max().getAsInt();
+        int dp[][] = new int[2][m + 2];
+        for (int i = 0; i <= nums[0]; ++i) {
+            dp[0][i] = 1;
+        }
+        for (int i = 1; i < n; ++i) {
+            Arrays.fill(dp[i & 1], 0);
+            for (int j = 0; j <= nums[i - 1]; ++j) {
+                int l = Math.max(j, nums[i] - (nums[i - 1] - j));
+                dp[i & 1][l] = (dp[i & 1][l] + dp[(i & 1) ^ 1][j]) % mod;
+                dp[i & 1][nums[i] + 1] = (dp[i & 1][nums[i] + 1] - dp[(i & 1) ^ 1][j] + mod) % mod;
+            }
+            for (int j = 1; j <= m; ++j) { // 差分 -> 原数组
+                dp[i & 1][j] = (dp[i & 1][j] + dp[i & 1][j - 1]) % mod;
+            }
+        }
+        int ans = 0;
+        for (int i = 0; i <= nums[n - 1]; ++i) {
+            ans = (ans + dp[(n - 1) & 1][i]) % mod;
+        }
+        return ans;
+    }
+}
+```
+
+前缀和写法，设 $arr1_{i-1}=k$ 且 $arr1_i=j$，则 $k\le j$，且 $nums_{i-1}-k\ge nums_i-j$，即 $k\le\min(j,nums_{i-1}-nums_i+j)=j+\min(0,nums_{i-1}-nums_i)$。
+
+故 $dp_{i,j}=\sum_k=0^{\max k}dp_{i-1,k}$。
+
+```java
+class Solution {
+    public int countOfPairs(int[] nums) {
+        final int MOD = 1_000_000_007;
+        int n = nums.length;
+        int m = Arrays.stream(nums).max().getAsInt();
+        long[][] f = new long[n][m + 1];
+        long[] s = new long[m + 1];
+
+        Arrays.fill(f[0], 0, nums[0] + 1, 1);
+        for (int i = 1; i < n; i++) {
+            s[0] = f[i - 1][0];
+            for (int k = 1; k <= m; k++) {
+                s[k] = (s[k - 1] + f[i - 1][k]) % MOD; // f[i-1] 的前缀和
+            }
+            for (int j = 0; j <= nums[i]; j++) {
+                int maxK = j + Math.min(nums[i - 1] - nums[i], 0);
+                f[i][j] = maxK >= 0 ? s[maxK] % MOD : 0;
+            }
+        }
+
+        return (int) (Arrays.stream(f[n - 1], 0, nums[n - 1] + 1).sum() % MOD);
+    }
+}
+```
+
+若 $nums$ 每个数都一样，考虑 arr1 的值，等价于从 $n\times m$ 网格左下角走到右上角，等价于 $C_{n+m}^n$。令 $nums_{n-1}=m$。
+
+设 $arr1=a$，$a_{i-1}=x,a_i=y$，则需要满足 $x\le y,nums_{i-1}-x\ge nums_i-y$，即 $y\ge\max(x,x+nums_i-nums_{i-1})$。故若 $nums_i-nums_{i-1}<0$，$y\ge x$，也就是还是走网格。否则，$y>x+nums_i-nums_{i-1}$，即要多走 $nums_i-nums_{i-1}$，即到达 $i$ 之前，要向上添加 $d$。换言之，不管当前选了 $x$ 是啥，一定要让 $y$ 比 $x$ 多 $d$，故自由度少了 $d$，即 $C(m+n-d,n)$，等价于直接写死了某个位置不可选了。组合数学含义法可知。
+
+设 $d_i=\max(nums_i-nums_{i-1},0)$，则 $m=nums_{i-1}-\sum d$。
+
+```python
+class Solution:
+    def countOfPairs(self, nums: List[int]) -> int:
+        MOD = 1_000_000_007
+        m = nums[-1]
+        for x, y in pairwise(nums):
+            m -= max(y - x, 0)
+        return comb(m + len(nums), m) % MOD if m >= 0 else 0
+```
+
