@@ -2333,6 +2333,10 @@
 - 3251\.单调数组对的数目II
 
   DP + 差分 / <u> DP + 前缀和 / 组合数学 </u>
+  
+- 3232\.判断是否可以赢得数字游戏
+
+  签到
 
 ## 算法
 
@@ -8124,7 +8128,46 @@ class Solution {
 }
 ```
 
+复杂度 $O(n^2\cdot n!)$，实际上 $n=9$ 时只有 $352$ 个方案在搜索树，方案数为 [OEISA000170](![image-20241201161151699](C:\Users\lr580\AppData\Roaming\Typora\typora-user-images\image-20241201161151699.png)) 为 $O(\dfrac{n!}{2.54^n})$。
 
+```java
+class Solution {
+    public List<List<String>> solveNQueens(int n) {
+        List<List<String>> ans = new ArrayList<>();
+        int[] queens = new int[n]; // 皇后放在 (r,queens[r])
+        boolean[] col = new boolean[n];
+        boolean[] diag1 = new boolean[n * 2 - 1];
+        boolean[] diag2 = new boolean[n * 2 - 1];
+        dfs(0, queens, col, diag1, diag2, ans);
+        return ans;
+    }
+
+    private void dfs(int r, int[] queens, boolean[] col, boolean[] diag1, boolean[] diag2, List<List<String>> ans) {
+        int n = col.length;
+        if (r == n) {
+            List<String> board = new ArrayList<>(n); // 预分配空间
+            for (int c : queens) {
+                char[] row = new char[n];
+                Arrays.fill(row, '.');
+                row[c] = 'Q';
+                board.add(new String(row));
+            }
+            ans.add(board);
+            return;
+        }
+        // 在 (r,c) 放皇后
+        for (int c = 0; c < n; c++) {
+            int rc = r - c + n - 1;
+            if (!col[c] && !diag1[r + c] && !diag2[rc]) { // 判断能否放皇后
+                queens[r] = c; // 直接覆盖，无需恢复现场
+                col[c] = diag1[r + c] = diag2[rc] = true; // 皇后占用了 c 列和两条斜线
+                dfs(r + 1, queens, col, diag1, diag2, ans);
+                col[c] = diag1[r + c] = diag2[rc] = false; // 恢复现场
+            }
+        }
+    }
+}
+```
 
 ##### 60\. 排列序列
 
@@ -59072,3 +59115,14 @@ class Solution:
         return comb(m + len(nums), m) % MOD if m >= 0 else 0
 ```
 
+3232\.判断是否可以赢得数字游戏
+
+[题目](https://leetcode.cn/problems/find-if-digit-game-can-be-won/description/)
+
+分成两组，个位数一组全部求和，其他全部求和，都不相等先手必胜。
+
+```python
+class Solution:
+    def canAliceWin(self, nums: List[int]) -> bool:
+        return sum(x if x < 10 else -x for x in nums) != 0
+```

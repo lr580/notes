@@ -7357,6 +7357,20 @@ selected_eigenvectors = sorted_eigenvectors[:, :k]
 projected_data = np.dot(centered_data, selected_eigenvectors)
 ```
 
+##### 奇异值分解
+
+```python
+import numpy as np
+a = np.array([[2,1],[0,2],[1,0]])
+u,s,vt = np.linalg.svd(a)
+# print(u)
+print(s) # 是奇异值向量不是对角阵
+# print(vt)
+print(np.round(u@np.array([[s[0],0],[0,s[1]],[0,0]])@vt))
+```
+
+
+
 ##### PCA
 
 ```python
@@ -12365,6 +12379,17 @@ sp.pprint(J)
 ⎢1  0  1  0⎥
 ⎢          ⎥
 ⎣0  1  0  0⎦'''
+```
+
+##### 奇异值分解
+
+```python
+import sympy as sp
+A = sp.Matrix([[2,1],[0,2],[1,0]])
+sp.pprint(U) # 3x2
+sp.pprint(S) # 2x2
+sp.pprint(V) # 2x2
+print(U*S*V.T)
 ```
 
 
@@ -18444,6 +18469,35 @@ s2 = SortedSet([5, 6, 7])
 print(s | s2)  # 并集
 print(s & s2)  # 交集
 ```
+
+二分查找：
+
+```python
+from sortedcontainers import SortedSet # 或 SortedList (不去重)
+a = [9,9,8,2,4,4,3,5,3]
+s = SortedSet(a)
+print(s[0]) #最小元素，输出2
+print(s) # SortedSet([2, 3, 4, 5, 8, 9])
+print(s.bisect_left(5)) #>=5的最小元素的下标，输出3
+print(s.bisect_right(5)) #>5的最小元素的下标，输出4
+print(s[s.bisect_right(5)]) #>5的最小元素 输出8
+s.add(7) # 插入元素
+print(s[s.bisect_right(5)]) # 输出7
+```
+
+#### SortedDict
+
+```python
+from sortedcontainers import SortedDict
+d = SortedDict()
+d[1] = 9
+d[3] = 5
+print(d.bisect_left(1)) #下标1
+print(d.peekitem(0)) # 第0个元素键值对 (1, 9)
+print(d.peekitem(d.bisect_left(2))[1]) #5
+```
+
+
 
 ### easydict
 

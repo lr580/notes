@@ -10235,7 +10235,7 @@ TreeSet 新方法：
 - headSet(E e1) 返回从开始到 e1 前(不包括 e1 )的元素
 - subSet(E e1, E e2) 返回 $[e1,e2)$ 范围元素
 - tailSet(E e1) 返回 e2 和它之后的全部元素
-- higher(E) 返回严格大于 E 的最小元素
+- higher(E) 返回严格大于 E 的最小元素，查无 null
 - ceiling(E) 不严格大于
 - lower(E) 返回严格小于 E 的最大元素
 - floor(E) 不严格小于
@@ -10486,7 +10486,7 @@ public class c1403 {
 
 - celingKey(K key) 返回第一个大于等于key的键
 
-- celingKey(K key) 返回键值对
+- celingKey(K key) 返回键值对 [?]
 
 - entrySet() 返回键值对数组用于遍历
 
