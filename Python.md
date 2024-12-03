@@ -8363,6 +8363,8 @@ plt.show()
 plt.savefig(输出文件名含后缀)
 ```
 
+> `bbox_inches='tight'` 参数可以确保图形的所有部分都能适当显示，不会被裁剪
+
 ##### 折线
 
 ```python
@@ -8442,6 +8444,21 @@ marker='x'; marker='o'
 > ```
 
 ##### 柱状
+
+打横：
+
+```python
+def plot(words, scores, top_k = 10):
+    top_k_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+    top_words = [words[i] for i in top_k_indices]
+    top_scores = [scores[i] for i in top_k_indices]
+    plt.figure(figsize=(5, 8))
+    plt.barh(top_words, top_scores, color='skyblue')
+    plt.xlabel('TF-IDF Score')
+    plt.title(f'Top {top_k} Words by TF-IDF Score')
+    plt.gca().invert_yaxis()  # 反转 y 轴，使得最高分的单词在顶部
+    plt.show()
+```
 
 多个合并
 
@@ -8794,6 +8811,29 @@ plt.grid()
 > - which：可选，可选值有 'major'、'minor' 和 'both'，默认为 'major'，表示应用更改的网格线。
 > - axis：可选，设置显示哪个方向的网格线，可以是取 'both'（默认），'x' 或 'y'，分别表示两个方向，x 轴方向或 y 轴方向。
 > - `**kwargs`：可选，设置网格样式，可以是 color='r', linestyle='-' 和 linewidth=2，分别表示网格线的颜色，样式和宽度。
+
+##### 字体大小
+
+每个 word 的 scores 的打横条形图
+
+```python
+def plot(words, scores, top_k = 10):
+    top_k_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+    top_words = [words[i] for i in top_k_indices]
+    top_scores = [scores[i] for i in top_k_indices]
+
+    plt.figure(figsize=(5, 8))
+    plt.barh(top_words, top_scores, color='skyblue')
+    plt.xlabel('TF-IDF Score',fontsize=14)
+    plt.title(f'Top {top_k} Words by TF-IDF Score', fontsize=16)
+    plt.gca().invert_yaxis()  # 反转 y 轴，使得最高分的单词在顶部
+    plt.xticks(fontsize=12)  # 增大x轴刻度字体
+    plt.yticks(fontsize=12)  # 增大y轴刻度字体
+    plt.tight_layout()  # 自动调整子图参数
+    plt.show()
+```
+
+
 
 ##### 保存
 
@@ -13216,75 +13256,6 @@ print(transformed_data)
  [1.  ]]'''
 ```
 
-##### 文本向量化
-
-1. **词汇表构建**：`CountVectorizer` 首先对所有文档中的单词进行统计，创建一个词汇表。词汇表中的每个单词都对应一个特征索引。
-2. **文本向量化**：对于每个文档，`CountVectorizer` 会根据词汇表中的单词出现的频次来构建一个稀疏的特征向量。如果某个词汇表中的单词在文档中出现，则在相应的特征位置上会显示出现的次数，如果没有出现，则为0。
-3. **预处理和标准化**：`CountVectorizer` 还提供了多种参数来进行文本的预处理，如转换为小写、去除停用词、应用词干提取等。
-
-```python
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.pipeline import Pipeline
-import joblib
-
-texts = ["this is a sample text", "another sample text with more words", "text with few words"]
-labels = [0, 1, 1]  
-pipeline = Pipeline([
-    ('vect', CountVectorizer()),
-    ('clf', DecisionTreeClassifier()), 
-])
-pipeline.fit(texts, labels)
-joblib.dump(pipeline, 'text_clf_pipeline.joblib')
-```
-
-##### TF-IDF
-
-```python
-import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-
-# 创建示例数据
-data = {
-    'text_column': [
-        "The quick brown fox jumps over the lazy dog.",
-        "Never jump over the lazy dog quickly.",
-        "A quick brown dog outpaces a quick fox."
-    ]
-}
-
-# 创建 DataFrame
-df = pd.DataFrame(data)
-
-# 文本预处理函数
-def preprocess_text(text):
-    # 转换为小写
-    text = text.lower()
-    # 去除标点（可根据需要添加更多预处理步骤）
-    text = ''.join([char for char in text if char.isalnum() or char.isspace()])
-    return text
-
-# 应用文本预处理
-df['processed_text'] = df['text_column'].apply(preprocess_text)
-
-# 计算 TF-IDF
-vectorizer = TfidfVectorizer()
-tfidf_matrix = vectorizer.fit_transform(df['processed_text'])
-
-# 获取特征名（单词）
-feature_names = vectorizer.get_feature_names_out()
-
-# 计算每个单词的平均 TF-IDF 得分
-avg_scores = tfidf_matrix.mean(axis=0)
-scores_dict = dict(zip(feature_names, avg_scores.tolist()[0]))
-
-# 提取得分最高的前 3 个单词
-k = 3
-top_k_words = sorted(scores_dict, key=scores_dict.get, reverse=True)[:k]
-
-print(top_k_words)
-```
-
 
 
 #### 数据处理
@@ -14286,6 +14257,157 @@ def cancer_predict(train_sample, train_label, test_sample):
     predictions = knn.predict(test_sample)
 
     return predictions
+```
+
+#### 文本处理
+
+##### 文本向量化
+
+1. **词汇表构建**：`CountVectorizer` 首先对所有文档中的单词进行统计，创建一个词汇表。词汇表中的每个单词都对应一个特征索引。
+2. **文本向量化**：对于每个文档，`CountVectorizer` 会根据词汇表中的单词出现的频次来构建一个稀疏的特征向量。如果某个词汇表中的单词在文档中出现，则在相应的特征位置上会显示出现的次数，如果没有出现，则为0。
+3. **预处理和标准化**：`CountVectorizer` 还提供了多种参数来进行文本的预处理，如转换为小写、去除停用词、应用词干提取等。
+
+```python
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.pipeline import Pipeline
+import joblib
+
+texts = ["this is a sample text", "another sample text with more words", "text with few words"]
+labels = [0, 1, 1]  
+pipeline = Pipeline([
+    ('vect', CountVectorizer()),
+    ('clf', DecisionTreeClassifier()), 
+])
+pipeline.fit(texts, labels)
+joblib.dump(pipeline, 'text_clf_pipeline.joblib')
+```
+
+##### TF-IDF
+
+```python
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# 创建示例数据
+data = {
+    'text_column': [
+        "The quick brown fox jumps over the lazy dog.",
+        "Never jump over the lazy dog quickly.",
+        "A quick brown dog outpaces a quick fox."
+    ]
+}
+
+# 创建 DataFrame
+df = pd.DataFrame(data)
+
+# 文本预处理函数
+def preprocess_text(text):
+    # 转换为小写
+    text = text.lower()
+    # 去除标点（可根据需要添加更多预处理步骤）
+    text = ''.join([char for char in text if char.isalnum() or char.isspace()])
+    return text
+
+# 应用文本预处理
+df['processed_text'] = df['text_column'].apply(preprocess_text)
+
+# 计算 TF-IDF
+vectorizer = TfidfVectorizer()
+tfidf_matrix = vectorizer.fit_transform(df['processed_text'])
+
+# 获取特征名（单词）
+feature_names = vectorizer.get_feature_names_out()
+
+# 计算每个单词的平均 TF-IDF 得分
+avg_scores = tfidf_matrix.mean(axis=0)
+scores_dict = dict(zip(feature_names, avg_scores.tolist()[0]))
+
+# 提取得分最高的前 3 个单词
+k = 3
+top_k_words = sorted(scores_dict, key=scores_dict.get, reverse=True)[:k]
+
+print(top_k_words)
+```
+
+```python
+def process(path, top_k = 50): # 各单词 tf-idf 和最大的
+    df = pd.read_csv(path)
+    df['user'] = df['user'].str.lower().str.split()
+    df['user'] = df['user'].apply(lambda x: [word for word in x if isinstance(x, list) and re.match(r'^[a-zA-Z]+$', word)] if isinstance(x, list) else [])
+    df['user'] = df['user'].apply(lambda x: ' '.join(x))
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(df['user'])
+    total_tfidf = tfidf_matrix.sum(axis=0).A1
+    feature_names = vectorizer.get_feature_names_out()
+    tfidf_df = pd.DataFrame({'word': feature_names, 'total_tfidf': total_tfidf})
+    top_k_words = tfidf_df.sort_values(by='total_tfidf', ascending=False).head(top_k)
+    return top_k_words
+```
+
+提取每个句子的 top k 单词及其 tf-idf 分数：(进行了效率优化，直接用稀疏矩阵，不然很大)
+
+```python
+def process(path, top_k = 3): # 每个user的top_k个常用词
+    df = pd.read_csv(path)
+    df['user'] = df['user'].str.lower().str.split()
+    df['user'] = df['user'].apply(lambda x: [word for word in x if isinstance(x, list) and re.match(r'^[a-zA-Z]+$', word)] if isinstance(x, list) else []) # None SPJ
+    df['user'] = df['user'].apply(lambda x: ' '.join(x))
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(df['user'])
+    feature_names = vectorizer.get_feature_names_out()
+    user_top_words = []
+    for i in range(tfidf_matrix.shape[0]):
+        row = tfidf_matrix.getrow(i)
+        indices = row.indices
+        values = row.data
+        if values.sum() > 0:
+            top_indices = values.argsort()[-top_k:][::-1]
+            top_words = [(feature_names[indices[j]], values[j]) for j in top_indices]
+            user_top_words.append(top_words)
+        else:
+            user_top_words.append([]) 
+    return user_top_words
+```
+
+输出各 TF-IDF 值：
+
+```python
+user_word_scores = []
+for i in range(tfidf_matrix.shape[0]):
+    row = tfidf_matrix.getrow(i)
+    indices = row.indices
+    values = row.data
+    for j in range(len(indices)):
+        user_word_scores.append({
+            'user_index': df.index[i],
+            'word': feature_names[indices[j]],
+            'tfidf_score': values[j]
+        })
+result_df = pd.DataFrame(user_word_scores)
+print(result_df)
+result_df.to_csv('user_tfidf_scores.csv', index=False)
+```
+
+
+
+##### 停用词
+
+```python
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+for word in ENGLISH_STOP_WORDS:
+    print(word) '''whole, keep, cant, within, ....'''
+```
+
+过滤：
+
+```python
+df['user'] = df['user'].apply(
+    lambda x: [
+        word for word in x 
+        if isinstance(x, list) and re.match(r'^[a-zA-Z]+$', word) and word not in ENGLISH_STOP_WORDS
+    ] if isinstance(x, list) else []
+)
 ```
 
 

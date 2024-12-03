@@ -2680,7 +2680,7 @@ Col 1 & Col 2 & Col 3 & Col4\\
 
 
 
-#### 图片
+#### 图片视频
 
 ##### 基础
 
@@ -2828,7 +2828,36 @@ Col 1 & Col 2 & Col 3 & Col4\\
 > \end{figure}
 > ```
 >
-> 
+
+##### 动图
+
+一系列命名连续的图片如 PNG，放在同一个地方，可以当成动图加载，如同目录下存在 `bb-00.png` 到 `bb-27.png` 作为 gif，帧率 10：
+
+```tex
+\usepackage{animate}
+\begin{frame}
+    \frametitle{播放 GIF 动画}
+    \animategraphics[autoplay, loop, width=\linewidth]{10}{bb-}{00}{27}
+\end{frame}
+```
+
+##### 视频
+
+点击播放
+
+```tex
+\usepackage{media9}
+\begin{frame}
+    \frametitle{播放视频}
+    \includemedia[
+        activate=onclick,
+        width=0.8\linewidth,
+        % height=0.6\linewidth,
+    ]{\fbox{点击播放}}{视频.mp4}
+\end{frame}
+```
+
+
 
 #### 字体
 

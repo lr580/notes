@@ -2337,6 +2337,10 @@
 - 3232\.判断是否可以赢得数字游戏
 
   签到
+  
+- 3274\.检查棋盘方格颜色是否相同
+
+  签到
 
 ## 算法
 
@@ -59125,4 +59129,16 @@ class Solution:
 class Solution:
     def canAliceWin(self, nums: List[int]) -> bool:
         return sum(x if x < 10 else -x for x in nums) != 0
+```
+
+##### 3274\.检查棋盘方格颜色是否相同
+
+[题目](https://leetcode.cn/problems/check-if-two-chessboard-squares-have-the-same-color)
+
+```python
+class Solution:
+    def checkTwoChessboards(self, coordinate1: str, coordinate2: str) -> bool:
+        def f(cor):
+            return (ord(cor[0])+int(cor[1]))&1
+        return f(coordinate1)==f(coordinate2)
 ```
