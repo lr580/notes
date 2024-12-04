@@ -2341,6 +2341,10 @@
 - 3274\.检查棋盘方格颜色是否相同
 
   签到
+  
+- 3001\.捕获黑皇后需要的最少移动次数
+
+  思维 + 模拟 / <u>数学</u>
 
 ## 算法
 
@@ -59142,3 +59146,48 @@ class Solution:
             return (ord(cor[0])+int(cor[1]))&1
         return f(coordinate1)==f(coordinate2)
 ```
+
+##### 3001\.捕获黑皇后需要的最少移动次数
+
+[题目](https://leetcode.cn/problems/minimum-moves-to-capture-the-queen)
+
+如果不能一步到达，一定能两步到达。因为车一定可以横竖走到，或者象让步一横/竖走到。所以枚举所有一步的情况即可。(或车让象走)
+
+```python
+class Solution:
+    def minMovesToCaptureTheQueen(self, a: int, b: int, c: int, d: int, e: int, f: int) -> int:
+        def move(x, y, dx, dy, bx, by):
+            while 1<=x<=8 and 1<=y<=8:
+                if x==bx and y==by:
+                    return False
+                if x==e and y==f:
+                    return True
+                x+=dx
+                y+=dy
+            return False
+        step1 = False
+        for dx, dy in ((-1,0),(1,0),(0,-1),(0,1)):
+            step1 |= move(a,b,dx,dy,c,d)
+        for dx, dy in ((-1,-1),(1,-1),(-1,1),(1,1)):
+            step1 |= move(c,d,dx,dy,a,b)
+        return 1 if step1 else 2
+```
+
+数学：也很好判断。
+
+```python
+class Solution:
+    def minMovesToCaptureTheQueen(self, a: int, b: int, c: int, d: int, e: int, f: int) -> int:
+        # m 在 l 和 r 之间（写不写等号都可以）
+        def in_between(l: int, m: int, r: int) -> bool:
+            return min(l, r) <= m <= max(l, r)
+
+        # 车直接攻击到皇后 or 象直接攻击到皇后
+        if a == e and (c != e or not in_between(b, d, f)) or \
+           b == f and (d != f or not in_between(a, c, e)) or \
+           c + d == e + f and (a + b != e + f or not in_between(c, a, e)) or \
+           c - d == e - f and (a - b != e - f or not in_between(c, a, e)):
+            return 1
+        return 2
+```
+

@@ -14395,7 +14395,7 @@ result_df.to_csv('user_tfidf_scores.csv', index=False)
 
 ```python
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
-for word in ENGLISH_STOP_WORDS:
+for word in ENGLISH_STOP_WORDS: # 一个 frozenset
     print(word) '''whole, keep, cant, within, ....'''
 ```
 

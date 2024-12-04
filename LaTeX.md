@@ -2857,7 +2857,7 @@ Col 1 & Col 2 & Col 3 & Col4\\
 \end{frame}
 ```
 
-
+注意：不保证任何 pdf 阅读器都能播放。可能需要 adobe flash。
 
 #### 字体
 
