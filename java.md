@@ -2400,6 +2400,23 @@ loop1: for (int i = 1; i < 10; ++i) {
 }
 ```
 
+```java
+outerLoop:
+for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 5; j++) {
+        if (j == 2) {
+            continue outerLoop; 
+        } // break outerloop 的话只有 i=0 的2个输出
+        System.out.println("i: " + i + ", j: " + j);
+    }
+}/*i: 0, j: 0
+i: 0, j: 1
+i: 1, j: 0
+i: 1, j: 1 */
+```
+
+
+
 ### 对象
 
 #### 基本概念
@@ -4066,6 +4083,40 @@ import static 成员名;
 ```java
 import static java.lang.Math.max; //之后可以直接max(1,4);
 import static java.lang.System.out; //但是不能再继续.println了
+```
+
+#### record
+
+`record` 是 Java 14 引入的一个特性，在 Java 16 中成为正式标准。它旨在简化数据类的创建，使得处理不可变对象更加轻松
+
+不可变性：`record` 的字段是 `final` 的，意味着它们的值在对象创建后不能更改。
+
+自动生成方法：
+
+- **构造函数**：自动生成接受所有字段的构造函数。
+- **访问器**：为每个字段生成访问器（getter）方法，方法名与字段名相同。
+- **`toString()`**：自动生成 `toString()` 方法，以便以字符串形式输出对象。
+- **`equals()` 和 `hashCode()`**：自动生成这两个方法，以支持对象的比较和哈希操作
+
+```java
+import java.util.ArrayList;
+
+public class testrecord {
+    record Point(int x, int y) {
+    }
+
+    public static void main(String[] args) {
+        Point point = new Point(3, 4);
+        System.out.println(point.x); // x 的权限有限，如果放class外面就无法访问
+        System.out.println("Point coordinates: (" + point.x() + ", " + point.y() + ")");//x()权限无限
+        System.out.println(point); //Point[x=3, y=4]
+        ArrayList<Point> a = new ArrayList<>();
+        // point.x++; fail:不可更改
+        a.add(new Point(5, 6));
+        Point[] b = a.toArray(Point[]::new);
+        System.out.println(b[0]);
+    }
+}
 ```
 
 
@@ -9924,7 +9975,7 @@ import java.util.*;
 - retainAll(Collection e) 只保留e有的元素
 - clear(), 可能 O(n)
 - removeIf(一元操作符)
-- toArray()
+- toArray() 得到 Object[]，或 toArray(类型[]::new) (或new 类型[0]) (见下面例子)
 - forEach(一元函数) 以每个元素执行该函数
 
 迭代器为 `Iterator<模板类名>`，常用方法：
@@ -10058,6 +10109,24 @@ public class foreach {
         list.add("b");
         list.forEach(System.out::println);
         list.forEach(v -> System.out.println(v));//lambda
+    }
+}
+```
+
+toArray例子：
+
+```java
+import java.util.HashSet;
+public class SetToArrayExample {
+    public static void main(String[] args) {
+        HashSet<String> set = new HashSet<>();
+        set.add("AA");
+        set.add("B B");
+//        String[] array = set.toArray(new String[0]);
+        String[] array = set.toArray(String[]::new);
+        for (String item : array) {
+            System.out.println(item);
+        }
     }
 }
 ```
