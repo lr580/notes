@@ -1577,6 +1577,8 @@ count(x)统计有多少个x元素，找不到返回0
 
 二维数组求转置：`list(zip(*a))` (注：里边变成了 tuple)
 
+== 的条件是每个元素相等，如 `[1,2]==[1,2]`。
+
 ##### 迭代器
 
 用 iter 将 list 转迭代器
@@ -2110,6 +2112,8 @@ print(p1 < p3)   # False
 ```python
 a=b=c=d=40
 a,b,c=1,3,5 #注意没有先后顺序，不同于C，所以不可以a,b,c=1,a,b
+# 解包
+b, (c,d) = (2, (3,4)) # print(b+c+d) -> 9
 ```
 
 支持位运算且优先级、符号与C相同
@@ -4180,7 +4184,7 @@ print(bob[1])     # 输出: 30
 
 #### heapq
 
-堆：
+小根堆：
 
 ```python
 import heapq
@@ -13864,6 +13868,76 @@ print(y_pred) # [0 2 2], np 数组
 ```
 
 ![预览大图](img/RzFxNStNeG5VUnZEZldsTFYyZy81dz09.png)
+
+##### 层次聚类
+
+聚类方法：
+
+- 最小聚类 single
+- 最大聚类 complete
+- 组平均聚类 average
+- 最小平方误差和 ward
+
+linkage 绘图：(n-1,4) shape
+
+- 第一个簇的索引：合并的第一个簇的索引（如果簇是原始数据点，则索引是数据点的编号；如果是已经合并的簇，则索引是合并后的簇的编号）。
+- 也就是说每次合并都会产生新的编号，初始编号是 [0,n)
+- 第二个簇的索引：合并的第二个簇的索引。
+- 距离：合并这两个簇时的距离（使用`Ward`方法计算的平方误差）。
+- 新簇的大小：合并后的新簇包含的样本数量。
+
+```python
+import matplotlib.pyplot as plt
+from sklearn.cluster import AgglomerativeClustering
+from sklearn.datasets import make_blobs
+from scipy.cluster.hierarchy import dendrogram, linkage
+
+X, y = make_blobs(n_samples=100, centers=3, random_state=42)
+clustering = AgglomerativeClustering(n_clusters=3)
+labels = clustering.fit_predict(X) # [0,3) 的numpy数组标签
+
+# 绘制聚类结果
+plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='viridis')
+plt.title('Agglomerative Clustering Result')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.show()
+
+# 绘制树状图
+linked = linkage(X, 'ward') # 也可以用距离矩阵
+plt.figure(figsize=(10, 7))
+dendrogram(linked, orientation='top', distance_sort='descending', show_leaf_counts=True)
+plt.title('Dendrogram')
+plt.xlabel('Sample Index')
+plt.ylabel('Distance')
+plt.show()
+```
+
+使用距离矩阵：
+
+```python
+a = [
+    [0, 0.24, 0.22, 0.37, 0.34, 0.23],
+    [0.24, 0, 0.15, 0.20, 0.14, 0.25],
+    [0.22, 0.15, 0, 0.15, 0.28, 0.11],
+    [0.37, 0.20, 0.15, 0, 0.29, 0.22],
+    [0.34, 0.14, 0.28, 0.29, 0, 0.39],
+    [0.23, 0.25, 0.11, 0.22, 0.39, 0]
+]
+from scipy.cluster.hierarchy import linkage
+from scipy.spatial.distance import squareform
+ans = linkage(squareform(a), type_)
+```
+
+ward 方差解释，以一维点 [9,9] 为一类，[8] 为一类，求这两类的方差 [参考](https://blog.csdn.net/SZX0311/article/details/139626901) + poe
+
+最终参考 [here](https://www.zhihu.com/question/560686571/answer/2721108644)，设原本两个类的重心分别是 ma, mb，点数是 na, nb，则公式为：
+$$
+2(\dfrac1{n_A}+\dfrac1{n_B})^{-1}||m_A-m_B||_2^2=\dfrac{2n_An_B}{n_A+n_B}||m_A-m_B||_2^2
+$$
+即两重心的距离的平方乘以点数的调和平均的二倍。
+
+- 推论：两个单点的类的距离是它们的欧氏距离
 
 #### 神经网络
 

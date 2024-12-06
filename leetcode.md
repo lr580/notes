@@ -2353,6 +2353,10 @@
 - 999\.可以被进一步捕获的棋子数
 
   签到 模拟
+  
+- 688\.骑士在棋盘上的概率
+
+  记忆化DFS / DP
 
 ## 算法
 
@@ -59310,4 +59314,46 @@ class Solution:
                     break
                 ax, ay = ax+dx, ay+dy
         return cnt
+```
+
+##### 688\.骑士在棋盘上的概率
+
+[题目](https://leetcode.cn/problems/knight-probability-in-chessboard)
+
+容易想到，从某个格子，已经走了k步这一状态可以重复利用。而且因为剪枝，比 DP 还快。
+
+```python
+from functools import cache
+class Solution:
+    def knightProbability(self, n: int, k: int, row: int, column: int) -> float:
+        @cache
+        def dfs(x, y, i):
+            if i == k:
+                return 1
+            res = 0
+            for dx, dy in [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)]:
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < n and 0 <= ny < n:
+                    res += 0.125 * dfs(nx, ny, i + 1)
+            return res
+        return dfs(row, column, 0)
+```
+
+DP。
+
+```python
+class Solution:
+    def knightProbability(self, n: int, k: int, row: int, column: int) -> float:
+        dp = [[[0] * n for _ in range(n)] for _ in range(k + 1)]
+        for step in range(k + 1):
+            for i in range(n):
+                for j in range(n):
+                    if step == 0:
+                        dp[step][i][j] = 1
+                    else:
+                        for di, dj in ((-2, -1), (-2, 1), (2, -1), (2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2)):
+                            ni, nj = i + di, j + dj
+                            if 0 <= ni < n and 0 <= nj < n:
+                                dp[step][i][j] += dp[step - 1][ni][nj] / 8
+        return dp[k][row][column]
 ```
