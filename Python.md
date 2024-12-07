@@ -1802,6 +1802,7 @@ bytearray("你好", "utf-8") #第二个参数必填
 class 类名(父类名):#父类可以不写，或写Object，父类可以有多个
     def __init__(self,参数): #构造函数,self是自己，即this
         self.成员属性=... #定义成员属性 
+        # 不可以有多个构造函数
     def func(self): #成员函数
         pass
     def __add__(self,v):#重载运算符+
@@ -1829,24 +1830,34 @@ b3.val *= 10
 print(b1.val, b3.val) # 30, 30
 ```
 
+> 可以考虑动态添加成员属性和方法：
+>
+> ```python
+> class x:
+>     ...
+> y = x()
+> y.a=1 # 只有 y 实例有 a
+> print(y.a)
+> ```
+>
+> ```python
+> def add_to_class(Class):  #这是一个装饰器
+>     def wrapper(obj):
+>         setattr(Class, obj.__name__, obj)
+>     return wrapper
+> class A:
+>     def __init__(self):
+>         self.b = 1
+> a = A()
+> @add_to_class(A)
+> def do(self):
+>     print('Class attribute "b" is', self.b)
+> a.do()
+> ```
+>
+> #### 
 
-
-主要介绍特殊方法和特殊属性，即带双下划线的内容：
-
-```python
-__str__ print时输出的东西，是无参数(除self)方法
-__repr__ repr函数取的内容，一般用于调试，是无参数方法
-```
-
-如果他们相同，可以：
-
-```python
-class ...(...):
-    ...
-    def __str__(self):
-        return ...
-    __repr__=__str__
-```
+#### 继承
 
 继承单一父类时，可以用super方法调用父类的初始化函数等内容。同名函数可覆盖
 
@@ -1869,30 +1880,42 @@ b=chum('李四',9,'鲨人')
 print(a,b) #注意由于chum的repr未赋值，故与person同
 ```
 
-可以考虑动态添加成员属性和方法：
-
-```python
-class x:
-    ...
-y = x()
-y.a=1 # 只有 y 实例有 a
-print(y.a)
-```
-
-```python
-def add_to_class(Class):  #这是一个装饰器
-    def wrapper(obj):
-        setattr(Class, obj.__name__, obj)
-    return wrapper
-class A:
-    def __init__(self):
-        self.b = 1
-a = A()
-@add_to_class(A)
-def do(self):
-    print('Class attribute "b" is', self.b)
-a.do()
-```
+> 继承可以实现钩子函数，如：(参见我的研一数据挖掘大作业)
+>
+> ```python
+> class DSU:
+>     '''朴素并查集'''
+>     def __init__(self, n):
+>         self.fa = [i for i in range(n)] # 根节点
+>         self.n = n
+>     def findFa(self, x):
+>         '''求x节点的根并返回'''
+>         while self.fa[x] != x:#py不能 x = fa[x] = fa[fa[x]]
+>             self.fa[x] = self.fa[self.fa[x]]
+>             x = self.fa[x] # 路径压缩
+>         return x
+>     def mergeop(self, fx, fy):
+>         '''钩子函数，额外信息合并，给定两个根节点fx->fy'''
+>     def merge(self, x, y):
+>         '''若两节点x,y不在同一根，合并并返回True，否则返回False'''
+>         fx, fy = self.findFa(x), self.findFa(y)
+>         if fx == fy:
+>             return False
+>         fx, fy = sorted([fx, fy], reverse=True) # 最小做根，方便debug输出信息
+>         self.mergeop(fx, fy) # 钩子函数，给子类用
+>         self.fa[fx] = fy
+>         return True
+> class DSU_ele(DSU):
+>     '''维护节点元素并查集，组间avg使用'''
+>     def __init__(self, n):
+>         super().__init__(n)
+>         self.ele = [set([i]) for i in range(n)] # 元素集
+>     def mergeop(self, fx, fy):
+>         self.ele[fy] |= self.ele[fx]
+>         self.ele[fx] = set()
+> ```
+>
+> 
 
 #### 静态
 
@@ -1918,13 +1941,157 @@ class American(object):
 American.printNationality()
 ```
 
+#### 访问权限
 
+默认 public。
 
-#### __属性
+使用 `_` 开头的变量声明 protected，但没有语法功能。
+
+使用 `__` 声明 private，外部无法访问。
+
+```python
+class MyClass:
+    def __init__(self):
+        self.__private_attribute = "I am private"
+
+    def get_private_attribute(self):
+        return self.__private_attribute
+
+obj = MyClass()
+# print(obj.__private_attribute)  # 会报错 AttributeError
+print(obj.get_private_attribute())  # 可以通过方法访问
+```
+
+poe: Python 采用了“我们都是成年人”的哲学，鼓励开发者遵循命名约定，而不是强制的访问控制。
+
+#### \_\_属性\_\_
+
+##### 概述
+
+[参考](https://blog.csdn.net/jiangnanjunxiu/article/details/139703915)
+
+- \+ add
+- \- sub
+- \* mul
+- / truediv
+- % mod
+- == eq
+- != ne
+- \< lt
+- \> gt
+- \[\] getitem setitem
+
+> 综合例子 [参考](https://blog.csdn.net/jiangnanjunxiu/article/details/139703915)
+>
+> ```python
+> class Vector:
+>     def __init__(self, x, y):
+>         self.x = x
+>         self.y = y
+> 
+>     def __add__(self, other):
+>         return Vector(self.x + other.x, self.y + other.y)
+> 
+>     def __sub__(self, other):
+>         return Vector(self.x - other.x, self.y - other.y)
+> 
+>     def __mul__(self, scalar):
+>         return Vector(self.x * scalar, self.y * scalar)
+> 
+>     def __truediv__(self, scalar):
+>         return Vector(self.x / scalar, self.y / scalar)
+> 
+>     def __eq__(self, other):
+>         return self.x == other.x and self.y == other.y
+> 
+>     def __getitem__(self, index):
+>         if index == 0:
+>             return self.x
+>         elif index == 1:
+>             return self.y
+>         else:
+>             raise IndexError("Index out of range")
+> 
+>     def __setitem__(self, index, value):
+>         if index == 0:
+>             self.x = value
+>         elif index == 1:
+>             self.y = value
+>         else:
+>             raise IndexError("Index out of range")
+> 
+>     def __repr__(self):
+>         return f"Vector({self.x}, {self.y})"
+> v1 = Vector(2, 3)
+> v2 = Vector(4, 5)
+> 
+> # 向量加法
+> v3 = v1 + v2
+> print(v3)  # 输出: Vector(6, 8)
+> 
+> # 向量减法
+> v4 = v1 - v2
+> print(v4)  # 输出: Vector(-2, -2)
+> 
+> # 向量与标量的乘法
+> v5 = v1 * 2
+> print(v5)  # 输出: Vector(4, 6)
+> 
+> # 向量与标量的除法
+> v6 = v2 / 2
+> print(v6)  # 输出: Vector(2.0, 2.5)
+> 
+> # 比较两个向量是否相等
+> print(v1 == v2)  # 输出: False
+> print(v1 == Vector(2, 3))  # 输出: True
+> 
+> # 使用索引访问和设置向量的分量
+> print(v1[0])  # 输出: 2
+> print(v1[1])  # 输出: 3
+> v1[0] = 10
+> v1[1] = 20
+> print(v1)  # 输出: Vector(10, 20)
+> ```
 
 ##### eq
 
 是 `==` 调用的。与 is 区别在于 is 检查对象引用是否相同(也可以 is None)
+
+##### getitem
+
+getitem 或 setitem
+
+当然index也可以传tuple，按照index等于tuple处理即可类似numpy a[1,2]
+
+实现 `a[][]` 语法我的个人例子：
+
+```python
+class disMatrixRow:
+    '''中间类，给下文 disMatrix 实现 [][] 使用'''
+    def __init__(self, disMatrix, i):
+        self.dm = disMatrix
+        self.i = i
+    def __getitem__(self, j):
+        return self.dm._distance(self.i, j)
+
+class disMatrix:
+    '''给定欧氏距离a[n][2]点集，使用[][]运算符求任意下标(i,j)距离 \n
+    一种模拟出n阶距离矩阵，但实际空间为 O(n) 的压缩矩阵存储 '''
+    def __init__(self, p):
+        '''输入点集p[n][2]以初始化'''
+        self.p = p
+    def _distance(self, i, j):
+        dx = self.p[i][0] - self.p[j][0]
+        dy = self.p[i][1] - self.p[j][1]
+        return (dx ** 2 + dy ** 2) ** 0.5
+    def __getitem__(self, index):
+        return disMatrixRow(self, index)
+
+dm = disMatrix([[0,0], [3,4]])
+print(dm[0][1]) # 5.0
+```
+
+
 
 ##### len
 
@@ -1937,6 +2104,23 @@ American.printNationality()
 ##### contain
 
  `__contains__` 方法，那么 `in` 关键字会调用这个方法来判断。如果没有实现 `__contains__` 方法，但实现了 `__iter__` 方法（或者是可迭代的），Python会通过迭代对象来查找元素；如果还没有实现 `__iter__`，但实现了 `__getitem__` 方法，Python会尝试从索引0开始，通过连续的整数索引来访问元素，直到遇到 `IndexError`。
+
+##### repr
+
+```python
+__str__ print时输出的东西，是无参数(除self)方法
+__repr__ repr函数取的内容，一般用于调试，是无参数方法
+```
+
+如果他们相同，可以：
+
+```python
+class ...(...):
+    ...
+    def __str__(self):
+        return ...
+    __repr__=__str__
+```
 
 ##### new
 
@@ -8330,7 +8514,42 @@ class kNNClassifier(object):
         return np.array(predictions)
 ```
 
+##### 距离矩阵还原点坐标
 
+```python
+def reconstruct_points(distance_matrix):
+    n = distance_matrix.shape[0]
+    
+    # 计算距离矩阵的平方
+    D_squared = distance_matrix ** 2
+    
+    # 中心化距离矩阵
+    H = np.eye(n) - np.ones((n, n)) / n
+    B = -0.5 * H @ D_squared @ H
+    
+    # 特征值分解
+    eigvals, eigvecs = np.linalg.eigh(B)
+    
+    # 按特征值排序
+    idx = np.argsort(eigvals)[::-1]
+    eigvals = eigvals[idx]
+    eigvecs = eigvecs[:, idx]
+    
+    # 选择前两个特征值和对应的特征向量
+    k = 2
+    X = eigvecs[:, :k] * np.sqrt(eigvals[:k])
+    
+    return X
+distance_matrix = np.array([[0, 1, 2],
+                            [1, 0, 1],
+                            [2, 1, 0]])
+
+points = reconstruct_points(distance_matrix)
+print("重构的点坐标：")
+print(points)
+```
+
+方法二：没这么准 sklearn MDS
 
 ### matplotlib
 
@@ -14332,6 +14551,23 @@ def cancer_predict(train_sample, train_label, test_sample):
 
     return predictions
 ```
+
+##### MDS
+
+距离矩阵还原点，在 numpy 有更准确的手写实现。理由未知。
+
+```python
+from sklearn.manifold import MDS
+# 假设 D 是你的距离矩阵
+D = np.array([[0, 1, 2], [1, 0, 1], [2, 1, 0]])
+# 使用 MDS 进行降维
+mds = MDS(n_components=2, dissimilarity='precomputed')
+points = mds.fit_transform(D)
+print(((points[0][0]-points[1][0])**2+(points[1][1]-points[0][1])**2)**0.5) # 误差比较大 1.044908208886921 \neq 1
+print(points)
+```
+
+
 
 #### 文本处理
 

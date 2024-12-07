@@ -2357,6 +2357,10 @@
 - 688\.骑士在棋盘上的概率
 
   记忆化DFS / DP
+  
+- 782\.变为棋盘
+
+  **思维 构造** 位运算
 
 ## 算法
 
@@ -59357,3 +59361,70 @@ class Solution:
                                 dp[step][i][j] += dp[step - 1][ni][nj] / 8
         return dp[k][row][column]
 ```
+
+##### 782\.变为棋盘
+
+[题目](https://leetcode.cn/problems/transform-to-chessboard)
+
+> 经过初等变换，能将矩阵变换为只有2种行和列交替，则有解。换言之
+
+行交换不影响列的相对排序，反之亦然。故：
+
+- 若某行/列无法变换重排为01交替，则无解。即：各行各列0/1个数相等(n偶数)或差1(n奇数)有解。
+- 且，分布情况(行/列的0,1数目)出现次数同理。
+- 且一定只有2种不同的分布，否则因为交换是全部行一起交换某列或全部列交换某行，一定没办法把分布情况变少。
+
+用int表示每一行，每一列，即bitset。考虑把某行变换为 01 交替。
+
+- n偶数，两种合理情况。若0开头，那么所有偶数位的1都要删掉，删掉的同时会把奇数位不对的一个给弄对，因为有解，所以只需要统计偶数位1的个数。即把奇数位置0，即与 0x55.. 与，然后算1的个数。1开头同理。
+- n奇数，解唯一(分布多的是第一行)。若是 0101....，即 1 比 0 少一个，那么所有的偶数1(注意最右边是偶数0下标)去掉，即与 0x55... 与后算1。否则同理。
+
+列变换和行变换一样，直接复用即可。
+
+```python
+class Solution:
+    def movesToChessboard(self, board: List[List[int]]) -> int:
+        n = len(board)
+        # 棋盘的第一行与第一列
+        rowMask = colMask = 0
+        for i in range(n):
+            rowMask |= board[0][i] << i
+            colMask |= board[i][0] << i
+        reverseRowMask = ((1 << n) - 1) ^ rowMask
+        reverseColMask = ((1 << n) - 1) ^ colMask
+        rowCnt = colCnt = 0
+        for i in range(n):
+            currRowMask = currColMask = 0
+            for j in range(n):
+                currRowMask |= board[i][j] << j
+                currColMask |= board[j][i] << j
+            # 检测每一行和每一列的状态是否合法
+            if currRowMask != rowMask and currRowMask != reverseRowMask or \
+               currColMask != colMask and currColMask != reverseColMask:
+                return -1
+            rowCnt += currRowMask == rowMask  # 记录与第一行相同的行数
+            colCnt += currColMask == colMask  # 记录与第一列相同的列数
+
+        def getMoves(mask: int, count: int) -> int:
+            ones = mask.bit_count()
+            if n & 1:
+                # 如果 n 为奇数，则每一行中 1 与 0 的数目相差为 1，且满足相邻行交替
+                if abs(n - 2 * ones) != 1 or abs(n - 2 * count) != 1:
+                    return -1
+                if ones == n // 2:
+                    return (mask & 0x55555555).bit_count()
+                else:
+                    return (mask & 0xAAAAAAAA).bit_count()
+            else:
+                # 如果 n 为偶数，则每一行中 1 与 0 的数目相等，且满足相邻行交替
+                if ones != n // 2 or count != n // 2:
+                    return -1
+                count0 = (mask & 0x55555555).bit_count()
+                count1 = (mask & 0xAAAAAAAA).bit_count()
+                return min(count0, count1)
+
+        rowMoves = getMoves(rowMask, rowCnt)
+        colMoves = getMoves(colMask, colCnt)
+        return -1 if rowMoves == -1 or colMoves == -1 else rowMoves + colMoves
+```
+
