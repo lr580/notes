@@ -697,6 +697,17 @@ with open('1.txt', 'w') as f:
 
 返回值是None
 
+如果中文无法输出，尝试： (poe)
+
+```python
+import sys
+import io
+# 设置标准输出为 UTF-8 编码
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8') # 只能执行一次，不然会出错
+```
+
+但是注意，这样会让输出一次性的出来，而不是一点一点的出来
+
 #### input
 
 ```python
@@ -1522,6 +1533,8 @@ Decimal(1)/Decimal(9) #正解
 a=[]#空列表
 b=[1,False,[3,4,5],'996']
 ```
+
+注意空间开销很大，例如 5000x5000 的 float，占用约 1GB，约等于一个元素 40byte
 
 ##### 方法
 
@@ -2894,7 +2907,7 @@ f(*map(int,input().split()))
 
 
 
-#### 执行顺
+#### 执行顺序
 
 从左到右，Java 也是；C/C++ 未定义
 
@@ -3679,26 +3692,40 @@ a.do()
 
 ```python
 from functools import wraps
-
-
 def log3(func):
-
     @wraps(func)
     def infunc(*args, **kwargs):
         print(func.__doc__)  #加不加@wraps这个都能输出
         return func(*args, **kwargs)
-
     return infunc
-
-
 @log3
 def mul(x, y):
     '''mul文档:这是一个函数'''
     return x * y
-
-
 print(mul(2, 3))
 print(mul.__doc__)  #不加@wraps这个输出不了
+```
+
+```python
+import time
+from functools import wraps
+def time_it(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time() 
+        result = func(*args, **kwargs)  
+        end_time = time.time() 
+        execution_time = end_time - start_time 
+        print(f"Function '{func.__name__}' executed in {execution_time:.4f} seconds")
+        return result
+    return wrapper
+@time_it
+def example_function(n):
+    total = 0
+    for i in range(n):
+        total += i
+    return total
+example_function(100000000)
 ```
 
 
@@ -3889,6 +3916,25 @@ chosen_generator = higher_order_function(generator_1, "Parameter for Generator 1
 
 for _ in range(5):
     print(next(chosen_generator))
+```
+
+### 闭包
+
+闭包是一种函数，它可以“记住”并访问其定义时的作用域中的变量，即使在其外部被调用时也能保持这些变量的状态
+
+```python
+def make_accumulator():
+    total = 0  # 初始总和
+    def accumulator(value):
+        nonlocal total  # 声明使用外部作用域的变量
+        total += value  # 更新总和
+        return total
+    return accumulator
+# 创建一个累加器
+add = make_accumulator()
+print(add(5))  # 输出: 5
+print(add(10)) # 输出: 15
+a2 = make_accumulator() # 与add相互独立，互不影响
 ```
 
 
@@ -5344,6 +5390,53 @@ result = t.timeit(number=10) #测试10次，返回总用时
 print(result) #1.8840052999985346
 ```
 
+装饰器+计时：
+
+```python
+import time
+from functools import wraps
+
+def time_it(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start_time = time.time() 
+        result = func(*args, **kwargs)  
+        end_time = time.time() 
+        execution_time = end_time - start_time 
+        print(f"Function '{func.__name__}' executed in {execution_time:.4f} seconds")
+        return result
+    return wrapper
+
+@time_it
+def example_function(n):
+    total = 0
+    for i in range(n):
+        total += i
+    return total
+
+example_function(100000000)
+```
+
+闭包+计时：
+
+```python
+import time
+def timer():
+    '''输出距离上一次调用该函数的时间间隔'''
+    last_time = [time.time()]  # 使用列表存储上一次调用的时间
+    def elapsed_time():
+        current_time = time.time()
+        interval = current_time - last_time[0]  # 计算时间间隔
+        last_time[0] = current_time  # 更新上一次调用的时间
+        return interval
+    return elapsed_time
+my_timer = timer()
+time.sleep(1)  # 模拟一些延迟
+print(f"时间间隔: {my_timer():.2f} 秒")
+time.sleep(2)  # 模拟一些延迟
+print(f"时间间隔: {my_timer():.2f} 秒")
+```
+
 
 
 
@@ -5701,6 +5794,17 @@ for py in f:
 print(glob.escape('?[]*.py'))
 ```
 
+#### subprocess
+
+执行 cmd 命令
+
+```python
+import subprocess
+subprocess.run('echo Hello, World!', shell=True)
+```
+
+当 `shell=True` 时，传递给 `subprocess.run()` 的命令字符串会被解释器解析。这允许你执行复杂的命令，比如使用管道 (`|`)、重定向 (`>` 和 `<`) 以及其他 shell 特性。
+
 #### typing
 
 类型检查，提出警告但不报错。3.5+
@@ -5727,6 +5831,9 @@ print(glob.escape('?[]*.py'))
 from typing import List
 def f(a: List[int]) -> int:
     print(sum(a))
+# typing = 默认值
+def g(a:int=1):
+    ...
 ```
 
 > 具体使用：安装第三方库
@@ -6871,6 +6978,8 @@ np.zeros(维度)#单一维度可以用int，否则用tuple，类型默认float
 > self.prev_dw = np.zeros_like(self.w) 
 > ```
 
+复制数组 `np.copy()`
+
 建立未初始化的数组：
 
 ```python
@@ -6929,7 +7038,21 @@ np.linspace(a,b,k)
 > string_array = np.array(['Hello', 'World', '12345', 'ABCDE'], dtype=np.dtype('U5'))
 > ```
 >
-> 
+
+##### 结构化数组
+
+混合类型：(注意这时候可以用这几个字符串当下标索引)
+
+```python
+dtype = [('first', 'float'), ('second', 'int'), ('third', 'int')]
+mixed_array = np.array([(1.5, 2, 3),
+                        (2.5, 3, 4),
+                        (3.5, 4, 5)], dtype=dtype)
+```
+
+注意混合类型的原理是：每个元素当成结构体，所以上面的 mixed_array 的 shape是 3, 
+
+排序 np.sort(order=字段名: 仅在处理结构化数组或记录数组时使用。该参数指定要根据哪个字段进行排序，排序效率低下，不如 argsort (参考下面例子)
 
 ##### 大小
 
@@ -7130,6 +7253,17 @@ Y = np.delete(Y, 0, axis=1)  # 二维的Y删除第一列
 Y = Y[:, 1:]  # 删除第一列，二者等效
 ```
 
+##### 广播
+
+```python
+a = np.array([1,2,3])
+b = np.array([-2,4,-6])
+print(a[:, np.newaxis] * b[np.newaxis, :])
+'''[[ -2   4  -6]
+ [ -4   8 -12]
+ [ -6  12 -18]]'''
+```
+
 
 
 
@@ -7190,6 +7324,16 @@ np.argmax(np.array([[1,5,2,5],[3,2,1,3]]),axis=1) # array([1, 0])
 ```
 
 缩减到某个范围内 `x = np.clip(x, -500, 500)`
+
+两行两列取最大：
+
+```python
+arr1 = np.array([1, 4, 3])
+arr2 = np.array([2, 1, 5])
+result = np.maximum(arr1, arr2)  # 返回 [2, 4, 5]
+```
+
+
 
 ##### 随机
 
@@ -7301,6 +7445,36 @@ a.argsort()#array([0, 6, 2, 1, 4, 3, 5], dtype=int64)
 
 逆序排序 `np.sort(a)[::-1]`
 
+每一行单独排序：
+
+```python
+data = np.array([[3, 2, 1],
+                 [1, 2, 3],
+                 [2, 2, 2]])
+np.sort(data, axis=1)
+'''array([[1, 2, 3],
+       [1, 2, 3],
+       [2, 2, 2]])'''
+```
+
+argsort 返回排序后的索引下标
+
+```python
+arr = np.array([3, 1, 2])
+indices = np.argsort(arr) # 输出 array([1, 2, 0], dtype=int64)
+```
+
+每行看成一个结构体排序，按结构体的首元素排序为例：
+
+```python
+data = np.array([[1, 3, 2],
+                 [1, 2, 3],
+                 [2, 2, 2]])
+data[data[:, 0].argsort()] # 结果不变；效率较高
+```
+
+
+
 ##### 差分
 
 ```python
@@ -7346,6 +7520,8 @@ X_b = np.c_[np.ones((len(X), 1)), X]
  [1. 4. 5. 6.]
  [1. 7. 8. 9.]]'''
 ```
+
+
 
 #### 统计运算
 
@@ -7708,15 +7884,6 @@ def depth_percentage(arr):
     return depth_pct
 ```
 
-##### argsort
-
-返回排序后的索引下标
-
-```python
-arr = np.array([3, 1, 2])
-indices = np.argsort(arr) # 输出 array([1, 2, 0], dtype=int64)
-```
-
 ##### bincount
 
 统计一个数组中各个非负整数值的出现次数，返回一个数组，其中的索引对应整数值，值对应这个整数值出现的次数。注意，`np.bincount` 只适用于非负整数数组。
@@ -7724,6 +7891,19 @@ indices = np.argsort(arr) # 输出 array([1, 2, 0], dtype=int64)
 ```python
 arr = np.array([0, 1, 1, 3, 2, 1, 7])
 count = np.bincount(arr) #array([1, 3, 1, 1, 0, 0, 0, 1], dtype=int64)
+```
+
+##### 上三角
+
+取下标值，分别 x,y 两个一维数组，含对角线 (k=1不含)
+
+```python
+i = np.triu_indices(3)
+# (array([0, 0, 0, 1, 1, 2]), array([0, 1, 2, 1, 2, 2]))
+a = np.array([[10,20,30],[40,50,60],[70,80,90]])
+v = a[i] # array([10, 20, 30, 50, 60, 90])
+np.column_stack((v, *i)) #或i[0], i[1] #  [(10,0,0),(....)]
+np.triu(a) # array([[10, 20, 30],[ 0, 50, 60],[ 0,  0, 90]])
 ```
 
 
