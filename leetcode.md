@@ -2361,6 +2361,10 @@
 - 782\.变为棋盘
 
   **思维 构造** 位运算
+  
+- 935\.骑士拨号器
+
+  DP 预处理
 
 ## 算法
 
@@ -59428,3 +59432,55 @@ class Solution:
         return -1 if rowMoves == -1 or colMoves == -1 else rowMoves + colMoves
 ```
 
+##### 935\.骑士拨号器
+
+[题目](https://leetcode.cn/problems/knight-dialer)
+
+```python
+dp = [[[1 for i in range(3)] for j in range(4)] for k in range(2)]
+dp[0][3][0] = dp[0][3][2] = 0
+ans, MOD = [10], int(1e9)+7
+dx, dy = [-2, -1, 1, 2, 2, 1, -1, -2], [1, 2, 2, 1, -1, -2, -2, -1]
+for n in range(1, 5000):
+    for i in range(4):
+        for j in range(3):
+            dp[n&1][i][j] = 0
+    for i in range(4):
+        for j in range(3):
+            if i==3 and j!=1:
+                continue
+            for k in range(8):
+                x, y = i+dx[k], j+dy[k]
+                if 0<=x<4 and 0<=y<3:
+                    if x==3 and y != 1:
+                        continue
+                    dp[n&1][i][j] = (dp[n&1][i][j] + dp[(n-1)&1][x][y]) % MOD
+    s = 0
+    for i in range(4):
+        for j in range(3):
+            s = (s + dp[n&1][i][j]) % MOD
+            # if n==1:
+            #     print(i,j,dp[n&1][i][j])
+    ans.append(s)
+class Solution:
+    def knightDialer(self, n: int) -> int:
+        return ans[n-1]
+```
+
+```python
+class Solution(object):
+    def knightDialer(self, N):
+        MOD = 10**9 + 7
+        moves = [[4,6],[6,8],[7,9],[4,8],[3,9,0],[],
+                     [1,7,0],[2,6],[1,3],[2,4]]
+
+        dp = [1] * 10
+        for hops in xrange(N-1):
+            dp2 = [0] * 10
+            for node, count in enumerate(dp):
+                for nei in moves[node]:
+                    dp2[nei] += count
+                    dp2[nei] %= MOD
+            dp = dp2
+        return sum(dp) % MOD
+```
