@@ -2365,6 +2365,10 @@
 - 935\.骑士拨号器
 
   DP 预处理
+  
+- 2717\.半有序排列
+
+  签到 数学
 
 ## 算法
 
@@ -59483,4 +59487,16 @@ class Solution(object):
                     dp2[nei] %= MOD
             dp = dp2
         return sum(dp) % MOD
+```
+
+##### 2717\.半有序排列
+
+[题目](https://leetcode.cn/problems/semi-ordered-permutation)
+
+```python
+class Solution:
+    def semiOrderedPermutation(self, nums: List[int]) -> int:
+        n = len(nums)
+        i, j = nums.index(1), nums.index(n)
+        return i + (n-1 - j) - (j<i)
 ```

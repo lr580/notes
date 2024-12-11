@@ -16382,10 +16382,11 @@ import java.util.Date;
 import java.util.Calendar;
 ```
 
-构造函数：
+构造函数：注意月份从0开始。
 
 ```java
-Calendar c = Calendar.getInstance();
+Calendar c = Calendar.getInstance(); // 现在年月日时分秒
+calendar.set(2024, 11, 10); //2024-12-10
 ```
 
 获取当前日期：
@@ -16412,7 +16413,7 @@ c.add(单位, 数量);
 如：
 
 ```java
-c.add(Calendar.DAY_OF_YEAR, -1000);
+c.add(Calendar.DAY_OF_YEAR, -1000); // 往前1000天
 ```
 
 常见的值有：
@@ -16433,7 +16434,11 @@ c.add(Calendar.DAY_OF_YEAR, -1000);
 c.getActualMaximum(Calendar.DAY_OF_MONTH);
 ```
 
+取星期判断：
 
+```java
+if(calendar.get(Calendar.DAY_OF_WEEK)!=Calendar.SATURDAY)
+```
 
 
 

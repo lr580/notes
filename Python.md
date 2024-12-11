@@ -8797,7 +8797,7 @@ plt.plot([-1,-1,-1,-1])
 plt.show()
 ```
 
-保存到文件：(重名覆盖)
+保存到文件：(重名覆盖) (注意show和savefig不要一起，show过save空)
 
 ```python
 plt.savefig(输出文件名含后缀)
@@ -9347,6 +9347,23 @@ subplot(ax)
 
 以上函数将整个绘图区域分成 nrows 行和 ncols 列，然后从左到右，从上到下的顺序对每个子区域进行编号 `1...N` ，左上的子区域的编号为 1、右下的区域编号为 N，编号可以通过参数 index 来设置。
 
+可以控制大小，在 subplots 之前，如，不加也行：
+
+```python
+fig, axs = plt.subplots(2, 2, figsize=(8, 6)) #800x600
+plt.subplot(2,2,i+1) # 下面2-7重复一次，i=0-3，共4次
+#sse是随便什么list数组
+plt.plot(np.arange(1, len(sse) + 1), sse, marker='o')
+plt.title(f'SSE {type_}')
+plt.xlabel('Number of Clusters')
+plt.ylabel('SSE')
+plt.grid()
+
+plt.savefig('SSE_partial.png') # 或 plt.show
+```
+
+
+
 ###### 例子
 
 > ```python
@@ -9357,7 +9374,7 @@ subplot(ax)
 > x = np.array([0, 6])
 > y = np.array([0, 100])
 > 
-> plt.subplot(2, 2, 1)
+> plt.subplot(2, 2, 1) # 或(221)，下同
 > plt.plot(x,y)
 > plt.title("plot 1") #子图标题
 > 
@@ -14304,6 +14321,20 @@ print(y_pred) # [0 2 2], np 数组
 ```
 
 ![预览大图](img/RzFxNStNeG5VUnZEZldsTFYyZy81dz09.png)
+
+##### SSE
+
+k均值可以直接算 SSE sum of squares errors，对每一类，求类的方差(x,y分别求方差)加起来，每类的再加起来
+
+```python
+import numpy as np
+from sklearn.cluster import KMeans
+data = np.array([[1, 2], [2, 3], [5, 6], [6, 7]])
+kmeans = KMeans(n_clusters=1, random_state=0).fit(data)
+print("SSE:", kmeans.inertia_) 
+```
+
+
 
 ##### 层次聚类
 
