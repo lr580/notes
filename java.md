@@ -1981,7 +1981,17 @@ public class arraytest {
 - = o1=o2
 - 正：把o1排o2后
 
-结构体：以 height 逆序为例
+结构体：
+
+- 二元组 int[] 按首元素排序
+
+  ```java
+  .sort(arr, (a, b) -> a[0] - b[0]);
+  // Comparator.comparingInt(a -> a[0])
+  // (a, b) -> Integer.compare(a[0], b[0])
+  ```
+
+以 height 逆序为例
 
 ```java
 import java.util.Arrays;
@@ -2121,6 +2131,28 @@ int s = Arrays.stream(rewardValues).sum();
 for (int v : Arrays.stream(rewardValues).distinct().sorted().toArray())
 ```
 
+###### 均值
+
+```java
+double avg = Arrays.stream(a).average().getAsDouble();
+```
+
+###### 过滤
+
+filter(函数)
+
+```java
+double avg = Arrays.stream(a).filter(n->n >0.1).average().getAsDouble();
+```
+
+###### 并行
+
+.parallel() 加快速度，如：(1e7 数据)
+
+```java
+double avg = Arrays.stream(a).parallel().average().getAsDouble(); // .parallel 0.07 否则 0.26
+```
+
 ###### 异常
 
 ```java
@@ -2128,6 +2160,31 @@ int max = Arrays.stream(a).max().orElseThrow();
 ```
 
 这里的 `Arrays.stream(a).max()` 会返回一个 `OptionalInt`，使用 `orElseThrow()` 可以在数组为空时抛出异常。
+
+###### List流
+
+```java
+double average = numbers.parallelStream() // 创建并行流
+            .mapToDouble(Double::doubleValue) // 转换为基本类型
+            .average().orElse(0);
+```
+
+串行流就 `.stream()`
+
+###### collect
+
+收集流的元素，包括但不限于下面的方法
+
+```java
+List<String> list = stream.collect(Collectors.toList()); // toSet(),
+Map<Integer, String> map = stream.collect(Collectors.toMap(String::length, Function.identity()));
+String result = stream.collect(Collectors.joining(", ", "[", "]"));
+Map<Integer, List<String>> groupedByLength = stream.collect(Collectors.groupingBy(String::length));
+Map<Boolean, List<String>> partitioned = stream.collect(Collectors.partitioningBy(s -> s.length() > 3)); // 2 分组
+long count = stream.collect(Collectors.counting());
+```
+
+
 
 ### 运算
 

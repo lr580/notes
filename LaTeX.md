@@ -2962,6 +2962,16 @@ Col 1 & Col 2 & Col 3 & Col4\\
 - 混合色 `{颜色1!颜色1百分数!颜色2}`。
 - 互补色 `{-颜色}`。
 
+例如：
+
+```tex
+\definecolor{darkgreen}{RGB}{0, 100, 0} % 导言区
+Traffic flow prediction is {\color{blue}....(give the formal denition)} \textcolor{darkgreen}{predict}
+```
+
+- 只想改变一小段文本的颜色，使用 `\textcolor` 更方便。
+- 想在一段文本中持续使用同一颜色，使用 `\color` 可以减少重复。
+
 ##### 英文跨行
 
 通常 hyphenation 会自动连字。`hyphenat` 包。

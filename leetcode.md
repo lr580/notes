@@ -2369,6 +2369,14 @@
 - 2717\.半有序排列
 
   签到 数学
+  
+- 2931\.购买物品的最大开销
+
+  数学(排序不等式) 排序 贪心
+  
+- 3266\.K次乘运算后的最终数组II
+
+  数学(对数) 排序 贪心 快速幂 堆 模拟
 
 ## 算法
 
@@ -59500,3 +59508,142 @@ class Solution:
         i, j = nums.index(1), nums.index(n)
         return i + (n-1 - j) - (j<i)
 ```
+
+##### 2931\.购买物品的最大开销
+
+[题目](https://leetcode.cn/problems/maximum-spending-after-buying-items)
+
+排序不等式：逆序和 $\le$ 乱序和 $\le$ 顺序和。给定升序数组 $a,b$，设 $c$ 是 $b$ 的排列，则求和 $\sum_{i=1}^na_ib_{n-i+1}\le \sum_{i=1}^na_ic_i\le \sum_{i=1}^na_ib_i$
+
+所以把矩阵张成升序的 b，d 就是 a，即可。可以堆来维护。
+
+```java
+import java.util.Comparator;
+import java.util.PriorityQueue;
+
+class Solution {
+    public long maxSpending(int[][] values) {
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> values[a[0]][a[1]] - values[b[0]][b[1]]);
+        long ans = 0;
+        int m = values.length, n = values[0].length;
+        for (int i = 0; i < m; ++i) {
+            pq.add(new int[]{i, n-1});
+        }
+        for (long i = 1; i <= m * n; ++i) {
+            int[] pr = pq.poll();
+            int u = pr[0], v = pr[1];
+            ans += i * values[u][v];
+            if (v != 0) {
+                pq.add(new int[]{u, v - 1});
+            }
+        }
+        return ans;
+    }
+}
+```
+
+##### 3266\.K次乘运算后的最终数组II
+
+[题目](https://leetcode.cn/problems/final-array-state-after-k-multiplication-operations-ii)
+
+方便书写，记 $m=multplier,a=nums$。设 0-indexed 下标。
+
+若对 $a_i$ 执行了 $k_i$ 次操作($\sum k_i=k$) ，变成 $a_i\cdot m^{k_i}$。两边取 $m$ 为底的对数，得到 $k_i+\log_{m}a_i$。所以可以比较大小。
+
+对 $a$ 取对数，排序。记排序后对数整数部分 $b_i=\lfloor a_i\rfloor$。枚举 $i$，让前 $i$ 个数的整数部分都变成 $b_i$。则需要进行 $cnt=\sum_{j=0}^i b_i-b_j$，记 $b_i$ 的前缀和(前 $i$ 个和)为 $s$，可以优化为 $(i+1)b_i-s$。故可以 $O(n)$ 计算出最大的 $i$。
+
+在如此操作后，设还剩下 $k'=k-cnt$ 次操作，那么对前 $i$ 个元素全部加上 $d=\lfloor\dfrac{k'}{i+1}\rfloor$ 次，一定不会使加了之后，$i$ 后面的元素与前面元素的差值大于 $1$，否则上面可以找到更大的 $i$。此时 $k''=k'\bmod(i+1)$。此外由于 int 限制，$b_i\le31$，这意味着最多进行 $O(n\log n)$ 次堆操作就可以让整数部分全部相等。
+
+然后再模拟堆进行 $k''<n$ 次堆操作即可。总复杂度 $O(n\log n)$。
+
+```python
+from typing import *
+import math
+import heapq
+class Solution:
+    def getFinalState(self, nums: List[int], k: int, multiplier: int) -> List[int]:
+        if multiplier == 1:
+            return nums
+        n, eps, mod = len(nums), 1e-8, int(1e9)+7
+        a = [(math.log(nums[i], multiplier), i) for i in range(n)]
+        a.sort()
+        b = [int(eps+a[i][0]) for i in range(n)]
+        cnt = 0 # 做了几次操作
+        s = i0 = cnt0 = 0
+        for i in range(n):
+            s += b[i]
+            cnt = (i+1)*b[i] - s
+            if cnt >= k:
+                break
+            i0, cnt0 = i, cnt
+        q = []
+        for i in range(n):
+            t = max(0, b[i0] - b[i])
+            q.append((t + a[i][0], a[i][1], t))
+        k -= cnt0
+        d0 = k // (i0+1)
+        for i in range(i0+1):
+            q[i] = (q[i][0] + d0, q[i][1], q[i][2] + d0)
+        k %= (i0+1)
+        heapq.heapify(q)
+        for i in range(k):
+            pr = heapq.heappop(q)
+            heapq.heappush(q, (pr[0] + 1, pr[1], pr[2] + 1))
+        for i in range(n):
+            pr = heapq.heappop(q)
+            nums[pr[1]] = nums[pr[1]] * pow(multiplier, pr[-1], mod) % mod
+        return nums
+```
+
+根据：最多进行 $O(n\log n)$ 次堆操作。可以写成：
+
+```python
+class Solution:
+    def getFinalState(self, nums: List[int], k: int, multiplier: int) -> List[int]:
+        if multiplier == 1:  # 数组不变
+            return nums
+
+        MOD = 1_000_000_007
+        n = len(nums)
+        mx = max(nums)
+        h = [(x, i) for i, x in enumerate(nums)]
+        heapify(h)
+
+        # 模拟，直到堆顶是 mx
+        while k and h[0][0] < mx:
+            x, i = h[0]
+            heapreplace(h, (x * multiplier, i))
+            k -= 1
+
+        # 剩余的操作可以直接用公式计算
+        h.sort()
+        for i, (x, j) in enumerate(h):
+            nums[j] = x * pow(multiplier, k // n + (i < k % n), MOD) % MOD
+        return nums
+```
+
+```python
+# 也可以模拟到 k 刚好是 n 的倍数时才停止，这样最后无需排序
+class Solution:
+    def getFinalState(self, nums: List[int], k: int, multiplier: int) -> List[int]:
+        if multiplier == 1:  # 数组不变
+            return nums
+
+        MOD = 1_000_000_007
+        n = len(nums)
+        mx = max(nums)
+        h = [(x, i) for i, x in enumerate(nums)]
+        heapify(h)
+
+        # 模拟，直到堆顶是 mx
+        while k and (h[0][0] < mx or k % n):
+            x, i = h[0]
+            heapreplace(h, (x * multiplier, i))
+            k -= 1
+
+        # 剩余的操作可以直接用公式计算
+        for x, j in h:
+            nums[j] = x * pow(multiplier, k // n, MOD) % MOD
+        return nums
+```
+
