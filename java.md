@@ -10204,6 +10204,8 @@ Collections 静态操作：
 
 - sort(list) 原地操作
 
+  逆序：`Collections.sort(list, Collections.reverseOrder());`
+
 - reverse
 
 - min, max
@@ -10216,6 +10218,12 @@ Collections 静态操作：
 
 - ArrayList 数组实现的，可变长，允许保存含 `null` 的元素，向指定位置插入或删除元素较慢，更常用
 - LinkedList 双向链表实现的，优点时集中插入删除快，但随机访问效率低，内存占用大
+
+可以从 map 转：
+
+```java
+List<Integer> occ = new ArrayList<>(freq.values());
+```
 
 获得并发类：
 
@@ -11500,6 +11508,41 @@ Java 字符是 Unicode 编码，双字节。字符读取用 `Reader` ，方法�
 
   彻底完成输出，清空缓存区
 - `close()`
+
+##### RandomAccessFile
+
+```java
+RandomAccessFile raf = new RandomAccessFile("filename.txt", "rw"); // 或 File, "" 
+```
+
+读取数据：(按字节读)
+
+```java
+int intValue = raf.readInt();
+char charValue = raf.readChar();
+```
+
+写入数据：
+
+```java
+raf.writeInt(42);
+raf.writeChar('A');
+raf.writeFloat(f);
+raf.writeDouble(v);
+raf.writeBoolean(v); //1字节
+raf.write(byte[] b);
+raf.writeUTF(字符串); //2字节表示长度+其他字节是字符串
+```
+
+指针：
+
+```java
+System.out.println(raf.getFilePointer());
+raf.seek(0);
+long length = raf.length(); // 获取文件长度
+```
+
+
 
 #### File类
 

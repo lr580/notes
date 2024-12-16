@@ -1106,6 +1106,18 @@ git status
 
 打开对应文件，能看到冲突双方都被同时写了，自行保留哪个(用 vscode 的话可以一键式，如果 vscode 做不了，可以 chmod 一下)，一个个手动解决，解决完毕后：一个个 git add，然后 git commit
 
+> 完整示例：当前版本A(master)，上一个版本B(b2262ebc)，以B为基础修改得到C，把A,C合并
+>
+> ```sh
+> git checkout b2262ebc 
+> git checkout -b 新分支 # 分支名是新分支，B为基础
+> git add . # 和 git commit -m "对C的修改"
+> git checkout master # 回到A master
+> git merge 新分支 #A,C合并；若有冲突手动处理
+> ```
+>
+> 
+
 #### 复制
 
 把另一个分支的一个或多个提交复制到当前分支：

@@ -2377,6 +2377,14 @@
 - 3266\.K次乘运算后的最终数组II
 
   数学(对数) 排序 贪心 快速幂 堆 模拟
+  
+- 1338\.数组大小减半
+
+  STL(哈希/排序) 贪心 
+  
+- 1847\.最近的房间
+
+  离线 二分 / +双指针
 
 ## 算法
 
@@ -59647,3 +59655,173 @@ class Solution:
         return nums
 ```
 
+#### 1338\.数组大小减半
+
+[题目](https://leetcode.cn/problems/reduce-array-size-to-the-half)
+
+```java
+class Solution {
+    public int minSetSize(int[] arr) {
+        HashMap<Integer, Integer> cnt = new HashMap<>();
+        for (int x : arr) {
+            cnt.put(x, cnt.getOrDefault(x, 0) + 1);
+        }
+        ArrayList<Integer> cnt2 = new ArrayList<>();
+        for (Map.Entry<Integer, Integer> pr : cnt.entrySet()) {
+            cnt2.add(pr.getValue());
+        }
+        Collections.sort(cnt2);
+        int n = arr.length, ans = 0;
+        for (int i = cnt2.size() - 1, n2 = n / 2; n > n2; --i) {
+            ++ans;
+            n -= cnt2.get(i);
+        }
+        return ans;
+    }
+}
+```
+
+```java
+class Solution {
+    public int minSetSize(int[] arr) {
+        Map<Integer, Integer> freq = new HashMap<>();
+        for (int num : arr) {
+            freq.put(num, freq.getOrDefault(num, 0) + 1);
+        }
+
+        List<Integer> occ = new ArrayList<>(freq.values());
+        Collections.sort(occ, Collections.reverseOrder());
+        int cnt = 0, ans = 0;
+        for (int c : occ) {
+            cnt += c;
+            ans += 1;
+            if (cnt * 2 >= arr.length) {
+                break;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```java
+class Solution {
+    public int minSetSize(int[] arr) {
+        Map<Integer, Integer> freq = new HashMap<>();
+        for (int x : arr) {
+            freq.merge(x, 1, Integer::sum); // freq[x]++
+        }
+
+        List<Integer> cnt = new ArrayList<>(freq.values());
+        cnt.sort((a, b) -> b - a);
+
+        int s = 0;
+        for (int i = 0; ; i++) {
+            s += cnt.get(i);
+            if (s >= arr.length / 2) {
+                return i + 1;
+            }
+        }
+    }
+}
+```
+
+##### 1847\.最近的房间
+
+[题目]()
+
+离线，将所有room和查询按size逆序排序(若size相同，先排room再排查询)，然后遍历：
+
+- 如果是room，把id插入到treeset。
+- 如果是查询，在treeset里二分查找离id最近的一个，更新答案。
+
+复杂度 $O(n\log n)$。
+
+```java
+import java.util.Arrays;
+import java.util.TreeSet;
+
+class Solution {
+    public int[] closestRoom(int[][] rooms, int[][] queries) {
+        int n = rooms.length, m = queries.length;
+        int cmd[][] = new int[n + m][3]; // size, type(0room,1query), id
+        for (int i = 0; i < n; ++i) {
+            cmd[i] = new int[] { rooms[i][1], 0, rooms[i][0] };
+        }
+        for (int i = 0; i < m; ++i) {
+            cmd[n + i] = new int[] { queries[i][1], 1, i };
+        }
+        Arrays.sort(cmd, (a, b) -> {
+            if (a[0] != b[0]) {
+                return b[0] - a[0];
+            }
+            return a[1] - b[1];
+        });
+        TreeSet<Integer> a = new TreeSet<>(); // rooms
+        int ans[] = new int[m];
+        for (int[] c : cmd) {
+            int siz = c[0], type = c[1], i = c[2];
+            if (type == 0) {// room
+                a.add(i);
+            } else {
+                int idq = queries[i][0];
+                Integer idr = a.ceiling(idq); // >=id
+                Integer idl = a.floor(idq); // <=id
+                int mindis = 1000000000, minid = -1;
+                if (idl != null && Math.abs(idl - idq) < mindis) {
+                    mindis = Math.abs(idl - idq);
+                    minid = idl;
+                }
+                if (idr != null && Math.abs(idr - idq) < mindis) {
+                    mindis = Math.abs(idr - idq);
+                    minid = idr;
+                }
+                ans[i] = minid;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+节省空间，可以双指针表示当前的离线，而不是开一个新的数组。
+
+```java
+class Solution {
+    public int[] closestRoom(int[][] rooms, int[][] queries) {
+        // 按照 size 从大到小排序
+        Arrays.sort(rooms, (a, b) -> (b[1] - a[1]));
+
+        int q = queries.length;
+        Integer[] queryIds = new Integer[q];
+        Arrays.setAll(queryIds, i -> i);
+        // 按照 minSize 从大到小排序
+        Arrays.sort(queryIds, (i, j) -> queries[j][1] - queries[i][1]);
+
+        int[] ans = new int[q];
+        Arrays.fill(ans, -1);
+        TreeSet<Integer> roomIds = new TreeSet<>();
+        int j = 0;
+        for (int i : queryIds) {
+            int preferredId = queries[i][0];
+            int minSize = queries[i][1];
+            while (j < rooms.length && rooms[j][1] >= minSize) {
+                roomIds.add(rooms[j][0]);
+                j++;
+            }
+
+            int diff = Integer.MAX_VALUE;
+            Integer floor = roomIds.floor(preferredId);
+            if (floor != null) {
+                diff = preferredId - floor; // 左边的差
+                ans[i] = floor;
+            }
+            Integer ceiling = roomIds.ceiling(preferredId);
+            if (ceiling != null && ceiling - preferredId < diff) { // 右边的差更小
+                ans[i] = ceiling;
+            }
+        }
+        return ans;
+    }
+}
+```
