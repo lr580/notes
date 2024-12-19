@@ -5940,6 +5940,8 @@ service vsftpd restart
 
 
 
+> 可以源码编译httpd，如果缺包如arp, arp-util 等，可以yum安装，然后装好了检测启动：去到安装路径如 `/usr/local/httpd/bin`，输入 `./apachectl start`，会用 `/usr/local/httpd/htdocs/index.html` 渲染到本地 80 端口开放，那么能看到这个页面，如果修改了刷新网页生效。
+
 ###### php和迁移
 
 常用配置：

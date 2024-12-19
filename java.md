@@ -1848,6 +1848,14 @@ for (int i = 0; i < m; i++) {
 
 ###### setAll
 
+类似 C++ iota 的 a[i]=i
+
+```java
+Arrays.setAll(a, i -> i);
+```
+
+
+
 如批量 arraylist 初始化：
 
 ```java
