@@ -1954,6 +1954,14 @@ System.out.println(Arrays.toString(new int[] {1,1,4,5,1,4}));
 
 若 `(数组,a,b,v)`  在子段$[a,b)$搜索
 
+###### equals
+
+比较两个数组是否逐个元素相等：
+
+```java
+Arrays.equals(array1, array2))
+```
+
 
 
 ##### =赋值

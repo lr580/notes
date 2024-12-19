@@ -2393,6 +2393,10 @@
 - 3292\.形成目标字符串需要的最少字符串数II
 
   **字符串哈希+二分+贪心 / 字符串哈希+双指针+贪心 / AC自动机+DP / Z函数+贪心 / KMP+DP**
+  
+- 3138\.同位字符串连接的最小长度
+
+  数学(枚举因子) STL
 
 ## 算法
 
@@ -59833,3 +59837,106 @@ class Solution {
     }
 }
 ```
+
+##### 3138\.同位字符串连接的最小长度
+
+[题目](https://leetcode.cn/problems/minimum-length-of-anagram-concatenation)
+
+$n$ 只有 $O(\log n)$ 个因子，在 $10^5$ 内，$83160$ 因子数最多，为 $128$，每次枚举 $O(n)$，使用哈希表或数组记录即可。(哈希表 246ms, 数组 25ms)
+
+```java
+import java.util.HashMap;
+
+class Solution {
+    public int minAnagramLength(String s) {
+        int n = s.length();
+        for (int i = 1; i < n; ++i) {
+            if (n % i != 0) {
+                continue;
+            }
+            HashMap<Character, Integer> h = new HashMap<>();
+            for (int j = 0; j < i; ++j) {
+                char c = s.charAt(j);
+                h.put(c, h.getOrDefault(c, 0) + 1);
+            }
+            boolean ok = true;
+            for (int k = 1; k * i < n && ok; ++k) {
+                HashMap<Character, Integer> h2 = new HashMap<>();
+                for (int j = 0; j < i; ++j) {
+                    char c = s.charAt(k * i + j);
+                    h2.put(c, h2.getOrDefault(c, 0) + 1);
+                }
+                for (Character c : h.keySet()) {
+                    if (!h.get(c).equals(h2.getOrDefault(c, 0))) {
+                        ok = false;
+                        break;
+                    }
+                }
+            }
+            if (ok) {
+                return i;
+            }
+        }
+        return n;
+    }
+}
+```
+
+```java
+class Solution {
+    public int minAnagramLength(String S) {
+        char[] s = S.toCharArray();
+        int n = s.length;
+        next:
+        for (int k = 1; k <= n / 2; k++) {
+            if (n % k > 0) {
+                continue;
+            }
+            int[] cnt0 = new int[26];
+            for (int j = 0; j < k; j++) {
+                cnt0[s[j] - 'a']++;
+            }
+            for (int i = k * 2; i <= n; i += k) {
+                int[] cnt = new int[26];
+                for (int j = i - k; j < i; j++) {
+                    cnt[s[j] - 'a']++;
+                }
+                if (!Arrays.equals(cnt, cnt0)) {
+                    continue next;
+                }
+            }
+            return k;
+        }
+        return n;
+    }
+}
+```
+
+```python
+class Solution:
+    def minAnagramLength(self, s: str) -> int:
+        n = len(s)
+        for k in range(1, n // 2 + 1):
+            if n % k:
+                continue
+            cnt0 = Counter(s[:k])
+            if all(Counter(s[i - k: i]) == cnt0 for i in range(k * 2, n + 1, k)):
+                return k
+        return n
+```
+
+也可以排序比较：
+
+```python
+class Solution:
+    def minAnagramLength(self, s: str) -> int:
+        n = len(s)
+        for k in range(1, n // 2 + 1):
+            if n % k:
+                continue
+            t = sorted(s[:k])
+            if all(sorted(s[i - k: i]) == t for i in range(k * 2, n + 1, k)):
+                return k
+        return n
+```
+
