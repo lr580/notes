@@ -1308,7 +1308,7 @@ git push 远程仓库名 :refs/tag/标签名 #远程删除
 
 #### vscode
 
-
+可以查看版本记录，
 
 ### 控制
 
@@ -1411,6 +1411,10 @@ Git 提供了一个叫做 git config 的工具，专门用来配置或读取相�
 
 ### github
 
+#### 基本信息
+
+仓库单文件大小限制100MB [参考](https://docs.github.com/zh/repositories/working-with-files/managing-large-files/about-large-files-on-github)，推荐仓库总大小不超过1GB
+
 #### 初始配置
 
 ##### linux
@@ -1496,7 +1500,7 @@ fork的意义是把别人的仓库当前版本克隆一份到自己的仓库
 
 对仓库选择 settings，可以看到 page 设置。
 
-- 具体参见：我的个人博客搭建建站过程。笔记本电脑修改了这一行。
+- 具体参见：我的个人博客搭建建站过程。工位电脑修改了这一行。同时手动输入笔记本电脑的修改在这里。
 - 具体参见：`latex.md` 笔记的 Jekyll。
 
 #### action
@@ -1511,7 +1515,9 @@ fork的意义是把别人的仓库当前版本克隆一份到自己的仓库
 
 在 [这里](https://gist.github.com/) ，也许需要魔法上网
 
+#### release
 
+单个文件限制大小2GB [参考](https://docs.github.com/zh/repositories/releasing-projects-on-github/about-releases) ；点击开箱即用，记得给每个release一个版本号tag
 
 #### 2FA
 
@@ -1527,7 +1533,48 @@ fork的意义是把别人的仓库当前版本克隆一份到自己的仓库
 
 到此为止，已经设置了 TOTP app。测试可以正常 commit。
 
+#### 个人主页
 
+##### README
+
+建一个跟自己用户名同名的仓库，其 `README.md` 会展示在自己的 github 主页。
+
+一些参考的统计信息：[参考](https://github.com/akinazuki/AkiNazuki)
+
+![](https://github-readme-stats.vercel.app/api?username=lr580&count_private=true&show_icons=true&locale=cn&include_all_commits=true&v=1) ![](https://github-readme-stats.vercel.app/api/top-langs/?username=lr580&hide=css,html&layout=compact&langs_count=8&locale=cn)
+
+项目信息 [参考](https://zhuanlan.zhihu.com/p/283447572)
+
+- issues <img src="https://img.shields.io/github/issues/lr580/lr580.github.io"/>
+- forks <img src="https://img.shields.io/github/forks/lr580/notes"/>
+- stars <img src="https://img.shields.io/github/stars/lr580/notes"/>
+
+
+
+#### 网页技巧
+
+##### 仓库
+
+按 t 快捷键，或在 go to file 输入框 (add file / code 按钮左边)，可以按文件名查找，可以找到文件夹下含搜索字符串的文件名
+
+按 `.` ，把 github.com 重定向到 github.dev，可以以在线 vscode 形式查看代码；例如 [here](https://github.dev/lr580/notes)
+
+- 如果修改的是别人的仓库，那么提交的时候，会本地 fork 一份
+- 把 `github.com` 改为 `github1s.com`，是一个只读的 vscode 编辑器 [sample](https://github1s.com/lr580/notes)
+- `gitpod.io/#`+完整(https开始的)原链接 (可以选择不同的开发环境，如 idea)，这个环境可以运行代码 [sample](https://gitpod.io/#https://github.com/lr580/notes)
+
+代码单行/多行高亮，在url后+`#L行号`或 `#L行1-L行2` 表示区间 [行1,行2]
+
+- 如单行 [sample](https://github.com/lr580/notes/blob/master/git.md?plain=1#L9)
+- 多行 [sample](https://github.com/lr580/notes/blob/master/git.md?plain=1#L9-L20)
+- 通过点击 shift 行号可以获得这个高亮
+
+#### 首页
+
+##### 推荐
+
+- explore [src](https://github.com/explore) 根据自己的兴趣的推荐
+- trending [src](https://github.com/trending)
 
 #### 其他
 
@@ -1535,7 +1582,11 @@ empty 仓库不可以 fork
 
 [新手教程](https://www.zhihu.com/question/21669554/answer/790851463)
 
+#### 搜索技巧
 
+按stars, forks 等排序 [参考](https://zhuanlan.zhihu.com/p/719376567)
+
+awesome+关键字，可以关键字领域的汇总
 
 ### 华为云
 
