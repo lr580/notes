@@ -56,6 +56,8 @@ python -c "import tensorflow as tf; print(tf.__version__)"
 
 ### 第三方库
 
+##### 常规
+
 > linux 无 pip：(gpt)
 >
 > ```sh
@@ -83,6 +85,14 @@ pip install plotly pandas # 一次装两个
 > ```sh
 > apt-get install python3-pymysql
 > ```
+
+> ```sh
+> pip install qrcode[pil]
+> ```
+>
+> [pil] 是一个可选依赖项的标记，表示安装 qrcode 库时同时安装 Pillow 库（PIL 的一个分支）
+
+##### 镜像
 
 可以加上调用国内镜像的选项，加快下载速度：
 
@@ -128,7 +138,7 @@ trusted-host=mirrors.aliyun.com
 > pip config unset global.index-url
 > ```
 
-
+##### 管理
 
 查看装了什么包：`pip list`
 
@@ -165,7 +175,7 @@ pip install 库名 --upgrade
 
 可以安装下载好的库文件而不是在线下载，文件后缀名是whl，命令同上
 
-
+##### 列举
 
 可以使用下面指令获取当前机子装了的全部包：
 
@@ -12405,6 +12415,17 @@ mosaiced_image.show()
 
 > ### scikit-image
 >
+
+#### qrcode
+
+```sh
+pip install qrcode[pil]
+```
+
+生成二维码：
+
+```python
+```
 
 
 
