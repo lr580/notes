@@ -2397,6 +2397,14 @@
 - 3138\.同位字符串连接的最小长度
 
   数学(枚举因子) STL
+  
+- 2545\.根据第K场考试的分数排序
+
+  排序 签到
+  
+- 1387\.将整数按权重排序
+
+  记忆化DFS 排序
 
 ## 算法
 
@@ -59938,5 +59946,112 @@ class Solution:
             if all(sorted(s[i - k: i]) == t for i in range(k * 2, n + 1, k)):
                 return k
         return n
+```
+
+##### 2545\.根据第K场考试的分数排序
+
+[题目](https://leetcode.cn/problems/sort-the-students-by-their-kth-score)
+
+```java
+class Solution {
+    public int[][] sortTheStudents(int[][] score, int k) {
+        Arrays.sort(score, (a,b) -> b[k]-a[k]);
+        return score;
+    }
+}
+```
+
+```c++
+class Solution {
+public:
+    vector<vector<int>> sortTheStudents(vector<vector<int>>& score, int k) {
+        ranges::sort(score, {}, [&](auto& row) { return -row[k]; });
+        return score;
+    }
+};
+```
+
+##### 1387\.将整数按权重排序
+
+[题目](https://leetcode.cn/problems/sort-integers-by-the-power-value)
+
+```java
+import java.util.Arrays;
+import java.util.HashMap;
+
+class Solution {
+    private static HashMap<Integer, Integer> h = new HashMap<>();
+
+    static {
+        h.put(1, 1);
+    }
+
+    private static int dfs(int x) {
+        if (h.containsKey(x)) {
+            return h.get(x);
+        }
+        if (x % 2 == 0) {
+            h.put(x, 1 + dfs(x / 2));
+        } else {
+            h.put(x, 1 + dfs(3 * x + 1));
+        }
+        return h.get(x);
+    }
+
+    public int getKth(int lo, int hi, int k) {
+        int n = hi - lo + 1;
+        int a[][] = new int[n][2];
+        for (int i = lo; i <= hi; ++i) {
+            a[i - lo] = new int[] { dfs(i), i };
+        }
+        Arrays.sort(a, (x, y) -> {
+            if (x[0] != y[0]) {
+                return x[0] - y[0];
+            }
+            return x[1] - y[1];
+        });
+        return a[k - 1][1];
+    }
+}
+```
+
+穷举可知，最大权是 178，总元素数是 2228。
+
+一种其他写法：
+
+```java
+class Solution {
+    Map<Integer, Integer> f = new HashMap<Integer, Integer>();
+
+    public int getKth(int lo, int hi, int k) {
+        List<Integer> list = new ArrayList<Integer>();
+        for (int i = lo; i <= hi; ++i) {
+            list.add(i);
+        }
+        Collections.sort(list, new Comparator<Integer>() {
+            public int compare(Integer u, Integer v) {
+                if (getF(u) != getF(v)) {
+                    return getF(u) - getF(v);
+                } else {
+                    return u - v;
+                }
+            }
+        });
+        return list.get(k - 1);
+    }
+
+    public int getF(int x) {
+        if (!f.containsKey(x)) {
+            if (x == 1) {
+                f.put(x, 0);
+            } else if ((x & 1) != 0) {
+                f.put(x, getF(x * 3 + 1) + 1);
+            } else {
+                f.put(x, getF(x / 2) + 1);
+            }
+        }
+        return f.get(x);
+    }
+}
 ```
 
