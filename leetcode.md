@@ -2405,6 +2405,10 @@
 - 1387\.将整数按权重排序
 
   记忆化DFS 排序
+  
+- 855\.考场就座
+
+  大模拟 数据结构 STL 二分
 
 ## 算法
 
@@ -60051,6 +60055,204 @@ class Solution {
             }
         }
         return f.get(x);
+    }
+}
+```
+
+##### 855\.考试就座
+
+[题目](https://leetcode.cn/problems/exam-room/)
+
+- 维护所有空闲的区间，并按区间距离两侧多远排序(特判最左最右区间，距离为长度，其他情况距离为半区间长)
+- 维护多一个结构，使得可以快速根据区间端点查询所在区间；实现对空闲区间的增加和删除
+- 对seat，特判没人坐时选0；其他一般情况，找到最长距离的、左端点最小的空闲区间，删掉这个区间，并且把区间一分为二(特判不能分，那就一分为一或一分为零)，得到分裂后的2个小空闲区间
+- 对leave，维护每个坐了人的座位编号(否则坐满人删时难以还原)，找到p往前往后的一个编号，用来二分查找空闲区间，如果能找到，把这两个空闲区间删了(因为要进行合并)，然后根据左右编号构建新的大空闲区间
+
+复杂度 $O(t\log t)$，其中 $t$ 是操作次数。
+
+```java
+import java.util.TreeMap;
+import java.util.TreeSet;
+
+class ExamRoom {
+    class Interval implements Comparable<Interval> { // 空闲位置
+        public int l, r;
+
+        public Interval(int l, int r) {
+            this.l = l;
+            this.r = r;
+        }
+
+        @Override
+        public int compareTo(Interval o) {
+            return l - o.l;
+        }
+
+        public int len() { // 返回距离左右的最小距离
+            if (l == 0 || r == n - 1) {
+                return r - l;
+            }
+            return (r - l) / 2;
+        }
+
+        public int seat() { // 返回坐这个区间坐在哪
+            if (l == 0) {
+                return l;
+            }
+            if (r == n - 1) {
+                return r;
+            }
+            return l + len();
+        }
+    }
+
+    private TreeMap<Integer, TreeSet<Interval>> len;
+    private TreeSet<Interval> a;
+    private TreeSet<Integer> occupy;
+    private int n;
+
+    private void add(Interval i) {
+        a.add(i);
+        TreeSet<Interval> la = len.get(i.len());
+        if (la == null) {
+            la = new TreeSet<>();
+            len.put(i.len(), la);
+        }
+        la.add(i);
+        //System.out.println("add " + i.l + " " + i.r);
+    }
+
+    private void remove(Interval i) {
+        a.remove(i);
+        TreeSet<Interval> la = len.get(i.len());
+        la.remove(i);
+        if (la.size() == 0) {
+            len.remove(i.len());
+        }
+        //System.out.println("remove " + i.l + " " + i.r);
+    }
+
+    public ExamRoom(int n) {
+        len = new TreeMap<>();
+        a = new TreeSet<>();
+        occupy = new TreeSet<>();
+        occupy.add(-1);
+        occupy.add(n);
+        this.n = n;
+    }
+
+    public int seat() {
+        if (a.size() == 0) {
+            add(new Interval(1, n - 1));
+            occupy.add(0);
+            return 0;
+        }
+        Interval i = len.lastEntry().getValue().first();
+        remove(i);
+        int c = i.seat();
+        if (i.l != c) {
+            add(new Interval(i.l, c - 1));
+        }
+        if (i.r != c) {
+            add(new Interval(c + 1, i.r));
+        }
+        occupy.add(c);
+        test();
+        //System.out.println("!Seat " + c);
+        return c;
+    }
+
+    public void leave(int p) {
+        int rv = occupy.higher(p);
+        int lv = occupy.lower(p);
+        Interval ri = a.lower(new Interval(rv, 0));
+        Interval li = a.higher(new Interval(lv, 0));
+        if (li != null && lv < li.l && li.r < p) {
+            remove(li);
+        }
+        if (ri != null && p < ri.l && ri.r < rv) {
+            remove(ri);
+        }
+        add(new Interval(lv + 1, rv - 1));
+        occupy.remove(p);
+        test();
+        //System.out.println("!Leave " + p);
+    }
+
+    private void test() {
+        if(false) { // if debug, if true
+            System.out.print("Interval: ");
+            for (Interval ii : a) {
+                System.out.print(ii.l + " " + ii.r + ", ");
+            }
+
+            System.out.print("\nOccupy: ");
+            for (Integer x : occupy) {
+                System.out.print(x + ", ");
+            }
+            System.out.println();
+        }
+    }
+}
+```
+
+- pq 维护空闲区间，维护开区间，treeset 维护坐了人的地方
+- leave 时不删除，每次 pq 时，若区间左右端点都坐了人且左端点在 treeset 找到恰好是右端点，那么这个区间正确
+- seat 特判为：<2个人单独考虑，0个人做0，1个人坐左右端点其一。对一般情况，同时把当前最大有效区间距离和最左右区间距离特判对比，三者选最小，如果用了左右等同<2人，否则拆分区间
+
+```java
+class ExamRoom {
+    int n;
+    TreeSet<Integer> seats;
+    PriorityQueue<int[]> pq;
+
+    public ExamRoom(int n) {
+        this.n = n;
+        this.seats = new TreeSet<Integer>();
+        this.pq = new PriorityQueue<int[]>((a, b) -> {
+            int d1 = a[1] - a[0], d2 = b[1] - b[0];
+            return d1 / 2 < d2 / 2 || (d1 / 2 == d2 / 2 && a[0] > b[0]) ? 1 : -1;
+        });
+    }
+
+    public int seat() {
+        if (seats.isEmpty()) {
+            seats.add(0);
+            return 0;
+        }
+        int left = seats.first(), right = n - 1 - seats.last();
+        while (seats.size() >= 2) {
+            int[] p = pq.peek();
+            if (seats.contains(p[0]) && seats.contains(p[1]) && seats.higher(p[0]) == p[1]) { // 不属于延迟删除的区间
+                int d = p[1] - p[0];
+                if (d / 2 < right || d / 2 <= left) { // 最左或最右的座位更优
+                    break;
+                }
+                pq.poll();
+                pq.offer(new int[]{p[0], p[0] + d / 2});
+                pq.offer(new int[]{p[0] + d / 2, p[1]});
+                seats.add(p[0] + d / 2);
+                return p[0] + d / 2;
+            }
+            pq.poll(); // leave 函数中延迟删除的区间在此时删除
+        }
+        if (right > left) { // 最右的位置更优
+            pq.offer(new int[]{seats.last(), n - 1});
+            seats.add(n - 1);
+            return n - 1;
+        } else {
+            pq.offer(new int[]{0, seats.first()});
+            seats.add(0);
+            return 0;
+        }
+    }
+
+    public void leave(int p) {
+        if (p != seats.first() && p != seats.last()) {
+            int prev = seats.lower(p), next = seats.higher(p);
+            pq.offer(new int[]{prev, next});
+        }
+        seats.remove(p);
     }
 }
 ```

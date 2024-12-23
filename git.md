@@ -558,7 +558,7 @@ git diff -staged [file]
 
 也可以不指定文件
 
-可以显示摘要：
+可以显示摘要：(修改的文件和行数目)
 
 ```bash
 git diff --stat
