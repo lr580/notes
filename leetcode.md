@@ -2409,6 +2409,10 @@
 - 855\.考场就座
 
   大模拟 数据结构 STL 二分
+  
+- 1705\.吃苹果的最大数目
+
+  模拟 数据结构 STL 贪心
 
 ## 算法
 
@@ -60253,6 +60257,72 @@ class ExamRoom {
             pq.offer(new int[]{prev, next});
         }
         seats.remove(p);
+    }
+}
+```
+
+##### 1705\.吃苹果的最大数目
+
+[题目](https://leetcode.cn/problems/maximum-number-of-eaten-apples)
+
+考虑到双 $2\times10^4$，可以一个一个苹果模拟，每天加苹果，贪心吃掉最快坏的苹果，用 treemap 维护苹果，按坏的日期排序。复杂度 $O(n\log n)$。
+
+```java
+import java.util.TreeMap;
+
+class Solution {
+    TreeMap<Integer, Integer> a = new TreeMap<>();
+    int day = 0, eaten = 0;
+
+    private void eat() {
+        while (a.size() > 0 && a.firstKey() <= day) {
+            a.pollFirstEntry();
+        }
+        if (a.size() > 0) {
+            int k = a.firstKey(), v = a.get(k);
+            eaten += v >= 1 ? 1 : 0;
+            if (v > 1) {
+                a.put(k, a.get(k) - 1);
+            } else {
+                a.pollFirstEntry();
+            }
+        }
+        ++day;
+    }
+
+    public int eatenApples(int[] apples, int[] days) {
+        int n = apples.length;
+        for (int i = 0; i < n; ++i) {
+            int k = days[i] + i;
+            a.put(k, a.getOrDefault(k, 0) + apples[i]);
+            eat();
+        }
+        while (a.size() > 0) {
+            eat();
+        }
+        return eaten;
+    }
+}
+```
+
+优化优雅：
+
+```java
+class Solution {
+    public int eatenApples(int[] apples, int[] days) {
+        PriorityQueue<int[]> q = new PriorityQueue<>((a,b)->a[0]-b[0]);
+        int n = apples.length, time = 0, ans = 0;
+        while (time < n || !q.isEmpty()) {
+            if (time < n && apples[time] > 0) q.add(new int[]{time + days[time] - 1, apples[time]});
+            while (!q.isEmpty() && q.peek()[0] < time) q.poll();
+            if (!q.isEmpty()) {
+                int[] cur = q.poll();
+                if (--cur[1] > 0 && cur[0] > time) q.add(cur);
+                ans++;
+            }
+            time++;
+        }
+        return ans;
     }
 }
 ```

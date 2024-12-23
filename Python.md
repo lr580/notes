@@ -14313,6 +14313,42 @@ FM指数(Fowlkes-Mallows Index, FM) `(2a)/(2a+b+c)` (或开个根号)
 
 Rand指数(Rand Index, RI) `2(a+b)/(m(m+1))` (也有其他说法),m是样本数
 
+###### SSE
+
+各类样本的方差的求和
+
+```python
+import numpy as np
+from sklearn.cluster import KMeans
+data = np.array([[1, 2], [2, 3], [5, 6], [6, 7]])
+kmeans = KMeans(n_clusters=1, random_state=0).fit(data)
+print(kmeans.inertia_) # 34 (其他同理，1是1类，n_clusters=2可以输出2)
+```
+
+###### 轮廓系数
+
+对每个点，设它距离它所在类所有其他点的平均距离是a，它离其他所有类的各点距离均值的最小值是b，则该点的轮廓系数是`(b-a)/max(b,a)`，求平均就得到了整个聚类结果的轮廓系数。
+
+考虑三点组成三角形的簇，显然簇内每个点的轮廓系数不一样。
+
+```python
+def checkSilhouette2():
+    import numpy as np
+    from sklearn.metrics import silhouette_score
+    from sklearn.metrics import silhouette_samples
+    from sklearn.cluster import KMeans
+    X = np.array([[1, 2], [1, 4], [1, 0], [10, 2], [10, 4], [10, 0]])
+    kmeans = KMeans(n_clusters=2, random_state=42) # or n_c=3
+    y_kmeans = kmeans.fit_predict(X) # [1 1 1 0 0 0]
+    print(y_kmeans)
+    silhouette_avg = silhouette_score(X, y_kmeans)
+    print(silhouette_avg) # 整图
+    silhouette_vals = silhouette_samples(X, y_kmeans)
+    print(silhouette_vals) # 各点
+```
+
+
+
 ##### k-means
 
 ![预览大图](img/UE5RNlJETEZGT21WYjQ2SXVMV1EvUT09.png)

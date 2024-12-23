@@ -10746,6 +10746,18 @@ for (Map.Entry<String, Integer> entry : m1.entrySet()) {
     TreeSet<String> set = m2.computeIfAbsent(key, k -> new TreeSet<>()); // 若不存在则创建
     set.add(entry.getKey()); // 添加字符串到 TreeSet
 }
+//朴素：if lala = new TreeSet<>(); 且 m2.put(key, la);
+```
+
+朴素不存在创建：
+
+```java
+private TreeMap<Integer, TreeSet<Interval>> len;
+TreeSet<Interval> la = len.get(i.len()); // Interval i
+if (la == null) {
+    la = new TreeSet<>();
+    len.put(i.len(), la);
+}
 ```
 
 ```java

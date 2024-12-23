@@ -448,7 +448,7 @@ VMware-打开虚拟机，点击那个 vmx 即可。
 
 方法二：
 
-> 虚拟机-管理-克隆，创建链接克隆。
+> 在关机状态下，右击虚拟机-管理-克隆 (下一步)，(克隆自虚拟机中的当前状态)，创建链接克隆。然后命名。
 >
 > 克隆后可以要新建一个网卡(同上方法操作)
 >
@@ -464,6 +464,22 @@ VMware-打开虚拟机，点击那个 vmx 即可。
 > 删除要管理-从磁盘移除
 >
 > 左侧菜单右击可重命名虚拟机
+
+
+
+> RHEL8 配网例子，假设原机子 ifconfig 查到 ens160 是 192.168.126.130，那么
+>
+> ```sh
+> echo C.tedu.cn > /etc/hostname # 重启后生效
+> hostname C.tedu.cn # 立即生效(临时)
+> exit
+> nmcli connection modify ens160 ipv4.method manual ipv4.addresses 192.168.126.140/24 connection.autoconnect yes # 根据需要改 IP
+> nmcli connection up ens160 # 激活（启用）名为 ens160 的网络连接
+> ```
+>
+> 该命令会使 `ens160` 接口在下次激活时使用指定的静态 IP 地址 `192.168.126.140`，而不是自动通过 DHCP 获取地址。连接的设置会在重启后生效，确保设备在启动时能够自动连接到网络。
+>
+> 检查：可以 ping 原来的主机，应该能 ping 通。
 
 
 
@@ -5450,7 +5466,32 @@ $ ethtool eth0 | grep Speed
 
 改成`SELINUX=disabled`
 
+##### nmcli
 
+```sh
+nmcli connection modify ens160 ipv4.method manual ipv4.addresses 192.168.126.140/24 connection.autoconnect yes # 根据需要改 IP
+nmcli connection up ens160 # 激活（启用）名为 ens160 的网络连接
+```
+
+**`ipv4.method manual`**:
+
+- 将 IPv4 地址的配置方法设置为手动（manual），意味着您将手动指定 IP 地址，而不是使用 DHCP 自动获取。
+
+**`ipv4.addresses 192.168.126.140/24`**:
+
+- 设置该接口的IPv4地址为 `192.168.126.140`，并指定子网掩码为 `/24`（即 255.255.255.0）。
+
+**`connection.autoconnect yes`**:
+
+- 使得该连接在系统启动时自动连接。也就是说，每次系统启动时，网络接口 `ens160` 会尝试自动连接到网络。
+
+效果：
+
+该命令会使 `ens160` 接口在下次激活时使用指定的静态 IP 地址 `192.168.126.140`，而不是自动通过 DHCP 获取地址。
+
+连接的设置会在重启后生效，确保设备在启动时能够自动连接到网络。
+
+然后：`nmcli connection up ens160` 这条指令的作用是激活（启用）名为 `ens160` 的网络连接
 
 ##### 配置文件
 
