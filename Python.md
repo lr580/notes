@@ -7343,6 +7343,13 @@ sumVert = ((255-img)//255).sum(axis=0)
 sumHori = ((255-img)//255).sum(axis=1)
 ```
 
+##### bincount
+
+```python
+np.bincount([0, 1, 2, 0, 1, 1, 3, 2, 0, 4, 1, 3])
+# array([3, 4, 2, 2, 1], dtype=int64)
+```
+
 
 
 ##### 求最值
@@ -7501,6 +7508,14 @@ data = np.array([[1, 3, 2],
                  [1, 2, 3],
                  [2, 2, 2]])
 data[data[:, 0].argsort()] # 结果不变；效率较高
+```
+
+##### unique
+
+有序返回不同值
+
+```python
+np.unique(np.array([9,9,8,2,4,4,3,5,3])) # array([2, 3, 4, 5, 8, 9]);输入list也返回np.array
 ```
 
 
@@ -8894,6 +8909,24 @@ marker='x'; marker='o'
 > plt.plot(ypoints, marker = 'o', ms = 20, mec = '#4CAF50', mfc = '#4CAF50')
 > ```
 
+多个颜色：
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+n = 5000
+points = np.random.rand(n, 2)
+labels = np.random.randint(0, 15, n)  # 15个类别
+# 使用tab20 colormap
+plt.figure(figsize=(8, 6))
+plt.scatter(points[:, 0], points[:, 1], c=labels, cmap='tab20', alpha=0.7)
+plt.title('Scatter Plot with Different Colors for Each Class')
+plt.colorbar(label='Class')
+plt.show()
+```
+
+
+
 ##### 柱状
 
 打横：
@@ -8950,6 +8983,27 @@ plt.show()
 > 2023-09-01T00:00:00.000Z,2,1095
 > 2023-09-01T00:00:00.000Z,3,1062
 > ```
+
+##### 双折线
+
+```python
+x = np.arange(0, 10, 0.1)
+y1 = np.sin(x)  # 第一个数据集
+y2 = np.exp(x / 5)  # 第二个数据集
+fig, ax1 = plt.subplots()
+ax1.plot(x, y1, 'b-', label='sin(x)')
+ax1.set_xlabel('X轴')
+ax1.set_ylabel('sin(x)', color='b')
+ax1.tick_params(axis='y', labelcolor='b')
+ax2 = ax1.twinx()
+ax2.plot(x, y2, 'r-', label='exp(x/5)')
+ax2.set_ylabel('exp(x/5)', color='r')
+ax2.tick_params(axis='y', labelcolor='r')
+ax1.legend(loc='upper left')
+ax2.legend(loc='upper right')
+plt.title('双y轴折线图示例')
+plt.show()
+```
 
 
 
@@ -9250,6 +9304,17 @@ plt.show()
 
 loc控制图例的方位，具体为：$\left[\matrix{2&3\\1&4}\right]$
 
+```python
+ax1.legend(loc='upper right')
+ax2.legend(loc='upper right', bbox_to_anchor=(1, 1))
+```
+
+bbox to anchor:
+
+第一个值（x 轴位置）：范围通常在 0 到 1 之间，表示相对于图表宽度的比例。1 表示右边缘，0 表示左边缘。
+
+第二个值（y 轴位置）：同样在 0 到 1 之间，表示相对于图表高度的比例。1 表示顶部，0 表示底部。
+
 ##### 网格
 
 添加网格：[参考](https://www.runoob.com/matplotlib/matplotlib-grid.html)
@@ -9282,6 +9347,14 @@ def plot(words, scores, top_k = 10):
     plt.yticks(fontsize=12)  # 增大y轴刻度字体
     plt.tight_layout()  # 自动调整子图参数
     plt.show()
+```
+
+##### 颜色
+
+如 20 色 colormap
+
+```python
+plt.scatter(points[:, 0], points[:, 1], c=labels, cmap='tab20', alpha=0.7)
 ```
 
 
@@ -9480,6 +9553,56 @@ plt.show()
 ##### 参数
 
 `plt.tight_layout()`: 这个方法自动调整子图参数，以确保图表的内容（如轴标题、轴标签等）不会相互重叠，并且整体布局看起来整洁。这是一种自动管理图表内部元素间距的方式，尤其在创建多个子图时非常有用。
+
+##### flatten
+
+```python
+fig, axs = plt.subplots(2, 2, figsize=(8, 6))
+axs = axs.flatten()  # 将子图数组扁平化，方便索引
+ax1 = axs[i] # 绘制第 i 个子图，
+ax1.plot(np.arange(2, len(seq_sse) + 2) #...即把fig都换成ax1
+```
+
+##### 双折线子图
+
+```python
+def plotDoubleLines(y1, y2, x, y1name, y2name, ax1):
+    '''绘制双Y轴折线图给定两个序列为y1,y2，x轴为x，两个序列名字为y1name,y2name'''
+    ax1.set_xlabel('Number of Clusters')
+    c1, c2 = 'lightcoral', 'steelblue' # 绘图颜色(teal, orange)
+    
+    ax1.plot(x, y1, marker='o', label=y1name, color=c1)
+    ax1.set_ylabel(y1name, color=c1)
+    ax1.tick_params(axis='y', labelcolor=c1)
+    
+    ax2 = ax1.twinx()
+    ax2.plot(x, y2, marker='o', label=y2name, color=c2)
+    ax2.set_ylabel(y2name, color=c2)
+    ax2.tick_params(axis='y', labelcolor=c2)
+
+    ax1.legend(loc='upper left')
+    ax2.legend(loc='upper right')
+    ax1.grid()
+def plotLines(metric):
+    '''绘图展示四种聚类的指标(metric)可取SSE和silhouette和both'''
+    p = utils.readCSV()
+    fig, axs = plt.subplots(2, 2, figsize=(8, 6))
+    axs = axs.flatten()  # 将子图数组扁平化，方便索引
+    
+    for i, type_ in enumerate(cluster.ALL_TYPES):
+        with open(f'steps_{type_}.txt', 'r') as f:
+            steps = eval(f.read())
+        plt.subplot(2,2,i+1)
+        seq1= calcSSEs(p.shape[0], steps, p)
+        seq2 = calcSilhouettes(p.shape[0], steps, p)
+        plotDoubleLines(seq1[1:25], seq2[1:25], np.arange(2, 26), 'SSE', 'silhouette', axs[i])
+        
+    plt.tight_layout()
+    # plt.show()
+    plt.savefig(f'{metric}_partial.png')
+```
+
+
 
 #### 图片
 
@@ -14332,22 +14455,21 @@ print(kmeans.inertia_) # 34 (其他同理，1是1类，n_clusters=2可以输出2
 考虑三点组成三角形的簇，显然簇内每个点的轮廓系数不一样。
 
 ```python
-def checkSilhouette2():
-    import numpy as np
-    from sklearn.metrics import silhouette_score
-    from sklearn.metrics import silhouette_samples
-    from sklearn.cluster import KMeans
-    X = np.array([[1, 2], [1, 4], [1, 0], [10, 2], [10, 4], [10, 0]])
-    kmeans = KMeans(n_clusters=2, random_state=42) # or n_c=3
-    y_kmeans = kmeans.fit_predict(X) # [1 1 1 0 0 0]
-    print(y_kmeans)
-    silhouette_avg = silhouette_score(X, y_kmeans)
-    print(silhouette_avg) # 整图
-    silhouette_vals = silhouette_samples(X, y_kmeans)
-    print(silhouette_vals) # 各点
+import numpy as np
+from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_samples
+from sklearn.cluster import KMeans
+X = np.array([[1, 2], [1, 4], [1, 0], [10, 2], [10, 4], [10, 0]])
+kmeans = KMeans(n_clusters=2, random_state=42) # or n_c=3
+y_kmeans = kmeans.fit_predict(X) # [1 1 1 0 0 0]
+print(y_kmeans)
+silhouette_avg = silhouette_score(X, y_kmeans)
+print(silhouette_avg) # 整图
+silhouette_vals = silhouette_samples(X, y_kmeans)
+print(silhouette_vals) # 各点
 ```
 
-
+只有一个类别不能用轮廓系数。
 
 ##### k-means
 

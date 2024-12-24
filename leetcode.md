@@ -2413,6 +2413,10 @@
 - 1705\.吃苹果的最大数目
 
   模拟 数据结构 STL 贪心
+  
+- 3219\.切蛋糕的最小总开销II
+
+  **DP / 最小生成树 贪心 逆向**
 
 ## 算法
 
@@ -60321,6 +60325,87 @@ class Solution {
                 ans++;
             }
             time++;
+        }
+        return ans;
+    }
+}
+```
+
+##### 3219\.切蛋糕的最小总开销II
+
+[题目](https://leetcode.cn/problems/minimum-cost-for-cutting-cake-ii)
+
+> 一定要切 $nm-1$ 刀，即对每个 cut 的加权和的权和是 $nm-1$，且权对行列递增。
+>
+> 可以混乱切，即不一定要每次整行或整列。但是一定可以重排序等价于整行整列的切。
+
+> ？考虑行是 $a,b$，列是 $c,d$，考虑两种切
+
+> 错误贪心：当前行代价和列代价的最小值，随机样例WA。
+
+DP：设 `row1, col1, row2, col2` 子矩阵的最小代价。复杂度 $O(n^2m^2(m+n))$。
+
+```python
+class Solution:
+    def minimumCost(self, m: int, n: int, horizontalCut: List[int], verticalCut: List[int]) -> int:
+        
+        @cache
+        def dp(row1: int, col1: int, row2: int, col2: int) -> int:
+            if row1 == row2 and col1 == col2:
+                return 0
+            res = inf
+            for i in range(row1, row2):
+                res = min(res, dp(row1, col1, i, col2) + dp(i + 1, col1, row2, col2) + horizontalCut[i])
+            for i in range(col1, col2):
+                res = min(res, dp(row1, col1, row2, i) + dp(row1, i + 1, row2, col2) + verticalCut[i])
+            return res
+
+        return dp(0, 0, m - 1, n - 1)
+```
+
+每个格子看成图节点，四方向边是 cut 代价，那么对这个图建立最小生成树，那么构建最小生成树的过程(Kruscal)，就是逆向把1x1还原成大蛋糕的过程，所以生成树能正确反应原题意。所以不同的生成树表示了不同的方案，则最小生成树就是最小的方案。
+
+因为数据量大，所以不能真的跑生成树。显然同行列边权相等，按权值排序后的各边权，满足：每次用了一个行边，下次用列边的话同权列边数量+1，反之亦然。所以可以贪心按边权排序遍历即可。
+
+```java
+class Solution {
+    public long minimumCost(int m, int n, int[] horizontalCut, int[] verticalCut) {
+        long ans = 0;
+        Arrays.sort(horizontalCut);
+        Arrays.sort(verticalCut);
+        int li = m - 2, ri = n - 2, lc = 1, rc = 1;
+        while (li >= 0 || ri >= 0) {
+            if (li>=0 && (ri<0 || horizontalCut[li] > verticalCut[ri])) {
+                //System.out.println(horizontalCut[li]+" "+rc);
+                ans += lc * horizontalCut[li];
+                --li;
+                ++rc;
+            } else {
+                //System.out.println(verticalCut[ri]+" "+lc);
+                ans += rc * verticalCut[ri];
+                --ri;
+                ++lc;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```java
+class Solution {
+    public long minimumCost(int m, int n, int[] horizontalCut, int[] verticalCut) {
+        Arrays.sort(horizontalCut); // 下面倒序遍历
+        Arrays.sort(verticalCut);
+        long ans = 0;
+        int i = 0;
+        int j = 0;
+        while (i < m - 1 || j < n - 1) {
+            if (j == n - 1 || i < m - 1 && horizontalCut[i] < verticalCut[j]) {
+                ans += horizontalCut[i++] * (n - j); // 上下连边
+            } else {
+                ans += verticalCut[j++] * (m - i); // 左右连边
+            }
         }
         return ans;
     }
