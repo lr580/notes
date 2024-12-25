@@ -2417,6 +2417,10 @@
 - 3219\.切蛋糕的最小总开销II
 
   **DP / 最小生成树 贪心 逆向**
+  
+- 3080\.字符串及其反转中是否存在同一字符串
+
+  签到 位运算优化
 
 ## 算法
 
@@ -60408,6 +60412,88 @@ class Solution {
             }
         }
         return ans;
+    }
+}
+```
+
+##### 3080\.字符串及其反转中是否存在同一字符串
+
+[题目](https://leetcode.cn/problems/existence-of-a-substring-in-a-string-and-its-reverse)
+
+```java
+class Solution {
+    public boolean isSubstringPresent(String s) {
+        HashSet<Integer> h = new HashSet<>();
+        int n = s.length();
+        for (int i=1;i<n;++i) {
+            int a = s.charAt(i-1), b = s.charAt(i);
+            h.add(b*256+a);
+            if (h.contains(a*256+b)) {
+                return true;
+            }
+            
+        }
+        return false;
+    }
+}
+```
+
+快一点：
+
+```java
+class Solution {
+    public boolean isSubstringPresent(String s) {
+        HashSet<Integer> h = new HashSet<>();
+        int n = s.length();
+        for (int i=1;i<n;++i) {
+            int a = s.charAt(i-1)-'a'+1, b = s.charAt(i)-'a'+1;
+            h.add(b*27+a);
+            if (h.contains(a*27+b)) {
+                return true;
+            }
+            
+        }
+        return false;
+    }
+}
+```
+
+没快：
+
+```java
+class Solution {
+    public boolean isSubstringPresent(String S) {
+        char[] s = S.toCharArray();
+        boolean[][] vis = new boolean[26][26];
+        for (int i = 1; i < s.length; i++) {
+            int x = s[i - 1] - 'a';
+            int y = s[i] - 'a';
+            vis[x][y] = true;
+            if (vis[y][x]) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+```
+
+位运算优化后，快一点：
+
+```java
+class Solution {
+    public boolean isSubstringPresent(String S) {
+        char[] s = S.toCharArray();
+        int[] vis = new int[26];
+        for (int i = 1; i < s.length; i++) {
+            int x = s[i - 1] - 'a';
+            int y = s[i] - 'a';
+            vis[x] |= 1 << y;
+            if ((vis[y] >> x & 1) > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 ```

@@ -3131,21 +3131,18 @@ print(f(1,2,3))
 print(f(*[1,2,3])) # 含义同上
 ```
 
-#### 关键字参数
-
-
-
-
-
-
+> #### 关键字参数
+>
 
 #### main参数
 
 使用 `sys` 库的 `argv` 属性，第一个元素是运行输入的程序名，后面依次是输入的参数。即 python 后面的逐个记入 `argv`，如 `python a.py add 1 2` 有四个元素。
 
-
-
-
+```python
+import sys
+print(sys.argv) # 执行 python main.py add 1 2
+# ['main.py', 'add', '1', '2']
+```
 
 
 
@@ -7518,6 +7515,14 @@ data[data[:, 0].argsort()] # 结果不变；效率较高
 np.unique(np.array([9,9,8,2,4,4,3,5,3])) # array([2, 3, 4, 5, 8, 9]);输入list也返回np.array
 ```
 
++计数：
+
+```python
+array=np.array([1,1,4,5,1,4])
+unique_values, counts = np.unique(array, return_counts=True) 
+# array([1, 4, 5]), array([3, 2, 1], dtype=int64)
+```
+
 
 
 ##### 差分
@@ -7582,6 +7587,13 @@ for i in np.where(a > 3)[0]:
 x = np.array([1, 2, 3, 4, 5])
 y = np.array([10, 20, 30, 40, 50])
 np.where(x>3, x, y) # array([10, 20, 30,  4,  5])
+```
+
+查找下标：
+
+```python
+np.where(a>0.9) #设a是二维数组，返回两个一维数组，分别代表找到的横坐标纵坐标
+np.where(np.abs(a-1.9)<0.2)
 ```
 
 
@@ -9290,6 +9302,34 @@ fig.autofmt_xdate()
 ```
 
 这个方法用于自动格式化 x 轴上的日期标签，使它们倾斜以防止标签之间的重叠。默认情况下，日期标签可能会水平排列，当标签过多时很容易相互覆盖，导致无法清晰阅读。`fig.autofmt_xdate()` 会将这些标签倾斜（通常是45度倾斜），从而改善图表的可读性。
+
+##### 标题
+
+`plt.title()`作用: 用于为单个子图添加标题。
+
+`plt.suptitle()`作用: 用于为整个图形添加一个大标题。
+
+标题都在上方。
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+x = np.linspace(0, 10, 100)
+y1 = np.sin(x)
+y2 = np.cos(x)
+
+fig, axs = plt.subplots(2, 1, figsize=(8, 6))
+axs[0].plot(x, y1)
+axs[0].set_title('正弦波')
+axs[1].plot(x, y2)
+axs[1].set_title('余弦波')
+
+plt.suptitle('三角函数图', fontsize=16)
+plt.tight_layout(rect=[0, 0, 1, 0.95])  # 确保整体标题不被遮挡
+plt.show()
+```
+
+
 
 ##### 图例
 
