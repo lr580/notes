@@ -2421,6 +2421,10 @@
 - 3080\.字符串及其反转中是否存在同一字符串
 
   签到 位运算优化
+  
+- 3159\.查询数组中元素的出现位置
+
+  签到
 
 ## 算法
 
@@ -60498,3 +60502,29 @@ class Solution {
 }
 ```
 
+##### 3159\.查询数组中元素的出现位置
+
+[题目](https://leetcode.cn/problems/find-occurrences-of-an-element-in-an-array/)
+
+```java
+import java.util.Arrays;
+
+class Solution {
+    public int[] occurrencesOfElement(int[] nums, int[] queries, int x) {
+        ArrayList<Integer> a = new ArrayList<>();
+        for (int i = 0; i < nums.length; ++i) {
+            if (nums[i] == x) {
+                a.add(i);
+            }
+        }
+        int m = queries.length, ans[] = new int[m];
+        Arrays.fill(ans, -1);
+        for (int i = 0; i < m; ++i) {
+            if (queries[i] <= a.size()) {
+                ans[i] = a.get(queries[i] - 1);
+            }
+        }
+        return ans;
+    }
+}
+```

@@ -14609,6 +14609,45 @@ $$
 
 - 推论：两个单点的类的距离是它们的欧氏距离
 
+##### GMM
+
+Gaussian Mixture Model
+
+二维正态分布：可以使用两个均值，两个方差+相关系数(即协方差矩阵)描述。相关系数 $\rho\in[-1,1]$，表示形状(椭圆、倾斜程度)。即参数为：
+$$
+\mu_1,\mu_2,\Sigma=\begin{bmatrix}
+\sigma^2_x&\rho\sigma_x\sigma_y\\\rho\sigma_x\sigma_y&\sigma^2_y\end{bmatrix}
+$$
+高斯混合模型，就是用多个正态分布，加权和(即每个二维正态分布加一个权重，各分布权和为1)来拟合模型。
+
+> poe 单一分布：如果是一维数据，直接求出样本均值和方差，就可以得到分布的参数。如果是二维数据，求横纵均值 $\mu_x,\mu_y$，求横纵方差 $\sigma^2_x,\sigma^2_y$ 和协方差 $\sigma_{xy}=\dfrac1n\sum_{i=1}^n(x_i-\mu_x)(y_i-\mu_y)$。其中 $\sigma_{xy}=\rho\sigma_x\sigma_y$。
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.mixture import GaussianMixture
+
+np.random.seed(0)
+n_samples = 300
+X = np.vstack([np.random.normal(loc, 0.5, (n_samples, 2)) for loc in [(-2, -2), (2, 2), (0, 3)]])
+
+gmm = GaussianMixture(n_components=3, random_state=0)
+gmm.fit(X)
+for i in range(gmm.n_components):
+    print(f"高斯核 {i + 1}:")
+    print(f"  权重: {gmm.weights_[i]}") # 0.332..
+    print(f"  均值: {gmm.means_[i]}") # [-0.037.. 3.035..]
+    print(f"  协方差矩阵: \n{gmm.covariances_[i]}\n")
+'''[[ 0.24718321 -0.01109116]
+ [-0.01109116  0.24552496]]'''
+labels = gmm.predict(X)
+plt.scatter(X[:, 0], X[:, 1], c=labels, s=10, cmap='viridis')
+plt.title('GMM Clustering Results')
+plt.show()
+```
+
+
+
 #### 神经网络
 
 ##### MLP
