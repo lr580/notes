@@ -12800,8 +12800,8 @@ for i in range(6):
 import scipy.stats as stats
 # N(0,1)，覆盖0.975%数据的分位数
 stats.norm.ppf(0.975) # np.float64(1.959963984540054)
-# Chi分布
-stats.chi.ppf(0.975, 4)
+# Chi2分布 (记得写chi2而不是chi)
+stats.chi2.ppf(0.975, 4)
 # t分布，n=7，覆盖0.975%数据的分位数
 stats.t.ppf(0.975, 7) # np.float64(2.3646242515927844)
 # F分布，分子5，分母10,
