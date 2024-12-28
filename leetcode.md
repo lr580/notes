@@ -2425,6 +2425,10 @@
 - 3159\.查询数组中元素的出现位置
 
   签到
+  
+- 1366\.通过投票对团队排名
+
+  结构体排序
 
 ## 算法
 
@@ -60528,3 +60532,107 @@ class Solution {
     }
 }
 ```
+
+##### 1366\.通过投票对团队排名
+
+[题目](https://leetcode.cn/problems/rank-teams-by-votes)
+
+我的：
+
+```java
+import java.util.Arrays;
+import java.util.stream.IntStream;
+
+class Solution {
+    public String rankTeams(String[] votes) {
+        int n = votes.length, m = votes[0].length();
+        int cnt[][] = new int[26][m+1];
+        boolean vis[] = new boolean[26];
+        for(int i=0;i<n;++i) {
+            for(int j=0;j<m;++j) {
+                int c=votes[i].charAt(j)-'a';
+                ++cnt[c][j];
+                vis[c]=true;
+            }
+        }
+        Integer a[] = IntStream.range(0, m).boxed().toArray(Integer[]::new);
+        Arrays.sort(a, (x, y) -> {
+            for(int i=0;i<m;++i) {
+                int cx=cnt[x][i],cy=cnt[y][i];
+                if(cx!=cy) {
+                    return cy-cx;
+                }
+                return x-y;
+            }
+        });
+        StringBuilder sb = new StringBuilder();
+        for(int i=0;i<26;++i) {
+            int c=a[i];
+            if(vis[c]) {
+                sb.append(c+'a');
+            }
+        }
+        return sb.toString();
+    }
+}
+```
+
+```java
+class Solution {
+    public String rankTeams(String[] votes) {
+        int m = votes[0].length();
+        int[][] cnts = new int[26][m];
+        for (String vote : votes) {
+            for (int i = 0; i < m; i++) {
+                cnts[vote.charAt(i) - 'A'][i]++;
+            }
+        }
+
+        return votes[0].chars()
+                .mapToObj(c -> (char) c)
+                .sorted((a, b) -> {
+                    int[] cntA = cnts[a - 'A'];
+                    int[] cntB = cnts[b - 'A'];
+                    for (int i = 0; i < cntA.length; i++) {
+                        if (cntA[i] != cntB[i]) {
+                            return cntB[i] - cntA[i];
+                        }
+                    }
+                    return a - b;
+                })
+                .map(String::valueOf)
+                .collect(Collectors.joining());
+    }
+}
+```
+
+```python
+class Solution:
+    def rankTeams(self, votes: List[str]) -> str:
+        m = len(votes[0])
+        cnts = defaultdict(lambda: [0] * m)
+        for vote in votes:
+            for i, ch in enumerate(vote):
+                cnts[ch][i] -= 1  # 改成负数（相反数），方便比大小
+        return ''.join(sorted(cnts, key=lambda ch: (cnts[ch], ch)))
+```
+
+```c++
+class Solution {
+public:
+    string rankTeams(vector<string>& votes) {
+        int m = votes[0].length();
+        vector cnts(26, vector<int>(m));
+        for (string& vote : votes) {
+            for (int i = 0; i < m; i++) {
+                cnts[vote[i] - 'A'][i]--; // 改成负数（相反数），方便比大小
+            }
+        }
+
+        string ans = votes[0];
+        ranges::sort(ans, {}, [&](char a) { return make_pair(cnts[a - 'A'], a); });
+        return ans;
+    }
+};
+```
+
