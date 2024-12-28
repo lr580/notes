@@ -2426,6 +2426,11 @@
 
   签到
   
+- 3046\.分割数组
+
+  签到 构造
+
+  
 - 1366\.通过投票对团队排名
 
   结构体排序
@@ -60532,6 +60537,29 @@ class Solution {
     }
 }
 ```
+
+##### 3046\.分割数组
+
+[题目](https://leetcode.cn/problems/split-the-array)
+
+某数字出现次数>2一定无解，否则一定可以分割，次数=2各放一个，=1随便放。
+
+```java
+class Solution {
+    public boolean isPossibleToSplit(int[] nums) {
+        int vis[] = new int[101];
+        for (int x : nums) {
+            if (vis[x] >= 2) {
+                return false;
+            }
+            ++vis[x];
+        }
+        return true;
+    }
+}
+```
+
+
 
 ##### 1366\.通过投票对团队排名
 
