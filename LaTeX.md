@@ -591,7 +591,7 @@ $\bigcap_1^{n}P$  $\bigcup P$
 
 $\wedge\vee\cap\cup$
 
-$\supseteq\ \supset\ \nsupseteq\ \subseteq\ \subset\ \nsubseteq\ \subsetneq$
+$\supseteq\ \supset\ \nsupseteq\ \subseteq\ \subset\ \sub\ \nsubseteq\ \subsetneq$
 
 例如：
 $$
@@ -613,10 +613,8 @@ $\frac{\frac{1}{2}}{\frac{3}{4}}$繁分式帅，其他同理啦
 
 连续分式帅
 $$
-\begin{equation}  x = a_0 + \cfrac{1}{a_1           + \cfrac{1}{a_2           + \cfrac{1}{a_3 + \cfrac{1}{a_4} } } }\end{equation}
+x = a_0 + \cfrac{1}{a_1           + \cfrac{1}{a_2           + \cfrac{1}{a_3 + \cfrac{1}{a_4} } } }
 $$
-> 那一对\end{equation}好像没啥用
-
 还有另一种占位大小，稍微窄一点：
 $$
 x=a_0+\dfrac1{a_1+\dfrac12}
@@ -647,7 +645,7 @@ $\sum$   $\sum{a}$  $\sum_{i=1}^{+\infty}{x^2}$
 
 基本函数都有正体写法：
 
-$\sin \arctan \cosh \exp \log \ln \min \max \gcd$
+$\sin \arctan \cosh \exp \log \ln \min \max \gcd\ \dim$
 
 > lcm没有正体写法
 
@@ -4926,8 +4924,9 @@ kpsewhich gbt7714-numerical.bst
 
 如果修改后出现问题，如使用 `gbt7714` 包这样固定死了访问路径的宏包，直接修改源文件即可。具体例子参见我的毕设。
 
-# Typst
+> # Typst
+>
 
-[官方](https://typst.app/) [一个参考例子](https://github.com/HK-SHAO/SCNU-Typst-Template)
-
-可以写论文，文档，PPT，但是语法有较大的不同。
+> [官方](https://typst.app/) [一个参考例子](https://github.com/HK-SHAO/SCNU-Typst-Template)
+>
+> 可以写论文，文档，PPT，但是语法有较大的不同。
