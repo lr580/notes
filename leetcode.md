@@ -2430,10 +2430,13 @@
 
   签到 构造
 
-  
 - 1366\.通过投票对团队排名
 
   结构体排序
+  
+- 1367\.二叉树中的链表
+
+  DFS (+ 字符串哈希 / KMP)
 
 ## 算法
 
@@ -60660,6 +60663,174 @@ public:
         string ans = votes[0];
         ranges::sort(ans, {}, [&](char a) { return make_pair(cnts[a - 'A'], a); });
         return ans;
+    }
+};
+```
+
+##### 1367\.二叉树中的链表
+
+[题目](https://leetcode.cn/problems/linked-list-in-binary-tree)
+
+把链表看成一个字符串 $s0$，把遍历树过程从根到当前的路径也看成一个字符串 $s$，问题变为求 $s1$ 的长为 $|s0|$ 的后缀是否为 $s0$。使用字符串哈希即可。设链表长 $n$，树点数为 $m$，复杂度为 $O(n+m)$。
+
+预处理幂版：
+
+```java
+class Solution {
+    private static final int p = 233;
+    private static final ArrayList<Long> pp = new ArrayList<>();
+    static {
+        pp.add(1L);
+        for (int i = 1; i <= 2500; ++i) {
+            pp.add(pp.get(i - 1) * p);
+        }
+    }
+    private long h0 = 0;
+    private boolean ok = false;
+    private int m = 0;
+    private ArrayList<Long> a = new ArrayList<>();
+
+    private boolean dfs(TreeNode r) {
+        if (r == null) {
+            return false;
+        }
+        long h1 = a.get(a.size() - 1);
+        h1 = h1 * p + r.val;
+        a.add(h1);
+        int rf = a.size() - 1, lf = rf - m; // (lf, rf] 子串
+        if (lf >= 0) {
+            long h = h1 - a.get(lf) * pp.get(rf - lf);
+            if (h == h0) {
+                return true;
+            }
+        }
+        boolean ok = dfs(r.left) || dfs(r.right);
+        a.remove(rf);
+        return ok;
+    }
+
+    public boolean isSubPath(ListNode head, TreeNode root) {
+        while (head != null) {
+            h0 = h0 * p + head.val;
+            head = head.next;
+            ++m;
+        }
+        a.add(0L);
+        return dfs(root);
+    }
+}
+```
+
+无预处理版：
+
+```java
+class Solution {
+    private static final int p = 233;
+    private final ArrayList<Long> pp = new ArrayList<>();
+    private long h0 = 0;
+    private boolean ok = false;
+    private int m = 0;
+    private ArrayList<Long> a = new ArrayList<>();
+
+    private boolean dfs(TreeNode r) {
+        if (r == null) {
+            return false;
+        }
+        long h1 = a.get(a.size() - 1);
+        h1 = h1 * p + r.val;
+        a.add(h1);
+        int rf = a.size() - 1, lf = rf - m; // (lf, rf] 子串
+        if (pp.size() <= rf) {
+            pp.add(pp.get(pp.size() - 1) * p);
+        }
+        if (lf >= 0) {
+            long h = h1 - a.get(lf) * pp.get(rf - lf);
+            if (h == h0) {
+                return true;
+            }
+        }
+        boolean ok = dfs(r.left) || dfs(r.right);
+        a.remove(rf);
+        return ok;
+    }
+
+    public boolean isSubPath(ListNode head, TreeNode root) {
+        while (head != null) {
+            h0 = h0 * p + head.val;
+            head = head.next;
+            ++m;
+        }
+        a.add(0L);
+        pp.add(1L);
+        return dfs(root);
+    }
+}
+```
+
+暴力：
+
+```c++
+class Solution {
+    bool dfs(TreeNode* rt, ListNode* head) {
+        // 链表已经全部匹配完，匹配成功
+        if (head == NULL) return true;
+        // 二叉树访问到了空节点，匹配失败
+        if (rt == NULL) return false;
+        // 当前匹配的二叉树上节点的值与链表节点的值不相等，匹配失败
+        if (rt->val != head->val) return false;
+        return dfs(rt->left, head->next) || dfs(rt->right, head->next);
+    }
+public:
+    bool isSubPath(ListNode* head, TreeNode* root) {
+        if (root == NULL) return false;
+        return dfs(root, head) || isSubPath(head, root->left) || isSubPath(head, root->right);
+    }
+};
+```
+
+也可以上 KMP，也就是记录当前匹配的状态和当前节点为参数同时DFS(等价于字符串的两个下标)，直接对应即可。[src](https://leetcode.cn/problems/linked-list-in-binary-tree/solutions/271244/ji-zhi-you-hua-kmpdfs-by-etan-2/)
+
+```c++
+class Solution {
+public:
+    bool isSubPath(ListNode *head, TreeNode *root) {
+        //设置一个头结点（所以head是首结点），如果nextvar的值为dumbNode，那么就相当于kmp中nextvar[i] = -1
+        dumbNode = new ListNode(0);
+        dumbNode->next = head;
+        getNextvar(nextvar, dumbNode);
+        return dfs(dumbNode, root);
+    }
+
+private:
+    ListNode *dumbNode;
+    unordered_map<ListNode *, ListNode *> nextvar;
+    //带kmp回溯的深度优先搜索
+    bool dfs(ListNode *head, TreeNode *root) {
+        if (head->next == nullptr) return true;
+        if (root == nullptr) return false;
+        while (head != dumbNode && head->next->val != root->val) head = nextvar[head];
+        if (root->val == head->next->val) {
+            if (dfs(head->next, root->left)) return true;
+            else return dfs(head->next, root->right);
+        }
+
+        if (dfs(head, root->left)) return true;
+        else return dfs(head, root->right);
+    }
+    //初始化nextvar字典
+    void getNextvar(unordered_map<ListNode *, ListNode *> &nextvar, ListNode *head) {
+        nextvar[head->next] = head;
+        auto j = head;
+        for (auto i = head->next->next; i != nullptr; i = i->next) {
+            while (j != head && j->next->val != i->val) j = nextvar[j];
+            if (j->next->val == i->val) {
+                j = j->next;
+            }
+            if (j != head && i->next != nullptr && j->next->val == i->next->val) {
+                nextvar[i] = nextvar[j];
+            } else
+                nextvar[i] = j;
+        }
     }
 };
 ```
