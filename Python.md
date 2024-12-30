@@ -4114,6 +4114,20 @@ ta
 
 
 
+循环引用例子(运行 `a.py`) 输出：`a b a`
+
+```python
+import b  
+print('a') # a.py
+```
+
+```python
+import a
+print('b') # b.py
+```
+
+
+
 #### 路径
 
 同文件夹下直接写文件名，如上例(impa.py)
@@ -7377,6 +7391,14 @@ result = np.maximum(arr1, arr2)  # 返回 [2, 4, 5]
 np.random.seed(23)
 ```
 
+> 部分固定种子：
+>
+> ```python
+> rng_fixed = np.random.default_rng(fixed_seed)
+> print(rng_fixed.random(5)) # 固定
+> print(np.random.random(5)) # 随机
+> ```
+
 随机整数：获取$[a,b)$内的随机整数。
 
 ```python
@@ -7421,6 +7443,14 @@ np.random.choice(a=range(10), p=bin_probs) #取一个[0,10),概率各不用
 ```python
 np.random.binomial(实验次数,成功率, size)
 ```
+
+二维正态分布：(均值，协方差矩阵，点的数目n)，得到 (n,2) numpy 数组
+
+```python
+np.random.multivariate_normal([10,0], [[1,-0.5],[-0.5,1]], 8) #8x2数组
+```
+
+
 
 ##### 组合数学
 
@@ -7479,6 +7509,16 @@ a.argsort()#array([0, 6, 2, 1, 4, 3, 5], dtype=int64)
 
 逆序排序 `np.sort(a)[::-1]`
 
+二维数组排序：(把每一列各自排序)
+
+```python
+a=np.array([[3,4],[3,7],[1,5],[1,2]])
+a.sort(axis=0)
+a #array([[1, 2],[1, 4],[3, 5],[3, 7]])
+```
+
+
+
 每一行单独排序：
 
 ```python
@@ -7523,8 +7563,6 @@ unique_values, counts = np.unique(array, return_counts=True)
 # array([1, 4, 5]), array([3, 2, 1], dtype=int64)
 ```
 
-
-
 ##### 差分
 
 ```python
@@ -7534,8 +7572,6 @@ print(diff_a)  # 输出: [1 2 3 4]
 diff_a_2 = np.diff(a, n=2) #二阶差分
 print(diff_a_2)  # 输出: [1 1 1]
 ```
-
-
 
 ##### 拼接
 
@@ -7551,6 +7587,7 @@ y = np.array([2, 4, 5, 4, 5])
 A = np.vstack([x, np.ones(len(x))]).T
 #array([[1., 1.],
 #       [2., 1.],
+# 又如，两个(8,2)直接做vstack，得到(6,2)
 ```
 
 ```python
@@ -9391,7 +9428,10 @@ def plot(words, scores, top_k = 10):
 
 ##### 颜色
 
-如 20 色 colormap
+colormap
+
+- `tab20` 20色
+- `viridis` 深紫色到亮黄色的连续渐变
 
 ```python
 plt.scatter(points[:, 0], points[:, 1], c=labels, cmap='tab20', alpha=0.7)
@@ -14511,7 +14551,13 @@ print(silhouette_vals) # 各点
 
 只有一个类别不能用轮廓系数。
 
+##### KNN
+
+有监督学习
+
 ##### k-means
+
+无监督学习。默认用 kmeans++初始化。
 
 ![预览大图](img/UE5RNlJETEZGT21WYjQ2SXVMV1EvUT09.png)
 
@@ -15405,6 +15451,14 @@ print(predictions)  # 打印预测结果
 ```python
 from sklearn.datasets import make_blobs
 X, y = make_blobs(n_samples=100, centers=2, n_features=2, random_state=0) # X 的维度是2，有2个类，共100个点
+```
+
+##### 弯
+
+月牙形数据，如下面是朝向相反的两个弯
+
+```python
+X, _ = make_moons(n_samples=300, noise=0.05)
 ```
 
 ##### 酒
