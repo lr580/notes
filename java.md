@@ -2122,6 +2122,7 @@ int[] a = stream.toArray();
 for(int x : a) {
     System.out.println(x);
 }
+Integer a[] = IntStream.range(0, m).boxed().toArray(Integer[]::new);
 ```
 
 ###### 最值
