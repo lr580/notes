@@ -1393,6 +1393,13 @@ for (byte i : b) {
 
 concat。见下文常量池
 
+###### 合并
+
+```java
+String[] a // = date.split("-");
+String.join("-", a);
+```
+
 
 
 ##### 正则表达式
@@ -1699,6 +1706,17 @@ while (tokenizer.hasMoreTokens()) {
 ```
 
 输出三个水果。
+
+##### 字符串流
+
+分割，映射(to int然后后续操作)，合并
+
+```java
+Arrays.stream(date.split("-"))
+                .map(s -> Integer.toBinaryString(Integer.parseInt(s)))
+                .collect(Collectors.joining("-"));
+// date 是字符串如 "2025-1-1"，返回字符串
+```
 
 
 
