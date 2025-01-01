@@ -1580,7 +1580,7 @@ tex -v
 latex -v
 ```
 
-建议再装一个 texstudio ，或用 vscode 。
+建议再装一个 texstudio，或用 vscode。
 
 ### vscode 配置
 

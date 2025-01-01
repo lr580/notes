@@ -2737,6 +2737,23 @@ public class ce08 {
 
 ```
 
+可以用类名和对象名调用，但推荐前者：
+
+```java
+class TestA {
+    public static void f() {
+        System.out.println("f");
+    }
+}
+public class TestStatic {
+    public static void main(String[] args) {
+        TestA.f();
+        TestA a = new TestA();
+        a.f(); // 等价于 TestA.f();
+    }
+}
+```
+
 
 
 ##### 主方法
@@ -5780,6 +5797,8 @@ try (
 支持赋值，如 `Connection c2 = c1` 传入 try，其中 `c1` 在 try 前初始化好
 
 对 JDK9，可以直接对 try 前初始化的对象，只传变量名，如 `try (c1; c2)`
+
+
 
 #### throw
 
@@ -14489,6 +14508,114 @@ public class c1903 extends JFrame {
 
 ```
 
+###### 收发+try with
+
+编写一个服务器和客户端程序。在他们之间实现TCP通信。程序启动后，客户端程序在窗口的文本框中输入内容。点击发送按钮时向服务器端发送文本框中的文本。服务器端收到信息后。反馈 ok。并在控制台窗口显示。
+
+服务器+客户端双向收发信息，使用 try with 自动释放
+
+把注释内容全部取消服务器客户端可收发，否则客户端发服务端收
+
+```java
+import java.io.*;
+import java.net.*;
+
+public class TCPServer {
+    public static void main(String[] args) {
+        try (ServerSocket serverSocket = new ServerSocket(6789)) {
+            System.out.println("服务器已启动，等待客户端连接...");
+
+            while (true) {
+                try (Socket clientSocket = serverSocket.accept();
+                     BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))
+//                     PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)
+                ) {
+
+//                    System.out.println("客户端已连接：" + clientSocket.getInetAddress());
+
+                    String clientMessage = in.readLine();
+                    System.out.println("收到客户端消息: " + clientMessage);
+                    System.out.println("OK");
+//                    out.println("OK");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+```java
+import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.*;
+import java.net.*;
+
+public class TCPClient extends JFrame {
+    private JTextField textField;
+    private JButton sendButton;
+    private JTextArea textArea;
+
+    public TCPClient() {
+        setTitle("TCP Client");
+        setSize(400, 300);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        textField = new JTextField();
+        sendButton = new JButton("发送");
+//        textArea = new JTextArea();
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.add(textField);
+        panel.add(sendButton);
+//        panel.add(new JScrollPane(textArea));
+
+        add(panel);
+
+        sendButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                sendMessage();
+            }
+        });
+    }
+
+    private void sendMessage() {
+        String serverAddress = "localhost";
+        int serverPort = 6789;
+
+        try (Socket socket = new Socket(serverAddress, serverPort);
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+
+            String message = textField.getText();
+            out.println(message);
+
+//            String response = in.readLine();
+//            textArea.append("服务器反馈: " + response + "\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) { // 可以只要new TCP那行
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new TCPClient().setVisible(true);
+            }
+        });
+    }
+}
+```
+
+
+
 ###### 多线程
 
 改进了上文例子，使得服务器可以同时处理多个访问。
@@ -14775,6 +14902,80 @@ public class c1905 extends JFrame implements Runnable, ActionListener {
     }
 }
 
+```
+
+###### 周期广播
+
+编写一个客户端和服务器端程序实现UDP通信。服务器端向特定客户地址每隔5秒发送一个数据包。单客户端启动后，能接收到服务器端发出的信息。并在控制台中显示。
+
+```java
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+
+public class UDPServer {
+    public static void main(String[] args) {
+        try {
+            // 创建DatagramSocket，监听端口9876
+            DatagramSocket serverSocket = new DatagramSocket(9876);
+
+            // 客户端的IP地址和端口(只向这个端口发送
+            InetAddress clientAddress = InetAddress.getByName("localhost");
+            int clientPort = 9877;
+
+            // 发送的数据
+            String sendData = "580喵喵";
+            byte[] sendBuffer = sendData.getBytes();
+
+            while (true) {
+                // 创建数据包
+                DatagramPacket sendPacket = new DatagramPacket(sendBuffer, sendBuffer.length, clientAddress, clientPort);
+
+                // 发送数据包
+                serverSocket.send(sendPacket);
+//                System.out.println("Sent: " + sendData);
+
+                // 每隔5秒发送一次
+                Thread.sleep(5000);
+            }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+```java
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+
+public class UDPClient {
+    public static void main(String[] args) {
+        try {
+            // 创建DatagramSocket，监听端口9877
+            DatagramSocket clientSocket = new DatagramSocket(9877);
+
+            // 接收数据的缓冲区
+            byte[] receiveBuffer = new byte[1024];
+
+            while (true) {
+                // 创建数据包
+                DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
+
+                // 接收数据包
+                clientSocket.receive(receivePacket);
+
+                // 将接收到的数据转换为字符串
+                String receivedData = new String(receivePacket.getData(), 0, receivePacket.getLength());
+                System.out.println("Received: " + receivedData);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
 ```
 
 
@@ -16764,7 +16965,7 @@ public static void toClipboard(String s) {
 
 ### 其他
 
-#### 匿名函数
+#### 匿名函数lambda
 
 ##### 基本
 
