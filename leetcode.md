@@ -2437,6 +2437,10 @@
 - 1367\.二叉树中的链表
 
   DFS (+ 字符串哈希 / KMP)
+  
+- 3280\.将日期转换为二进制表示
+
+  签到
 
 ## 算法
 
@@ -60835,3 +60839,49 @@ private:
 };
 ```
 
+##### 3280\.将日期转换为二进制表示
+
+[题目](https://leetcode.cn/problems/convert-date-to-binary)
+
+```python
+class Solution:
+    def convertDateToBinary(self, date: str) -> str:
+        return '-'.join(bin(v)[2:] for v in [int(i) for i in date.split('-')])
+```
+
+```java
+class Solution {
+    public String convertDateToBinary(String date) {
+        String[] a = date.split("-");
+        for (int i = 0; i < a.length; i++) {
+            a[i] = Integer.toBinaryString(Integer.parseInt(a[i]));
+        }
+        return String.join("-", a);
+    }
+}
+```
+
+```java
+class Solution {
+    public String convertDateToBinary(String date) {
+        return Arrays.stream(date.split("-"))
+                .map(s -> Integer.toBinaryString(Integer.parseInt(s)))
+                .collect(Collectors.joining("-"));
+    }
+}
+```
+
+```c++
+class Solution {
+public:
+    string convertDateToBinary(string date) {
+        auto bin = [](int x) -> string {
+            string s = bitset<32>(x).to_string();
+            return s.substr(s.find('1'));
+        };
+        return bin(stoi(date.substr(0, 4))) + "-" +
+               bin(stoi(date.substr(5, 2))) + "-" +
+               bin(stoi(date.substr(8, 2)));
+    }
+};
+```

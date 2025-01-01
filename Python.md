@@ -13060,6 +13060,15 @@ print(data['label']) # 类型如 <class 'numpy.ndarray'>
 
 #### 符号运算
 
+##### 分数
+
+```python
+import sympy as sp
+a = sp.Rational(1,2) # 1/2
+b = sp.Rational(2,3) # 2/3
+print(a+b) # 7/6
+```
+
 ##### 求导
 
 ```python
@@ -13157,6 +13166,46 @@ A = sp.Matrix([[1, 0, 0],
 e_At = P * sp.diag(sp.exp(t), sp.exp(2*t), sp.exp(2*t)) * P_inv
 # 同理有 sp.cos sp.sin
 print(e_At) # 或 sp.pprint(P) # 更好看的矩阵
+```
+
+##### 初等变换
+
+```python
+import sympy as sp
+A = sp.Matrix([
+    [2,0,5,6, 1,0,0,0],
+    [1,3,3,6, 0,1,0,0],
+    [-1,1,2,1, 0,0,1,0],
+    [1,0,1,3, 0,0,0,1]
+])
+def f(r1, r2, k): #r1+k*r2
+    A[r1 - 1, :] = A[r1 - 1, :] + k * A[r2 - 1, :]
+def g(r1, k): #r1*k
+    A[r1 - 1, :] = k * A[r1 - 1, :]
+def h(r1, r2): #r1<->r2
+    A[r1 - 1, :], A[r2 - 1, :] = A[r2 - 1, :].copy(), A[r1 - 1, :].copy()
+f(1, 4, -2)
+f(2, 4, -1)
+f(3, 4, 1)
+
+f(2, 3, -3)
+
+f(2, 1, sp.Rational(7,3))
+f(3, 1, -1)
+f(4, 1, sp.Rational(-1,3))
+g(1, sp.Rational(1,3))
+
+g(2, sp.Rational(-1,9))
+f(3, 2, -4)
+f(4, 2, -3)
+
+h(1, 4)
+h(2, 3)
+h(3, 4)
+sp.pprint(A)
+B = A[:, -4:] * 27
+# print(sp.Rational(1,27),'*',end=' ')
+sp.pprint(B)
 ```
 
 
