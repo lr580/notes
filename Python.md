@@ -1412,6 +1412,8 @@ upper()将所有小写转大写，其他字符不变
 
 lower()将所有大写转小写，其他字符不变
 
+> `isupper()` 检测每个字符是不是都是大写
+
 strip()取消首尾的全部空白字符，如空格、换行符、制表符
 
 如果中间也去掉，可以使用reduce,filter办法：
@@ -6099,6 +6101,22 @@ builtin_functions = [func for func in dir(builtins) if callable(getattr(builtins
 builtin_functions
 ```
 
+#### warning
+
+警报清理：
+
+```python
+import warnings
+warnings.filterwarnings('ignore', category=RuntimeWarning)
+```
+
+可以清除诸如：
+
+```
+C:\Program Files\Python313\Lib\site-packages\numpy\linalg_linalg.py:2832: RuntimeWarning: overflow encountered in multiply
+s = (x.conj() * x).real
+```
+
 
 
 # 库
@@ -8038,6 +8056,22 @@ np.set_printoptions(suppress=True)
 np.seterr(divide='ignore',invalid='ignore')
 ```
 
+警报清理：
+
+```python
+import warnings
+warnings.filterwarnings('ignore', category=RuntimeWarning)
+```
+
+可以清除诸如：
+
+```
+C:\Program Files\Python313\Lib\site-packages\numpy\linalg_linalg.py:2832: RuntimeWarning: overflow encountered in multiply
+s = (x.conj() * x).real
+```
+
+
+
 #### 导入导出
 
 ##### csv
@@ -8993,6 +9027,8 @@ def plot(words, scores, top_k = 10):
     plt.show()
 ```
 
+
+
 多个合并
 
 ```python
@@ -9032,27 +9068,6 @@ plt.show()
 > 2023-09-01T00:00:00.000Z,2,1095
 > 2023-09-01T00:00:00.000Z,3,1062
 > ```
-
-##### 双折线
-
-```python
-x = np.arange(0, 10, 0.1)
-y1 = np.sin(x)  # 第一个数据集
-y2 = np.exp(x / 5)  # 第二个数据集
-fig, ax1 = plt.subplots()
-ax1.plot(x, y1, 'b-', label='sin(x)')
-ax1.set_xlabel('X轴')
-ax1.set_ylabel('sin(x)', color='b')
-ax1.tick_params(axis='y', labelcolor='b')
-ax2 = ax1.twinx()
-ax2.plot(x, y2, 'r-', label='exp(x/5)')
-ax2.set_ylabel('exp(x/5)', color='r')
-ax2.tick_params(axis='y', labelcolor='r')
-ax1.legend(loc='upper left')
-ax2.legend(loc='upper right')
-plt.title('双y轴折线图示例')
-plt.show()
-```
 
 
 
@@ -9392,6 +9407,23 @@ bbox to anchor:
 
 第二个值（y 轴位置）：同样在 0 到 1 之间，表示相对于图表高度的比例。1 表示顶部，0 表示底部。
 
+双图(twin)，画完第一个图，第二个图会把第一个图的图例挡住，gpt 4o mini：
+
+```python
+handles1, labels1 = ax1.get_legend_handles_labels()
+handles2, labels2 = ax2.get_legend_handles_labels()
+handles = [Patch(color='b', label='Ward Hierarchical Cluster'), Patch(color='r', label='GMM (KMeans++ Init) Cluster')]
+ax2.legend(handles=handles, loc='upper right')
+```
+
+透明度：
+
+```python
+[Patch(color=c1, alpha=1, label=y1name), Patch(color=c2, alpha=1, label=y2name)]
+```
+
+
+
 ##### 网格
 
 添加网格：[参考](https://www.runoob.com/matplotlib/matplotlib-grid.html)
@@ -9494,6 +9526,98 @@ cohort,avg_time_to_first_purchase
 2023-01-01T00:00:00.000Z,4
 2023-02-01T00:00:00.000Z,19
 2023-04-01T00:00:00.000Z,39
+```
+
+#### 双图重合
+
+##### 双折线
+
+```python
+x = np.arange(0, 10, 0.1)
+y1 = np.sin(x)  # 第一个数据集
+y2 = np.exp(x / 5)  # 第二个数据集
+fig, ax1 = plt.subplots()
+ax1.plot(x, y1, 'b-', label='sin(x)')
+ax1.set_xlabel('X轴')
+ax1.set_ylabel('sin(x)', color='b')
+ax1.tick_params(axis='y', labelcolor='b')
+ax2 = ax1.twinx()
+ax2.plot(x, y2, 'r-', label='exp(x/5)')
+ax2.set_ylabel('exp(x/5)', color='r')
+ax2.tick_params(axis='y', labelcolor='r')
+ax1.legend(loc='upper left')
+ax2.legend(loc='upper right')
+plt.title('双y轴折线图示例')
+plt.show()
+```
+
+##### 双柱状
+
+两个柱状图(尺度一样)
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+labels = ['指标 1', '指标 2']
+result_A = [50, 80]
+result_B = [70, 60]
+x = np.arange(len(labels)) 
+width = 0.35 
+
+fig, ax = plt.subplots()
+bars1 = ax.bar(x - width/2, result_A, width, label='结果 A')
+bars2 = ax.bar(x + width/2, result_B, width, label='结果 B')
+
+ax.set_ylabel('值')
+ax.set_title('结果对比')
+ax.set_xticks(x)
+ax.set_xticklabels(labels)
+ax.legend()
+plt.show()
+```
+
+(尺度不一样)
+
+```python
+def compareWardAndGMM(seed=8914, show=False):
+    '''对比Ward和GMM的聚类结果'''
+    p = utils.readCSV()
+    p_dist = utils.getDisMatrix(p)
+    with open('steps_ward.txt', 'r') as f:
+        steps = eval(f.read())
+    label_ward = cluster.ClusterFromSteps(p.shape[0], steps, 15)
+    sse_ward = calcSSE(p, label_ward, 15) # 大整数
+    silhouette_ward = calcSilhouette(p_dist, label_ward) # 小整数
+    label_gmm, model = gmm.GMMcluster(p, 15, 'kmeans++', seed)
+    sse_gmm = calcSSE(p, label_gmm, 15) # 大整数
+    silhouette_gmm = calcSilhouette(p_dist, label_gmm) # 小整数
+
+    labels = ['SSE', 'Silhoutte Coefficient']
+    fig, ax1 = plt.subplots()
+    width = 0.35 # 柱子宽
+    x = np.arange(2)
+    ax1.bar(x - width/2, [sse_ward, sse_gmm], width, label='Ward Hierarchical Cluster', color='b')
+    ax1.set_ylabel('SSE')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(labels)
+    
+    ax2 = ax1.twinx()  # 共享x轴
+    ax2.bar(x + width/2, [silhouette_ward, silhouette_gmm], width, label='GMM (KMeans++ Init) Cluster', color='r')
+    ax2.set_ylabel('Silhouette Coefficient')
+    
+    # ax1.legend(loc='upper right')
+    # ax2.legend(loc='upper right', bbox_to_anchor=(1, 0.9))
+    handles1, labels1 = ax1.get_legend_handles_labels()
+    handles2, labels2 = ax2.get_legend_handles_labels()
+    handles = [Patch(color='b', label='Ward Hierarchical Cluster'), Patch(color='r', label='GMM (KMeans++ Init) Cluster')]
+    ax2.legend(handles=handles, loc='upper right')
+    
+    plt.title('Ward Hierarchical Cluster VS GMM Cluster')
+    if show:
+        plt.show()
+    else:
+        plt.savefig(f'Ward_vs_GMM_compare.png')
 ```
 
 
