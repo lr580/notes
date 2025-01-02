@@ -2441,6 +2441,10 @@
 - 3280\.将日期转换为二进制表示
 
   签到
+  
+- 729\.我的日程安排表I
+
+  二分 区间
 
 ## 算法
 
@@ -60882,6 +60886,60 @@ public:
         return bin(stoi(date.substr(0, 4))) + "-" +
                bin(stoi(date.substr(5, 2))) + "-" +
                bin(stoi(date.substr(8, 2)));
+    }
+};
+```
+
+##### 729\.我的日程安排表I
+
+[题目](https://leetcode.cn/problems/my-calendar-i)
+
+我的思路：
+
+```java
+import java.util.TreeMap;
+
+class MyCalendar {
+    private TreeMap<Integer, Integer> h = new TreeMap<>();
+
+    public MyCalendar() {
+    }
+
+    public boolean book(int startTime, int endTime) {
+        --endTime;
+        Integer l = h.floorKey(startTime);
+        if (l != null && h.get(l) >= startTime) {
+            return false;
+        }
+        Integer r = h.floorKey(endTime);
+        if (r != null && r >= startTime) {
+            return false;
+        }
+        h.put(startTime, endTime);
+        return true;
+    }
+}
+```
+
+题解思路：反向思考 [src](https://leetcode.cn/problems/my-calendar-i/solutions/1503495/by-liuyvjin-dsho/)
+
+```c++
+class MyCalendar {
+public:
+    map<int, int> cale;  // cale[start] = end;
+    MyCalendar() {
+        cale[-1] = -1;   // 避免 --it 越界
+    }
+    
+    bool book(int start, int end) {
+        // 找到 end 之后的第一个日程, 即满足 start[idx] >= end 的第一个迭代器 
+        auto it = cale.lower_bound(end); 
+        // 检查前一个日程与当前日程是否重叠,  当end[idx - 1] <= start 时不重叠 
+        if((--it)->second <= start){  
+            cale[start] = end;
+            return true;
+        }
+        return false;      
     }
 };
 ```
