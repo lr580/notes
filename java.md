@@ -2527,6 +2527,8 @@ i: 1, j: 1 */
 
 类成员默认值是 0 。
 
+> 类可以 abstract, public, final 等修饰，但不能 private 类
+
 举例：
 
 ```java
@@ -7919,7 +7921,7 @@ public void actionPerformed(XXXEvent e)
 
 > 要在事件源上注册事件监听器；不只有组件能产生事件； Java 中的事件处理基于授权事件模型 （委托事件模型 ？）
 >
-> 不只有外部操作会产生事件。可以通过继承 `EventObject` 类编写自定义事件类
+> 不只有外部操作会产生事件。可以通过继承 `EventObject` 类编写自定义事件类。任何对象都可以成为事件源，只要它能够产生事件并注册了事件监听器就行
 
 同一个控件新生成的监听器会覆盖旧的监听器
 
@@ -12653,7 +12655,7 @@ public class c1709 {
 
 ##### notify
 
-由被 wait 的对象触发，需要同步块。不需要 try catch。只唤醒第一个 wait 的线程。
+由被 wait 的对象触发，需要同步块。不需要 try catch。只唤醒第一个 wait 的线程。一说随机唤醒一个 (deepseek)
 
 例如：
 
@@ -14590,8 +14592,9 @@ public class TCPClient extends JFrame {
         int serverPort = 6789;
 
         try (Socket socket = new Socket(serverAddress, serverPort);
-             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)
+             //BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()
+                                                                         ))) {
 
             String message = textField.getText();
             out.println(message);
@@ -14918,7 +14921,7 @@ public class UDPServer {
     public static void main(String[] args) {
         try {
             // 创建DatagramSocket，监听端口9876
-            DatagramSocket serverSocket = new DatagramSocket(9876);
+            DatagramSocket serverSocket = new DatagramSocket();//(9876)
 
             // 客户端的IP地址和端口(只向这个端口发送
             InetAddress clientAddress = InetAddress.getByName("localhost");
