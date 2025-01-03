@@ -13208,6 +13208,41 @@ B = A[:, -4:] * 27
 sp.pprint(B)
 ```
 
+##### 方阵函数
+
+```python
+import sympy as sp
+A = sp.Matrix([[-1, -5, 9], [-1, 3, 0], [-1, -1, 4]])
+sp.pprint(A.log())
+sp.pprint(A**0.5)
+B = A**0.5
+sp.pprint(B*B) # =A
+```
+
+##### 符号矩阵
+
+定义符号，和代入数值
+
+```python
+import sympy as sp
+a0, a1, a2 = sp.symbols('a0 a1 a2')
+A = sp.Matrix([[-1,-5,9],[-1,3,0],[-1,-1,4]])
+I = sp.Matrix([[1,0,0],[0,1,0],[0,0,1]])
+B = a0 * I + a1 * A + a2 * A**2
+sp.pprint(B)
+a0_val = sp.Rational(-4, 3) + sp.Rational(1, 9) * sp.log(4)
+a1_val = sp.Rational(5, 3) - sp.Rational(2, 9) * sp.log(4)
+a2_val = -sp.Rational(1, 3) + sp.Rational(1, 9) * sp.log(4)
+B_sub = B.subs({a0: a0_val, a1: a1_val, a2: a2_val})
+sp.pprint(B_sub)
+
+a0_val = sp.Rational(4, 9) 
+a1_val = sp.Rational(11, 18) 
+a2_val = sp.Rational(-1, 18) 
+B_sub = B.subs({a0: a0_val, a1: a1_val, a2: a2_val})
+sp.pprint(B_sub)
+```
+
 
 
 #### 数值运算
@@ -13219,6 +13254,25 @@ from sympy import symbols, Eq, solve
 alpha = symbols('alpha')
 equation = Eq(alpha**2 + (1 - alpha)**2, 0.65) #a^2+(1-a^2)=0.65
 alpha_values = solve(equation, alpha) # list of float
+```
+
+方程组：
+
+```python
+import sympy as sp
+a0, a1, a2 = sp.symbols('a0 a1 a2')
+eq1 = sp.Eq(a0 + a1 + a2, 0)
+eq2 = sp.Eq(a1 + 2 * a2, 1)
+eq3 = sp.Eq(a0 + 4 * a1 + 16 * a2, sp.log(4))
+solution = sp.solve((eq1, eq2, eq3), (a0, a1, a2))
+print(solution)
+# {a0: -4/3 + 2*log(2)/9, a1: 5/3 - 4*log(2)/9, a2: -1/3 + 2*log(2)/9}
+{a0: 4/9, a1: 11/18, a2: -1/18}
+eq1 = sp.Eq(a0 + a1 + a2, 1)
+eq2 = sp.Eq(a1 + 2 * a2, sp.Rational(1, 2))
+eq3 = sp.Eq(a0 + 4 * a1 + 16 * a2, 2)
+solution = sp.solve((eq1, eq2, eq3), (a0, a1, a2))
+print(solution) # {a0: 4/9, a1: 11/18, a2: -1/18}
 ```
 
 不等式：
