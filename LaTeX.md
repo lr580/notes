@@ -539,7 +539,7 @@ $\llcorner\lrcorner\ulcorner\urcorner$
 
 $\frown$
 
-$\LaTeX$   $\TeX$ $\S1$
+$\LaTeX$   $\TeX$ $\S1$ $\dagger$ 
 
 ### 数学格式
 

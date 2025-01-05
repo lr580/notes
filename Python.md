@@ -13006,6 +13006,8 @@ for i in range(6):
 
 ##### 分位数
 
+Percent-Point Function
+
 ```python
 import scipy.stats as stats
 # N(0,1)，覆盖0.975%数据的分位数
@@ -13016,6 +13018,16 @@ stats.chi2.ppf(0.975, 4)
 stats.t.ppf(0.975, 7) # np.float64(2.3646242515927844)
 # F分布，分子5，分母10,
 stats.f.ppf(0.975, 5, 10)
+```
+
+##### 概率密度函数
+
+Cumulative Distribution Function
+
+```python
+import scipy.stats as stats
+stats.norm.cdf(1) # 落在[-infty, 1] 的概率，不填后面的参数默认N(0,1)
+# np.float64(0.8413447460685429)
 ```
 
 
@@ -13215,6 +13227,8 @@ e_At = P * sp.diag(sp.exp(t), sp.exp(2*t), sp.exp(2*t)) * P_inv
 # 同理有 sp.cos sp.sin
 print(e_At) # 或 sp.pprint(P) # 更好看的矩阵
 ```
+
+广义逆： `A.pinv()`
 
 ##### 初等变换
 
