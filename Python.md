@@ -4784,6 +4784,52 @@ file_size = os.path.getsize(file_path)
 file_size_mb = file_size / (1024 * 1024)
 ```
 
+##### 应用举例
+
+###### 最后修改时间
+
+```python
+import os
+import time
+from datetime import datetime
+
+# 设置文件夹路径
+folder_path = r"D:\_lr580"
+
+# 设置天数（例如，查找最后修改日期为7天内的文件）
+days = 20
+
+# 计算截止时间（当前时间减去指定的天数）
+cutoff_time = time.time() - (days * 86400)  # 86400秒 = 1天
+
+# 存储符合条件的文件信息
+file_list = []
+
+# 遍历文件夹及其子文件夹
+for root, dirs, files in os.walk(folder_path):
+    for file in files:
+        # 检查文件扩展名是否为.md
+        if file.endswith(".md"):
+            file_path = os.path.join(root, file)
+            # 获取文件的最后修改时间
+            file_mtime = os.path.getmtime(file_path)
+            # 如果文件的最后修改时间在截止时间之后，则记录文件信息
+            if file_mtime >= cutoff_time:
+                # 将时间戳转换为可读格式（年-月-日）
+                mtime_readable = datetime.fromtimestamp(file_mtime).strftime("%Y-%m-%d")
+                file_list.append((file_path, mtime_readable, file_mtime))
+
+# 按最后修改时间排序（从早到晚）
+file_list_sorted = sorted(file_list, key=lambda x: x[2])  # x[2] 是 file_mtime
+
+# 输出排序后的结果
+for file_path, mtime_readable, _ in file_list_sorted:
+    # if mtime_readable == "2024-12-25":
+    print(f"{file_path}")
+```
+
+
+
 #### shutil
 
 复制文件：
