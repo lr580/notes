@@ -2449,6 +2449,14 @@
 - 731\.我的日程安排表II
 
   线段树
+  
+- 732\.我的日程安排表III
+
+  差分 / 线段树
+  
+- 2241\.设计一个ATM机器
+
+  模拟 签到
 
 ## 算法
 
@@ -61006,6 +61014,111 @@ class MyCalendarTwo {
         if (query(1, 1, N + 1, start + 1, end) >= 2) return false;
         update(1, 1, N + 1, start + 1, end, 1);
         return true;
+    }
+}
+```
+
+##### 732\.我的日程安排表III
+
+[题目](https://leetcode.cn/problems/my-calendar-iii)
+
+差分：只保留差分数组，每次更新后全部计算一次。
+
+```java
+class MyCalendarThree {
+    private TreeMap<Integer, Integer> cnt;
+
+    public MyCalendarThree() {
+        cnt = new TreeMap<Integer, Integer>();
+    }
+    
+    public int book(int start, int end) {
+        int ans = 0;
+        int maxBook = 0;
+        cnt.put(start, cnt.getOrDefault(start, 0) + 1);
+        cnt.put(end, cnt.getOrDefault(end, 0) - 1);
+        for (Map.Entry<Integer, Integer> entry : cnt.entrySet()) {
+            int freq = entry.getValue();
+            maxBook += freq;
+            ans = Math.max(maxBook, ans);
+        }
+        return ans;
+    }
+}
+```
+
+线段树：同上一题理
+
+```java
+class MyCalendarThree {
+    private Map<Integer, Integer> tree;
+    private Map<Integer, Integer> lazy;
+
+    public MyCalendarThree() {
+        tree = new HashMap<Integer, Integer>();
+        lazy = new HashMap<Integer, Integer>();
+    }
+    
+    public int book(int start, int end) {
+        update(start, end - 1, 0, 1000000000, 1);
+        return tree.getOrDefault(1, 0);
+    }
+
+    public void update(int start, int end, int l, int r, int idx) {
+        if (r < start || end < l) {
+            return;
+        } 
+        if (start <= l && r <= end) {
+            tree.put(idx, tree.getOrDefault(idx, 0) + 1);
+            lazy.put(idx, lazy.getOrDefault(idx, 0) + 1);
+        } else {
+            int mid = (l + r) >> 1;
+            update(start, end, l, mid, 2 * idx);
+            update(start, end, mid + 1, r, 2 * idx + 1);
+            tree.put(idx, lazy.getOrDefault(idx, 0) + Math.max(tree.getOrDefault(2 * idx, 0), tree.getOrDefault(2 * idx + 1, 0)));
+        }
+    }
+}
+```
+
+##### 2241\.设计一个ATM机器
+
+[题目](https://leetcode.cn/problems/design-an-atm-machine)
+
+```java
+class ATM {
+    private static final int[] DENOMINATIONS = {20, 50, 100, 200, 500};
+    private static final int KINDS = DENOMINATIONS.length;
+
+    private final int[] banknotes = new int[KINDS];
+
+    public void deposit(int[] banknotesCount) {
+        // 存钱
+        for (int i = 0; i < KINDS; i++) {
+            banknotes[i] += banknotesCount[i];
+        }
+    }
+
+    public int[] withdraw(int amount) {
+        int[] ans = new int[KINDS];
+
+        // 计算每种钞票所需数量
+        for (int i = KINDS - 1; i >= 0; i--) {
+            ans[i] = Math.min(amount / DENOMINATIONS[i], banknotes[i]);
+            amount -= ans[i] * DENOMINATIONS[i];
+        }
+
+        // 无法取恰好 amount
+        if (amount > 0) {
+            return new int[]{-1};
+        }
+
+        // 取钱
+        for (int i = 0; i < KINDS; i++) {
+            banknotes[i] -= ans[i];
+        }
+
+        return ans;
     }
 }
 ```
