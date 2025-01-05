@@ -13149,7 +13149,9 @@ right_limit = limit(f, x, 0, '+')
 binomial(n, k) # n选k 组合
 ```
 
-##### 矩阵
+#### 矩阵
+
+##### 逆
 
 ```python
 import sympy as sp
@@ -13243,6 +13245,83 @@ B_sub = B.subs({a0: a0_val, a1: a1_val, a2: a2_val})
 sp.pprint(B_sub)
 ```
 
+##### QR分解
+
+调库：
+
+```python
+import sympy as sp
+A = sp.Matrix([[0,4,1],[1,1,1],[0,3,2]])
+Q, R = A.QRdecomposition()
+sp.pprint(Q)
+sp.pprint(R)
+```
+
+手写：
+
+```python
+import sympy as sp
+A = sp.Matrix([[0,4,1],[1,1,1],[0,3,2]])
+e1 = sp.Matrix([[1,0,0]]).T
+x1 = A[:, 0]
+w1 = x1 - x1.norm() * e1
+w1 = w1 / w1.norm()
+H1 = sp.eye(3) - 2 * w1 * w1.T
+H1A = H1 @ A
+
+x2 = H1A[1:, 1]
+e2 = sp.Matrix([[1,0]]).T
+w2 = x2 - x2.norm() * e2
+w2 = w2 / w2.norm()
+H2 = sp.eye(2) - 2 * w2 * w2.T
+H2t = sp.zeros(3, 3)
+H2t[0, 0] = 1
+H2t[1:, 1:] = H2
+R = H2t @ H1 @ A
+sp.pprint(R)
+Q = H1 @ H2t
+sp.pprint(Q)
+```
+
+##### Jordan形
+
+```python
+import sympy as sp
+A=sp.Matrix([[7,-10,-24,5],[1,0,-4,1],[1,-2,-3,1],[1,-2,-4,3]])
+J,P=A.jordan_form()
+'''J
+Matrix([
+[4, 1, 5, 2],
+[0, 1, 0, 1],
+[1, 0, 1, 0],
+[0, 1, 0, 0]])
+P
+Matrix([
+[1, 0, 0, 0],
+[0, 2, 1, 0],
+[0, 0, 2, 0],
+[0, 0, 0, 2]])
+sp.pprint(J)
+⎡4  1  5  2⎤
+⎢          ⎥
+⎢0  1  0  1⎥
+⎢          ⎥
+⎢1  0  1  0⎥
+⎢          ⎥
+⎣0  1  0  0⎦'''
+```
+
+##### 奇异值分解
+
+```python
+import sympy as sp
+A = sp.Matrix([[2,1],[0,2],[1,0]])
+sp.pprint(U) # 3x2
+sp.pprint(S) # 2x2
+sp.pprint(V) # 2x2
+print(U*S*V.T)
+```
+
 
 
 #### 数值运算
@@ -13297,45 +13376,6 @@ import sympy as sp
 n=sp.symbols('n')
 s=sp.Sum(1/n,(n,1,sp.oo))#调和级数
 print(s.doit())
-```
-
-##### Jordan形
-
-```python
-import sympy as sp
-A=sp.Matrix([[7,-10,-24,5],[1,0,-4,1],[1,-2,-3,1],[1,-2,-4,3]])
-J,P=A.jordan_form()
-'''J
-Matrix([
-[4, 1, 5, 2],
-[0, 1, 0, 1],
-[1, 0, 1, 0],
-[0, 1, 0, 0]])
-P
-Matrix([
-[1, 0, 0, 0],
-[0, 2, 1, 0],
-[0, 0, 2, 0],
-[0, 0, 0, 2]])
-sp.pprint(J)
-⎡4  1  5  2⎤
-⎢          ⎥
-⎢0  1  0  1⎥
-⎢          ⎥
-⎢1  0  1  0⎥
-⎢          ⎥
-⎣0  1  0  0⎦'''
-```
-
-##### 奇异值分解
-
-```python
-import sympy as sp
-A = sp.Matrix([[2,1],[0,2],[1,0]])
-sp.pprint(U) # 3x2
-sp.pprint(S) # 2x2
-sp.pprint(V) # 2x2
-print(U*S*V.T)
 ```
 
 
