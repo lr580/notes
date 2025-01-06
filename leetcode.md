@@ -2457,6 +2457,14 @@
 - 2241\.设计一个ATM机器
 
   模拟 签到
+  
+- 2274\.不含特殊楼层的最大连续楼层数
+
+  排序
+  
+- 3019\.按键变更的次数
+
+  签到 字符位运算
 
 ## 算法
 
@@ -61121,4 +61129,88 @@ class ATM {
         return ans;
     }
 }
+```
+
+##### 2274. 不含特殊楼层的最大连续楼层数
+
+[题目](https://leetcode.cn/problems/maximum-consecutive-floors-without-special-floors/)
+
+sort 比 set 快太多了，至少5-6倍。
+
+```c++
+class Solution {
+public:
+    int maxConsecutive(int bottom, int top, vector<int>& special) {
+        ranges::sort(special);
+        int n = special.size();
+        int ans = max(special[0] - bottom, top - special[n - 1]);
+        for (int i = 1; i < n; i++) {
+            ans = max(ans, special[i] - special[i - 1] - 1);
+        }
+        return ans;
+    }
+};
+```
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    int maxConsecutive(int bottom, int top, vector<int>& special) {
+        set<int> s(special.begin(), special.end());
+        s.insert(bottom-1);
+        s.insert(top+1);
+        int ans = 0, prv = *s.begin();
+        for(auto&v:s) {
+            ans = max(ans, v-prv-1);
+            prv = v;
+        }
+        return ans;
+    }
+};
+```
+
+##### 3019\.按键变更的次数
+
+[题目](https://leetcode.cn/problems/number-of-changing-keys)
+
+```python
+class Solution:
+    def countKeyChanges(self, s: str) -> int:
+        n = len(s)
+        return sum([s[i].lower()!=s[i+1].lower() for i in range(n-1)])
+```
+
+```python
+class Solution:
+    def countKeyChanges(self, s: str) -> int:
+        return sum(x != y for x, y in pairwise(s.lower()))
+```
+
+```java
+class Solution {
+    public int countKeyChanges(String s) {
+        int ans = 0;
+        for (int i = 1; i < s.length(); i++) {
+            if ((s.charAt(i - 1) & 31) != (s.charAt(i) & 31)) {
+                ans++;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```c++
+class Solution {
+public:
+    int countKeyChanges(string s) {
+        int ans = 0;
+        for (int i = 1; i < s.length(); i++) {
+            ans += (s[i - 1] & 31) != (s[i] & 31);
+        }
+        return ans;
+    }
+};
 ```
