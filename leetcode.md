@@ -2465,6 +2465,10 @@
 - 3019\.按键变更的次数
 
   签到 字符位运算
+  
+- 2264\.字符串中最大的3位相同数字
+
+  签到
 
 ## 算法
 
@@ -61213,4 +61217,34 @@ public:
         return ans;
     }
 };
+```
+
+##### 2264\.字符串中最大的3位相同数字
+
+[题目](https://leetcode.cn/problems/largest-3-same-digit-number-in-string)
+
+```python
+class Solution:
+    def largestGoodInteger(self, num: str) -> str:
+        n, ans = len(num), ''
+        for i in range(n-2):
+            s = num[i:i+3]
+            if len(set(s))==1 and s > ans:
+                ans = s
+        return ans
+```
+
+```python
+class Solution:
+    def largestGoodInteger(self, num: str) -> str:
+        mx = ""
+        cnt = 1
+        for i in range(1, len(num)):
+            if num[i] != num[i - 1]:
+                cnt = 1
+                continue
+            cnt += 1
+            if cnt == 3 and num[i] > mx:
+                mx = num[i]
+        return mx * 3
 ```
