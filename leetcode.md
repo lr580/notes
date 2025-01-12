@@ -2481,6 +2481,10 @@
 - 2275\.按位与结果大于零的最长组合
 
   **位运算 计数**
+  
+- 2270\.分割数组的方案数
+
+  前缀和 枚举
 
 ## 算法
 
@@ -61340,3 +61344,32 @@ class Solution:
         m = max(candidates).bit_length()
         return max(sum(x >> i & 1 for x in candidates) for i in range(m))
 ```
+
+##### 2270\.分割数组的方案数
+
+[题目](https://leetcode.cn/problems/number-of-ways-to-split-array)
+
+x 比不 x 快：
+
+```python
+class Solution:
+    def waysToSplitArray(self, nums: List[int]) -> int:
+        sl, sr, ans = 0, sum(nums), 0
+        n = len(nums)
+        for i in range(n-1):
+            x = nums[i]
+            sl += x
+            sr -= x
+            ans += sl >= sr
+        return ans
+```
+
+下面更快：[src](https://leetcode.cn/problems/number-of-ways-to-split-array/solutions/1496445/by-endlesscheng-nufi/)
+
+```python
+class Solution:
+    def waysToSplitArray(self, nums: List[int]) -> int:
+        t = (sum(nums) + 1) // 2
+        return sum(s >= t for s in accumulate(nums[:-1]))
+```
+
