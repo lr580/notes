@@ -2473,6 +2473,14 @@
 - 3298\.统计重新排列后包含另一个字符串的子字符串数目 II
 
   滑动窗口
+  
+- 3270\.求出数字答案
+
+  签到
+  
+- 2275\.按位与结果大于零的最长组合
+
+  **位运算 计数**
 
 ## 算法
 
@@ -61289,4 +61297,46 @@ class Solution:
                 left += 1
             ans += left
         return ans
+```
+
+##### 3270\.求出数字答案
+
+[题目](https://leetcode.cn/problems/find-the-key-of-the-numbers)
+
+```python
+class Solution:
+    def generateKey(self, x: int, y: int, z: int) -> int:
+        ans = 0
+        pow10 = 1
+        while x and y and z:
+            ans += min(x % 10, y % 10, z % 10) * pow10
+            x //= 10
+            y //= 10
+            z //= 10
+            pow10 *= 10
+        return ans
+```
+
+##### 2275\.按位与结果大于零的最长组合
+
+[题目](https://leetcode.cn/problems/largest-combination-with-bitwise-and-greater-than-zero)
+
+```python
+class Solution:
+    def largestCombination(self, candidates: List[int]) -> int:
+        cnt = [0] * 24
+        for x in candidates:
+            i = 0
+            while x:
+                cnt[i] += x & 1
+                x >>= 1
+                i += 1
+        return max(cnt)
+```
+
+```python
+class Solution:
+    def largestCombination(self, candidates: List[int]) -> int:
+        m = max(candidates).bit_length()
+        return max(sum(x >> i & 1 for x in candidates) for i in range(m))
 ```
