@@ -2485,6 +2485,14 @@
 - 2270\.分割数组的方案数
 
   前缀和 枚举
+  
+- 3065\.超过阈值的最少操作数I
+
+  签到
+  
+- 3066\.超过阈值的最少操作数II
+
+  贪心 堆(STL)
 
 ## 算法
 
@@ -61373,3 +61381,57 @@ class Solution:
         return sum(s >= t for s in accumulate(nums[:-1]))
 ```
 
+##### 3065\.超过阈值的最少操作数I
+
+[题目](https://leetcode.cn/problems/minimum-operations-to-exceed-threshold-value-i)
+
+```python
+class Solution:
+    def minOperations(self, nums: List[int], k: int) -> int:
+        return sum(v < k for v in nums)
+```
+
+```c++
+class Solution {
+public:
+    int minOperations(vector<int>& nums, int k) {
+        return ranges::count_if(nums, [&](int x) {
+            return x < k;
+        });
+    }
+};
+```
+
+
+##### 3065\.超过阈值的最少操作数II
+
+[题目](https://leetcode.cn/problems/minimum-operations-to-exceed-threshold-value-ii)
+
+贪心选最小的。我的证明：等价于还是每次删掉最小的，然后把次小的变大。如果把这个次小变大换成别的变大，答案不会更优。
+
+```python
+from typing import *
+from heapq import *
+class Solution:
+    def minOperations(self, q: List[int], k: int) -> int:
+        heapify(q)
+        ans = 0
+        while q[0] < k:
+            x = heappop(q)
+            y = heappop(q)
+            heappush(q, min(x,y)*2+max(x,y))
+            ans += 1
+        return ans
+```
+
+```python
+class Solution:
+    def minOperations(self, h: List[int], k: int) -> int:
+        heapify(h)
+        ans = 0
+        while h[0] < k:
+            x = heappop(h)
+            heapreplace(h, h[0] + x * 2)
+            ans += 1
+        return ans
+```
