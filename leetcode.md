@@ -61439,3 +61439,84 @@ class Solution:
             ans += 1
         return ans
 ```
+
+##### 3097\.或值至少为K的最短子数组
+
+维护每个位出现次数，用双指针维护 >=k 的区间，只要 >=k 就不断右移左指针。
+
+```python
+from typing import *
+from collections import Counter
+class Solution:
+    def minimumSubarrayLength(self, nums: List[int], k: int) -> int:
+        c = Counter()
+        def add(x):
+            i = 0
+            while x > 0:
+                if x & 1:
+                    c[i] += 1
+                x >>= 1
+                i += 1
+        def remove(x):
+            i = 0
+            while x > 0:
+                if x & 1:
+                    c[i] -= 1
+                x >>= 1
+                i += 1
+        def get():
+            x = 0
+            for k, v in c.items():
+                if v > 0:
+                    x |= 1 << k
+            return x
+        lf, n, ans = 0, len(nums), 1e9
+        for rf in range(n):
+            add(nums[rf])
+            while lf<=rf and get() >= k:
+                # print(c, lf, rf)
+                ans = min(ans, rf - lf + 1)
+                remove(nums[lf])
+                lf += 1
+        return -1 if ans == 1e9 else ans
+```
+
+logTrick 枚举：把 nums 变成后缀or和，在不断添加新的后缀更新 nums 过程中，只要某次没发生更新，那么再往前推一定不会发生更新。且，最多更新 log 次。对每次发生变化的部分，维护这个后缀or的长度的最小值。
+
+```python
+class Solution:
+    def minimumSubarrayLength(self, nums: List[int], k: int) -> int:
+        ans = inf
+        for i, x in enumerate(nums):
+            if x >= k:
+                return 1
+            j = i - 1
+            while j >= 0 and nums[j] | x != nums[j]:
+                nums[j] |= x
+                if nums[j] >= k:
+                    ans = min(ans, i - j + 1)
+                j -= 1
+        return ans if ans < inf else -1
+```
+
+一种比我维护 c Counter 更好的滑动窗口，把窗口内用一个右侧or和 `right_or` 和左边的后缀or数组维护，来实现没有逆运算的滑动窗口维护。[参考](https://leetcode.cn/problems/find-subarray-with-bitwise-or-closest-to-k/solutions/2798206/li-yong-and-de-xing-zhi-pythonjavacgo-by-gg4d/)
+
+```python
+class Solution:
+    def minimumSubarrayLength(self, nums: List[int], k: int) -> int:
+        ans = inf
+        left = bottom = right_or = 0
+        for right, x in enumerate(nums):
+            right_or |= x
+            while left <= right and nums[left] | right_or >= k:
+                ans = min(ans, right - left + 1)
+                left += 1
+                if bottom < left:
+                    # 重新构建一个栈
+                    for i in range(right - 1, left - 1, -1):
+                        nums[i] |= nums[i + 1]
+                    bottom = right
+                    right_or = 0
+        return ans if ans < inf else -1
+```
+
