@@ -5693,6 +5693,16 @@ comb(10000000,10000000-30000)>1 #slow
 comb(10000000,10000000-30000)>1 #in a flash
 ```
 
+#### operator
+
+提供 `or_` 等函数，可用于 reduce 等。
+
+```python
+from functools import reduce
+from operator import or_
+reduce(or_, [1,2,6]) # 7
+```
+
 
 
 #### itertools
@@ -13230,6 +13240,18 @@ print(e_At) # 或 sp.pprint(P) # 更好看的矩阵
 
 广义逆： `A.pinv()`
 
+##### 秩
+
+`A.rank()`
+
+##### 特征值
+
+```python
+L.eigenvals() # {0: 1, 2: 1, 4: 2} # 0,2,4,4  , 4:2是2重根
+```
+
+
+
 ##### 初等变换
 
 ```python
@@ -13382,6 +13404,42 @@ sp.pprint(V) # 2x2
 print(U*S*V.T)
 ```
 
+##### 解方程组
+
+如通解：
+
+```python
+import sympy as sp
+A = sp.Matrix([
+    [-1, 1, 0, 0],
+    [-1, 0, 1, 0],
+    [0, -1, 1, 0],
+    [0, -1, 0, 1],
+    [0, 0, -1, 1]
+])
+y1, y2, y3, y4, y5 = sp.symbols('y1 y2 y3 y4 y5')
+y = sp.Matrix([y1, y2, y3, y4, y5])
+# 构造方程 A^T y = 0
+equations = A.T * y
+solution = sp.solve(equations, (y1, y2, y3, y4, y5))
+sp.pprint(solution)#{y₁: y₃ - y₅, y₂: -y₃ + y₅, y₄: -y₅}
+```
+
+求特解，在上面的基础上：
+
+```python
+y1_expr = y3 - y5
+y2_expr = -y3 + y5
+y4_expr = -y5
+y = sp.Matrix([y1_expr, y2_expr, y3, y4_expr, y5])
+y_solution_1 = y.subs({y3: -1, y5: 0})
+print("情况 1：y3 = -1, y5 = 0 时的解：")
+print(y_solution_1)
+y_solution_2 = y.subs({y3: 1, y5: 1})
+print("情况 2：y3 = 1, y5 = 1 时的解：")
+print(y_solution_2)
+```
+
 
 
 #### 数值运算
@@ -13411,7 +13469,7 @@ eq1 = sp.Eq(a0 + a1 + a2, 1)
 eq2 = sp.Eq(a1 + 2 * a2, sp.Rational(1, 2))
 eq3 = sp.Eq(a0 + 4 * a1 + 16 * a2, 2)
 solution = sp.solve((eq1, eq2, eq3), (a0, a1, a2))
-print(solution) # {a0: 4/9, a1: 11/18, a2: -1/18}
+print(solution) # {a0: 4/9, a1: 11/18, a2: -1/18}，实际上是一个dict
 ```
 
 不等式：
@@ -13419,6 +13477,10 @@ print(solution) # {a0: 4/9, a1: 11/18, a2: -1/18}
 ```python
 solve(x**2+x-3>0,x)
 ```
+
+矩阵方程组：见上文矩阵。
+
+
 
 ##### 质因数分解
 
@@ -19928,6 +19990,37 @@ nx.draw(g, with_labels=True, font_weight='bold')
 plt.savefig("path.png")
 ```
 
+```python
+import networkx as nx
+import matplotlib.pyplot as plt
+
+# 创建图
+G = nx.DiGraph()
+
+# 添加节点和边
+G.add_edge(1, 2, weight=1)
+G.add_edge(1, 3, weight=2)
+G.add_edge(2, 3, weight=3)
+G.add_edge(2, 4, weight=4)
+G.add_edge(3, 4, weight=5)
+
+# 设置节点位置（手动调整）
+pos = {
+    1: (0, 1),  # 节点 1 的位置
+    2: (1, 1),  # 节点 2 的位置
+    3: (0, 0),  # 节点 3 的位置
+    4: (1, 0),  # 节点 4 的位置
+}
+
+# 绘制图形
+nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=2000, font_size=16)
+labels = nx.get_edge_attributes(G, 'weight')
+nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
+
+# 显示图形
+plt.show()
+```
+
 
 
 #### 举例
@@ -20108,7 +20201,50 @@ from IPython.display import Image, display
 display(Image('https://datascience.ucsd.edu/wp-content/uploads/2022/09/Ery-Arias-Castro-Web.jpg'))
 ```
 
+### schemdraw
 
+绘制电路图
+
+```sh
+pip install schemdraw
+```
+
+```python
+import schemdraw
+import schemdraw.elements as elm
+# 创建电路图对象
+with schemdraw.Drawing() as d:
+    # 添加电压源
+    d += elm.SourceV().label('Vs\n12V').up()
+    # 添加电阻 R1
+    d += elm.Resistor().label('R1\n4Ω').right()
+    # 添加电阻 R2
+    d += elm.Resistor().label('R2\n6Ω').down()
+    # 闭合回路
+    d += elm.Line().left()
+    # 绘制电路图
+    d.draw()
+```
+
+```python
+import schemdraw
+import schemdraw.elements as elm
+# 创建电路图对象
+with schemdraw.Drawing() as d:
+    # 添加电压源
+    d += elm.SourceV().label('Vs\n12V').up()
+    # 添加电阻 R1
+    d += elm.Resistor().label('R1\n4Ω').right()
+    # 添加电阻 R2
+    d += elm.Resistor().label('R2\n6Ω').right()
+    # 添加连接线
+    d += elm.Line().down()
+    # 闭合回路
+    d += elm.Line().left()
+    d += elm.Line().left()
+    # 绘制电路图
+    d.draw()
+```
 
 
 

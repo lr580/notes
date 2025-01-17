@@ -2497,6 +2497,10 @@
 - 3097\.或值至少为K的最短子数组II
 
   滑动窗口 / <u>LogTrick后缀和 / 滑动窗口+双栈重构(无逆运算区间滑动)</u>
+  
+- 3287\.求出数组中最大序列值
+
+  状压DP / <u>贪心等优化</u>
 
 ## 算法
 
@@ -61518,5 +61522,282 @@ class Solution:
                     bottom = right
                     right_or = 0
         return ans if ans < inf else -1
+```
+
+##### 3287\.求出数组中最大序列值
+
+[题目](https://leetcode.cn/problems/find-the-maximum-sequence-value-of-array)
+
+设 $dp_{i,j}$ 表示前 $i$ 个数里选 $j$ 个数，能得到的全部的或为 $dp_{i,j}$，可以用二进制状态表示，则 $dp_{i,j}$ 为有 $2^7$ 个位的整数，第 $l$ 位为 $1$ 表示可以在前 $i$ 个数里选 $j$ 个数，使得这 $j$ 个数的或为 $l$。这里 $i,j$ 从 $1$ 开始计数，位 $l$ 从低到高从 $0$ 开始计数。
+
+初始值为 $dp_{i,0}=1$，即第 $0$ 位(或为 $0$)是可行的。转移方程：
+
+- 设不选第 $i$ 个数 $nums_{i-1}$，则全部状态为 $v_1=dp_{i-1,j}$；
+- 选第 $i$ 个数 $nums_{i-1}$，则全部状态为取 $dp_{i-1,j-1}$ 的所有状态位 $x\in dp_{i-1,j-1}$，其中 $x$ 取值 $[0,2^7)$ 是位下标。把所有的 $x$ 与 $nums_{i-1}$ 或之后得到新的全部状态记为 $v_2$。
+- 则选与不选合并，$dp_{i,j}=v_1\ or\ v_2$。
+
+复杂度分析：设 $c=2^7$，数组长 $n$，选 $k$ 个数，$v_2$ 计算复杂度为 $O(c)$，故总复杂度 $O(nkc)\approx10^7$。
+
+得到的全部 $dp_{i,:}$ 把二进制状态展开，设 $ans_{i-1,j}$ 是 $dp_{i,k}$ 的状态的从低往高第 $j$ 个二进制 $1$ 的编号，即 $ans_{i-1}$ 是前 $i$ 个数里选 $k$ 个能得到的所有或值的集合。
+
+把原数组经由上述处理得到 $la=ans$；原数组反转处理得到 $ra$。
+
+下标从 $0$ 开始算。枚举分割点下标 $l\in[k-1,n-k)$，则从左边选择下标不超过 $l$ 的子序列 $la_l$，从右边选择下标超过 $l$ 的子序列 $ra_{n-2-l}$。枚举 $la_l$ 和 $ra_{n-2-l}$ 的两两组合进行异或，求最大即可。此处复杂度为 $O(nc^2)\approx6\times10^6$。
+
+故总复杂度为 $O(nkc+nc^2)=O(nc(k+c))\approx O(nc(n+c))$。
+
+```python
+from typing import *
+class Solution:
+    def maxValue(self, nums: List[int], k: int) -> int:
+        n = len(nums)
+        def getBits(v):
+            return [x for x in range(v.bit_length()) if (v >> x) & 1]
+        def getDP(a):
+            # dp[i][j] 前 i 个数选了 j 个，可以组成的 or 值集合为 dp[i][j]
+            dp = [[0 for _ in range(k+1)] for _ in range(n+1)]
+            # 其中 dp[i][j] 的第 l 位为 1，则可以 or 和为 l
+            ans = [0 for i in range(n)]
+            dp[0][0] = 1
+            for i in range(1, n+1):
+                dp[i][0] = 1
+                for j in range(1,min(k+1,i+1)):
+                    v1 = dp[i-1][j] # 不选 a[i]
+                    v2 = dp[i-1][j-1] # 选 a[i]
+                    l = getBits(v2)
+                    v2 = 0
+                    y = a[i-1]
+                    for x in l:
+                        v2 |= (1 << (x | y))
+                    dp[i][j] = v1 | v2
+                ans[i-1] = getBits(dp[i][k])
+            return ans
+        la = getDP(nums)
+        ra = getDP(nums[::-1])
+        # print(la)
+        # print(ra)
+        ans = 0
+        for l in range(k-1,n-k):
+            r = n-2-l
+            for xl in la[l]:
+                for xr in ra[r]:
+                    # print(xl, xr, xl^xr, l, r)
+                    ans = max(ans, xl ^ xr)
+        return ans
+```
+
+上面代码 7706ms，可以优化。
+
+显然 $dp_i$ 这一个维度可以优化。且可以不到 $2^7$，用原数组或和求出最大位数。1.5s：
+
+```python
+class Solution:
+    def maxValue(self, nums: List[int], k: int) -> int:
+        mx = reduce(or_, nums)
+        n = len(nums)
+        suf = [None] * (n - k + 1)
+        f = [[False] * (mx + 1) for _ in range(k + 1)]
+        f[0][0] = True
+        for i in range(n - 1, k - 1, -1):
+            v = nums[i]
+            # 注意当 i 比较大的时候，循环次数应和 i 有关，因为更大的 j，对应的 f[j] 全为 False
+            for j in range(min(k - 1, n - 1 - i), -1, -1):
+                for x, has_x in enumerate(f[j]):
+                    if has_x:
+                        f[j + 1][x | v] = True
+            if i <= n - k:
+                suf[i] = f[k].copy()
+
+        ans = 0
+        pre = [[False] * (mx + 1) for _ in range(k + 1)]
+        pre[0][0] = True
+        for i, v in enumerate(nums[:-k]):
+            for j in range(min(k - 1, i), -1, -1):
+                for x, has_x in enumerate(pre[j]):
+                    if has_x:
+                        pre[j + 1][x | v] = True
+            if i < k - 1:
+                continue
+            for x, has_x in enumerate(pre[k]):
+                if has_x:
+                    for y, has_y in enumerate(suf[i + 1]):
+                        if has_y and x ^ y > ans:  # 手写 if
+                            ans = x ^ y
+            if ans == mx:
+                return ans
+        return ans
+```
+
+省掉 0，用 set，快一倍：
+
+```python
+# 使用 set 代替 bool list
+class Solution:
+    def maxValue(self, nums: List[int], k: int) -> int:
+        n = len(nums)
+        suf = [None] * (n - k + 1)
+        f = [set() for _ in range(k + 1)]
+        f[0].add(0)
+        for i in range(n - 1, k - 1, -1):
+            v = nums[i]
+            for j in range(min(k - 1, n - 1 - i), -1, -1):
+                f[j + 1].update(x | v for x in f[j])
+            if i <= n - k:
+                suf[i] = f[k].copy()
+
+        mx = reduce(or_, nums)
+        ans = 0
+        pre = [set() for _ in range(k + 1)]
+        pre[0].add(0)
+        for i, v in enumerate(nums[:-k]):
+            for j in range(min(k - 1, i), -1, -1):
+                pre[j + 1].update(x | v for x in pre[j])
+            if i < k - 1:
+                continue
+            ans = max(ans, max(x ^ y for x in pre[k] for y in suf[i + 1]))
+            if ans == mx:
+                return ans
+        return ans
+```
+
+```c++
+class Solution {
+public:
+    int maxValue(vector<int>& nums, int k) {
+        const int MX = 1 << 7;
+        int n = nums.size();
+        vector<array<int, MX>> suf(n - k + 1);
+        vector<array<int, MX>> f(k + 1);
+        f[0][0] = true;
+        for (int i = n - 1; i >= k; i--) {
+            int v = nums[i];
+            // 注意当 i 比较大的时候，循环次数应和 i 有关，因为更大的 j，对应的 f[j] 全为 false
+            for (int j = min(k - 1, n - 1 - i); j >= 0; j--) {
+                for (int x = 0; x < MX; x++) {
+                    if (f[j][x]) {
+                        f[j + 1][x | v] = true;
+                    }
+                }
+            }
+            if (i <= n - k) {
+                suf[i] = f[k];
+            }
+        }
+
+        int ans = 0;
+        vector<array<int, MX>> pre(k + 1);
+        pre[0][0] = true;
+        for (int i = 0; i < n - k; i++) {
+            int v = nums[i];
+            for (int j = min(k - 1, i); j >= 0; j--) {
+                for (int x = 0; x < MX; x++) {
+                    if (pre[j][x]) {
+                        pre[j + 1][x | v] = true;
+                    }
+                }
+            }
+            if (i < k - 1) {
+                continue;
+            }
+            for (int x = 0; x < MX; x++) {
+                if (pre[k][x]) {
+                    for (int y = 0; y < MX; y++) {
+                        if (suf[i + 1][y]) {
+                            ans = max(ans, x ^ y);
+                        }
+                    }
+                }
+            }
+            if (ans == MX - 1) {
+                return ans;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+卡常完毕，下面进行复杂度优化。
+
+类比力扣 421，子问题：从数组 $a,b$ 各选一个数，求异或最大值。其复杂度为 $O(n\log c)$。从最高位开始枚举，假设答案是 $ans$，若当前位 $i$ 可以是 $1$，则新答案是 $ans+2^i$，维护一个集合，类比两数之和(力扣1)，遍历数组，只看从 $i$ 开始更高的位，看看能否有两个数异或为 $ans+2^i$，可以就方案成立，否则第 $i$ 为是 $0$。
+
+> 没太看懂：
+>
+> 下面继续优化状压 DP 部分。对一个数 $x$，设它有 $n_1$ 个 $1$，则最多选 $n_1$ 个数或，就能组成 $x$。显然 $n_1\le \log_2c=7<k$。然而本题要求恰好选 $k$ 个数。设：
+>
+> - $minI_x$ 表示从 $0$ 开始遍历，至少到 $i$ 才能找到 $k$ 个数或为 $x$。无解 $\infty$。
+> - $maxI_x$ 表示从 $n-1$ 开始遍历，至少到 $i$ 才能找到 $k$ 个数或为 $x$。无解 $0$。
+>
+> 如果有解，那么显然参与或的成分都是 $x$ 这个状态的子集。用 $cnt$ 维护 $nums_i$ 的每个超集(含自己)的出现次数。如果枚举过程发现某个超集 $s$ 出现次数恰好为 $k$，那么这个超集 $s$ 在 $i$ 处第一次有解，即 $maxI_s=i$。$minI_s$ 同理计算。
+>
+> 然后还是继续做前后缀状压 DP。在枚举两部分时，用 $minI,maxI$ 进行元素筛选。
+
+```python
+class Solution:
+    def maxValue(self, nums: List[int], k: int) -> int:
+        n = len(nums)
+        mx = reduce(or_, nums)
+        k2 = min(k, mx.bit_count())  # 至多选 k2 个数
+
+        suf = [None] * (n - k + 1)
+        f = [set() for _ in range(k2 + 1)]
+        f[0].add(0)
+        max_i = [0] * (mx + 1)
+        cnt = [0] * (mx + 1)
+        for i in range(n - 1, k - 1, -1):
+            v = nums[i]
+            for j in range(min(k2 - 1, n - 1 - i), -1, -1):
+                f[j + 1].update(x | v for x in f[j])
+            if i <= n - k:
+                suf[i] = f[k2].copy()
+            # 枚举 v 的超集
+            s = v
+            while s <= mx:
+                cnt[s] += 1
+                if cnt[s] == k:
+                    # 从 n-1 开始遍历，至少要遍历到 i 才有可能找到 k 个数 OR 等于 s
+                    max_i[s] = i
+                s = (s + 1) | v
+
+        ans = 0
+        pre = [set() for _ in range(k2 + 1)]
+        pre[0].add(0)
+        min_i = [inf] * (mx + 1)
+        cnt = [0] * (mx + 1)
+        w = mx.bit_length()  # 用于 findMaximumXOR
+        for i, v in enumerate(nums[:-k]):
+            for j in range(min(k2 - 1, i), -1, -1):
+                pre[j + 1].update(x | v for x in pre[j])
+            # 枚举 v 的超集
+            s = v
+            while s <= mx:
+                cnt[s] += 1
+                if cnt[s] == k:
+                    # 从 0 开始遍历，至少要遍历到 i 才有可能找到 k 个数 OR 等于 s
+                    min_i[s] = i
+                s = (s + 1) | v
+            if i < k - 1:
+                continue
+            a = [x for x in pre[k2] if min_i[x] <= i]
+            b = [x for x in suf[i + 1] if max_i[x] > i]
+            ans = max(ans, self.findMaximumXOR(a, b, w))
+            if ans == mx:
+                return ans
+        return ans
+
+    # 421. 数组中两个数的最大异或值
+    # 改成两个数组的最大异或值，做法是类似的，仍然可以用【试填法】解决
+    def findMaximumXOR(self, a: List[int], b: List[int], w: int) -> int:
+        ans = mask = 0
+        for i in range(w - 1, -1, -1):  # 从最高位开始枚举
+            mask |= 1 << i
+            new_ans = ans | (1 << i)  # 这个比特位可以是 1 吗？
+            set_a = set(x & mask for x in a)  # 低于 i 的比特位置为 0
+            for x in b:
+                x &= mask  # 低于 i 的比特位置为 0
+                if new_ans ^ x in set_a:
+                    ans = new_ans  # 这个比特位可以是 1
+                    break
+        return ans
 ```
 
