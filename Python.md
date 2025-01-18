@@ -5746,6 +5746,8 @@ from itertools import *
 
 - `count(i)` 从 i 开始每次不断自增的无限迭代器 (break 跳出)
 
+- `groupby(x, key=None)`，对可迭代对象 x 分组，分组依据默认为元素本身，返回迭代器，每次返回一个元组 (k, g)，其中 k 是键，g 是迭代器。取长度可以 `len(list(g))`。
+
 例：
 
 ```python
@@ -5797,6 +5799,12 @@ from itertools import count
 for i in count(2): # 无线迭代器
     print(i)
     if i >= 5: break  # 仅示例，实际中会是无限的
+```
+
+```python
+from itertools import groupby
+for ch, s in groupby('1222334555'):
+    print(ch, len(list(s)))
 ```
 
 

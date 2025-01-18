@@ -2501,6 +2501,10 @@
 - 3287\.求出数组中最大序列值
 
   状压DP / <u>贪心等优化</u>
+  
+- 2266\.统计打字方案数
+
+  DP 数学(乘法原理，取模) 预处理
 
 ## 算法
 
@@ -61800,4 +61804,70 @@ class Solution:
                     break
         return ans
 ```
+
+##### 2266\.统计打字方案数
+
+[题目](https://leetcode.cn/problems/count-number-of-texts)
+
+预处理出所有3、4字母按键按 $k$ 次的方案数，记为 $dp3_k,dp4_k$，可以枚举出初始情况，设 $k=0$ 为不按，下标 $0$ 开始：$dp3=1,1,2,4,\cdots$，$dp4=1,1,2,4,8,\cdots$。然后转移方程为：
+$$
+dp3_i=dp3_{i-1}+dp3_{i-2}+dp3_{i-3}\\
+dp4_i=dp4_{i-1}+dp4_{i-2}+dp4_{i-3}+dp4_{i-4}
+$$
+然后对每个连续数字段，方案数为对应的 $dp$，乘法原理把每个连续段乘起来即可。
+
+```python
+N, P = 100000, 1000000007
+dp3 = [0] * (N+1)
+dp3[0], dp3[1], dp3[2], dp3[3] = 1, 1, 2, 4
+for i in range(4, N+1):
+    dp3[i] = (dp3[i-1] + dp3[i-2] + dp3[i-3]) % P
+dp4 = [0] * (N+1)
+dp4[0], dp4[1], dp4[2], dp4[3], dp4[4] = 1, 1, 2, 4, 8
+for i in range(5, N+1):
+    dp4[i] = (dp4[i-1] + dp4[i-2] + dp4[i-3] + dp4[i-4]) % P
+class Solution:
+    def countTexts(self, pressedKeys: str) -> int:
+        ans = 1
+        prv, cnt = '0', 0
+        def add():
+            nonlocal ans
+            if prv == '7' or prv == '9':
+                ans = (ans * dp4[cnt]) % P
+            else:
+                ans = (ans * dp3[cnt]) % P
+            # print(prv, cnt, ans, dp4[cnt] if (prv=='7' or prv=='9') else dp3[cnt])
+        for c in pressedKeys:
+            if c != prv:
+                add()
+                prv, cnt = c, 1
+            else:
+                cnt += 1
+        add()
+        return ans
+```
+
+更优雅：
+
+```python
+MOD = 1_000_000_007
+f = [1, 1, 2, 4]
+g = [1, 1, 2, 4]
+for _ in range(10 ** 5 - 3):  # 预处理所有长度的结果
+    f.append((f[-1] + f[-2] + f[-3]) % MOD)
+for _ in range(10 ** 5 - 3): # 局部性原理，两次for比一次for更快
+    g.append((g[-1] + g[-2] + g[-3] + g[-4]) % MOD)
+
+class Solution:
+    def countTexts(self, pressedKeys: str) -> int:
+        ans = 1
+        for ch, s in groupby(pressedKeys):
+            m = len(list(s))
+            ans = ans * (g[m] if ch in "79" else f[m]) % MOD
+        return ans
+```
+
+
+
+
 
