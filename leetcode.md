@@ -2505,6 +2505,10 @@
 - 2266\.统计打字方案数
 
   DP 数学(乘法原理，取模) 预处理
+  
+- 2239\.找到最接近0的数字
+
+  签到
 
 ## 算法
 
@@ -61867,7 +61871,34 @@ class Solution:
         return ans
 ```
 
+##### 2239\.找到最接近0的数字
 
+[题目](https://leetcode.cn/problems/find-closest-number-to-zero)
 
+以绝对值为依据取min，如果是负号，加上一个较小的(小于1)的值在比较依据上，使负数比它的相反数在比较上更大。
+
+```python
+class Solution:
+    def findClosestNumber(self, nums: List[int]) -> int:
+        return min(nums, key=lambda x:abs(x)+(0.5 if x<0 else 0))
+```
+
+也可以用元祖，做结构体排序
+
+```python
+class Solution:
+    def findClosestNumber(self, nums: List[int]) -> int:
+        return -min((abs(x), -x) for x in nums)[1]
+```
+
+```python
+class Solution:
+    def findClosestNumber(self, nums: List[int]) -> int:
+        ans = nums[0]
+        for x in nums:
+            if abs(x) < abs(ans) or abs(x) == abs(ans) and x > 0:
+                ans = x
+        return ans
+```
 
 
