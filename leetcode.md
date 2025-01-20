@@ -2509,6 +2509,10 @@
 - 2239\.找到最接近0的数字
 
   签到
+  
+- 2218\.从栈中取出K个硬币的最大面值和
+
+  **DP 分组背包**
 
 ## 算法
 
@@ -61899,6 +61903,62 @@ class Solution:
             if abs(x) < abs(ans) or abs(x) == abs(ans) and x > 0:
                 ans = x
         return ans
+```
+
+##### 2218\.从栈中取出K个硬币的最大面值和
+
+[题目](https://leetcode.cn/problems/maximum-value-of-k-coins-from-piles)
+
+每个栈是一组，做 DP $f_{i,j}$ 表示前 $i$ 组，用了 $j$ 次容量。
+
+```python
+class Solution:
+    def maxValueOfCoins(self, piles: List[List[int]], k: int) -> int:
+        f = [[0] * (k + 1) for _ in range(len(piles) + 1)]
+        for i, pile in enumerate(piles):
+            for j in range(k + 1):
+                # 不选这一组中的任何物品
+                f[i + 1][j] = f[i][j]
+                # 枚举选哪个
+                for w, v in enumerate(accumulate(pile[:j]), 1):
+                    f[i + 1][j] = max(f[i + 1][j], f[i][j - w] + v)
+        return f[-1][k]
+```
+
+其中，最外层每次取一个栈，最内层每次遍历该栈，那么加起来就是 $L\le2000$，所以总复杂度是 $O(Lk)$。
+
+```python
+class Solution:
+    def maxValueOfCoins(self, piles: List[List[int]], k: int) -> int:
+        f = [0] * (k + 1)
+        sum_n = 0
+        for pile in piles:
+            n = len(pile)
+            for i in range(1, n):
+                pile[i] += pile[i - 1]  # 提前计算 pile 的前缀和
+            sum_n = min(sum_n + n, k)
+            for j in range(sum_n, 0, -1):  # 优化：j 从前 i 个栈的大小之和开始枚举
+                # w 从 0 开始，物品体积为 w+1
+                f[j] = max(f[j], max(f[j - w - 1] + pile[w] for w in range(min(n, j))))
+        return f[k]
+```
+
+更快：
+
+```python
+class Solution:
+    def maxValueOfCoins(self, piles: List[List[int]], k: int) -> int:
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int, j: int) -> int:
+            if i < 0:
+                return 0
+            # 不选这一组中的任何物品
+            res = dfs(i - 1, j)
+            # 枚举选哪个
+            for w, v in enumerate(accumulate(piles[i][:j]), 1):
+                res = max(res, dfs(i - 1, j - w) + v)
+            return res
+        return dfs(len(piles) - 1, k)
 ```
 
 
