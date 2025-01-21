@@ -2513,6 +2513,10 @@
 - 2218\.从栈中取出K个硬币的最大面值和
 
   **DP 分组背包**
+  
+- 1561\.你可以获得的最大硬币数目
+
+  排序 贪心
 
 ## 算法
 
@@ -60864,6 +60868,46 @@ public:
 };
 ```
 
+复杂度分析：暴力DFS
+
+```python
+class Solution:
+    def isSubPath(self, head: ListNode, root: TreeNode) -> bool:
+        def dfs(s: Optional[ListNode], t: Optional[TreeNode]) -> bool:
+            if s is None:  # 整个链表匹配完毕
+                return True
+            # 否则需要继续匹配
+            if t is None:  # 无法继续匹配
+                return False
+            # 节点值相同则继续匹配，否则从 head 开始重新匹配
+            return s.val == t.val and (dfs(s.next, t.left) or dfs(s.next, t.right)) or \
+                   s is head and (dfs(head, t.left) or dfs(head, t.right))
+        return dfs(head, root)
+```
+
+```python
+class Solution:
+    def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
+        ans=False
+        def dfs(this,node):
+            if(this==None):
+                nonlocal ans
+                ans=True
+                return
+            if node==None:
+                return
+            if(node.val==this.val):
+                dfs(this.next,node.left)
+                dfs(this.next,node.right)
+            if this==head:
+                dfs(head,node.left)
+                dfs(head,node.right) 
+        dfs(head,root)
+        return ans
+```
+
+如果不加 `this==head`，逻辑正确但 TLE，其复杂度，考虑树：左儿子是单一节点，右儿子是子树，不断递归。则有 $T(n)=2+2T(n-2)$，显然指数复杂度。如果加了，把 `if this==head`里看成 g 函数，另一个 if 里看成 f 函数，显然原问题是 g 函数，且显然 f 函数是二叉树 DFS 复杂度为 $O(n)$，则有 $T(n)=1+1+O(n-2)+T(n-2)=O(n^2)$。如果是完全二叉树，可以用主定理易知。
+
 也可以上 KMP，也就是记录当前匹配的状态和当前节点为参数同时DFS(等价于字符串的两个下标)，直接对应即可。[src](https://leetcode.cn/problems/linked-list-in-binary-tree/solutions/271244/ji-zhi-you-hua-kmpdfs-by-etan-2/)
 
 ```c++
@@ -61961,4 +62005,17 @@ class Solution:
         return dfs(len(piles) - 1, k)
 ```
 
+##### 1561\.你可以获得的最大硬币数目
+
+[题目](https://leetcode.cn/problems/maximum-number-of-coins-you-can-get)
+
+排序，然后不断选择最小和最大两个作三元组。调换顺序知不会更优。
+
+```python
+class Solution:
+    def maxCoins(self, piles: List[int]) -> int:
+        piles.sort()
+        n = len(piles) // 3
+        return sum(piles[n+2*i] for i in range(n))
+```
 
