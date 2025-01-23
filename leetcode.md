@@ -62019,3 +62019,78 @@ class Solution:
         return sum(piles[n+2*i] for i in range(n))
 ```
 
+##### 2920\.收集所有金币可获得的最大积分
+
+[题目](https://leetcode.cn/problems/maximum-points-after-collecting-coins-from-all-nodes/)
+
+记忆化 DFS，倍数递减，所以 $O(n\log n)$。
+
+```python
+from typing import * #3s
+from functools import *
+IMPO = -1e9
+class Solution:
+    def maximumPoints(self, edges: List[List[int]], coins: List[int], k: int) -> int:
+        n = len(edges) + 1
+        g = [[] for i in range(n)]
+        for u, v in edges:
+            g[u].append(v)
+            g[v].append(u)
+        @cache
+        def dfs(u, fa, cnt): # cnt: 祖先做了几次操作2
+            ans1 = coins[u] // (1<<(cnt)) - k
+            ans2 = coins[u] // (1<<(1+cnt))
+            for v in g[u]:
+                if v != fa:
+                    ans1 += dfs(v, u, cnt)
+                    ans2 += dfs(v, u, min(15, cnt + 1))#可以到13
+            # print(u, cnt, max(ans1, ans2))
+            return max(ans1, ans2)
+        return dfs(0, 0, 0)
+```
+
+```python
+class Solution:#2s
+    def maximumPoints(self, edges: List[List[int]], coins: List[int], k: int) -> int:
+        g = [[] for _ in coins]
+        for x, y in edges:
+            g[x].append(y)
+            g[y].append(x)
+
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int, j: int, fa: int) -> int:
+            res1 = (coins[i] >> j) - k
+            res2 = coins[i] >> (j + 1)
+            for ch in g[i]:
+                if ch != fa:
+                    res1 += dfs(ch, j, i)  # 不右移
+                    if j < 13:  # j+1 >= 14 相当于 res2 += 0，无需递归；更快
+                        res2 += dfs(ch, j + 1, i)  # 右移
+            return max(res1, res2)
+        return dfs(0, 0, -1)
+```
+
+递推，更快：(1s)
+
+```python
+class Solution:
+    def maximumPoints(self, edges: List[List[int]], coins: List[int], k: int) -> int:
+        g = [[] for _ in coins]
+        for x, y in edges:
+            g[x].append(y)
+            g[y].append(x)
+
+        def dfs(x: int, fa: int) -> List[int]:
+            s = [0] * 14
+            for y in g[x]:
+                if y != fa:
+                    fy = dfs(y, x)
+                    for j, v in enumerate(fy):
+                        s[j] += v
+            for j in range(13):
+                s[j] = max((coins[x] >> j) - k + s[j], (coins[x] >> (j + 1)) + s[j + 1])
+            s[13] += (coins[x] >> 13) - k
+            return s
+        return dfs(0, -1)[0]
+```
+
