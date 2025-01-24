@@ -2517,6 +2517,14 @@
 - 1561\.你可以获得的最大硬币数目
 
   排序 贪心
+  
+- 2920\.收集所有金币可获得的最大积分
+
+  树上DP
+  
+- 2944\.购买水果需要的最少金币数
+
+  DP / <u>DP+滑动窗口优化</u>
 
 ## 算法
 
@@ -62092,5 +62100,143 @@ class Solution:
             s[13] += (coins[x] >> 13) - k
             return s
         return dfs(0, -1)[0]
+```
+
+##### 2920\.收集所有金币可获得的最大积分
+
+[题目](https://leetcode.cn/problems/maximum-points-after-collecting-coins-from-all-nodes)
+
+复杂度 $O(n\log n)$，因为操作二进行 $O(\log n)$ 次后就趋同了。记忆化 DFS：3s
+
+```python
+from typing import * 
+from functools import *
+IMPO = -1e9
+class Solution:
+    def maximumPoints(self, edges: List[List[int]], coins: List[int], k: int) -> int:
+        n = len(edges) + 1
+        g = [[] for i in range(n)]
+        for u, v in edges:
+            g[u].append(v)
+            g[v].append(u)
+        @cache
+        def dfs(u, fa, cnt): # cnt: 祖先做了几次操作2
+            ans1 = coins[u] // (1<<(cnt)) - k
+            ans2 = coins[u] // (1<<(1+cnt))
+            for v in g[u]:
+                if v != fa:
+                    ans1 += dfs(v, u, cnt)
+                    ans2 += dfs(v, u, min(15, cnt + 1))
+            # print(u, cnt, max(ans1, ans2))
+            return max(ans1, ans2)
+        return dfs(0, 0, 0)
+```
+
+if 剪枝，并且卡到 13：2.5s
+
+```python
+class Solution:
+    def maximumPoints(self, edges: List[List[int]], coins: List[int], k: int) -> int:
+        g = [[] for _ in coins]
+        for x, y in edges:
+            g[x].append(y)
+            g[y].append(x)
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int, j: int, fa: int) -> int:
+            res1 = (coins[i] >> j) - k
+            res2 = coins[i] >> (j + 1)
+            for ch in g[i]:
+                if ch != fa:
+                    res1 += dfs(ch, j, i)  # 不右移
+                    if j < 13:  # j+1 >= 14 相当于 res2 += 0，无需递归
+                        res2 += dfs(ch, j + 1, i)  # 右移
+            return max(res1, res2)
+        return dfs(0, 0, -1)
+```
+
+用非递归，1s
+
+```python
+class Solution:
+    def maximumPoints(self, edges: List[List[int]], coins: List[int], k: int) -> int:
+        g = [[] for _ in coins]
+        for x, y in edges:
+            g[x].append(y)
+            g[y].append(x)
+        def dfs(x: int, fa: int) -> List[int]:
+            s = [0] * 14
+            for y in g[x]:
+                if y != fa:
+                    fy = dfs(y, x)
+                    for j, v in enumerate(fy):
+                        s[j] += v
+            for j in range(13):
+                s[j] = max((coins[x] >> j) - k + s[j], (coins[x] >> (j + 1)) + s[j + 1])
+            s[13] += (coins[x] >> 13) - k
+            return s
+        return dfs(0, -1)[0]
+```
+
+##### 2944\.购买水果需要的最少金币数
+
+[题目](https://leetcode.cn/problems/maximum-points-after-collecting-coins-from-all-nodes)
+
+$dp_i$ 表示前 $i$ 个水果都得到了，且购买了第 $i$ 个水果的答案。则结果为 $\min_{i=\lceil\frac n2\rceil}^n dp_i$。
+
+所有 $j+j\ge i-1$ 即 $j\ge\lceil\dfrac{i-2}2\rceil=\lfloor\dfrac i2\rfloor$ 的都可以转移到 $i$。$O(n^2)$。
+
+```python
+from typing import *
+class Solution:
+    def minimumCoins(self, prices: List[int]) -> int:
+        n = len(prices)
+        dp = [1e12 for i in range(n+1)] # 前i个，买了第i个
+        dp[1] = prices[0]
+        for i in range(2,n+1):
+            for j in range(i//2, i):
+                dp[i] = min(dp[i], dp[j] + prices[i-1])
+        return min(dp[i] for i in range((n+1)//2, n+1))
+```
+
+记忆化 DFS 更快：$dp_i$ 表示一定买第 $i$ 个水果。
+
+```python
+class Solution:
+    def minimumCoins(self, prices: List[int]) -> int:
+        n = len(prices)
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int) -> int:
+            if i * 2 >= n:
+                return prices[i - 1]  # i 从 1 开始
+            return min(dfs(j) for j in range(i + 1, i * 2 + 2)) + prices[i - 1]
+        return dfs(1)
+```
+
+切片，比 for 快巨大：
+
+```python
+class Solution:
+    def minimumCoins(self, f: List[int]) -> int:
+        n = len(f)
+        for i in range((n + 1) // 2 - 1, 0, -1):
+            f[i - 1] += min(f[i: i * 2 + 1])
+        return f[0]
+```
+
+这个过程可以滑动窗口维护最小值优化。$O(n)$
+
+```python
+class Solution:
+    def minimumCoins(self, prices: List[int]) -> int:
+        n = len(prices)
+        q = deque([(n + 1, 0)])  # 哨兵
+        for i in range(n, 0, -1):
+            while q[-1][0] > i * 2 + 1:  # 右边离开窗口
+                q.pop()
+            f = prices[i - 1] + q[-1][1]
+            while f <= q[0][1]:
+                q.popleft()
+            q.appendleft((i, f))  # 左边进入窗口
+        return q[0][1]
 ```
 
