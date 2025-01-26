@@ -2525,6 +2525,14 @@
 - 2944\.购买水果需要的最少金币数
 
   DP / <u>DP+滑动窗口优化</u>
+  
+- 2412\.完成所有交易的初始最少钱数
+
+  **贪心**
+  
+- 40\.组合总和II
+
+  <u>DFS 剪枝</u>
 
 ## 算法
 
@@ -62238,5 +62246,53 @@ class Solution:
                 q.popleft()
             q.appendleft((i, f))  # 左边进入窗口
         return q[0][1]
+```
+
+##### 2412\.完成所有交易的初始最少钱数
+
+[题目](https://leetcode.cn/problems/minimum-money-required-before-transactions)
+
+看灵神。
+
+```python
+class Solution:
+    def minimumMoney(self, transactions: List[List[int]]) -> int:
+        total_lose = mx = 0
+        for cost, cashback in transactions:
+            total_lose += max(cost - cashback, 0)
+            mx = max(mx, min(cost, cashback))
+        return total_lose + mx
+```
+
+##### 40\.组合总和II
+
+[题目](https://leetcode.cn/problems/combination-sum-ii)
+
+选与不选只一次下一个，然后counter键值对去重。复杂度指数的。
+
+```python
+class Solution:
+    def combinationSum2(self, candidates: List[int], target: int) -> List[List[int]]:
+        def dfs(pos: int, rest: int):
+            nonlocal sequence
+            if rest == 0:
+                ans.append(sequence[:])
+                return
+            if pos == len(freq) or rest < freq[pos][0]:
+                return
+            
+            dfs(pos + 1, rest)
+
+            most = min(rest // freq[pos][0], freq[pos][1])
+            for i in range(1, most + 1):
+                sequence.append(freq[pos][0])
+                dfs(pos + 1, rest - i * freq[pos][0])
+            sequence = sequence[:-most]
+        
+        freq = sorted(collections.Counter(candidates).items())
+        ans = list()
+        sequence = list()
+        dfs(0, target)
+        return ans
 ```
 

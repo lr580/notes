@@ -4420,6 +4420,14 @@ a+b#Counter({'b': 3, 'a': 2, 'c': 1})
 a-b#Counter({'a': 2})
 ```
 
+还可以切回列表：
+
+```python
+list(Counter([1,1,4,5,1,4]).elements()) # [1, 1, 1, 4, 4, 5]
+```
+
+
+
 ##### sortedlist
 
 有序列表，不满足集合的元素唯一性
