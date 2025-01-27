@@ -2533,6 +2533,10 @@
 - 40\.组合总和II
 
   <u>DFS 剪枝</u>
+  
+- 45\.跳跃游戏II
+
+  DP / <u>DP+滑动窗口/堆优化 贪心</u>
 
 ## 算法
 
@@ -62295,4 +62299,62 @@ class Solution:
         dfs(0, target)
         return ans
 ```
+
+##### 45\.跳跃游戏II
+
+[题目](https://leetcode.cn/problems/jump-game-ii)
+
+DP $O(nm)$
+
+```python
+from typing import *
+class Solution:
+    def jump(self, nums: List[int]) -> int:
+        n = len(nums)
+        dp = [1e9] * n
+        dp[0] = 0
+        for i in range(n):
+            for j in range(i+1,min(n,i+nums[i]+1)):
+                dp[j] = min(dp[j],dp[i]+1)
+        return dp[-1]
+```
+
+DP+堆优化： powered by pwp $O(n\log n)$
+
+- 把步数和能到达的最后一个位置绑定丢进堆里，即滑动窗口
+
+```python
+from typing import *
+import heapq
+class Solution:
+    def jump(self, nums: List[int]) -> int:
+        n = len(nums)
+        dp = [1e9] * n
+        dp[0] = 0
+        q = [(0, 0)]
+        for i in range(n):
+            while i > q[0][1]:
+                heapq.heappop(q)
+            dp[i] = min(dp[i], q[0][0])
+            heapq.heappush(q, (dp[i]+1, i+nums[i]))
+        return dp[-1]
+```
+
+贪心：$O(n)$
+
+```python
+class Solution:
+    def jump(self, nums: List[int]) -> int:
+        n = len(nums)
+        maxPos, end, step = 0, 0, 0
+        for i in range(n - 1):
+            if maxPos >= i:
+                maxPos = max(maxPos, i + nums[i])
+                if i == end:
+                    end = maxPos
+                    step += 1
+        return step
+```
+
+
 
