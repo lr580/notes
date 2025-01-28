@@ -2541,6 +2541,10 @@
 - 119\.杨辉三角II
 
   签到
+  
+- 219\.存在重复元素 II
+
+  滑动窗口
 
 ## 算法
 
@@ -62388,4 +62392,37 @@ for i in range(2, MX):
 class Solution:
     def getRow(self, rowIndex: int) -> List[int]:
         return c[rowIndex]
+```
+
+##### 219\.存在重复元素 II
+
+[题目](https://leetcode.cn/problems/contains-duplicate-ii)
+
+```python
+from typing import *
+class Solution:
+    def containsNearbyDuplicate(self, nums: List[int], k: int) -> bool:
+        n = len(nums)
+        s = set()
+        for i, x in enumerate(nums):
+            j = i - k - 1
+            if j >= 0:
+                s.remove(nums[j])
+            if x in s:
+                return True
+            s.add(x)
+        return False
+```
+
+更快：不remove，记录下标
+
+```python
+class Solution:
+    def containsNearbyDuplicate(self, nums: List[int], k: int) -> bool:
+        pos = {}
+        for i, num in enumerate(nums):
+            if num in pos and i - pos[num] <= k:
+                return True
+            pos[num] = i
+        return False
 ```
