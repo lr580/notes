@@ -2537,6 +2537,10 @@
 - 45\.跳跃游戏II
 
   DP / <u>DP+滑动窗口/堆优化 贪心</u>
+  
+- 119\.杨辉三角II
+
+  签到
 
 ## 算法
 
@@ -62356,5 +62360,32 @@ class Solution:
         return step
 ```
 
+##### 119\.杨辉三角II
 
+[题目](https://leetcode.cn/problems/pascals-triangle-ii)
 
+$C_n^m=C_n^{m-1}\cdot\dfrac{n-m+1}m$
+
+```python
+class Solution:
+    def getRow(self, rowIndex: int) -> List[int]:
+        row = [1] * (rowIndex + 1)
+        for i in range(1, rowIndex + 1):
+            row[i] = row[i - 1] * (rowIndex - i + 1) // i
+        return row
+```
+
+不如预处理
+
+```python
+MX = 34
+c = [[1] * (i + 1) for i in range(MX)]
+for i in range(2, MX):
+    for j in range(1, i):
+        # 左上方的数 + 正上方的数
+        c[i][j] = c[i - 1][j - 1] + c[i - 1][j]
+
+class Solution:
+    def getRow(self, rowIndex: int) -> List[int]:
+        return c[rowIndex]
+```
