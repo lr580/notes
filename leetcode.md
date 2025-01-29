@@ -2542,9 +2542,13 @@
 
   签到
   
-- 219\.存在重复元素 II
+- 219\.存在重复元素II
 
   滑动窗口
+  
+- 350\.两个数组的交集II
+
+  签到 STL
 
 ## 算法
 
@@ -62425,4 +62429,28 @@ class Solution:
                 return True
             pos[num] = i
         return False
+```
+
+##### 350\.两个数组的交集II
+
+[题目](https://leetcode.cn/problems/intersection-of-two-arrays-ii)
+
+Counter 计数，使用 & 集合并，然后转换回 list
+
+```python
+class Solution:
+    def intersect(self, nums1: List[int], nums2: List[int]) -> List[int]:
+        return list((Counter(nums1)&Counter(nums2)).elements())
+```
+
+```python
+class Solution:
+    def intersect(self, nums1: List[int], nums2: List[int]) -> List[int]:
+        cnt = Counter(nums1)
+        ans = []
+        for x in nums2:
+            if cnt[x] > 0:
+                cnt[x] -= 1
+                ans.append(x)
+        return ans
 ```
