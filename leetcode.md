@@ -2549,6 +2549,10 @@
 - 350\.两个数组的交集II
 
   签到 STL
+  
+- 541\.反转字符串II
+
+  签到 字符串
 
 ## 算法
 
@@ -62453,4 +62457,27 @@ class Solution:
                 cnt[x] -= 1
                 ans.append(x)
         return ans
+```
+
+##### 541\.反转字符串II
+
+[题目](https://leetcode.cn/problems/reverse-string-ii)
+
+我的
+
+```python
+class Solution:
+    def reverseStr(self, s: str, k: int) -> str:
+        return ''.join([s[i:i+k] if i%(2*k) else s[i:i+k][::-1] for i in range(0,len(s),k)])
+```
+
+题解
+
+```python
+class Solution:
+    def reverseStr(self, s: str, k: int) -> str:
+        t = list(s)
+        for i in range(0, len(t), 2 * k):
+            t[i: i + k] = reversed(t[i: i + k])
+        return "".join(t)
 ```
