@@ -2557,6 +2557,10 @@
 - 81\.搜索旋转排序数组II
 
   二分
+  
+- 598\.区间加法II
+
+  思维 签到 数学
 
 ## 算法
 
@@ -62541,4 +62545,19 @@ public:
         return nums[r] == t ? r : -1;
     }
 };
+```
+
+##### 598\.区间加法II
+
+[题目](https://leetcode.cn/problems/range-addition-ii)
+
+由于左上角每次操作一定会+1，所以最大数一定是操作次数，所以取长最小值和宽最小值，就是这些操作的并的面积。
+
+```python
+from typing import *
+class Solution:
+    def maxCount(self, m: int, n: int, ops: List[List[int]]) -> int:
+        if not ops:
+            return n*m
+        return min(x[0] for x in ops) * min(x[1] for x in ops)
 ```
