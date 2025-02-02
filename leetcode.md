@@ -2561,6 +2561,10 @@
 - 598\.区间加法II
 
   思维 签到 数学
+  
+- 680\.验证回文串II
+
+  签到 模拟 字符串
 
 ## 算法
 
@@ -62560,4 +62564,44 @@ class Solution:
         if not ops:
             return n*m
         return min(x[0] for x in ops) * min(x[1] for x in ops)
+```
+
+##### 680\.验证回文串II
+
+[题目](https://leetcode.cn/problems/valid-palindrome-ii)
+
+发现不相等时，分别尝试删除左右后再试。注意不能只尝试一次，不能根据字符串相等来判。
+
+考虑反例
+
+```
+'aguokepatgbnvfqmgmlcupuufxoohdfpgjdmysgvhmvffcnqxjjxqncffvmhvgsymdjgpfdhooxfuupuculmgmqfvnbgtapekouga'
+```
+
+其反串为
+
+```
+'aguokepatgbnvfqmgmlucupuufxoohdfpgjdmysgvhmvffcnqxjjxqncffvmhvgsymdjgpfdhooxfuupuclmgmqfvnbgtapekouga'
+```
+
+可以看到在cup和ucup不一样，一定要删u，如果只试一次可能会判成删c。
+
+```python
+class Solution:
+    def validPalindrome(self, s: str) -> bool:
+        n = len(s)
+        l, r = 0, n-1
+        def isPali(lf, rf):
+            while lf < rf:
+                if s[lf] != s[rf]:
+                    return False
+                lf += 1
+                rf -= 1
+            return True
+        while l < r:
+            if s[l] != s[r]:
+                return isPali(l+1, r) or isPali(l, r-1)
+            l += 1
+            r -= 1
+        return True
 ```
