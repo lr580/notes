@@ -2565,6 +2565,10 @@
 - 680\.验证回文串II
 
   签到 模拟 字符串
+  
+- 922\.按奇偶排序数组II
+
+  签到 双指针
 
 ## 算法
 
@@ -62604,4 +62608,29 @@ class Solution:
             l += 1
             r -= 1
         return True
+```
+
+##### 922\.按奇偶排序数组II
+
+[题目](https://leetcode.cn/problems/sort-array-by-parity-ii)
+
+```python
+class Solution:
+    def sortArrayByParityII(self, nums: List[int]) -> List[int]:
+        a = [nums[i] for i in range(len(nums)) if nums[i] % 2 == 0]
+        b = [nums[i] for i in range(len(nums)) if nums[i] % 2 == 1]
+        return [a.pop() if _ % 2 == 0 else b.pop() for _ in range(len(nums))]
+```
+
+```python
+class Solution:
+    def sortArrayByParityII(self, nums: List[int]) -> List[int]:
+        n = len(nums)
+        j = 1
+        for i in range(0, n, 2):
+            if nums[i] % 2 == 1:
+                while nums[j] % 2 == 1:
+                    j += 2
+                nums[i], nums[j] = nums[j], nums[i]
+        return nums
 ```
