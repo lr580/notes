@@ -2569,6 +2569,10 @@
 - 922\.按奇偶排序数组II
 
   签到 双指针
+  
+- 90\.子集II
+
+  爆搜 DFS/二进制枚举
 
 ## 算法
 
@@ -62633,4 +62637,101 @@ class Solution:
                     j += 2
                 nums[i], nums[j] = nums[j], nums[i]
         return nums
+```
+
+##### 90\.子集
+
+[题目](https://leetcode.cn/problems/subsets-ii)
+
+```python
+from typing import *
+class Solution:
+    def subsetsWithDup(self, nums: List[int]) -> List[List[int]]:
+        n = len(nums)
+        ans = []
+        for i in range(1<<n):
+            tmp = []
+            for j in range(n):
+                if i & (1<<j):
+                    tmp.append(nums[j])
+            ans.append(tuple(sorted(tmp)))
+        return list(set(ans))
+```
+
+剪枝：
+
+```python
+class Solution:
+    def subsetsWithDup(self, nums: List[int]) -> List[List[int]]:
+        nums.sort()
+        n = len(nums)
+        ans = []
+        path = []
+
+        def dfs(i: int) -> None:
+            if i == n:
+                ans.append(path.copy())  # 也可以写 path[:]
+                return
+
+            # 选 x
+            x = nums[i]
+            path.append(x)
+            dfs(i + 1)
+            path.pop()  # 恢复现场
+
+            # 不选 x，那么后面所有等于 x 的数都不选
+            # 如果不跳过这些数，会导致「选 x 不选 x'」和「不选 x 选 x'」这两种情况都会加到 ans 中，这就重复了
+            i += 1
+            while i < n and nums[i] == x:
+                i += 1
+            dfs(i)
+
+        dfs(0)
+        return ans
+```
+
+```python
+class Solution:
+    def subsetsWithDup(self, nums: List[int]) -> List[List[int]]:
+        nums.sort()
+        n = len(nums)
+        ans = []
+        path = []
+
+        def dfs(i: int) -> None:
+            ans.append(path.copy())  # 也可以写 path[:]
+
+            # 在 [i,n-1] 中选一个 nums[j]
+            # 注意选 nums[j] 意味着 [i,j-1] 中的数都没有选
+            for j in range(i, n):
+                # 如果 j>i，说明 nums[j-1] 没有选
+                # 同方法一，所有等于 nums[j-1] 的数都不选
+                if j > i and nums[j] == nums[j - 1]:
+                    continue
+                path.append(nums[j])
+                dfs(j + 1)
+                path.pop()  # 恢复现场
+
+        dfs(0)
+        return ans
+```
+
+```python
+class Solution:
+    def subsetsWithDup(self, nums: List[int]) -> List[List[int]]:
+        nums.sort()
+        n = len(nums)
+        ans = []
+        for mask in range(1 << n):
+            t = []
+            flag = True
+            for i in range(n):
+                if mask & (1 << i):
+                    if i > 0 and not (mask & (1 << (i - 1))) and nums[i] == nums[i - 1]:
+                        flag = False
+                        break
+                    t.append(nums[i])
+            if flag:
+                ans.append(t)
+        return ans
 ```

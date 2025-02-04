@@ -400,9 +400,9 @@ $\%$ 需要转义，否则代表单行注释，如 $1+2%难道不等于%3吗$ �
 
 ##### 箭头
 
-四方向\left/right/up/downarrow $\uparrow$
+四方向 $\leftarrow\rightarrow\uparrow\downarrow$ 
 
-左右\to \gets $\to \gets$ $\leftrightarrow, \leftrightarrows$ 
+左右 $\to \gets$ $\leftrightarrow, \leftrightarrows$ $\twoheadrightarrow$
 
 - 大左右 $\xleftarrow[下]{1+2+3}\xrightarrow{x}$
 - 双线 $\Leftarrow$ $\Leftrightarrow$ $\iff$ 
