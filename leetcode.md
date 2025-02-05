@@ -2573,6 +2573,10 @@
 - 90\.子集II
 
   爆搜 DFS/二进制枚举
+  
+- 47\.全排列II
+
+  爆搜 DFS/二进制枚举
 
 ## 算法
 
@@ -62733,5 +62737,42 @@ class Solution:
                     t.append(nums[i])
             if flag:
                 ans.append(t)
+        return ans
+```
+
+##### 47\.全排列II
+
+[题目](https://leetcode.cn/problems/permutations-ii)
+
+```python
+class Solution:
+    def permuteUnique(self, nums: List[int]) -> List[List[int]]:
+        return [list(x) for x in set(permutations(nums))]
+```
+
+```python
+class Solution:
+    def __init__(self):
+        self.vis = []
+
+    def backtrack(self, nums: List[int], ans: List[List[int]], idx: int, perm: List[int]):
+        if idx == len(nums):
+            ans.append(perm[:])
+            return
+        for i in range(len(nums)):
+            if self.vis[i] or (i > 0 and nums[i] == nums[i - 1] and not self.vis[i - 1]):
+                continue
+            perm.append(nums[i])
+            self.vis[i] = 1
+            self.backtrack(nums, ans, idx + 1, perm)
+            self.vis[i] = 0
+            perm.pop()
+
+    def permuteUnique(self, nums: List[int]) -> List[List[int]]:
+        ans = []
+        perm = []
+        self.vis = [0] * len(nums)
+        nums.sort()
+        self.backtrack(nums, ans, 0, perm)
         return ans
 ```
