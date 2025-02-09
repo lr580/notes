@@ -2577,6 +2577,22 @@
 - 47\.全排列II
 
   爆搜 DFS/二进制枚举
+  
+- 80\.删除有序数组中的重复项II
+
+  双指针 / 栈
+  
+- 63\.不同路径II
+
+  DP
+  
+- 59\.螺旋矩阵II
+
+  模拟 签到
+  
+- 913\.猫和老鼠
+
+  **DP 拓扑排序 博弈论**
 
 ## 算法
 
@@ -62776,3 +62792,119 @@ class Solution:
         self.backtrack(nums, ans, 0, perm)
         return ans
 ```
+
+##### 80\.删除有序数组中的重复项II
+
+[题目](https://leetcode.cn/problems/remove-duplicates-from-sorted-array-ii)
+
+我的双指针
+
+```python
+from typing import *
+class Solution:
+    def removeDuplicates(self, nums: List[int]) -> int:
+        n = len(nums)
+        i = j = k = 0
+        while j < n:
+            k = j
+            while k < n and nums[k] == nums[j]:
+                k += 1
+            for _ in range(min(2, k - j)):
+                nums[i] = nums[k - 1]
+                i += 1
+            j = k
+        return i
+```
+
+栈：
+
+```python
+class Solution:
+    def removeDuplicates(self, nums: List[int]) -> int:
+        stack_size = 2  # 栈的大小，前两个元素默认保留
+        for i in range(2, len(nums)):
+            if nums[i] != nums[stack_size - 2]:  # 和栈顶下方的元素比较
+                nums[stack_size] = nums[i]  # 入栈
+                stack_size += 1
+        return min(stack_size, len(nums))
+```
+
+##### 63\.不同路径II
+
+[题目](https://leetcode.cn/problems/unique-paths-ii)
+
+很简单的 DP
+
+```python
+from typing import *
+class Solution:
+    def uniquePathsWithObstacles(self, obstacleGrid: List[List[int]]) -> int:
+        n, m = len(obstacleGrid), len(obstacleGrid[0])
+        dp = [[0] * (m+1) for _ in range(2)]
+        dp[0][0] = 1
+        for i in range(n):
+            for j in range(m):
+                if obstacleGrid[i][j] == 1:
+                    dp[i&1][j+1] = 0
+                else:
+                    dp[i&1][j+1] = dp[(i&1)^1][j+1] + dp[i&1][j]
+        return dp[n&1][m]
+```
+
+```python
+class Solution:
+    def uniquePathsWithObstacles(self, obstacleGrid: List[List[int]]) -> int:
+        n = len(obstacleGrid[0])
+        f = [0] * (n + 1)
+        f[1] = 1
+        for row in obstacleGrid:
+            for j, x in enumerate(row):
+                if x == 0:
+                    f[j + 1] += f[j]
+                else:
+                    f[j + 1] = 0
+        return f[n]
+```
+
+原地：
+
+```python
+class Solution:
+    def uniquePathsWithObstacles(self, obstacleGrid: List[List[int]]) -> int:
+        m, n = len(obstacleGrid), len(obstacleGrid[0])
+        f = obstacleGrid[0]
+        f[0] ^= 1  # 0 变成 1，1 变成 0
+        for j in range(1, n):
+            f[j] = 0 if f[j] else f[j - 1]
+        for i in range(1, m):
+            if obstacleGrid[i][0]:
+                f[0] = 0
+            for j in range(1, n):
+                if obstacleGrid[i][j] == 0:
+                    f[j] += f[j - 1]
+                else:
+                    f[j] = 0
+        return f[-1]
+```
+
+##### 59\.螺旋矩阵II
+
+[题目](https://leetcode.cn/problems/spiral-matrix-ii)
+
+```python
+class Solution:
+    def generateMatrix(self, n: int) -> List[List[int]]:
+        dirs = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        matrix = [[0] * n for _ in range(n)]
+        row, col, dirIdx = 0, 0, 0
+        for i in range(n * n):
+            matrix[row][col] = i + 1
+            dx, dy = dirs[dirIdx]
+            r, c = row + dx, col + dy
+            if r < 0 or r >= n or c < 0 or c >= n or matrix[r][c] > 0:
+                dirIdx = (dirIdx + 1) % 4   # 顺时针旋转至下一个方向
+                dx, dy = dirs[dirIdx]
+            row, col = row + dx, col + dy
+        return matrix
+```
+
