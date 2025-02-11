@@ -2597,6 +2597,10 @@
 - 1728\.猫和老鼠 II
 
   DP 拓扑排序 博弈论
+  
+- 1760\.袋子里最少数目的球
+
+  二分答案
 
 ## 算法
 
@@ -63622,5 +63626,37 @@ class Solution {
         return dfs(x, y, p, q, 0) == 0;
     }
 }
+```
+
+##### 1760\.袋子里最少数目的球
+
+[题目](https://leetcode.cn/problems/minimum-limit-of-balls-in-a-bag)
+
+二分答案。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    int minimumSize(vector<int>& nums, int maxOperations) {
+        int lf = 1, rf = *max_element(nums.begin(), nums.end());
+        int ans = rf;
+        while(lf <= rf) {
+            int cf = (lf + rf) >> 1;
+            int cnt = 0;
+            for(auto &x : nums) {
+                cnt += (x - 1) / cf; // ceil(x/cf)-1
+            }
+            if(cnt <= maxOperations) {
+                ans = cf;
+                rf = cf - 1;
+            } else {
+                lf = cf + 1;
+            }
+        }
+        return ans;
+    }
+};
 ```
 

@@ -8968,7 +8968,7 @@ print(points)
 import matplotlib.pyplot as plt
 ```
 
-#### 绘图
+#### 基础绘图
 
 ##### 基础
 
@@ -9267,6 +9267,39 @@ plt.show()
 ```
 
 
+
+#### 绘图
+
+##### 等高线
+
+poe
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 创建网格数据
+x = np.linspace(-2, 2, 50)
+y = np.linspace(-2, 2, 50)
+XX, YY = np.meshgrid(x, y)
+
+# 定义函数 Z
+Z = XX**2 + YY**2  # 一个简单的抛物面
+
+# 创建图形和坐标轴
+fig, ax = plt.subplots()
+
+# 绘制等高线
+ax.contour(XX, YY, Z, colors='b', levels=[0, 1, 2, 3], alpha=0.7)
+
+# 添加标题和标签
+ax.set_title('Simple Contour Plot')
+ax.set_xlabel('X-axis')
+ax.set_ylabel('Y-axis')
+
+# 显示图形
+plt.show()
+```
 
 
 
@@ -10009,6 +10042,13 @@ plt.figure(figsize=(620//20, 700//20), dpi=20, facecolor='grey')
 plt.rcParams['font.family'] = ['sans-serif']
 plt.rcParams['font.sans-serif'] = ['SimHei']
 ```
+
+> 其他方案：deepseek
+>
+> ```python
+> plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体
+> plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
+> ```
 
 重新设置坐标范围(不然范围是 $[0,1]$)，并关闭坐标轴显示
 
@@ -14745,6 +14785,8 @@ pre = titanic_model(titanic)
 
 ##### SVM
 
+###### 理论
+
 支持向量机 Support Vector Machine 监督学习进行二元分类。一个例子参见 `辅助功能-超参选择`。
 
 参数：
@@ -14770,6 +14812,8 @@ pre = titanic_model(titanic)
   - `poly`：多项式核函数，可以表示数据之间的更复杂的关系。
   - `sigmoid`：Sigmoid核，类似于神经网络。
 
+###### 分类
+
 二元回归使用 SVR：
 
 ```python
@@ -14793,48 +14837,105 @@ print(clf.score(X, y))
 print(clf.support_vectors_)
 ```
 
+###### SVC
 
+> ```python
+> from sklearn import svm
+> import numpy as np
+> 
+> # 准备数据集，X为特征向量，y为对应的类别标签
+> X = np.array([[2, 0], [4, 2], [2, 5], [4, 7]])
+> y = np.array([1, 1, -1, -1])
+> 
+> # 创建SVM模型
+> model = svm.SVC(kernel='linear')
+> 
+> # 训练模型
+> model.fit(X, y)
+> 
+> # 提取决策边界参数
+> w = model.coef_[0]
+> b = model.intercept_
+> 
+> # 打印决策边界方程
+> print(f"{w[0]}*x1 + {w[1]}*x2 + {b} = 0")
+> 
+> import matplotlib.pyplot as plt
+> # 绘制数据点
+> plt.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.Paired)
+> 
+> # 绘制决策边界
+> x1 = np.linspace(0, 5, 100)
+> x2 = -(w[0] * x1 + b) / w[1]
+> plt.plot(x1, x2, 'k-')
+> 
+> # 设置图形属性
+> plt.xlim(0, 5)
+> plt.ylim(-2, 8)
+> plt.xlabel('x1')
+> plt.ylabel('x2')
+> plt.title('Decision Boundary')
+> 
+> # 显示图形
+> plt.show()
+> ```
+>
+
+或：
 
 ```python
-from sklearn import svm
 import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.svm import SVC
 
-# 准备数据集，X为特征向量，y为对应的类别标签
-X = np.array([[2, 0], [4, 2], [2, 5], [4, 7]])
-y = np.array([1, 1, -1, -1])
+# 设置 Matplotlib 支持中文显示
+plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体
+plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
 
-# 创建SVM模型
-model = svm.SVC(kernel='linear')
+# 数据集
+X = np.array([[-1, 0], [-1, 2], [1, 2], [0, 0], [1, 0], [1, 1]])  # 特征
+y = np.array([1, 1, 1, -1, -1, -1])  # 标签
 
-# 训练模型
+# 训练线性SVM模型
+model = SVC(kernel='linear', C=1e10)  # C 设置为一个大值，确保硬间隔
 model.fit(X, y)
 
-# 提取决策边界参数
-w = model.coef_[0]
-b = model.intercept_
+# 获取支持向量
+support_vectors = model.support_vectors_
+print("支持向量：", support_vectors)
 
-# 打印决策边界方程
-print(f"{w[0]}*x1 + {w[1]}*x2 + {b} = 0")
+# 获取决策函数的参数
+w = model.coef_[0]  # 权重向量
+b = model.intercept_[0]  # 偏置项
+print("权重向量 w:", w)
+print("偏置项 b:", b)
 
-import matplotlib.pyplot as plt
-# 绘制数据点
-plt.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.Paired)
+# 绘制数据点和决策边界
+plt.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.Paired, marker='o', edgecolors='k')
+plt.scatter(support_vectors[:, 0], support_vectors[:, 1], s=100, facecolors='none', edgecolors='r', label='支持向量')
 
 # 绘制决策边界
-x1 = np.linspace(0, 5, 100)
-x2 = -(w[0] * x1 + b) / w[1]
-plt.plot(x1, x2, 'k-')
+ax = plt.gca()
+xlim = ax.get_xlim()
+ylim = ax.get_ylim()
 
-# 设置图形属性
-plt.xlim(0, 5)
-plt.ylim(-2, 8)
-plt.xlabel('x1')
-plt.ylabel('x2')
-plt.title('Decision Boundary')
+# 创建网格以绘制决策边界
+xx = np.linspace(xlim[0], xlim[1], 30)
+yy = np.linspace(ylim[0], ylim[1], 30)
+YY, XX = np.meshgrid(yy, xx)
+xy = np.vstack([XX.ravel(), YY.ravel()]).T
+Z = model.decision_function(xy).reshape(XX.shape)
 
-# 显示图形
+# 绘制决策边界和间隔
+ax.contour(XX, YY, Z, colors='k', levels=[-1, 0, 1], alpha=0.5, linestyles=['--', '-', '--'])
+ax.set_xlabel('X1')
+ax.set_ylabel('X2')
+plt.legend()
+plt.title('线性SVM决策边界与支持向量')
 plt.show()
 ```
+
+
 
 ##### 模型树
 
