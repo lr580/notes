@@ -2593,6 +2593,10 @@
 - 913\.猫和老鼠
 
   **DP 拓扑排序 博弈论**
+  
+- 1728\.猫和老鼠 II
+
+  DP 拓扑排序 博弈论
 
 ## 算法
 
@@ -62906,5 +62910,717 @@ class Solution:
                 dx, dy = dirs[dirIdx]
             row, col = row + dx, col + dy
         return matrix
+```
+
+##### 913\.猫和老鼠
+
+[题目](https://leetcode.cn/problems/cat-and-mouse)
+
+带平局的博弈论判断：
+
+1. 若可以走到必败局面，当前局面为必胜局面；
+2. 若所有可达局面均必胜，当前局面为必败局面；
+3. 若不可达必败，但可达平局局面，当前局面为平局局面。
+
+重复出现的判断：只要在同一局面，那么做出的决策一定是相同的，所以只要到达了走过的局面一定会达到平局。局面情况根据猫鼠位置和先后手关系共有 $2A_n^2=2n(n-1)$ 个。
+
+使用三维 DP $dp[mouse][cat][turns]$ 表示猫鼠所在位置和已经进行了多少轮。显然初始状态是 $dp[1][2][0]$。$dp$ 值表示博弈结果，设 $1$ 鼠胜，$2$ 猫胜，$0$ 平局。显然，任意 $dp[0][?][?]=1$；任意 $dp[x][x][?]=2$，任意 $dp[?][?][t]$ 满足 $t\ge 2n(n-1)$ 为平局。因为 0-indexed，所以 $=$ 时恰好重复。
+
+三个维度分别是 $n,n-1,2n(n-1)$，故该 DP 的空间复杂度为 $O(n^4)$，且完全图下邻接点有 $O(n)$ 个邻居，故 $O(n^5)\approx 3\times 10^8$ 的复杂度。不可行。但给出代码。
+
+```c++
+const int MOUSE_WIN = 1;
+const int CAT_WIN = 2;
+const int DRAW = 0;
+const int MAXN = 51;
+
+class Solution {
+public:
+    int n;
+    int dp[MAXN][MAXN][MAXN*(MAXN-1)*2];
+    vector<vector<int>> graph;
+    
+    int catMouseGame(vector<vector<int>>& graph) {
+        this->n = graph.size();
+        this->graph = graph;
+        memset(dp, -1, sizeof(dp));
+        return getResult(1, 2, 0);
+    }
+
+    int getResult(int mouse, int cat, int turns) {
+        if (turns == 2 * n * (n - 1)) {
+            return DRAW;
+        }
+        if (dp[mouse][cat][turns] < 0) {
+            if (mouse == 0) {
+                dp[mouse][cat][turns] = MOUSE_WIN;
+            } else if (cat == mouse) {
+                dp[mouse][cat][turns] = CAT_WIN;
+            } else {
+                getNextResult(mouse, cat, turns);
+            }
+        }
+        return dp[mouse][cat][turns];
+    }
+
+    void getNextResult(int mouse, int cat, int turns) {
+        int curMove = turns % 2 == 0 ? mouse : cat;
+        int defaultResult = curMove == mouse ? CAT_WIN : MOUSE_WIN;
+        int result = defaultResult;
+        for (int next : graph[curMove]) {
+            if (curMove == cat && next == 0) {
+                continue;
+            }
+            int nextMouse = curMove == mouse ? next : mouse;
+            int nextCat = curMove == cat ? next : cat;
+            int nextResult = getResult(nextMouse, nextCat, turns + 1);
+            if (nextResult != defaultResult) {
+                result = nextResult;
+                if (result != DRAW) {
+                    break;
+                }
+            }
+        }
+        dp[mouse][cat][turns] = result;
+    }
+};
+```
+
+上述是自顶向下的，现在改为自底向上，并想办法消掉轮数。
+
+终点：
+
+- 鼠在洞，鼠胜；
+- 猫鼠遇，猫胜。
+
+定义：$winner[i][j][k]$ 表示鼠在 $i$，猫在 $j$，$k=0$ 当前鼠移动，$k=1$ 猫移动；若值为 $1$ 鼠胜，$2$ 猫胜，$0$ 尚未确定或平局。
+
+则，终点是 $winner[0][j][1]=1,winner[i][i][k]=2$。
+
+推导规则：
+
+1. 对 $winner[i][j][1]=1$，能到达它的上一个局面，上一个局面是鼠走，则它一定可走到这里，故上一个局面 $winner[i'][j][0]=1$；
+2. 同理，若 $winner[i][j][0]=2$，则 $winner[i][j'][1]=2$；
+3. 否则，若鼠怎么移动都猫胜，则 $winner[i'][j][0]=2$；
+4. 同理，若猫怎么移动都鼠胜，则 $winner[i'][j][1]=1$。
+
+规则 1,2 的简化，显然第三维度 $+1$ 就是输赢值，即等价于判断 $k'=winner[i][j][k]-1$。其中 $k$ 是 $1\oplus winner[i][j][k]$。
+
+使用拓扑排序，当这个状态的所有下一个状态被遍历过，则规则 3,4 可以求出。对每个状态 $i,j,k$ 维护度数，当度数降低到为 $0$ 时，可以求出这两个规则。则平局为：拓扑里的环，即度数始终不为 $0$。使用拓扑排序，共有 $O(n^2)$ 个状态，每个状态有 $O(n)$ 条边，故 $O(n^3)$ 时间复杂度。
+
+```python
+class Solution:
+    def catMouseGame(self, g: List[List[int]]) -> int:
+        HOLE = 0
+        n = len(g)
+        deg = [[[0, 0] for _ in range(n)] for _ in range(n)]
+        for i in range(n):
+            for j in range(1, n):
+                deg[i][j][0] = len(g[i])
+                deg[i][j][1] = len(g[j])
+            # 对于猫来说，所有连到洞的边都不能走
+            for j in g[HOLE]:
+                deg[i][j][1] -= 1
+
+        winner = [[[0, 0] for _ in range(n)] for _ in range(n)]
+        q = deque()
+        for i in range(1, n):
+            winner[HOLE][i][1] = 1  # 鼠到达洞中（此时轮到猫移动），鼠获胜
+            winner[i][i][0] = winner[i][i][1] = 2  # 猫和鼠出现在同一个节点，无论轮到谁移动，都是猫获胜
+            q.append((HOLE, i, 1))
+            q.append((i, i, 0))
+            q.append((i, i, 1))
+
+        # 获取 (mouse, cat, turn) 的上个状态（值尚未确定）
+        def get_pre_states() -> List[Tuple[int, int]]:
+            if turn:  # 当前轮到猫移动，枚举上一轮鼠的位置
+                return [(pre_mouse, cat) for pre_mouse in g[mouse] if winner[pre_mouse][cat][0] == 0]
+            # 当前轮到鼠移动，枚举上一轮猫的位置，注意猫无法移动到洞中
+            return [(mouse, pre_cat) for pre_cat in g[cat] if pre_cat != HOLE and winner[mouse][pre_cat][1] == 0]
+
+        # 减少上个状态的度数
+        def dec_deg_to_zero() -> bool:
+            deg[pre_mouse][pre_cat][pre_turn] -= 1
+            return deg[pre_mouse][pre_cat][pre_turn] == 0
+
+        while q:
+            mouse, cat, turn = q.popleft()
+            win = winner[mouse][cat][turn]  # 最终谁赢了
+            pre_turn = turn ^ 1
+            for pre_mouse, pre_cat in get_pre_states():
+                # 情况一：如果上一回合鼠从 pre 移动到 cur，最终鼠赢，那么标记 pre 状态的 winner = 鼠
+                # 情况二：如果上一回合猫从 pre 移动到 cur，最终猫赢，那么标记 pre 状态的 winner = 猫
+                # 情况三：如果上一回合鼠从 pre 移动到 cur，最终猫赢，那么待定，直到我们发现从 pre 出发能到达的状态都是猫赢，那么标记 pre 状态的 winner = 猫
+                # 情况四：如果上一回合猫从 pre 移动到 cur，最终鼠赢，那么待定，直到我们发现从 pre 出发能到达的状态都是鼠赢，那么标记 pre 状态的 winner = 鼠
+                if pre_turn == win - 1 or dec_deg_to_zero():
+                    winner[pre_mouse][pre_cat][pre_turn] = win
+                    q.append((pre_mouse, pre_cat, pre_turn))  # 继续倒推
+
+        # 鼠在节点 1，猫在节点 2，当前轮到鼠移动
+        return winner[1][2][0]  # 返回最终谁赢了
+```
+
+```java
+class Solution {
+    private static final int HOLE = 0;
+
+    public int catMouseGame(int[][] g) {
+        int n = g.length;
+        int[][][] deg = new int[n][n][2];
+        for (int i = 0; i < n; i++) {
+            for (int j = 1; j < n; j++) {
+                deg[i][j][0] = g[i].length;
+                deg[i][j][1] = g[j].length;
+            }
+            // 对于猫来说，所有连到洞的边都不能走
+            for (int j : g[HOLE]) {
+                deg[i][j][1]--;
+            }
+        }
+
+        int[][][] winner = new int[n][n][2];
+        Queue<int[]> q = new ArrayDeque<>();
+        for (int i = 1; i < n; i++) {
+            winner[HOLE][i][1] = 1; // 鼠到达洞中（此时轮到猫移动），鼠获胜
+            winner[i][i][0] = winner[i][i][1] = 2; // 猫和鼠出现在同一个节点，无论轮到谁移动，都是猫获胜
+            q.offer(new int[]{HOLE, i, 1});
+            q.offer(new int[]{i, i, 0});
+            q.offer(new int[]{i, i, 1});
+        }
+
+        while (!q.isEmpty()) {
+            int[] cur = q.poll();
+            int mouse = cur[0], cat = cur[1], turn = cur[2];
+            int win = winner[mouse][cat][turn]; // 最终谁赢了
+            for (int[] pre : getPreStates(mouse, cat, turn, g, winner)) {
+                int preMouse = pre[0], preCat = pre[1], preTurn = turn ^ 1;
+                // 情况一：如果上一回合鼠从 pre 移动到 cur，最终鼠赢，那么标记 pre 状态的 winner = 鼠
+                // 情况二：如果上一回合猫从 pre 移动到 cur，最终猫赢，那么标记 pre 状态的 winner = 猫
+                // 情况三：如果上一回合鼠从 pre 移动到 cur，最终猫赢，那么待定，直到我们发现从 pre 出发能到达的状态都是猫赢，那么标记 pre 状态的 winner = 猫
+                // 情况四：如果上一回合猫从 pre 移动到 cur，最终鼠赢，那么待定，直到我们发现从 pre 出发能到达的状态都是鼠赢，那么标记 pre 状态的 winner = 鼠
+                if (preTurn == win - 1 || --deg[preMouse][preCat][preTurn] == 0) {
+                    winner[preMouse][preCat][preTurn] = win;
+                    q.offer(new int[]{preMouse, preCat, preTurn}); // 继续倒推
+                }
+            }
+        }
+
+        // 鼠在节点 1，猫在节点 2，当前轮到鼠移动
+        return winner[1][2][0]; // 返回最终谁赢了
+    }
+
+    // 获取 (mouse, cat, turn) 的上个状态（值尚未确定）
+    private List<int[]> getPreStates(int mouse, int cat, int turn, int[][] g, int[][][] winner) {
+        List<int[]> preStates = new ArrayList<>();
+        if (turn == 0) { // 当前轮到鼠移动
+            for (int preCat : g[cat]) { // 上一轮猫的位置
+                if (preCat != HOLE && winner[mouse][preCat][1] == 0) { // 猫无法移动到洞中
+                    preStates.add(new int[]{mouse, preCat});
+                }
+            }
+        } else { // 当前轮到猫移动
+            for (int preMouse : g[mouse]) { // 上一轮鼠的位置
+                if (winner[preMouse][cat][0] == 0) {
+                    preStates.add(new int[]{preMouse, cat});
+                }
+            }
+        }
+        return preStates;
+    }
+}
+```
+
+```c++
+class Solution {
+public:
+    int catMouseGame(vector<vector<int>>& g) {
+        const int HOLE = 0;
+        int n = g.size();
+        vector deg(n, vector<array<int, 2>>(n));
+        for (int i = 0; i < n; i++) {
+            for (int j = 1; j < n; j++) {
+                deg[i][j][0] = g[i].size();
+                deg[i][j][1] = g[j].size();
+            }
+            // 对于猫来说，所有连到洞的边都不能走
+            for (int j : g[HOLE]) {
+                deg[i][j][1]--;
+            }
+        }
+
+        vector winner(n, vector<array<int, 2>>(n));
+        queue<tuple<int, int, int>> q;
+        for (int i = 1; i < n; i++) {
+            winner[HOLE][i][1] = 1; // 鼠到达洞中（此时轮到猫移动），鼠获胜
+            winner[i][i][0] = winner[i][i][1] = 2; // 猫和鼠出现在同一个节点，无论轮到谁移动，都是猫获胜
+            q.emplace(HOLE, i, 1);
+            q.emplace(i, i, 0);
+            q.emplace(i, i, 1);
+        }
+
+        // 获取 (mouse, cat, turn) 的上个状态（值尚未确定）
+        auto get_pre_states = [&](int mouse, int cat, int turn) {
+            vector<pair<int, int>> pre_states;
+            if (turn == 0) { // 当前轮到鼠移动
+                for (int pre_cat : g[cat]) { // 上一轮猫的位置
+                    if (pre_cat != HOLE && winner[mouse][pre_cat][1] == 0) { // 猫无法移动到洞中
+                        pre_states.emplace_back(mouse, pre_cat);
+                    }
+                }
+            } else { // 当前轮到猫移动
+                for (int pre_mouse : g[mouse]) { // 上一轮鼠的位置
+                    if (winner[pre_mouse][cat][0] == 0) {
+                        pre_states.emplace_back(pre_mouse, cat);
+                    }
+                }
+            }
+            return pre_states;
+        };
+
+        while (!q.empty()) {
+            auto [mouse, cat, turn] = q.front(); q.pop();
+            int win = winner[mouse][cat][turn]; // 最终谁赢了
+            int pre_turn = turn ^ 1;
+            for (auto [pre_mouse, pre_cat] : get_pre_states(mouse, cat, turn)) {
+                // 情况一：如果上一回合鼠从 pre 移动到 cur，最终鼠赢，那么标记 pre 状态的 winner = 鼠
+                // 情况二：如果上一回合猫从 pre 移动到 cur，最终猫赢，那么标记 pre 状态的 winner = 猫
+                // 情况三：如果上一回合鼠从 pre 移动到 cur，最终猫赢，那么待定，直到我们发现从 pre 出发能到达的状态都是猫赢，那么标记 pre 状态的 winner = 猫
+                // 情况四：如果上一回合猫从 pre 移动到 cur，最终鼠赢，那么待定，直到我们发现从 pre 出发能到达的状态都是鼠赢，那么标记 pre 状态的 winner = 鼠
+                if (pre_turn == win - 1 || --deg[pre_mouse][pre_cat][pre_turn] == 0) {
+                    winner[pre_mouse][pre_cat][pre_turn] = win;
+                    q.emplace(pre_mouse, pre_cat, pre_turn); // 继续倒推
+                }
+            }
+        }
+
+        // 鼠在节点 1，猫在节点 2，当前轮到鼠移动
+        return winner[1][2][0]; // 返回最终谁赢了
+    }
+};
+```
+
+这个代码的 -- (-=1) 度在 if 内外都可以。代码的逻辑是：减一次代表发现了一个必败，因为必胜根据短路不会减，所以减到 0 就是全都必败。
+
+##### 1728\.猫和老鼠II
+
+[题目](https://leetcode.cn/problems/cat-and-mouse-ii)
+
+> 如果不考虑步数，并使用历史博弈路径判重，即走过的路不再走，是错误的。枚举顺序的不同会导致答案的不一样。考虑下面代码的下面两个例子：
+>
+> ```c++
+> #include <bits/stdc++.h>
+> using namespace std;
+> int RATWIN = 0, RAT = 0, CATWIN = 1, CAT = 1, UNK = -1;
+> int DX[] = {0, 0, 1, -1}, DY[] = {1, -1, 0, 0};
+> // xc, yc, xm, ym, who : 分别是当前猫横纵坐标、鼠横纵坐标、当前谁要移动
+> using state = tuple<int, int, int, int, int>;
+> int dp[8][8][8][8][2]; // 当前局面谁赢
+> bool DEBUG = true;
+> void debug(int xc, int yc, int xm, int ym, int who) {
+>     if(!DEBUG) return;
+>     cout << xc << " " << yc << " " << xm << " " << ym << " ";
+>     cout << (who == CAT ? "CAT " : "RAT ");
+>     int result = dp[xc][yc][xm][ym][who];
+>     cout << (result == CATWIN ? "CATWIN " : result == RATWIN ? "RATWIN " : "UNK ") << '\n';
+> }
+> class Solution {
+> public:
+>     bool canMouseWin(vector<string> &grid, int catJump, int mouseJump) {
+>         int n = grid.size(), m = grid[0].size();
+>         for(int xc = 0; xc < n; ++xc) 
+>             for(int yc = 0; yc < m; ++yc) 
+>                 for(int xm = 0; xm < n; ++xm) 
+>                     for(int ym = 0; ym < m; ++ym) 
+>                         dp[xc][yc][xm][ym][CAT] = dp[xc][yc][xm][ym][RAT] = UNK;
+> 
+>         int bxc, byc, bxm, bym, bxf, byf;
+>         for(int x = 0; x < n; ++x) {
+>             for(int y = 0; y < m; ++y) {
+>                 if (grid[x][y] == 'C') {
+>                     bxc = x, byc = y;
+>                 } else if (grid[x][y] == 'M') {
+>                     bxm = x, bym = y;
+>                 } else if (grid[x][y] == 'F') {
+>                     bxf = x, byf = y;
+>                 }
+>             }
+>         }
+>         set<state> s;
+>         // 求当前可达局面
+>         auto getMoves = [&](int xc, int yc, int xm, int ym, int who) {
+>             vector<state> moves;
+>             int len = who == RAT ? mouseJump : catJump;
+>             int x = who == RAT ? xm : xc;
+>             int y = who == RAT ? ym : yc;
+>             if (grid[x][y] == '#')
+>                 return moves;
+>             moves.emplace_back(xc, yc, xm, ym, who^1);
+>             for (int d = 0; d < 4; ++d) {
+>                 for(int k = 1; k <= len; ++k) {
+>                     int nx = x + DX[d] * k, ny = y + DY[d] * k;
+>                     if (nx < 0 || nx >= n || ny < 0 || ny >= m || grid[nx][ny] == '#')
+>                         break;
+>                     int xc2 = who == RAT ? xc : nx;
+>                     int yc2 = who == RAT ? yc : ny;
+>                     int xm2 = who == RAT ? nx : xm;
+>                     int ym2 = who == RAT ? ny : ym;
+>                     moves.emplace_back(xc2, yc2, xm2, ym2, who^1);
+>                     if (grid[nx][ny] == 'F')
+>                         break;
+>                 }
+>             }
+>             return moves;
+>         };
+>         auto dfs = [&](auto &self, int xc, int yc, int xm, int ym, int who) -> int {
+>             cout << "-> "; debug(xc, yc, xm, ym, who);
+>             if (dp[xc][yc][xm][ym][who] != UNK) return dp[xc][yc][xm][ym][who];
+>             if (xc == xm && yc == ym) return dp[xc][yc][xm][ym][who] = CATWIN;
+>             if (xc == bxf && yc == byf) return dp[xc][yc][xm][ym][who] = CATWIN;
+>             if (xm == bxf && ym == byf) return dp[xc][yc][xm][ym][who] = RATWIN;
+> 
+>             s.insert({xc, yc, xm, ym, who});
+>             bool canReachWin = false, whatToWin = who == CAT ? CATWIN : RATWIN;
+>             auto moves = getMoves(xc, yc, xm, ym, who);
+>             reverse(moves.begin(),moves.end());//修改枚举顺序，分别导致下面的例子一对一错
+>             for (auto& [xc2, yc2, xm2, ym2, who2] : moves) {
+>                 cout << "---> "; debug(xc2, yc2, xm2, ym2, who2);
+>             }
+>             for (auto& [xc2, yc2, xm2, ym2, who2] : moves) {
+>                 if(!s.count({xc2, yc2, xm2, ym2, who2})) {
+>                     int result = self(self, xc2, yc2, xm2, ym2, who2);
+>                     if (result == whatToWin) {
+>                         canReachWin = true;
+>                         break;
+>                     }
+>                 }
+>             }
+>             s.erase({xc, yc, xm, ym, who});
+>             dp[xc][yc][xm][ym][who] = canReachWin ? whatToWin : !whatToWin;
+>             debug(xc, yc, xm, ym, who);
+>             return dp[xc][yc][xm][ym][who];
+>         };
+>         cout << bxc <<' '<<byc<<' '<<bxm<<' '<<bym<<'\n';
+>         return dfs(dfs, bxc, byc, bxm, bym, RAT) == RATWIN;
+>     }
+> };
+> ```
+>
+> ```
+> [".M...","..#..","#..#.","C#.#.","...#F"] 3 1
+> ```
+>
+> ```
+> [".....","...C.","...#.","...#M","F..#."] 1 3
+> ```
+>
+> 可能这是因为，目前的尝试路径并不代表最终走到的路径。仍然不理解为什么一定要记录轮数。可能跟 1000 轮有关。
+
+我的代码，仿照上例显然。
+
+- 要 vis，不然可能导致多次入队。
+- 一定要有 UNK。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+int RATWIN = 0, RAT = 0, CATWIN = 1, CAT = 1, UNK = -1;
+int DX[] = {0, 0, 1, -1}, DY[] = {1, -1, 0, 0};
+// xc, yc, xm, ym, who : 分别是当前猫横纵坐标、鼠横纵坐标、当前谁要移动
+int dp[8][8][8][8][2]; // 当前局面谁赢
+int du[8][8][8][8][2]; // 需要看到多少个必败局面确定自己必败
+bool vis[8][8][8][8][2];
+bool DEBUG = true;
+void debug(int xc, int yc, int xm, int ym, int who) {
+    if(!DEBUG) return;
+    cout << xc << " " << yc << " " << xm << " " << ym << " ";
+    cout << (who == CAT ? "CAT " : "RAT ");
+    int result = dp[xc][yc][xm][ym][who];
+    cout << (result == CATWIN ? "CATWIN " : result == RATWIN ? "RATWIN " : "UNK ");
+    cout << "DEG = " << du[xc][yc][xm][ym][who] << '\n';
+}
+class Solution {
+public:
+    bool canMouseWin(vector<string>& grid, int catJump, int mouseJump) {
+        int n = grid.size(), m = grid[0].size();
+        for(int xc = 0; xc < n; ++xc) 
+            for(int yc = 0; yc < m; ++yc) 
+                for(int xm = 0; xm < n; ++xm) 
+                    for(int ym = 0; ym < m; ++ym) {
+                        dp[xc][yc][xm][ym][CAT] = dp[xc][yc][xm][ym][RAT] = UNK;
+                        vis[xc][yc][xm][ym][CAT] = vis[xc][yc][xm][ym][RAT] = false;
+                    }
+
+        // 求所有未确定的上一个局面
+        auto getMoves = [&](int xc, int yc, int xm, int ym, int who) {
+            vector<pair<int, int>> moves;
+            int len = who == CAT ? mouseJump : catJump;
+            int x = who == CAT ? xm : xc;
+            int y = who == CAT ? ym : yc;
+            if (grid[x][y] == '#')
+                return moves;
+            moves.emplace_back(x, y);
+            for (int d = 0; d < 4; ++d) {
+                for(int k = 1; k <= len; ++k) {
+                    int nx = x + DX[d] * k, ny = y + DY[d] * k;
+                    if (nx < 0 || nx >= n || ny < 0 || ny >= m || grid[nx][ny] == '#')
+                        break;
+                    int xc2 = who == CAT ? xc : nx;
+                    int yc2 = who == CAT ? yc : ny;
+                    int xm2 = who == CAT ? nx : xm;
+                    int ym2 = who == CAT ? ny : ym;
+                    if(dp[xc2][yc2][xm2][ym2][who^1] == UNK)
+                        moves.emplace_back(nx, ny);
+                    if (grid[nx][ny] == 'F')
+                        break;
+                }
+            }
+            return moves;
+        };
+        for(int xc = 0; xc < n; ++xc) {
+            for(int yc = 0; yc < m; ++yc) {
+                for(int xm = 0; xm < n; ++xm) {
+                    for(int ym = 0; ym < m; ++ym) {
+                        du[xc][yc][xm][ym][CAT] = getMoves(xc, yc, xm, ym, RAT).size();
+                        du[xc][yc][xm][ym][RAT] = getMoves(xc, yc, xm, ym, CAT).size();
+                        //cout << xc << " " << yc << " " << xm << " " << ym << " " << du[xc][yc][xm][ym][CAT] << " " << du[xc][yc][xm][ym][RAT] << '\n';
+                    }
+                }
+            }
+        }
+        using state = tuple<int, int, int, int, int>;
+        deque<state> q;
+        auto push = [&](int xc, int yc, int xm, int ym, int who) {
+            if (vis[xc][yc][xm][ym][who])
+                return;
+            vis[xc][yc][xm][ym][who] = true;
+            q.emplace_back(xc, yc, xm, ym, who);
+        };
+        int bxc, byc, bxm, bym, bxf, byf;
+        for(int x = 0; x < n; ++x) {
+            for(int y = 0; y < m; ++y) {
+                if (grid[x][y] == 'C') {
+                    bxc = x, byc = y;
+                } else if (grid[x][y] == 'M') {
+                    bxm = x, bym = y;
+                } else if (grid[x][y] == 'F') {
+                    bxf = x, byf = y;
+                    continue;
+                } else if (grid[x][y] == '#') {
+                    continue;
+                }
+                dp[x][y][x][y][CAT] = dp[x][y][x][y][RAT] = CATWIN;
+                push(x, y, x, y, CAT);
+                push(x, y, x, y, RAT);
+            }
+        }
+        for(int x = 0; x < n; ++x) {
+            for(int y = 0; y < m; ++y) {
+                dp[x][y][bxf][byf][RAT] = RATWIN;
+                dp[bxf][byf][x][y][CAT] = CATWIN;
+                push(x, y, bxf, byf, RAT);
+                push(bxf, byf, x, y, CAT);
+            }
+        }
+        while(!q.empty()) {
+            auto [xc, yc, xm, ym, who] = q.front();
+            q.pop_front();
+            bool whoprv = who ^ 1;
+            auto prv = getMoves(xc, yc, xm, ym, who);
+            int nowresult = dp[xc][yc][xm][ym][who];
+            //debug(xc, yc, xm, ym, who);
+            for(auto [xprv, yprv] : prv) {
+                int xc2 = who == CAT ? xc : xprv;
+                int yc2 = who == CAT ? yc : yprv;
+                int xm2 = who == CAT ? xprv : xm;
+                int ym2 = who == CAT ? yprv : ym;
+                //cout << "--> "; debug(xc2, yc2, xm2, ym2, whoprv);
+                // whoprv == nowresult
+                if ((whoprv == RAT && nowresult == RATWIN) ||
+                    (whoprv == CAT && nowresult == CATWIN)) {
+                    dp[xc2][yc2][xm2][ym2][whoprv] = nowresult;
+                    push(xc2, yc2, xm2, ym2, whoprv);
+                    //cout << "RULE1 -> "; debug(xc2, yc2, xm2, ym2, whoprv);
+                } else if (--du[xc2][yc2][xm2][ym2][whoprv] == 0) {
+                    dp[xc2][yc2][xm2][ym2][whoprv] = whoprv ^ 1;
+                    push(xc2, yc2, xm2, ym2, whoprv);
+                    //cout << "RULE2 -> "; debug(xc2, yc2, xm2, ym2, whoprv);
+                }
+            }
+        }
+        //debug(bxc, byc, bxm, bym, RAT);
+        //assert(dp[bxc][byc][bxm][bym][RAT]!=UNK);
+        return dp[bxc][byc][bxm][bym][RAT] == RATWIN;
+    }
+};
+```
+
+题解：
+
+```c++
+class Solution {
+    // 913. 猫和老鼠
+    int catMouseGame(vector<vector<int>>& g_mouse, vector<vector<int>>& g_cat, int mouse_start, int cat_start, int hole) {
+        int n = g_mouse.size();
+        vector deg(n, vector<array<int, 2>>(n));
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                deg[i][j][0] = g_mouse[i].size();
+                deg[i][j][1] = g_cat[j].size();
+            }
+        }
+
+        vector winner(n, vector<array<int, 2>>(n));
+        queue<tuple<int, int, int>> q;
+        for (int i = 0; i < n; i++) {
+            winner[hole][i][1] = 1; // 鼠到达洞中（此时轮到猫移动），鼠获胜
+            winner[i][hole][0] = 2;  // 猫到达洞中（此时轮到鼠移动），猫获胜
+            winner[i][i][0] = winner[i][i][1] = 2; // 猫和鼠出现在同一个节点，无论轮到谁移动，都是猫获胜
+            q.emplace(hole, i, 1);
+            q.emplace(i, hole, 0);
+            q.emplace(i, i, 0);
+            q.emplace(i, i, 1);
+        }
+
+        // 获取 (mouse, cat, turn) 的上个状态（值尚未确定）
+        auto get_pre_states = [&](int mouse, int cat, int turn) {
+            vector<pair<int, int>> pre_states;
+            if (turn == 0) { // 当前轮到鼠移动
+                for (int pre_cat : g_cat[cat]) { // 上一轮猫的位置
+                    if (winner[mouse][pre_cat][1] == 0) {
+                        pre_states.emplace_back(mouse, pre_cat);
+                    }
+                }
+            } else { // 当前轮到猫移动
+                for (int pre_mouse : g_mouse[mouse]) { // 上一轮鼠的位置
+                    if (winner[pre_mouse][cat][0] == 0) {
+                        pre_states.emplace_back(pre_mouse, cat);
+                    }
+                }
+            }
+            return pre_states;
+        };
+
+        while (!q.empty()) {
+            auto [mouse, cat, turn] = q.front(); q.pop();
+            int win = winner[mouse][cat][turn]; // 最终谁赢了
+            int pre_turn = turn ^ 1;
+            for (auto [pre_mouse, pre_cat] : get_pre_states(mouse, cat, turn)) {
+                // 情况一：如果上一回合鼠从 pre 移动到 cur，最终鼠赢，那么标记 pre 状态的 winner = 鼠
+                // 情况二：如果上一回合猫从 pre 移动到 cur，最终猫赢，那么标记 pre 状态的 winner = 猫
+                // 情况三：如果上一回合鼠从 pre 移动到 cur，最终猫赢，那么待定，直到我们发现从 pre 出发能到达的状态都是猫赢，那么标记 pre 状态的 winner = 猫
+                // 情况四：如果上一回合猫从 pre 移动到 cur，最终鼠赢，那么待定，直到我们发现从 pre 出发能到达的状态都是鼠赢，那么标记 pre 状态的 winner = 鼠
+                if (pre_turn == win - 1 || --deg[pre_mouse][pre_cat][pre_turn] == 0) {
+                    winner[pre_mouse][pre_cat][pre_turn] = win;
+                    q.emplace(pre_mouse, pre_cat, pre_turn); // 继续倒推
+                }
+            }
+        }
+
+        // 鼠在节点 mouse_start，猫在节点 cat_start，当前轮到鼠移动
+        return winner[mouse_start][cat_start][0]; // 返回最终谁赢了（或者平局）
+    }
+
+public:
+    bool canMouseWin(vector<string>& grid, int catJump, int mouseJump) {
+        static constexpr int DIRS[4][2] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}}; // 左右上下
+        int m = grid.size(), n = grid[0].size();
+        // 鼠和猫分别建图
+        vector<vector<int>> g_mouse(m * n), g_cat(m * n);
+        int mx, my, cx, cy, fx, fy;
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (grid[i][j] == '#') { // 墙
+                    continue;
+                }
+                if (grid[i][j] == 'M') { // 鼠的位置
+                    mx = i; my = j;
+                } else if (grid[i][j] == 'C') { // 猫的位置
+                    cx = i; cy = j;
+                } else if (grid[i][j] == 'F') { // 食物（洞）的位置
+                    fx = i; fy = j;
+                }
+                int v = i * n + j; // 二维坐标 (i,j) 映射为一维坐标 v
+                for (auto [dx, dy] : DIRS) { // 枚举左右上下四个方向
+                    for (int k = 0; k <= mouseJump; k++) { // 枚举跳跃长度
+                        int x = i + k * dx, y = j + k * dy;
+                        if (x < 0 || x >= m || y < 0 || y >= n || grid[x][y] == '#') { // 出界或者遇到墙
+                            break;
+                        }
+                        g_mouse[v].push_back(x * n + y); // 连边
+                    }
+                    for (int k = 0; k <= catJump; k++) { // 枚举跳跃长度
+                        int x = i + k * dx, y = j + k * dy;
+                        if (x < 0 || x >= m || y < 0 || y >= n || grid[x][y] == '#') { // 出界或者遇到墙
+                            break;
+                        }
+                        g_cat[v].push_back(x * n + y); // 连边
+                    }
+                }
+            }
+        }
+
+        // 判断是否鼠赢
+        return catMouseGame(g_mouse, g_cat, mx * n + my, cx * n + cy, fx * n + fy) == 1;
+    }
+};
+```
+
+```java
+import java.time.Clock;
+class Solution {
+    static int S = 8 * 8 * 8 * 8, K = 1000;
+    static int[][] f = new int[S][K]; // mouse : 0 / cat : 1
+    String[] g;
+    int n, m, a, b, tx, ty;
+    int[][] dirs = new int[][]{{1,0}, {-1,0}, {0,1}, {0,-1}};
+    // mouse : (x, y) / cat : (p, q)
+    int dfs(int x, int y, int p, int q, int k) {
+        int state = (x << 9) | (y << 6) | (p << 3) | q;
+        if (k == K - 1) return f[state][k] = 1;
+        if (x == p && y == q) return f[state][k] = 1;
+        if (x == tx && y == ty) return f[state][k] = 0;
+        if (p == tx && q == ty) return f[state][k] = 1;
+        if (f[state][k] != -1) return f[state][k];
+        if (k % 2 == 0) { // mouse
+            for (int[] di : dirs) {
+                for (int i = 0; i <= b; i++) {
+                    int nx = x + di[0] * i, ny = y + di[1] * i;
+                    if (nx < 0 || nx >= n || ny < 0 || ny >= m) break;
+                    if (g[nx].charAt(ny) == '#') break;
+                    if (dfs(nx, ny, p, q, k + 1) == 0) return f[state][k] = 0;
+                }
+            }
+            return f[state][k] = 1;
+        } else { // cat
+            for (int[] di : dirs) {
+                for (int i = 0; i <= a; i++) {
+                    int np = p + di[0] * i, nq = q + di[1] * i;
+                    if (np < 0 || np >= n || nq < 0 || nq >= m) break;
+                    if (g[np].charAt(nq) == '#') break;
+                    if (dfs(x, y, np, nq, k + 1) == 1) return f[state][k] = 1;
+                }
+            }
+            return f[state][k] = 0;
+        }
+    }
+    public boolean canMouseWin(String[] grid, int catJump, int mouseJump) {
+        g = grid;
+        n = g.length; m = g[0].length(); a = catJump; b = mouseJump;
+        for (int i = 0; i < S; i++) Arrays.fill(f[i], -1);
+        int x = 0, y = 0, p = 0, q = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                if (g[i].charAt(j) == 'M') {
+                    x = i; y = j;
+                } else if (g[i].charAt(j) == 'C') {
+                    p = i; q = j;
+                } else if (g[i].charAt(j) == 'F') {
+                    tx = i; ty = j;
+                }
+            }
+        }
+        return dfs(x, y, p, q, 0) == 0;
+    }
+}
 ```
 
