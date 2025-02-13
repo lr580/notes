@@ -2605,6 +2605,10 @@
 - 1742\.盒子中小球的最大数目
 
   签到 枚举 / <u>预处理+前缀和 / 数位DP</u>
+  
+- 1552\.两球之间的磁力
+
+  二分答案
 
 ## 算法
 
@@ -63812,5 +63816,41 @@ class Solution:
 
         mx = int(high_s[0]) + (n - 1) * 9  # 数位和的上界
         return max(dfs(0, j, True, True) for j in range(1, mx + 1))
+```
+
+##### 1552\.两球之间的磁力
+
+[题目](https://leetcode.cn/problems/magnetic-force-between-two-balls)
+
+二分答案。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+    public:
+        int maxDistance(vector<int>& position, int m) {
+            sort(position.begin(), position.end());
+            int n = position.size();
+            int lf = 1, rf = position[n - 1] - position[0], ans = rf;
+            while (lf <= rf) {
+                int cf = (lf + rf) >> 1;
+                int cnt = 1, pre = position[0];
+                for (int i = 1; i < n; i++) {
+                    if (position[i] - pre >= cf) {
+                        ++cnt;
+                        pre = position[i];
+                    }
+                }
+                if (cnt >= m) {
+                    ans = cf;
+                    lf = cf + 1;
+                } else {
+                    rf = cf - 1;
+                }
+            }
+            return ans;
+        }
+    };
 ```
 
