@@ -2601,6 +2601,10 @@
 - 1760\.袋子里最少数目的球
 
   二分答案
+  
+- 1742\.盒子中小球的最大数目
+
+  签到 枚举 / <u>预处理+前缀和 / 数位DP</u>
 
 ## 算法
 
@@ -63658,5 +63662,155 @@ public:
         return ans;
     }
 };
+```
+
+##### 1742\.盒子中小球的最大数量
+
+[题目](https://leetcode.cn/problems/maximum-number-of-balls-in-a-box)
+
+静态数组做 bin
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+int bin[46];
+class Solution {
+public:
+    int countBalls(int lowLimit, int highLimit) {
+        for(int i=lowLimit;i<=highLimit;i++){
+            int temp = i;
+            int sum = 0;
+            while(temp>0){
+                sum+=temp%10;
+                temp/=10;
+            }
+            bin[sum]++;
+        }
+        int ans = 0;
+        for(int i=0;i<46;i++){
+            ans = max(ans,bin[i]);
+            bin[i]=0;
+        }
+        return ans;
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    int countBalls(int lowLimit, int highLimit) {
+        int cnt[46]{}; // 99999 的数位和 = 45
+        for (int i = lowLimit; i <= highLimit; i++) {
+            int s = 0;
+            for (int x = i; x > 0; x /= 10) {
+                s += x % 10;
+            }
+            cnt[s]++;
+        }
+        return ranges::max(cnt);
+    }
+};
+```
+
+预处理前缀和：
+
+```c++
+const int MX = 100'001;
+array<int, 46> s[MX];
+
+auto init = [] {
+    for (int i = 1; i < MX; i++) {
+        s[i] = s[i - 1];
+        int sum = 0;
+        for (int x = i; x > 0; x /= 10) {
+            sum += x % 10;
+        }
+        s[i][sum]++;
+    }
+    return 0;
+}();
+
+class Solution {
+public:
+    int countBalls(int lowLimit, int highLimit) {
+        int ans = 0;
+        for (int j = 1; j < s[0].size(); j++) {
+            ans = max(ans, s[highLimit][j] - s[lowLimit - 1][j]);
+        }
+        return ans;
+    }
+};
+```
+
+数位 DP：定义 `dfs(i,j,limitLow,limitHigh)` 位第 $i$ 位之后的数位合法方案，$j$ 位剩下数字数位和，其他两个为当前是否受到对应 limit 限制。即第 $i$ 位是否从 `limitLow` 开始，最高位 `limitHigh`。终止条件为 `dfs(n,0,?,?)`，其值为 $1$ 表示成功构造，为 $0$ 无解。答案位 `dfs(0,j,true,true)`。记忆化 `dfs(i,j,false,false)`，任意 `true` 状态必然只会被遍历一次。设 `highLimit` 为 $a$，进制 $d=10$，复杂度 $O(d^2log^2a)$。空间复杂度 $O(d\log^2 a)$。比前缀和时空都更优。
+
+```c++
+class Solution {
+public:
+    int countBalls(int lowLimit, int highLimit) {
+        string high_s = to_string(highLimit);
+        int n = high_s.size();
+        string low_s = to_string(lowLimit);
+        low_s = string(n - low_s.size(), '0') + low_s; // 补前导零，和 high_s 对齐
+
+        int m = high_s[0] - '0' + (n - 1) * 9; // 数位和的上界
+        vector memo(n, vector<int>(m + 1, -1)); // -1 表示没有计算过
+
+        auto dfs = [&](this auto&& dfs, int i, int j, bool limit_low, bool limit_high) -> int {
+            if (i == n) { // 填完了
+                return j == 0;
+            }
+            if (!limit_low && !limit_high && memo[i][j] != -1) { // 之前计算过
+                return memo[i][j];
+            }
+
+            int lo = limit_low ? low_s[i] - '0' : 0;
+            int hi = limit_high ? high_s[i] - '0' : 9;
+
+            int res = 0;
+            for (int d = lo; d <= min(hi, j); d++) { // 枚举当前数位填 d，但不能超过 j
+                res += dfs(i + 1, j - d, limit_low && d == lo, limit_high && d == hi);
+            }
+
+            if (!limit_low && !limit_high) {
+                memo[i][j] = res; // 记忆化
+            }
+            return res;
+        };
+
+        int ans = 0;
+        for (int j = 1; j <= m; j++) {
+            ans = max(ans, dfs(0, j, true, true));
+        }
+        return ans;
+    }
+};
+```
+
+其中 this auto 是 C++23。
+
+```python
+class Solution:
+    def countBalls(self, lowLimit: int, highLimit: int) -> int:
+        high_s = str(highLimit)
+        n = len(high_s)
+        low_s = str(lowLimit).zfill(n)  # 补前导零，和 high_s 对齐
+
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（一行代码实现记忆化）
+        def dfs(i: int, j: int, limit_low: bool, limit_high: bool) -> int:
+            if i == n:  # 填完了
+                return 0 if j else 1
+
+            lo = int(low_s[i]) if limit_low else 0
+            hi = int(high_s[i]) if limit_high else 9
+
+            res = 0
+            for d in range(lo, min(hi, j) + 1):  # 枚举当前数位填 d，但不能超过 j
+                res += dfs(i + 1, j - d, limit_low and d == lo, limit_high and d == hi)
+            return res
+
+        mx = int(high_s[0]) + (n - 1) * 9  # 数位和的上界
+        return max(dfs(0, j, True, True) for j in range(1, mx + 1))
 ```
 
