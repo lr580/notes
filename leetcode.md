@@ -2609,6 +2609,10 @@
 - 1552\.两球之间的磁力
 
   二分答案
+  
+- 1706\.球会落何处
+
+  模拟
 
 ## 算法
 
@@ -63852,5 +63856,66 @@ class Solution {
             return ans;
         }
     };
+```
+
+##### 1706\.球会落何处
+
+[题目](https://leetcode.cn/problems/where-will-the-ball-fall)
+
+我的模拟：每次看看当前球能不能左右移动，一直移动到底部就胜利。
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+class Solution {
+    public:
+        vector<int> findBall(vector<vector<int>>& grid) {
+            int n = grid.size(), m = grid[0].size();
+            vector<int> ans(m, -1);
+            for(int s=0;s<m;++s) {
+                int x=0,y=s;
+                while(x<n) {
+                    int g=grid[x][y];
+                    if(g==1) {
+                        if(y+1<m && grid[x][y+1]==1) {
+                            ++y;
+                        }else break;
+                    }else{
+                        if(y-1>=0 && grid[x][y-1]==-1) {
+                            --y;
+                        }else break;
+                    }
+                    ++x;
+                }
+                if(x==n) ans[s]=y;
+            }
+            return ans;
+        }
+    };
+```
+
+题解：反向，我是看啥时候行，题解看啥时候不行。
+
+```c++
+class Solution {
+public:
+    vector<int> findBall(vector<vector<int>> &grid) {
+        int n = grid[0].size();
+        vector<int> ans(n);
+        for (int j = 0; j < n; ++j) {
+            int col = j; // 球的初始列
+            for (auto &row : grid) {
+                int dir = row[col];
+                col += dir; // 移动球
+                if (col < 0 || col == n || row[col] != dir) { // 到达侧边或 V 形
+                    col = -1;
+                    break;
+                }
+            }
+            ans[j] = col; // col >= 0 为成功到达底部
+        }
+        return ans;
+    }
+};
 ```
 
