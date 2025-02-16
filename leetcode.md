@@ -2613,6 +2613,14 @@
 - 1706\.球会落何处
 
   模拟
+  
+- 1299\.将每个元素替换为右侧最大元素
+
+  签到 前缀和
+  
+- 1287\.有序数组中出现次数超过25%的元素
+
+  签到 / 二分
 
 ## 算法
 
@@ -63915,6 +63923,135 @@ public:
             ans[j] = col; // col >= 0 为成功到达底部
         }
         return ans;
+    }
+};
+```
+
+##### 1299\.蒋每个元素替换为右侧最大元素
+
+[题目](https://leetcode.cn/problems/replace-elements-with-greatest-element-on-right-side)
+
+```c++
+class Solution {
+public:
+    vector<int> replaceElements(vector<int>& arr) {
+        int n = arr.size();
+        vector<int> ans(n);
+        int mx = -1;
+        for (int i = n - 1; i >= 0; --i) {
+            ans[i] = mx;
+            mx = max(mx, arr[i]);
+        }
+        return ans;
+    }
+};
+```
+
+##### 1287\.有序数组中出现次数超过25%的元素
+
+[题目](https://leetcode.cn/problems/element-appearing-more-than-25-in-sorted-array)
+
+模拟：
+
+10ms map, 4ms un map
+
+```c++
+class Solution {
+    public:
+        int findSpecialInteger(vector<int>& arr) {
+            map<int, int> m;
+            for (int i = 0; i < arr.size(); i++)
+                ++m[arr[i]];
+            int mxcnt = 0, ans;
+            for(auto&[k, v]:m) {
+                if (v > mxcnt) {
+                    mxcnt = v;
+                    ans = k;
+                }
+            }
+            return ans;
+        }
+    };
+```
+
+0ms no map
+
+```c++
+class Solution {
+public:
+    int findSpecialInteger(vector<int>& arr) {
+        int n = arr.size();
+        int cur = arr[0], cnt = 0;
+        for (int i = 0; i < n; ++i) {
+            if (arr[i] == cur) {
+                ++cnt;
+                if (cnt * 4 > n) {
+                    return cur;
+                }
+            }
+            else {
+                cur = arr[i];
+                cnt = 1;
+            }
+        }
+        return -1;
+    }
+};
+```
+
+二分：由于 $>25\%$，所以一定在每隔 $25\%$ 取一个里会取到答案，有 $4$ 个最多候选项，分别拿来二分看看下标。
+
+```c++
+class Solution {
+public:
+    int findSpecialInteger(vector<int>& arr) {
+        int n = arr.size();
+        int span = n / 4 + 1;
+        for (int i = 0; i < n; i += span) {
+            auto iter_l = lower_bound(arr.begin(), arr.end(), arr[i]);
+            auto iter_r = upper_bound(arr.begin(), arr.end(), arr[i]);
+            if (iter_r - iter_l >= span) {
+                return arr[i];
+            }
+        }
+        return -1;
+    }
+};
+```
+
+C++17 
+
+```c++
+class Solution {
+public:
+    int findSpecialInteger(vector<int>& arr) {
+        int n = arr.size();
+        int span = n / 4 + 1;
+        for (int i = 0; i < n; i += span) {
+            auto [iter_l, iter_r] = equal_range(arr.begin(), arr.end(), arr[i]);
+            if (iter_r - iter_l >= span) {
+                return arr[i];
+            }
+        }
+        return -1;
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    int findSpecialInteger(vector<int>& arr) {
+        int n = arr.size();
+        int m = n / 4;
+        for (int i : {m, m * 2 + 1}) {
+            int x = arr[i];
+            if (ranges::upper_bound(arr, x) - ranges::lower_bound(arr, x) > m) {
+                return x;
+            }
+        }
+        // 如果答案不是 arr[m] 也不是 arr[2m+1]，那么答案一定是 arr[3m+2]
+        return arr[m * 3 + 2];
     }
 };
 ```
