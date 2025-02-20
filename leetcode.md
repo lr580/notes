@@ -2621,6 +2621,14 @@
 - 1287\.有序数组中出现次数超过25%的元素
 
   签到 / 二分
+  
+- 624\.数组列表中的最大距离
+
+  枚举 区间 思维
+
+- 2595\.奇偶位数
+
+  签到 位运算
 
 ## 算法
 
@@ -64056,3 +64064,80 @@ public:
 };
 ```
 
+##### 624\.数组列表中的最大距离
+
+[题目](https://leetcode.cn/problems/maximum-distance-in-arrays)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+    public:
+        int maxDistance(vector<vector<int>>& arrays) {
+            int m = arrays.size();
+            int mi = INT_MAX, mx = INT_MIN;
+            for(int x : arrays[0]) {
+                mi = min(mi, x);
+                mx = max(mx, x);
+            }
+            int ans = 0;
+            for (int i = 1; i < m; i++) {            
+                for(int x : arrays[i]) {
+                    ans = max(ans, abs(x - mi));
+                    ans = max(ans, abs(x - mx));
+                }
+                for(int x : arrays[i]) {
+                    mi = min(mi, x);
+                    mx = max(mx, x);
+                }
+            }
+            return ans;
+        }
+    };
+```
+
+不过已经排好序了，所以可以：
+
+```c++
+class Solution {
+public:
+    int maxDistance(vector<vector<int>>& arrays) {
+        int ans = 0;
+        int mn = INT_MAX / 2, mx = INT_MIN / 2; // 防止减法溢出
+        for (auto& a : arrays) {
+            ans = max({ans, a.back() - mn, mx - a[0]});
+            mn = min(mn, a[0]);
+            mx = max(mx, a.back());
+        }
+        return ans;
+    }
+};
+```
+
+##### 2595\.奇偶位数
+
+[题目](https://leetcode.cn/problems/maximum-distance-in-arrays)
+
+```c++
+class Solution {
+public:
+    vector<int> evenOddBit(int n) {
+        vector<int> ans(2);
+        for (int i = 0; n; n >>= 1) {
+            ans[i] += n & 1;
+            i ^= 1; // 切换奇偶
+        }
+        return ans;
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    vector<int> evenOddBit(int n) {
+        const unsigned MASK = 0x55555555u;
+        return {popcount(n & MASK), popcount(n & (MASK << 1))};
+    }
+};
+```
