@@ -112,8 +112,6 @@ int a=1;
 
 <center>标题</center>
 
-
-
 #### 分页
 
 实用 HTML 语法可以实现分页(导出 pdf 时生效)
@@ -130,6 +128,12 @@ int a=1;
 
 - [ ] 没做完的任务，点击切换状态
 - [x] 我滴任务，完成啦！
+
+#### 分割线
+
+---
+
+三个 `-` 即可。
 
 ### 其他设置
 
@@ -400,9 +404,9 @@ $\%$ 需要转义，否则代表单行注释，如 $1+2%难道不等于%3吗$ �
 
 ##### 箭头
 
-四方向\left/right/up/downarrow $\uparrow$
+四方向 $\leftarrow\rightarrow\uparrow\downarrow$ 
 
-左右\to \gets $\to \gets$ $\leftrightarrow, \leftrightarrows$ 
+左右 $\to \gets$ $\leftrightarrow, \leftrightarrows$ $\twoheadrightarrow$
 
 - 大左右 $\xleftarrow[下]{1+2+3}\xrightarrow{x}$
 - 双线 $\Leftarrow$ $\Leftrightarrow$ $\iff$ 
@@ -3335,7 +3339,19 @@ citation keyword，即 id 字段(区分于 author字段)，{第一行
 \AtEveryBibitem{\clearfield{doi}}
 ```
 
+如果使用了特定格式，如：
 
+```tex
+\bibliographystyle{IEEEtran}
+```
+
+可以找到对应的 `.bst` 文件，查找方法：
+
+```sh
+kpsewhich IEEEtran.bst
+```
+
+找到路径打开，可以看到如 `FUNCTION {article}` 里的行，来知道对 `@article` 的引用输出什么字段。
 
 ###### vscode
 
@@ -3397,7 +3413,26 @@ if (this.item.archiveLocation) {
 
 注意，要在我的文库，全选论文（文件夹不行），右击刷新引用。
 
-导出时，导出选项用 better biblatex，也可以首选项-导出-默认设置
+导出时，导出选项用，可以首选项-导出-默认设置
+
+- Better BibTeX 
+
+  与 LaTeX 的 `\bibliographystyle` 和 `\bibliography` 命令配合使用
+
+- Better BibLaTeX 
+
+  与 LaTeX 的 `biblatex` 包配合使用
+
+> ###### 期刊会议缩写
+>
+> 可以设置或导出时勾选，效果：
+>
+> ```
+> IEEE Transactions on Knowledge and Data Engineering
+> IEEE Trans. Knowl. Data Eng.
+> ```
+
+
 
 ##### 脚注
 

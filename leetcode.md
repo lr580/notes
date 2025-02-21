@@ -2473,6 +2473,162 @@
 - 3298\.统计重新排列后包含另一个字符串的子字符串数目 II
 
   滑动窗口
+  
+- 3270\.求出数字答案
+
+  签到
+  
+- 2275\.按位与结果大于零的最长组合
+
+  **位运算 计数**
+  
+- 2270\.分割数组的方案数
+
+  前缀和 枚举
+  
+- 3065\.超过阈值的最少操作数I
+
+  签到
+  
+- 3066\.超过阈值的最少操作数II
+
+  贪心 堆(STL)
+  
+- 3097\.或值至少为K的最短子数组II
+
+  滑动窗口 / <u>LogTrick后缀和 / 滑动窗口+双栈重构(无逆运算区间滑动)</u>
+  
+- 3287\.求出数组中最大序列值
+
+  状压DP / <u>贪心等优化</u>
+  
+- 2266\.统计打字方案数
+
+  DP 数学(乘法原理，取模) 预处理
+  
+- 2239\.找到最接近0的数字
+
+  签到
+  
+- 2218\.从栈中取出K个硬币的最大面值和
+
+  **DP 分组背包**
+  
+- 1561\.你可以获得的最大硬币数目
+
+  排序 贪心
+  
+- 2920\.收集所有金币可获得的最大积分
+
+  树上DP
+  
+- 2944\.购买水果需要的最少金币数
+
+  DP / <u>DP+滑动窗口优化</u>
+  
+- 2412\.完成所有交易的初始最少钱数
+
+  **贪心**
+  
+- 40\.组合总和II
+
+  <u>DFS 剪枝</u>
+  
+- 45\.跳跃游戏II
+
+  DP / <u>DP+滑动窗口/堆优化 贪心</u>
+  
+- 119\.杨辉三角II
+
+  签到
+  
+- 219\.存在重复元素II
+
+  滑动窗口
+  
+- 350\.两个数组的交集II
+
+  签到 STL
+  
+- 541\.反转字符串II
+
+  签到 字符串
+  
+- 81\.搜索旋转排序数组II
+
+  二分
+  
+- 598\.区间加法II
+
+  思维 签到 数学
+  
+- 680\.验证回文串II
+
+  签到 模拟 字符串
+  
+- 922\.按奇偶排序数组II
+
+  签到 双指针
+  
+- 90\.子集II
+
+  爆搜 DFS/二进制枚举
+  
+- 47\.全排列II
+
+  爆搜 DFS/二进制枚举
+  
+- 80\.删除有序数组中的重复项II
+
+  双指针 / 栈
+  
+- 63\.不同路径II
+
+  DP
+  
+- 59\.螺旋矩阵II
+
+  模拟 签到
+  
+- 913\.猫和老鼠
+
+  **DP 拓扑排序 博弈论**
+  
+- 1728\.猫和老鼠 II
+
+  DP 拓扑排序 博弈论
+  
+- 1760\.袋子里最少数目的球
+
+  二分答案
+  
+- 1742\.盒子中小球的最大数目
+
+  签到 枚举 / <u>预处理+前缀和 / 数位DP</u>
+  
+- 1552\.两球之间的磁力
+
+  二分答案
+  
+- 1706\.球会落何处
+
+  模拟
+  
+- 1299\.将每个元素替换为右侧最大元素
+
+  签到 前缀和
+  
+- 1287\.有序数组中出现次数超过25%的元素
+
+  签到 / 二分
+  
+- 624\.数组列表中的最大距离
+
+  枚举 区间 思维
+
+- 2595\.奇偶位数
+
+  签到 位运算
 
 ## 算法
 
@@ -60824,6 +60980,46 @@ public:
 };
 ```
 
+复杂度分析：暴力DFS
+
+```python
+class Solution:
+    def isSubPath(self, head: ListNode, root: TreeNode) -> bool:
+        def dfs(s: Optional[ListNode], t: Optional[TreeNode]) -> bool:
+            if s is None:  # 整个链表匹配完毕
+                return True
+            # 否则需要继续匹配
+            if t is None:  # 无法继续匹配
+                return False
+            # 节点值相同则继续匹配，否则从 head 开始重新匹配
+            return s.val == t.val and (dfs(s.next, t.left) or dfs(s.next, t.right)) or \
+                   s is head and (dfs(head, t.left) or dfs(head, t.right))
+        return dfs(head, root)
+```
+
+```python
+class Solution:
+    def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
+        ans=False
+        def dfs(this,node):
+            if(this==None):
+                nonlocal ans
+                ans=True
+                return
+            if node==None:
+                return
+            if(node.val==this.val):
+                dfs(this.next,node.left)
+                dfs(this.next,node.right)
+            if this==head:
+                dfs(head,node.left)
+                dfs(head,node.right) 
+        dfs(head,root)
+        return ans
+```
+
+如果不加 `this==head`，逻辑正确但 TLE，其复杂度，考虑树：左儿子是单一节点，右儿子是子树，不断递归。则有 $T(n)=2+2T(n-2)$，显然指数复杂度。如果加了，把 `if this==head`里看成 g 函数，另一个 if 里看成 f 函数，显然原问题是 g 函数，且显然 f 函数是二叉树 DFS 复杂度为 $O(n)$，则有 $T(n)=1+1+O(n-2)+T(n-2)=O(n^2)$。如果是完全二叉树，可以用主定理易知。
+
 也可以上 KMP，也就是记录当前匹配的状态和当前节点为参数同时DFS(等价于字符串的两个下标)，直接对应即可。[src](https://leetcode.cn/problems/linked-list-in-binary-tree/solutions/271244/ji-zhi-you-hua-kmpdfs-by-etan-2/)
 
 ```c++
@@ -61289,4 +61485,2659 @@ class Solution:
                 left += 1
             ans += left
         return ans
+```
+
+##### 3270\.求出数字答案
+
+[题目](https://leetcode.cn/problems/find-the-key-of-the-numbers)
+
+```python
+class Solution:
+    def generateKey(self, x: int, y: int, z: int) -> int:
+        ans = 0
+        pow10 = 1
+        while x and y and z:
+            ans += min(x % 10, y % 10, z % 10) * pow10
+            x //= 10
+            y //= 10
+            z //= 10
+            pow10 *= 10
+        return ans
+```
+
+##### 2275\.按位与结果大于零的最长组合
+
+[题目](https://leetcode.cn/problems/largest-combination-with-bitwise-and-greater-than-zero)
+
+```python
+class Solution:
+    def largestCombination(self, candidates: List[int]) -> int:
+        cnt = [0] * 24
+        for x in candidates:
+            i = 0
+            while x:
+                cnt[i] += x & 1
+                x >>= 1
+                i += 1
+        return max(cnt)
+```
+
+```python
+class Solution:
+    def largestCombination(self, candidates: List[int]) -> int:
+        m = max(candidates).bit_length()
+        return max(sum(x >> i & 1 for x in candidates) for i in range(m))
+```
+
+##### 2270\.分割数组的方案数
+
+[题目](https://leetcode.cn/problems/number-of-ways-to-split-array)
+
+x 比不 x 快：
+
+```python
+class Solution:
+    def waysToSplitArray(self, nums: List[int]) -> int:
+        sl, sr, ans = 0, sum(nums), 0
+        n = len(nums)
+        for i in range(n-1):
+            x = nums[i]
+            sl += x
+            sr -= x
+            ans += sl >= sr
+        return ans
+```
+
+下面更快：[src](https://leetcode.cn/problems/number-of-ways-to-split-array/solutions/1496445/by-endlesscheng-nufi/)
+
+```python
+class Solution:
+    def waysToSplitArray(self, nums: List[int]) -> int:
+        t = (sum(nums) + 1) // 2
+        return sum(s >= t for s in accumulate(nums[:-1]))
+```
+
+##### 3065\.超过阈值的最少操作数I
+
+[题目](https://leetcode.cn/problems/minimum-operations-to-exceed-threshold-value-i)
+
+```python
+class Solution:
+    def minOperations(self, nums: List[int], k: int) -> int:
+        return sum(v < k for v in nums)
+```
+
+```c++
+class Solution {
+public:
+    int minOperations(vector<int>& nums, int k) {
+        return ranges::count_if(nums, [&](int x) {
+            return x < k;
+        });
+    }
+};
+```
+
+
+##### 3065\.超过阈值的最少操作数II
+
+[题目](https://leetcode.cn/problems/minimum-operations-to-exceed-threshold-value-ii)
+
+贪心选最小的。我的证明：等价于还是每次删掉最小的，然后把次小的变大。如果把这个次小变大换成别的变大，答案不会更优。
+
+```python
+from typing import *
+from heapq import *
+class Solution:
+    def minOperations(self, q: List[int], k: int) -> int:
+        heapify(q)
+        ans = 0
+        while q[0] < k:
+            x = heappop(q)
+            y = heappop(q)
+            heappush(q, min(x,y)*2+max(x,y))
+            ans += 1
+        return ans
+```
+
+```python
+class Solution:
+    def minOperations(self, h: List[int], k: int) -> int:
+        heapify(h)
+        ans = 0
+        while h[0] < k:
+            x = heappop(h)
+            heapreplace(h, h[0] + x * 2)
+            ans += 1
+        return ans
+```
+
+##### 3097\.或值至少为K的最短子数组
+
+维护每个位出现次数，用双指针维护 >=k 的区间，只要 >=k 就不断右移左指针。
+
+```python
+from typing import *
+from collections import Counter
+class Solution:
+    def minimumSubarrayLength(self, nums: List[int], k: int) -> int:
+        c = Counter()
+        def add(x):
+            i = 0
+            while x > 0:
+                if x & 1:
+                    c[i] += 1
+                x >>= 1
+                i += 1
+        def remove(x):
+            i = 0
+            while x > 0:
+                if x & 1:
+                    c[i] -= 1
+                x >>= 1
+                i += 1
+        def get():
+            x = 0
+            for k, v in c.items():
+                if v > 0:
+                    x |= 1 << k
+            return x
+        lf, n, ans = 0, len(nums), 1e9
+        for rf in range(n):
+            add(nums[rf])
+            while lf<=rf and get() >= k:
+                # print(c, lf, rf)
+                ans = min(ans, rf - lf + 1)
+                remove(nums[lf])
+                lf += 1
+        return -1 if ans == 1e9 else ans
+```
+
+logTrick 枚举：把 nums 变成后缀or和，在不断添加新的后缀更新 nums 过程中，只要某次没发生更新，那么再往前推一定不会发生更新。且，最多更新 log 次。对每次发生变化的部分，维护这个后缀or的长度的最小值。
+
+```python
+class Solution:
+    def minimumSubarrayLength(self, nums: List[int], k: int) -> int:
+        ans = inf
+        for i, x in enumerate(nums):
+            if x >= k:
+                return 1
+            j = i - 1
+            while j >= 0 and nums[j] | x != nums[j]:
+                nums[j] |= x
+                if nums[j] >= k:
+                    ans = min(ans, i - j + 1)
+                j -= 1
+        return ans if ans < inf else -1
+```
+
+一种比我维护 c Counter 更好的滑动窗口，把窗口内用一个右侧or和 `right_or` 和左边的后缀or数组维护，来实现没有逆运算的滑动窗口维护。[参考](https://leetcode.cn/problems/find-subarray-with-bitwise-or-closest-to-k/solutions/2798206/li-yong-and-de-xing-zhi-pythonjavacgo-by-gg4d/)
+
+```python
+class Solution:
+    def minimumSubarrayLength(self, nums: List[int], k: int) -> int:
+        ans = inf
+        left = bottom = right_or = 0
+        for right, x in enumerate(nums):
+            right_or |= x
+            while left <= right and nums[left] | right_or >= k:
+                ans = min(ans, right - left + 1)
+                left += 1
+                if bottom < left:
+                    # 重新构建一个栈
+                    for i in range(right - 1, left - 1, -1):
+                        nums[i] |= nums[i + 1]
+                    bottom = right
+                    right_or = 0
+        return ans if ans < inf else -1
+```
+
+##### 3287\.求出数组中最大序列值
+
+[题目](https://leetcode.cn/problems/find-the-maximum-sequence-value-of-array)
+
+设 $dp_{i,j}$ 表示前 $i$ 个数里选 $j$ 个数，能得到的全部的或为 $dp_{i,j}$，可以用二进制状态表示，则 $dp_{i,j}$ 为有 $2^7$ 个位的整数，第 $l$ 位为 $1$ 表示可以在前 $i$ 个数里选 $j$ 个数，使得这 $j$ 个数的或为 $l$。这里 $i,j$ 从 $1$ 开始计数，位 $l$ 从低到高从 $0$ 开始计数。
+
+初始值为 $dp_{i,0}=1$，即第 $0$ 位(或为 $0$)是可行的。转移方程：
+
+- 设不选第 $i$ 个数 $nums_{i-1}$，则全部状态为 $v_1=dp_{i-1,j}$；
+- 选第 $i$ 个数 $nums_{i-1}$，则全部状态为取 $dp_{i-1,j-1}$ 的所有状态位 $x\in dp_{i-1,j-1}$，其中 $x$ 取值 $[0,2^7)$ 是位下标。把所有的 $x$ 与 $nums_{i-1}$ 或之后得到新的全部状态记为 $v_2$。
+- 则选与不选合并，$dp_{i,j}=v_1\ or\ v_2$。
+
+复杂度分析：设 $c=2^7$，数组长 $n$，选 $k$ 个数，$v_2$ 计算复杂度为 $O(c)$，故总复杂度 $O(nkc)\approx10^7$。
+
+得到的全部 $dp_{i,:}$ 把二进制状态展开，设 $ans_{i-1,j}$ 是 $dp_{i,k}$ 的状态的从低往高第 $j$ 个二进制 $1$ 的编号，即 $ans_{i-1}$ 是前 $i$ 个数里选 $k$ 个能得到的所有或值的集合。
+
+把原数组经由上述处理得到 $la=ans$；原数组反转处理得到 $ra$。
+
+下标从 $0$ 开始算。枚举分割点下标 $l\in[k-1,n-k)$，则从左边选择下标不超过 $l$ 的子序列 $la_l$，从右边选择下标超过 $l$ 的子序列 $ra_{n-2-l}$。枚举 $la_l$ 和 $ra_{n-2-l}$ 的两两组合进行异或，求最大即可。此处复杂度为 $O(nc^2)\approx6\times10^6$。
+
+故总复杂度为 $O(nkc+nc^2)=O(nc(k+c))\approx O(nc(n+c))$。
+
+```python
+from typing import *
+class Solution:
+    def maxValue(self, nums: List[int], k: int) -> int:
+        n = len(nums)
+        def getBits(v):
+            return [x for x in range(v.bit_length()) if (v >> x) & 1]
+        def getDP(a):
+            # dp[i][j] 前 i 个数选了 j 个，可以组成的 or 值集合为 dp[i][j]
+            dp = [[0 for _ in range(k+1)] for _ in range(n+1)]
+            # 其中 dp[i][j] 的第 l 位为 1，则可以 or 和为 l
+            ans = [0 for i in range(n)]
+            dp[0][0] = 1
+            for i in range(1, n+1):
+                dp[i][0] = 1
+                for j in range(1,min(k+1,i+1)):
+                    v1 = dp[i-1][j] # 不选 a[i]
+                    v2 = dp[i-1][j-1] # 选 a[i]
+                    l = getBits(v2)
+                    v2 = 0
+                    y = a[i-1]
+                    for x in l:
+                        v2 |= (1 << (x | y))
+                    dp[i][j] = v1 | v2
+                ans[i-1] = getBits(dp[i][k])
+            return ans
+        la = getDP(nums)
+        ra = getDP(nums[::-1])
+        # print(la)
+        # print(ra)
+        ans = 0
+        for l in range(k-1,n-k):
+            r = n-2-l
+            for xl in la[l]:
+                for xr in ra[r]:
+                    # print(xl, xr, xl^xr, l, r)
+                    ans = max(ans, xl ^ xr)
+        return ans
+```
+
+上面代码 7706ms，可以优化。
+
+显然 $dp_i$ 这一个维度可以优化。且可以不到 $2^7$，用原数组或和求出最大位数。1.5s：
+
+```python
+class Solution:
+    def maxValue(self, nums: List[int], k: int) -> int:
+        mx = reduce(or_, nums)
+        n = len(nums)
+        suf = [None] * (n - k + 1)
+        f = [[False] * (mx + 1) for _ in range(k + 1)]
+        f[0][0] = True
+        for i in range(n - 1, k - 1, -1):
+            v = nums[i]
+            # 注意当 i 比较大的时候，循环次数应和 i 有关，因为更大的 j，对应的 f[j] 全为 False
+            for j in range(min(k - 1, n - 1 - i), -1, -1):
+                for x, has_x in enumerate(f[j]):
+                    if has_x:
+                        f[j + 1][x | v] = True
+            if i <= n - k:
+                suf[i] = f[k].copy()
+
+        ans = 0
+        pre = [[False] * (mx + 1) for _ in range(k + 1)]
+        pre[0][0] = True
+        for i, v in enumerate(nums[:-k]):
+            for j in range(min(k - 1, i), -1, -1):
+                for x, has_x in enumerate(pre[j]):
+                    if has_x:
+                        pre[j + 1][x | v] = True
+            if i < k - 1:
+                continue
+            for x, has_x in enumerate(pre[k]):
+                if has_x:
+                    for y, has_y in enumerate(suf[i + 1]):
+                        if has_y and x ^ y > ans:  # 手写 if
+                            ans = x ^ y
+            if ans == mx:
+                return ans
+        return ans
+```
+
+省掉 0，用 set，快一倍：
+
+```python
+# 使用 set 代替 bool list
+class Solution:
+    def maxValue(self, nums: List[int], k: int) -> int:
+        n = len(nums)
+        suf = [None] * (n - k + 1)
+        f = [set() for _ in range(k + 1)]
+        f[0].add(0)
+        for i in range(n - 1, k - 1, -1):
+            v = nums[i]
+            for j in range(min(k - 1, n - 1 - i), -1, -1):
+                f[j + 1].update(x | v for x in f[j])
+            if i <= n - k:
+                suf[i] = f[k].copy()
+
+        mx = reduce(or_, nums)
+        ans = 0
+        pre = [set() for _ in range(k + 1)]
+        pre[0].add(0)
+        for i, v in enumerate(nums[:-k]):
+            for j in range(min(k - 1, i), -1, -1):
+                pre[j + 1].update(x | v for x in pre[j])
+            if i < k - 1:
+                continue
+            ans = max(ans, max(x ^ y for x in pre[k] for y in suf[i + 1]))
+            if ans == mx:
+                return ans
+        return ans
+```
+
+```c++
+class Solution {
+public:
+    int maxValue(vector<int>& nums, int k) {
+        const int MX = 1 << 7;
+        int n = nums.size();
+        vector<array<int, MX>> suf(n - k + 1);
+        vector<array<int, MX>> f(k + 1);
+        f[0][0] = true;
+        for (int i = n - 1; i >= k; i--) {
+            int v = nums[i];
+            // 注意当 i 比较大的时候，循环次数应和 i 有关，因为更大的 j，对应的 f[j] 全为 false
+            for (int j = min(k - 1, n - 1 - i); j >= 0; j--) {
+                for (int x = 0; x < MX; x++) {
+                    if (f[j][x]) {
+                        f[j + 1][x | v] = true;
+                    }
+                }
+            }
+            if (i <= n - k) {
+                suf[i] = f[k];
+            }
+        }
+
+        int ans = 0;
+        vector<array<int, MX>> pre(k + 1);
+        pre[0][0] = true;
+        for (int i = 0; i < n - k; i++) {
+            int v = nums[i];
+            for (int j = min(k - 1, i); j >= 0; j--) {
+                for (int x = 0; x < MX; x++) {
+                    if (pre[j][x]) {
+                        pre[j + 1][x | v] = true;
+                    }
+                }
+            }
+            if (i < k - 1) {
+                continue;
+            }
+            for (int x = 0; x < MX; x++) {
+                if (pre[k][x]) {
+                    for (int y = 0; y < MX; y++) {
+                        if (suf[i + 1][y]) {
+                            ans = max(ans, x ^ y);
+                        }
+                    }
+                }
+            }
+            if (ans == MX - 1) {
+                return ans;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+卡常完毕，下面进行复杂度优化。
+
+类比力扣 421，子问题：从数组 $a,b$ 各选一个数，求异或最大值。其复杂度为 $O(n\log c)$。从最高位开始枚举，假设答案是 $ans$，若当前位 $i$ 可以是 $1$，则新答案是 $ans+2^i$，维护一个集合，类比两数之和(力扣1)，遍历数组，只看从 $i$ 开始更高的位，看看能否有两个数异或为 $ans+2^i$，可以就方案成立，否则第 $i$ 为是 $0$。
+
+> 没太看懂：
+>
+> 下面继续优化状压 DP 部分。对一个数 $x$，设它有 $n_1$ 个 $1$，则最多选 $n_1$ 个数或，就能组成 $x$。显然 $n_1\le \log_2c=7<k$。然而本题要求恰好选 $k$ 个数。设：
+>
+> - $minI_x$ 表示从 $0$ 开始遍历，至少到 $i$ 才能找到 $k$ 个数或为 $x$。无解 $\infty$。
+> - $maxI_x$ 表示从 $n-1$ 开始遍历，至少到 $i$ 才能找到 $k$ 个数或为 $x$。无解 $0$。
+>
+> 如果有解，那么显然参与或的成分都是 $x$ 这个状态的子集。用 $cnt$ 维护 $nums_i$ 的每个超集(含自己)的出现次数。如果枚举过程发现某个超集 $s$ 出现次数恰好为 $k$，那么这个超集 $s$ 在 $i$ 处第一次有解，即 $maxI_s=i$。$minI_s$ 同理计算。
+>
+> 然后还是继续做前后缀状压 DP。在枚举两部分时，用 $minI,maxI$ 进行元素筛选。
+
+```python
+class Solution:
+    def maxValue(self, nums: List[int], k: int) -> int:
+        n = len(nums)
+        mx = reduce(or_, nums)
+        k2 = min(k, mx.bit_count())  # 至多选 k2 个数
+
+        suf = [None] * (n - k + 1)
+        f = [set() for _ in range(k2 + 1)]
+        f[0].add(0)
+        max_i = [0] * (mx + 1)
+        cnt = [0] * (mx + 1)
+        for i in range(n - 1, k - 1, -1):
+            v = nums[i]
+            for j in range(min(k2 - 1, n - 1 - i), -1, -1):
+                f[j + 1].update(x | v for x in f[j])
+            if i <= n - k:
+                suf[i] = f[k2].copy()
+            # 枚举 v 的超集
+            s = v
+            while s <= mx:
+                cnt[s] += 1
+                if cnt[s] == k:
+                    # 从 n-1 开始遍历，至少要遍历到 i 才有可能找到 k 个数 OR 等于 s
+                    max_i[s] = i
+                s = (s + 1) | v
+
+        ans = 0
+        pre = [set() for _ in range(k2 + 1)]
+        pre[0].add(0)
+        min_i = [inf] * (mx + 1)
+        cnt = [0] * (mx + 1)
+        w = mx.bit_length()  # 用于 findMaximumXOR
+        for i, v in enumerate(nums[:-k]):
+            for j in range(min(k2 - 1, i), -1, -1):
+                pre[j + 1].update(x | v for x in pre[j])
+            # 枚举 v 的超集
+            s = v
+            while s <= mx:
+                cnt[s] += 1
+                if cnt[s] == k:
+                    # 从 0 开始遍历，至少要遍历到 i 才有可能找到 k 个数 OR 等于 s
+                    min_i[s] = i
+                s = (s + 1) | v
+            if i < k - 1:
+                continue
+            a = [x for x in pre[k2] if min_i[x] <= i]
+            b = [x for x in suf[i + 1] if max_i[x] > i]
+            ans = max(ans, self.findMaximumXOR(a, b, w))
+            if ans == mx:
+                return ans
+        return ans
+
+    # 421. 数组中两个数的最大异或值
+    # 改成两个数组的最大异或值，做法是类似的，仍然可以用【试填法】解决
+    def findMaximumXOR(self, a: List[int], b: List[int], w: int) -> int:
+        ans = mask = 0
+        for i in range(w - 1, -1, -1):  # 从最高位开始枚举
+            mask |= 1 << i
+            new_ans = ans | (1 << i)  # 这个比特位可以是 1 吗？
+            set_a = set(x & mask for x in a)  # 低于 i 的比特位置为 0
+            for x in b:
+                x &= mask  # 低于 i 的比特位置为 0
+                if new_ans ^ x in set_a:
+                    ans = new_ans  # 这个比特位可以是 1
+                    break
+        return ans
+```
+
+##### 2266\.统计打字方案数
+
+[题目](https://leetcode.cn/problems/count-number-of-texts)
+
+预处理出所有3、4字母按键按 $k$ 次的方案数，记为 $dp3_k,dp4_k$，可以枚举出初始情况，设 $k=0$ 为不按，下标 $0$ 开始：$dp3=1,1,2,4,\cdots$，$dp4=1,1,2,4,8,\cdots$。然后转移方程为：
+$$
+dp3_i=dp3_{i-1}+dp3_{i-2}+dp3_{i-3}\\
+dp4_i=dp4_{i-1}+dp4_{i-2}+dp4_{i-3}+dp4_{i-4}
+$$
+然后对每个连续数字段，方案数为对应的 $dp$，乘法原理把每个连续段乘起来即可。
+
+```python
+N, P = 100000, 1000000007
+dp3 = [0] * (N+1)
+dp3[0], dp3[1], dp3[2], dp3[3] = 1, 1, 2, 4
+for i in range(4, N+1):
+    dp3[i] = (dp3[i-1] + dp3[i-2] + dp3[i-3]) % P
+dp4 = [0] * (N+1)
+dp4[0], dp4[1], dp4[2], dp4[3], dp4[4] = 1, 1, 2, 4, 8
+for i in range(5, N+1):
+    dp4[i] = (dp4[i-1] + dp4[i-2] + dp4[i-3] + dp4[i-4]) % P
+class Solution:
+    def countTexts(self, pressedKeys: str) -> int:
+        ans = 1
+        prv, cnt = '0', 0
+        def add():
+            nonlocal ans
+            if prv == '7' or prv == '9':
+                ans = (ans * dp4[cnt]) % P
+            else:
+                ans = (ans * dp3[cnt]) % P
+            # print(prv, cnt, ans, dp4[cnt] if (prv=='7' or prv=='9') else dp3[cnt])
+        for c in pressedKeys:
+            if c != prv:
+                add()
+                prv, cnt = c, 1
+            else:
+                cnt += 1
+        add()
+        return ans
+```
+
+更优雅：
+
+```python
+MOD = 1_000_000_007
+f = [1, 1, 2, 4]
+g = [1, 1, 2, 4]
+for _ in range(10 ** 5 - 3):  # 预处理所有长度的结果
+    f.append((f[-1] + f[-2] + f[-3]) % MOD)
+for _ in range(10 ** 5 - 3): # 局部性原理，两次for比一次for更快
+    g.append((g[-1] + g[-2] + g[-3] + g[-4]) % MOD)
+
+class Solution:
+    def countTexts(self, pressedKeys: str) -> int:
+        ans = 1
+        for ch, s in groupby(pressedKeys):
+            m = len(list(s))
+            ans = ans * (g[m] if ch in "79" else f[m]) % MOD
+        return ans
+```
+
+##### 2239\.找到最接近0的数字
+
+[题目](https://leetcode.cn/problems/find-closest-number-to-zero)
+
+以绝对值为依据取min，如果是负号，加上一个较小的(小于1)的值在比较依据上，使负数比它的相反数在比较上更大。
+
+```python
+class Solution:
+    def findClosestNumber(self, nums: List[int]) -> int:
+        return min(nums, key=lambda x:abs(x)+(0.5 if x<0 else 0))
+```
+
+也可以用元祖，做结构体排序
+
+```python
+class Solution:
+    def findClosestNumber(self, nums: List[int]) -> int:
+        return -min((abs(x), -x) for x in nums)[1]
+```
+
+```python
+class Solution:
+    def findClosestNumber(self, nums: List[int]) -> int:
+        ans = nums[0]
+        for x in nums:
+            if abs(x) < abs(ans) or abs(x) == abs(ans) and x > 0:
+                ans = x
+        return ans
+```
+
+##### 2218\.从栈中取出K个硬币的最大面值和
+
+[题目](https://leetcode.cn/problems/maximum-value-of-k-coins-from-piles)
+
+每个栈是一组，做 DP $f_{i,j}$ 表示前 $i$ 组，用了 $j$ 次容量。
+
+```python
+class Solution:
+    def maxValueOfCoins(self, piles: List[List[int]], k: int) -> int:
+        f = [[0] * (k + 1) for _ in range(len(piles) + 1)]
+        for i, pile in enumerate(piles):
+            for j in range(k + 1):
+                # 不选这一组中的任何物品
+                f[i + 1][j] = f[i][j]
+                # 枚举选哪个
+                for w, v in enumerate(accumulate(pile[:j]), 1):
+                    f[i + 1][j] = max(f[i + 1][j], f[i][j - w] + v)
+        return f[-1][k]
+```
+
+其中，最外层每次取一个栈，最内层每次遍历该栈，那么加起来就是 $L\le2000$，所以总复杂度是 $O(Lk)$。
+
+```python
+class Solution:
+    def maxValueOfCoins(self, piles: List[List[int]], k: int) -> int:
+        f = [0] * (k + 1)
+        sum_n = 0
+        for pile in piles:
+            n = len(pile)
+            for i in range(1, n):
+                pile[i] += pile[i - 1]  # 提前计算 pile 的前缀和
+            sum_n = min(sum_n + n, k)
+            for j in range(sum_n, 0, -1):  # 优化：j 从前 i 个栈的大小之和开始枚举
+                # w 从 0 开始，物品体积为 w+1
+                f[j] = max(f[j], max(f[j - w - 1] + pile[w] for w in range(min(n, j))))
+        return f[k]
+```
+
+更快：
+
+```python
+class Solution:
+    def maxValueOfCoins(self, piles: List[List[int]], k: int) -> int:
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int, j: int) -> int:
+            if i < 0:
+                return 0
+            # 不选这一组中的任何物品
+            res = dfs(i - 1, j)
+            # 枚举选哪个
+            for w, v in enumerate(accumulate(piles[i][:j]), 1):
+                res = max(res, dfs(i - 1, j - w) + v)
+            return res
+        return dfs(len(piles) - 1, k)
+```
+
+##### 1561\.你可以获得的最大硬币数目
+
+[题目](https://leetcode.cn/problems/maximum-number-of-coins-you-can-get)
+
+排序，然后不断选择最小和最大两个作三元组。调换顺序知不会更优。
+
+```python
+class Solution:
+    def maxCoins(self, piles: List[int]) -> int:
+        piles.sort()
+        n = len(piles) // 3
+        return sum(piles[n+2*i] for i in range(n))
+```
+
+##### 2920\.收集所有金币可获得的最大积分
+
+[题目](https://leetcode.cn/problems/maximum-points-after-collecting-coins-from-all-nodes/)
+
+记忆化 DFS，倍数递减，所以 $O(n\log n)$。
+
+```python
+from typing import * #3s
+from functools import *
+IMPO = -1e9
+class Solution:
+    def maximumPoints(self, edges: List[List[int]], coins: List[int], k: int) -> int:
+        n = len(edges) + 1
+        g = [[] for i in range(n)]
+        for u, v in edges:
+            g[u].append(v)
+            g[v].append(u)
+        @cache
+        def dfs(u, fa, cnt): # cnt: 祖先做了几次操作2
+            ans1 = coins[u] // (1<<(cnt)) - k
+            ans2 = coins[u] // (1<<(1+cnt))
+            for v in g[u]:
+                if v != fa:
+                    ans1 += dfs(v, u, cnt)
+                    ans2 += dfs(v, u, min(15, cnt + 1))#可以到13
+            # print(u, cnt, max(ans1, ans2))
+            return max(ans1, ans2)
+        return dfs(0, 0, 0)
+```
+
+```python
+class Solution:#2s
+    def maximumPoints(self, edges: List[List[int]], coins: List[int], k: int) -> int:
+        g = [[] for _ in coins]
+        for x, y in edges:
+            g[x].append(y)
+            g[y].append(x)
+
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int, j: int, fa: int) -> int:
+            res1 = (coins[i] >> j) - k
+            res2 = coins[i] >> (j + 1)
+            for ch in g[i]:
+                if ch != fa:
+                    res1 += dfs(ch, j, i)  # 不右移
+                    if j < 13:  # j+1 >= 14 相当于 res2 += 0，无需递归；更快
+                        res2 += dfs(ch, j + 1, i)  # 右移
+            return max(res1, res2)
+        return dfs(0, 0, -1)
+```
+
+递推，更快：(1s)
+
+```python
+class Solution:
+    def maximumPoints(self, edges: List[List[int]], coins: List[int], k: int) -> int:
+        g = [[] for _ in coins]
+        for x, y in edges:
+            g[x].append(y)
+            g[y].append(x)
+
+        def dfs(x: int, fa: int) -> List[int]:
+            s = [0] * 14
+            for y in g[x]:
+                if y != fa:
+                    fy = dfs(y, x)
+                    for j, v in enumerate(fy):
+                        s[j] += v
+            for j in range(13):
+                s[j] = max((coins[x] >> j) - k + s[j], (coins[x] >> (j + 1)) + s[j + 1])
+            s[13] += (coins[x] >> 13) - k
+            return s
+        return dfs(0, -1)[0]
+```
+
+##### 2920\.收集所有金币可获得的最大积分
+
+[题目](https://leetcode.cn/problems/maximum-points-after-collecting-coins-from-all-nodes)
+
+复杂度 $O(n\log n)$，因为操作二进行 $O(\log n)$ 次后就趋同了。记忆化 DFS：3s
+
+```python
+from typing import * 
+from functools import *
+IMPO = -1e9
+class Solution:
+    def maximumPoints(self, edges: List[List[int]], coins: List[int], k: int) -> int:
+        n = len(edges) + 1
+        g = [[] for i in range(n)]
+        for u, v in edges:
+            g[u].append(v)
+            g[v].append(u)
+        @cache
+        def dfs(u, fa, cnt): # cnt: 祖先做了几次操作2
+            ans1 = coins[u] // (1<<(cnt)) - k
+            ans2 = coins[u] // (1<<(1+cnt))
+            for v in g[u]:
+                if v != fa:
+                    ans1 += dfs(v, u, cnt)
+                    ans2 += dfs(v, u, min(15, cnt + 1))
+            # print(u, cnt, max(ans1, ans2))
+            return max(ans1, ans2)
+        return dfs(0, 0, 0)
+```
+
+if 剪枝，并且卡到 13：2.5s
+
+```python
+class Solution:
+    def maximumPoints(self, edges: List[List[int]], coins: List[int], k: int) -> int:
+        g = [[] for _ in coins]
+        for x, y in edges:
+            g[x].append(y)
+            g[y].append(x)
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int, j: int, fa: int) -> int:
+            res1 = (coins[i] >> j) - k
+            res2 = coins[i] >> (j + 1)
+            for ch in g[i]:
+                if ch != fa:
+                    res1 += dfs(ch, j, i)  # 不右移
+                    if j < 13:  # j+1 >= 14 相当于 res2 += 0，无需递归
+                        res2 += dfs(ch, j + 1, i)  # 右移
+            return max(res1, res2)
+        return dfs(0, 0, -1)
+```
+
+用非递归，1s
+
+```python
+class Solution:
+    def maximumPoints(self, edges: List[List[int]], coins: List[int], k: int) -> int:
+        g = [[] for _ in coins]
+        for x, y in edges:
+            g[x].append(y)
+            g[y].append(x)
+        def dfs(x: int, fa: int) -> List[int]:
+            s = [0] * 14
+            for y in g[x]:
+                if y != fa:
+                    fy = dfs(y, x)
+                    for j, v in enumerate(fy):
+                        s[j] += v
+            for j in range(13):
+                s[j] = max((coins[x] >> j) - k + s[j], (coins[x] >> (j + 1)) + s[j + 1])
+            s[13] += (coins[x] >> 13) - k
+            return s
+        return dfs(0, -1)[0]
+```
+
+##### 2944\.购买水果需要的最少金币数
+
+[题目](https://leetcode.cn/problems/maximum-points-after-collecting-coins-from-all-nodes)
+
+$dp_i$ 表示前 $i$ 个水果都得到了，且购买了第 $i$ 个水果的答案。则结果为 $\min_{i=\lceil\frac n2\rceil}^n dp_i$。
+
+所有 $j+j\ge i-1$ 即 $j\ge\lceil\dfrac{i-2}2\rceil=\lfloor\dfrac i2\rfloor$ 的都可以转移到 $i$。$O(n^2)$。
+
+```python
+from typing import *
+class Solution:
+    def minimumCoins(self, prices: List[int]) -> int:
+        n = len(prices)
+        dp = [1e12 for i in range(n+1)] # 前i个，买了第i个
+        dp[1] = prices[0]
+        for i in range(2,n+1):
+            for j in range(i//2, i):
+                dp[i] = min(dp[i], dp[j] + prices[i-1])
+        return min(dp[i] for i in range((n+1)//2, n+1))
+```
+
+记忆化 DFS 更快：$dp_i$ 表示一定买第 $i$ 个水果。
+
+```python
+class Solution:
+    def minimumCoins(self, prices: List[int]) -> int:
+        n = len(prices)
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（记忆化）
+        def dfs(i: int) -> int:
+            if i * 2 >= n:
+                return prices[i - 1]  # i 从 1 开始
+            return min(dfs(j) for j in range(i + 1, i * 2 + 2)) + prices[i - 1]
+        return dfs(1)
+```
+
+切片，比 for 快巨大：
+
+```python
+class Solution:
+    def minimumCoins(self, f: List[int]) -> int:
+        n = len(f)
+        for i in range((n + 1) // 2 - 1, 0, -1):
+            f[i - 1] += min(f[i: i * 2 + 1])
+        return f[0]
+```
+
+这个过程可以滑动窗口维护最小值优化。$O(n)$
+
+```python
+class Solution:
+    def minimumCoins(self, prices: List[int]) -> int:
+        n = len(prices)
+        q = deque([(n + 1, 0)])  # 哨兵
+        for i in range(n, 0, -1):
+            while q[-1][0] > i * 2 + 1:  # 右边离开窗口
+                q.pop()
+            f = prices[i - 1] + q[-1][1]
+            while f <= q[0][1]:
+                q.popleft()
+            q.appendleft((i, f))  # 左边进入窗口
+        return q[0][1]
+```
+
+##### 2412\.完成所有交易的初始最少钱数
+
+[题目](https://leetcode.cn/problems/minimum-money-required-before-transactions)
+
+看灵神。
+
+```python
+class Solution:
+    def minimumMoney(self, transactions: List[List[int]]) -> int:
+        total_lose = mx = 0
+        for cost, cashback in transactions:
+            total_lose += max(cost - cashback, 0)
+            mx = max(mx, min(cost, cashback))
+        return total_lose + mx
+```
+
+##### 40\.组合总和II
+
+[题目](https://leetcode.cn/problems/combination-sum-ii)
+
+选与不选只一次下一个，然后counter键值对去重。复杂度指数的。
+
+```python
+class Solution:
+    def combinationSum2(self, candidates: List[int], target: int) -> List[List[int]]:
+        def dfs(pos: int, rest: int):
+            nonlocal sequence
+            if rest == 0:
+                ans.append(sequence[:])
+                return
+            if pos == len(freq) or rest < freq[pos][0]:
+                return
+            
+            dfs(pos + 1, rest)
+
+            most = min(rest // freq[pos][0], freq[pos][1])
+            for i in range(1, most + 1):
+                sequence.append(freq[pos][0])
+                dfs(pos + 1, rest - i * freq[pos][0])
+            sequence = sequence[:-most]
+        
+        freq = sorted(collections.Counter(candidates).items())
+        ans = list()
+        sequence = list()
+        dfs(0, target)
+        return ans
+```
+
+##### 45\.跳跃游戏II
+
+[题目](https://leetcode.cn/problems/jump-game-ii)
+
+DP $O(nm)$
+
+```python
+from typing import *
+class Solution:
+    def jump(self, nums: List[int]) -> int:
+        n = len(nums)
+        dp = [1e9] * n
+        dp[0] = 0
+        for i in range(n):
+            for j in range(i+1,min(n,i+nums[i]+1)):
+                dp[j] = min(dp[j],dp[i]+1)
+        return dp[-1]
+```
+
+DP+堆优化： powered by pwp $O(n\log n)$
+
+- 把步数和能到达的最后一个位置绑定丢进堆里，即滑动窗口
+
+```python
+from typing import *
+import heapq
+class Solution:
+    def jump(self, nums: List[int]) -> int:
+        n = len(nums)
+        dp = [1e9] * n
+        dp[0] = 0
+        q = [(0, 0)]
+        for i in range(n):
+            while i > q[0][1]:
+                heapq.heappop(q)
+            dp[i] = min(dp[i], q[0][0])
+            heapq.heappush(q, (dp[i]+1, i+nums[i]))
+        return dp[-1]
+```
+
+贪心：$O(n)$
+
+```python
+class Solution:
+    def jump(self, nums: List[int]) -> int:
+        n = len(nums)
+        maxPos, end, step = 0, 0, 0
+        for i in range(n - 1):
+            if maxPos >= i:
+                maxPos = max(maxPos, i + nums[i])
+                if i == end:
+                    end = maxPos
+                    step += 1
+        return step
+```
+
+##### 119\.杨辉三角II
+
+[题目](https://leetcode.cn/problems/pascals-triangle-ii)
+
+$C_n^m=C_n^{m-1}\cdot\dfrac{n-m+1}m$
+
+```python
+class Solution:
+    def getRow(self, rowIndex: int) -> List[int]:
+        row = [1] * (rowIndex + 1)
+        for i in range(1, rowIndex + 1):
+            row[i] = row[i - 1] * (rowIndex - i + 1) // i
+        return row
+```
+
+不如预处理
+
+```python
+MX = 34
+c = [[1] * (i + 1) for i in range(MX)]
+for i in range(2, MX):
+    for j in range(1, i):
+        # 左上方的数 + 正上方的数
+        c[i][j] = c[i - 1][j - 1] + c[i - 1][j]
+
+class Solution:
+    def getRow(self, rowIndex: int) -> List[int]:
+        return c[rowIndex]
+```
+
+##### 219\.存在重复元素 II
+
+[题目](https://leetcode.cn/problems/contains-duplicate-ii)
+
+```python
+from typing import *
+class Solution:
+    def containsNearbyDuplicate(self, nums: List[int], k: int) -> bool:
+        n = len(nums)
+        s = set()
+        for i, x in enumerate(nums):
+            j = i - k - 1
+            if j >= 0:
+                s.remove(nums[j])
+            if x in s:
+                return True
+            s.add(x)
+        return False
+```
+
+更快：不remove，记录下标
+
+```python
+class Solution:
+    def containsNearbyDuplicate(self, nums: List[int], k: int) -> bool:
+        pos = {}
+        for i, num in enumerate(nums):
+            if num in pos and i - pos[num] <= k:
+                return True
+            pos[num] = i
+        return False
+```
+
+##### 350\.两个数组的交集II
+
+[题目](https://leetcode.cn/problems/intersection-of-two-arrays-ii)
+
+Counter 计数，使用 & 集合并，然后转换回 list
+
+```python
+class Solution:
+    def intersect(self, nums1: List[int], nums2: List[int]) -> List[int]:
+        return list((Counter(nums1)&Counter(nums2)).elements())
+```
+
+```python
+class Solution:
+    def intersect(self, nums1: List[int], nums2: List[int]) -> List[int]:
+        cnt = Counter(nums1)
+        ans = []
+        for x in nums2:
+            if cnt[x] > 0:
+                cnt[x] -= 1
+                ans.append(x)
+        return ans
+```
+
+##### 541\.反转字符串II
+
+[题目](https://leetcode.cn/problems/reverse-string-ii)
+
+我的
+
+```python
+class Solution:
+    def reverseStr(self, s: str, k: int) -> str:
+        return ''.join([s[i:i+k] if i%(2*k) else s[i:i+k][::-1] for i in range(0,len(s),k)])
+```
+
+题解
+
+```python
+class Solution:
+    def reverseStr(self, s: str, k: int) -> str:
+        t = list(s)
+        for i in range(0, len(t), 2 * k):
+            t[i: i + k] = reversed(t[i: i + k])
+        return "".join(t)
+```
+
+##### 81\.搜索旋转排序数组II
+
+[题目](https://leetcode.cn/problems/search-in-rotated-sorted-array-ii)
+
+```python
+class Solution:
+    def search(self, nums: List[int], target: int) -> bool:
+        return target in nums
+```
+
+由于恢复旋转前这个操作，[here](https://leetcode.cn/problems/search-in-rotated-sorted-array-ii/solutions/705486/gong-shui-san-xie-xiang-jie-wei-he-yuan-xtam4/)，可能会 $O(n)$，所以还不如上面的暴力。
+
+找到旋转点然后对两段分别二分即可。
+
+```c++
+class Solution {
+public:
+    bool search(vector<int>& nums, int t) {
+        int n = nums.size();
+        int l = 0, r = n - 1;
+        // 恢复二段性
+        while (l < r && nums[0] == nums[r]) r--;
+
+        // 第一次二分，找旋转点
+        while (l < r) {
+            int mid = (l + r + 1) >> 1;
+            if (nums[mid] >= nums[0]) {
+                l = mid;
+            } else {
+                r = mid - 1;
+            }
+        }
+        
+        int idx = n;
+        if (nums[r] >= nums[0] && r + 1 < n) idx = r + 1;
+
+        // 第二次二分，找目标值
+        int ans = find(nums, 0, idx - 1, t);
+        if (ans != -1) return true;
+        ans = find(nums, idx, n - 1, t);
+        return ans != -1;
+    }
+
+    int find(vector<int>& nums, int l, int r, int t) {
+        while (l < r) {
+            int mid = l + r >> 1;
+            if (nums[mid] >= t) {
+                r = mid;
+            } else {
+                l = mid + 1;
+            }
+        }
+        return nums[r] == t ? r : -1;
+    }
+};
+```
+
+##### 598\.区间加法II
+
+[题目](https://leetcode.cn/problems/range-addition-ii)
+
+由于左上角每次操作一定会+1，所以最大数一定是操作次数，所以取长最小值和宽最小值，就是这些操作的并的面积。
+
+```python
+from typing import *
+class Solution:
+    def maxCount(self, m: int, n: int, ops: List[List[int]]) -> int:
+        if not ops:
+            return n*m
+        return min(x[0] for x in ops) * min(x[1] for x in ops)
+```
+
+##### 680\.验证回文串II
+
+[题目](https://leetcode.cn/problems/valid-palindrome-ii)
+
+发现不相等时，分别尝试删除左右后再试。注意不能只尝试一次，不能根据字符串相等来判。
+
+考虑反例
+
+```
+'aguokepatgbnvfqmgmlcupuufxoohdfpgjdmysgvhmvffcnqxjjxqncffvmhvgsymdjgpfdhooxfuupuculmgmqfvnbgtapekouga'
+```
+
+其反串为
+
+```
+'aguokepatgbnvfqmgmlucupuufxoohdfpgjdmysgvhmvffcnqxjjxqncffvmhvgsymdjgpfdhooxfuupuclmgmqfvnbgtapekouga'
+```
+
+可以看到在cup和ucup不一样，一定要删u，如果只试一次可能会判成删c。
+
+```python
+class Solution:
+    def validPalindrome(self, s: str) -> bool:
+        n = len(s)
+        l, r = 0, n-1
+        def isPali(lf, rf):
+            while lf < rf:
+                if s[lf] != s[rf]:
+                    return False
+                lf += 1
+                rf -= 1
+            return True
+        while l < r:
+            if s[l] != s[r]:
+                return isPali(l+1, r) or isPali(l, r-1)
+            l += 1
+            r -= 1
+        return True
+```
+
+##### 922\.按奇偶排序数组II
+
+[题目](https://leetcode.cn/problems/sort-array-by-parity-ii)
+
+```python
+class Solution:
+    def sortArrayByParityII(self, nums: List[int]) -> List[int]:
+        a = [nums[i] for i in range(len(nums)) if nums[i] % 2 == 0]
+        b = [nums[i] for i in range(len(nums)) if nums[i] % 2 == 1]
+        return [a.pop() if _ % 2 == 0 else b.pop() for _ in range(len(nums))]
+```
+
+```python
+class Solution:
+    def sortArrayByParityII(self, nums: List[int]) -> List[int]:
+        n = len(nums)
+        j = 1
+        for i in range(0, n, 2):
+            if nums[i] % 2 == 1:
+                while nums[j] % 2 == 1:
+                    j += 2
+                nums[i], nums[j] = nums[j], nums[i]
+        return nums
+```
+
+##### 90\.子集
+
+[题目](https://leetcode.cn/problems/subsets-ii)
+
+```python
+from typing import *
+class Solution:
+    def subsetsWithDup(self, nums: List[int]) -> List[List[int]]:
+        n = len(nums)
+        ans = []
+        for i in range(1<<n):
+            tmp = []
+            for j in range(n):
+                if i & (1<<j):
+                    tmp.append(nums[j])
+            ans.append(tuple(sorted(tmp)))
+        return list(set(ans))
+```
+
+剪枝：
+
+```python
+class Solution:
+    def subsetsWithDup(self, nums: List[int]) -> List[List[int]]:
+        nums.sort()
+        n = len(nums)
+        ans = []
+        path = []
+
+        def dfs(i: int) -> None:
+            if i == n:
+                ans.append(path.copy())  # 也可以写 path[:]
+                return
+
+            # 选 x
+            x = nums[i]
+            path.append(x)
+            dfs(i + 1)
+            path.pop()  # 恢复现场
+
+            # 不选 x，那么后面所有等于 x 的数都不选
+            # 如果不跳过这些数，会导致「选 x 不选 x'」和「不选 x 选 x'」这两种情况都会加到 ans 中，这就重复了
+            i += 1
+            while i < n and nums[i] == x:
+                i += 1
+            dfs(i)
+
+        dfs(0)
+        return ans
+```
+
+```python
+class Solution:
+    def subsetsWithDup(self, nums: List[int]) -> List[List[int]]:
+        nums.sort()
+        n = len(nums)
+        ans = []
+        path = []
+
+        def dfs(i: int) -> None:
+            ans.append(path.copy())  # 也可以写 path[:]
+
+            # 在 [i,n-1] 中选一个 nums[j]
+            # 注意选 nums[j] 意味着 [i,j-1] 中的数都没有选
+            for j in range(i, n):
+                # 如果 j>i，说明 nums[j-1] 没有选
+                # 同方法一，所有等于 nums[j-1] 的数都不选
+                if j > i and nums[j] == nums[j - 1]:
+                    continue
+                path.append(nums[j])
+                dfs(j + 1)
+                path.pop()  # 恢复现场
+
+        dfs(0)
+        return ans
+```
+
+```python
+class Solution:
+    def subsetsWithDup(self, nums: List[int]) -> List[List[int]]:
+        nums.sort()
+        n = len(nums)
+        ans = []
+        for mask in range(1 << n):
+            t = []
+            flag = True
+            for i in range(n):
+                if mask & (1 << i):
+                    if i > 0 and not (mask & (1 << (i - 1))) and nums[i] == nums[i - 1]:
+                        flag = False
+                        break
+                    t.append(nums[i])
+            if flag:
+                ans.append(t)
+        return ans
+```
+
+##### 47\.全排列II
+
+[题目](https://leetcode.cn/problems/permutations-ii)
+
+```python
+class Solution:
+    def permuteUnique(self, nums: List[int]) -> List[List[int]]:
+        return [list(x) for x in set(permutations(nums))]
+```
+
+```python
+class Solution:
+    def __init__(self):
+        self.vis = []
+
+    def backtrack(self, nums: List[int], ans: List[List[int]], idx: int, perm: List[int]):
+        if idx == len(nums):
+            ans.append(perm[:])
+            return
+        for i in range(len(nums)):
+            if self.vis[i] or (i > 0 and nums[i] == nums[i - 1] and not self.vis[i - 1]):
+                continue
+            perm.append(nums[i])
+            self.vis[i] = 1
+            self.backtrack(nums, ans, idx + 1, perm)
+            self.vis[i] = 0
+            perm.pop()
+
+    def permuteUnique(self, nums: List[int]) -> List[List[int]]:
+        ans = []
+        perm = []
+        self.vis = [0] * len(nums)
+        nums.sort()
+        self.backtrack(nums, ans, 0, perm)
+        return ans
+```
+
+##### 80\.删除有序数组中的重复项II
+
+[题目](https://leetcode.cn/problems/remove-duplicates-from-sorted-array-ii)
+
+我的双指针
+
+```python
+from typing import *
+class Solution:
+    def removeDuplicates(self, nums: List[int]) -> int:
+        n = len(nums)
+        i = j = k = 0
+        while j < n:
+            k = j
+            while k < n and nums[k] == nums[j]:
+                k += 1
+            for _ in range(min(2, k - j)):
+                nums[i] = nums[k - 1]
+                i += 1
+            j = k
+        return i
+```
+
+栈：
+
+```python
+class Solution:
+    def removeDuplicates(self, nums: List[int]) -> int:
+        stack_size = 2  # 栈的大小，前两个元素默认保留
+        for i in range(2, len(nums)):
+            if nums[i] != nums[stack_size - 2]:  # 和栈顶下方的元素比较
+                nums[stack_size] = nums[i]  # 入栈
+                stack_size += 1
+        return min(stack_size, len(nums))
+```
+
+##### 63\.不同路径II
+
+[题目](https://leetcode.cn/problems/unique-paths-ii)
+
+很简单的 DP
+
+```python
+from typing import *
+class Solution:
+    def uniquePathsWithObstacles(self, obstacleGrid: List[List[int]]) -> int:
+        n, m = len(obstacleGrid), len(obstacleGrid[0])
+        dp = [[0] * (m+1) for _ in range(2)]
+        dp[0][0] = 1
+        for i in range(n):
+            for j in range(m):
+                if obstacleGrid[i][j] == 1:
+                    dp[i&1][j+1] = 0
+                else:
+                    dp[i&1][j+1] = dp[(i&1)^1][j+1] + dp[i&1][j]
+        return dp[n&1][m]
+```
+
+```python
+class Solution:
+    def uniquePathsWithObstacles(self, obstacleGrid: List[List[int]]) -> int:
+        n = len(obstacleGrid[0])
+        f = [0] * (n + 1)
+        f[1] = 1
+        for row in obstacleGrid:
+            for j, x in enumerate(row):
+                if x == 0:
+                    f[j + 1] += f[j]
+                else:
+                    f[j + 1] = 0
+        return f[n]
+```
+
+原地：
+
+```python
+class Solution:
+    def uniquePathsWithObstacles(self, obstacleGrid: List[List[int]]) -> int:
+        m, n = len(obstacleGrid), len(obstacleGrid[0])
+        f = obstacleGrid[0]
+        f[0] ^= 1  # 0 变成 1，1 变成 0
+        for j in range(1, n):
+            f[j] = 0 if f[j] else f[j - 1]
+        for i in range(1, m):
+            if obstacleGrid[i][0]:
+                f[0] = 0
+            for j in range(1, n):
+                if obstacleGrid[i][j] == 0:
+                    f[j] += f[j - 1]
+                else:
+                    f[j] = 0
+        return f[-1]
+```
+
+##### 59\.螺旋矩阵II
+
+[题目](https://leetcode.cn/problems/spiral-matrix-ii)
+
+```python
+class Solution:
+    def generateMatrix(self, n: int) -> List[List[int]]:
+        dirs = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        matrix = [[0] * n for _ in range(n)]
+        row, col, dirIdx = 0, 0, 0
+        for i in range(n * n):
+            matrix[row][col] = i + 1
+            dx, dy = dirs[dirIdx]
+            r, c = row + dx, col + dy
+            if r < 0 or r >= n or c < 0 or c >= n or matrix[r][c] > 0:
+                dirIdx = (dirIdx + 1) % 4   # 顺时针旋转至下一个方向
+                dx, dy = dirs[dirIdx]
+            row, col = row + dx, col + dy
+        return matrix
+```
+
+##### 913\.猫和老鼠
+
+[题目](https://leetcode.cn/problems/cat-and-mouse)
+
+带平局的博弈论判断：
+
+1. 若可以走到必败局面，当前局面为必胜局面；
+2. 若所有可达局面均必胜，当前局面为必败局面；
+3. 若不可达必败，但可达平局局面，当前局面为平局局面。
+
+重复出现的判断：只要在同一局面，那么做出的决策一定是相同的，所以只要到达了走过的局面一定会达到平局。局面情况根据猫鼠位置和先后手关系共有 $2A_n^2=2n(n-1)$ 个。
+
+使用三维 DP $dp[mouse][cat][turns]$ 表示猫鼠所在位置和已经进行了多少轮。显然初始状态是 $dp[1][2][0]$。$dp$ 值表示博弈结果，设 $1$ 鼠胜，$2$ 猫胜，$0$ 平局。显然，任意 $dp[0][?][?]=1$；任意 $dp[x][x][?]=2$，任意 $dp[?][?][t]$ 满足 $t\ge 2n(n-1)$ 为平局。因为 0-indexed，所以 $=$ 时恰好重复。
+
+三个维度分别是 $n,n-1,2n(n-1)$，故该 DP 的空间复杂度为 $O(n^4)$，且完全图下邻接点有 $O(n)$ 个邻居，故 $O(n^5)\approx 3\times 10^8$ 的复杂度。不可行。但给出代码。
+
+```c++
+const int MOUSE_WIN = 1;
+const int CAT_WIN = 2;
+const int DRAW = 0;
+const int MAXN = 51;
+
+class Solution {
+public:
+    int n;
+    int dp[MAXN][MAXN][MAXN*(MAXN-1)*2];
+    vector<vector<int>> graph;
+    
+    int catMouseGame(vector<vector<int>>& graph) {
+        this->n = graph.size();
+        this->graph = graph;
+        memset(dp, -1, sizeof(dp));
+        return getResult(1, 2, 0);
+    }
+
+    int getResult(int mouse, int cat, int turns) {
+        if (turns == 2 * n * (n - 1)) {
+            return DRAW;
+        }
+        if (dp[mouse][cat][turns] < 0) {
+            if (mouse == 0) {
+                dp[mouse][cat][turns] = MOUSE_WIN;
+            } else if (cat == mouse) {
+                dp[mouse][cat][turns] = CAT_WIN;
+            } else {
+                getNextResult(mouse, cat, turns);
+            }
+        }
+        return dp[mouse][cat][turns];
+    }
+
+    void getNextResult(int mouse, int cat, int turns) {
+        int curMove = turns % 2 == 0 ? mouse : cat;
+        int defaultResult = curMove == mouse ? CAT_WIN : MOUSE_WIN;
+        int result = defaultResult;
+        for (int next : graph[curMove]) {
+            if (curMove == cat && next == 0) {
+                continue;
+            }
+            int nextMouse = curMove == mouse ? next : mouse;
+            int nextCat = curMove == cat ? next : cat;
+            int nextResult = getResult(nextMouse, nextCat, turns + 1);
+            if (nextResult != defaultResult) {
+                result = nextResult;
+                if (result != DRAW) {
+                    break;
+                }
+            }
+        }
+        dp[mouse][cat][turns] = result;
+    }
+};
+```
+
+上述是自顶向下的，现在改为自底向上，并想办法消掉轮数。
+
+终点：
+
+- 鼠在洞，鼠胜；
+- 猫鼠遇，猫胜。
+
+定义：$winner[i][j][k]$ 表示鼠在 $i$，猫在 $j$，$k=0$ 当前鼠移动，$k=1$ 猫移动；若值为 $1$ 鼠胜，$2$ 猫胜，$0$ 尚未确定或平局。
+
+则，终点是 $winner[0][j][1]=1,winner[i][i][k]=2$。
+
+推导规则：
+
+1. 对 $winner[i][j][1]=1$，能到达它的上一个局面，上一个局面是鼠走，则它一定可走到这里，故上一个局面 $winner[i'][j][0]=1$；
+2. 同理，若 $winner[i][j][0]=2$，则 $winner[i][j'][1]=2$；
+3. 否则，若鼠怎么移动都猫胜，则 $winner[i'][j][0]=2$；
+4. 同理，若猫怎么移动都鼠胜，则 $winner[i'][j][1]=1$。
+
+规则 1,2 的简化，显然第三维度 $+1$ 就是输赢值，即等价于判断 $k'=winner[i][j][k]-1$。其中 $k$ 是 $1\oplus winner[i][j][k]$。
+
+使用拓扑排序，当这个状态的所有下一个状态被遍历过，则规则 3,4 可以求出。对每个状态 $i,j,k$ 维护度数，当度数降低到为 $0$ 时，可以求出这两个规则。则平局为：拓扑里的环，即度数始终不为 $0$。使用拓扑排序，共有 $O(n^2)$ 个状态，每个状态有 $O(n)$ 条边，故 $O(n^3)$ 时间复杂度。
+
+```python
+class Solution:
+    def catMouseGame(self, g: List[List[int]]) -> int:
+        HOLE = 0
+        n = len(g)
+        deg = [[[0, 0] for _ in range(n)] for _ in range(n)]
+        for i in range(n):
+            for j in range(1, n):
+                deg[i][j][0] = len(g[i])
+                deg[i][j][1] = len(g[j])
+            # 对于猫来说，所有连到洞的边都不能走
+            for j in g[HOLE]:
+                deg[i][j][1] -= 1
+
+        winner = [[[0, 0] for _ in range(n)] for _ in range(n)]
+        q = deque()
+        for i in range(1, n):
+            winner[HOLE][i][1] = 1  # 鼠到达洞中（此时轮到猫移动），鼠获胜
+            winner[i][i][0] = winner[i][i][1] = 2  # 猫和鼠出现在同一个节点，无论轮到谁移动，都是猫获胜
+            q.append((HOLE, i, 1))
+            q.append((i, i, 0))
+            q.append((i, i, 1))
+
+        # 获取 (mouse, cat, turn) 的上个状态（值尚未确定）
+        def get_pre_states() -> List[Tuple[int, int]]:
+            if turn:  # 当前轮到猫移动，枚举上一轮鼠的位置
+                return [(pre_mouse, cat) for pre_mouse in g[mouse] if winner[pre_mouse][cat][0] == 0]
+            # 当前轮到鼠移动，枚举上一轮猫的位置，注意猫无法移动到洞中
+            return [(mouse, pre_cat) for pre_cat in g[cat] if pre_cat != HOLE and winner[mouse][pre_cat][1] == 0]
+
+        # 减少上个状态的度数
+        def dec_deg_to_zero() -> bool:
+            deg[pre_mouse][pre_cat][pre_turn] -= 1
+            return deg[pre_mouse][pre_cat][pre_turn] == 0
+
+        while q:
+            mouse, cat, turn = q.popleft()
+            win = winner[mouse][cat][turn]  # 最终谁赢了
+            pre_turn = turn ^ 1
+            for pre_mouse, pre_cat in get_pre_states():
+                # 情况一：如果上一回合鼠从 pre 移动到 cur，最终鼠赢，那么标记 pre 状态的 winner = 鼠
+                # 情况二：如果上一回合猫从 pre 移动到 cur，最终猫赢，那么标记 pre 状态的 winner = 猫
+                # 情况三：如果上一回合鼠从 pre 移动到 cur，最终猫赢，那么待定，直到我们发现从 pre 出发能到达的状态都是猫赢，那么标记 pre 状态的 winner = 猫
+                # 情况四：如果上一回合猫从 pre 移动到 cur，最终鼠赢，那么待定，直到我们发现从 pre 出发能到达的状态都是鼠赢，那么标记 pre 状态的 winner = 鼠
+                if pre_turn == win - 1 or dec_deg_to_zero():
+                    winner[pre_mouse][pre_cat][pre_turn] = win
+                    q.append((pre_mouse, pre_cat, pre_turn))  # 继续倒推
+
+        # 鼠在节点 1，猫在节点 2，当前轮到鼠移动
+        return winner[1][2][0]  # 返回最终谁赢了
+```
+
+```java
+class Solution {
+    private static final int HOLE = 0;
+
+    public int catMouseGame(int[][] g) {
+        int n = g.length;
+        int[][][] deg = new int[n][n][2];
+        for (int i = 0; i < n; i++) {
+            for (int j = 1; j < n; j++) {
+                deg[i][j][0] = g[i].length;
+                deg[i][j][1] = g[j].length;
+            }
+            // 对于猫来说，所有连到洞的边都不能走
+            for (int j : g[HOLE]) {
+                deg[i][j][1]--;
+            }
+        }
+
+        int[][][] winner = new int[n][n][2];
+        Queue<int[]> q = new ArrayDeque<>();
+        for (int i = 1; i < n; i++) {
+            winner[HOLE][i][1] = 1; // 鼠到达洞中（此时轮到猫移动），鼠获胜
+            winner[i][i][0] = winner[i][i][1] = 2; // 猫和鼠出现在同一个节点，无论轮到谁移动，都是猫获胜
+            q.offer(new int[]{HOLE, i, 1});
+            q.offer(new int[]{i, i, 0});
+            q.offer(new int[]{i, i, 1});
+        }
+
+        while (!q.isEmpty()) {
+            int[] cur = q.poll();
+            int mouse = cur[0], cat = cur[1], turn = cur[2];
+            int win = winner[mouse][cat][turn]; // 最终谁赢了
+            for (int[] pre : getPreStates(mouse, cat, turn, g, winner)) {
+                int preMouse = pre[0], preCat = pre[1], preTurn = turn ^ 1;
+                // 情况一：如果上一回合鼠从 pre 移动到 cur，最终鼠赢，那么标记 pre 状态的 winner = 鼠
+                // 情况二：如果上一回合猫从 pre 移动到 cur，最终猫赢，那么标记 pre 状态的 winner = 猫
+                // 情况三：如果上一回合鼠从 pre 移动到 cur，最终猫赢，那么待定，直到我们发现从 pre 出发能到达的状态都是猫赢，那么标记 pre 状态的 winner = 猫
+                // 情况四：如果上一回合猫从 pre 移动到 cur，最终鼠赢，那么待定，直到我们发现从 pre 出发能到达的状态都是鼠赢，那么标记 pre 状态的 winner = 鼠
+                if (preTurn == win - 1 || --deg[preMouse][preCat][preTurn] == 0) {
+                    winner[preMouse][preCat][preTurn] = win;
+                    q.offer(new int[]{preMouse, preCat, preTurn}); // 继续倒推
+                }
+            }
+        }
+
+        // 鼠在节点 1，猫在节点 2，当前轮到鼠移动
+        return winner[1][2][0]; // 返回最终谁赢了
+    }
+
+    // 获取 (mouse, cat, turn) 的上个状态（值尚未确定）
+    private List<int[]> getPreStates(int mouse, int cat, int turn, int[][] g, int[][][] winner) {
+        List<int[]> preStates = new ArrayList<>();
+        if (turn == 0) { // 当前轮到鼠移动
+            for (int preCat : g[cat]) { // 上一轮猫的位置
+                if (preCat != HOLE && winner[mouse][preCat][1] == 0) { // 猫无法移动到洞中
+                    preStates.add(new int[]{mouse, preCat});
+                }
+            }
+        } else { // 当前轮到猫移动
+            for (int preMouse : g[mouse]) { // 上一轮鼠的位置
+                if (winner[preMouse][cat][0] == 0) {
+                    preStates.add(new int[]{preMouse, cat});
+                }
+            }
+        }
+        return preStates;
+    }
+}
+```
+
+```c++
+class Solution {
+public:
+    int catMouseGame(vector<vector<int>>& g) {
+        const int HOLE = 0;
+        int n = g.size();
+        vector deg(n, vector<array<int, 2>>(n));
+        for (int i = 0; i < n; i++) {
+            for (int j = 1; j < n; j++) {
+                deg[i][j][0] = g[i].size();
+                deg[i][j][1] = g[j].size();
+            }
+            // 对于猫来说，所有连到洞的边都不能走
+            for (int j : g[HOLE]) {
+                deg[i][j][1]--;
+            }
+        }
+
+        vector winner(n, vector<array<int, 2>>(n));
+        queue<tuple<int, int, int>> q;
+        for (int i = 1; i < n; i++) {
+            winner[HOLE][i][1] = 1; // 鼠到达洞中（此时轮到猫移动），鼠获胜
+            winner[i][i][0] = winner[i][i][1] = 2; // 猫和鼠出现在同一个节点，无论轮到谁移动，都是猫获胜
+            q.emplace(HOLE, i, 1);
+            q.emplace(i, i, 0);
+            q.emplace(i, i, 1);
+        }
+
+        // 获取 (mouse, cat, turn) 的上个状态（值尚未确定）
+        auto get_pre_states = [&](int mouse, int cat, int turn) {
+            vector<pair<int, int>> pre_states;
+            if (turn == 0) { // 当前轮到鼠移动
+                for (int pre_cat : g[cat]) { // 上一轮猫的位置
+                    if (pre_cat != HOLE && winner[mouse][pre_cat][1] == 0) { // 猫无法移动到洞中
+                        pre_states.emplace_back(mouse, pre_cat);
+                    }
+                }
+            } else { // 当前轮到猫移动
+                for (int pre_mouse : g[mouse]) { // 上一轮鼠的位置
+                    if (winner[pre_mouse][cat][0] == 0) {
+                        pre_states.emplace_back(pre_mouse, cat);
+                    }
+                }
+            }
+            return pre_states;
+        };
+
+        while (!q.empty()) {
+            auto [mouse, cat, turn] = q.front(); q.pop();
+            int win = winner[mouse][cat][turn]; // 最终谁赢了
+            int pre_turn = turn ^ 1;
+            for (auto [pre_mouse, pre_cat] : get_pre_states(mouse, cat, turn)) {
+                // 情况一：如果上一回合鼠从 pre 移动到 cur，最终鼠赢，那么标记 pre 状态的 winner = 鼠
+                // 情况二：如果上一回合猫从 pre 移动到 cur，最终猫赢，那么标记 pre 状态的 winner = 猫
+                // 情况三：如果上一回合鼠从 pre 移动到 cur，最终猫赢，那么待定，直到我们发现从 pre 出发能到达的状态都是猫赢，那么标记 pre 状态的 winner = 猫
+                // 情况四：如果上一回合猫从 pre 移动到 cur，最终鼠赢，那么待定，直到我们发现从 pre 出发能到达的状态都是鼠赢，那么标记 pre 状态的 winner = 鼠
+                if (pre_turn == win - 1 || --deg[pre_mouse][pre_cat][pre_turn] == 0) {
+                    winner[pre_mouse][pre_cat][pre_turn] = win;
+                    q.emplace(pre_mouse, pre_cat, pre_turn); // 继续倒推
+                }
+            }
+        }
+
+        // 鼠在节点 1，猫在节点 2，当前轮到鼠移动
+        return winner[1][2][0]; // 返回最终谁赢了
+    }
+};
+```
+
+这个代码的 -- (-=1) 度在 if 内外都可以。代码的逻辑是：减一次代表发现了一个必败，因为必胜根据短路不会减，所以减到 0 就是全都必败。
+
+##### 1728\.猫和老鼠II
+
+[题目](https://leetcode.cn/problems/cat-and-mouse-ii)
+
+> 如果不考虑步数，并使用历史博弈路径判重，即走过的路不再走，是错误的。枚举顺序的不同会导致答案的不一样。考虑下面代码的下面两个例子：
+>
+> ```c++
+> #include <bits/stdc++.h>
+> using namespace std;
+> int RATWIN = 0, RAT = 0, CATWIN = 1, CAT = 1, UNK = -1;
+> int DX[] = {0, 0, 1, -1}, DY[] = {1, -1, 0, 0};
+> // xc, yc, xm, ym, who : 分别是当前猫横纵坐标、鼠横纵坐标、当前谁要移动
+> using state = tuple<int, int, int, int, int>;
+> int dp[8][8][8][8][2]; // 当前局面谁赢
+> bool DEBUG = true;
+> void debug(int xc, int yc, int xm, int ym, int who) {
+>     if(!DEBUG) return;
+>     cout << xc << " " << yc << " " << xm << " " << ym << " ";
+>     cout << (who == CAT ? "CAT " : "RAT ");
+>     int result = dp[xc][yc][xm][ym][who];
+>     cout << (result == CATWIN ? "CATWIN " : result == RATWIN ? "RATWIN " : "UNK ") << '\n';
+> }
+> class Solution {
+> public:
+>     bool canMouseWin(vector<string> &grid, int catJump, int mouseJump) {
+>         int n = grid.size(), m = grid[0].size();
+>         for(int xc = 0; xc < n; ++xc) 
+>             for(int yc = 0; yc < m; ++yc) 
+>                 for(int xm = 0; xm < n; ++xm) 
+>                     for(int ym = 0; ym < m; ++ym) 
+>                         dp[xc][yc][xm][ym][CAT] = dp[xc][yc][xm][ym][RAT] = UNK;
+> 
+>         int bxc, byc, bxm, bym, bxf, byf;
+>         for(int x = 0; x < n; ++x) {
+>             for(int y = 0; y < m; ++y) {
+>                 if (grid[x][y] == 'C') {
+>                     bxc = x, byc = y;
+>                 } else if (grid[x][y] == 'M') {
+>                     bxm = x, bym = y;
+>                 } else if (grid[x][y] == 'F') {
+>                     bxf = x, byf = y;
+>                 }
+>             }
+>         }
+>         set<state> s;
+>         // 求当前可达局面
+>         auto getMoves = [&](int xc, int yc, int xm, int ym, int who) {
+>             vector<state> moves;
+>             int len = who == RAT ? mouseJump : catJump;
+>             int x = who == RAT ? xm : xc;
+>             int y = who == RAT ? ym : yc;
+>             if (grid[x][y] == '#')
+>                 return moves;
+>             moves.emplace_back(xc, yc, xm, ym, who^1);
+>             for (int d = 0; d < 4; ++d) {
+>                 for(int k = 1; k <= len; ++k) {
+>                     int nx = x + DX[d] * k, ny = y + DY[d] * k;
+>                     if (nx < 0 || nx >= n || ny < 0 || ny >= m || grid[nx][ny] == '#')
+>                         break;
+>                     int xc2 = who == RAT ? xc : nx;
+>                     int yc2 = who == RAT ? yc : ny;
+>                     int xm2 = who == RAT ? nx : xm;
+>                     int ym2 = who == RAT ? ny : ym;
+>                     moves.emplace_back(xc2, yc2, xm2, ym2, who^1);
+>                     if (grid[nx][ny] == 'F')
+>                         break;
+>                 }
+>             }
+>             return moves;
+>         };
+>         auto dfs = [&](auto &self, int xc, int yc, int xm, int ym, int who) -> int {
+>             cout << "-> "; debug(xc, yc, xm, ym, who);
+>             if (dp[xc][yc][xm][ym][who] != UNK) return dp[xc][yc][xm][ym][who];
+>             if (xc == xm && yc == ym) return dp[xc][yc][xm][ym][who] = CATWIN;
+>             if (xc == bxf && yc == byf) return dp[xc][yc][xm][ym][who] = CATWIN;
+>             if (xm == bxf && ym == byf) return dp[xc][yc][xm][ym][who] = RATWIN;
+> 
+>             s.insert({xc, yc, xm, ym, who});
+>             bool canReachWin = false, whatToWin = who == CAT ? CATWIN : RATWIN;
+>             auto moves = getMoves(xc, yc, xm, ym, who);
+>             reverse(moves.begin(),moves.end());//修改枚举顺序，分别导致下面的例子一对一错
+>             for (auto& [xc2, yc2, xm2, ym2, who2] : moves) {
+>                 cout << "---> "; debug(xc2, yc2, xm2, ym2, who2);
+>             }
+>             for (auto& [xc2, yc2, xm2, ym2, who2] : moves) {
+>                 if(!s.count({xc2, yc2, xm2, ym2, who2})) {
+>                     int result = self(self, xc2, yc2, xm2, ym2, who2);
+>                     if (result == whatToWin) {
+>                         canReachWin = true;
+>                         break;
+>                     }
+>                 }
+>             }
+>             s.erase({xc, yc, xm, ym, who});
+>             dp[xc][yc][xm][ym][who] = canReachWin ? whatToWin : !whatToWin;
+>             debug(xc, yc, xm, ym, who);
+>             return dp[xc][yc][xm][ym][who];
+>         };
+>         cout << bxc <<' '<<byc<<' '<<bxm<<' '<<bym<<'\n';
+>         return dfs(dfs, bxc, byc, bxm, bym, RAT) == RATWIN;
+>     }
+> };
+> ```
+>
+> ```
+> [".M...","..#..","#..#.","C#.#.","...#F"] 3 1
+> ```
+>
+> ```
+> [".....","...C.","...#.","...#M","F..#."] 1 3
+> ```
+>
+> 可能这是因为，目前的尝试路径并不代表最终走到的路径。仍然不理解为什么一定要记录轮数。可能跟 1000 轮有关。
+
+我的代码，仿照上例显然。
+
+- 要 vis，不然可能导致多次入队。
+- 一定要有 UNK。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+int RATWIN = 0, RAT = 0, CATWIN = 1, CAT = 1, UNK = -1;
+int DX[] = {0, 0, 1, -1}, DY[] = {1, -1, 0, 0};
+// xc, yc, xm, ym, who : 分别是当前猫横纵坐标、鼠横纵坐标、当前谁要移动
+int dp[8][8][8][8][2]; // 当前局面谁赢
+int du[8][8][8][8][2]; // 需要看到多少个必败局面确定自己必败
+bool vis[8][8][8][8][2];
+bool DEBUG = true;
+void debug(int xc, int yc, int xm, int ym, int who) {
+    if(!DEBUG) return;
+    cout << xc << " " << yc << " " << xm << " " << ym << " ";
+    cout << (who == CAT ? "CAT " : "RAT ");
+    int result = dp[xc][yc][xm][ym][who];
+    cout << (result == CATWIN ? "CATWIN " : result == RATWIN ? "RATWIN " : "UNK ");
+    cout << "DEG = " << du[xc][yc][xm][ym][who] << '\n';
+}
+class Solution {
+public:
+    bool canMouseWin(vector<string>& grid, int catJump, int mouseJump) {
+        int n = grid.size(), m = grid[0].size();
+        for(int xc = 0; xc < n; ++xc) 
+            for(int yc = 0; yc < m; ++yc) 
+                for(int xm = 0; xm < n; ++xm) 
+                    for(int ym = 0; ym < m; ++ym) {
+                        dp[xc][yc][xm][ym][CAT] = dp[xc][yc][xm][ym][RAT] = UNK;
+                        vis[xc][yc][xm][ym][CAT] = vis[xc][yc][xm][ym][RAT] = false;
+                    }
+
+        // 求所有未确定的上一个局面
+        auto getMoves = [&](int xc, int yc, int xm, int ym, int who) {
+            vector<pair<int, int>> moves;
+            int len = who == CAT ? mouseJump : catJump;
+            int x = who == CAT ? xm : xc;
+            int y = who == CAT ? ym : yc;
+            if (grid[x][y] == '#')
+                return moves;
+            moves.emplace_back(x, y);
+            for (int d = 0; d < 4; ++d) {
+                for(int k = 1; k <= len; ++k) {
+                    int nx = x + DX[d] * k, ny = y + DY[d] * k;
+                    if (nx < 0 || nx >= n || ny < 0 || ny >= m || grid[nx][ny] == '#')
+                        break;
+                    int xc2 = who == CAT ? xc : nx;
+                    int yc2 = who == CAT ? yc : ny;
+                    int xm2 = who == CAT ? nx : xm;
+                    int ym2 = who == CAT ? ny : ym;
+                    if(dp[xc2][yc2][xm2][ym2][who^1] == UNK)
+                        moves.emplace_back(nx, ny);
+                    if (grid[nx][ny] == 'F')
+                        break;
+                }
+            }
+            return moves;
+        };
+        for(int xc = 0; xc < n; ++xc) {
+            for(int yc = 0; yc < m; ++yc) {
+                for(int xm = 0; xm < n; ++xm) {
+                    for(int ym = 0; ym < m; ++ym) {
+                        du[xc][yc][xm][ym][CAT] = getMoves(xc, yc, xm, ym, RAT).size();
+                        du[xc][yc][xm][ym][RAT] = getMoves(xc, yc, xm, ym, CAT).size();
+                        //cout << xc << " " << yc << " " << xm << " " << ym << " " << du[xc][yc][xm][ym][CAT] << " " << du[xc][yc][xm][ym][RAT] << '\n';
+                    }
+                }
+            }
+        }
+        using state = tuple<int, int, int, int, int>;
+        deque<state> q;
+        auto push = [&](int xc, int yc, int xm, int ym, int who) {
+            if (vis[xc][yc][xm][ym][who])
+                return;
+            vis[xc][yc][xm][ym][who] = true;
+            q.emplace_back(xc, yc, xm, ym, who);
+        };
+        int bxc, byc, bxm, bym, bxf, byf;
+        for(int x = 0; x < n; ++x) {
+            for(int y = 0; y < m; ++y) {
+                if (grid[x][y] == 'C') {
+                    bxc = x, byc = y;
+                } else if (grid[x][y] == 'M') {
+                    bxm = x, bym = y;
+                } else if (grid[x][y] == 'F') {
+                    bxf = x, byf = y;
+                    continue;
+                } else if (grid[x][y] == '#') {
+                    continue;
+                }
+                dp[x][y][x][y][CAT] = dp[x][y][x][y][RAT] = CATWIN;
+                push(x, y, x, y, CAT);
+                push(x, y, x, y, RAT);
+            }
+        }
+        for(int x = 0; x < n; ++x) {
+            for(int y = 0; y < m; ++y) {
+                dp[x][y][bxf][byf][RAT] = RATWIN;
+                dp[bxf][byf][x][y][CAT] = CATWIN;
+                push(x, y, bxf, byf, RAT);
+                push(bxf, byf, x, y, CAT);
+            }
+        }
+        while(!q.empty()) {
+            auto [xc, yc, xm, ym, who] = q.front();
+            q.pop_front();
+            bool whoprv = who ^ 1;
+            auto prv = getMoves(xc, yc, xm, ym, who);
+            int nowresult = dp[xc][yc][xm][ym][who];
+            //debug(xc, yc, xm, ym, who);
+            for(auto [xprv, yprv] : prv) {
+                int xc2 = who == CAT ? xc : xprv;
+                int yc2 = who == CAT ? yc : yprv;
+                int xm2 = who == CAT ? xprv : xm;
+                int ym2 = who == CAT ? yprv : ym;
+                //cout << "--> "; debug(xc2, yc2, xm2, ym2, whoprv);
+                // whoprv == nowresult
+                if ((whoprv == RAT && nowresult == RATWIN) ||
+                    (whoprv == CAT && nowresult == CATWIN)) {
+                    dp[xc2][yc2][xm2][ym2][whoprv] = nowresult;
+                    push(xc2, yc2, xm2, ym2, whoprv);
+                    //cout << "RULE1 -> "; debug(xc2, yc2, xm2, ym2, whoprv);
+                } else if (--du[xc2][yc2][xm2][ym2][whoprv] == 0) {
+                    dp[xc2][yc2][xm2][ym2][whoprv] = whoprv ^ 1;
+                    push(xc2, yc2, xm2, ym2, whoprv);
+                    //cout << "RULE2 -> "; debug(xc2, yc2, xm2, ym2, whoprv);
+                }
+            }
+        }
+        //debug(bxc, byc, bxm, bym, RAT);
+        //assert(dp[bxc][byc][bxm][bym][RAT]!=UNK);
+        return dp[bxc][byc][bxm][bym][RAT] == RATWIN;
+    }
+};
+```
+
+题解：
+
+```c++
+class Solution {
+    // 913. 猫和老鼠
+    int catMouseGame(vector<vector<int>>& g_mouse, vector<vector<int>>& g_cat, int mouse_start, int cat_start, int hole) {
+        int n = g_mouse.size();
+        vector deg(n, vector<array<int, 2>>(n));
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                deg[i][j][0] = g_mouse[i].size();
+                deg[i][j][1] = g_cat[j].size();
+            }
+        }
+
+        vector winner(n, vector<array<int, 2>>(n));
+        queue<tuple<int, int, int>> q;
+        for (int i = 0; i < n; i++) {
+            winner[hole][i][1] = 1; // 鼠到达洞中（此时轮到猫移动），鼠获胜
+            winner[i][hole][0] = 2;  // 猫到达洞中（此时轮到鼠移动），猫获胜
+            winner[i][i][0] = winner[i][i][1] = 2; // 猫和鼠出现在同一个节点，无论轮到谁移动，都是猫获胜
+            q.emplace(hole, i, 1);
+            q.emplace(i, hole, 0);
+            q.emplace(i, i, 0);
+            q.emplace(i, i, 1);
+        }
+
+        // 获取 (mouse, cat, turn) 的上个状态（值尚未确定）
+        auto get_pre_states = [&](int mouse, int cat, int turn) {
+            vector<pair<int, int>> pre_states;
+            if (turn == 0) { // 当前轮到鼠移动
+                for (int pre_cat : g_cat[cat]) { // 上一轮猫的位置
+                    if (winner[mouse][pre_cat][1] == 0) {
+                        pre_states.emplace_back(mouse, pre_cat);
+                    }
+                }
+            } else { // 当前轮到猫移动
+                for (int pre_mouse : g_mouse[mouse]) { // 上一轮鼠的位置
+                    if (winner[pre_mouse][cat][0] == 0) {
+                        pre_states.emplace_back(pre_mouse, cat);
+                    }
+                }
+            }
+            return pre_states;
+        };
+
+        while (!q.empty()) {
+            auto [mouse, cat, turn] = q.front(); q.pop();
+            int win = winner[mouse][cat][turn]; // 最终谁赢了
+            int pre_turn = turn ^ 1;
+            for (auto [pre_mouse, pre_cat] : get_pre_states(mouse, cat, turn)) {
+                // 情况一：如果上一回合鼠从 pre 移动到 cur，最终鼠赢，那么标记 pre 状态的 winner = 鼠
+                // 情况二：如果上一回合猫从 pre 移动到 cur，最终猫赢，那么标记 pre 状态的 winner = 猫
+                // 情况三：如果上一回合鼠从 pre 移动到 cur，最终猫赢，那么待定，直到我们发现从 pre 出发能到达的状态都是猫赢，那么标记 pre 状态的 winner = 猫
+                // 情况四：如果上一回合猫从 pre 移动到 cur，最终鼠赢，那么待定，直到我们发现从 pre 出发能到达的状态都是鼠赢，那么标记 pre 状态的 winner = 鼠
+                if (pre_turn == win - 1 || --deg[pre_mouse][pre_cat][pre_turn] == 0) {
+                    winner[pre_mouse][pre_cat][pre_turn] = win;
+                    q.emplace(pre_mouse, pre_cat, pre_turn); // 继续倒推
+                }
+            }
+        }
+
+        // 鼠在节点 mouse_start，猫在节点 cat_start，当前轮到鼠移动
+        return winner[mouse_start][cat_start][0]; // 返回最终谁赢了（或者平局）
+    }
+
+public:
+    bool canMouseWin(vector<string>& grid, int catJump, int mouseJump) {
+        static constexpr int DIRS[4][2] = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}}; // 左右上下
+        int m = grid.size(), n = grid[0].size();
+        // 鼠和猫分别建图
+        vector<vector<int>> g_mouse(m * n), g_cat(m * n);
+        int mx, my, cx, cy, fx, fy;
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (grid[i][j] == '#') { // 墙
+                    continue;
+                }
+                if (grid[i][j] == 'M') { // 鼠的位置
+                    mx = i; my = j;
+                } else if (grid[i][j] == 'C') { // 猫的位置
+                    cx = i; cy = j;
+                } else if (grid[i][j] == 'F') { // 食物（洞）的位置
+                    fx = i; fy = j;
+                }
+                int v = i * n + j; // 二维坐标 (i,j) 映射为一维坐标 v
+                for (auto [dx, dy] : DIRS) { // 枚举左右上下四个方向
+                    for (int k = 0; k <= mouseJump; k++) { // 枚举跳跃长度
+                        int x = i + k * dx, y = j + k * dy;
+                        if (x < 0 || x >= m || y < 0 || y >= n || grid[x][y] == '#') { // 出界或者遇到墙
+                            break;
+                        }
+                        g_mouse[v].push_back(x * n + y); // 连边
+                    }
+                    for (int k = 0; k <= catJump; k++) { // 枚举跳跃长度
+                        int x = i + k * dx, y = j + k * dy;
+                        if (x < 0 || x >= m || y < 0 || y >= n || grid[x][y] == '#') { // 出界或者遇到墙
+                            break;
+                        }
+                        g_cat[v].push_back(x * n + y); // 连边
+                    }
+                }
+            }
+        }
+
+        // 判断是否鼠赢
+        return catMouseGame(g_mouse, g_cat, mx * n + my, cx * n + cy, fx * n + fy) == 1;
+    }
+};
+```
+
+```java
+import java.time.Clock;
+class Solution {
+    static int S = 8 * 8 * 8 * 8, K = 1000;
+    static int[][] f = new int[S][K]; // mouse : 0 / cat : 1
+    String[] g;
+    int n, m, a, b, tx, ty;
+    int[][] dirs = new int[][]{{1,0}, {-1,0}, {0,1}, {0,-1}};
+    // mouse : (x, y) / cat : (p, q)
+    int dfs(int x, int y, int p, int q, int k) {
+        int state = (x << 9) | (y << 6) | (p << 3) | q;
+        if (k == K - 1) return f[state][k] = 1;
+        if (x == p && y == q) return f[state][k] = 1;
+        if (x == tx && y == ty) return f[state][k] = 0;
+        if (p == tx && q == ty) return f[state][k] = 1;
+        if (f[state][k] != -1) return f[state][k];
+        if (k % 2 == 0) { // mouse
+            for (int[] di : dirs) {
+                for (int i = 0; i <= b; i++) {
+                    int nx = x + di[0] * i, ny = y + di[1] * i;
+                    if (nx < 0 || nx >= n || ny < 0 || ny >= m) break;
+                    if (g[nx].charAt(ny) == '#') break;
+                    if (dfs(nx, ny, p, q, k + 1) == 0) return f[state][k] = 0;
+                }
+            }
+            return f[state][k] = 1;
+        } else { // cat
+            for (int[] di : dirs) {
+                for (int i = 0; i <= a; i++) {
+                    int np = p + di[0] * i, nq = q + di[1] * i;
+                    if (np < 0 || np >= n || nq < 0 || nq >= m) break;
+                    if (g[np].charAt(nq) == '#') break;
+                    if (dfs(x, y, np, nq, k + 1) == 1) return f[state][k] = 1;
+                }
+            }
+            return f[state][k] = 0;
+        }
+    }
+    public boolean canMouseWin(String[] grid, int catJump, int mouseJump) {
+        g = grid;
+        n = g.length; m = g[0].length(); a = catJump; b = mouseJump;
+        for (int i = 0; i < S; i++) Arrays.fill(f[i], -1);
+        int x = 0, y = 0, p = 0, q = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                if (g[i].charAt(j) == 'M') {
+                    x = i; y = j;
+                } else if (g[i].charAt(j) == 'C') {
+                    p = i; q = j;
+                } else if (g[i].charAt(j) == 'F') {
+                    tx = i; ty = j;
+                }
+            }
+        }
+        return dfs(x, y, p, q, 0) == 0;
+    }
+}
+```
+
+##### 1760\.袋子里最少数目的球
+
+[题目](https://leetcode.cn/problems/minimum-limit-of-balls-in-a-bag)
+
+二分答案。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    int minimumSize(vector<int>& nums, int maxOperations) {
+        int lf = 1, rf = *max_element(nums.begin(), nums.end());
+        int ans = rf;
+        while(lf <= rf) {
+            int cf = (lf + rf) >> 1;
+            int cnt = 0;
+            for(auto &x : nums) {
+                cnt += (x - 1) / cf; // ceil(x/cf)-1
+            }
+            if(cnt <= maxOperations) {
+                ans = cf;
+                rf = cf - 1;
+            } else {
+                lf = cf + 1;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+##### 1742\.盒子中小球的最大数量
+
+[题目](https://leetcode.cn/problems/maximum-number-of-balls-in-a-box)
+
+静态数组做 bin
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+int bin[46];
+class Solution {
+public:
+    int countBalls(int lowLimit, int highLimit) {
+        for(int i=lowLimit;i<=highLimit;i++){
+            int temp = i;
+            int sum = 0;
+            while(temp>0){
+                sum+=temp%10;
+                temp/=10;
+            }
+            bin[sum]++;
+        }
+        int ans = 0;
+        for(int i=0;i<46;i++){
+            ans = max(ans,bin[i]);
+            bin[i]=0;
+        }
+        return ans;
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    int countBalls(int lowLimit, int highLimit) {
+        int cnt[46]{}; // 99999 的数位和 = 45
+        for (int i = lowLimit; i <= highLimit; i++) {
+            int s = 0;
+            for (int x = i; x > 0; x /= 10) {
+                s += x % 10;
+            }
+            cnt[s]++;
+        }
+        return ranges::max(cnt);
+    }
+};
+```
+
+预处理前缀和：
+
+```c++
+const int MX = 100'001;
+array<int, 46> s[MX];
+
+auto init = [] {
+    for (int i = 1; i < MX; i++) {
+        s[i] = s[i - 1];
+        int sum = 0;
+        for (int x = i; x > 0; x /= 10) {
+            sum += x % 10;
+        }
+        s[i][sum]++;
+    }
+    return 0;
+}();
+
+class Solution {
+public:
+    int countBalls(int lowLimit, int highLimit) {
+        int ans = 0;
+        for (int j = 1; j < s[0].size(); j++) {
+            ans = max(ans, s[highLimit][j] - s[lowLimit - 1][j]);
+        }
+        return ans;
+    }
+};
+```
+
+数位 DP：定义 `dfs(i,j,limitLow,limitHigh)` 位第 $i$ 位之后的数位合法方案，$j$ 位剩下数字数位和，其他两个为当前是否受到对应 limit 限制。即第 $i$ 位是否从 `limitLow` 开始，最高位 `limitHigh`。终止条件为 `dfs(n,0,?,?)`，其值为 $1$ 表示成功构造，为 $0$ 无解。答案位 `dfs(0,j,true,true)`。记忆化 `dfs(i,j,false,false)`，任意 `true` 状态必然只会被遍历一次。设 `highLimit` 为 $a$，进制 $d=10$，复杂度 $O(d^2log^2a)$。空间复杂度 $O(d\log^2 a)$。比前缀和时空都更优。
+
+```c++
+class Solution {
+public:
+    int countBalls(int lowLimit, int highLimit) {
+        string high_s = to_string(highLimit);
+        int n = high_s.size();
+        string low_s = to_string(lowLimit);
+        low_s = string(n - low_s.size(), '0') + low_s; // 补前导零，和 high_s 对齐
+
+        int m = high_s[0] - '0' + (n - 1) * 9; // 数位和的上界
+        vector memo(n, vector<int>(m + 1, -1)); // -1 表示没有计算过
+
+        auto dfs = [&](this auto&& dfs, int i, int j, bool limit_low, bool limit_high) -> int {
+            if (i == n) { // 填完了
+                return j == 0;
+            }
+            if (!limit_low && !limit_high && memo[i][j] != -1) { // 之前计算过
+                return memo[i][j];
+            }
+
+            int lo = limit_low ? low_s[i] - '0' : 0;
+            int hi = limit_high ? high_s[i] - '0' : 9;
+
+            int res = 0;
+            for (int d = lo; d <= min(hi, j); d++) { // 枚举当前数位填 d，但不能超过 j
+                res += dfs(i + 1, j - d, limit_low && d == lo, limit_high && d == hi);
+            }
+
+            if (!limit_low && !limit_high) {
+                memo[i][j] = res; // 记忆化
+            }
+            return res;
+        };
+
+        int ans = 0;
+        for (int j = 1; j <= m; j++) {
+            ans = max(ans, dfs(0, j, true, true));
+        }
+        return ans;
+    }
+};
+```
+
+其中 this auto 是 C++23。
+
+```python
+class Solution:
+    def countBalls(self, lowLimit: int, highLimit: int) -> int:
+        high_s = str(highLimit)
+        n = len(high_s)
+        low_s = str(lowLimit).zfill(n)  # 补前导零，和 high_s 对齐
+
+        @cache  # 缓存装饰器，避免重复计算 dfs 的结果（一行代码实现记忆化）
+        def dfs(i: int, j: int, limit_low: bool, limit_high: bool) -> int:
+            if i == n:  # 填完了
+                return 0 if j else 1
+
+            lo = int(low_s[i]) if limit_low else 0
+            hi = int(high_s[i]) if limit_high else 9
+
+            res = 0
+            for d in range(lo, min(hi, j) + 1):  # 枚举当前数位填 d，但不能超过 j
+                res += dfs(i + 1, j - d, limit_low and d == lo, limit_high and d == hi)
+            return res
+
+        mx = int(high_s[0]) + (n - 1) * 9  # 数位和的上界
+        return max(dfs(0, j, True, True) for j in range(1, mx + 1))
+```
+
+##### 1552\.两球之间的磁力
+
+[题目](https://leetcode.cn/problems/magnetic-force-between-two-balls)
+
+二分答案。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+    public:
+        int maxDistance(vector<int>& position, int m) {
+            sort(position.begin(), position.end());
+            int n = position.size();
+            int lf = 1, rf = position[n - 1] - position[0], ans = rf;
+            while (lf <= rf) {
+                int cf = (lf + rf) >> 1;
+                int cnt = 1, pre = position[0];
+                for (int i = 1; i < n; i++) {
+                    if (position[i] - pre >= cf) {
+                        ++cnt;
+                        pre = position[i];
+                    }
+                }
+                if (cnt >= m) {
+                    ans = cf;
+                    lf = cf + 1;
+                } else {
+                    rf = cf - 1;
+                }
+            }
+            return ans;
+        }
+    };
+```
+
+##### 1706\.球会落何处
+
+[题目](https://leetcode.cn/problems/where-will-the-ball-fall)
+
+我的模拟：每次看看当前球能不能左右移动，一直移动到底部就胜利。
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+class Solution {
+    public:
+        vector<int> findBall(vector<vector<int>>& grid) {
+            int n = grid.size(), m = grid[0].size();
+            vector<int> ans(m, -1);
+            for(int s=0;s<m;++s) {
+                int x=0,y=s;
+                while(x<n) {
+                    int g=grid[x][y];
+                    if(g==1) {
+                        if(y+1<m && grid[x][y+1]==1) {
+                            ++y;
+                        }else break;
+                    }else{
+                        if(y-1>=0 && grid[x][y-1]==-1) {
+                            --y;
+                        }else break;
+                    }
+                    ++x;
+                }
+                if(x==n) ans[s]=y;
+            }
+            return ans;
+        }
+    };
+```
+
+题解：反向，我是看啥时候行，题解看啥时候不行。
+
+```c++
+class Solution {
+public:
+    vector<int> findBall(vector<vector<int>> &grid) {
+        int n = grid[0].size();
+        vector<int> ans(n);
+        for (int j = 0; j < n; ++j) {
+            int col = j; // 球的初始列
+            for (auto &row : grid) {
+                int dir = row[col];
+                col += dir; // 移动球
+                if (col < 0 || col == n || row[col] != dir) { // 到达侧边或 V 形
+                    col = -1;
+                    break;
+                }
+            }
+            ans[j] = col; // col >= 0 为成功到达底部
+        }
+        return ans;
+    }
+};
+```
+
+##### 1299\.蒋每个元素替换为右侧最大元素
+
+[题目](https://leetcode.cn/problems/replace-elements-with-greatest-element-on-right-side)
+
+```c++
+class Solution {
+public:
+    vector<int> replaceElements(vector<int>& arr) {
+        int n = arr.size();
+        vector<int> ans(n);
+        int mx = -1;
+        for (int i = n - 1; i >= 0; --i) {
+            ans[i] = mx;
+            mx = max(mx, arr[i]);
+        }
+        return ans;
+    }
+};
+```
+
+##### 1287\.有序数组中出现次数超过25%的元素
+
+[题目](https://leetcode.cn/problems/element-appearing-more-than-25-in-sorted-array)
+
+模拟：
+
+10ms map, 4ms un map
+
+```c++
+class Solution {
+    public:
+        int findSpecialInteger(vector<int>& arr) {
+            map<int, int> m;
+            for (int i = 0; i < arr.size(); i++)
+                ++m[arr[i]];
+            int mxcnt = 0, ans;
+            for(auto&[k, v]:m) {
+                if (v > mxcnt) {
+                    mxcnt = v;
+                    ans = k;
+                }
+            }
+            return ans;
+        }
+    };
+```
+
+0ms no map
+
+```c++
+class Solution {
+public:
+    int findSpecialInteger(vector<int>& arr) {
+        int n = arr.size();
+        int cur = arr[0], cnt = 0;
+        for (int i = 0; i < n; ++i) {
+            if (arr[i] == cur) {
+                ++cnt;
+                if (cnt * 4 > n) {
+                    return cur;
+                }
+            }
+            else {
+                cur = arr[i];
+                cnt = 1;
+            }
+        }
+        return -1;
+    }
+};
+```
+
+二分：由于 $>25\%$，所以一定在每隔 $25\%$ 取一个里会取到答案，有 $4$ 个最多候选项，分别拿来二分看看下标。
+
+```c++
+class Solution {
+public:
+    int findSpecialInteger(vector<int>& arr) {
+        int n = arr.size();
+        int span = n / 4 + 1;
+        for (int i = 0; i < n; i += span) {
+            auto iter_l = lower_bound(arr.begin(), arr.end(), arr[i]);
+            auto iter_r = upper_bound(arr.begin(), arr.end(), arr[i]);
+            if (iter_r - iter_l >= span) {
+                return arr[i];
+            }
+        }
+        return -1;
+    }
+};
+```
+
+C++17 
+
+```c++
+class Solution {
+public:
+    int findSpecialInteger(vector<int>& arr) {
+        int n = arr.size();
+        int span = n / 4 + 1;
+        for (int i = 0; i < n; i += span) {
+            auto [iter_l, iter_r] = equal_range(arr.begin(), arr.end(), arr[i]);
+            if (iter_r - iter_l >= span) {
+                return arr[i];
+            }
+        }
+        return -1;
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    int findSpecialInteger(vector<int>& arr) {
+        int n = arr.size();
+        int m = n / 4;
+        for (int i : {m, m * 2 + 1}) {
+            int x = arr[i];
+            if (ranges::upper_bound(arr, x) - ranges::lower_bound(arr, x) > m) {
+                return x;
+            }
+        }
+        // 如果答案不是 arr[m] 也不是 arr[2m+1]，那么答案一定是 arr[3m+2]
+        return arr[m * 3 + 2];
+    }
+};
+```
+
+##### 624\.数组列表中的最大距离
+
+[题目](https://leetcode.cn/problems/maximum-distance-in-arrays)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+    public:
+        int maxDistance(vector<vector<int>>& arrays) {
+            int m = arrays.size();
+            int mi = INT_MAX, mx = INT_MIN;
+            for(int x : arrays[0]) {
+                mi = min(mi, x);
+                mx = max(mx, x);
+            }
+            int ans = 0;
+            for (int i = 1; i < m; i++) {            
+                for(int x : arrays[i]) {
+                    ans = max(ans, abs(x - mi));
+                    ans = max(ans, abs(x - mx));
+                }
+                for(int x : arrays[i]) {
+                    mi = min(mi, x);
+                    mx = max(mx, x);
+                }
+            }
+            return ans;
+        }
+    };
+```
+
+不过已经排好序了，所以可以：
+
+```c++
+class Solution {
+public:
+    int maxDistance(vector<vector<int>>& arrays) {
+        int ans = 0;
+        int mn = INT_MAX / 2, mx = INT_MIN / 2; // 防止减法溢出
+        for (auto& a : arrays) {
+            ans = max({ans, a.back() - mn, mx - a[0]});
+            mn = min(mn, a[0]);
+            mx = max(mx, a.back());
+        }
+        return ans;
+    }
+};
+```
+
+##### 2595\.奇偶位数
+
+[题目](https://leetcode.cn/problems/maximum-distance-in-arrays)
+
+```c++
+class Solution {
+public:
+    vector<int> evenOddBit(int n) {
+        vector<int> ans(2);
+        for (int i = 0; n; n >>= 1) {
+            ans[i] += n & 1;
+            i ^= 1; // 切换奇偶
+        }
+        return ans;
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    vector<int> evenOddBit(int n) {
+        const unsigned MASK = 0x55555555u;
+        return {popcount(n & MASK), popcount(n & (MASK << 1))};
+    }
+};
 ```

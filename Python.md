@@ -1298,6 +1298,15 @@ list(enumerate([1,3,5,7]))
 #[(0, 1), (1, 3), (2, 5), (3, 7)]
 ```
 
+修改起始下标：
+
+```python
+list(enumerate('abc',1))
+# [(1, 'a'), (2, 'b'), (3, 'c')]
+```
+
+
+
 ##### zip
 
 合并多个数组型，生成tuple，每个元素依次是参数的每个元素，需要强转(如list化)，zip的每个参数是一个数组，如果每个参数长度不一，最终生成取最小的
@@ -4411,6 +4420,14 @@ a+b#Counter({'b': 3, 'a': 2, 'c': 1})
 a-b#Counter({'a': 2})
 ```
 
+还可以切回列表：
+
+```python
+list(Counter([1,1,4,5,1,4]).elements()) # [1, 1, 1, 4, 4, 5]
+```
+
+
+
 ##### sortedlist
 
 有序列表，不满足集合的元素唯一性
@@ -5693,6 +5710,16 @@ comb(10000000,10000000-30000)>1 #slow
 comb(10000000,10000000-30000)>1 #in a flash
 ```
 
+#### operator
+
+提供 `or_` 等函数，可用于 reduce 等。
+
+```python
+from functools import reduce
+from operator import or_
+reduce(or_, [1,2,6]) # 7
+```
+
 
 
 #### itertools
@@ -5735,6 +5762,8 @@ from itertools import *
 - `tee(a, n=2)` 返回 a 的多个迭代器，如 `x,y=tee(a)`
 
 - `count(i)` 从 i 开始每次不断自增的无限迭代器 (break 跳出)
+
+- `groupby(x, key=None)`，对可迭代对象 x 分组，分组依据默认为元素本身，返回迭代器，每次返回一个元组 (k, g)，其中 k 是键，g 是迭代器。取长度可以 `len(list(g))`。
 
 例：
 
@@ -5787,6 +5816,12 @@ from itertools import count
 for i in count(2): # 无线迭代器
     print(i)
     if i >= 5: break  # 仅示例，实际中会是无限的
+```
+
+```python
+from itertools import groupby
+for ch, s in groupby('1222334555'):
+    print(ch, len(list(s)))
 ```
 
 
@@ -8933,7 +8968,7 @@ print(points)
 import matplotlib.pyplot as plt
 ```
 
-#### 绘图
+#### 基础绘图
 
 ##### 基础
 
@@ -9232,6 +9267,39 @@ plt.show()
 ```
 
 
+
+#### 绘图
+
+##### 等高线
+
+poe
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 创建网格数据
+x = np.linspace(-2, 2, 50)
+y = np.linspace(-2, 2, 50)
+XX, YY = np.meshgrid(x, y)
+
+# 定义函数 Z
+Z = XX**2 + YY**2  # 一个简单的抛物面
+
+# 创建图形和坐标轴
+fig, ax = plt.subplots()
+
+# 绘制等高线
+ax.contour(XX, YY, Z, colors='b', levels=[0, 1, 2, 3], alpha=0.7)
+
+# 添加标题和标签
+ax.set_title('Simple Contour Plot')
+ax.set_xlabel('X-axis')
+ax.set_ylabel('Y-axis')
+
+# 显示图形
+plt.show()
+```
 
 
 
@@ -9974,6 +10042,13 @@ plt.figure(figsize=(620//20, 700//20), dpi=20, facecolor='grey')
 plt.rcParams['font.family'] = ['sans-serif']
 plt.rcParams['font.sans-serif'] = ['SimHei']
 ```
+
+> 其他方案：deepseek
+>
+> ```python
+> plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体
+> plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
+> ```
 
 重新设置坐标范围(不然范围是 $[0,1]$)，并关闭坐标轴显示
 
@@ -13230,6 +13305,18 @@ print(e_At) # 或 sp.pprint(P) # 更好看的矩阵
 
 广义逆： `A.pinv()`
 
+##### 秩
+
+`A.rank()`
+
+##### 特征值
+
+```python
+L.eigenvals() # {0: 1, 2: 1, 4: 2} # 0,2,4,4  , 4:2是2重根
+```
+
+
+
 ##### 初等变换
 
 ```python
@@ -13382,6 +13469,42 @@ sp.pprint(V) # 2x2
 print(U*S*V.T)
 ```
 
+##### 解方程组
+
+如通解：
+
+```python
+import sympy as sp
+A = sp.Matrix([
+    [-1, 1, 0, 0],
+    [-1, 0, 1, 0],
+    [0, -1, 1, 0],
+    [0, -1, 0, 1],
+    [0, 0, -1, 1]
+])
+y1, y2, y3, y4, y5 = sp.symbols('y1 y2 y3 y4 y5')
+y = sp.Matrix([y1, y2, y3, y4, y5])
+# 构造方程 A^T y = 0
+equations = A.T * y
+solution = sp.solve(equations, (y1, y2, y3, y4, y5))
+sp.pprint(solution)#{y₁: y₃ - y₅, y₂: -y₃ + y₅, y₄: -y₅}
+```
+
+求特解，在上面的基础上：
+
+```python
+y1_expr = y3 - y5
+y2_expr = -y3 + y5
+y4_expr = -y5
+y = sp.Matrix([y1_expr, y2_expr, y3, y4_expr, y5])
+y_solution_1 = y.subs({y3: -1, y5: 0})
+print("情况 1：y3 = -1, y5 = 0 时的解：")
+print(y_solution_1)
+y_solution_2 = y.subs({y3: 1, y5: 1})
+print("情况 2：y3 = 1, y5 = 1 时的解：")
+print(y_solution_2)
+```
+
 ##### Schmidt正交化
 
 求 QR 分解：
@@ -13456,7 +13579,7 @@ eq1 = sp.Eq(a0 + a1 + a2, 1)
 eq2 = sp.Eq(a1 + 2 * a2, sp.Rational(1, 2))
 eq3 = sp.Eq(a0 + 4 * a1 + 16 * a2, 2)
 solution = sp.solve((eq1, eq2, eq3), (a0, a1, a2))
-print(solution) # {a0: 4/9, a1: 11/18, a2: -1/18}
+print(solution) # {a0: 4/9, a1: 11/18, a2: -1/18}，实际上是一个dict
 ```
 
 不等式：
@@ -13464,6 +13587,10 @@ print(solution) # {a0: 4/9, a1: 11/18, a2: -1/18}
 ```python
 solve(x**2+x-3>0,x)
 ```
+
+矩阵方程组：见上文矩阵。
+
+
 
 ##### 质因数分解
 
@@ -14703,6 +14830,8 @@ pre = titanic_model(titanic)
 
 ##### SVM
 
+###### 理论
+
 支持向量机 Support Vector Machine 监督学习进行二元分类。一个例子参见 `辅助功能-超参选择`。
 
 参数：
@@ -14728,6 +14857,8 @@ pre = titanic_model(titanic)
   - `poly`：多项式核函数，可以表示数据之间的更复杂的关系。
   - `sigmoid`：Sigmoid核，类似于神经网络。
 
+###### 分类
+
 二元回归使用 SVR：
 
 ```python
@@ -14751,48 +14882,105 @@ print(clf.score(X, y))
 print(clf.support_vectors_)
 ```
 
+###### SVC
 
+> ```python
+> from sklearn import svm
+> import numpy as np
+> 
+> # 准备数据集，X为特征向量，y为对应的类别标签
+> X = np.array([[2, 0], [4, 2], [2, 5], [4, 7]])
+> y = np.array([1, 1, -1, -1])
+> 
+> # 创建SVM模型
+> model = svm.SVC(kernel='linear')
+> 
+> # 训练模型
+> model.fit(X, y)
+> 
+> # 提取决策边界参数
+> w = model.coef_[0]
+> b = model.intercept_
+> 
+> # 打印决策边界方程
+> print(f"{w[0]}*x1 + {w[1]}*x2 + {b} = 0")
+> 
+> import matplotlib.pyplot as plt
+> # 绘制数据点
+> plt.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.Paired)
+> 
+> # 绘制决策边界
+> x1 = np.linspace(0, 5, 100)
+> x2 = -(w[0] * x1 + b) / w[1]
+> plt.plot(x1, x2, 'k-')
+> 
+> # 设置图形属性
+> plt.xlim(0, 5)
+> plt.ylim(-2, 8)
+> plt.xlabel('x1')
+> plt.ylabel('x2')
+> plt.title('Decision Boundary')
+> 
+> # 显示图形
+> plt.show()
+> ```
+>
+
+或：
 
 ```python
-from sklearn import svm
 import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.svm import SVC
 
-# 准备数据集，X为特征向量，y为对应的类别标签
-X = np.array([[2, 0], [4, 2], [2, 5], [4, 7]])
-y = np.array([1, 1, -1, -1])
+# 设置 Matplotlib 支持中文显示
+plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体
+plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
 
-# 创建SVM模型
-model = svm.SVC(kernel='linear')
+# 数据集
+X = np.array([[-1, 0], [-1, 2], [1, 2], [0, 0], [1, 0], [1, 1]])  # 特征
+y = np.array([1, 1, 1, -1, -1, -1])  # 标签
 
-# 训练模型
+# 训练线性SVM模型
+model = SVC(kernel='linear', C=1e10)  # C 设置为一个大值，确保硬间隔
 model.fit(X, y)
 
-# 提取决策边界参数
-w = model.coef_[0]
-b = model.intercept_
+# 获取支持向量
+support_vectors = model.support_vectors_
+print("支持向量：", support_vectors)
 
-# 打印决策边界方程
-print(f"{w[0]}*x1 + {w[1]}*x2 + {b} = 0")
+# 获取决策函数的参数
+w = model.coef_[0]  # 权重向量
+b = model.intercept_[0]  # 偏置项
+print("权重向量 w:", w)
+print("偏置项 b:", b)
 
-import matplotlib.pyplot as plt
-# 绘制数据点
-plt.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.Paired)
+# 绘制数据点和决策边界
+plt.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.Paired, marker='o', edgecolors='k')
+plt.scatter(support_vectors[:, 0], support_vectors[:, 1], s=100, facecolors='none', edgecolors='r', label='支持向量')
 
 # 绘制决策边界
-x1 = np.linspace(0, 5, 100)
-x2 = -(w[0] * x1 + b) / w[1]
-plt.plot(x1, x2, 'k-')
+ax = plt.gca()
+xlim = ax.get_xlim()
+ylim = ax.get_ylim()
 
-# 设置图形属性
-plt.xlim(0, 5)
-plt.ylim(-2, 8)
-plt.xlabel('x1')
-plt.ylabel('x2')
-plt.title('Decision Boundary')
+# 创建网格以绘制决策边界
+xx = np.linspace(xlim[0], xlim[1], 30)
+yy = np.linspace(ylim[0], ylim[1], 30)
+YY, XX = np.meshgrid(yy, xx)
+xy = np.vstack([XX.ravel(), YY.ravel()]).T
+Z = model.decision_function(xy).reshape(XX.shape)
 
-# 显示图形
+# 绘制决策边界和间隔
+ax.contour(XX, YY, Z, colors='k', levels=[-1, 0, 1], alpha=0.5, linestyles=['--', '-', '--'])
+ax.set_xlabel('X1')
+ax.set_ylabel('X2')
+plt.legend()
+plt.title('线性SVM决策边界与支持向量')
 plt.show()
 ```
+
+
 
 ##### 模型树
 
@@ -19973,6 +20161,37 @@ nx.draw(g, with_labels=True, font_weight='bold')
 plt.savefig("path.png")
 ```
 
+```python
+import networkx as nx
+import matplotlib.pyplot as plt
+
+# 创建图
+G = nx.DiGraph()
+
+# 添加节点和边
+G.add_edge(1, 2, weight=1)
+G.add_edge(1, 3, weight=2)
+G.add_edge(2, 3, weight=3)
+G.add_edge(2, 4, weight=4)
+G.add_edge(3, 4, weight=5)
+
+# 设置节点位置（手动调整）
+pos = {
+    1: (0, 1),  # 节点 1 的位置
+    2: (1, 1),  # 节点 2 的位置
+    3: (0, 0),  # 节点 3 的位置
+    4: (1, 0),  # 节点 4 的位置
+}
+
+# 绘制图形
+nx.draw(G, pos, with_labels=True, node_color='lightblue', node_size=2000, font_size=16)
+labels = nx.get_edge_attributes(G, 'weight')
+nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
+
+# 显示图形
+plt.show()
+```
+
 
 
 #### 举例
@@ -20153,7 +20372,50 @@ from IPython.display import Image, display
 display(Image('https://datascience.ucsd.edu/wp-content/uploads/2022/09/Ery-Arias-Castro-Web.jpg'))
 ```
 
+### schemdraw
 
+绘制电路图
+
+```sh
+pip install schemdraw
+```
+
+```python
+import schemdraw
+import schemdraw.elements as elm
+# 创建电路图对象
+with schemdraw.Drawing() as d:
+    # 添加电压源
+    d += elm.SourceV().label('Vs\n12V').up()
+    # 添加电阻 R1
+    d += elm.Resistor().label('R1\n4Ω').right()
+    # 添加电阻 R2
+    d += elm.Resistor().label('R2\n6Ω').down()
+    # 闭合回路
+    d += elm.Line().left()
+    # 绘制电路图
+    d.draw()
+```
+
+```python
+import schemdraw
+import schemdraw.elements as elm
+# 创建电路图对象
+with schemdraw.Drawing() as d:
+    # 添加电压源
+    d += elm.SourceV().label('Vs\n12V').up()
+    # 添加电阻 R1
+    d += elm.Resistor().label('R1\n4Ω').right()
+    # 添加电阻 R2
+    d += elm.Resistor().label('R2\n6Ω').right()
+    # 添加连接线
+    d += elm.Line().down()
+    # 闭合回路
+    d += elm.Line().left()
+    d += elm.Line().left()
+    # 绘制电路图
+    d.draw()
+```
 
 
 
