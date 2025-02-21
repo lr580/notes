@@ -2633,6 +2633,10 @@
 - 2209\.用地毯覆盖后的最少白色砖块
 
   **DP**
+  
+- 2506\.统计相似字符串对的数目
+
+  签到 数学 计数
 
 ## 算法
 
@@ -64204,6 +64208,55 @@ public:
             f = move(nf);
         }
         return f[m - 1];
+    }
+};
+```
+
+##### 2506\. 统计相似字符串对的数目
+
+[题目](https://leetcode.cn/problems/count-pairs-of-similar-strings/)
+
+我的：
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+    public:
+        int similarPairs(vector<string>& words) {
+            map<int, int> m;
+            for(string &w : words) {
+                int b = 0;
+                for(char c : w) {
+                    b |= 1 << (c - 'a');
+                }
+                ++m[b];
+            }
+            int ans = 0;
+            for(auto &p : m) {
+                ans += p.second * (p.second - 1) / 2;
+            }
+            return ans;
+        }
+    };
+```
+
+题解：一次遍历
+
+```c++
+class Solution {
+public:
+    int similarPairs(vector<string>& words) {
+        unordered_map<int, int> cnt;
+        int ans = 0;
+        for (auto& s : words) {
+            int mask = 0;
+            for (char c : s) {
+                mask |= 1 << (c - 'a');
+            }
+            ans += cnt[mask]++;
+        }
+        return ans;
     }
 };
 ```
