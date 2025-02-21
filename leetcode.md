@@ -2629,6 +2629,10 @@
 - 2595\.奇偶位数
 
   签到 位运算
+  
+- 2209\.用地毯覆盖后的最少白色砖块
+
+  **DP**
 
 ## 算法
 
@@ -64141,3 +64145,66 @@ public:
     }
 };
 ```
+
+##### 2290\.用地毯覆盖后的最少白色砖块
+
+[题目](https://leetcode.cn/problems/minimum-white-tiles-after-covering-with-carpets)
+
+DP，设 $dp[i][j]$ 表示用了 $i$ 个地毯，解决子问题 $s[0:j]$ 字符串的答案。设 $f[i]$ 表示第 $i$ 个字符是不是白色地毯，则：
+$$
+dp[i][j]=\min(dfs(i,j-1)+f[j], dfs(i-1,j-len))
+$$
+分别表示最后一个字符上用与不用地毯。
+
+```c++
+class Solution {
+public:
+    int minimumWhiteTiles(string floor, int numCarpets, int carpetLen) {
+        int m = floor.size();
+        vector memo(numCarpets + 1, vector<int>(m, -1)); // -1 表示没有计算过
+        auto dfs = [&](this auto&& dfs, int i, int j) -> int {
+            if (j < carpetLen * i) { // 剩余砖块可以全部覆盖
+                return 0;
+            }
+            int& res = memo[i][j]; // 注意这里是引用
+            if (res != -1) { // 之前计算过
+                return res;
+            }
+            if (i == 0) {
+                return res = dfs(i, j - 1) + (floor[j] - '0');
+            }
+            return res = min(dfs(i, j - 1) + (floor[j] - '0'), dfs(i - 1, j - carpetLen));
+        };
+        return dfs(numCarpets, m - 1);
+    }
+};
+```
+
+空间优化+DP：
+
+```c++
+class Solution {
+public:
+    int minimumWhiteTiles(string floor, int numCarpets, int carpetLen) {
+        int m = floor.size();
+        if (numCarpets * carpetLen >= m) {
+            return 0;
+        }
+
+        vector<int> f(m);
+        f[0] = floor[0] - '0';
+        for (int j = 1; j < m; j++) {
+            f[j] = f[j - 1] + (floor[j] - '0');
+        }
+        for (int i = 1; i <= numCarpets; i++) {
+            vector<int> nf(m);
+            for (int j = carpetLen * i; j < m; j++) {
+                nf[j] = min(nf[j - 1] + (floor[j] - '0'), f[j - carpetLen]);
+            }
+            f = move(nf);
+        }
+        return f[m - 1];
+    }
+};
+```
+
