@@ -13382,6 +13382,51 @@ sp.pprint(V) # 2x2
 print(U*S*V.T)
 ```
 
+##### Schmidt正交化
+
+求 QR 分解：
+
+```python
+A = sp.Matrix([[0, 4, 2], [0, 3, 1], [2, 1, -2]])
+n = A.shape[0]
+E = sp.zeros(n, n)
+for i in range(n):
+    b = A[:, i]
+    for j in range(i):
+        b -= A[:, i].dot(E[:, j]) * E[:, j]
+    E[:, i] = b / b.norm()
+sp.pprint(E)
+P = sp.zeros(n, n)
+for i in range(n):
+    for j in range(i, n):
+        P[i, j] = A[:, j].dot(E[:, i])
+sp.pprint(P)
+```
+
+> ```python
+> import sympy as sp
+> A = sp.Matrix([[1, 2, 2], [2, 1, 2], [1, 2, 1]])
+> # A = sp.Matrix([[0, 4, 2], [0, 3, 1], [2, 1, -2]])
+> n = A.shape[0]
+> E = sp.zeros(n, n)
+> bs = []
+> for i in range(n):
+>     b = A[:, i]
+>     for j in range(i):
+>         b -= A[:, i].dot(E[:, j]) * E[:, j]
+>     bs.append(b)
+>     E[:, i] = b / b.norm()
+> sp.pprint(E)
+> P = sp.zeros(n, n)
+> for i in range(n):
+>     P[i, i] = bs[i].norm()
+> for i in range(n):
+>     for j in range(i+1, n):
+>         P[i, j] = A[:, j].dot(E[:, i])
+> sp.pprint(P)
+> # sp.pprint(E*P) # check
+> ```
+
 
 
 #### 数值运算
