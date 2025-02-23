@@ -2644,6 +2644,14 @@
 
 ### 新
 
+- 1206\.设计跳表
+
+  STL / <u>数据结构</u>
+
+- 1656\.设计有序流
+
+  签到 STL
+
 ## 算法
 
 > 力扣其他，CF杂题，其他杂题是 `leetcode.md` 搬过来的；力扣是新的力扣常规题。
@@ -7393,3 +7401,201 @@ int main() {
   return 0;
 }
 ```
+
+### 力扣
+
+##### 1206\.设计跳表
+
+[题目](https://leetcode.cn/problems/design-skiplist) [跳表](https://oi-wiki.org/ds/skiplist/)
+
+跳表是有序链表的改进，期望空间复杂度 $O(n)$ 且增删查期望 $O(\log n)$，最坏 $O(n)$。
+
+> 跳表是一种随机化的数据结构，可以被看做二叉树的一个变种，它在性能上和红黑树、AVL树不相上下，但是跳表的原理非常简单，目前在Redis和LevelDB中都有用到。
+>
+
+跳表第一层是原始有序链表。设计常数 $p$，使得每个第 $i$ 层节点有 $p$ 概率出现在第 $i+1$ 层。第 $i$ 层期望有 $np^{i-1}$ 个元素。令第 $k$ 层期望有 $\dfrac1p$ 个元素，即 $np^{k-1}=p^{-1}$，解得 $k=\log_{1/p}n$。限制最高有 $k$ 层。
+
+某节点最高停留在第 $i$ 层的概率为 $p^{i-1}(1-p)$，即前 $i-1$ 次在，第 $i$ 次不在。设共有 $l$ 层，则期望：
+$$
+E(l)=\sum_{i=1}^\infty i P(L=i)=\sum_{i=1}^\infty ip^{i-1}(1-p)=(1-p)\sum_{i=1}^\infty ip^{i-1}
+$$
+其中级数 $\sum_{i=1}^\infty ip^{i-1}=\dfrac1{(1-p)^2}$，故 $E(l)=\dfrac1{1-p}$ 为常数。故期望空间复杂度 $O(n)$，限制最高 $k$ 层时，最坏复杂度为 $O(n\log n)$。
+
+查询：从最高的第 $k$ 层开始找，不断往低层，直到找到为止。可以解得(没看懂)期望查找 $\dfrac{L(n)-1}{p}+\dfrac2p$ 个节点，即 $O(\log n)$ 个节点。而插入和删除就是先查询，查到了就改它。
+
+> 设在第 $i$ 层找 $x$，根据定义有 $p$ 的概率高一层还有 $x$，那么往高处找更好，否则低处更好。
+
+实现：
+
+- `SkiplistNode` 是一列，且 `forward` 表示每一列的下一节点。
+- 查询：注意遍历层不是每次从头开始，而是从上一层的位置往下后往右，所以最坏 $O(n)$。然后找到小于目标的最近元素，看它下一个是不是目标即可。
+- 插入：查询每一层小于插入点的最近节点并记录，然后随机一个插入点的层数，将这些层的记录上一个节点做单向链表插入。并更新最大层数。
+- 删除：同理搞记录，把记录点跳到下一个点。
+
+```c++
+constexpr int MAX_LEVEL = 32;
+constexpr double P_FACTOR = 0.25;
+
+struct SkiplistNode {
+    int val;
+    vector<SkiplistNode *> forward;
+    SkiplistNode(int _val, int _maxLevel = MAX_LEVEL) : val(_val), forward(_maxLevel, nullptr) {
+        
+    }
+};
+
+class Skiplist {
+private:
+    SkiplistNode * head;
+    int level;
+    mt19937 gen{random_device{}()};
+    uniform_real_distribution<double> dis;
+
+public:
+    Skiplist(): head(new SkiplistNode(-1)), level(0), dis(0, 1) {
+
+    }
+
+    bool search(int target) {
+        SkiplistNode *curr = this->head;
+        for (int i = level - 1; i >= 0; i--) {
+            /* 找到第 i 层小于且最接近 target 的元素*/
+            while (curr->forward[i] && curr->forward[i]->val < target) {
+                curr = curr->forward[i];
+            }
+        }
+        curr = curr->forward[0];
+        /* 检测当前元素的值是否等于 target */
+        if (curr && curr->val == target) {
+            return true;
+        } 
+        return false;
+    }
+
+    void add(int num) {
+        vector<SkiplistNode *> update(MAX_LEVEL, head);
+        SkiplistNode *curr = this->head;
+        for (int i = level - 1; i >= 0; i--) {
+            /* 找到第 i 层小于且最接近 num 的元素*/
+            while (curr->forward[i] && curr->forward[i]->val < num) {
+                curr = curr->forward[i];
+            }
+            update[i] = curr;
+        }
+        int lv = randomLevel();
+        level = max(level, lv);
+        SkiplistNode *newNode = new SkiplistNode(num, lv);
+        for (int i = 0; i < lv; i++) {
+            /* 对第 i 层的状态进行更新，将当前元素的 forward 指向新的节点 */
+            newNode->forward[i] = update[i]->forward[i];
+            update[i]->forward[i] = newNode;
+        }
+    }
+
+    bool erase(int num) {
+        vector<SkiplistNode *> update(MAX_LEVEL, nullptr);
+        SkiplistNode *curr = this->head;
+        for (int i = level - 1; i >= 0; i--) {
+            /* 找到第 i 层小于且最接近 num 的元素*/
+            while (curr->forward[i] && curr->forward[i]->val < num) {
+                curr = curr->forward[i];
+            }
+            update[i] = curr;
+        }
+        curr = curr->forward[0];
+        /* 如果值不存在则返回 false */
+        if (!curr || curr->val != num) {
+            return false;
+        }
+        for (int i = 0; i < level; i++) {
+            if (update[i]->forward[i] != curr) {
+                break;
+            }
+            /* 对第 i 层的状态进行更新，将 forward 指向被删除节点的下一跳 */
+            update[i]->forward[i] = curr->forward[i];
+        }
+        delete curr;
+        /* 更新当前的 level */
+        while (level > 1 && head->forward[level - 1] == nullptr) {
+            level--;
+        }
+        return true;
+    }
+
+    int randomLevel() {
+        int lv = 1;
+        /* 随机生成 lv */
+        while (dis(gen) < P_FACTOR && lv < MAX_LEVEL) {
+            lv++;
+        }
+        return lv;
+    }
+};
+```
+
+> 我的 multiset：
+>
+> ```c++
+> #include <bits/stdc++.h>
+> using namespace std;
+> class Skiplist {
+>     multiset<int> s;
+>     public:
+>         Skiplist() {
+>         }
+>         
+>         bool search(int target) {
+>             return s.find(target)!=s.end();
+>         }
+>         
+>         void add(int num) {
+>             s.insert(num);
+>         }
+>         
+>         bool erase(int num) {
+>             auto it = s.find(num);
+>             if(it!=s.end()){
+>                 s.erase(it);
+>                 return true;
+>             }
+>             return false;
+>         }
+>     };
+>     
+>     /**
+>      * Your Skiplist object will be instantiated and called as such:
+>      * Skiplist* obj = new Skiplist();
+>      * bool param_1 = obj->search(target);
+>      * obj->add(num);
+>      * bool param_3 = obj->erase(num);
+>      */
+> ```
+
+##### 1656\.设计有序流
+
+[题目](https://leetcode.cn/problems/design-an-ordered-stream)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class OrderedStream {
+    int ptr = 1;
+    vector<string> v;
+    public:
+        OrderedStream(int n) {
+            v.resize(n+2);
+        }
+        
+        vector<string> insert(int idKey, string value) {
+            v[idKey] = value;
+            vector<string> ans;
+            while(v[ptr] != "") {
+                ans.push_back(v[ptr]);
+                ptr++;
+            }
+            return ans;
+        }
+    };
+    
+```
+
