@@ -35,4 +35,6 @@ func main() {
 }
 ```
 
-命令行：`go run hello.go`。
+命令行：`go run hello.go` 直接运行。
+
+编译成 exe 然后运行：`go build hello.go`，`./hello`。[菜鸟](https://m.runoob.com/go/go-tutorial.html)
