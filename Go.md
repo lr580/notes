@@ -35,3 +35,4 @@ func main() {
 }
 ```
 
+命令行：`go run hello.go`。
