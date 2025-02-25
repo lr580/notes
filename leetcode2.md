@@ -2651,6 +2651,14 @@
 - 1656\.设计有序流
 
   签到 STL
+  
+- 2502\.设计内存分配器
+
+  模拟 / <u>线段树二分</u>
+  
+- 2466\.统计构造好字符串的方案数
+
+  DP
 
 ## 算法
 
@@ -7597,5 +7605,259 @@ class OrderedStream {
         }
     };
     
+```
+
+##### 2502\.设计内存分配器
+
+[题目](https://leetcode.cn/problems/design-memory-allocator)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Allocator {
+    vector<int> m;
+    int n;
+    public:
+        Allocator(int n) {
+            m.resize(n,0);
+            this->n=n;
+        }
+        
+        int allocate(int size, int mID) {
+            int emp = 0, l = 0;
+            for(int i = 0; i < n; ++i) {
+                if(m[i] == 0) {
+                    if(emp == 0) l = i;
+                    if(++emp == size) {
+                        for(int j = l; j <= i; ++j) {
+                            m[j] = mID;
+                        }
+                        return l;
+                    }
+                } else {
+                    emp = 0;
+                }
+            }
+            return -1;
+        }
+        
+        int freeMemory(int mID) {
+            int cnt = 0;
+            for(int i = 0; i < n; ++i) {
+                if(m[i] == mID) {
+                    m[i] = 0;
+                    ++cnt;
+                }
+            }
+            return cnt;
+        }
+    };
+    
+    /**
+     * Your Allocator object will be instantiated and called as such:
+     * Allocator* obj = new Allocator(n);
+     * int param_1 = obj->allocate(size,mID);
+     * int param_2 = obj->freeMemory(mID);
+     */
+```
+
+```c++
+class Allocator {
+    vector<int> memory;
+
+public:
+    Allocator(int n) : memory(n) {}
+
+    int allocate(int size, int mID) {
+        int free = 0;
+        for (int i = 0; i < memory.size(); i++) {
+            if (memory[i] > 0) { // 已分配
+                free = 0; // 重新计数
+                continue;
+            }
+            free++;
+            if (free == size) { // 找到了
+                fill(memory.begin() + (i - size + 1), memory.begin() + (i + 1), mID);
+                return i - size + 1;
+            }
+        }
+        return -1; // 无法分配内存
+    }
+
+    int freeMemory(int mID) {
+        int ans = 0;
+        for (int i = 0; i < memory.size(); i++) {
+            if (memory[i] == mID) {
+                ans++;
+                memory[i] = 0; // 标记为空闲内存
+            }
+        }
+        return ans;
+    }
+};
+```
+
+解法二：线段树二分。设空闲内存为0，分配的内存为1，线段树维护区间的最长连续0个数 $max_0$，归并合并左右区间时，设前缀和后缀0个数记作 $pre_0,suf_0$，当前节点的 $max_0$ 为：
+$$
+max_0=\max\{max_{0left},max_{0right},suf_{0left}+pre_{0right}\}
+$$
+二分方法：先找左子树，若不符合，找 $suf_{0left}+pre_{0right}$，还不符合找右。注意在这种情况下，除了某个查询恰好是某个节点区间，其他答案都是从 $suf_{0left}+pre_{0right}$ 来的。
+
+具体实现思路见代码。注意几个细节：
+
+- 线段树长度的设置
+- 一般修改 v=1/0，初始化时都一样不需要懒标签下放所以 v=-1，功能等价于 v=0
+
+```c++
+class SegTree {
+    struct Node {
+        int pre0, suf0, max0, todo;
+    };
+
+    vector<Node> t;
+
+    void do_(int i, int l, int r, int v) {
+        auto& o = t[i];
+        int size = v <= 0 ? r - l + 1 : 0;
+        o.pre0 = o.suf0 = o.max0 = size;
+        o.todo = v;
+    }
+
+    // 下传懒标记
+    void spread(int o, int l, int r) {
+        int& v = t[o].todo;
+        if (v != -1) {
+            int m = (l + r) / 2;
+            do_(o * 2, l, m, v);
+            do_(o * 2 + 1, m + 1, r, v);
+            v = -1;
+        }
+    }
+
+    // 初始化线段树
+    void build(int o, int l, int r) {
+        do_(o, l, r, -1);
+        if (l == r) {
+            return;
+        }
+        int m = (l + r) / 2;
+        build(o * 2, l, m);
+        build(o * 2 + 1, m + 1, r);
+    }
+
+public:
+    SegTree(int n) {
+        t.resize(2 << bit_width((unsigned) n - 1));
+        build(1, 0, n - 1);
+    }
+
+    // 把 [ql, qr] 都置为 v
+    void update(int o, int l, int r, int ql, int qr, int v) {
+        if (ql <= l && r <= qr) {
+            do_(o, l, r, v);
+            return;
+        }
+        spread(o, l, r);
+        int m = (l + r) / 2;
+        if (ql <= m) {
+            update(o * 2, l, m, ql, qr, v);
+        }
+        if (m < qr) {
+            update(o * 2 + 1, m + 1, r, ql, qr, v);
+        }
+
+        // 合并左右子树的信息
+        Node& lo = t[o * 2];
+        Node& ro = t[o * 2 + 1];
+        // 区间前缀连续 0 的个数
+        t[o].pre0 = lo.pre0;
+        if (lo.pre0 == m - l + 1) {
+            t[o].pre0 += ro.pre0; // 和右子树的 pre0 拼起来
+        }
+        // 区间后缀连续 0 的个数
+        t[o].suf0 = ro.suf0;
+        if (ro.suf0 == r - m) {
+            t[o].suf0 += lo.suf0; // 和左子树的 suf0 拼起来
+        }
+        // 区间最长连续 0 的个数
+        t[o].max0 = max({lo.max0, ro.max0, lo.suf0 + ro.pre0});
+    }
+
+    // 线段树二分，找最左边的区间左端点，满足区间全为 0 且长度 >= size
+    // 如果不存在这样的区间，返回 -1
+    int find_first(int o, int l, int r, int size) {
+        if (t[o].max0 < size) {
+            return -1;
+        }
+        if (l == r) {
+            return l;
+        }
+        spread(o, l, r);
+        int m = (l + r) / 2;
+        int idx = find_first(o * 2, l, m, size); // 递归左子树
+        if (idx < 0) {
+            // 左子树的后缀 0 个数 + 右子树的前缀 0 个数 >= size
+            if (t[o * 2].suf0 + t[o * 2 + 1].pre0 >= size) {
+                return m - t[o * 2].suf0 + 1;
+            }
+            idx = find_first(o * 2 + 1, m + 1, r, size); // 递归右子树
+        }
+        return idx;
+    }
+};
+
+class Allocator {
+    int n;
+    SegTree tree;
+    unordered_map<int, vector<pair<int, int>>> blocks;
+
+public:
+    Allocator(int n) : n(n), tree(n) {}
+
+    int allocate(int size, int mID) {
+        int i = tree.find_first(1, 0, n - 1, size);
+        if (i < 0) { // 无法分配内存
+            return -1;
+        }
+        blocks[mID].emplace_back(i, i + size - 1);
+        tree.update(1, 0, n - 1, i, i + size - 1, 1); // 分配内存 [i, i+size-1]
+        return i;
+    }
+
+    int freeMemory(int mID) {
+        int ans = 0;
+        for (auto& [l, r] : blocks[mID]) {
+            ans += r - l + 1;
+            tree.update(1, 0, n - 1, l, r, 0); // 释放内存
+        }
+        blocks.erase(mID);
+        return ans;
+    }
+};
+```
+
+##### 2466\.统计构造好字符串的方案数
+
+[题目](https://leetcode.cn/problems/count-ways-to-build-good-strings)
+
+```c++
+#include <bits/stdc++.h>
+const int mod = 1e9+7;
+class Solution {
+    public:
+        int countGoodStrings(int low, int high, int zero, int one) {
+            vector<int> dp(high+1);
+            dp[0]=1;
+            for(int i = 1;i<=high;++i) {
+                if(i>=zero) dp[i]=(dp[i]+dp[i-zero])%mod;
+                if(i>=one) dp[i]=(dp[i]+dp[i-one])%mod;
+            }
+            int ans = 0;
+            for(int i = low;i<=high;++i) {
+                ans=(ans+dp[i])%mod;
+            }
+            return ans;
+        }
+    };
 ```
 
