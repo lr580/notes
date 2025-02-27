@@ -2425,7 +2425,7 @@ large & 1.853s \\ [-5pt]
 ```tex
 \centering
 \captionof{table}{模型预测图片时间} \label{model_predicting_time}
-\renewcommand{\arraystretch}{0.65}
+\renewcommand{\arraystretch}{0.65} % 倍数
 \begin{tabular}{cc}
 \toprule 
 编号 & 用时 \\
@@ -2435,6 +2435,7 @@ medium & 0.084s \\
 large & 0.151s \\
 \bottomrule
 \end{tabular}
+% \renewcommand{\arraystretch}{1} 如果只影响1个表，改回去
 ```
 
 ##### 表大小
@@ -2460,6 +2461,21 @@ large & 0.151s \\
 ##### 多行单元格
 
 `makecell` 宏包，`\makecell{第一行 \\ 第二行}` [参考](https://download.csdn.net/blog/column/11925364/129104359)
+
+```tex
+\cite{T-155} & 2022 & STG-NCDE & GCN & RNN & \makecell{PEMS03,PEMS04,\\[-2pt]PEMS07(M),PEMS07(L)} & differential equation \\ \hline % AAAI
+```
+
+调整 makecell 的间距(只调整和表的间距，多行 cell 的话它自己内部多行的行间距不变)，按比原本加减多少调整：
+
+```tex
+\setcellgapes{-2pt}
+\begin{table*}[p]
+  \centering\caption{Categories of Reviewed Literature}\label{table:paper_overview}
+  \makegapedcells
+```
+
+
 
 ##### 跨行列
 
@@ -2935,7 +2951,14 @@ Col 1 & Col 2 & Col 3 & Col4\\
 
 手动打空格，有 `\,`, `\`+空格, `\quad`，`\qquad`。
 
+自动组合拳：动态间距(包优化)，严格不超列宽边界(sloppy)，严格英文不跨行。
 
+```tex
+\usepackage{microtype} 
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+\sloppy
+```
 
 ##### 颜色
 
@@ -3009,11 +3032,25 @@ Traffic flow prediction is {\color{blue}....(give the formal denition)} \textcol
 % 下面是文字
 ```
 
+```tex
+% 完全禁止断字
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+```
+
 
 
 > `seqsplit` 宏包，加诸如 `\seqsplit{Thisisaverylongwordthatneedstobebrokenup}`，但是里边不能有文字之外的，如 `\cite`。并且会把空格吞掉。
 >
 > `sloppypar` 环境也行，但不一定生效。
+>
+> 使用 `\sloppy` 或 `\sloppypar` 环境，确保 LaTeX 不会让单词超出边界，但可能会增加行间距或留白：
+>
+> ```
+> \sloppy
+> ```
+>
+> 反义词：`\fussy` 恢复严格排版规则（默认）。
 
 最朴素是手动添加连字符 `\-`。
 
@@ -4822,6 +4859,14 @@ library `quotes`，将 node label 的输入从 `label={[<options>]<text>}` 简�
 
 ### 通用
 
+#### 库包
+
+`microtype` 包可以微调排版，减少单词超出边界的情况
+
+```tex
+\usepackage{microtype}
+```
+
 #### 行间距
 
 全局：
@@ -4861,7 +4906,7 @@ library `quotes`，将 node label 的输入从 `label={[<options>]<text>}` 简�
 \end{itemize}
 ```
 
-
+换行的行间距特定调整：如 `\\[-2pt]`，此次换行的间距减小 2pt
 
 ### 图表
 
