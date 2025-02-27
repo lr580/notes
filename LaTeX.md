@@ -2906,7 +2906,11 @@ Col 1 & Col 2 & Col 3 & Col4\\
 就是一个无聊的表情包机器人。
 ```
 
+全局修改字号，如：
 
+```tex
+\documentclass[review, 10pt]{fcs} % 字体修改
+```
 
 ##### 字体
 
@@ -2959,6 +2963,10 @@ Col 1 & Col 2 & Col 3 & Col4\\
 \exhyphenpenalty=10000
 \sloppy
 ```
+
+##### 行间距
+
+全局把单倍行距改成固定倍数 `\linespread{0.9}`
 
 ##### 颜色
 
@@ -4904,6 +4912,17 @@ library `quotes`，将 node label 的输入从 `label={[<options>]<text>}` 简�
 \begin{itemize}[itemsep=0pt]  % 将列表项之间的间距设置为0pt
   \item First item
 \end{itemize}
+```
+
+`.cls` 里调节 section 行间距：
+
+```tex
+  % 这里的 6mm plus 4mm minus 2mm 是 section 标题与上一段内容的间距，2mm plus 2mm minus 1mm 是 section 标题与下一段内容的间距。
+\titlespacing*
+{ \section }
+{ 0pt }
+{ 6mm plus 4mm minus 2mm }
+{ 2mm plus 2mm minus 1mm }
 ```
 
 换行的行间距特定调整：如 `\\[-2pt]`，此次换行的间距减小 2pt

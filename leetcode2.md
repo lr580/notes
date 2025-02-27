@@ -2660,9 +2660,17 @@
 
   DP
   
+- 740\.删除并获得点数
+
+  DP
+  
 - 3405\.统计恰好有 K 个相等相邻元素的数组数目
 
   <u>数学</u>
+  
+- 1472\.设计浏览器历史记录
+
+  STL
 
 ## 算法
 
@@ -7932,6 +7940,77 @@ public:
             a[x] += x; // 统计等于 x 的元素之和
         }
         return rob(a);
+    }
+};
+```
+
+##### 1472\.设计浏览器历史记录
+
+[题目](https://leetcode.cn/problems/design-browser-history)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class BrowserHistory {
+    vector<string> h;
+    int top = 0, now = 0;
+    public:
+        BrowserHistory(string homepage) {
+            h.emplace_back(homepage);
+        }
+        
+        void visit(string url) {
+            ++now;
+            if(now >= h.size()) {
+                h.emplace_back(url);
+            } else {
+                h[now] = url;
+            }
+            top = now;
+        }
+        
+        string back(int steps) {
+            now = max(0, now - steps);
+            return h[now];
+        }
+        
+        string forward(int steps) {
+            now = min(top, now + steps);
+            return h[now];
+        }
+    };
+    
+    /**
+     * Your BrowserHistory object will be instantiated and called as such:
+     * BrowserHistory* obj = new BrowserHistory(homepage);
+     * obj->visit(url);
+     * string param_2 = obj->back(steps);
+     * string param_3 = obj->forward(steps);
+     */
+```
+
+```c++
+class BrowserHistory {
+    vector<string> history;
+    int cur = 0; // 当前页面是 history[cur]
+
+public:
+    BrowserHistory(string homepage) : history{homepage} {}
+
+    void visit(string url) {
+        cur++;
+        history.resize(cur); // 把浏览历史前进的记录全部删除
+        history.push_back(url); // 从当前页跳转访问 url 对应的页面
+    }
+
+    string back(int steps) {
+        cur = max(cur - steps, 0); // 后退 steps 步
+        return history[cur];
+    }
+
+    string forward(int steps) {
+        cur = min(cur + steps, (int) history.size() - 1); // 前进 steps 步
+        return history[cur];
     }
 };
 ```
