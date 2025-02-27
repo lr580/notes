@@ -2660,6 +2660,10 @@
 
   DP
   
+- 3405\.统计恰好有 K 个相等相邻元素的数组数目
+
+  <u>数学</u>
+  
 - 1472\.设计浏览器历史记录
 
   STL
@@ -7863,6 +7867,77 @@ class Solution {
             return ans;
         }
     };
+```
+
+##### 3405\.统计恰好有 K 个相等相邻元素的数组数目
+
+[题目](https://leetcode.cn/problems/count-the-number-of-arrays-with-k-matching-adjacent-elements/)
+
+隔板，从 $n-1$ 个空隙选 $k$ 个，形成 $C_{n-1}^k$ 个隔板隔开 $n-1-k$ 个片段，其中每个片段逻辑上含一个或两个相等元素。第一个片段元素任选，剩下的元素一定不能和之前的一样。故 $C_{n-1}^km(m-1)^{n-k-1}$。
+
+```python
+class Solution:
+    def countGoodArrays(self, n: int, m: int, k: int) -> int:
+        MOD = 1_000_000_007
+        return comb(n - 1, k) % MOD * m * pow(m - 1, n - k - 1, MOD) % MOD
+```
+
+##### 740\.删除并获得点数
+
+[题目](https://leetcode.cn/problems/delete-and-earn)
+
+我的离散：16ms 很慢
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    int deleteAndEarn(vector<int>& nums) {
+        map<int, int> a;
+        for(auto i : nums) ++a[i];
+        int m = a.size();
+        map<int, int> dp;
+        dp[-3] = dp[-2] = 0;
+        for(auto &[x, cnt] : a) {
+            auto pv = dp.rbegin();
+            if(pv->first+1 != x) {
+                dp[x] = pv->second + x*cnt;
+            } else {
+                auto ppv = next(pv);
+                dp[x] = max(pv->second, ppv->second + x*cnt);
+            }
+        }
+        return dp.rbegin()->second;
+    }
+};
+```
+
+不离散 0ms
+
+```c++
+class Solution {
+    // 198. 打家劫舍
+    int rob(vector<int>& nums) {
+        int f0 = 0, f1 = 0;
+        for (int x : nums) {
+            int new_f = max(f1, f0 + x);
+            f0 = f1;
+            f1 = new_f;
+        }
+        return f1;
+    }
+
+public:
+    int deleteAndEarn(vector<int>& nums) {
+        int mx = ranges::max(nums);
+        vector<int> a(mx + 1);
+        for (int x : nums) {
+            a[x] += x; // 统计等于 x 的元素之和
+        }
+        return rob(a);
+    }
+};
 ```
 
 ##### 1472\.设计浏览器历史记录
