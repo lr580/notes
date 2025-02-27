@@ -4869,6 +4869,17 @@ library `quotes`，将 node label 的输入从 `label={[<options>]<text>}` 简�
 \end{itemize}
 ```
 
+`.cls` 里调节 section 行间距：
+
+```tex
+  % 这里的 6mm plus 4mm minus 2mm 是 section 标题与上一段内容的间距，2mm plus 2mm minus 1mm 是 section 标题与下一段内容的间距。
+\titlespacing*
+{ \section }
+{ 0pt }
+{ 6mm plus 4mm minus 2mm }
+{ 2mm plus 2mm minus 1mm }
+```
+
 
 
 ### 图表
