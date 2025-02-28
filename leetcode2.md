@@ -2671,6 +2671,10 @@
 - 1472\.设计浏览器历史记录
 
   STL
+  
+- 2320\.统计放置房子的方式数
+
+  DP / <u>DP+乘法原理</u>
 
 ## 算法
 
@@ -8011,6 +8015,66 @@ public:
     string forward(int steps) {
         cur = min(cur + steps, (int) history.size() - 1); // 前进 steps 步
         return history[cur];
+    }
+};
+```
+
+##### 2320\.统计放置房子的方式数
+
+[题目](https://leetcode.cn/problems/count-number-of-ways-to-place-houses)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+const int maxn = 1e4+1, p = 1e9+7;
+int dp[maxn][2][2]; // 上面放没放，下面放没放
+int ans[maxn];
+auto f = []() {
+    dp[0][0][0] = dp[0][0][1] = dp[0][1][0] = dp[0][1][1] = 1;
+    ans[0] = 4;
+    for (int i = 1; i < maxn; ++i) {
+        dp[i][1][1] = dp[i-1][0][0];
+        dp[i][1][0] = (dp[i-1][0][0] + dp[i-1][0][1]) % p;
+        dp[i][0][1] = (dp[i-1][0][0] + dp[i-1][1][0]) % p;
+        dp[i][0][0] = (1LL * dp[i-1][0][0] + dp[i-1][0][1] + dp[i-1][1][0] + dp[i-1][1][1]) % p;
+        ans[i] = (1LL * dp[i][0][0] + dp[i][0][1] + dp[i][1][0] + dp[i][1][1]) % p;
+    }
+    return 0;
+}();
+class Solution {
+public:
+    int countHousePlacements(int n) {
+        return ans[n-1];
+    }
+};
+```
+
+题解：如果只考虑单侧，那么就是朴素斐波那契 $fib_i$，且两侧相互独立，直接乘法原理得 $fib_i^2$。
+
+```python
+MOD = 10 ** 9 + 7
+f = [1, 2]
+for _ in range(10 ** 4 - 1):
+    f.append((f[-1] + f[-2]) % MOD)
+
+class Solution:
+    def countHousePlacements(self, n: int) -> int:
+        return f[n] ** 2 % MOD
+```
+
+```c++
+const int MOD = 1e9 + 7, MX = 1e4 + 1;
+int f[MX] = {1, 2};
+int init = []() {
+    for (int i = 2; i < MX; ++i)
+        f[i] = (f[i - 1] + f[i - 2]) % MOD;
+    return 0;
+}();
+
+class Solution {
+public:
+    int countHousePlacements(int n) {
+        return (long) f[n] * f[n] % MOD;
     }
 };
 ```
