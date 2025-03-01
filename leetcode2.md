@@ -2675,6 +2675,14 @@
 - 2320\.统计放置房子的方式数
 
   DP / <u>DP+乘法原理</u>
+  
+- 2353\.设计食物评分系统
+
+  STL
+  
+- 131\.分割回文串
+
+  DFS
 
 ## 算法
 
@@ -8077,5 +8085,98 @@ public:
         return (long) f[n] * f[n] % MOD;
     }
 };
+```
+
+##### 2353\.设计食物评分系统
+
+[题目](https://leetcode.cn/problems/design-a-food-rating-system)
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+class FoodRatings {
+    using Food = pair<int, string>;
+    unordered_map<string, set<Food>> m;
+    unordered_map<string, int> f;
+    unordered_map<string, string> f2;
+    public:
+        FoodRatings(vector<string>& foods, vector<string>& cuisines, vector<int>& ratings) {
+            const int n = foods.size();
+            for(int i = 0; i < n; i++){
+                const string& food = foods[i];
+                const int& rating = ratings[i];
+                const string& cuisine = cuisines[i];
+                f[food] = rating;
+                f2[food] = cuisine;
+                m[cuisine].insert({-rating, food});
+            }
+        }
+        
+        void changeRating(const string&food, const int&newRating) {
+            Food fo = {-f[food], food};
+            f[food] = newRating;
+            auto& s = m[f2[food]];
+            s.erase(fo);
+            s.insert({-newRating, food});
+        }
+        
+        string highestRated(const string&cuisine) {
+            return m[cuisine].begin()->second;
+        }
+    };
+    
+    /**
+     * Your FoodRatings object will be instantiated and called as such:
+     * FoodRatings* obj = new FoodRatings(foods, cuisines, ratings);
+     * obj->changeRating(food,newRating);
+     * string param_2 = obj->highestRated(cuisine);
+     */
+```
+
+const & 对时间影响不大，少一个 map 会快一点。
+
+##### 131\.分割回文串
+
+[题目](https://leetcode.cn/problems/palindrome-partitioning)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+bool isPali[18][18];
+class Solution {
+    public:
+        vector<vector<string>> partition(string s) {
+            int n = s.size();
+            for(int i=0; i<n; ++i) {
+                fill_n(isPali[i], n, false);
+                isPali[i][i] = 1;
+            }
+            for(int i=0;i<n-1;++i) {
+                isPali[i][i+1] = (s[i] == s[i+1]);
+            }
+            for(int len=3; len<=n; ++len) {
+                for(int l=0, r=len-1; r<n; ++l, ++r) {
+                    isPali[l][r] = isPali[l+1][r-1] && (s[l] == s[r]);
+                }
+            }
+            vector<vector<string>> ans;
+            vector<string> cur;
+            auto dfs = [&](auto&self,int l) {
+                if (n == l) {
+                    ans.push_back(cur);
+                    return;
+                }
+                for(int r=l; r<n; ++r) {
+                    if(isPali[l][r]) {
+                        cur.push_back(s.substr(l, r-l+1));
+                        self(self, r+1);
+                        cur.pop_back();
+                    }
+                }
+            };
+            dfs(dfs,0);
+            return ans;
+        }
+    };
 ```
 

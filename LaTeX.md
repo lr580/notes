@@ -3683,7 +3683,7 @@ font awesome [参考](https://blog.csdn.net/zzq060143/article/details/89380160) 
 
 - `\hfill` 当前行若干个 fill 里平均分配空白，直到填满
 
-  同理有 `\vfill,\vspace`
+  同理有 `\vfill,\vspace`，负数就减少
 
 - `\phantom{1cm}` `专\hphantom{空白}业` (分别是水平和垂直)
 

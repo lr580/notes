@@ -183,6 +183,10 @@ pip install 库名 --upgrade
 pip freeze > requirements.txt
 ```
 
+> ```sh
+> pip list --format=freeze > pip_packages1.txt
+> ```
+
 对当前项目，则先用 `pip` 安装 `pipreqs` ，然后使用：(可以直接 `pipreqs ./`)
 
 ```bash
@@ -197,7 +201,8 @@ pip install -r requirement.txt
 
 > 如果里面任意一项输入不正确，如版本找不到，全部都不会安装，不会弹 error 直接结束。
 
-
+- `conda` 包的格式通常是 `包名=版本=构建字符串`，例如 `numpy=1.26.4`。
+- `pip` 包的格式通常是 `包名==版本`，例如 `numpy==1.26.4`。
 
 ### 编译
 
@@ -589,7 +594,7 @@ source my_env/bin/activate
 
 #### 使用
 
-镜像：
+##### 镜像
 
 ```sh
 conda config --set show_channel_urls yes
@@ -599,13 +604,13 @@ conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/m
 
 
 
-新建环境：
+##### 新建环境
 
 ```sh
 conda create -n 环境名如lr5801 python=3.8
 ```
 
-- `-n` 指定环境的名字
+- `-n` 指定环境的名字 (`--name`)
 
 > 预装包：
 >
@@ -613,20 +618,75 @@ conda create -n 环境名如lr5801 python=3.8
 > conda create -n myenv python=3.8 numpy pandas
 > ```
 
+##### 列举环境
+
 列出全部环境：
 
 ```sh
 conda env list # or conda info --envs
 ```
 
-删除环境：
+##### 列举包
+
+> 列出，导出，格式1：给出下载地址
+>
+> ```sh
+> conda list --explicit > conda_packages1.txt
+> ```
+>
+> ```
+> @EXPLICIT
+> https://repo.anaconda.com/pkgs/main/win-64/ca-certificates-2025.2.25-haa95532_0.conda
+> https://conda.anaconda.org/nvidia/win-64/cuda-cudart-11.7.99-0.tar.bz2
+> ```
+
+> 格式2：
+>
+> ```sh
+> conda list --export > requirements.txt
+> ```
+>
+> ```
+> _openmp_mutex=4.5=2_gnu
+> blas=1.0=mkl
+> brotli-python=1.1.0=py310h9e98ed7_2
+> ```
+>
+> 格式3：
+>
+> ```sh
+> conda env export --no-builds | findstr -v "prefix" > conda_packages3.txt
+> ```
+>
+> ```
+> name: MEG2
+> channels:
+>   - pytorch
+>   - nvidia
+>   - defaults
+>   - conda-forge
+>   - https://repo.anaconda.com/pkgs/main
+>   - https://repo.anaconda.com/pkgs/r
+>   - https://repo.anaconda.com/pkgs/msys2
+> dependencies:
+>   - _openmp_mutex=4.5
+>   - blas=1.0
+>   - brotli-python=1.1.0
+>   - bzip2=1.0.8
+>   - ca-certificates=2025.2.25
+>   - certifi=2025.1.31
+> ```
+
+##### 删除环境
 
 ```sh
 conda env remove --name 环境名称 # 或 -n
 conda clean --all # 删掉包
 ```
 
-激活环境：(后续操作不会影响其他环境；每次使用前激活)
+##### 激活环境
+
+(后续操作不会影响其他环境；每次使用前激活)
 
 ```sh
 conda activate 环境名
@@ -649,6 +709,27 @@ conda deactivate
 ```
 
 vscode 调用 conda 环境：ctrl+shift+p 输入 python，选择：选择编译器，选刚刚的环境，对 jupyter ipynb 同理。
+
+##### 装包
+
+装包
+
+```
+conda install mkl-service=2.4.0 mkl_fft=1.3.11 mkl_random=1.2.8
+```
+
+安装指定列表的包：
+
+```sh
+conda install --file conda_requirements.txt
+conda create --name MEG --file conda_requirements.txt # 创建时安装
+```
+
+卸载包：
+
+```sh
+conda remove mkl-service mkl_fft mkl_random
+```
 
 #### vscode
 
@@ -4803,9 +4884,47 @@ file_size = os.path.getsize(file_path)
 file_size_mb = file_size / (1024 * 1024)
 ```
 
+用 `os.stat()` 获取文件的元数据，然后通过 `pwd` 和 `grp` 模块（仅限 Unix 系统）将 UID 和 GID 转换为用户名和组名（Windows：`pywin32`）
+
+查询时间：用 `os.path.getatime()`、`os.path.getmtime()` 和 `os.path.getctime()` 获取文件的时间戳（访问、修改和创建时间）
+
+用 `os.stat()` 获取文件的元数据，然后结合 `stat` 模块解析权限信息
+
+
+
+`os.chmod` 修改文件的权限，用 `|` 组合多个权限位：`stat.S_IRUSR`: 所有者读权限；`stat.S_IWUSR`: 所有者写权限`stat.S_IXUSR`: 所有者执行权限；`stat.S_IRGRP`: 组用户读权限；`stat.S_IWGRP`: 组用户写权限；`stat.S_IROTH`: 其他用户读权限；
+
+```python
+# 设置文件权限为 0o644（所有者可读写，其他人只读）
+os.chmod(file_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+```
+
+set：`os.utime(file_path, (ntime, ntime))`，其中 `ntime` 是 `time.time` 对象。参数是 Access Time，Modification Time。对创建时间，Windows：`pywin32` 库，Linux 用 `subprocess` 调用系统的 `touch` 命令。
+
+用 `os.chown()` 可以修改文件的所有者和所属组（需要管理员权限）
+
+```python
+# 修改文件所有者为 UID 1000，组为 GID 1000
+os.chown(file_path, 1000, 1000)
+```
+
+> 用 `os.symlink()` 可以创建或修改符号链接的目标，`link()` 硬链接
+>
+> ```python
+> # 创建符号链接
+> os.symlink('target_file.txt', 'link_name.txt')
+> # 修改符号链接的目标（需要先删除旧的符号链接）
+> os.remove('link_name.txt')
+> os.symlink('new_target_file.txt', 'link_name.txt')
+> # 创建硬链接
+> os.link('original_file.txt', 'hard_link.txt')
+> ```
+
+
+
 ##### 应用举例
 
-###### 最后修改时间
+###### 查询时间
 
 ```python
 import os
@@ -4813,7 +4932,7 @@ import time
 from datetime import datetime
 
 # 设置文件夹路径
-folder_path = r"D:\_lr580"
+folder_path = r"D:\YOLO"
 
 # 设置天数（例如，查找最后修改日期为7天内的文件）
 days = 20
@@ -4846,8 +4965,6 @@ for file_path, mtime_readable, _ in file_list_sorted:
     # if mtime_readable == "2024-12-25":
     print(f"{file_path}")
 ```
-
-
 
 #### shutil
 
@@ -5448,6 +5565,12 @@ print(calendar.month(2021,6))
 import time
 
 当前时间戳 `time.time()` (float,小数点后六位，整数部分是秒)
+
+构造一个时间：
+
+```python
+time.mktime(time.strptime("2025-03-01 11:19:13", "%Y-%m-%d %H:%M:%S"))
+```
 
 （2）创造延迟
 
