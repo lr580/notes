@@ -2683,6 +2683,10 @@
 - 131\.分割回文串
 
   DFS
+  
+- 1278\.分割回文串III
+
+  DP
 
 ## 算法
 
@@ -8178,5 +8182,107 @@ class Solution {
             return ans;
         }
     };
+```
+
+##### 1278\.分割回文串II
+
+[题目](https://leetcode.cn/post-editor)
+
+时间 100%，空间 93.62%
+
+设 $pali[i][j]$ 表示字符串区间 $[i,j]$ 要变成回文串需要修改多少次，可以容易 $O(n^2)$ DP 得知。然后设 $dp[i][j]$ 表示字符串区间 $[0,i]$ 要变成恰 $j$ 个回文串需要修改多少次。转移：
+$$
+dp[i][j]=\min_{i2=0}^{i-1}(dp[i2][j-1]+pali[i2+1,i])
+$$
+
+> 注意无需区间 DP 或其他更复杂的转移求 $[i2,i]$ 分割为 $k-j2$ 个回文串，只需要分割为 $1$ 个回文串， 如果 $[i2,i]$ 需要分割为 $x$ 个回文串，必然存在最后一个回文串 $[i3,i]$，前面 $[i2,i3)$ 分割为 $x-1$ 个，等价于从 $dp[i3-1][j-x+1]$ 转移上面的方程。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+const int maxn = 101;
+int pali[maxn][maxn]; // pali[i][j] let [i:j] be pali need pali[i][j] fix
+int dp[maxn][maxn];   // dp[i][j] [0:i] cut j parts needs dp[i][j] fix
+class Solution {
+    public:
+        int palindromePartition(string s, int k) {
+            int n = s.length();
+            for(int i=0;i<n;++i) pali[i][i] = 0;
+            for(int i=0;i<n-1;++i) pali[i][i+1] = s[i]==s[i+1]?0:1;
+            for(int len=3;len<=n;++len){
+                for(int l=0,r=len-1;r<len;++l,++r) {
+                    pali[l][r] = pali[l+1][r-1] + (s[l]==s[r]?0:1);
+                }
+            }
+            for(int i=0;i<n;++i) dp[i][1] = pali[0][i];
+            for(int j=2;j<=k;++j) { // j 维度可以压缩数组
+                for(int i=0;i<n;++i) {
+                    dp[i][j] = 1e9;
+                    for(int i2=0;i2<i;++i2) {
+                        dp[i][j] = min(dp[i2][j-1] + pali[i2+1][i], dp[i][j]);
+                    }
+                }
+            }
+            return dp[n-1][k];
+        }
+    };
+```
+
+更优的细节：
+
+```c++
+class Solution {
+public:
+    int palindromePartition(string s, int k) {
+        int n = s.size();
+        vector min_change(n, vector<int>(n));
+        for (int i = n - 2; i >= 0; i--) {
+            for (int j = i + 1; j < n; j++) {
+                min_change[i][j] = min_change[i + 1][j - 1] + (s[i] != s[j] ? 1 : 0);
+            }
+        }
+
+        vector f(k, vector<int>(n, INT_MAX));
+        f[0] = move(min_change[0]);
+        for (int i = 1; i < k; i++) {
+            for (int r = i; r <= n - k + i; r++) { // r<n也行
+                for (int l = i; l <= r; l++) {
+                    f[i][r] = min(f[i][r], f[i - 1][l - 1] + min_change[l][r]);
+                }
+            }
+        }
+        return f[k - 1][n - 1];
+    }
+};
+```
+
+$r\le n-k+i$，是因为，当前到 $r$ 只有 $i+1$ 个，那么 $r$ 后必然还有 $k-i-1$ 个，至少需要 $k-i$ 大小，即 $r$ 上限从 $n-1$ 变为 $n-1-(k-i-1)=n-k+i$。
+
+显然可以压缩 $i$ 这个维度。
+
+```c++
+class Solution {
+public:
+    int palindromePartition(string s, int k) {
+        int n = s.size();
+        vector min_change(n, vector<int>(n));
+        for (int i = n - 2; i >= 0; i--) {
+            for (int j = i + 1; j < n; j++) {
+                min_change[i][j] = min_change[i + 1][j - 1] + (s[i] != s[j] ? 1 : 0);
+            }
+        }
+
+        auto f = move(min_change[0]);
+        for (int i = 1; i < k; i++) {
+            for (int r = n - k + i; r >= i; r--) {
+                f[r] = INT_MAX;
+                for (int l = i; l <= r; l++) {
+                    f[r] = min(f[r], f[l - 1] + min_change[l][r]);
+                }
+            }
+        }
+        return f[n - 1];
+    }
+};
 ```
 
