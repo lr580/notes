@@ -3466,6 +3466,12 @@ ps -aux | grep apache
   netstat -nap | grep 端口号
   ```
 
+- 查用户
+
+  ```sh
+  ps -o user= -p 1468095 # -p PID，输出用户名，如 lr580
+  ```
+
   
 
 
@@ -6442,6 +6448,7 @@ scp -r scnuoj@10.191.65.243:/var/www/scnuoj/next/judge/data/1577/ .
 
 ```bash
 scp .\DuLa-Net-master.zip root@121.37.165.73:/root
+scp -r cpt tanzixin@172.18.167.114:/home/tanzixin
 ```
 
 在本机，带端口号的服务器：

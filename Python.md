@@ -1772,6 +1772,7 @@ None 和自定义对象(则是指针)可以做 key，都可以唯一区分。
 
 ```python
 x.update({3:50,4:False})  # x |= {3:50,4:False}
+d={1:6,2:10,3:100,4:6}|{2:58,3:85}#{1: 6, 2: 58, 3: 85, 4: 6}
 ```
 
 删除一项用pop(key)，用法同list，也可以用 `del x[key]`，这两种用法不存在都会报错
@@ -2405,7 +2406,15 @@ print(p1 < p3)   # False
 
 四则运算同理，除法是数学除法，不是C语言除法
 
-取模，如果是负数，得到正数；甚至可以负数取模一个负数，意义同定义。
+取模，如果是负数，得到正数；甚至可以负数取模一个负数，意义同定义。支持小数，1的由来可以认为是同余变换
+
+```python
+print(5%3, -5%3, 5%-3, -5%-3) # 2 1 -1 -2
+```
+
+
+
+取余结果的符号与除数一致：
 
 乘方是双乘号，可以实现开方等操作：
 
@@ -6242,12 +6251,19 @@ urllib.parse.quote('你好！ a+b=c/d') # 得到字符串 '%E4%BD%A0%E5%A5%BD%EF
 md5 加密一个文件或二进制文本，返回32字符的十六进制字符串：
 
 ```python
+hashlib.md5('你好'.encode('utf-8')).hexdigest()
+# '7eca689f0d3389d9dea66ae112e5cfd7'
+```
+
+```python
 import hashlib
 hashlib.md5(b'aba').hexdigest()
 def md5(path):
     with open(path,'rb') as f:
         return hashlib.md5(f.read()).hexdigest()
 ```
+
+
 
 #### operator
 
@@ -6321,6 +6337,24 @@ warnings.filterwarnings('ignore', category=RuntimeWarning)
 ```
 C:\Program Files\Python313\Lib\site-packages\numpy\linalg_linalg.py:2832: RuntimeWarning: overflow encountered in multiply
 s = (x.conj() * x).real
+```
+
+#### string
+
+字符串常量
+
+```python
+import string
+string.ascii_lowercase
+'abcdefghijklmnopqrstuvwxyz'
+string.ascii_uppercase
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+string.ascii_letters
+'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+string.ascii_digits
+'0123456789'
+string.punctuation
+'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
 ```
 
 

@@ -2687,6 +2687,10 @@
 - 1278\.分割回文串III
 
   DP
+  
+- 2606\.找到最大开销的子字符串
+
+  前缀和(/DP)
 
 ## 算法
 
@@ -8284,5 +8288,60 @@ public:
         return f[n - 1];
     }
 };
+```
+
+##### 2606\.找到最大开销的子字符串
+
+[题目](https://leetcode.cn/problems/find-the-substring-with-maximum-cost)
+
+前缀和：
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution
+{
+public:
+    int maximumCostSubstring(string s, string chars, vector<int> &vals)
+    {
+        vector<int> v(26);
+        iota(v.begin(), v.end(), 1);
+        for (int i = 0; i < chars.size(); i++)
+            v[chars[i] - 'a'] = vals[i];
+        // max [l:r] = s[r] - min s[l-1]
+        int mins = 0, ans = 0, sum = 0;
+        for(int i = 0; i < s.size(); i++)
+        {
+            sum += v[s[i] - 'a'];
+            ans = max(ans, sum - mins);
+            mins = min(mins, sum);
+        }
+        return ans;
+    }
+};
+```
+
+DP：$f_i=\max(f_{i-1}+a_i, a_i)$，分别是接和不接(设新 $l$)前面的。
+
+```python
+class Solution:
+    def maximumCostSubstring(self, s: str, chars: str, vals: List[int]) -> int:
+        mapping = dict(zip(ascii_lowercase, range(1, 27))) | dict(zip(chars, vals))
+        ans = f = 0
+        for c in s:
+            f = max(f, 0) + mapping[c]
+            ans = max(ans, f)
+        return ans
+```
+
+```python
+class Solution:
+    def maximumCostSubstring(self, s: str, chars: str, vals: List[int]) -> int:
+        mapping = dict(zip(ascii_lowercase, range(1, 27))) | dict(zip(chars, vals))
+        ans = f = 0
+        for c in s:
+            f = max(f, 0) + mapping[c]
+            ans = max(ans, f)
+        return ans
 ```
 
