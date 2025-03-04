@@ -2687,6 +2687,10 @@
 - 1278\.分割回文串III
 
   DP
+  
+- 1745\.分割回文串IV
+
+  DP / <u>manacher</u>
 
 ## 算法
 
@@ -8282,6 +8286,173 @@ public:
             }
         }
         return f[n - 1];
+    }
+};
+```
+
+##### 1745\.分割回文串IV
+
+[题目](https://leetcode.cn/problems/palindrome-partitioning-iv)
+
+预处理出每个子字符串是不是回文，然后枚举两个隔板端点即可。两种写法：
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+const int maxn = 2001;
+bool isPali[maxn][maxn];
+class Solution {
+    public:
+        bool checkPartitioning(string s) {
+            int n = s.size();
+            for(int i=0; i<n; ++i) {
+                fill_n(isPali[i], n, false);
+                isPali[i][i] = 1;
+            }
+            for(int i=0;i<n-1;++i) {
+                isPali[i][i+1] = (s[i] == s[i+1]);
+            }
+            for(int len=3; len<=n; ++len) {
+                for(int l=0, r=len-1; r<n; ++l, ++r) {
+                    isPali[l][r] = isPali[l+1][r-1] && (s[l] == s[r]);
+                }
+            }
+            for(int i=0;i<n;++i) {
+                for(int j=i+1;j<n-1;++j) {
+                    if(isPali[0][i] && isPali[i+1][j] && isPali[j+1][n-1]) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+    };
+```
+
+写法二：
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+const int maxn = 2001;
+bool isPali[maxn][maxn];
+auto f = []() {
+    for(int i=0;i<maxn;++i) isPali[i][i] = true;
+    for(int i=0;i<maxn-1;++i) isPali[i+1][i] = true;
+    return 0;
+}();
+class Solution {
+    public:
+        bool checkPartitioning(string s) {
+            int n = s.size();
+            for(int i=n-2;i>=0;--i) 
+                for(int j=i+1;j<n;++j) 
+                    isPali[i][j] = isPali[i+1][j-1] && (s[i]==s[j]);
+            for(int i=0;i<n;++i) 
+                for(int j=i+1;j<n-1;++j) 
+                    if(isPali[0][i] && isPali[i+1][j] && isPali[j+1][n-1]) 
+                        return true;
+            return false;
+        }
+    };
+```
+
+直接调用上一题：
+
+```c++
+return palindromePartition(s, 3) == 0;
+```
+
+对 `isPali` 的判断，需要 $O(n)$ 空间复杂度时，设 $v_i$ 表示 manacher 下半径，如 `aba` 的半径是 $2$，其中 $i$ 位置字符为 `b`。若 $[x,y]$ 是回文串，manacher 扩展串下中心是 $c=\dfrac{x+y}2$，直径为 $2v[c]-1$ 若等于区间长 $x-y+1$ 就是回文串。
+
+```c++
+class Solution {
+public:
+    bool checkPartitioning(string s) {
+        int n = s.size();
+        string t = "$";
+        t += "#";
+        for(int i = 0; i < n; i++) {
+            t += s[i];
+            t += "#";
+        }
+        t += "^";
+        n = 2 * n + 3;
+        vector<int> v(n);
+        int id = 0;
+        int mx = 0;
+        for(int i = 1; i < n; i++) {
+            if(i < mx) v[i] = min(v[2 * id - i], mx - i);
+            else v[i] = 1;
+            while(t[i - v[i]] == t[i + v[i]]) v[i]++;
+            if(mx < i + v[i]) {
+                id = i;
+                mx = i + v[i];
+            }
+        }
+        for(int i = 3; i < n; i += 2) {
+            for(int j = i + 2; j < n - 3; j += 2) {
+                if(check(1, i, v) && check(i, j, v) && check(j, n - 2, v)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    bool check(int x, int y, vector<int>& v) {
+        if(v[(x + y) / 2] * 2 - 1 >= y - x + 1) return true;
+        return false;
+    }
+};
+```
+
+线性做法，用 manacher 预处理出前缀是否双回文，再枚举一次。[src](https://leetcode.cn/problems/palindrome-partitioning-iv/solutions/3067717/ma-la-che-manacheyong-shi-0mszuo-fa-by-w-92ef/) HDU5340 [题目](https://acm.hdu.edu.cn/showproblem.php?pid=5340) [题解](https://leetcode.cn/problems/palindrome-partitioning-iv/solutions/616854/hui-wen-shu-on-by-hqztrue-4mvo/)
+
+```c++
+const int N = 2000 + 5;
+int hL[N << 1];
+int check(int l, int r) {
+    l = l * 2 + 2;
+    r = r * 2 + 2;
+    int mid = l + r >> 1;
+    return hL[mid] > r - mid;
+}
+int l[N];
+class Solution {
+public:
+    bool checkPartitioning(string s) {
+        for (int i = 0; i < N; i++)
+            l[i] = 0;
+        string t = "^#";
+        for (char c : s) {
+            t += c;
+            t += '#';
+        }
+        t += '$';
+        for (int i = 2, boxM = 0, boxR = 0; i < t.size() - 2; i++) {
+            int hl = 1;
+            if (i < boxR) {
+                hl = min(hL[boxM * 2 - i], boxR - i);
+            }
+            l[i - 2 >> 1] = max(l[i - 2 >> 1], check(0, (i - 2 >> 1) - 1));
+            while (t[i - hl] == t[i + hl]) {
+                int cl = i - hl - 2 >> 1;
+                int cr = i + hl - 2 >> 1;
+                if (t[i - hl] != '#' && cl > 0) {
+                    l[cr] = max(l[cr], check(0, cl - 1));
+                }
+                hl++;
+                boxM = i;
+                boxR = i + hl;
+            }
+            hL[i] = hl;
+        }
+        for (int i = 1; i < s.size() - 1; i++) {
+            if (l[i] && check(i + 1, s.size() - 1))
+                return 1;
+        }
+        return 0;
     }
 };
 ```
