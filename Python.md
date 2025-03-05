@@ -2236,6 +2236,24 @@ print(dm[0][1]) # 5.0
 
 `()` 方法调用
 
+##### dict
+
+所有属性，变量名、变量值的键值对。
+
+```python
+class LR:
+    c = 6 # 静态属性不计入内
+    def __init__(self):
+        self.lr = 580
+x = LR()
+print(x.__dict__) # {'lr': 580}
+x.__dict__.update({'lr':581, 'a':1437})
+x.lr #581
+x.a #1437
+```
+
+
+
 ##### contain
 
  `__contains__` 方法，那么 `in` 关键字会调用这个方法来判断。如果没有实现 `__contains__` 方法，但实现了 `__iter__` 方法（或者是可迭代的），Python会通过迭代对象来查找元素；如果还没有实现 `__iter__`，但实现了 `__getitem__` 方法，Python会尝试从索引0开始，通过连续的整数索引来访问元素，直到遇到 `IndexError`。
@@ -2441,6 +2459,14 @@ a=b=c=d=40
 a,b,c=1,3,5 #注意没有先后顺序，不同于C，所以不可以a,b,c=1,a,b
 # 解包
 b, (c,d) = (2, (3,4)) # print(b+c+d) -> 9
+```
+
+赋值太多要换行，或其他各种一行语句换行，`\`
+
+```python
+a,b,\
+c=1\
+,2,3
 ```
 
 支持位运算且优先级、符号与C相同
@@ -7417,9 +7443,32 @@ transposed_array = np.transpose(array, (1, 2, 0))
 np.array([1, 2, 3, 4])[:,np.newaxis]
 ```
 
+```python
+np.expand_dims(x, i) # 插入下标为i的维度，如(2,4),i=1->(2,1,4)
+```
+
 变成一维并返回：`.flatten()`
 
 复制：`np.tile(arr, (x,y))` 在行方向重复 x 次，列方向 y 次(重复类似列表乘法)
+
+复制：`np.repeat(x, t, i)` 在第 i 维度重复 `t` 次，也就是把 `x` 沿着 i 复制 `t` 次
+
+```python
+np.repeat(np.array([[1,2,3]]),3,1) # 原形状 (1, 3)
+# array([[1, 1, 1, 2, 2, 2, 3, 3, 3]])
+np.repeat(np.array([[1,2,3]]),3,0)
+#array([[1, 2, 3],
+#       [1, 2, 3],
+#       [1, 2, 3]])
+np.repeat(np.array([[1],[2],[3]]),3,1)
+#array([[1, 1, 1],
+#       [2, 2, 2],
+#       [3, 3, 3]])
+np.repeat(np.array([[1],[2],[3]]),3,0)
+# array([[1],[1],[1],[2],[2],[2],[3],[3],[3]])
+```
+
+
 
 ##### 运算
 
@@ -17118,6 +17167,8 @@ print(x.abs().sum(), torch.abs(x).sum()) #l_1 范数
 
 ##### 求导
 
+###### 基本概念
+
 反向传播的基本原理是链式求导法则。
 
 函数的梯度：
@@ -17197,6 +17248,28 @@ d = f(a)
 d.backward()
 print(a.grad == d / a)
 ```
+
+###### no_grad
+
+1. 禁用梯度计算：在 `with torch.no_grad()` 块中，所有的计算都不会被跟踪，因此不会计算梯度。这对于推理阶段非常有用，因为推理时不需要反向传播。
+2. 减少内存消耗：由于不计算梯度，PyTorch 不会保存中间结果，从而减少了内存的使用。
+3. 加速计算：禁用梯度计算可以减少一些计算开销，从而加速前向传播。
+
+```python
+import torch
+import torch.nn as nn
+model = nn.Linear(10, 1) # 定义一个简单的模型
+x = torch.randn(1, 10) # 创建一个输入张量
+with torch.no_grad(): # 推理阶段，不需要计算梯度
+    output = model(x)
+    print(output)
+
+output = model(x) # 训练阶段，需要计算梯度
+loss = output.sum()
+loss.backward()
+```
+
+
 
 ##### 概率
 
@@ -18076,6 +18149,20 @@ import torch.optim as optim
 optimizer = optim.Adam(model.parameters(), lr=0.001)  # 优化器
 ```
 
+##### AdamW
+
+```python
+self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate,weight_decay=self.weight_decay)
+```
+
+##### 学习率衰减
+
+在 epoch=1,35,40 分别让学习率减半，传入优化器
+
+```python
+self.lr_scheduler = torch.optim.lr_scheduler.MultiStepLR( self.optimizer, milestones=[1,35,40],gamma=0.5)
+```
+
 
 
 #### 模块
@@ -18133,6 +18220,12 @@ with torch.no_grad():  # 不计算梯度
         _, predicted = torch.max(outputs.data, 1)  # 获取预测结果，在每一行寻找最大值
         total += labels.size(0)  # 记录总样本数
         correct += (predicted == labels).sum().item()  # 计算正确预测的样本数
+```
+
+##### 载入
+
+```python
+self.model.load_state_dict(torch.load(self.model_file, map_location=self.device)) # model_file 是路径字符串
 ```
 
 

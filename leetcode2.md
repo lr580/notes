@@ -2692,10 +2692,13 @@
 
   前缀和(/DP)
 
-  
 - 1745\.分割回文串IV
 
   DP / <u>manacher</u>
+  
+- 1328\.破坏回文串
+
+  贪心 分类讨论
 
 ## 算法
 
@@ -8682,5 +8685,52 @@ class Solution:
             f = max(f, 0) + mapping[c]
             ans = max(ans, f)
         return ans
+```
+
+##### 1328\.破坏回文串
+
+[题目](https://leetcode.cn/problems/break-a-palindrome)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+    public:
+        string breakPalindrome(string palindrome) {
+            if(palindrome.size() == 1) return "";
+            int n = palindrome.size();
+            for(int l=0,r=n-1;l<r;++l,--r){
+                if(palindrome[l] != 'a'){
+                    palindrome[l] = 'a';
+                    return palindrome;
+                }
+            }
+            palindrome[n-1] = 'b';
+            return palindrome;
+        }
+    };
+```
+
+```c++
+class Solution {
+public:
+    string breakPalindrome(string s) {
+        int n = s.size();
+        if (n == 1) {
+            return "";
+        }
+        // 把第一个不等于 a 的字母改成 a
+        // 只需找前一半，如果前一半没有不等于 a 的字母，那么后一半肯定也没有
+        for (int i = 0; i < n / 2; i++) {
+            if (s[i] != 'a') {
+                s[i] = 'a';
+                return s;
+            }
+        }
+        // 除了回文中心，全是 a
+        s.back() = 'b'; // 最后一个字母改成 b
+        return s;
+    }
+};
 ```
 
