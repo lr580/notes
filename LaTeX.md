@@ -112,6 +112,10 @@ int a=1;
 
 <center>标题</center>
 
+支持 div 常见样式
+
+<div style="background-color:#feeeed;color:#fe4c61;font-size:26px;font-weight:900" align="center">C++入门</div>
+
 #### 分页
 
 实用 HTML 语法可以实现分页(导出 pdf 时生效)
@@ -1470,7 +1474,11 @@ Document itself
 
 ### Marp
 
-参考文献：[markdown](https://sspai.com/post/55718) [http](https://sspai.com/post/40657) [官网](https://marpit.marp.app/directives)
+#### 基本
+
+##### 安装使用
+
+参考文献：[markdown](https://sspai.com/post/55718) [http](https://sspai.com/post/40657) [官网](https://marpit.marp.app/directives) [教程1](https://zhuanlan.zhihu.com/p/582872955)
 
 VSCODE + 插件 `Marp for VS Code` , `Markdown All in One`，看到有个 open preview to the side 可以所见即所得。
 
@@ -1483,6 +1491,215 @@ marp: true
 ```
 
 然后每一页就用 `---` 进行分页。
+
+安装 Marp：
+
+```sh
+npm install -g @marp-team/marp-cli
+marp --version # 检验安装
+```
+
+导出：PDF, PPTX, HTML, PNG, JPEG
+
+```sh
+marp example.md -o example.pdf
+```
+
+也可以 VSCODE，把命令图标点到顶部双栏左边栏，点三角形按钮。
+
+##### 指令类型
+
+指令类型（ Type of directives ）可分为全局指令（ Global directives ）和局部指令（ Local directives ）
+
+指令：HTML 命令，注释里+YAML，如局部指令：
+
+```markdown
+<!--
+theme: default
+paginate: true
+-->
+```
+
+只想将局部指令应用于当前页面，则需要指令前添加前缀 `_` 。
+
+```markdown
+<!-- _backgroundColor: aqua --> 局部，单一张
+<!-- backgroundColor: aqua --> 全局，每一张
+```
+
+要么就开头的 YAML，全局指令。只是格式上不一样，功能是一样可以相互转换。
+
+```yaml
+backgroundColor: aqua
+```
+
+但是 HTML 命令可以实现动态的方式。
+
+#### 常用元素
+
+##### 图片
+
+支持自定义宽高
+
+```markdown
+![w:300 h:300 alt文本](路径)
+```
+
+Marp 还支持将 [CSS filters](https://developer.mozilla.org/en-US/docs/Web/CSS/filter) 应用于图片语法，替换`[keywords]`中的内容，可对图片进行渲染。例如，`![blur:10px]()`、`![brightness:1.5]()` 、 `![contrast:200%]()`、`![saturate:2.0]()`、`![sepia:1.0]()`
+
+##### 背景
+
+关键词 `bg` 可设置幻灯片的背景，具体句式为：`![bg](https://example.com/background.jpg)`。
+
+此外，我们可在 `bg` 后添加关键词选项，用于调整背景图片的尺寸。
+
+例如，`![bg cover](image.jpg)`（缩放图像以填充幻灯片，这也是默认图片设置） 、 `![bg contain](image.jpg)` （缩放图像以适应幻灯片） 、 `![bg auto](image.jpg)`（不缩放图像，并使用原始大小） 、 `![bg 150%](image.jpg)`（按照指定百分比缩放）。
+
+> 本质就是图片分栏，简化了一栏只有图片的感觉。
+
+可以设置位置及其占比如 `left left:30` 等，组合，如 `![bg auto right:45]` `![bg h:450 right]` 更多见官网 [src](https://marpit.marp.app/image-syntax)
+
+> 可以通过高级背景来实现多重背景、背景拆分，甚至通过图片滤镜来设置幻灯片背景。细节 [参考](https://www.lianxh.cn/news/521900220dd33.html)
+
+##### 表格
+
+字体大小可以开一个 `<style>` 全局设置：
+
+```css
+section table {
+    font-size: 22px;
+}
+```
+
+单元格居中，要么直接修改 md 让其居中，要么直接改全局：
+
+```css
+td, th {
+  text-align: center; 
+  vertical-align: middle; 
+}
+```
+
+
+
+#### YAML
+
+在开头的 YAML 里，
+
+##### 页眉页脚
+
+```yaml
+paginate: true
+header: Marp 演示文稿示例
+footer: 页脚
+```
+
+支持 markdown 格式之类的套到页眉页脚。内容可以加单引号避免被 YAML 解析
+
+##### 主题
+
+```yaml
+theme: xxx
+```
+
+xxx 有如：
+
+- **default**: 默认主题，简洁大方，适合大多数场景
+
+- **gaia**: 带有浅色背景和深色文字的主题，适合明亮环境
+
+- **uncover**: 带有深色背景和浅色文字的主题，适合暗环境
+
+  > 所有内容都居中显示，引用内容的样式从竖线变为双引号
+
+下面是gaia 主题浅黄色的背景，但又想像 uncover 主题那样，让内容居中显示
+
+```yaml
+theme: gaia
+class: lead
+```
+
+自定义，如 [SYSU](https://github.com/cherryamme/Marp-theme_SYSU)，使用方法：在 vscode settings 对 `markdown.marp.themes` 添加值(CSS的URL)，然后对应文件名就是主题。如：
+
+```json
+"markdown.marp.themes": [
+    "https://raw.githubusercontent.com/cherryamme/Marp-theme_SYSU/main/themes/sysu.css"
+],
+```
+
+##### 背景颜色
+
+```yaml
+backgroundColor: yellow
+```
+
+##### 标题切分
+
+或者用标题分页。
+
+```yaml
+headingDivider: 2
+```
+
+上述命令等价于在每个一级、二级标题的前面，添加 `---` 进行幻灯片分页。
+
+#### 样式
+
+##### 常用
+
+`<center></center>` 里可以居中，但 div align 不行。
+
+##### 分栏
+
+[参考](https://blog.csdn.net/Z_oioihoii/article/details/144498013)
+
+##### 预设
+
+
+
+##### 全局
+
+自定义其中一个或多个页面的颜色
+
+在想要更改幻灯片背景色的页面开头，加上 `<!-- _backgroundColor: 颜色-->` 字段，就可以更改页面的背景色，如 blue, white 是颜色。也可以是 CSS RGB。
+
+##### 自定义
+
+可以实现：字体、颜色等。
+
+局部：
+
+```css
+<style> 
+.center {
+  text-align: center;
+}
+</style>
+
+<div class="center">
+这是一段通过 CSS 居中的文本。（class在一般的md不可行
+</div>
+```
+
+全局：
+
+```markdown
+---
+marp: true
+theme: default
+style: |
+  section {
+    text-align: center;
+  }
+---
+
+# 这是一个居中的标题
+这是一段居中的文本。
+```
+
+
+
+
 
 ## 导出
 
