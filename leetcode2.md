@@ -2699,6 +2699,18 @@
 - 1328\.破坏回文串
 
   贪心 分类讨论
+  
+- 1191\.K次串联后最大子数组和
+
+  前缀和
+
+- 2321\.拼接数组的最大分数
+
+  前缀和 / DP
+  
+- 2588\.统计美丽子数组数目
+
+  位运算 前缀和 STL
 
 ## 算法
 
@@ -8732,5 +8744,222 @@ public:
         return s;
     }
 };
+```
+
+##### 1191\.K次串联后最大子数组和
+
+[题目](https://leetcode.cn/problems/k-concatenation-maximum-sum)
+
+注意到所有长度为 $n$ 的子数组的和都等于原数组和，而不仅仅是所有起点是 $\forall c,cn$ 的长 $n$ 子数组等于。找到两倍长的最大子数组和，拼接 $k-2$ 个长 $n$ 子数组和。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+const int maxn = 2e5+3, p = 1e9+7;
+int a[maxn];
+using ll = long long;
+class Solution {
+        ll solve(int n) {
+            ll ans = 0, ml = 0, s = 0;
+            for(int i=0; i<n; ++i) {
+                s += a[i];
+                ans = max(ans, s - ml);
+                ml = min(ml, s);
+            }
+            return ans;
+        }
+    public:
+        int kConcatenationMaxSum(vector<int>& arr, int k) {
+            int n = arr.size();
+            for(int i=0;i<n;++i) a[i] = arr[i];
+            ll s = accumulate(a, a+n, 0LL);
+            if(k==1) return solve(n);
+            for(int i=0;i<n;++i) a[i+n] = a[i];
+            ll smx = 0, pmx = 0, ss=0, sp=0;
+            for(int i=0;i<n;++i) smx=max(smx, ss), ss+=a[i];
+            for(int i=n-1;i>=0;--i) pmx=max(pmx, sp), sp+=a[i];
+            ll a2 = solve(2*n);
+            //cout << a2 << ' ' << s << " " << k << " " << pmx << " " << smx;
+            return max({0LL, s*k, a2+max(0LL,s*(k-2)), max(0LL,s*(k-1))+max(pmx, smx)}) % p;
+        }
+    };
+```
+
+最大子数组和的 DP 解法有名 Kanade 算法。简化后只需要 a2+s(k-2) 项
+
+```c++
+class Solution {
+  public int kConcatenationMaxSum(int[] arr, int k) {
+    if (arr == null || arr.length == 0) return 0;
+    long maxOfEnd = arr[0] > 0 ? arr[0] : 0L, maxSoFar = maxOfEnd, sum = arr[0];
+    for (int i = 1; i < Math.min(k, 2) * arr.length; i++) {
+      maxOfEnd = Math.max(maxOfEnd + arr[i % arr.length], arr[i % arr.length]);
+      maxSoFar = Math.max(maxOfEnd, maxSoFar);
+      if (i < arr.length) sum += arr[i];
+    }
+    if (sum > 0 && k > 2) {
+        long r = (sum * (k - 2)) % 1000000007;
+        maxSoFar += r;
+    }
+    return (int) maxSoFar % 1000000007;
+  }
+}
+```
+
+注意比较大小要在取模前。
+
+##### 2321\.拼接数组的最大分数
+
+[题目](https://leetcode.cn/problems/maximum-score-of-spliced-array)
+
+设数组为 $a,b$，0-indexed，设选取 $0\le L\le l\le r\le R<n$，设区间和为 $s$，子问题：
+$$
+\begin{align}
+f(a,b)=&\max_{L,l,r,R}sa[L,R]+sb[l,r]-sa[l,r]\\
+=&\max_{L,l,r,R}sa[L,l-1]+sb[l,r]+sa[r+1,R]
+\end{align}
+$$
+用前缀和维护 $\max sa[L,l-1]$，对子问题 $sa[L,l-1]+sb[l,r]$，等价于维护 $\max sb[l,r]=sb[r]-sb[l-1]$ 的基础上，变成 $sb[r]-sb[l-1]+sa[l-1]-sa[L-1]$。原本是维护 $\min sb[l-1]$ 即 $-\max sb[l-1]$，现在令 $sb'[l-1]=sb[l-1]+sa[l-1]-sa[L-1]$，其中 $sa[l-1]-sa[L-1]$ 根据“前缀和维护 $\max sa[L,l-1]$”可得，所以等价于维护 $sb[r]-sb'[l-1]$。同理，推广到 $f(a,b)$ 如法炮制得解。
+
+写法一：
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+class Solution {
+    void test(const vector<int>& a) {
+        for(auto&x:a) cout<<x<<' '; cout << '\n';
+    }
+    int solve(vector<int>& a, vector<int>& b) {
+        int n = a.size();
+        int ans = 0;
+        vector<int> sa(n, 0), sb(n, 0);
+        partial_sum(a.begin(), a.end(), sa.begin());
+        partial_sum(b.begin(), b.end(), sb.begin());
+        vector<int> s1(n, 0); // max -a[0:l]
+        for(int i=1; i<n; i++) { 
+            s1[i] = max(s1[i-1], -sa[i]); // 前缀min
+        }
+        vector<int> s2(n, 0); // max a[l:r]
+        for(int i=1; i<n; i++) {
+            s2[i] = max(s2[i-1], sa[i] + s1[i]);
+            ans = max(ans, s2[i]);
+        }
+        // ans = max a[L:R] - b[l:r] L<=l<=r<=R
+        // = max a[L:l-1] + b[l:r] + a[l+1:r]
+        vector<int> s3(n, 0); // max -b[0:l]+a[L:l-1]
+        for(int i=1; i<n; i++) {
+            s3[i] = max(s3[i-1], -sb[i-1] + s2[i-1]);
+        }
+        vector<int> s4(n, 0); // max b[l:r]+a[L:l-1]
+        for(int i=1; i<n; i++) {
+            s4[i] = max(s4[i-1], sb[i] + s3[i]);
+            ans = max(ans, s4[i]);
+        }
+        vector<int> s5(n, 0);
+        for(int i=1; i<n; i++) {
+            s5[i] = max(s5[i-1], -sa[i-1] + s4[i-1]);
+        }
+        vector<int> s6(n, 0);
+        for(int i=1; i<n; i++) {
+            s6[i] = max(s6[i-1], sa[i] + s5[i]);
+            ans = max(ans, s6[i]);
+        }
+
+        return ans;
+    }
+public:
+    int maximumsSplicedArray(vector<int>& nums1, vector<int>& nums2) {
+        nums1.insert(nums1.begin(), 0);
+        nums2.insert(nums2.begin(), 0);
+        return max(solve(nums1, nums2), solve(nums2, nums1));
+    }
+};
+```
+
+写法二：
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+vector<int> blank(1e5+1);
+class Solution {
+    int ans = 0, n;
+    vector<int> f(vector<int>& a, vector<int>& p) {
+        vector<int> p2(n, 0);
+        int minsl = 0, s = 0;
+        for (int i = 1; i < n; i++) {
+            s += a[i];
+            minsl = max(minsl, -s + p[i]);
+            p2[i] = max(p2[i - 1], s + minsl);
+            ans = max(ans, p2[i]);
+            
+        }
+        return p2;
+    }
+    void solve(vector<int>& a, vector<int>& b) {
+        vector<int> p0 = f(a, blank);
+        vector<int> p1 = f(b, p0);
+        f(a, p1);
+    }
+public:
+    int maximumsSplicedArray(vector<int>& nums1, vector<int>& nums2) {
+        nums1.insert(nums1.begin(), 0);
+        nums2.insert(nums2.begin(), 0);
+        n = nums1.size();
+        solve(nums1, nums2);
+        solve(nums2, nums1);
+        return ans;
+    }
+};
+```
+
+解法二：假设交换了 $[l,r]$，对 $a$ 数组交换后的前缀和 $sa'_i$ 为：
+$$
+sa'_i=sa_i+sb_r-sb_{l-1}-(sa_r-sa_{l-1})
+$$
+令 $d=b-a$，其前缀和为 $sd$，即 $sa'_i=sa_i+sd_r-sd_{l-1}$。
+
+求 $d$ 的最大子数组和，由于 $a>0$，则 $a$ 的最大子数组和必然是 $sa_{n-1}$，故原问题等价于 $d$ 的最大子数组和 $+sa_{n-1}$。
+
+```python
+class Solution:
+    def solve(self, nums1: List[int], nums2: List[int]) -> int:
+        max_sum = f = 0
+        for x, y in zip(nums1, nums2):
+            f = max(f, 0) + y - x
+            max_sum = max(max_sum, f)
+        return sum(nums1) + max_sum
+    def maximumsSplicedArray(self, nums1: List[int], nums2: List[int]) -> int:
+        return max(self.solve(nums1, nums2), self.solve(nums2, nums1))
+```
+
+##### 2588\.统计美丽子数组数目
+
+[题目](https://leetcode.cn/problems/count-the-number-of-beautiful-subarrays)
+
+等价于求异或为 0 的子数组数量，等价于叠前缀异或后，找到对当前异或和，在这之前有几个一样的异或和。使用静态全局数组代替 map/unmap。可以 0ms 双百通过。
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+int bin[(1<<20) + 3] {1};
+class Solution {
+    public:
+        long long beautifulSubarrays(vector<int>& nums) {
+            long long ans = 0;
+            int s = 0;
+            for(int&x:nums) {
+                s ^= x;
+                ans += bin[s]++;
+            }
+            s = 0;
+            for(int&x:nums) {
+                s ^= x;
+                --bin[s];
+            }
+            return ans;
+        }
+    };
 ```
 

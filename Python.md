@@ -1990,7 +1990,6 @@ print(b1.val, b3.val) # 30, 30
 > a.do()
 > ```
 >
-> #### 
 
 #### 继承
 
@@ -2015,42 +2014,49 @@ b=chum('李四',9,'鲨人')
 print(a,b) #注意由于chum的repr未赋值，故与person同
 ```
 
+> `super()` 可以不带任何参数使用，它会自动推断出当前类和实例。因此，以下两种写法在 Python 3 中是等价的：
+>
+> ```python
+> # 假设是 class PatchSTG(nn.Modules):
+> super().__init__()
+> super(PatchSTG, self).__init__() # 等同于 Python 2 和 Python 3 兼容的写法
+> ```
+>
 > 继承可以实现钩子函数，如：(参见我的研一数据挖掘大作业)
 >
 > ```python
 > class DSU:
->     '''朴素并查集'''
->     def __init__(self, n):
->         self.fa = [i for i in range(n)] # 根节点
->         self.n = n
->     def findFa(self, x):
->         '''求x节点的根并返回'''
->         while self.fa[x] != x:#py不能 x = fa[x] = fa[fa[x]]
->             self.fa[x] = self.fa[self.fa[x]]
->             x = self.fa[x] # 路径压缩
->         return x
->     def mergeop(self, fx, fy):
->         '''钩子函数，额外信息合并，给定两个根节点fx->fy'''
->     def merge(self, x, y):
->         '''若两节点x,y不在同一根，合并并返回True，否则返回False'''
->         fx, fy = self.findFa(x), self.findFa(y)
->         if fx == fy:
->             return False
->         fx, fy = sorted([fx, fy], reverse=True) # 最小做根，方便debug输出信息
->         self.mergeop(fx, fy) # 钩子函数，给子类用
->         self.fa[fx] = fy
->         return True
+>  '''朴素并查集'''
+>  def __init__(self, n):
+>      self.fa = [i for i in range(n)] # 根节点
+>      self.n = n
+>  def findFa(self, x):
+>      '''求x节点的根并返回'''
+>      while self.fa[x] != x:#py不能 x = fa[x] = fa[fa[x]]
+>          self.fa[x] = self.fa[self.fa[x]]
+>          x = self.fa[x] # 路径压缩
+>      return x
+>  def mergeop(self, fx, fy):
+>      '''钩子函数，额外信息合并，给定两个根节点fx->fy'''
+>  def merge(self, x, y):
+>      '''若两节点x,y不在同一根，合并并返回True，否则返回False'''
+>      fx, fy = self.findFa(x), self.findFa(y)
+>      if fx == fy:
+>          return False
+>      fx, fy = sorted([fx, fy], reverse=True) # 最小做根，方便debug输出信息
+>      self.mergeop(fx, fy) # 钩子函数，给子类用
+>      self.fa[fx] = fy
+>      return True
 > class DSU_ele(DSU):
->     '''维护节点元素并查集，组间avg使用'''
->     def __init__(self, n):
->         super().__init__(n)
->         self.ele = [set([i]) for i in range(n)] # 元素集
->     def mergeop(self, fx, fy):
->         self.ele[fy] |= self.ele[fx]
->         self.ele[fx] = set()
+>  '''维护节点元素并查集，组间avg使用'''
+>  def __init__(self, n):
+>      super().__init__(n)
+>      self.ele = [set([i]) for i in range(n)] # 元素集
+>  def mergeop(self, fx, fy):
+>      self.ele[fy] |= self.ele[fx]
+>      self.ele[fx] = set()
 > ```
 >
-> 
 
 #### 静态
 
@@ -7441,6 +7447,7 @@ transposed_array = np.transpose(array, (1, 2, 0))
 
 ```python
 np.array([1, 2, 3, 4])[:,np.newaxis]
+X = X[:, :, np.newaxis, :]  # [a,b,c] -> [a,b,1,c]
 ```
 
 ```python
@@ -14050,7 +14057,8 @@ print(user.dict()) #{'id': 1, 'name': 'Alice', 'email': 'alice@example.com', 'ag
 
 常用编码：utf-8,gbk,gb2312,ascii; euc-jp (日文)
 
-##### detect
+> ##### detect
+>
 
 检查编码，传入二进制数据，返回一个字典，其中key为encoding的元素是编码方式。
 
@@ -14092,23 +14100,18 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 from sklearn.linear_model import LinearRegression
-
 # 示例数据
 np.random.seed(23)
 x = np.random.rand(100) * 10
 y = 2.5 * x + np.random.randn(100) * 2
-
 # 线性回归模型拟合
 model = LinearRegression()
 model.fit(x.reshape(-1, 1), y)
-
 # 计算残差
 y_pred = model.predict(x.reshape(-1, 1)) # <class 'numpy.ndarray'>
 residuals = y - y_pred
-
 # 创建DataFrame
 df = pd.DataFrame({'x': x, 'Residuals': residuals})
-
 # 绘制残差图
 fig = px.scatter(df, x='x', y='Residuals', title='Residual Plot')
 fig.show()
@@ -14172,18 +14175,15 @@ print(mean_squared_error(y, y_pred, squared=False))
 def simple_pipeline(data): # data: pandas DataFrame
     # 定义对 'c2' 进行对数变换的处理
     log_transformer = FunctionTransformer(np.log, validate=True)
-
     # 创建管道，首先对 'c2' 进行对数变换，然后应用线性回归
     pipeline = Pipeline([
         ('log_scale', log_transformer),
         ('linear_regression', LinearRegression())
     ])
-
     # 在数据的 'c2' 列和目标变量 'y' 上拟合管道
     X = data[['c2']]
     y = data['y']
     pipeline.fit(X, y)
-
     # 使用管道对数据进行预测
     predictions = pipeline.predict(X)
     return pipeline, predictions
@@ -14213,15 +14213,14 @@ def simple_pipeline(data): # data: pandas DataFrame
 > y = data['y']  # 使用 'c1' 作为目标变量进行测试
 > pipeline.fit(X, y)
 > predictions = pipeline.predict(X)
-> 
 > # 计算RMSE和R2
 > rmse = sqrt(mean_squared_error(y, predictions))
 > r2 = r2_score(y, predictions)
 > ```
->
-> 非管道：
->
-> ```python
+> 
+>非管道：
+> 
+>```python
 > from sklearn.metrics import r2_score, mean_squared_error
 > def get_R2_and_RMSE(y, yh):#y_real, y_predict
 >     return (r2_score(y,yh), mean_squared_error(y, yh, squared=False))
@@ -14250,8 +14249,6 @@ LassoCV（Lasso Cross-Validation）是一种基于L1正则化的线性回归模�
 ```python
 from sklearn.linear_model import LassoCV
 ```
-
-
 
 #### 数据转换
 
@@ -16521,8 +16518,6 @@ tensor([[-0.4007, -0.3357,  0.2146,  0.1672, -0.5485, -0.4915,  0.1027, -0.1996,
          -0.2694, -0.3720]], device='cuda:0', grad_fn=<AddmmBackward0>)
 ```
 
-
-
 ##### 基本信息
 
 直接输出一个 dict，包括网络结构、超参数和可能的权重。
@@ -16602,6 +16597,12 @@ print(torch.zeros((2,3,4))) # (2,3,4)括号不要也行
 print(torch.ones((2,3,4)))
 ```
 
+未初始化的张量：
+
+```python
+print(torch.empty(5, 10)) # 形状
+```
+
 ##### 数据类型
 
 ```python
@@ -16611,6 +16612,15 @@ x = torch.tensor([[1,1,4,5,1,4],[1,9,1,9,8,1]]).float()
 ```python
 X = torch.tensor(X, dtype=torch.float32)
 y = torch.tensor(y, dtype=torch.long)
+```
+
+也可以用 `.type` 方法获取或设置数据类型
+
+```python
+tensor = torch.tensor([1, 2, 3])
+print(tensor.type())  # 输出: torch.LongTensor
+new_tensor = tensor.type(torch.FloatTensor) # 复制并类型转换
+# 等价于 tensor.float() 或 tensor.to(float)
 ```
 
 ##### 深浅拷贝
@@ -16716,11 +16726,48 @@ for name, param in model.named_parameters():
 bias torch.Size([3])'''
 ```
 
+##### 设备
 
+###### 定义
+
+```python
+import torch
+device = torch.device("cpu")# 指定设备为 CPU
+device = torch.device("cuda:0")# 指定设备为第一个 GPU；或 'cuda'
+# 常用
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+```
+
+###### 查询
+
+```python
+x = torch.randn(1,2)
+print(x.device) # device(type='cpu')
+```
+
+###### 移动
+
+如果张量或模型已经在目标设备上，.to(device) 不会进行任何操作，也不会复制数据；否则，.to(device) 会复制数据到目标设备，但原始数据仍然保留在源设备
+
+```python
+x=torch.tensor([580])
+y=x.to('cuda') 
+x*=2
+print(x,y) #tensor([1160]) tensor([580], device='cuda:0')
+```
+
+模型被移动到某个设备时，模型的参数和缓冲区会被复制到目标设备
+
+```python
+model = torch.nn.Linear(3, 1)  # 默认在 CPU 上
+model = model.to("cuda")
+```
 
 #### 运算
 
 ##### 常规
+
+###### 下标
 
 比 for 更快地取出下标，如 $(0,0)$ 和 $(1,2)$：
 
@@ -16729,6 +16776,36 @@ y = torch.tensor([0, 2])
 y_hat = torch.tensor([[0.1, 0.3, 0.6], [0.3, 0.2, 0.5]])
 y_hat[[0, 1], y]
 ```
+
+###### 切片
+
+类比 numpy，索引和切片机制：
+
+
+```python
+x = torch.arange(25).reshape((5,5))
+print(x)
+x[2,3]=114 #修改
+print(int(x[2,3])) #取元素
+x[1]=1 #整行修改
+print(x)
+x[:,1]=6 #整列
+print(x)
+print(x[2:4,-1])
+```
+
+`...` 是省略前面的所有维度。
+
+```python
+x = torch.randn(2,3,4,5)
+x[1, ...].shape # torch.Size([3, 4, 5])，等价于 x[1,:]
+x[1,...,1].shape# torch.Size([3, 4]) 
+# 然而： x[1,:,1].shape -> torch.Size([3, 5]) 
+x[1,:2].shape # torch.Size([2, 4, 5])
+# 也就是说 x[i,j] 不足维度，默认 ... 补全为 x[i,j,...]
+```
+
+###### 算术运算
 
 > 直接运算：
 >
@@ -16762,6 +16839,8 @@ z = x==y
 print(z, z.type())
 ```
 
+###### 形变运算
+
 张量拼接操作：
 
 
@@ -16791,20 +16870,7 @@ y = torch.tensor([0, 10]).reshape((1, 2))  # 变二维
 print(x+y)
 ```
 
-类比 numpy，索引和切片机制：
-
-
-```python
-x = torch.arange(25).reshape((5,5))
-print(x)
-x[2,3]=114 #修改
-print(int(x[2,3])) #取元素
-x[1]=1 #整行修改
-print(x)
-x[:,1]=6 #整列
-print(x)
-print(x[2:4,-1])
-```
+###### id
 
 id 内置函数可以鉴别两个变量是否同一个地址：
 
@@ -16913,7 +16979,7 @@ print(y.shape)  # torch.Size([10, 3072])
 交换两个维度
 
 ```python
-patches = patches.transpose(-1, -2)  # B, N, d, P -> B, N, P, d
+patches = patches.transpose(-1, -2) # B, N, d, P -> B, N, P, d
 ```
 
 ###### permute
@@ -16922,10 +16988,8 @@ patches = patches.transpose(-1, -2)  # B, N, d, P -> B, N, P, d
 
 ```python
 x = torch.randn(2, 3, 4)
-
 # 使用permute函数重新排列维度
 y = x.permute(1, 0, 2)  # 将维度1和0交换顺序
-
 print(x.shape)  # 输出: torch.Size([2, 3, 4])
 print(y.shape)  # 输出: torch.Size([3, 2, 4])
 ```
@@ -16955,13 +17019,13 @@ a, b, c = 2, 3, 4  # 目标形状为 (2, 3, 4)
 expanded_x = x.expand(a, b, c, d)
 ```
 
-###### np.newaxis
+###### None
+
+在 PyTorch 中，`None` 的作用与 NumPy 中的 `np.newaxis` 完全相同，用于在指定位置插入一个新的维度
 
 ```python
-X = X[:, :, np.newaxis, :]  # [a,b,c] -> [a,b,1,c]
+x[:,None].shape # 2,3,4,5 -> 2,1,3,4,5
 ```
-
-
 
 ###### []降维
 
@@ -16992,20 +17056,18 @@ t1 = torch.randn(3,4,5)
 t2 = torch.randn(3,4,5)
 print(torch.cat((t1,t2),0).shape) #6,4,5
 print(torch.cat((t1,t2),-1).shape) # 3,4,10
-
 tensor1 = torch.tensor([[1, 2], [3, 4]])
 tensor2 = torch.tensor([[5, 6], [7, 8]])
 result_dim0 = torch.cat((tensor1, tensor2), dim=0)
 result_dim1 = torch.cat((tensor1, tensor2), dim=1)
 print(result_dim0)
-# tensor([[1, 2],
-#         [3, 4],
-#         [5, 6],
-#         [7, 8]])
+# tensor([[1, 2], [3, 4], [5, 6], [7, 8]])
 print(result_dim1)
 # tensor([[1, 2, 5, 6],
 #         [3, 4, 7, 8]])
 ```
+
+`dim=-1` 表示沿最后一个维度进行拼接
 
 ###### repeat
 
@@ -17269,9 +17331,23 @@ loss = output.sum()
 loss.backward()
 ```
 
+##### 随机
+
+###### 种子
+
+固定法：[参考](https://github.com/LMissher/PatchSTG)
+
+```python
+random.seed(args.seed)
+np.random.seed(args.seed)
+torch.manual_seed(args.seed)
+torch.cuda.manual_seed(args.seed)
+torch.backends.cudnn.deterministic = True
+```
 
 
-##### 概率
+
+###### 概率
 
 模拟随机抛硬币：
 
@@ -17757,6 +17833,33 @@ print(output_tensor)
         [2., 0., 4.]])'''
 ```
 
+###### GELU
+
+**Gaussian Error Linear Unit**（高斯误差线性单元）。GELU 是一种平滑且非线性的激活函数，由 **Dan Hendrycks** 和 **Kevin Gimpel** 在 2016 年的论文提出。$GELU(x)=x\cdot\Phi(x)$，$\Phi$ 即标准正态分布的累积分布函数。
+
+```python
+gelu = nn.GELU()
+x = torch.tensor([1.0, 2.0, -1.0, 0.0])
+output = gelu(x)
+print(output)
+```
+
+##### 初始化
+
+###### xavier_uniform
+
+使用 Xavier 均匀分布初始化方法对参数进行初始化
+
+Xavier 初始化（也称为 Glorot 初始化）旨在保持输入和输出的方差一致，从而帮助加速训练过程并提高模型的收敛性。具体来说，xavier_uniform_ 会在均匀分布的范围内选择值，使得权重的初始值既不太大也不太小，适合激活函数（如 ReLU、Sigmoid 等）的特性
+
+常用于：将一天中的某个时间点（如小时）映射到一个高维向量空间，或其他周期特征数据
+
+```python
+self.node_emb = nn.Parameter(
+        torch.empty(node_num, node_dims))
+nn.init.xavier_uniform_(self.node_emb)
+```
+
 
 
 ##### 归一化
@@ -17779,6 +17882,17 @@ mean = torch.mean(output_tensor, dim=1)  # 按行计算均值
 variance = torch.var(output_tensor, dim=1)  # 按行计算方差
 print(mean, variance) # 均值约0，方差在1附近(不严格)
 ```
+
+- 如果 `elementwise_affine=True` (默认) 会学习两个可训练的参数：
+
+  - gamma（缩放参数）：形状与输入特征维度相同。
+  - beta（偏移参数）：形状与输入特征维度相同。
+
+  归一化后的输出会通过仿射变换：`output = gamma * normalized_input + beta`。
+
+- 如果 `elementwise_affine=False`，则不会应用仿射变换，直接输出归一化后的结果
+
+其它参数：`eps`：默认值：`1e-5`。这是一个很小的值，用于确保归一化时分母不会为零，从而保证数值稳定性
 
 ###### BatchNorm2d
 
@@ -18163,8 +18277,6 @@ self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rat
 self.lr_scheduler = torch.optim.lr_scheduler.MultiStepLR( self.optimizer, milestones=[1,35,40],gamma=0.5)
 ```
 
-
-
 #### 模块
 
 > ##### ModuleList
@@ -18191,6 +18303,8 @@ class SimpleNN(nn.Module):
         return x
 model = SimpleNN()
 ```
+
+它的成员属性也可以是某个 `Module`，作用起来跟 `nn.Linear` 差不多。
 
 ##### 训练
 
@@ -18853,7 +18967,48 @@ print(res[0].probs.top1) # 1
 > orig_img: 张量
 > ```
 >
-> 
+
+### timm
+
+timm（PyTorch Image Models）是一个基于 PyTorch 的深度学习库，专注于图像模型的开发与训练。它由 Ross Wightman 创建和维护，集合了许多最先进的（state-of-the-art）图像分类、目标检测、语义分割等模型，并提供了丰富的预训练权重和便捷的训练脚本
+
+- 包含超过 80 种预训练的图像模型，如 ResNet、EfficientNet、Vision Transformer (ViT) 等。
+
+```sh
+pip install timm
+```
+
+##### Mlp
+
+MLP 是一种常见的神经网络结构，通常由多个全连接层（线性层）和非线性激活函数组成。默认两层，即第一层->激活->dropout->第二层->dropout。
+
+```python
+self.smlp = Mlp(in_features=hidden_size, hidden_features=mlp_hidden_dim, act_layer=nn.GELU, drop=0.1)
+```
+
+##### Attention
+
+Vision Transformer (ViT) 中的一个关键组件，用于实现自注意力机制
+
+```python
+import torch
+from timm.models.vision_transformer import Attention
+batch_size = 8
+num_heads = 4
+embed_dim = 64
+seq_length = 16
+x = torch.randn(batch_size, seq_length, embed_dim)
+attention = Attention(dim=embed_dim, num_heads=num_heads)
+output = attention(x)
+print(output.shape)  # 应该输出: torch.Size([8, 16, 64])
+```
+
+其它参数：`qkv_bias=True, attn_drop=0.1, proj_drop=0.1`
+
+- 控制是否为查询（Query）、键（Key）和值（Value）向量添加可学习的偏置（bias） 默认 true
+- 默认权重和投影层都不会 drop
+
+
 
 ### 杂项
 
@@ -20215,8 +20370,6 @@ let data = {
 await axios.post(this.config.serverURL + '/submitScore', data);
 ```
 
-
-
 #### 常用功能
 
 ##### 文件上传
@@ -20233,8 +20386,6 @@ def postPredict(file: UploadFile = File(...)):
 上传的文件会在服务器根目录以上传文件名保存。
 
 > 测试的前端代码略。可以参见我的本科毕设代码。
-
-
 
 ## 数据结构
 
@@ -20285,8 +20436,6 @@ print(d.peekitem(0)) # 第0个元素键值对 (1, 9)
 print(d.peekitem(d.bisect_left(2))[1]) #5
 ```
 
-
-
 ### easydict
 
 参考 [here](https://blog.csdn.net/weixin_44598554/article/details/134311503)
@@ -20309,8 +20458,6 @@ dict_keys(['Train', 'Test'])
 dict_items([('Train', {'model_path': './some_path'}), ('Test', {})])
 '''
 ```
-
-
 
 ## 算法
 
@@ -20372,8 +20519,6 @@ print(g.edges([1, 2]), g.degree(1, 2)) #简写为g.edges[1,2]或g[1][2]
 > 	print(i,j) #int, int
 > ```
 
-
-
 ##### 预制
 
 [更多](https://networkx.org/documentation/stable/reference/generators.html)
@@ -20397,8 +20542,6 @@ n点的链：`nx.path_graph(n)`
 0为中心的n边菊花图：`nx.star_graph(n)`
 
 n点完全k叉树：`nx.full_rary_tree(k,n)`
-
-
 
 #### 绘制
 
@@ -20443,8 +20586,6 @@ nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
 # 显示图形
 plt.show()
 ```
-
-
 
 #### 举例
 
@@ -20499,25 +20640,20 @@ print(isFullerene)
 ```python
 import psutil
 import GPUtil
-
 def get_server_info():
     # 获取硬盘信息
     disk_usage = psutil.disk_usage('/')
     total_disk = disk_usage.total / (1024 ** 3)  # 转换为GB
     free_disk = disk_usage.free / (1024 ** 3)  # 转换为GB
-
     # 获取CPU信息
     cpu_usage = psutil.cpu_percent()
-
     # 获取内存信息
     memory_info = psutil.virtual_memory()
     total_memory = memory_info.total / (1024 ** 3)  # 转换为GB
     available_memory = memory_info.available / (1024 ** 3)  # 转换为GB
-
     # 获取GPU信息
     gpus = GPUtil.getGPUs()
     gpu_info = [{'gpu_id': gpu.id, 'total_memory': gpu.memoryTotal, 'free_memory': gpu.memoryFree} for gpu in gpus] # 还可以 gpu.name
-
     # 将信息整理成字典形式返回
     server_info = {
         'disk': {
@@ -20533,13 +20669,9 @@ def get_server_info():
         },
         'gpu': gpu_info
     }
-
     return server_info
-
 info = get_server_info()
-print(info)
-
-# {'disk': {'total': 931.4970664978027, 'free': 156.79941177368164}, 'cpu': {'usage': 45.7}, 'memory': {'total': 15.871387481689453, 'available': 4.591732025146484}, 'gpu': [{'gpu_id': 0, 'total_memory': 4096.0, 'free_memory': 3962.0}]}
+print(info) # {'disk': {'total': 931.4970664978027, 'free': 156.79941177368164}, 'cpu': {'usage': 45.7}, 'memory': {'total': 15.871387481689453, 'available': 4.591732025146484}, 'gpu': [{'gpu_id': 0, 'total_memory': 4096.0, 'free_memory': 3962.0}]}
 ```
 
 ##### 内存使用
@@ -20566,9 +20698,49 @@ print(f"创建后内存使用: {final_memory / (1024 * 1024):.2f} MB")
 print(f"内存增加: {(final_memory - initial_memory) / (1024 * 1024):.2f} MB")
 ```
 
-
-
 ## 其他
+
+### tqdm
+
+```sh
+pip install tqdm
+```
+
+taqaddum (تقدّم),意为“进步”或“进展.
+
+tqdm 是一个用于在 Python 中显示循环进度条的库。它通过在循环中添加简单的代码片段，实时展示循环的进度、剩余时间、速度等信息，极大地方便了用户在处理大规模数据或长时间运行的任务时监控进度。
+
+```python
+from tqdm import tqdm
+import time
+# 示例：模拟一个耗时的任务
+for i in tqdm(range(100), desc="Processing"):
+    time.sleep(0.05)  # 模拟工作负载
+# 在列表推导中使用 tqdm
+result = list(tqdm((x**2 for x in range(100)), total=100, desc="Squaring Numbers"))
+# 嵌套循环示例
+for i in tqdm(range(5), desc="Outer Loop"):
+    for j in tqdm(range(100), desc="Inner Loop", leave=False):
+        time.sleep(0.01)
+```
+
+输出诸如：
+
+```
+nvs/torch/python.exe d:/_lr580_desktop/codes/traffic/PatchSTG-main/PatchSTG-main/testtqdm.py
+Processing: 100%|█████████████████████████████████████████| 100/100 [00:05<00:00, 19.71it/s]
+Squaring Numbers: 100%|███████████████████████████████| 100/100 [00:00<00:00, 198782.18it/s]
+Outer Loop:  80%|████████████████████████████████████         | 4/5 [00:04<00:01,  1.04s/it]
+Inner Loop:   0%|                                                   | 0/100 [00:00<?, ?it/s]
+```
+
+loop 就是内层为一个 it，搞去外层。
+
+没有 desc 的话，诸如：
+
+```
+ 86%|██████████████████████████████████████████████▍       | 86/100 [00:04<00:00, 19.70it/s]
+```
 
 ### ipywidgets
 
@@ -20642,34 +20814,15 @@ with schemdraw.Drawing() as d:
     # 添加电阻 R1
     d += elm.Resistor().label('R1\n4Ω').right()
     # 添加电阻 R2
-    d += elm.Resistor().label('R2\n6Ω').down()
-    # 闭合回路
-    d += elm.Line().left()
-    # 绘制电路图
-    d.draw()
-```
-
-```python
-import schemdraw
-import schemdraw.elements as elm
-# 创建电路图对象
-with schemdraw.Drawing() as d:
-    # 添加电压源
-    d += elm.SourceV().label('Vs\n12V').up()
-    # 添加电阻 R1
-    d += elm.Resistor().label('R1\n4Ω').right()
-    # 添加电阻 R2
     d += elm.Resistor().label('R2\n6Ω').right()
     # 添加连接线
-    d += elm.Line().down()
+    d += elm.Line().down() # 或者：不要一个down和一个left，也行
     # 闭合回路
     d += elm.Line().left()
     d += elm.Line().left()
     # 绘制电路图
     d.draw()
 ```
-
-
 
 # 应用举例
 
@@ -20704,8 +20857,6 @@ for root, dirs, files in os.walk('.'):
 print(cnt)
 ```
 
-
-
 ##### 将 markdown 标题全部降一级
 
 ```python
@@ -20720,8 +20871,6 @@ with open('LaTeX2.md', 'w', encoding='utf8') as f:
     f.write(t)
 ```
 
-
-
 ##### 批量修改后缀名
 
 GPT4：
@@ -20729,14 +20878,12 @@ GPT4：
 ```python
 import os
 from pathlib import Path
-
 def change_file_extension(path, old_extension, new_extension):
     for filepath in path.glob(f"*.{old_extension}"):
         # 用新的扩展名替换旧的扩展名
         new_filepath = filepath.with_suffix(f".{new_extension}")
         # 对文件进行重命名
         filepath.rename(new_filepath)
-
 # 设置路径为当前工作目录
 path = Path(os.getcwd())
 change_file_extension(path, 'jpg', 'gif')

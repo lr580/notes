@@ -284,6 +284,8 @@ ctrl+alt+s 设置
 
 ctrl+alt+l 格式化代码
 
+getter, setter: 右击类代码任意地方，生成，点 getter-setter，ctrl多选，确认 [src](https://www.jb51.net/program/305408gt0.htm)
+
 ##### 其他
 
 装插件：设置-plugins-搜索安装即可
@@ -293,6 +295,14 @@ ctrl+alt+l 格式化代码
 > 插件：Background Image Plus
 
 自动换行(soft-wrap)：设置-editor-general-开 soft wrap, 格式加上 `;*.java`
+
+##### maven
+
+右边，有个M字母按钮，打开展开右侧菜单，可以点击刷新，这样可以重新编译包，命令行不行的话用这个可以，对下载的项目重新编译
+
+##### spring boot
+
+插件：convert yaml and Properties 把 `.properties` 和 `.yml` 转换，右击文件即可；注意用到的类不会自动改注解，要自己去改类的
 
 ### vscode
 
@@ -26343,7 +26353,8 @@ maven项目作为maven管理的资源，不仅仅表示一个运行的工程，�
 mvn clean install
 ```
 
-
+> 别人的项目，拉到本地跑不通，可以项目根目录执行这个
+>
 
 ##### 发布
 

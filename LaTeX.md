@@ -135,6 +135,30 @@ int a=1;
 
 三个 `-` 即可。
 
+> 像代码块一样可以 YAML 语法，必须放在第一行，不会被渲染成 PDF/HTML：
+>
+> ```markdown
+> ---
+> title: 笔记
+> tags: [语法, 算法]
+> ---
+> ```
+>
+> 如果分割线前没有空行的文本，跟分割线一起，会被认为是二级标题，Setext 风格
+>
+> ```markdown
+> 这是二级标题
+> ---
+> ```
+>
+> ```
+> 这不是二级标题，而是普通文本+水平分割线
+> 
+> ---
+> ```
+
+
+
 ### 其他设置
 
 偏好设置
@@ -1446,11 +1470,19 @@ Document itself
 
 ### Marp
 
-参考文献：[markdown](https://sspai.com/post/55718) [http](https://sspai.com/post/40657)
+参考文献：[markdown](https://sspai.com/post/55718) [http](https://sspai.com/post/40657) [官网](https://marpit.marp.app/directives)
 
-VSCODE + 插件 `Marp for VS Code` , `Markdown All in One`
+VSCODE + 插件 `Marp for VS Code` , `Markdown All in One`，看到有个 open preview to the side 可以所见即所得。
 
-使用 YAML 语法在最开头输入：
+使用 YAML 语法在 `md` 最开头输入：
+
+```markdown
+---
+marp: true
+---
+```
+
+然后每一页就用 `---` 进行分页。
 
 ## 导出
 
