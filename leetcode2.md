@@ -2711,6 +2711,14 @@
 - 2588\.统计美丽子数组数目
 
   位运算 前缀和 STL
+  
+- 2597\.美丽子集的数目
+
+  爆搜 / <u>DP+组合数学</u>
+  
+- 152\.乘积最大子数组
+
+  DP
 
 ## 算法
 
@@ -8961,5 +8969,228 @@ class Solution {
             return ans;
         }
     };
+```
+
+##### 2597\.美丽子集的数目
+
+[题目](https://leetcode.cn/problems/the-number-of-beautiful-subsets)
+
+我的二进制枚举：800ms
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+int bin[2003];
+class Solution {
+    public:
+        int beautifulSubsets(vector<int>& nums, int k) {
+            int n = nums.size(), ans = 0;
+            for(int i=1;i<1<<n;++i) {
+                bool ok = true;
+                int je = 0;
+                for(int j=0;j<n;++j) {
+                    if(i>>j&1) {
+                        int v = nums[j];
+                        je=j;
+                        ++bin[v];
+                        if(v-k>=0 && bin[v-k] || bin[v+k]) {
+                            ok = false;
+                            break;
+                        }
+                    }
+                }
+                ans += ok;
+                for(int j=0;j<=je;++j) 
+                    if(i>>j&1) 
+                        --bin[nums[j]];
+                
+            }
+            return ans;
+        }
+    };
+```
+
+注意到二进制枚举完全不剪枝，虽然不递归，但是实际上远远慢于爆搜，因为爆搜会剪枝，例如同样条件下，DFS 快 10 倍，80ms
+
+```c++
+int cnt[2003];
+class Solution {
+public:
+    int beautifulSubsets(vector<int>& nums, int k) {
+        int ans = -1; // 去掉空集
+
+        // 在 [i, n-1] 中选一个数
+        auto dfs = [&](this auto&& dfs, int i) -> void {
+            ans++;
+            if (i == nums.size()) {
+                return;
+            }
+            for (int j = i; j < nums.size(); j++) { // 枚举选哪个
+                int x = nums[j];
+                if ((x-k<0||cnt[x - k] == 0) && cnt[x + k] == 0) { // 可以选
+                    cnt[x]++; // 选
+                    dfs(j + 1); // 下一个数在 [j+1, n-1] 中选
+                    cnt[x]--; // 撤销，恢复现场
+                }
+            }
+        };
+
+        dfs(0);
+        return ans;
+    }
+};
+// 第二种写法：不要j+1，就选与不选 dfs(i+1)
+```
+
+```c++
+class Solution {
+public:
+    int beautifulSubsets(vector<int>& nums, int k) {
+        int ans = -1; // 去掉空集
+        unordered_map<int, int> cnt; // unmap:200ms，像我那样就80ms
+
+        // nums[i] 选或不选
+        auto dfs = [&](this auto&& dfs, int i) -> void {
+            if (i == nums.size()) {
+                ans++;
+                return;
+            }
+            dfs(i + 1); // 不选
+            int x = nums[i];
+            if (cnt[x - k] == 0 && cnt[x + k] == 0) { // 可以选
+                cnt[x]++; // 选
+                dfs(i + 1); // 讨论 nums[i+1] 选或不选
+                cnt[x]--; // 撤销，恢复现场
+            }
+        };
+
+        dfs(0);
+        return ans;
+    }
+};
+```
+
+按摸 $k$ 同余把 $num$ 划分为若干个同余组，每个组是 $a$，组内每个元素的出现次数是 $c$。
+
+定义 $f_{i+1}$ 是在 $a[0,i]$ 的选数方案。选与不选：
+
+1. 不选，$f_{i+1}=f_i$。
+
+2. 选，若 $a_i-a_{i-1}=k$，组内上一个不可以选，上上一个可以选。并且在 $c_i$ 个 $a_i$ 元素选非空子集有 $2^{c_i}-1$ 个方案，故总方案 $f_{i-1}(2^{c_i}-1)$。
+
+   若 $a_i-a_{i-1}=k$，同理，$f_i(2^{c_i}-1)$。 其中这种情况与不选合并，可得 $f_i2^{c_i}$。
+
+选子集，显然跨组的两个元素相减无论如何都凑不出 $k$，每组互不干扰，故每个 $f$ 乘法原理即可。复杂度取划分复杂度 $O(n\log n)$。注意删掉空集方案。
+
+```c++
+class Solution {
+public:
+    int beautifulSubsets(vector<int>& nums, int k) {
+        unordered_map<int, map<int, int>> groups;
+        for (int x : nums) {
+            // 模 k 同余的数分到同一组，记录元素 x 及其出现次数
+            groups[x % k][x]++;
+        }
+
+        int ans = 1;
+        for (auto& [_, cnt] : groups) {
+            // 计算这一组的方案数
+            int m = cnt.size();
+            vector<int> f(m + 1);
+            auto it = cnt.begin();
+            f[0] = 1;
+            f[1] = 1 << it++->second;
+            for (int i = 1; i < m; i++, it++) {
+                auto [x, c] = *it;
+                if (x - prev(it)->first == k) {
+                    f[i + 1] = f[i] + f[i - 1] * ((1 << c) - 1);
+                } else {
+                    f[i + 1] = f[i] << c;
+                }
+            }
+            ans *= f[m]; // 每组方案数相乘
+        }
+        return ans - 1; // 去掉空集
+    }
+};
+```
+
+上述 DP，根据打家劫舍，可以滚动优化。
+
+```python
+class Solution:
+    def beautifulSubsets(self, nums: List[int], k: int) -> int:
+        groups = defaultdict(Counter)
+        for x in nums:
+            # 模 k 同余的数分到同一组，记录元素 x 及其出现次数
+            groups[x % k][x] += 1
+
+        ans = 1
+        for cnt in groups.values():
+            # 计算这一组的方案数
+            a = sorted(cnt.items())
+            f0, f1 = 1, 1 << a[0][1]
+            for (pre, _), (x, c) in pairwise(a):
+                if x - pre == k:
+                    f0, f1 = f1, f1 + f0 * ((1 << c) - 1)
+                else:
+                    f0, f1 = f1, f1 << c
+            ans *= f1  # 每组方案数相乘
+        return ans - 1  # 去掉空集
+```
+
+还可以继续优化，卡掉 $\log n$。注意到如果同余组里某一相邻隔断了超过 $k$，隔断前后各取一个无论怎么减都凑不起来 $k$，也就是说等价于可以拆成两组求 $f$。找到每个同余的首项，直接在 map 里不断 $+k$ 推。实际表现不如不优化。
+
+```c++
+class Solution {
+public:
+    int beautifulSubsets(vector<int>& nums, int k) {
+        unordered_map<int, int> cnt;
+        for (int x : nums) {
+            cnt[x]++;
+        }
+
+        int ans = 1;
+        for (auto& [x, c] : cnt) {
+            if (cnt.contains(x - k)) { // x 不是等差数列的首项
+                continue;
+            }
+            // 计算这一组的方案数
+            int f0 = 1, f1 = 1 << c;
+            for (int y = x + k; cnt.contains(y); y += k) {
+                int new_f = f1 + f0 * ((1 << cnt[y]) - 1);
+                f0 = f1;
+                f1 = new_f;
+            }
+            ans *= f1; // 每组方案数相乘
+        }
+        return ans - 1; // 去掉空集
+    }
+};
+```
+
+##### 152\.乘积最大子数组
+
+[题目]()
+
+注意负负得正。
+
+```c++
+class Solution {
+public:
+    int maxProduct(vector<int>& nums) {
+        long maxF = nums[0], minF = nums[0], ans = nums[0];
+        for (int i = 1; i < nums.size(); ++i) {
+            long mx = maxF, mn = minF;
+            maxF = max(mx * nums[i], max((long)nums[i], mn * nums[i]));
+            minF = min(mn * nums[i], min((long)nums[i], mx * nums[i]));
+            if(minF<INT_MIN) {
+                minF=nums[i];
+            }
+            ans = max(maxF, ans);
+        }
+        return ans;
+    }
+};
 ```
 
