@@ -207,7 +207,7 @@ var (
 )
 ```
 
-不赋值会有默认值，但**声明了变量但不使用会报错**。Go 编译器要求所有声明的变量都必须被使用
+**不赋值会有默认值**，但**声明了变量但不使用会报错**。Go 编译器要求所有声明的变量都必须被使用
 
 ```go
 var x int
@@ -219,6 +219,8 @@ fmt.Println(x) // 0
 ##### :=
 
 在函数内部， 可以使用更简略的 := 方式声明并初始化变量。
+
+这是声明变量+初始化。如果要对已声明变量赋值，直接 = 即可。
 
 注意： 短变量只能用于声明局部变量， 不能用于全局变量的声明  
 
@@ -653,6 +655,141 @@ fmt.Println()
 ### 条件判断
 
 #### if
+
+`if` 等语句的代码块必须使用大括号 `{}` 包裹，即使代码块中只有一行代码
+
+```go
+score := 30
+if score%2 == 0 {
+    fmt.Println("even")
+} else if score%2 == 1 {
+    fmt.Println("odd")
+} else {
+    fmt.Println("inPossible")
+}
+```
+
+可以添加赋值语句，变量局部作用域，if 外不可用
+
+```go
+score := 30
+if score := 31; score%2 == 1 {
+    fmt.Println("no even")
+}
+fmt.Println(score) // 30
+```
+
+#### for
+
+三种基本写法
+
+```go
+for i := 0; i < 5; i++ {
+    fmt.Println(i)
+}
+i := 0
+for ; i < 3; i++ {
+    fmt.Println(i)
+}
+for i < 5 {
+    fmt.Println("i=", i)
+    i++
+}
+```
+
+Go 语言中**没有 while 语句**，可以用 for 代替
+
+死循环，continue break
+
+```go
+j := 0
+for { // 或 for ;; {
+    j++
+    if j%2 == 0 {
+        continue
+    }
+    if j >= 5 {
+        break
+    }
+    fmt.Println(j)
+}
+```
+
+for range 遍历数组、 切片、 字符串、 map 及通道（channel）  
+
+返回值：
+
+- 数组、 切片、 字符串返回索引和值。
+- 返回键和值。
+- 通道（channel） 只返回通道内的值
+
+```go
+s := "Go买卖" // 中文字符正常输出
+for i, v := range s {
+    fmt.Printf("index:%d, value:%c\n", i, v)
+} // index = 0, 1, 2, 5 (一个中文3个字符)
+```
+
+#### switch
+
+`switch` 语句不需要显式使用 `break`，因为 Go 的 `switch` 默认只会执行匹配的 `case` 块，然后自动跳出 `switch` 语句
+
+```go
+s := "哈哈"
+switch s { // 输出haha，不用break
+case "哈":
+    fmt.Println("ha")
+case "哈哈":
+    fmt.Println("haha")
+case "哈哈哈":
+    fmt.Println("hahaha")
+default:
+    fmt.Println("Everything is set.")
+}
+```
+
+多值：
+
+```go
+switch m := 3; m { // 可以缩写跟 if 一样
+case 1, 3, 5, 7, 8, 10, 12:
+    fmt.Println("31 days")
+case 4, 6, 9, 11:
+    fmt.Println("30 days")
+default:
+    fmt.Println("28/29 days")
+}
+```
+
+分支还可以使用表达式， 这时候 switch 语句后面不需要再跟判断变量  
+
+```go
+a := 1
+b := 2
+switch {
+case a < b || a > b:
+    fmt.Println("a != b")
+case a == b:
+    fmt.Println("a == b")
+}
+```
+
+fallthrough 语法可以执行满足条件的 case 的下一个 case， 是为了兼容 C 语言中的 case  
+
+```go
+s = "a"
+switch {
+case s == "a":
+    fmt.Println("a")
+    fallthrough
+case s == "b":
+    fmt.Println("b")
+case s == "c":
+    fmt.Println("c")
+default:
+    fmt.Println("...")
+} // 输出 a,b
+```
 
 
 

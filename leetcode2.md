@@ -2712,6 +2712,14 @@
 
   位运算 前缀和 STL
   
+- 2070\.每一个查询的最大美丽值
+
+  排序 离线+双指针/<u>在线+前缀和+二分</u>
+  
+- 2269\.找到一个数字的K美丽值
+
+  签到 数学(取模)
+  
 - 2597\.美丽子集的数目
 
   爆搜 / <u>DP+组合数学</u>
@@ -8965,6 +8973,212 @@ class Solution {
             for(int&x:nums) {
                 s ^= x;
                 --bin[s];
+            }
+            return ans;
+        }
+    };
+```
+
+##### 2070\.每一个查询的最大美丽值
+
+[题目](https://leetcode.cn/problems/most-beautiful-item-for-each-query)
+
+离线：
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    vector<int> maximumBeauty(vector<vector<int>>& items, vector<int>& queries) {
+        int m = queries.size(), n = items.size();
+        vector<pair<int, int>> q(m);
+        for(int i = 0; i < m; ++i) {
+            q[i] = {queries[i], i};
+        }
+        sort(q.begin(), q.end());
+        sort(items.begin(), items.end());
+        vector<int> ans(m);
+        int i = 0, maxBeauty = 0;
+        for(int qi = 0; qi < m; ++qi) {
+            while(i < n && items[i][0] <= q[qi].first) {
+                maxBeauty = max(maxBeauty, items[i][1]);
+                ++i;
+            }
+            ans[q[qi].second] = maxBeauty;
+        }
+        return ans;
+    }
+};
+```
+
+在线：前缀max上二分，可以再去掉递减信息降低前缀和长度
+
+```c++
+class Solution {
+public:
+    vector<int> maximumBeauty(vector<vector<int>>& items, vector<int>& queries) {
+        ranges::sort(items, {}, [](auto& item) { return item[0]; });
+        for (int i = 1; i < items.size(); i++) {
+            // 原地计算 beauty 的前缀最大值
+            items[i][1] = max(items[i][1], items[i - 1][1]);
+        }
+
+        for (int& q : queries) {
+            int j = ranges::upper_bound(items, q, {}, [](auto& item) { return item[0]; }) - items.begin();
+            q = j ? items[j - 1][1] : 0;
+        }
+        return queries;
+    }
+};
+```
+
+```c++
+class Solution {
+public:
+    vector<int> maximumBeauty(vector<vector<int>>& items, vector<int>& queries) {
+        ranges::sort(items, {}, [](auto& item) { return item[0]; });
+        int k = 0;
+        for (int i = 1; i < items.size(); i++) {
+            if (items[i][1] > items[k][1]) { // 有用
+                items[++k] = items[i];
+            }
+        }
+
+        for (int& q : queries) {
+            int j = upper_bound(items.begin(), items.begin() + (k + 1), q, [](int value, auto& item) {
+                return value < item[0];
+            }) - items.begin();
+            q = j ? items[j - 1][1] : 0;
+        }
+        return queries;
+    }
+};
+```
+
+##### 2234\.花园里的最大总美丽值
+
+[题目](https://leetcode.cn/problems/maximum-total-beauty-of-the-gardens)
+
+排序。枚举不完善花园的最少数目，用后缀和+指针维护达成这个最少数目需要多少花，然后同样用指针维护在这之前的部分能最大搞多少个完善花园，注意在这之后的部分，除了最后一盆之外，也都能用除法计算出能额外搞多多少个完善花园。注意特判，细节参见代码。
+
+```c++
+
+#include<bits/stdc++.h>
+using namespace std;
+using ll = long long;
+class Solution {
+public:
+    ll maximumBeauty(vector<int>& flowers, ll newFlowers, int target, int full, int partial) {
+        int n = flowers.size();
+        sort(flowers.begin(), flowers.end());
+        reverse(flowers.begin(), flowers.end());
+        vector<ll> sumLeft(n, 0);
+        for(int i = 0; i < n; ++i) {
+            sumLeft[i] = (i == 0 ? 0 : sumLeft[i - 1]);
+            sumLeft[i] += max(0LL, target*1LL - flowers[i]);
+        }
+        ll iFull = upper_bound(sumLeft.begin(), sumLeft.end(), newFlowers) - sumLeft.begin() - 1;
+        ll costFull = iFull>=0 ? sumLeft[iFull] : 0;
+        ll ans = (iFull+1) * full;
+        //cout << "iFull=" << iFull << " ans=" << ans << '\n';
+        // i: 第一个下标，大于当前花的最少数目
+        ll sumRight = 0, costRight = 0, i = n - 1;
+        auto moveIFull = [&]() {
+            if(iFull < 0) return;
+            costFull -= target - flowers[iFull];
+            --iFull;
+        };
+        if(iFull == n - 1) moveIFull();
+        //cout << "iFull=" << iFull << " ans=" << ans << '\n';
+        for(ll minNum = 1; minNum < target; ++minNum) {
+            while(i >= 0 && flowers[i] < minNum) {
+                sumRight += flowers[i];
+                --i;
+            }
+            if(i==n-1 && flowers[i] > minNum) continue;
+            costRight = minNum * (n - 1 - i) - sumRight;
+            while(iFull > i) moveIFull();
+            
+            while(costFull + costRight > newFlowers) {
+                moveIFull();
+                if (iFull < 0) break;
+            }
+            if(costFull + costRight > newFlowers) break;
+            ll costRemain = newFlowers - costFull - costRight;
+            ll numFull = iFull + 1 + (costRemain / (target - minNum));
+            numFull = min(numFull, n - 1LL);
+            ll total = numFull * full + minNum * partial;
+            ans = max(ans, total);
+            //cout << "minNum=" << minNum << " iFull=" << iFull << " i=" << i << " costRight=" << costRight << " costFull=" << costFull << " total=" << total << '\n';
+        }
+        return ans;
+    }
+};
+```
+
+##### 2269\.找到一个数字的K美丽值
+
+[题目](https://leetcode.cn/problems/find-the-k-beauty-of-a-number)
+
+需要 long long
+
+```c++
+class Solution {
+public:
+    int divisorSubstrings(int num, int k) {
+        long long x=0,ans=0,kp=10;
+        string s = to_string(num);
+        int n=s.size();
+        for(int i=0;i<k-1;++i) {
+            kp*=10;
+            x=x*10+(s[i]-'0');
+        }
+        for(int i=k-1;i<n;++i) {
+            x=(x*10+(s[i]-'0'))%kp;
+            ans+=x&&(num%x==0);
+        }
+        return ans;
+    }
+};
+```
+
+更好的写法：模数扩大10倍每次，然后去掉最低数
+
+```c++
+class Solution {
+public:
+    int divisorSubstrings(int num, int k) {
+        long long m = pow(10, k);
+        int ans = 0;
+        for (int n = num; n >= m / 10; n /= 10) {
+            int x = n % m;
+            if (x > 0 && num % x == 0) {
+                ans++;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+字符串：
+
+```c++
+class Solution {
+public:
+    int divisorSubstrings(int num, int k) {
+        string s = to_string(num);
+        int ans = 0;
+        for (int i = k; i <= s.size(); i++) {
+            int x = stoi(s.substr(i - k, k)); // 长为 k 的子串
+            if (x > 0 && num % x == 0) { // 子串能整除 num
+                ans++;
+            }
+        }
+        return ans;
+    }
+};
             }
             return ans;
         }
