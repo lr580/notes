@@ -596,10 +596,67 @@ source my_env/bin/activate
 
 ##### 镜像
 
+###### 列表
+
 ```sh
 conda config --set show_channel_urls yes
 conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
 conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
+```
+
+> ```sh
+> conda config --remove-key channels
+> conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+> conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
+> conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/msys2
+> conda config --set show_channel_urls yes
+> # conda config --set channel_priority strict
+> ```
+
+> ```sh
+> #清华源
+> conda config --add channels  https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+> conda config --add channels  https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free
+> conda config --add channels  https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
+> conda config --add channels  https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/pro
+> conda config --add channels  https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/msys2
+> ```
+
+###### 指令
+
+刷新
+
+```sh
+conda clean -i
+conda update conda -v
+```
+
+查询：[参考](https://blog.csdn.net/lsb2002/article/details/130813001)
+
+```sh
+conda config --show-sources
+```
+
+每次输出用了哪个检索：
+
+```sh
+conda config --set show_channel_urls yes
+```
+
+删除：
+
+```sh
+conda config --remove channels https://mirrors.ustc.edu.cn/anaconda/pkgs/main/
+```
+
+
+
+##### mamba
+
+比 conda 装包更快
+
+```sh
+conda install -n base -c conda-forge mamba -y
 ```
 
 
@@ -4654,6 +4711,18 @@ gcd(-3,-6) #3
 
 3.8+ comb(a,b) 求a个数选b个的组合数，要求a,b非负整数，有comb(0,0)=comb(i,0)=1
 
+atan2(y,x) 返回弧度，如 `atan2(0,1)=pi/2`，
+
+> - 从y负半轴到x正半轴在第二象限顺时针旋转，值从 pi 到 pi/2 降低
+>
+> - 从y正半轴到x正半轴在第一象限顺时针旋转，值从 pi/2 到 0 降低
+>
+> - 从y正半轴到x负半轴在第四象限顺时针旋转，值从 0 到 -pi/2 降低
+>
+> - 从x负半轴到y负半轴在第三象限顺时针旋转，值从 -pi/2 到 -pi 降低
+>
+>   到达y负半轴的瞬间，值变成最大 pi
+
 #### random
 
 无需置随机数种子，也可置，可非 int 如 `random.seed(time.time())`
@@ -4960,6 +5029,20 @@ os.chown(file_path, 1000, 1000)
 > # 创建硬链接
 > os.link('original_file.txt', 'hard_link.txt')
 > ```
+
+##### 环境变量
+
+`os.environ` 是 Python 中 `os` 模块提供的一个字典对象，用于访问和操作当前进程的环境变量。环境变量是操作系统或用户设置的键值对；实际上会有系统变量如 PATH 等内容。
+
+设置的环境变量仅在当前进程及其子进程中有效，不会影响操作系统的全局环境变量。
+
+一些变量：
+
+`os.environ['PYTHONHASHSEED']` 是 Python 中的一个环境变量，用于控制 Python 哈希算法的种子（seed）。哈希种子是哈希函数生成哈希值时使用的初始值，它会影响哈希函数的输出结果
+
+```python
+os.environ['PYTHONHASHSEED'] = '42'
+```
 
 
 
@@ -16399,6 +16482,8 @@ torch.cuda.empty_cache() # 清理
 #疑似无用print(torch.cuda.memory_reserved(0) / (1024**3)) # 当前可用
 ```
 
+> 此外还有一些基于 torch 的衍生库，需要额外安装
+
 ##### 显卡查询
 
 查看当前 n 卡显存，shell 输入 `nvidia-smi`，如下面表示利用率 99%，17G/24G
@@ -16762,6 +16847,16 @@ print(x,y) #tensor([1160]) tensor([580], device='cuda:0')
 model = torch.nn.Linear(3, 1)  # 默认在 CPU 上
 model = model.to("cuda")
 ```
+
+##### 梯度
+
+可以对函数用
+
+```python
+@torch.no_grad() 
+```
+
+或者 with 语句。
 
 #### 运算
 
@@ -17176,6 +17271,8 @@ x.unfold(1,5,5).shape #torch.Size([3, 5, 7, 11, 5])
 
 ##### 线代
 
+逐元素点乘： `P*Q`
+
 转置： `.T` 或 `.t()`
 
 ```python
@@ -17201,7 +17298,7 @@ print(torch.mv(y, x))  # 反过来是可以的,结果一致
 print(y@x)  # 反过来是不行的
 ```
 
-矩阵乘法：
+矩阵乘法：(`x@y`)
 
 ```python
 x = torch.tensor([[1, 2, 3], [4, 5, 6]])
@@ -17332,18 +17429,6 @@ loss.backward()
 ```
 
 ##### 随机
-
-###### 种子
-
-固定法：[参考](https://github.com/LMissher/PatchSTG)
-
-```python
-random.seed(args.seed)
-np.random.seed(args.seed)
-torch.manual_seed(args.seed)
-torch.cuda.manual_seed(args.seed)
-torch.backends.cudnn.deterministic = True
-```
 
 
 
@@ -17896,7 +17981,12 @@ print(mean, variance) # 均值约0，方差在1附近(不严格)
 
 ###### BatchNorm2d
 
-每个通道独立变成均值0方差1，也就是对 `[b,c,h,w]` 的全体 `c` 个 `[b,h,w]` 独立求出每个的均值方差然后做变换
+每个通道独立变成均值0方差1，也就是对 `[b,c,h,w]` 的全体 `c` 个 `[b,h,w]` 独立求出每个的均值方差然后做变换，设第 $c$ 个通道的均值和方差是：
+$$
+\mu_c=\dfrac1{BHW}\sum_{b=1}^B\sum_{h=1}^H\sum_{w=1}^Wx_{b,c,h,w}
+\sigma_c^2=\dfrac1{BHW}\sum_{b=1}^B\sum_{h=1}^H\sum_{w=1}^W(x_{b,c,h,w}-\mu_c)^2
+$$
+则 $\hat x_{b,c,h,w}=\dfrac{x_{b,c,h,w}-\mu_c}{\sqrt{\sigma^2+\epsilon}}$，其中如 $\epsilon=10^{-5}$。还可以用可学习参数再变换 $y_{b,c,h,w}=\gamma_c\hat x_{b,c,h,w}+\beta_c$，不要的话 `affine=False` 参数；不要某一个的话可以赋值+禁止梯度更新。
 
 poe 用于加速训练过程并提高模型稳定性。
 
@@ -17945,6 +18035,28 @@ print("Output tensor:\n", output_tensor)
 - **填充（padding）**：在输入特征图的边缘添加的零，以控制输出特征图的尺寸。
 
   显然核大小，步幅，填充是 h,w 两个数的 tuple
+
+形状变化，假设步幅1，核大小(h,w)：(n, 输入通道数, a, b) -> (n, 输出通道, a-h+1,b-w+1)；若h=1，就是TCN，其中a是空间维度，n是批大小，b是时间维度
+
+```python
+import torch
+import torch.nn as nn
+batch_size = 2
+input_time_steps = 40
+num_nodes = 6
+in_channels = 8
+X = torch.arange(batch_size * input_time_steps * num_nodes * in_channels).reshape(batch_size, input_time_steps, num_nodes, in_channels).float()
+X = X.permute(0, 3, 2, 1)
+print("Input shape:", X.shape) # 2， 8， 6， 40
+
+out_channels = 10
+kernel_size = 3
+conv = nn.Conv2d(in_channels, out_channels, (1, kernel_size))
+Y = conv(X)
+print("Output shape:", Y.shape) # 2， 10， 6， 38
+```
+
+有 padding 的例子, h!=1 的：
 
 ```python
 import torch
@@ -18499,15 +18611,45 @@ loaded_model = torch.jit.load("traced_model.pt")
 
 #### 设置
 
+##### 种子
+
+固定法：[参考](https://github.com/LMissher/PatchSTG)
+
+```python
+random.seed(args.seed)
+np.random.seed(args.seed)
+torch.manual_seed(args.seed)
+torch.cuda.manual_seed(args.seed)
+```
+
+##### CUDA
+
+```python
+torch.backends.cudnn.deterministic = True
+```
+
+- 当设置为 `True` 时，cuDNN 会使用确定性的算法，确保每次运行的结果完全相同。
+- 当设置为 `False` 时，cuDNN 可能会使用非确定性的算法，导致每次运行的结果略有不同
+
+```python
+torch.backends.cudnn.benchmark = False
+```
+
+- **`benchmark=True`**：适用于输入尺寸固定的场景（如图像分类任务），因为 cuDNN 只需要在第一次运行时进行优化，后续运行会直接使用优化后的算法。
+- **`benchmark=False`**：适用于输入尺寸变化的场景（如自然语言处理任务或动态输入尺寸的任务），因为 cuDNN 的优化过程可能会带来额外的开销。
+
+##### 精度
+
 ```python
 torch.set_printoptions(2)  # 精简输出精度
 ```
 
-```python
-torch.manual_seed(0)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-torch.backends.cudnn.benchmark = True # 使用cudnn加速卷积运算
-```
+> ```python
+> torch.manual_seed(0)
+> device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+> torch.backends.cudnn.benchmark = True # 使用cudnn加速卷积运算
+> ```
+>
 
 #### 例子
 
@@ -18578,6 +18720,63 @@ for epoch in range(5):  # loop over the dataset multiple times
 torch.save(net.state_dict(), './step3/cnn.pkl')
 print('Finished Training')
 ```
+
+### PyG
+
+[github官网](https://github.com/pyg-team/pytorch_geometric) [文档](https://www.pyg.org/) pytorch_geometric 专门用于处理图结构数据（Graph-Structured Data）和开发图神经网络（Graph Neural Networks, GNNs）
+
+- 此外还有基于此的其他的第三方库，如 pytorch_geometric_temporal [src](pytorch_geometric_temporal)
+
+安装：(看 readme.md 的其他或)
+
+```sh
+pip install torch_geometric
+```
+
+> 可能需要安装 C++ VS 工具来编译，如果不希望编译，可以直接用预编译包，对给定 pytorch 版本，如一些前置依赖的安装：
+>
+> ```sh
+> pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.5.1+cu124.html
+> ```
+>
+> `torch-scatter` 和 `torch-sparse` 是 PyTorch 生态系统中两个非常实用的库，专门用于处理稀疏张量和图数据。它们由 PyTorch Geometric (PyG) 团队开发
+
+##### ChebConv
+
+[文档](https://pytorch-geometric.readthedocs.io/en/latest/generated/torch_geometric.nn.conv.ChebConv.html?highlight=chebconv#torch_geometric.nn.conv.ChebConv)
+
+```python
+from torch_geometric.nn import ChebConv
+```
+
+参数：输入通道、输出通道、卷积核大小 K、标准化方法、偏差
+
+标准化
+
+- `None` $L=D-A$
+- `sym` $L=I-D^{-1/2}AD^{-1/2}$
+- `rw` random-walk $L=I-D^{-1}A$
+
+$\tilde L=\dfrac{2L}{\lambda_\max}-I$
+
+$X'=\sum_{k=1}^KZ^{(k)}\Theta^{(k)}$，其中 $Z^{(1)}=X,Z^{(2)}=\tilde LX,Z^{(k)}=2\tilde LZ^{(k-1)}-Z^{(k-2)}$
+
+```python
+import torch
+from torch_geometric.nn import ChebConv
+in_channels = 16
+out_channels = 32
+K = 3
+conv = ChebConv(in_channels, out_channels, K)
+
+x = torch.randn(10, in_channels) #10 个节点，每个节点有 16 维特征
+edge_index = torch.tensor([[0, 1, 1, 2, 3, 4], [1, 0, 2, 1, 4, 3]], dtype=torch.long)  # 图的边，六条有向边
+
+out = conv(x, edge_index)
+print(out.shape)  # 输出: torch.Size([10, 32])
+```
+
+
 
 ### easytorch
 

@@ -2727,6 +2727,14 @@
 - 152\.乘积最大子数组
 
   DP
+  
+- 2012\.数组美丽值求和
+
+  前缀和
+  
+- 3306\.元音辅音字符串计数II
+
+  滑动窗口
 
 ## 算法
 
@@ -9406,5 +9414,314 @@ public:
         return ans;
     }
 };
+```
+
+##### 2012\.数组美丽值求和
+
+[题目](https://leetcode.cn/problems/sum-of-beauty-in-the-array)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+    public:
+        int sumOfBeauties(vector<int>& nums) {
+            int n = nums.size(), mx = nums[0], ans = 0;
+            vector<int> mi(n, 0);
+            mi[n-1]=nums[n-1];
+            for(int i=n-2;i>=0;--i) {
+                mi[i] = min(nums[i], mi[i+1]);
+            }
+            for(int i=1;i<=n-2;++i) {
+                if(mx < nums[i] && nums[i] < mi[i+1])
+                    ans+=2;
+                else if(nums[i-1] < nums[i] && nums[i] < nums[i+1])
+                    ++ans;
+                mx = max(mx, nums[i]);
+            }
+            return ans;
+        }
+    };
+```
+
+##### 3306\.元音辅音字符串计数II
+
+[题目](https://leetcode.cn/problems/count-of-substrings-containing-every-vowel-and-k-consonants-ii)
+
+> I 可以暴力枚举字符串：我的 go (37ms 比题解 56ms 快)
+>
+> ```go
+> package main
+> 
+> func countOfSubstrings(word string, k int) int {
+> 	n := len(word)
+> 	ans := 0
+> 	var isAeiou = func(c byte) bool {
+> 		switch c {
+> 		case 'a', 'e', 'i', 'o', 'u':
+> 			return true
+> 		}
+> 		return false
+> 	}
+> 	for l := 0; l < n; l++ {
+> 		cnt := make(map[byte]int)
+> 		ac := 0
+> 		cnt2 := 0
+> 
+> 		for r := l; r < n; r++ {
+> 			if isAeiou(word[r]) {
+> 				if cnt[word[r]] == 0 {
+> 					ac++
+> 				}
+> 				cnt[word[r]]++
+> 			} else {
+> 				cnt2++
+> 			}
+> 			if ac == 5 && cnt2 == k {
+> 				ans++
+> 			}
+> 			if cnt2 > k {
+> 				break
+> 			}
+> 		}
+> 	}
+> 	return ans
+> }
+> ```
+>
+> 题解：(我加了 break)
+>
+> ```go
+> func countOfSubstrings(word string, k int) int {
+>     vowels := map[byte]bool{'a': true, 'e': true, 'i': true, 'o': true, 'u': true}
+>     n := len(word)
+>     res := 0
+>     for i := 0; i < n; i++ {
+>         occur := map[byte]bool{}
+>         consonants := 0
+>         for j := i; j < n; j++ {
+>             if vowels[word[j]] {
+>                 occur[word[j]] = true
+>             } else {
+>                 consonants++
+>             }
+>             if len(occur) == 5 && consonants == k {
+>                 res++
+>             }
+>             if consonants > k {
+>                 break
+>             }
+>         }
+>     }
+>     return res
+> }
+> ```
+
+双指针维护满足有所有元音的最右边 $lV$，则对给定 $r$，满足元音条件的左边取值范围是 $[0,lV]$。
+
+再任意手段维护出现 $k$ 次辅音的区间段 $[lC1,lC2]$。把这两个取值范围合并即可。
+
+650ms
+
+```go
+package main
+
+func countOfSubstrings(word string, k int) int64 {
+	vowel := map[byte]bool{'a': true, 'e': true, 'i': true, 'o': true, 'u': true}
+	var ans int64
+	n := len(word)
+	numVowel := map[byte]int{}
+	cntVowel := 0
+	cons := []int{} // 所有辅音的下标
+	lV := 0         //保持全部元音的最右
+	lC1 := 0        // 保持k个辅音的最左
+	lC2 := 0        // 保持k个辅音的最右
+	var failVowelAfterRemove = func() bool {
+		c := word[lV]
+		if !vowel[c] { // 辅音不影响，不会影响
+			return false
+		}
+		return numVowel[c] == 1
+	}
+	for r := 0; r < n; r++ {
+		c := word[r]
+		if vowel[c] {
+			if numVowel[c] == 0 {
+				cntVowel++
+			}
+			numVowel[c]++
+		} else {
+			cons = append(cons, r)
+			if len(cons) >= k {
+				//最右>=k个辅音的下标
+				i := len(cons) - k - 1
+				if i < 0 { // len == k
+					lC1 = 0
+				} else {
+					lC1 = cons[i] + 1
+				}
+				if k != 0 {
+					lC2 = cons[i+1]
+				}
+			}
+		}
+
+		for ; lV < r && !failVowelAfterRemove(); lV++ {
+			c = word[lV]
+			if vowel[c] {
+				numVowel[c]--
+				if numVowel[c] == 0 {
+					cntVowel--
+				}
+			}
+		}
+		if cntVowel == 5 && len(cons) >= k {
+			if k != 0 {
+				ans += int64(max(0, min(lV, lC2)-lC1+1))
+			} else {
+				ans += int64(max(0, lV-lC1+1))
+			}
+		}
+	}
+	return ans
+}
+```
+
+等价于求：
+
+- 各元音字母至少出现一次，至少包含 $k$ 个辅音的个数 $f_k$
+- 各元音字母至少出现一次，至少包含 $k+1$ 个辅音的个数 $f_{k+1}$
+- 当前答案为 $f_k-f_{k+1}$
+
+```go
+func f(word string, k int) (ans int64) {
+	// 这里用哈希表实现，替换成数组会更快
+	cnt1 := map[byte]int{} // 每种元音的个数
+	cnt2 := 0 // 辅音个数
+	left := 0
+	for _, b := range word {
+		if strings.ContainsRune("aeiou", b) {
+			cnt1[byte(b)]++
+		} else {
+			cnt2++
+		}
+		for len(cnt1) == 5 && cnt2 >= k {
+			out := word[left]
+			if strings.ContainsRune("aeiou", rune(out)) {
+				cnt1[out]--
+				if cnt1[out] == 0 {
+					delete(cnt1, out)
+				}
+			} else {
+				cnt2--
+			}
+			left++
+		}
+		ans += int64(left)
+	}
+	return
+}
+
+func countOfSubstrings(word string, k int) int64 {
+	return f(word, k) - f(word, k+1)
+}
+```
+
+位运算优化：把字母表看成 26 位整数，故在不在 aeiou 就看看当前字母是不是地 aeiou 个数位，按位与>0即可，能把上述代码 400ms 优化到 50ms
+
+```go
+func f(word string, k int) (ans int64) {
+	const vowelMask = 1065233
+	cnt1 := ['u' - 'a' + 1]int{}
+	size1 := 0 // 元音种类数
+	cnt2 := 0
+	left := 0
+	for _, b := range word {
+		b -= 'a'
+		if vowelMask>>b&1 > 0 {
+			if cnt1[b] == 0 {
+				size1++
+			}
+			cnt1[b]++
+		} else {
+			cnt2++
+		}
+		for size1 == 5 && cnt2 >= k {
+			out := word[left] - 'a'
+			if vowelMask>>out&1 > 0 {
+				cnt1[out]--
+				if cnt1[out] == 0 {
+					size1--
+				}
+			} else {
+				cnt2--
+			}
+			left++
+		}
+		ans += int64(left)
+	}
+	return
+}
+
+func countOfSubstrings(word string, k int) int64 {
+	return f(word, k) - f(word, k+1)
+}
+```
+
+也可以同时滑两个
+
+```go
+func countOfSubstrings(word string, k int) (ans int64) {
+	const vowelMask = 1065233
+	var cntVowel1, cntVowel2 ['u' - 'a' + 1]int
+	sizeVowel1, sizeVowel2 := 0, 0 // 元音种类数
+	cntConsonant1, cntConsonant2 := 0, 0
+	left1, left2 := 0, 0
+	for _, b := range word {
+		b -= 'a'
+		if vowelMask>>b&1 > 0 {
+			if cntVowel1[b] == 0 {
+				sizeVowel1++
+			}
+			cntVowel1[b]++
+			if cntVowel2[b] == 0 {
+				sizeVowel2++
+			}
+			cntVowel2[b]++
+		} else {
+			cntConsonant1++
+			cntConsonant2++
+		}
+
+		for sizeVowel1 == 5 && cntConsonant1 >= k {
+			out := word[left1] - 'a'
+			if vowelMask>>out&1 > 0 {
+				cntVowel1[out]--
+				if cntVowel1[out] == 0 {
+					sizeVowel1--
+				}
+			} else {
+				cntConsonant1--
+			}
+			left1++
+		}
+
+		for sizeVowel2 == 5 && cntConsonant2 > k {
+			out := word[left2] - 'a'
+			if vowelMask>>out&1 > 0 {
+				cntVowel2[out]--
+				if cntVowel2[out] == 0 {
+					sizeVowel2--
+				}
+			} else {
+				cntConsonant2--
+			}
+			left2++
+		}
+
+		ans += int64(left1 - left2)
+	}
+	return
+}
 ```
 

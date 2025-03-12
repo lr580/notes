@@ -128,6 +128,8 @@ func main() {
 3. 标识符不能是保留字和关键字  
 4. 区分大小写
 
+> 实际上可以中文命名变量名
+
 建议：
 
 1. 变量名称建议用名词， 方法名称建议用动词  
@@ -147,7 +149,8 @@ func main() {
    go fmt main.go
    ```
 
-   
+
+
 
 ##### var
 
@@ -261,6 +264,22 @@ func main() {
 匿名变量不占用命名空间， 不会分配内存， 所以匿名变量之间不存在重复声明  
 
 _多用于占位， 表示忽略值。  
+
+##### 全局变量
+
+全局变量是定义在函数外部的变量， 它在程序整个运行周期内都有效。 在函数中可以访问到全局变量  
+
+```go
+package main
+import "fmt"
+var lr = 58
+func main() {
+	lr *= 10
+	fmt.Println(lr)
+}
+```
+
+如果局部变量和全局变量重名， 优先访问局部变量，也就是大括号作用域。和 C 一样，可以凭空加大括号区分作用域
 
 #### 常量
 
@@ -456,6 +475,38 @@ var c = int32(a) + b*1000 // 不转报错
 fmt.Println(c)
 ```
 
+##### 初始值
+
+当你声明了一个变量 , 但却还并没有赋值时 , golang 中会自动给你的变量赋值一个默认零值。 这是每种类型对应的零值  
+
+```go
+bool -> false
+numbers -> 0
+string-> ""
+pointers -> nil
+slices -> nil
+maps -> nil
+channels -> nil
+functions -> nil
+interfaces -> nil
+```
+
+array 不能和 nil 比较，切片可以
+
+##### type
+
+类似 C/C++ typedef, using
+
+```go
+type i32 int32
+type dbFunc func(int, int) int
+```
+
+```go
+var vv i32 = 666
+fmt.Println(vv)
+```
+
 
 
 #### 整型
@@ -620,6 +671,8 @@ fmt.Printf("值：%v 类型：%T\n", b, b)
 
 #### 字符
 
+##### 常规
+
 单引号，可以是汉字
 
 uint8 类型， 或者叫 byte 型， 代表了 ASCII 码的一个字符。
@@ -650,9 +703,404 @@ fmt.Println()
 49(1)50(2)51(3)52(4)53(5)32( )19979(下)28023(海)25171(打)40120(鲸)40060(鱼)*/
 ```
 
+##### 常用方法
+
+反向使用字符串 contains，可以求当前字符是否是某几个字符的一个
+
+```go
+if strings.ContainsRune("aeiou", b) { // ...
+```
+
+
+
+### 数组
+
+#### array
+
+##### 初始化
+
+数组的长度是类型的一部分， 也就是说 [5]int 和 [10]int 是两个不同的类型  
+
+> 数组对应的类型是 Slice（切片） ， Slice 是可以增长和收缩的动态序列  
+
+0-indexed，越界panic
+
+指定长度、初始值来初始化：
+
+```go
+var a [3]int
+var b = [3]int{5, 8}
+for i := 0; i < 3; i++ {
+    fmt.Println(a[i] + b[i]) // 5 8 0
+}
+var c = []string{"白茶", "绿茶", "阿帕茶"}
+fmt.Println(c) // 可以直接输出数组 [白茶 绿茶 阿帕茶]
+var intArr2 [5]int = [...]int{1, -1, 9, 90, 12}
+```
+
+可以省略长度
+
+```go
+var d = [...]int{1437, 580}
+fmt.Printf("%T\n", d) // [2]int
+arr := [...]int{1, 3, 5, 7, 8}
+```
+
+可以离散地赋值
+
+```go
+var e = [...]int{1: 10, 5: 80}
+var f = [8]int{7: 9}
+fmt.Println(e, f) // [0 10 0 0 0 80] [0 0 0 0 0 0 0 9]
+```
+
+##### 使用
+
+输出 `%T` 可以得到长度信息，`len` 函数也可以得到长度，下面是两种遍历
+
+```go
+a := [3]int{1, 2, 3}
+b := a // 复制
+b[0] = 100
+fmt.Println(a, b)   // [1 2 3] [100 2 3]
+fmt.Println(a != b) // 但是不支持 >, <
+b[0] = a[0]
+fmt.Println(a == b)
+for i := 0; i < len(a); i++ {
+    fmt.Println(a[i])
+}
+for i, v := range a {
+    fmt.Println(i, v)
+}
+```
+
+##### 多维
+
+只有第一次层可以推导长度，不可以用到其他维度
+
+```go
+s := [...][2]string{
+    {"张三", "张量"},
+    {"李四", "李性思维"},
+    {"王舞", "酒吧舞"},//需要逗号这一行，无论[3][2]还是[...][2]都需要
+}
+fmt.Println(len(s), s) // 3 [[张三 张量] [李四 李性思维] [王舞 酒吧舞]]
+```
+
+##### 传值
+
+不管几维，函数会复制整个数组
+
+```go
+func t2(x [3]int) { // 一定要写固定的长度，不能写[]int，多维同理
+	for i := 0; i < len(x); i++ {
+		x[i] *= 2
+	}
+	fmt.Println(x)
+}
+// ...
+t2(a) // [2 4 6]
+fmt.Println(a) // [1 2 3]
+```
+
+#### 切片
+
+切片 slice 是一个拥有相同类型元素的可变长度的序列。 它是基于数组类型做的一层封装。它非常灵活， 支持自动扩容。
+
+切片是一个引用类型， 它的内部结构包含地址、 长度和容量
+
+切片的本质就是对底层数组的封装， 它包含了三个信息： 底层数组的指针、 切片的长度（len）和切片的容量（cap）  
+
+##### 定义
+
+如果不初始化是空，初始化一个空就不是
+
+```go
+var a []string
+var b = []int{}
+var c = []bool{false, true}
+fmt.Println(a, b, c)              // [] [] [false true]
+fmt.Println(a == nil, b == nil)   // true false
+fmt.Printf("%T %T %T\n", a, b, c) // []string []int []bool
+```
+
+##### 运算
+
+遍历与数组一样。不支持slice之间比较 `==, !=`，但可以与 nil 比较(见上面代码)
+
+一个 nil 值的切片并没有底层数组；一个 nil 值的切片长度和容量都是 0。 但不能说一个长度和容量都是 0 的切片一定是 nil。所以要判断一个切片是否是空的， 要是用 len(s) == 0 来判断， 不应该使用 s == nil 来判断。  
+
+```go
+var s1 []int //len(s1)=0;cap(s1)=0;s1==nil
+s2 := []int{} //len(s2)=0;cap(s2)=0;s2!=nil
+s3 := make([]int, 0) //len(s3)=0;cap(s3)=0;s3!=nil
+```
+
+可以用类似 python 代码的方法用数组转切片，修改数组的切片影响数组本身
+
+```go
+ar := [5]int{99, 82, 44, 35, 3}
+ar1 := ar[1:4]
+ar1[0] *= 10 // 修改原数组，对 ar, ar1-4 都影响
+ar2 := ar[1:]
+ar3 := ar[:4]
+ar4 := ar[:]
+fmt.Println(ar1, ar2, ar3, ar4)
+// [820 44 35] [820 44 35 3] [99 820 44 35] [99 820 44 35 3]
+```
+
+切片的长度就是它所包含的元素个数。
+
+切片的容量是从它的第一个元素开始数， 到其底层数组元素末尾的个数。切片 s 的长度和容量可通过表达式 len(s) 和 cap(s) 来获取
+
+切片可以再切，基于切片下标继续索引
+
+切片是引用数据类型，修改切片会修改它的底层数组
+
+```go
+a := [...]string{"北京", "上海", "广州", "深圳", "成都", "重庆"}
+fmt.Printf("a:%v type:%T len:%d cap:%d\n", a, a, len(a), cap(a))
+b := a[1:3]
+fmt.Printf("b:%v type:%T len:%d cap:%d\n", b, b, len(b), cap(b))
+c := b[1:5]
+fmt.Printf("c:%v type:%T len:%d cap:%d\n", c, c, len(c), cap(c))
+//a:[北京 上海 广州 深圳 成都 重庆] type:[6]string len:6 cap:6
+//b:[上海 广州] type:[]string len:2 cap:5
+//c:[广州 深圳 成都 重庆] type:[]string len:4 cap:4
+//第一个切片显然，从起点开始还有5个元素；第二个就是还有4个(cap)
+// fmt.Println(b[2]) 不可以：越界
+fmt.Println(c[0]) // 广州
+c[0] = "星环城"
+fmt.Println(a) // [北京 上海 星环城 深圳 成都 重庆]
+```
+
+##### make
+
+不基于数组，动态创建切片，传入 T, size (元素数), cap (容量) 三个参数
+
+```go
+d := make([]int, 3, 5)
+d[2] = 580
+fmt.Println(d, len(d), cap(d)) // [0 0 580] 3 5
+```
+
+##### 添加
+
+内建函数 append()可以为切片动态添加元素，每个切片会指向一个底层数组，这个数组的容量够用就添加新增元素。当底层数组不能容纳新增的元素时，切片就会自动扩容，扩完了再 append，所以我们通常都需要用原变量接收 append 函数的返回值 
+
+```go
+a := make([]int, 3, 5)
+for i := 1; i <= 10; i++ {
+    a = append(a, i)
+    fmt.Printf("%v %d %d %p\n", a, len(a), cap(a), a)
+}
+```
+
+append()函数还支持一次性追加多个元素 ，以及追加切片
+
+```go
+var b []int
+b = append(b, 12, 34, 56)
+fmt.Println(b)
+c := []int{44, 888}
+b = append(b, c...)
+fmt.Println(b)
+```
+
+没有删除切片元素的专用方法， 使用切片本身的特性来删除元素  
+
+```go
+a := []int{30, 31, 32, 33, 34, 35, 36, 37}
+// 要删除索引为 2 的元素
+a = append(a[:2], a[3:]...)
+fmt.Println(a) //[30 31 33 34 35 36 37]
+```
+
+##### 扩容
+
+扩容策略：可查看 $GOROOT/src/runtime/slice.go 源码
+
+> ```go
+> newcap := old.cap
+> doublecap := newcap + newcap
+> if cap > doublecap {
+>     newcap = cap
+> } else {
+>     if old.len < 1024 {
+>         newcap = doublecap
+>     } else {
+>         // Check 0 < newcap to detect overflow
+>         // and prevent an infinite loop.
+>         for 0 < newcap && newcap < cap {
+>             newcap += newcap / 4
+>         }
+>         // Set newcap to the requested cap when
+>         // the newcap calculation overflowed.
+>         if newcap <= 0 {
+>             newcap = cap
+>         }
+>     }
+> }
+> ```
+>
+> 1. 如果新申请容量（cap） 大于 2 倍的旧容量（old.cap） ， 最终容量（newcap）就是新申请的容量（cap）  
+> 2. 否则判断， 如果旧切片的长度小于 1024， 则最终容量(newcap)就是旧容量(old.cap)的两倍
+> 3. 否则判断， 如果旧切片长度大于等于 1024， 则最终容量（newcap） 从旧容量（old.cap）开始循环增加原来的 1/4， 直到最终容量（newcap） 大于等于新申请的容量(cap)
+> 4. 如果最终容量（cap） 计算值溢出， 则最终容量（cap） 就是新申请容量（cap） 
+>
+> 切片扩容还会根据切片中元素的类型不同而做不同的处理， 比如 int 和 string类型的处理方式就不一样。  
+
+##### 复制
+
+```go
+b := []int{1, 4, 3, 7}
+c := make([]int, 4, 4)
+copy(c, b)
+c[0] *= 2
+fmt.Println(b, c)
+```
+
+##### 排序
+
+sort 包可以对切片(但不能数组)排序 [文档](https://golang.org/src/sort)
+
+```go
+import (
+	"fmt"
+	"sort"
+)
+func h3() {
+	a := []int{1, 4, 3, 7, 5, 8, 1}
+	sort.Ints(a)
+	fmt.Println(a)
+}
+```
+
+其他类型，如 `sort.Float64s`, `sort.Strings`。
+
+逆序排序：
+
+```go
+s := []string{"ABC", "abc", "0123", "ad"}
+sort.Sort(sort.Reverse(sort.StringSlice(s)))
+fmt.Println(s)
+```
+
+#### map
+
+##### 定义
+
+无序的基于 key-value 的数据结构，引用类型，初始化才能使用
+
+map 类型的变量默认初始值为 nil， 需要使用 make()函数来分配内存，可以指定容量也可以不指定，没有 cap 有 len
+
+```go
+score := make(map[string]int, 8)
+score["lr"] = 580
+score["ac"] = 100
+fmt.Printf("%v %T", score, score)
+//map[ac:100 lr:580] map[string]int
+occur := map[byte]bool{}
+```
+
+带初始值：
+
+```go
+score2 := map[string]string{
+    "lr":    "580@ac.com",
+    "lr580": "https://github.com/lr580",
+}
+fmt.Println(score2)
+vowels := map[byte]bool{'a': true, 'e': true, 'i': true, 'o': true, 'u': true}
+```
+
+##### 使用
+
+取下标返回两个值，分别代表值，是否存在(不存在值变成该类型零值)
+
+```go
+v, ok := score2["lr"]
+fmt.Println(v, ok) // 580@ac.com true
+v, ok = score2["LR"]
+fmt.Println(v, ok) //  false
+```
+
+可以直接拿来 if (如果 value 是 bool)
+
+```go
+if vowels[word[j]] {
+    occur[word[j]] = true
+}
+```
+
+遍历：(无序) 元素顺序与添加键值对的顺序无关  
+
+```go
+for k, v := range score2 {
+    fmt.Println(k, v)
+} // 若 for k := range scoreMap，只遍历键
+```
+
+删除：存在就删除，不存在就不操作
+
+```go
+delete(score2, "lr")
+```
+
+类似 C++，不存在时要赋值会有默认值
+
+```go
+score["AA"]++
+fmt.Println(score) // AA 项是 1
+```
+
+
+
+##### 嵌套结构
+
+如 slice 的元素是 map
+
+```go
+var mapSlice = make([]map[string]string, 3)
+for index, value := range mapSlice {
+    fmt.Printf("index:%d value:%v\n", index, value)
+}
+fmt.Println("after init")
+// 对切片中的 map 元素进行初始化
+mapSlice[0] = make(map[string]string, 10)
+mapSlice[0]["name"] = "小王子"
+mapSlice[0]["password"] = "123456"
+mapSlice[0]["address"] = "海淀区"
+for index, value := range mapSlice {
+    fmt.Printf("index:%d value:%v\n", index, value)
+}
+// index:0 value:map[address:海淀区 name:小王子 password:123456]
+// index:1 value:map[]
+// index:2 value:map[]
+```
+
+map 的元素是 slice
+
+```go
+var sliceMap = make(map[string][]string, 3)
+fmt.Println(sliceMap)
+fmt.Println("after init")
+key := "中国"
+value, ok := sliceMap[key]
+if !ok { // 执行
+    value = make([]string, 0, 2)
+    fmt.Println("init")
+}
+value = append(value, "北京", "上海")
+sliceMap[key] = value
+fmt.Println(sliceMap) // map[中国:[北京 上海]]
+```
+
+
+
 ## 流程控制
 
-### 条件判断
+### 条件判断/循环
 
 #### if
 
@@ -680,6 +1128,8 @@ fmt.Println(score) // 30
 ```
 
 #### for
+
+##### 基本
 
 三种基本写法
 
@@ -715,6 +1165,8 @@ for { // 或 for ;; {
 }
 ```
 
+##### range
+
 for range 遍历数组、 切片、 字符串、 map 及通道（channel）  
 
 返回值：
@@ -729,6 +1181,40 @@ for i, v := range s {
     fmt.Printf("index:%d, value:%c\n", i, v)
 } // index = 0, 1, 2, 5 (一个中文3个字符)
 ```
+
+##### 多重循环跳出
+
+break
+
+```go
+label1:
+	for i := 0; i < 5; i++ {
+		for j := 0; j < 5; j++ {
+			if i*j >= 8 {
+				break label1
+			}
+			fmt.Println(i, j, i*j)
+		}
+	}
+```
+
+continue：对标签所在的循环开启下一轮
+
+```go
+label2:
+for i := 0; i < 5; i++ {
+    for j := 0; j < 5; j++ {
+        for k := 0; k < 5; k++ {
+            if i+j+k > 8 {
+                fmt.Println(i, j, k, i+j+k)
+                continue label2 // 进入 i++ 的最外层
+            }
+        }
+    }
+}
+```
+
+
 
 #### switch
 
@@ -791,15 +1277,481 @@ default:
 } // 输出 a,b
 ```
 
+#### goto
 
+```go
+	n := 10
+	if n > 5 {
+		goto label3
+	}
+	fmt.Println("No going here")
+label3:
+	fmt.Println("ends here")
+```
 
-## 函数
+### 函数
+
+Go 语言中支持： 函数、 匿名函数和闭包  
+
+#### 常规
+
+##### 定义
 
 函数外边的每个语句都必须以关键字开始（var、 const、 func 等）  
 
 函数可以不按顺序，即上面的函数调用下面的函数
 
-## I/O
+**不支持默认参数**
+
+函数名： 由字母、 数字、 下划线组成。 但函数名的第一个字母不能是数字。 在同一个包内， 函数名也称不能重名  
+
+返回值：返回值由返回值变量和其变量类型组成， 也可以只写返回值的类型， 多个返回值必须用()包裹， 并用,分隔，没有可以不写
+
+```go
+func f0() {
+	fmt.Println("让我挣开 让我明白 放手你的DL")
+}
+```
+
+```go
+func add(x int, y int) int {
+	return x + y
+}
+```
+
+```go
+func swap(x int, y int) (int, int) {
+	return y, x
+}
+```
+
+函数的参数中如果相邻变量的类型相同， 则可以省略类型，   
+
+```go
+func intSum(x, y int) int {
+	return x + y
+}
+```
+
+##### 调用
+
+```go
+func main() {
+	f0()
+	fmt.Println(add(1437, 581))
+	a, b := 5, 80
+	a, b = swap(a, b)
+	fmt.Println(a, b)
+}
+```
+
+返回两个值，可以直接传入需要两个值的函数，其他同理
+
+```go
+fmt.Println(intSum(calc(5, 3))) //两个自定义函数都传入两个int参数
+```
+
+##### 可变参数
+
+可变参数通常要作为函数的最后一个参数，作为一个切片使用
+
+```go
+func powSum(p int, x ...int) int64 {
+	var ans int64
+	for _, v := range x {
+		var vp int64 = 1
+		for i := 1; i <= p; i++ {
+			vp *= int64(v)
+		}
+		ans += vp
+	}
+	return ans
+} // fmt.Println(powSum(2, 3, 4)) // 3^2+4^2
+```
+
+##### 返回值
+
+除了跟上文一样直接常规的返回值，还可以函数定义时可以给返回值命名， 并在函数体中直接使用这些变量， 最后通过 return 关键字返回  
+
+```go
+func calc(x, y int) (sum, sub int) {
+    sum = x + y
+    sub = x - y
+    return
+}
+```
+
+```go
+fmt.Println(calc(5, 3))
+```
+
+#### 高阶
+
+##### 函数变量
+
+```go
+type dbFunc func(int, int) int
+func add(x, y int) int {
+	return x + y
+}
+func sub(x, y int) int {
+	return x - y
+}
+```
+
+```go
+var f dbFunc
+f = add
+fmt.Println(f(5, 3))
+f = sub
+fmt.Println(f(5, 3))
+```
+
+```go
+fmt.Printf("%T -- %T\n", add, f) 
+//func(int, int) int -- main.dbFunc
+```
+
+##### 高阶函数
+
+函数作为参数：
+
+```go
+func add(x, y int) int {
+	return x + y
+}
+//type dbFunc func(int, int) int
+//func f2(x, y int, f dbFunc) int {
+func f2(x, y int, f func(int, int) int) int {
+	return f(x, y)
+}
+```
+
+```go
+fmt.Println(f2(5, 3, add))
+```
+
+函数做返回值：
+
+```go
+func getOp(op string) func(int, int) int { // 或 dbFunc
+	if op == "+" {
+		return add
+	}
+	return sub
+}
+```
+
+```go
+var op = getOp("+")
+fmt.Println(op(5, 3))
+```
+
+##### 匿名函数
+
+```go
+ff := func(x, y int) int {
+    return x * y
+}
+fmt.Println(ff(8, 9))
+func(x, y int) {
+    fmt.Println(x * y)
+}(10, 11)
+```
+
+##### 闭包
+
+闭包可以理解成“定义在一个函数内部的函数“。 在本质上， 闭包是将函数内部和函数外部连接起来的桥梁。 或者说是函数和其引用环境的组合体  
+
+```go
+package main
+
+import "fmt"
+
+func adder() func(int) int {
+	var x int
+	return func(y int) int {
+		x += y
+		return x
+	}
+}
+func main() {
+	var f = adder()
+	fmt.Println(f(10)) //10
+	fmt.Println(f(20)) //30
+	fmt.Println(f(30)) //60
+	f1 := adder()
+	fmt.Println(f1(40)) //40
+	fmt.Println(f1(50)) //90
+}
+```
+
+变量 f 是一个函数并且它引用了其外部作用域中的 x 变量， 此时 f 就是一个闭包。 在 f 的生命周期内， 变量 x 也一直有效  
+
+简化：
+
+```go
+func adder2(x int) func(int) int {
+	return func(y int) int {
+		x += y
+		return x
+	}
+}
+func t2() {
+	var f = adder2(10)
+	fmt.Println(f(10)) //20
+	fmt.Println(f(20)) //40
+	fmt.Println(f(30)) //70
+	f1 := adder2(20)
+	fmt.Println(f1(40)) //60
+	fmt.Println(f1(50)) //110
+}
+```
+
+例子2：
+
+```go
+func makeSuffixFunc(suffix string) func(string) string {
+	return func(name string) string {
+		if !strings.HasSuffix(name, suffix) {
+			return name + suffix
+		}
+		return name
+	}
+}
+```
+
+```go
+jpgFunc := makeSuffixFunc(".jpg")
+txtFunc := makeSuffixFunc(".txt")
+fmt.Println(jpgFunc("test")) //test.jpg
+fmt.Println(txtFunc("test")) //test.txt
+```
+
+#### defer
+
+defer 语句会将其后面跟随的语句进行延迟处理。 在 defer 归属的函数即将返回时， 将延迟处理的语句按 defer 定义的逆序进行执行， 也就是说， 先被 defer 的语句最后被执行， 最后被 defer 的语句， 最先被执行。  
+
+能非常方便的处理资源释放问题。 比如：资源清理、 文件关闭、 解锁及记录时间  
+
+```go
+fmt.Println("start")
+defer fmt.Println(1)
+defer fmt.Println(2)
+defer fmt.Println(3)
+fmt.Println("end") // 输出 start end 3 2 1
+```
+
+return 语句在底层并不是原子操作，返回操作分三步：①赋值返回值、②执行defer、③执行返回(RET指令)
+
+如：
+
+```go
+func f1() int {
+	x := 5
+	defer func() {
+		x++
+	}()
+	return x
+}
+func f2() (x int) {
+	defer func() {
+		x++
+	}()
+	return 5
+}
+func f3() (y int) {
+	x := 5
+	defer func() {
+		x++
+	}()
+	return x
+}
+func f4() (x int) {
+	defer func(x int) {
+		x++
+	}(x)
+	return 5
+}
+func t4() {
+	fmt.Println(f1()) //5
+	fmt.Println(f2()) //6
+	fmt.Println(f3()) //5
+	fmt.Println(f4()) //5
+}
+```
+
+上面例子，
+
+1. 返回值=x，x++，返回返回值
+2. 返回值命名为x，x=5，x++，返回x
+3. 返回值命名为y，y=x，x++，返回y
+4. 返回值命名为x，x=5，同名参数x(x2)=5，x2++，返回x
+
+```go
+func cal(index string, a, b int) int {
+	ret := a + b
+	fmt.Println(index, a, b, ret)
+	return ret
+}
+func t5() {
+	x := 1
+	y := 2
+	defer cal("AA", x, cal("A", x, y))
+	fmt.Println("=X")
+	x = 10
+	defer cal("BB", x, cal("B", x, y))
+	fmt.Println("=Y")
+	y = 20
+}
+```
+
+输出：(defer 计算是顺序的，返回是逆序的，参数值就是当时顺序的值)
+
+```
+A 1 2 3
+=X
+B 10 2 12
+=Y
+BB 10 12 22
+AA 1 3 4
+```
+
+#### 内置函数
+
+- close：关闭 channel
+- len：求长度， 比如 string、 array、 slice、 map、 channel
+- new：分配内存， 主要用来分配值类型， 比如 int、 struct。 返回的是指针
+- make：分配内存， 主要用来分配引用类型， 比如 chan、 map、 slice
+- append：用来追加元素到数组、 slice 中
+- panic、recover：错误处理
+
+### 异常
+
+#### panic
+
+##### panic
+
+panic可以在任何地方引发
+
+```go
+panic("直接报错，并且这一行下面的不会执行，参数是报错信息")
+```
+
+```
+panic: 直接报错，并且这一行下面的不会执行，参数是报错信息
+
+goroutine 1 [running]:
+main.main()
+	d:/_lr580_desktop/codes/golang/lgo-013.go:111 +0x3d
+exit status 2
+```
+
+##### recover
+
+通过recover 将程序恢复回来， 继续往后执行。 recover 只有在 defer 调用的函数中有效  
+
+```go
+func funcA() {
+	fmt.Println("func A")
+}
+func funcB() {
+	defer func() {
+		err := recover() // 有错误的话，err 就是 panic 字符串
+		//如果程序出出现了 panic 错误,可以通过 recover 恢复过来
+		if err != nil {
+			fmt.Println("recover in B")
+		}
+	}()
+	panic("panic in B")
+}
+func funcC() {
+	fmt.Println("func C")
+}
+func t6() {
+	funcA()
+	funcB()
+	funcC()
+}
+```
+
+输出
+
+```
+func A
+recover in B
+func C
+```
+
+##### 捕获异常
+
+故可以捕获异常，包括非 panic 触发的异常：
+
+```go
+func fn2() {
+	defer func() {
+		err := recover()
+		if err != nil {
+			fmt.Println("抛出异常给管理员发送邮件")
+			fmt.Println(err)
+		}
+	}()
+	num1 := 10
+	num2 := 0
+	res := num1 / num2
+	fmt.Println("res=", res)
+}
+//抛出异常给管理员发送邮件
+//runtime error: integer divide by zero
+```
+
+##### 传递异常
+
+一层层地传递异常：
+
+```go
+func readFile(fileName string) error { // error 是一种类型
+	if fileName == "main.go" {
+		return nil // 无异常
+	} //import "errors"
+	return errors.New("读取文件失败") // 有异常
+}
+func fn3() {
+	defer func() {
+		err := recover()
+		if err != nil {
+			fmt.Println("程序出现异常，发送报警邮件给管理员")
+			fmt.Println(err)
+		}
+	}()
+	err := readFile("mian.go")
+	if err != nil {
+		panic(err) // 抛出异常
+	}
+	fmt.Println("无事发生")
+}
+```
+
+### 包
+
+#### 基本用法
+
+导包
+
+```go
+import "fmt"
+```
+
+```go
+import (
+    "fmt"
+    "math"
+)
+```
+
+
+
+## 常用包
 
 ### 标准I/O
 
@@ -837,7 +1789,7 @@ func main() {
 
 格式化输出 `Printf` [参考](https://www.cnblogs.com/jasmine456/p/18338866)
 
-> - `%v`：值的默认格式表示。
+> - `%v`：值的默认格式表示。可以输出数组、切片等。
 > - `%+v`：结构体字段名和值的格式表示。
 > - `%#v`：Go 语法表示的值。
 > - `%T`：值的类型。
@@ -854,6 +1806,7 @@ func main() {
 > - `%s`：字符串。
 > - `%q`：双引号围绕的字符串。
 > - `%t`：布尔值。
+> - `%p`：地址
 
 ```go
 i := 580
@@ -901,25 +1854,162 @@ fmt.Printf("%f, %.2f, %T\n", num, num, num)
 fmt.Printf("%f\n", 1e9+7) // 大小写e都行
 ```
 
-
-
-## 包
-
-### 基本用法
-
-导包
+地址直接传入变量名即可，没有取地址符之类的。输出如 `0xc0000200a0`
 
 ```go
-import "fmt"
+fmt.Printf("%v %d %d %p\n", a, len(a), cap(a), a)
+// [0 0 0 1] 4 5 0xc00000c420
 ```
 
+### 时间
+
+#### time
+
+##### Now
+
+Time 对象。取当前时间
+
 ```go
-import (
-    "fmt"
-    "math"
+now := time.Now()
+fmt.Println(now)
+// 2025-03-12 18:29:48.5373521 +0800 CST m=+0.000000001
+year := now.Year()
+month := now.Month()
+day := now.Day()
+hour := now.Hour()
+minute := now.Minute()
+second := now.Second()
+fmt.Printf("%d-%02d-%02d %02d:%02d:%02d\n", year, month, day, hour, minute, second)
+```
+
+> ```go
+> // 24 小时制
+> fmt.Println(now.Format("2006-01-02 15:04:05"))
+> // 12 小时制
+> fmt.Println(now.Format("2006-01-02 03:04:05"))
+> fmt.Println(now.Format("2006/01/02 15:04"))
+> fmt.Println(now.Format("15:04 2006/01/02"))
+> fmt.Println(now.Format("2006/01/02"))
+> ```
+>
+> 输出的是 now 的时间，但是按 format 的格式
+
+##### 构造
+
+基于时间戳或字符串构造
+
+时间戳是自 1970 年 1 月 1 日（08:00:00GMT） 至当前时间的总毫秒数。 它也被称为 Unix 时间戳（UnixTimestamp） 。
+
+基于时间戳可以构造上面的 Time 对象。
+
+Time 转时间戳：
+
+```go
+timestamp1 := now.Unix() //时间戳
+timestamp2 := now.UnixNano() //纳秒时间戳
+fmt.Printf("current timestamp1:%v\n", timestamp1)
+fmt.Printf("current timestamp2:%v\n", timestamp2)
+// 1741775621 1741775621568192500
+```
+
+时间戳转 Time：
+
+```go
+var timestamp int64 = 1587880013
+timeObj := time.Unix(timestamp, 0) //将时间戳转为时间格式
+year := timeObj.Year() //年
+// ... 同上面
+fmt.Printf("%d-%02d-%02d %02d:%02d:%02d\n", year, month, day, hour, minute, second)
+```
+
+字符串转 Time 转时间戳：
+
+```go
+t := "2019-01-08 13:50:30"            //时间字符串
+timeTemplate := "2006-01-02 15:04:05" //常规类型
+stamp, _ := time.ParseInLocation(timeTemplate, t, time.Local)
+fmt.Println(stamp.Unix())
+```
+
+##### 时间间隔
+
+time.Duration 是 time 包定义的一个类型， 它代表两个时间点之间经过的时间， 以纳秒为单位。 time.Duration 表示一段时间间隔， 可表示的最长时间段大约 290 年  
+
+time 包中定义的时间间隔类型的常量如下  
+
+```go
+const (
+    Nanosecond Duration = 1
+    Microsecond = 1000 * Nanosecond
+    Millisecond = 1000 * Microsecond
+    Second = 1000 * Millisecond
+    Minute = 60 * Second
+    Hour = 60 * Minute
 )
 ```
 
+##### 运算
 
+基于时间间隔，运算加减和比较。方法有：
 
-> ### 常用包
+- Add 做时间加减
+
+- Sub 求两个时间的间隔
+
+  `time.Since(x)` 求从 `x` 时间到当前时间的间隔
+
+- Equal 判断时间是否相等
+
+  Before, After 判断是否在参数时间之前/后
+
+```go
+now := time.Now()
+later := now.Add(time.Hour)
+fmt.Println(later)
+dur := later.Sub(now)
+fmt.Println(dur)         // 1h0m0s
+fmt.Println(dur.Hours()) // 1
+fmt.Println(now.Sub(later))
+fmt.Println(now.Equal(later.Add(now.Sub(later))))
+fmt.Println(now.Before(later), later.After(now)) // all true
+```
+
+##### 定时器
+
+每一秒执行一次：
+
+```go
+ticker := time.NewTicker(time.Second)
+n := 0
+for i := range ticker.C {
+    fmt.Println(i)
+    // i 是 Time, 输出当前时间 (不断严格+1s)
+    n++
+    if n > 5 {
+        ticker.Stop()
+        break
+    }
+}
+```
+
+##### sleep
+
+```go
+fmt.Println("abc")
+time.Sleep(time.Second)
+fmt.Println("abc again 1 sec later")
+```
+
+##### 计时器
+
+```go
+start := time.Now()
+var x int64 = 580
+for i := 0; i < 1e8; i++ {
+    x += int64(i)
+}
+fmt.Println(x)
+fmt.Println(time.Since(start)) // 13.3413ms
+fmt.Println(time.Since(start).Microseconds()) // 13341
+```
+
