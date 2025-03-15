@@ -2735,6 +2735,10 @@
 - 3306\.元音辅音字符串计数II
 
   滑动窗口
+  
+- 3340\.检查平衡字符串
+
+  签到
 
 ## 算法
 
@@ -9722,6 +9726,33 @@ func countOfSubstrings(word string, k int) (ans int64) {
 		ans += int64(left1 - left2)
 	}
 	return
+}
+```
+
+##### 3340\.检查平衡字符串
+
+[题目](https://leetcode.cn/problems/check-balanced-string)
+
+```go
+func isBalanced(num string) bool {
+	s, p := 0, 1
+	for _, v := range num {
+		s += (int(v) - 48) * p
+		p *= -1
+	}
+	return s == 0
+}
+```
+
+第二种写法：
+
+```go
+func isBalanced(num string) bool {
+    s := 0
+    for i, b := range num {
+        s += (i%2*2 - 1) * int(b-'0')
+    }
+    return s == 0
 }
 ```
 

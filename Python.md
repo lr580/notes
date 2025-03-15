@@ -18389,6 +18389,10 @@ self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rat
 self.lr_scheduler = torch.optim.lr_scheduler.MultiStepLR( self.optimizer, milestones=[1,35,40],gamma=0.5)
 ```
 
+##### 超参数搜索
+
+> 有论文有 Tree-structured Parzen Estimator (TPE) 2011
+
 #### 模块
 
 > ##### ModuleList

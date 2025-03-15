@@ -1,3 +1,7 @@
+[toc]
+
+
+
 # 基础
 
 ## 基本概念
@@ -62,6 +66,65 @@ go fmt 主要用于格式化文档， 让所有人的代码风格保持一致
 ```sh
 go fmt main.go
 ```
+
+#### 包管理
+
+go mod
+
+> 在 Golang1.11 版本之前如果我们要自定义包的话必须把项目放在 GOPATH 目录。 Go1.11 版本之后无需手动配置环境变量， 使用 go mod 管理项目， 也不需要非得把项目放到 GOPATH指定目录下， 你可以在你磁盘的任何位置新建一个项目 , Go1.13 以后可以彻底不要 GOPATH  
+
+##### init
+
+在我们项目目录中用 go mod 命令生成一个 go.mod 文件管理我们项目的依赖
+
+```sh
+go mod init 项目名字
+```
+
+会在当前目录生成 `go.mod`，内容如下 (第一行module 项目名字)
+
+```go
+module golearn
+
+go 1.24.0
+```
+
+如果有包，格式如下：
+
+```go
+require github.com/shopspring/decimal v1.4.0
+```
+
+
+
+##### 安装
+
+cd 到项目目录，假设有包 `https://github.com/shopspring/decimal`
+
+```go
+go get github.com/shopspring/decimal
+```
+
+##### tidy
+
+引入包以后可以使用 go mod tidy 增加丢失的 module 去掉未用的 module  
+
+```go
+go mod tidy
+```
+
+会删掉代码里从未用过的包
+
+##### 其他
+
+- download： download modules to local cache (下载依赖的 module 到本地 cache))
+- edit： edit go.mod from tools or scripts (编辑 go.mod 文件)
+- graph： print module requirement graph (打印模块依赖图))
+- init： initialize new module in current directory (再当前文件夹下初始化一个新的module, 创建 go.mod 文件))
+- tidy： add missing and remove unused modules (增加丢失的 module， 去掉未用的module)
+- vendor： make vendored copy of dependencies (将依赖复制到 vendor 下)
+- verify： verify dependencies have expected content (校验依赖 检查下载的第三方库有没有本地修改， 如果有修改， 则会返回非 0， 否则验证成功。 )
+- why： explain why packages or modules are needed (解释为什么需要依赖)
 
 ### 常识
 
@@ -1198,7 +1261,8 @@ for i := 0; i < len(p); i++ {
 
 ### 结构体
 
-#### 基本
+> #### 基本
+>
 
 Golang 中没有“类”的概念，不面向对象
 
@@ -1395,6 +1459,157 @@ key1:"value1" key2:"value2"
 结构体 tag 由一个或多个键值对组成。 键与值使用冒号分隔， 值用双引号括起来。 同一个结构体字段可以设置多个键值对 tag， 不同的键值对之间使用空格分隔
 
 为结构体编写 Tag 时， 必须严格遵守键值对的规则。 结构体标签的解析代码的容错能力很差， 一旦格式写错， 编译和运行时都不会提示任何错误， 通过反射也无法正确取值。 例如不要在 key 和 value 之间添加空格。  
+
+### 接口
+
+一种抽象数据类型， Golang 中接口定义了对象的行为规范， 只定义规范不实现。 接口中定义的规范由具体的对象来实现  
+
+接口（interface） 是一组函数 method 的集合， Golang 中的接口不能包含任何变量，接口中的所有方法都没有方法体，参数列表和返回值列表中的参数变量名可以省略  
+
+接口在命名时， 一般会单词后面添加 er， 如有写操作的接口叫 Writer， 有字符串功能的接口叫 Stringer 等
+
+只需要一个变量含有接口类型中的所有方法， 那么这个变量就实现了这个接口；一个结构体也可以实现多个接口  
+
+##### 定义
+
+基本使用：
+
+- 如果结构体中的方法是值接收者， 那么实例化后的结构体值类型和结构体指针类型都可以赋值给接口变量  
+- 如果结构体中的方法是指针接收者， 那么实例化后结构体指针类型都可以赋值给接口变量，结构体值类型没法赋值给接口变量  
+
+```go
+type Bar interface {
+	Test()
+	FryRice()
+}
+type TesterBar struct{}
+func (t TesterBar) Test() { // 不能 * 参数，不然只能指针是接口
+	fmt.Println("一位测试工程师走进了酒吧")
+}
+func (t TesterBar) FryRice() {
+	fmt.Println("测试工程师点了一份炒饭\n服务器崩溃")
+}
+func main() {
+	var b Bar = TesterBar{}
+	b.Test()
+	b.FryRice()
+}
+```
+
+用作函数：
+
+```go
+func goTest(b Bar) {
+	b.Test()
+	b.FryRice()
+}
+// ...
+var t TesterBar = TesterBar{}
+goTest(t) // goTest(TesterBar{})
+```
+
+##### 空接口
+
+golang 中的接口可以不定义任何方法， 没有定义任何方法的接口就是空接口。 
+
+空接口表示没有任何约束， 因此任何类型变量都可以实现空接口。
+
+空接口在实际项目中用的是非常多的， 用空接口可以表示任意数据类型
+
+```go
+var x interface{}
+x = "现在是字符串"
+fmt.Println(x)
+fmt.Printf("%T %v\n", x, x) // string 现在是字符串
+v := 580
+x = v
+fmt.Println(x)              // 但是无法 x * 10
+fmt.Printf("%T %v\n", x, x) // int 580
+```
+
+使用空接口实现可以接收任意类型的函数参数  
+
+```go
+func print(x interface{}) {
+	fmt.Println(x)
+}
+// ...
+print(1. / 3)
+```
+
+使用空接口实现可以保存任意值的字典，切片，数组
+
+```go
+var lrInfo = map[string]interface{}{}
+lrInfo["name"] = "lr580"
+lrInfo["age"] = -580
+lrInfo["alive"] = false
+fmt.Println(lrInfo)
+var slice = []interface{}{1 / 3, 1. / 3, false, "张三"}
+fmt.Println(slice)
+var arr = [3]interface{}{1 / 3, 1. / 3, false}
+fmt.Println(arr)
+fmt.Printf("%T %T %T", lrInfo, slice, arr)
+// map[string]interface {} []interface {} [3]interface {}
+```
+
+##### 类型断言
+
+一个接口的值（简称接口值） 是由一个具体类型和具体类型的值两部分组成的。 这两部分分别称为接口的动态类型和动态值  
+
+使用类型断言，返回变量和断言布尔值。
+
+```go
+var x interface{}
+x = "让我们说中文"
+v, ok := x.(string) // 判断失败不行，这里只能 string，会编译错误
+fmt.Println(v, ok)
+fmt.Printf("%T %T", v, ok) // string bool
+```
+
+如果未知，可以用 switch
+
+```go
+func typeof(x interface{}) {
+	switch v := x.(type) {
+	case int:
+		fmt.Println("int")
+	case string:
+		fmt.Println("string")
+	default:
+		fmt.Println("unknown", v) // 一定要用到v不然报错
+	}
+}
+// ...
+typeof(int64(2))
+```
+
+##### 接口嵌套
+
+```go
+type fooer interface {
+	foo()
+}
+type barer interface {
+	bar()
+}
+type foobarer interface {
+	fooer
+	barer
+}
+type foobar struct{}
+func (f foobar) foo() {
+	fmt.Println("foo")
+}
+func (f foobar) bar() {
+	fmt.Println("bar")
+}
+// ...
+var fb foobarer
+fb = foobar{}
+fb.foo()
+fb.bar()
+```
 
 
 
@@ -1926,6 +2141,19 @@ AA 1 3 4
 - append：用来追加元素到数组、 slice 中
 - panic、recover：错误处理
 
+#### init函数
+
+没有参数也没有返回值。 init()函数在程序运行时自动被调用执行， 不能在代码中主动调用它
+
+执行顺序：全局声明、init、main。不管声明在init前后，都是先声明
+
+```go
+func init() {
+	fmt.Println(x)
+}
+var x = 1
+```
+
 ### 异常
 
 #### panic
@@ -2036,7 +2264,64 @@ func fn3() {
 
 #### 基本用法
 
-导包
+##### 概念
+
+###### 包的分类
+
+包可以分为三种： 1、 系统内置包 2、 自定义包 3、 第三方包  
+
+- 系统内置包: Golang 语言给我们提供的内置包， 引入后可以直接使用， 如 fmt、 strconv、 strings、sort、 errors、 time、 encoding/json、 os、 io 等。
+- 自定义包： 开发者自己写的包
+- 第三方包： 属于自定义包的一种， 需要下载安装到本地后才可以使用， 如"github.com/shopspring/decimal"包解决 float 精度丢失问题
+
+###### 包
+
+包（package） 是多个 Go 源码的集合， 一个包可以简单理解为一个存放多个.go 文件的文件夹。 该文件夹下面的所有 go 文件都要在代码的第一行添加如下代码， 声明该文件归属的包  
+
+```go
+package 包名
+```
+
+一个文件夹下面直接包含的文件只能归属一个 package， 同样一个 package 的文件不能在多个文件夹下。
+
+包名可以不和文件夹的名字一样， 包名不能包含 - 符号。
+
+包名为 main 的包为应用程序的入口包， 这种包编译后会得到一个可执行文件， 而编译不包含 main 包的源代码则不会得到可执行文件
+
+###### 顺序
+
+从 main 包开始检查其导入的所有包， 每个包中又可能导入了其他的包。 Go 编译器由此构建出一个树状的包引用关系， 再根据引用顺序决定编译顺序， 依次编译这些包的代码，特别对 init 而言，顺序遵循：
+
+- import 的包，按字典序排列，先后引入
+- 同一个包有多个代码文件，字典序
+- 一个包 import 了另一个包，先执行被引用的，构成树状
+
+非 main 包的 main 函数不会被执行，会 warning
+
+```go
+// lgo-018.go
+package main
+import (
+	"fmt"
+	_ "golearn/testpa"       // fun3.go 文件
+	alias "golearn/testpack" // fun1, gun1 文件两个 init 函数
+	"golearn/testpack2"      // fun2, 而外引用了其他包的 fun4
+)
+```
+
+输出
+
+```
+init fun3
+init fun1
+init gun1
+init fun4
+init fun2
+```
+
+##### 导包
+
+import 只能写在函数外，函数声明前
 
 ```go
 import "fmt"
@@ -2049,9 +2334,84 @@ import (
 )
 ```
 
+第三方包和其他包之间，会默认加一个空行
+
+##### 自定义包
+
+在一个包中引用另外一个包里的标识符（如变量、 常量、 类型、 函数等） 时， 该标识符必须是对外可见的（public） 。 在 Go 语言中只需要将标识符的首字母大写就可以让标识符对外可见了  
+
+如在当前目录下新建 `testpack/` 目录，当前 `go.mod` 的项目名字是 `golearn`，包名叫 `tpack`，代码为 `testpack/fun1.go`
+
+```go
+package tpack
+var pwd = 1437 // 私有
+var Lr = 580   // 公有
+func PrintLR() int {
+	return pwd*1000 + Lr
+}
+```
+
+在根目录下的 `lgo-018.go` 调用上面的包：
+
+```go
+package main
+import (
+	"fmt"
+	"golearn/testpack"
+)
+func main() {
+	fmt.Println(tpack.Lr)
+}
+```
+
+可以定义别名：通常用于导入的包名太长或者导入的包名冲突的情况  
+
+```go
+package main
+import (
+	"fmt"
+	alias "golearn/testpack" // 默认会别名 tpack，跟上面一样
+)
+func main() {
+	fmt.Println(alias.PrintLR())
+}
+```
+
+如果现在有与文件夹同名的，如 `testpack2/` 目录下，`fun2.go` 如下：
+
+```go
+package testpack2
+var AC = 100
+```
+
+那么就不会自动定义别名，当然也可以：
+
+```go
+import "golearn/testpack2" // 部分代码
+fmt.Println(testpack2.AC)
+```
+
+##### 匿名导入
+
+只希望导入包， 而不使用包内部的数据时， 可以使用匿名导入包，这样无法使用任何变量和函数，那么就用 `_` 做别名，一般是希望执行 init 函数
+
+```go
+import _ "golearn/testpack2"
+```
+
+可以避免不使用它的变量和函数而被自动删掉 import
+
+### 多线程
+
+> 并发： 多个线程同时竞争一个位置， 竞争到的才可以执行， 每一个时间段只有一个线程在执行。
+>
+> 并行： 多个线程可以同时执行， 每一个时间段， 可以有多个线程同时执行。通俗的讲多线程程序在单核 
+>
+> CPU 上面运行就是并发， 多线程程序在多核 CUP 上运行就是并行， 如果线程数大于 CPU 核数， 则多线程程序在多个 CPU 上面运行既有并行又有并发
 
 
-## 常用包
+
+## 常用内置包
 
 ### 标准I/O
 
@@ -2382,5 +2742,21 @@ for i := 0; i < len(p); i++ {
     json.Unmarshal(s, &p2)
     fmt.Println(p2) // 只会赋值json中有的字段，其他保持原本的值
 }
+```
+
+## 第三方包
+
+### 数值
+
+```sh
+go get github.com/shopspring/decimal
+```
+
+参考官网文档，如：
+
+```go
+fee, _ := decimal.NewFromString(".035")
+taxRate, _ := decimal.NewFromString(".08875")
+fmt.Println(fee.Add(taxRate)) // 0.12375
 ```
 
