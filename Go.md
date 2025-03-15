@@ -1,4 +1,4 @@
-[toc]
+
 
 
 
@@ -135,6 +135,8 @@ go mod tidy
 > Go 语言不仅拥有静态编译语言的安全和高性能， 而且又达到了动态语言开发速度和易维护性。 有人形容 Go 语言： Go = C + Python , 说明 Go 语言既有 C 语言程序的运行速度， 又能达到 Python 语言的快速开发  
 >
 > 它的应用场景是目前互联网非常热门的几个领域，比如 WEB 开发、 区块链开发、 大型游戏服务端开发、 分布式/云计算开发  
+
+编译型语言
 
 #### 版本
 
@@ -1264,7 +1266,7 @@ for i := 0; i < len(p); i++ {
 > #### 基本
 >
 
-Golang 中没有“类”的概念，不面向对象
+Golang 中没有“类”的概念，不面向对象；不支持重载运算符
 
 ##### 定义
 
@@ -2156,7 +2158,8 @@ var x = 1
 
 ### 异常
 
-#### panic
+> #### panic
+>
 
 ##### panic
 
@@ -2190,6 +2193,7 @@ func funcB() {
 		if err != nil {
 			fmt.Println("recover in B")
 		}
+        // 或： if err := recover(); err != nil {
 	}()
 	panic("panic in B")
 }
@@ -2403,11 +2407,469 @@ import _ "golearn/testpack2"
 
 ### 多线程
 
+#### 理论
+
 > 并发： 多个线程同时竞争一个位置， 竞争到的才可以执行， 每一个时间段只有一个线程在执行。
 >
 > 并行： 多个线程可以同时执行， 每一个时间段， 可以有多个线程同时执行。通俗的讲多线程程序在单核 
 >
 > CPU 上面运行就是并发， 多线程程序在多核 CUP 上运行就是并行， 如果线程数大于 CPU 核数， 则多线程程序在多个 CPU 上面运行既有并行又有并发
+
+##### 协程
+
+协程： 可以理解为用户级线程， 这是对内核透明的， 也就是系统并不知道有协程的存在， 是完全由用户自己的程序进行调度的。 Golang 的一大特色就是从语言层面原生支持协程， 在函数或者方法前面加 go 关键字就可创建一个协程。 可以说 Golang 中的协程就是goroutine   
+
+多协程和多线程： Golang 中每个 goroutine (协程) 默认占用内存远比 Java 、 C 的线程少。OS 线程（ 操作系统线程） 一般都有固定的栈内存（通常为 2MB 左右） ,一个 goroutine (协程) 占用内存非常小， 只有 2KB 左右， 多协程 goroutine 切换调度开销方面远比线程要少。这也是为什么越来越多的大公司使用 Golang 的原因之一  
+
+##### 主线程
+
+golang 中的主线程： （可以理解为线程/也可以理解为进程） ， 在一个 Golang 程序的主线程上可以起多个协程。 Golang 中多协程可以实现并行或者并发
+
+主线程执行完毕，不管协程是否执行完毕，都会终止程序，参见下面 `go` 一节代码例子 
+
+##### 管道
+
+管道是 Golang 在语言级别上提供的 goroutine 间的通讯方式， 我们可以使用 channel 在多个 goroutine 之间传递消息。 如果说 goroutine 是 Go 程序并发的执行体， channel 就是它们之间的连接。 channel 是可以让一个 goroutine 发送特定值到另一个 goroutine 的通信机制  
+
+Golang 的并发模型是 CSP（Communicating Sequential Processes） ， 提倡通过通信共享内存而不是通过共享内存而实现通信  
+
+Go 语言中的管道（channel） 是一种特殊的类型，遵循 FIFO，每一个管道都是一个具体类型的导管， 也就是声明 channel 的时候需要为其指定元素类型  
+
+##### 死锁
+
+如，当所有活跃的goroutine（主goroutine + 4个消费者）均处于阻塞状态，且无其他goroutine可推进任务时，Go运行时会检测到**死锁**，抛出错误：
+
+```
+fatal error: all goroutines are asleep - deadlock!
+```
+
+这是明确的运行时错误，而非消费者陷入“死循环”（死循环指持续占用CPU的循环，而此处是阻塞等待）
+
+#### goroutine
+
+##### go
+
+go 指令执行一个函数，`go f()`，以协程方式执行它
+
+```go
+package main
+import (
+	"fmt"
+	"time"
+)
+func test() {
+	for i := 1; i <= 10; i++ {
+		fmt.Println("test in", i)
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+func main() {
+	go test()
+	for i := 1; i <= 3; i++ {
+		fmt.Println("main in", i)
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+```
+
+main 执行完毕，所有协程强制终止。可能的输出：
+
+```go
+main in 1
+test in 1
+test in 2
+main in 2
+main in 3
+test in 3
+test in 4
+```
+
+##### waitgroup
+
+`sync` 包的 `Waitgroup`，有常用方法：
+
+1. `wg.Add(x)` 添加x个信号量
+2. `wg.Done()` 减少一个信号量
+3. `wg.Wait()` 直到信号量为0时继续往下执行，否则阻塞
+
+主程序与 test 并发，并等待 test 执行完毕：
+
+```go
+package main
+import (
+	"fmt"
+	"sync"
+	"time"
+)
+var wg sync.WaitGroup
+func test() {
+	for i := 1; i <= 10; i++ {
+		fmt.Println("test in", i)
+		time.Sleep(100 * time.Millisecond)
+	}
+	wg.Done()
+}
+func main() {
+	wg.Add(1)
+	go test()
+	for i := 1; i <= 3; i++ {
+		fmt.Println("main in", i)
+		time.Sleep(100 * time.Millisecond)
+	}
+	wg.Wait()
+}
+```
+
+另一种思路：直接在 `test()` 函数第一行：
+
+```go
+defer wg.Done()
+```
+
+同理，可以扩展到多个 goroutine 并发
+
+##### GOMAXPROCS
+
+`runtime` 包，可以求出当前计算机 CPU 数。(多少核)
+
+```go
+cpuNum := runtime.NumCPU()
+fmt.Println(cpuNum) // 如 16
+runtime.GOMAXPROCS(cpuNum - 1) // 设置
+```
+
+#### 管道
+
+##### 定义
+
+channel 是一种类型， 一种引用类型。 声明管道类型的格式如下  
+
+```go
+// 声明
+var ch1 chan int
+var ch2 chan bool
+var ch3 chan []int
+```
+
+或：
+
+```go
+// 声明并创建
+ch1 := make(chan int, 10) // 容量为10
+ch2 := make(chan bool, 4)
+ch3 := make(chan []int, 3)
+// 如果已经声明
+```
+
+无容量(无缓冲)
+
+```go
+h := make(chan int)
+```
+
+##### 使用
+
+管道有发送（send） 、 接收(receive） 和关闭（close） 三种操作。发送和接收都使用<-符号  
+
+```go
+ch1 <- 580   // 发送数据
+num := <-ch1 // 接收数据
+fmt.Println(num)
+// fmt.Println(<-ch1) // 没有数据，会报错
+// <-ch1 // 接收数据，原地丢弃忽略
+```
+
+##### 关闭
+
+```go
+close(ch1) // 关闭通道
+```
+
+关于关闭管道需要注意的事情是， 只有在通知接收方 goroutine 所有的数据都发送完毕的时候才需要关闭管道。 管道是可以被垃圾回收机制回收的， 它和关闭文件是不一样的， 在结束操作之后关闭文件是必须要做的， 但关闭管道不是必须的  
+
+对一个关闭的管道再发送值就会导致 panic
+
+对一个关闭的管道进行接收会一直获取值直到管道为空。
+
+对一个关闭的并且没有值的管道执行接收操作会得到对应类型的零值  
+
+关闭一个已经关闭的管道会导致 panic
+
+##### 阻塞
+
+如果创建管道的时候没有指定容量， 那么我们可以叫这个管道为无缓冲的管道  
+
+当要发送数据，而超过管道容量时(如没有任何容量的管道)，会报错；只要管道的容量大于零， 那么该管道就是有缓冲的管道， 管道的容量表示管道中能存放元素的数量  
+
+##### 遍历
+
+在遍历之前，必须关闭管道。
+
+```go
+ch := make(chan int, 10)
+ch <- 10
+ch <- 40
+close(ch)
+for val := range ch {
+    fmt.Println(val)
+}
+```
+
+##### 单向管道
+
+比如限制管道在函数中只能发送或只能接收  
+
+```go
+var ch2 chan<- int // 只写
+ch2 = make(chan int, 3)
+ch2 <- 580
+var ch3 <-chan int // 只读 (只读无法被关闭)
+fmt.Printf("%T %v %v", ch3, ch3, ch2)
+// <-chan int <nil> 0xc0000a6080
+```
+
+使用场景：作用于函数参数，使得虽然是同一个管道，但在某些函数只能读，在某些函数只能写，见下文质数例子。
+
+##### 多路复用
+
+select 的使用类似于 switch 语句， 它有一系列 case 分支和一个默认的分支。 每个 case 会对应一个管道的通信（接收或发送） 过程。 select 会一直等待， 直到某个 case 的通信操作完成时， 就会执行 case 分支对应的语句  
+
+```go
+ic := make(chan int, 10)
+for i := 1; i <= 10; i++ {
+    ic <- i * 580
+}
+sc := make(chan string, 5)
+for i := 1; i <= 5; i++ {
+    sc <- fmt.Sprintf("string %d", i)
+}
+for { // 执行结果：随机读取一个，然后读完了no receive
+    select {
+    case v := <-ic:
+        fmt.Println("ic", v)
+    case v := <-sc:
+        fmt.Println("sc", v)
+    default:
+        fmt.Println("No receive")
+        // break 无法跳出
+        return
+    }
+}
+```
+
+##### 多线程
+
+实例
+
+> ##### 边生产边消费
+
+一个生产者，4个消费者抢：
+
+```go
+thing := make(chan string, 2)
+wg.Add(5)
+go func() { // 一个生产者
+    defer wg.Done()
+    for i := 1; i <= 20; i++ {
+        fmt.Println("producer produce thing", i)
+        thing <- fmt.Sprintf("thing %d", i)
+        time.Sleep(200 * time.Millisecond)
+    }
+    close(thing)
+}()
+for i := 0; i < 4; i++ { // 多个消费者
+    go func(i int) {
+        defer wg.Done()
+        for x := range thing {
+            fmt.Printf("consumer %d got %s\n", i, x)
+        }
+    }(i) // 观察到按照 0,1,2,3,...的顺序消费
+}
+wg.Wait()
+fmt.Println("All done")
+```
+
+> ##### 例：质数计算
+
+多线程计算质数并使用管道输出
+
+```go
+import (
+	"fmt"
+	"runtime"
+	"sync"
+	"time"
+)
+// 可以证明是边生产边消费的
+var wg sync.WaitGroup
+
+func producer(n int, a chan<- int) {
+	defer wg.Done()
+	fmt.Println("生产者开始生产")
+	for i := 2; i <= n; i++ {
+		a <- i
+	}
+	close(a)
+	fmt.Println("生产者生产完毕")
+}
+func consumer(a <-chan int, p chan<- int) {
+	started := false
+	for x := range a {
+		if !started {
+			fmt.Println("消费者开始消费")
+			started = true
+		}
+		isPrime := true
+		for i := 2; i*i <= x; i++ {
+			if x%i == 0 {
+				isPrime = false
+				break
+			}
+		}
+		if isPrime {
+			p <- x
+		}
+	}
+	fmt.Println("消费者消费完毕")
+	wg.Done()
+}
+func main() {
+	start := time.Now()
+	n := int(1e7)
+	a := make(chan int, n)
+	p := make(chan int, n)
+	m := 4 // 线程数
+	wg.Add(m + 1)
+	go producer(n, a)
+	for i := 0; i < m; i++ {
+		go consumer(a, p)
+	}
+	wg.Wait()
+	// 单线程 3.95ms, 4线程 1.3ms
+	fmt.Println("执行完毕，需要：", time.Since(start))
+	fmt.Println("素数个数：", len(p))
+	close(p) // 必须要关闭
+	// 是有序的
+	// for x := range p {
+	// 	fmt.Println(x)
+	// }
+}
+```
+
+#### 并发安全
+
+##### race
+
+首先看一个经典多线程++问题：
+
+```go
+// lgo-020.go
+var wg sync.WaitGroup
+cnt := 0
+wg.Add(100)
+for i := 0; i < 100; i++ {
+    go func() {
+        for j := 0; j < 100; j++ {
+            cnt++
+            time.Sleep(time.Millisecond)
+        }
+        wg.Done()
+    }()
+}
+wg.Wait()
+fmt.Println(cnt) // 如 9961
+```
+
+命令 `go build -race lgo-020.go` 用于编译 Go 源代码文件 `lgo-020.go`，并且在编译过程中启用数据竞争检测（race detection）
+
+生成的可执行文件在运行时，如果检测到数据竞争，会在控制台输出相关的警告信息，帮助你定位和修复并发问题
+
+```go
+go build -race lgo-020.go
+./lgo-020
+```
+
+如告诉代码行数：
+
+```
+==================
+WARNING: DATA RACE
+Read at 0x00c00000a1b8 by goroutine 8:
+  main.main.func1()
+      D:/_lr580_desktop/codes/golang/lgo-020.go:178 +0x37
+```
+
+##### 互斥锁
+
+sync 中的 Mutex结构体类型表示。 sync.Mutex 类型只有两个公开的指针方法， Lock 和 Unlock。 Lock 锁定当前的共享资源， Unlock 进行解锁  
+
+使用互斥锁能够保证同一时间有且只有一个 goroutine 进入临界区， 其他的 goroutine 则在等待锁； 当互斥锁释放后， 等待的 goroutine 才可以获取锁进入临界区， 多个 goroutine 同时等待一个锁时， 唤醒的策略是随机的  
+
+```go
+fmt.Println("begin")
+cnt := 0
+var wg sync.WaitGroup
+wg.Add(100)
+var mutex sync.Mutex
+t := time.Now()
+for i := 0; i < 100; i++ {
+    go func() {
+        for j := 0; j < 100; j++ {
+            mutex.Lock()
+            cnt++
+            mutex.Unlock()
+            time.Sleep(time.Millisecond)
+        }
+        wg.Done()
+    }()
+}
+wg.Wait()
+fmt.Println("执行完毕，需要：", time.Since(t)) // 158ms
+fmt.Println(cnt) // 10000
+```
+
+缺点：锁住的代码不并行，而是串行了
+
+##### 读写锁
+
+修改的数据要同步， 这样其他goroutine 才可以感知到。 所以真正的互斥应该是读取和修改、 修改和修改之间， 读和读是没有互斥操作的必要
+
+写锁可以让多个读操作并发， 同时读取， 但是对于写操作是完全互斥的。 当一个 goroutine 进行写操作的时候， 其他 goroutine 既不能进行读操作， 也不能进行写操作  
+
+```go
+var mutex sync.RWMutex
+var wg sync.WaitGroup
+cnt := 0
+wg.Add(13)
+t := time.Now()
+for i := 0; i < 3; i++ {
+    go func() {
+        defer wg.Done()
+        for j := 0; j < 100; j++ {
+            mutex.Lock() // 写锁
+            cnt++
+            mutex.Unlock()
+            time.Sleep(time.Millisecond)
+        }
+    }()
+}
+for i := 0; i < 10; i++ {
+    go func() {
+        defer wg.Done()
+        for j := 0; j < 100; j++ {
+            mutex.RLock() // 读锁
+            fmt.Println(cnt)
+            mutex.RUnlock()
+            time.Sleep(time.Millisecond)
+        }
+    }()
+}
+wg.Wait()
+fmt.Println("执行完毕，需要：", time.Since(t))
+fmt.Println(cnt)
+```
+
+##### 异常处理
 
 
 
@@ -2523,6 +2985,14 @@ fmt.Printf("%v %d %d %p\n", a, len(a), cap(a), a)
 // [0 0 0 1] 4 5 0xc00000c420
 ```
 
+### 数学
+
+#### math
+
+```go
+func Abs(x float64) float64 // 对于整数类型，Go 语言没有内置的绝对值函数
+```
+
 ### 时间
 
 #### time
@@ -2595,7 +3065,7 @@ fmt.Println(stamp.Unix())
 
 ##### 时间间隔
 
-time.Duration 是 time 包定义的一个类型， 它代表两个时间点之间经过的时间， 以纳秒为单位。 time.Duration 表示一段时间间隔， 可表示的最长时间段大约 290 年  
+time.Duration 是 time 包定义的一个类型(本质上是int64，基本单位是纳秒)， 它代表两个时间点之间经过的时间， 以纳秒为单位。 time.Duration 表示一段时间间隔， 可表示的最长时间段大约 290 年  
 
 time 包中定义的时间间隔类型的常量如下  
 

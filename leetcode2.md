@@ -2739,6 +2739,10 @@
 - 3340\.检查平衡字符串
 
   签到
+  
+- 3110\.字符串的分数
+
+  签到
 
 ## 算法
 
@@ -9754,5 +9758,32 @@ func isBalanced(num string) bool {
     }
     return s == 0
 }
+```
+
+##### 3110\.字符串的分数
+
+[题目](https://leetcode.cn/problems/score-of-a-string)
+
+```go
+import "math"
+
+func scoreOfString(s string) int {
+	ans, n := 0.0, len(s)
+	for i := 1; i < n; i++ {
+		ans += math.Abs(float64(s[i]) - float64(s[i-1]))
+	}
+	return int(ans)
+}
+```
+
+```go
+func scoreOfString(s string) (ans int) {
+	for i := 1; i < len(s); i++ {
+		ans += abs(int(s[i-1]) - int(s[i]))
+	}
+	return
+}
+
+func abs(x int) int { if x < 0 { return -x }; return x }
 ```
 
