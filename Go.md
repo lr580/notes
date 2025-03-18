@@ -95,15 +95,33 @@ go 1.24.0
 require github.com/shopspring/decimal v1.4.0
 ```
 
+> 还有 `go.sum` 文件，是自动生成的文件，用于校验依赖的完整性和一致性，它记录了依赖模块的版本、哈希值
+>
 
+##### get
 
-##### 安装
+安装包
 
 cd 到项目目录，假设有包 `https://github.com/shopspring/decimal`
 
 ```go
 go get github.com/shopspring/decimal
 ```
+
+`-u` 标志的作用是：
+
+- 更新依赖：它会强制更新指定的包及其依赖项到最新的版本（遵循 `go.mod` 文件中定义的版本约束）。
+- 下载缺失的依赖：如果本地缺少某些依赖包，`-u` 会自动下载它们。
+
+```go
+go get -u github.com/gin-gonic/gin
+```
+
+##### install
+
+编译并安装当前项目或指定的包，生成可执行文件，使用 `go install`
+
+也可以装包
 
 ##### tidy
 
@@ -113,7 +131,7 @@ go get github.com/shopspring/decimal
 go mod tidy
 ```
 
-会删掉代码里从未用过的包
+会删掉代码里从未用过的包。清理 `go.sum`
 
 ##### 其他
 
@@ -771,7 +789,8 @@ rune 类型， 代表一个 UTF-8 字符。
 Go 使用了特殊的 rune 类型来处理 Unicode， 让基于 Unicode 的文本处理更为方便， 也可以使用 byte 型进行默认字符串处理， 性能和扩展性都有照顾
 
 ```go
-a := '张'       //rune
+// a := 'c'  // rune
+a := '张' //rune
 fmt.Println(a) // 24352而不是字符，且sizeof=4，无法len
 fmt.Printf("%T %c\n", a, a) // int32 张
 ```
@@ -798,7 +817,9 @@ fmt.Println()
 if strings.ContainsRune("aeiou", b) { // ...
 ```
 
+#### 复数
 
+`complex64` 表示一个由两个 `float32` 类型的浮点数组成的复数，其中第一个浮点数表示实部，第二个浮点数表示虚部；还有 `complex128`，有内置方法 `real(), imag()`，有四则运算。构造：`c1 := complex(1.0, 2.0)` 为 1+2i
 
 ### 数组
 
@@ -823,6 +844,7 @@ for i := 0; i < 3; i++ {
 var c = []string{"白茶", "绿茶", "阿帕茶"}
 fmt.Println(c) // 可以直接输出数组 [白茶 绿茶 阿帕茶]
 var intArr2 [5]int = [...]int{1, -1, 9, 90, 12}
+// var a, b [3]int 两个一样形状的数组
 ```
 
 可以省略长度
@@ -2143,6 +2165,17 @@ AA 1 3 4
 - append：用来追加元素到数组、 slice 中
 - panic、recover：错误处理
 
+
+
+- min, max 函数 1.21.0 开始
+
+  ```go
+  fmt.Println(max(2, 3))
+  fmt.Println(min(1, 1, 4, 0.5))
+  ```
+
+  
+
 #### init函数
 
 没有参数也没有返回值。 init()函数在程序运行时自动被调用执行， 不能在代码中主动调用它
@@ -2875,13 +2908,13 @@ fmt.Println(cnt)
 
 ## 常用内置包
 
-### 标准I/O
+### I/O
 
 fmt 包里面给我们提供了一些常见的打印数据的方法， 比如： Print 、 Println、 Printf， 在我们实际开发中 Println、 Printf 用的非常多  
 
-#### 输出
+#### 标准I/O
 
-##### 常规
+##### 输出
 
 传入多个参数，逗号分隔。
 
@@ -2985,9 +3018,280 @@ fmt.Printf("%v %d %d %p\n", a, len(a), cap(a), a)
 // [0 0 0 1] 4 5 0xc00000c420
 ```
 
+##### 输入
+
+- `fmt.Scanf`，类似 C 语言，占位符也差不多
+
+  ```go
+  fmt.Scanf("%s %d", &name, &age)
+  ```
+
+- `fmt.Scan`，读取多个变量，直到遇到空白字符
+
+  ```go
+  var name string
+  var age int
+  fmt.Print("Enter your name and age: ")
+  fmt.Scan(&name, &age) // 如输入 lr580 580 回车
+  fmt.Printf("Hello, %s! You are %d years old.\n", name, age)
+  ```
+
+- `fmt.Scanln`，同 Scan，遇到换行结束
+
+#### 文件I/O
+
+可能会用到：`os` 包和 `io` 包。缓冲 `bufio` 包
+
+##### 打开
+
+记得关闭。go 风格申请资源的时候下一行就可以 defer 关闭，这样可以按照申请顺序关闭
+
+```go
+file, err := os.Open("lgo-022.go") // 读取自己，或 ./lgo-022.go
+defer file.Close()
+if err != nil {
+    fmt.Println("Error", err)
+    return
+}
+fmt.Println(file) // 地址如 &{0xc0000a06c8}
+```
+
+Open 后得到 `*os.File`，该类型实现了 `os.Reader` 方法
+
+##### 读取
+
+```go
+package main
+import (
+	"fmt"
+	"io"
+	"os"
+)
+func main() {
+	file, err := os.Open("lgo-022.go")
+	defer file.Close()
+	if err != nil {
+		fmt.Println("Error", err)
+		return
+	}
+    
+	var content []byte
+	var tmp = make([]byte, 128)
+	for {
+		n, err := file.Read(tmp)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			fmt.Println("Error", err)
+			return
+		}
+		content = append(content, tmp[:n]...)
+	}
+	fmt.Println(string(content)) // 足以处理中文
+}
+```
+
+##### 缓冲读
+
+Reader 逐行读，如输出行号
+
+```go
+func testfile2(file *os.File) {
+	reader := bufio.NewReader(file)
+	for i := 1; ; i++ {
+		line, err := reader.ReadString('\n')
+		if len(line) != 0 {
+			fmt.Printf("[%v] %v", i, line)
+		}
+		if err != nil {
+			if err != io.EOF {
+				fmt.Println("Error", err)
+			}
+			break
+		}
+	}
+}
+```
+
+##### 整读
+
+只需要文件路径，非常方便的封装方法。
+
+```go
+func testfile3(path string) {
+	content, err := os.ReadFile(path) // []byte
+	if err != nil {
+		fmt.Println("Error", err)
+		return
+	}
+	fmt.Println(string(content))
+}
+// testfile3("lgo-022.go")
+```
+
+也可以拿到 `os.Reader` 后读：
+
+```go
+content, err2 := io.ReadAll(file)
+if err2 != nil {
+    fmt.Println("Error", err2)
+    return
+}
+fmt.Println(string(content))
+```
+
+##### 写入
+
+flag int 模式，或起来，常见的有：
+
+- `os.O_WRONLY` 只写
+- `os.O_CREATE` 创建 (已存在覆盖)
+- `os.O_RDONLY` 只读
+- `os.O_RDWR` 读写
+- `os.O_TRUNC` 清空
+- `os.O_APPEND` 追加
+
+perm 权限：八进制数 r 读04，w 写02，x 执行01，三个八进制分别对应从高到低是文件所有者、组用户、其他用户。`perm` 参数用于指定新创建文件的权限。如果文件已经存在，`perm` 参数会被忽略。
+
+然后用 `.WriteString` 或 `.Write` 来写东西。
+
+```go
+file, err := os.OpenFile("a.txt", os.O_CREATE|os.O_WRONLY, 0666)
+if err != nil {
+    fmt.Println("Error", err)
+    return
+}
+defer file.Close()
+str := "随便\n写点什么"
+file.Write([]byte(str))
+file.WriteString("再写点东西，第二种写入方法")
+```
+
+##### 缓冲写
+
+对可写 flag 文件：
+
+```go
+writer := bufio.NewWriter(file)
+for i := 0; i < 10; i++ {
+    writer.WriteString(fmt.Sprintf("第%v行\n", i+1))
+}
+writer.Flush()
+```
+
+##### 直接写
+
+```go
+str := "Company Dream: It's My Go!!!!"
+err := os.WriteFile("a.txt", []byte(str), 0666)
+if err != nil {
+    fmt.Println("Error", err)
+    return
+}
+```
+
+##### ioutil
+
+> `ioutil` 包中的一些函数已经被移到了 `os` 和 `io` 包中，在新版本显示 depreciated
+>
+> - `ioutil.WriteFile` → `os.WriteFile`
+> - `ioutil.ReadAll` → `io.ReadAll`
+> - `ioutil.ReadDir` → `os.ReadDir`
+> - `ioutil.TempFile` → `os.CreateTemp`
+> - `ioutil.TempDir` → `os.MkdirTemp`
+
+#### 文件处理
+
+##### 移动
+
+移动/重命名。只能在同一个磁盘内操作。
+
+```go
+err := os.Rename("a.txt", "D:/a.txt") // 剪贴文件
+if err != nil {
+    fmt.Println("Error", err)
+    return
+}
+```
+
+##### 复制
+
+> 一种手写逻辑是，读文件，然后新建文件写，达到复制的效果。另一种逻辑是文件流。当然都不如调库：
+
+```go
+src, err := os.Open("lgo-022.go")
+if err != nil {
+    fmt.Println("Error", err)
+    return
+}
+defer src.Close()
+
+dst, err := os.Create("D:/a.txt") // 新建文件
+if err != nil {
+    fmt.Println("Error", err)
+    return
+}
+defer dst.Close()
+
+len, err := io.Copy(dst, src)
+if err != nil {
+    fmt.Println("Error", err)
+    return
+}
+fmt.Println("Copy", len, "bytes")
+```
+
+##### 删除
+
+`err := os.Remove(path)`，也可以做剪贴的事。也可以删除（空）目录。
+
+删除目录 `os.RemoveAll`
+
+```go
+err = os.RemoveAll("abc")
+if err != nil {
+    fmt.Println("Error", err)
+    return
+}
+```
+
+#### 目录处理
+
+##### 新建目录
+
+单层和多层：
+
+```go
+var err error
+err = os.Remove("abc/") // 或 abc 也行
+if err != nil {
+    fmt.Println("Error", err)
+    return
+}
+err = os.Mkdir("abc", 0666) // 或 ./abc ./abc/ abc/
+if err != nil {
+    fmt.Println("Error", err)
+    return
+}
+err = os.MkdirAll("abc/def/ghi", 0666)
+if err != nil {
+    fmt.Println("Error", err)
+    return
+}
+```
+
 ### 数学
 
 #### math
+
+##### 常量
+
+```go
+math.MinInt
+```
+
+##### 函数
 
 ```go
 func Abs(x float64) float64 // 对于整数类型，Go 语言没有内置的绝对值函数
@@ -3214,6 +3518,361 @@ for i := 0; i < len(p); i++ {
 }
 ```
 
+### 反射
+
+##### 基本概念
+
+反射是指在程序运行期间对程序本身进行访问和修改的能力。 正常情况程序在编译时， 变量被转换为内存地址， 变量名不会被编译器写入到可执行部分。 在运行程序时， 程序无法获取自身的信息。 支持反射的语言可以在程序编译期将变量的反射信息， 如字段名称、 类型信息、结构体信息等整合到可执行文件中， 并给程序提供接口访问反射信息， 这样就可以在程序运行期获取类型的反射信息， 并且有能力修改它们  
+
+> ORM:对象关系映射（ Object Relational Mapping， 简称 ORM） 是通过使用描述对象和数据库之间映射的元数据， 将面向对象语言程序中的对象自动持久化到关系数据库中。
+
+Golang 支持的反射：
+
+1. 反射可以在程序运行期间动态的获取变量的各种信息， 比如变量的类型 类别
+2. 如果是结构体， 通过反射还可以获取结构体本身的信息， 比如结构体的字段、 结构体的方法、 结构体的 tag
+3. 通过反射， 可以修改变量的值， 可以调用关联的方法
+
+Go 变量分为类型信息： 预先定义好的元信息、值信息：程序运行过程中可动态变化的。
+
+在 GoLang 的反射机制中， 任何接口值都由是一个具体类型和具体类型的值两部分组成的。
+
+在 GoLang 中， 反射的相关功能由内置的 reflect 包提供， 任意接口值在反射中都可以理解为由 reflect.Type 和 reflect.Value 两部分组成 ， 并且 reflect 包 提供了 reflect.TypeOf 和reflect.ValueOf 两个重要函数来获取任意对象的 Value 和 Type
+
+在反射中关于类型还划分为两种： 类型（Type） 和种类（ Kind） 。 因为在 Go 语言中我们可以使用 type 关键字构造很多自定义类型， 而种类（Kind） 就是指底层的类型， 但在反射中，当需要区分指针、 结构体等大品种的类型时， 就会用到种类（Kind） 。 举个例子， 我们定义了两个指针类型和两个结构体类型， 通过反射查看它们的类型和种类。  
+
+> 反射不应该被滥用，原因有以下两个。
+>
+> 1. 基于反射的代码是极其脆弱的， 反射中的类型错误会在真正运行的时候才会引发 panic 那很可能是在代码写完的很长时间之后。
+>
+> 2. 大量使用反射的代码通常难以理解
+
+##### TypeOf
+
+分别输出 name, kind
+
+```go
+package main
+
+import (
+	"fmt"
+	"reflect"
+)
+
+func testReflect(x interface{}) {
+	t := reflect.TypeOf(x)
+	fmt.Println(t, t.Name(), t.Kind())
+}
+func main() {
+	var x1 float32 = 12.5
+	testReflect(x1)  // float32 float32 float32
+	testReflect(100) // int int int
+	var a *float32   // 无论指向与否，输出一样
+	testReflect(a)   // *float32   ptr
+	type myint int64 //自定义类型
+	var b myint
+	testReflect(b) // main.myint myint int64
+	// main是包的意思，放函数外也是main.myint
+	var c rune     // 别名
+	testReflect(c) // int32 int32 int32
+	type person struct {
+		name string
+		age  int
+	}
+	var d = person{"lr580", 580}
+	testReflect(d) // main.person person struct
+	var f = []int{99, 82, 44, 353}
+	testReflect(f) // []int  slice
+}
+```
+
+```go
+type Kind uint
+const (
+    Invalid Kind = iota // 非法类型
+    Bool // 布尔型
+    Int // 有符号整型
+    Int8 // 有符号 8 位整型
+    Int16 // 有符号 16 位整型
+    Int32 // 有符号 32 位整型
+    Int64 // 有符号 64 位整型
+    Uint // 无符号整型
+    Uint8 // 无符号 8 位整型
+    Uint16 // 无符号 16 位整型
+    Uint32 // 无符号 32 位整型
+    Uint64 // 无符号 64 位整型
+    Uintptr // 指针
+    Float32 // 单精度浮点数
+    Float64 // 双精度浮点数
+    Complex64 // 64 位复数类型
+    Complex128 // 128 位复数类型
+    Array // 数组
+    Chan // 通道
+    Func // 函数
+    Interface // 接口
+    Map // 映射
+    Ptr // 指针
+    Slice // 切片
+    String // 字符串
+    Struct // 结构体
+    UnsafePointer // 底层指针
+)
+```
+
+##### ValueOf
+
+reflect.Value 与原始值之间可以互相转换，如：
+
+```go
+var a int64 = 100
+v := reflect.ValueOf(a)
+var av = v.Int() + 58 //int64
+fmt.Println(v, av)    // 100, 158
+fmt.Printf("%T\n", v) // reflect.Value
+```
+
+同理有 `v.Float()` 方法，对浮点类型。
+
+switch 判断类型 (可以拿来判断的，见上文 Kind const)
+
+```go
+var a int64 = 100
+k := reflect.ValueOf(a).Kind()
+switch k {
+case reflect.Int64:
+    fmt.Println("int64")
+// ...
+default:
+    fmt.Println("other")
+}
+```
+
+##### Elem()
+
+需要注意函数参数传递的是值拷贝， 必须传递变量地址才能修改变量值。 而反射中使用专有的 Elem()方法来获取指针对应的值  
+
+```go
+var a int64 = 100
+ad := &a // *int64
+v = reflect.ValueOf(ad)
+fmt.Println(v)  // 0xc0001060a8
+v2 := v.Elem()  // 取地址元素值
+fmt.Println(v2) // 100
+if v2.Kind() == reflect.Int64 {
+    v2.SetInt(580) // 在这里可以不判断 if
+}
+fmt.Println(a, v2) // 580 580
+```
+
+##### 结构体
+
+1. `Field(int)`  根据索引， 返回索引对应的结构体字段
+2. `NumField()` 几个子段
+3. `FieldByName(string)` 根据给定字符串返回字符串对应的结构体字段
+4. `FieldByNameFunc(match func(string) bool) (StructField,bool)` 根据传入的匹配函数匹配需要的字段
+5. `NumMethod() Int` 返回该类型的方法集中方法的数目
+6. `Method(int)` 返回该类型方法集中的第 i 个方法
+7. `MethodByName(string)(Method, bool)` 根据方法名返回该类型方法集中的方法
+
+子段结构体有的成员：[src](http://golang.org/ref/spec#Uniqueness_of_identifiers)
+
+> ```go
+> type StructField struct {
+>     Name string // Name 是字段的名字
+>     PkgPath string //PkgPath 是非导出字段的包路径， 对导出字段该字段为""
+>     Type Type // 字段的类型
+>     Tag StructTag // 字段的标签
+>     Offset uintptr // 字段在结构体中的字节偏移量
+>     Index []int // 用于 Type.FieldByIndex 时的索引切片
+>     Anonymous bool // 是否匿名字段
+> }
+> ```
+
+如：查询、使用
+
+```go
+package main
+
+import (
+	"fmt"
+	"reflect"
+)
+
+// student结构体
+type Student struct {
+	Name  string `json:"name1" form:"username"`
+	Age   int    `json:"age"`
+	Score int    `json:"score"`
+}
+
+func (s Student) GetInfo() string {
+	var str = fmt.Sprintf("姓名:%v 年龄:%v 成绩:%v", s.Name, s.Age, s.Score)
+	return str
+}
+
+func (s *Student) SetInfo(name string, age int, score int) {
+	s.Name = name
+	s.Age = age
+	s.Score = score
+}
+
+func (s Student) Print() {
+	fmt.Println("这是一个打印方法...")
+}
+
+// 打印字段
+func PrintStructField(s interface{}) {
+
+	//判断参数是不是结构体类型
+	t := reflect.TypeOf(s)
+	v := reflect.ValueOf(s)
+	if t.Kind() != reflect.Struct && t.Elem().Kind() != reflect.Struct {
+		fmt.Println("传入的参数不是一个结构体")
+		return
+	}
+
+	//1、通过类型变量里面的Field可以获取结构体的字段
+	field0 := t.Field(0)
+	fmt.Printf("%#v \n", field0)      //reflect.StructField{Name:"Name", PkgPath:"", Type:(*reflect.rtype)(0x4adf20), Tag:"json:\"name\"", Offset:0x0, Index:[]int{0}, Anonymous:false}
+	fmt.Println("字段名称：", field0.Name) // Name (按定义顺序)
+	fmt.Println("字段类型：", field0.Type)
+	fmt.Println("字段Tag：", field0.Tag.Get("json")) //name1
+	fmt.Println("字段Tag：", field0.Tag.Get("form"))
+	//2、通过类型变量里面的FieldByName可以获取结构体的字段
+	fmt.Println("----------------------")
+	field1, ok := t.FieldByName("Age")
+	if ok {
+		fmt.Println("字段名称：", field1.Name)
+		fmt.Println("字段类型：", field1.Type)
+		fmt.Println("字段Tag：", field1.Tag.Get("json"))
+	}
+
+	//3、通过类型变量里面的NumField获取到该结构体有几个字段
+
+	var fieldCount = t.NumField()
+	fmt.Println("结构体有", fieldCount, "个属性")
+
+	//4、通过值变量获取结构体属性对应的值
+
+	fmt.Println(v.FieldByName("Name"))
+	fmt.Println(v.FieldByName("Age"))
+	fmt.Println("----------------------")
+	for i := 0; i < fieldCount; i++ {
+		fmt.Printf("属性名称:%v 属性值:%v 属性类型:%v 属性Tag:%v\n", t.Field(i).Name, v.Field(i), t.Field(i).Type, t.Field(i).Tag.Get("json"))
+	}
+
+}
+
+// 打印执行方法
+func PrintStructFn(s interface{}) {
+
+	t := reflect.TypeOf(s)
+	v := reflect.ValueOf(s)
+	if t.Kind() != reflect.Struct && t.Elem().Kind() != reflect.Struct {
+		fmt.Println("传入的参数不是一个结构体")
+		return
+	}
+	//1、通过类型变量里面的Method可以获取结构体的方法
+	method0 := t.Method(0)    //和结构体方法的顺序没有关系，和结构体方法的ASCII有关系 // 按字典序排序
+	fmt.Println(method0.Name) //GetInfo
+	fmt.Println(method0.Type) //func(*main.Student) string
+
+	fmt.Println("--------------------------")
+	//2、通过类型变量获取这个结构体有多少个方法
+
+	method1, ok := t.MethodByName("Print")
+	if ok {
+		fmt.Println(method1.Name) //Print
+		fmt.Println(method1.Type) //func(*main.Student)
+	}
+	fmt.Println("--------------------------")
+	//3、通过《值变量》执行方法 （注意需要使用值变量，并且要注意参数） v.Method(0).Call(nil) 或者v.MethodByName("Print").Call(nil)
+	// v.Method(1).Call(nil)
+	v.MethodByName("Print").Call(nil) // 会调用, call 传入参数调用
+	// 得到返回值 info1
+	info1 := v.MethodByName("GetInfo").Call(nil)
+	fmt.Println(info1) //长为1的数组，第一个元素是返回值
+	//4、执行方法传入参数 （注意需要使用《值变量》，并且要注意参数,接收的参数是[]reflect.Value的切片）
+
+	var params []reflect.Value
+	params = append(params, reflect.ValueOf("李四"))
+	params = append(params, reflect.ValueOf(23))
+	params = append(params, reflect.ValueOf(99))
+	v.MethodByName("SetInfo").Call(params) //执行方法传入参数
+
+	info2 := v.MethodByName("GetInfo").Call(nil)
+	fmt.Println(info2)
+
+	// 5、获取方法数量
+
+	fmt.Println("方法数量:", t.NumMethod())
+
+}
+
+func main() {
+	stu1 := Student{
+		Name:  "小明",
+		Age:   15,
+		Score: 98,
+	}
+	PrintStructField(stu1)
+	PrintStructFn(&stu1)
+
+	fmt.Printf("%#v\n", stu1) // main.Student{Name:"李四", Age:23, Score:99}
+}
+```
+
+如：修改
+
+```go
+package main
+
+import (
+	"fmt"
+	"reflect"
+)
+
+// student结构体
+type Student struct {
+	Name  string `json:"name"`
+	Age   int    `json:"age"`
+	Score int    `json:"score"`
+}
+
+// 反射修改结构体属性
+func reflectChangeStruct(s interface{}) {
+	t := reflect.TypeOf(s)
+	v := reflect.ValueOf(s)
+
+	if t.Kind() != reflect.Ptr {
+		fmt.Println("传入的不是结构体指针类型")
+		return
+	} else if t.Elem().Kind() != reflect.Struct {
+
+		fmt.Println("传入的不是结构体指针类型")
+		return
+	}
+	//修改结构体属性的值
+	name := v.Elem().FieldByName("Name")
+	name.SetString("小李")
+
+	age := v.Elem().FieldByName("Age")
+	age.SetInt(22)
+
+}
+func main() {
+	stu1 := Student{
+		Name:  "小明",
+		Age:   15,
+		Score: 98,
+	}
+	reflectChangeStruct(&stu1)
+
+	fmt.Printf("%#v\n", stu1) //main.Student{Name:"小李", Age:22, Score:98}
+}
+```
+
+
+
 ## 第三方包
 
 ### 数值
@@ -3228,5 +3887,19 @@ go get github.com/shopspring/decimal
 fee, _ := decimal.NewFromString(".035")
 taxRate, _ := decimal.NewFromString(".08875")
 fmt.Println(fee.Add(taxRate)) // 0.12375
+```
+
+# 框架
+
+## Gin
+
+[官网](https://gin-gonic.com/zh-cn/)
+
+### 基础
+
+#### 安装使用
+
+```go
+go get -u github.com/gin-gonic/gin
 ```
 

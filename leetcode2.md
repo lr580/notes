@@ -2743,6 +2743,10 @@
 - 3110\.字符串的分数
 
   签到
+  
+- 2272\.最大波动的子字符串
+
+  **DP**
 
 ## 算法
 
@@ -9785,5 +9789,65 @@ func scoreOfString(s string) (ans int) {
 }
 
 func abs(x int) int { if x < 0 { return -x }; return x }
+```
+
+##### 2272\.最大波动的子字符串
+
+[题目](https://leetcode.cn/problems/substring-with-largest-variance)
+
+枚举当前最大 $a$ 和最小次数字符 $b$ 分别是哪两个，如果答案不是这个的话，这样的枚举虽然冗余但不破坏正确性。然后对最大最小分别记作 $+1,-1$，其他记作 $0$，统计这样的最大子数组和。需要增设状态条件是否包含 $b$，否则只有 $b$ 一种字符最大最小都是它。设 $f_{i+1,0}$ 是不管是否包含 $s_i$ 结尾，$f_{i+1,1}$ 是包含。$f_{i+1,0}$ 就是朴素最大子数组和，对 $f_{i+1,1}$，首先可以继承 $f_{i,1}$，如果当前是 $b$，就可以继承 $f_{i+1,0}$。初始值 $f_{0,1}=-\infty$。复杂度 $O(n|\Sigma|^2)$。
+
+```go
+func largestVariance(s string) (ans int) {
+    for a := 'a'; a <= 'z'; a++ {
+        for b := 'a'; b <= 'z'; b++ {
+            if b == a {
+                continue
+            }
+            f0, f1 := 0, math.MinInt
+            for _, ch := range s {
+                if ch == a {
+                    f0 = max(f0, 0) + 1
+                    f1++
+                } else if ch == b {
+                    f1, f0 = max(f0, 0)-1, max(f0, 0)-1
+                } // else { f0 = max(f0, 0) } 可以留到 ch 等于 a 或者 b 的时候计算，f1 不变
+                ans = max(ans, f1)
+            }
+        }
+    }
+    return
+}
+```
+
+优化：只遍历一次字符串，同时维护所有 $|\Sigma|^2$ 次 DP。
+
+```go
+func largestVariance(s string) (ans int) {
+	var f0, f1 [26][26]int
+	for i := range f1 {
+		for j := range f1[i] {
+			f1[i][j] = math.MinInt
+		}
+	}
+
+	for _, ch := range s {
+		ch -= 'a'
+		// 遍历到 ch 时，只需计算 a=ch 或者 b=ch 的状态，其他状态和 ch 无关，f 值不变
+		for i := range 26 {
+			if i == int(ch) {
+				continue
+			}
+			// 假设出现次数最多的字母 a=ch，更新所有 b=i 的状态
+			f0[ch][i] = max(f0[ch][i], 0) + 1
+			f1[ch][i]++
+			// 假设出现次数最少的字母 b=ch，更新所有 a=i 的状态
+			f0[i][ch] = max(f0[i][ch], 0) - 1
+			f1[i][ch] = f0[i][ch]
+			ans = max(ans, f1[ch][i], f1[i][ch])
+		}
+	}
+	return
+}
 ```
 
