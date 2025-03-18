@@ -2743,6 +2743,14 @@
 - 3110\.字符串的分数
 
   签到
+  
+- 2614\.对角线上的质数
+
+  签到
+
+- 1963\.使字符串平衡的最小交换次数
+
+  贪心(括号序列)
 
 ## 算法
 
@@ -9786,4 +9794,167 @@ func scoreOfString(s string) (ans int) {
 
 func abs(x int) int { if x < 0 { return -x }; return x }
 ```
+
+##### 2614\.对角线上的质数
+
+[题目](https://leetcode.cn/problems/prime-in-diagonal)
+
+```go
+func diagonalPrime(nums [][]int) int {
+	n, ans := len(nums), 0
+	isPrime := func(x int) bool {
+		for i := 2; i*i <= x; i++ {
+			if x%i == 0 {
+				return false
+			}
+		}
+		return x > 1
+	}
+	for i := 0; i < n; i++ {
+		x, y := i, n-1-i
+		if isPrime(nums[i][x]) {
+			ans = max(ans, nums[i][x])
+		}
+		if x != y && isPrime(nums[i][y]) {
+			ans = max(ans, nums[i][y])
+		}
+	}
+	return ans
+}
+```
+
+```go
+func isPrime(n int) bool {
+    for i := 2; i*i <= n; i++ {
+        if n%i == 0 {
+            return false
+        }
+    }
+    return n >= 2 // 1 不是质数
+}
+
+func diagonalPrime(nums [][]int) (ans int) {
+    for i, row := range nums {
+        if x := row[i]; x > ans && isPrime(x) {
+            ans = x
+        }
+        if x := row[len(nums)-1-i]; x > ans && isPrime(x) {
+            ans = x
+        }
+    }
+    return
+}
+```
+
+##### 1963\.使字符串平衡的最小交换次数
+
+[题目](https://leetcode.cn/problems/minimum-number-of-swaps-to-make-the-string-balanced/description/)
+
+反正盲猜出来了，每次匹配一定能消掉两对。
+
+```go
+func minSwaps(s string) int {
+	ans, l := 0, 0
+	for _, c := range s {
+		if c == '1' {
+			l++
+		} else {
+			l--
+		}
+		ans = min(ans, l)
+	}
+	return (-ans + 1) / 2
+}
+```
+
+括号字符串的前 $i$ 个字符的左括号数减右括号数设为 $c_i$，括号合法的充要条件是 $\forall i,c_i\ge0$。
+
+> - 必要性：只要合法，一定满足该条件。显然。
+> - 充分性：只要满足该条件，一定合法。也容易理解。
+
+0x3f方案：对第一个不匹配的右括号，找到最右边的左括号进行交换。
+
+贪心的说，这个交换一定让第一个不匹配位置 $i$ 的 $c_i$ 增加 $2$，并且让 $c$ 得到右括号减少 $1$ 的时间尽可能的后，所以交换方案，如找更前边的左括号交换，答案一定不会更优。所以，在策略角度，是最优策略。
+
+证明：这样的操作一定能多匹配两个失配的。所有匹配掉的都可以删去，本质上等价于求简化的 `]]]....[[[....`，没有区别。也就是说，求这个的交换和求原串交换等价。因为从这个简化(按消除顺序)加回去一样的。在交换前，如果有两个失配右括号，必然有两个失配左括号。交换后显然可以多匹配两个。只需要忽略掉所有本来就匹配了的括号，容易得知。
+
+> 计算上模拟：
+>
+> ```go
+> func minSwaps(S string) (ans int) {
+> 	s := []byte(S)
+> 	c := 0
+> 	j := len(s) - 1
+> 	for _, b := range s {
+> 		if b == '[' {
+> 			c++
+> 		} else if c > 0 {
+> 			c--
+> 		} else { // c == 0
+> 			// 找最右边的左括号交换
+> 			for s[j] == ']' {
+> 				j--
+> 			}
+> 			s[j] = ']' // s[i] = '[' 可以省略
+> 			ans++
+> 			c++ // s[i] 变成左括号，c 加一
+> 		}
+> 	}
+> 	return
+> }
+> ```
+>
+> 等价于：
+>
+> ```go
+> func minSwaps(s string) (ans int) {
+> 	c := 0
+> 	for _, b := range s {
+> 		if b == '[' {
+> 			c++
+> 		} else if c > 0 {
+> 			c--
+> 		} else { // c == 0
+> 			ans++
+> 			c++ // s[i] 变成左括号，c 加一
+> 		}
+> 	}
+> 	return
+> }
+> ```
+
+> 如：`]]][[[` 本来得到 `[][[]]`，但计算上等价于 `[][[[[`，即下面代码：
+>
+> ```go
+> func minSwaps(s string) (ans int) {
+> 	c := 0
+> 	for _, b := range s {
+> 		if b == '[' {
+> 			c++
+> 		} else if c > 0 {
+> 			c--
+> 		} else { // c == 0
+> 			ans++
+> 			c++ // s[i] 变成左括号，c 加一
+> 		}
+> 	}
+> 	return
+> }
+> ```
+>
+> 进一步优化为：多出的左括号的次数。
+>
+> ```go
+> func minSwaps(s string) int {
+> 	c := 0
+> 	for _, b := range s {
+> 		if b == '[' || c == 0 {
+> 			c++
+> 		} else {
+> 			c--
+> 		}
+> 	}
+> 	return c / 2
+> }
+> ```
 
