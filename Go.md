@@ -833,7 +833,7 @@ if strings.ContainsRune("aeiou", b) { // ...
 
 0-indexed，越界panic
 
-指定长度、初始值来初始化：
+指定**常数**长度、初始值来初始化：
 
 ```go
 var a [3]int
@@ -943,6 +943,32 @@ var c = []bool{false, true}
 fmt.Println(a, b, c)              // [] [] [false true]
 fmt.Println(a == nil, b == nil)   // true false
 fmt.Printf("%T %T %T\n", a, b, c) // []string []int []bool
+```
+
+定义多维，变量的，如：m+1, n+1, 3
+
+```go
+f := make([][][3]int, m+1)
+for i := range f {
+    f[i] = make([][3]int, n+1)
+}
+// 或 n+1, m+1, 3
+dp := make([][][]int, n+1)
+for i := range dp {
+    dp[i] = make([][]int, m+1)
+    for j := range dp[i] {
+        dp[i][j] = make([]int, 3)
+    }
+}
+```
+
+带初始值：(上面的 f)
+
+```go
+for j := range f[0] {
+    f[0][j] = [3]int{math.MinInt / 2, math.MinInt / 2, math.MinInt / 2}
+}
+f[0][1] = [3]int{}
 ```
 
 ##### 运算

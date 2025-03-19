@@ -1916,6 +1916,12 @@ LaTeX Workshop 默认的编译工具是 latexmk，根据需要修改所需的工
 ],
 ```
 
+默认编译选项，选择上面 recipes 的某个 name，如：
+
+```json
+"latex-workshop.latex.recipe.default": "pdf->bib->pdf->pdf",
+```
+
 
 
 #### 使用

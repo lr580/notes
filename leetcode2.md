@@ -2755,6 +2755,14 @@
 - 2272\.最大波动的子字符串
 
   **DP**
+  
+- 2610\.转换二维数组
+
+  STL / 排序
+  
+- 3418\.机器人可以获得的最大金币数
+
+  DP
 
 ## 算法
 
@@ -10021,4 +10029,206 @@ func minSwaps(s string) int {
 > 	return c / 2
 > }
 > ```
+
+##### 2610\.转换二维数组
+
+[题目](https://leetcode.cn/problems/convert-an-array-into-a-2d-array-with-conditions)
+
+```go
+import "sort"
+
+func findMatrix(nums []int) (ans [][]int) {
+	sort.Ints(nums)
+	prv, cnt := 0, 0
+	for _, x := range nums {
+		if prv != x {
+			cnt = 0
+		}
+		if len(ans) <= cnt {
+			ans = append(ans, []int{})
+		}
+		ans[cnt] = append(ans[cnt], x)
+		prv = x
+		cnt++
+	}
+	return
+}
+```
+
+一行行写：
+
+```go
+func findMatrix(nums []int) (ans [][]int) {
+    // 统计每个元素的出现次数
+    cnt := map[int]int{}
+    for _, x := range nums {
+        cnt[x]++
+    }
+
+    for len(cnt) > 0 {
+        row := make([]int, 0, len(cnt)) // 预分配空间
+        // cnt 中的每个元素的出现次数都减一
+        for x := range cnt {
+            row = append(row, x)
+            cnt[x]--
+            if cnt[x] == 0 {
+                delete(cnt, x) // 删除当前正在遍历的元素是安全的
+            }
+        }
+        ans = append(ans, row)
+    }
+    return
+}
+```
+
+或者记录上一个数字出现在了第几行：
+
+```go
+func findMatrix(nums []int) (ans [][]int) {
+    cnt := make([]int, len(nums)+1)
+    for _, x := range nums {
+        c := cnt[x]
+        if c == len(ans) { // 需要加一行
+            ans = append(ans, []int{})
+        }
+        ans[c] = append(ans[c], x)
+        cnt[x]++
+    }
+    return
+}
+```
+
+##### 3418\.机器人可以获得的最大金币数
+
+[题目](https://leetcode.cn/problems/maximum-amount-of-money-robot-can-earn)
+
+```go
+package main
+
+func maximumAmount(coins [][]int) (ans int) {
+	n, m := len(coins), len(coins[0])
+	dp := make([][][]int, n+1)
+	for i := range dp {
+		dp[i] = make([][]int, m+1)
+		for j := range dp[i] {
+			dp[i][j] = make([]int, 3)
+		}
+	}
+	for k := 0; k < 3; k++ {
+		for i := 0; i <= n; i++ {
+			dp[i][0][k] = -1e9
+		}
+		for j := 0; j <= m; j++ {
+			dp[0][j][k] = -1e9
+		}
+	}
+	for k := 0; k < 3; k++ { 
+        dp[1][0][k] = 0
+    }
+	for i := 1; i <= n; i++ {
+		for j := 1; j <= m; j++ {
+			for k := 0; k < 3; k++ {
+				dp[i][j][k] = max(dp[i-1][j][k], dp[i][j-1][k]) + coins[i-1][j-1]
+				if k > 0 && coins[i-1][j-1] < 0 {
+					dp[i][j][k] = max(dp[i-1][j][k-1], dp[i][j-1][k-1], dp[i][j][k])
+				}
+			}
+		}
+	}
+    ans = -1e9
+    for k := 0; k < 3; k++ { 
+        ans = max(ans, dp[n][m][k])
+    }
+	return
+}
+```
+
+其他写法：
+
+```go
+func maximumAmount(coins [][]int) int {
+	m, n := len(coins), len(coins[0])
+	f := make([][][3]int, m+1)
+	for i := range f {
+		f[i] = make([][3]int, n+1)
+	}
+	for j := range f[0] {
+		f[0][j] = [3]int{math.MinInt / 2, math.MinInt / 2, math.MinInt / 2}
+	}
+	f[0][1] = [3]int{}
+	for i, row := range coins {
+		f[i+1][0] = [3]int{math.MinInt / 2, math.MinInt / 2, math.MinInt / 2}
+		for j, x := range row {
+			f[i+1][j+1][0] = max(f[i+1][j][0], f[i][j+1][0]) + x
+			f[i+1][j+1][1] = max(f[i+1][j][1]+x, f[i][j+1][1]+x, f[i+1][j][0], f[i][j+1][0])
+			f[i+1][j+1][2] = max(f[i+1][j][2]+x, f[i][j+1][2]+x, f[i+1][j][1], f[i][j+1][1])
+		}
+	}
+	return f[m][n][2]
+}
+```
+
+```go
+func maximumAmount(coins [][]int) int {
+	m, n := len(coins), len(coins[0])
+	memo := make([][][3]int, m)
+	for i := range memo {
+		memo[i] = make([][3]int, n)
+		for j := range memo[i] {
+			for k := range memo[i][j] {
+				memo[i][j][k] = math.MinInt
+			}
+		}
+	}
+	var dfs func(int, int, int) int
+	dfs = func(i, j, k int) int {
+		if i < 0 || j < 0 {
+			return math.MinInt
+		}
+		x := coins[i][j]
+		if i == 0 && j == 0 {
+			if k == 0 {
+				return x
+			}
+			return max(x, 0)
+		}
+		p := &memo[i][j][k]
+		if *p != math.MinInt { // 之前计算过
+			return *p
+		}
+		res := max(dfs(i-1, j, k), dfs(i, j-1, k)) + x // 选
+		if x < 0 && k > 0 {
+			res = max(res, dfs(i-1, j, k-1), dfs(i, j-1, k-1)) // 不选
+		}
+		*p = res // 记忆化
+		return res
+	}
+	return dfs(m-1, n-1, 2)
+}
+```
+
+压缩：直接去掉第一个维度，对 k 改成逆序
+
+```go
+func maximumAmount(coins [][]int) int {
+	n := len(coins[0])
+	f := make([][3]int, n+1)
+	for j := range f {
+		f[j] = [3]int{math.MinInt / 2, math.MinInt / 2, math.MinInt / 2}
+	}
+	f[1] = [3]int{}
+	for _, row := range coins {
+		for j, x := range row {
+			f[j+1][2] = max(f[j][2]+x, f[j+1][2]+x, f[j][1], f[j+1][1])
+			f[j+1][1] = max(f[j][1]+x, f[j+1][1]+x, f[j][0], f[j+1][0])
+			f[j+1][0] = max(f[j][0], f[j+1][0]) + x
+		}
+	}
+	return f[n][2]
+}
+```
+
+
+
+
 
