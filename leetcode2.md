@@ -2763,6 +2763,22 @@
 - 3418\.机器人可以获得的最大金币数
 
   DP
+  
+- 2612\.最少翻转操作数
+
+  **BFS + (STL/并查集/笛卡尔树)优化**
+
+- 1937\.扣分后的最大得分
+
+  **DP+前缀和优化**
+  
+- 1143\.最长公共子序列
+
+  DP
+
+- 718\.最长重复子数组
+
+  DP / 二分+字符串哈希
 
 ## 算法
 
@@ -10228,7 +10244,458 @@ func maximumAmount(coins [][]int) int {
 }
 ```
 
+##### 2612\.最少翻转操作数
 
+[题目](https://leetcode.cn/problems/minimum-reverse-operations)
+
+显然 BFS。容易判断出，$i$ 的下一步是 $i+k-1,i+k-3,\cdots,i-k+1$，即共 $k$ 项，公差为 $2$。进一步地，设按 $[L,R]$ 区间翻转，$L\to R,L+1\to R-1,\cdots$，可以发现翻转前后下标之和为 $L+R$，故 $i\to L+R-i$。
+
+枚举和单调分析可知，0-indexed，$i<k-1$，则极小值 $L=0,R=k-1$，有 $i$ 翻转为 $k-i-1$。若 $i>n-k$，$L=n-k,R=n-1$ 极大值 $L+R-i=2n-k-i-1$。
+
+故 $i$ 翻转后的下标范围是：(公差为 $2$)
+$$
+(\max(i-k+1,k-i-1),\min(i+k-1,2n-k-i-1))
+$$
+问题的关键是如何快速遍历这里没被访问过的下标。显然，公差为 $2$，同一步奇偶相同，故可以维护两个 set，代表未访问下标。每次在这个范围的下标入队，并清除这些下标。也可以用并查集做到这一点，每个根是最大值，能够做到类似双向链表删除的快速遍历 skip vis 策略。都是 $O(n\log n)$。如果用笛卡尔树代替并查集，可以做到线性复杂度。暴力位运算 bitset / 汇编优化也可以卡过，略 [src](https://leetcode.cn/problems/minimum-reverse-operations/solutions/2204034/on232de-ya-wei-bao-li-by-hqztrue-ownd/?envType=daily-question&envId=2025-03-20)。
+
+set C++ 459ms, go 295ms
+
+```c++
+class Solution {
+public:
+    vector<int> minReverseOperations(int n, int p, vector<int>& banned, int k) {
+        unordered_set<int> ban{banned.begin(), banned.end()};
+        set<int> indices[2];
+        for (int i = 0; i < n; i++) {
+            if (i != p && !ban.contains(i)) {
+                indices[i % 2].insert(i);
+            }
+        }
+        indices[0].insert(n); // 哨兵，下面无需判断 it != st.end()
+        indices[1].insert(n);
+
+        vector<int> ans(n, -1);
+        ans[p] = 0; // 起点
+        queue<int> q;
+        q.push(p);
+        while (!q.empty()) {
+            int i = q.front(); q.pop();
+            // indices[mn % 2] 中的从 mn 到 mx 的所有下标都可以从 i 翻转到
+            int mn = max(i - k + 1, k - i - 1);
+            int mx = min(i + k - 1, n * 2 - k - i - 1);
+            auto& st = indices[mn % 2];
+            for (auto it = st.lower_bound(mn); *it <= mx; it = st.erase(it)) {
+                ans[*it] = ans[i] + 1; // 移动一步
+                q.push(*it);
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```go
+func minReverseOperations(n int, p int, banned []int, k int) []int {
+    ban := map[int]struct{}{p: {}}
+    for _, b := range banned {
+        ban[b] = struct{}{}
+    }
+
+    indices := [2]*redblacktree.Tree[int, struct{}]{
+        redblacktree.New[int, struct{}](),
+        redblacktree.New[int, struct{}](),
+    }
+    for i := range n {
+        if _, ok := ban[i]; !ok {
+            indices[i%2].Put(i, struct{}{})
+        }
+    }
+    indices[0].Put(n, struct{}{}) // 哨兵，下面无需判断 node != nil
+    indices[1].Put(n, struct{}{})
+
+    ans := make([]int, n)
+    for i := range ans {
+        ans[i] = -1
+    }
+    ans[p] = 0 // 起点
+    q := []int{p}
+    for len(q) > 0 {
+        i := q[0]
+        q = q[1:]
+        // indices[mn%2] 中的从 mn 到 mx 的所有下标都可以从 i 翻转到
+        mn := max(i-k+1, k-i-1)
+        mx := min(i+k-1, n*2-k-i-1)
+        t := indices[mn%2]
+        for node, _ := t.Ceiling(mn); node.Key <= mx; node, _ = t.Ceiling(mn) {
+            j := node.Key
+            ans[j] = ans[i] + 1 // 移动一步
+            q = append(q, j)
+            t.Remove(j)
+        }
+    }
+    return ans
+}
+```
+
+并查集 C++ 31ms，go 28ms
+
+```c++
+class UnionFind {
+    vector<int> fa;
+
+public:
+    UnionFind(int n) : fa(n) {
+        iota(fa.begin(), fa.end(), 0);
+    }
+
+    int find(int x) {
+        if (fa[x] != x) {
+            fa[x] = find(fa[x]);
+        }
+        return fa[x];
+    }
+
+    void merge(int from, int to) {
+        fa[find(from)] = find(to);
+    }
+};
+
+class Solution {
+public:
+    vector<int> minReverseOperations(int n, int p, vector<int>& banned, int k) {
+        UnionFind indices(n + 2);
+        indices.merge(p, p + 2); // 删除 p
+        for (int i : banned) {
+            indices.merge(i, i + 2); // 删除 i
+        }
+
+        vector<int> ans(n, -1);
+        ans[p] = 0;
+        queue<int> q;
+        q.push(p);
+        while (!q.empty()) {
+            int i = q.front(); q.pop();
+            int mn = max(i - k + 1, k - i - 1);
+            int mx = min(i + k - 1, n * 2 - k - i - 1);
+            for (int j = indices.find(mn); j <= mx; j = indices.find(j + 2)) { // 快速跳到 >= j+2 的下一个下标
+                ans[j] = ans[i] + 1;
+                q.push(j);
+                indices.merge(j, mx + 2); // 删除 j
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```go
+type unionFind struct {
+    fa []int
+}
+
+func newUnionFind(n int) unionFind {
+    fa := make([]int, n)
+    for i := range fa {
+        fa[i] = i
+    }
+    return unionFind{fa}
+}
+
+func (uf unionFind) find(x int) int {
+    if uf.fa[x] != x {
+        uf.fa[x] = uf.find(uf.fa[x])
+    }
+    return uf.fa[x]
+}
+
+func (uf unionFind) merge(from, to int) {
+    uf.fa[uf.find(from)] = uf.find(to)
+}
+
+func minReverseOperations(n, p int, banned []int, k int) []int {
+    indices := newUnionFind(n + 2)
+    indices.merge(p, p+2) // 删除 p
+    for _, i := range banned {
+        indices.merge(i, i+2) // 删除 i
+    }
+
+    ans := make([]int, n)
+    for i := range ans {
+        ans[i] = -1
+    }
+    ans[p] = 0
+    q := []int{p}
+    for len(q) > 0 {
+        i := q[0]
+        q = q[1:]
+        mn := max(i-k+1, k-i-1)
+        mx := min(i+k-1, n*2-k-i-1)
+        for j := indices.find(mn); j <= mx; j = indices.find(j + 2) { // 快速跳到 >= j+2 的下一个下标
+            ans[j] = ans[i] + 1
+            q = append(q, j)
+            indices.merge(j, mx+2) // 删除 j
+        }
+    }
+    return ans
+}
+```
+
+[笛卡尔树](https://ljt12138.blog.uoj.ac/blog/4874)
+
+##### 1937\.扣分后的最大得分
+
+[题目](https://leetcode.cn/problems/maximum-number-of-points-with-cost)
+
+分类讨论，转移方程 $f_{i,j}=a_{i,j}+\max f_{i-1,k}-|k-j|$ 化简为：
+$$
+f_{i,j}=\begin{cases}
+a_{i,j}-j+\max f_{i-1,k}+k,k\le j\\
+a_{i,j}+j+\max f_{i-1,k}-k,k> j\\
+\end{cases}
+$$
+记 $f0=f_{i-1,k+k},f1=f_{i-1,k}-k$，分别维护 $f0$ 前缀 max，$f1$ 后缀 max。
+
+```go
+func maxPoints(points [][]int) int64 {
+	ans := 0
+	n := len(points[0])
+	f := make([][2]int, n)
+	sufMax := make([]int, n) // 后缀最大值
+	for i, row := range points {
+		if i == 0 {
+			for j, v := range row {
+				ans = max(ans, v)
+				f[j][0] = v + j
+				f[j][1] = v - j
+			}
+		} else {
+			preMax := math.MinInt32
+			for j, v := range row {
+				preMax = max(preMax, f[j][0])
+				res := max(v-j+preMax, v+j+sufMax[j]) // 左侧和右侧的最大值即为选择 points[i][j] 时的计算结果
+				ans = max(ans, res) // 直接更新答案，这样下面就不直接存储 res 了，改为存储 res + j 和 res - j
+				f[j][0] = res + j
+				f[j][1] = res - j
+			}
+		}
+		// 计算完一整行 f 后，对于每个位置 j，计算其右侧的所有 f[k] - k 的最大值
+		// 这可以通过倒着遍历 f 求出
+		sufMax[n-1] = f[n-1][1]
+		for j := n - 2; j >= 0; j-- {
+			sufMax[j] = max(sufMax[j+1], f[j][1])
+		}
+	}
+	return int64(ans)
+}
+
+func max(a, b int) int { if a > b { return a }; return b }
+```
+
+##### 2787\.将一个数字表示成幂的和的方案数
+
+[题目](https://leetcode.cn/problems/ways-to-express-an-integer-as-sum-of-powers)
+
+背包 DP；可以预处理出全部结果。
+
+```go
+package main
+
+const mod int = 1e9 + 7
+
+func numberOfWays(n int, x int) int {
+	a := []int{}
+	for i := 1; ; i++ {
+		ip := 1
+		for j := 1; j <= x; j++ {
+			ip *= i
+		}
+		a = append(a, ip)
+		if ip > n {
+			break
+		}
+	}
+	dp := make([]int, n+1)
+	dp[0] = 1
+	for x := range a {
+		for i := n; i >= a[x]; i-- {
+			dp[i] = (dp[i] + dp[i-a[x]]) % mod
+		}
+	}
+	return dp[n]
+}
+```
+
+```go
+func numberOfWays(n, x int) int {
+	f := make([]int, n+1)
+	f[0] = 1
+	for i := 1; pow(i, x) <= n; i++ {
+		v := pow(i, x)
+		for s := n; s >= v; s-- {
+			f[s] += f[s-v]
+		}
+	}
+	return f[n] % 1_000_000_007
+}
+
+// 本题数据范围小，math.Pow 的计算结果一定准确
+func pow(i, x int) int {
+	return int(math.Pow(float64(i), float64(x)))
+}
+```
+
+预处理
+
+```go
+package main
+
+const mod int = 1e9 + 7
+
+var dp = [5][301]int{}
+
+func init() {
+	for x := 0; x < 5; x++ {
+		a := []int{}
+		for i := 1; ; i++ {
+			ip := 1
+			for j := 0; j <= x; j++ {
+				ip *= i
+			}
+			a = append(a, ip)
+			if ip > 300 {
+				break
+			}
+		}
+		dp[x][0] = 1
+		for v := range a {
+			for i := 300; i >= a[v]; i-- {
+				dp[x][i] = (dp[x][i] + dp[x][i-a[v]]) % mod
+			}
+		}
+	}
+}
+
+func numberOfWays(n int, x int) int {
+	return dp[x-1][n]
+}
+```
+
+##### 1143\.最长公共子序列
+
+[题目](https://leetcode.cn/problems/longest-common-subsequence)
+
+```go
+func longestCommonSubsequence(s, t string) int {
+    n, m := len(s), len(t)
+    f := [2][]int{make([]int, m+1), make([]int, m+1)}
+    for i, x := range s {
+        for j, y := range t {
+            if x == y {
+                f[(i+1)%2][j+1] = f[i%2][j] + 1
+            } else {
+                f[(i+1)%2][j+1] = max(f[i%2][j+1], f[(i+1)%2][j])
+            }
+        }
+    }
+    return f[n%2][m]
+}
+```
+
+优化到一个数组：
+
+```go
+func longestCommonSubsequence(s, t string) int {
+    m := len(t)
+    f := make([]int, m+1)
+    for _, x := range s {
+        pre := 0 // f[0]
+        for j, y := range t {
+            if x == y {
+                f[j+1], pre = pre+1, f[j+1]
+            } else {
+                pre = f[j+1]
+                f[j+1] = max(f[j+1], f[j])
+            }
+        }
+    }
+    return f[m]
+}
+```
+
+##### 718\.最长重复子数组
+
+[题目](https://leetcode.cn/problems/maximum-length-of-repeated-subarray)
+
+```go
+package main
+
+func findLength(nums1 []int, nums2 []int) (ans int) {
+	n, m := len(nums1), len(nums2)
+	dp := make([][]int, 2)
+	dp[0] = make([]int, m+1)
+	dp[1] = make([]int, m+1)
+	for i := 1; i <= n; i++ {
+		for j := 1; j <= m; j++ {
+			if nums1[i-1] == nums2[j-1] {
+				dp[i&1][j] = dp[(i-1)&1][j-1] + 1
+			} else {
+				dp[i&1][j] = 0
+			}
+			ans = max(ans, dp[i&1][j])
+		}
+	}
+	return
+}
+```
+
+滑动窗口：本质上就是优化的枚举。让 A 在 B 滑或 B 在 A 滑，在这个过程暴力枚举最长匹配的。
+
+```go
+func findLength(A []int, B []int) int {
+    n, m := len(A), len(B)
+    ret := 0
+    for i := 0; i < n; i++ {
+        len := min(m, n - i)
+        maxLen := maxLength(A, B, i, 0, len)
+        ret = max(ret, maxLen)
+    }
+    for i := 0; i < m; i++ {
+        len := min(n, m - i)
+        maxLen := maxLength(A, B, 0, i, len)
+        ret = max(ret, maxLen)        
+    }
+    return ret
+}
+
+func maxLength(A, B []int, addA, addB, len int) int {
+    ret, k := 0, 0
+    for i := 0; i < len; i++ {
+        if A[addA + i] == B[addB + i] {
+            k++
+        } else {
+            k = 0
+        }
+        ret = max(ret, k)
+    }
+    return ret
+}
+
+func max(x, y int) int {
+    if x > y {
+        return x
+    }
+    return y
+}
+
+func min(x, y int) int {
+    if x < y {
+        return x
+    }
+    return y
+}
+```
+
+字符串哈希+二分：参考蓝桥2024pythonA省赛E题吊坠，在我的其他笔记 `.md`，即算法练习部分，有。略，很显然。
 
 
 

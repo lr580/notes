@@ -1,7 +1,3 @@
-
-
-
-
 # 基础
 
 ## 基本概念
@@ -1054,6 +1050,8 @@ b = append(b, c...)
 fmt.Println(b)
 ```
 
+##### 删除
+
 没有删除切片元素的专用方法， 使用切片本身的特性来删除元素  
 
 ```go
@@ -1062,6 +1060,8 @@ a := []int{30, 31, 32, 33, 34, 35, 36, 37}
 a = append(a[:2], a[3:]...)
 fmt.Println(a) //[30 31 33 34 35 36 37]
 ```
+
+删除是 O1 的，任意 `a = a[l:r]` 都是如此。如 `a=a[1:]` 是删除第一个元素。
 
 ##### 扩容
 
@@ -1417,6 +1417,23 @@ var x mint = 10
 fmt.Println(x.lowbit())
 x.double()
 x.set(580)
+```
+
+没有构造函数，可以通过返回结构体的函数实现：
+
+```go
+type unionFind struct {
+    fa []int
+}
+func newUnionFind(n int) unionFind {
+    fa := make([]int, n)
+    for i := range fa {
+        fa[i] = i
+    }
+    return unionFind{fa}
+}
+// ...
+indices := newUnionFind(n + 2)
 ```
 
 ##### 数组
@@ -2212,11 +2229,12 @@ AA 1 3 4
   fmt.Println(min(1, 1, 4, 0.5))
   ```
 
-  
+
+
 
 #### init函数
 
-没有参数也没有返回值。 init()函数在程序运行时自动被调用执行， 不能在代码中主动调用它
+没有参数也没有返回值。 init()函数在程序运行时自动被调用执行， 不能在代码中主动调用它。等价于 java `static {}` 或 c++ `auto f = [](){}()`
 
 执行顺序：全局声明、init、main。不管声明在init前后，都是先声明
 
@@ -3333,6 +3351,7 @@ math.MinInt
 
 ```go
 func Abs(x float64) float64 // 对于整数类型，Go 语言没有内置的绝对值函数
+func Pow(i, p float64) float64
 ```
 
 ### 时间
@@ -3912,6 +3931,52 @@ func main() {
 
 
 ## 第三方包
+
+### 数据结构
+
+#### redblacktree
+
+以 [这个](https://pkg.go.dev/github.com/emirpasic/gods@v1.18.1#section-readme) 为例
+
+```sh
+go get github.com/emirpasic/gods/trees/redblacktree
+```
+
+##### 新建
+
+两个红黑树，键 only，值 any (即，对应 C++ set)
+
+```go
+indices := [2]*redblacktree.Tree[int, struct{}]{
+    redblacktree.New[int, struct{}](),
+    redblacktree.New[int, struct{}](),
+}
+```
+
+##### 使用
+
+插入 (上文新建的 indices 为例) Put
+
+```go
+indices[i%2].Put(i, struct{}{})
+```
+
+查找 
+
+- Ceiling 返回第一个大于等于 key 的节点，查无 nil
+- Floor 第一个小于等于 key 的，查无 nil
+- Get 查询恰好等于 key 的，查无 nil
+
+查询+删除：Remove
+
+```go
+for node, _ := t.Ceiling(mn); node.Key <= mx; node, _ = t.Ceiling(mn) { // _ 是是否查询到
+    j := node.Key // 取 key
+    t.Remove(j) // 删除
+}
+```
+
+
 
 ### 数值
 
