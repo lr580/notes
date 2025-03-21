@@ -800,13 +800,17 @@ conda remove mkl-service mkl_fft mkl_random
 conda config --set auto_activate_base False
 ```
 
+### PyPy3
 
+PyPy3 是 Python 3 的一个替代实现，由 PyPy 项目开发。PyPy 是一个用 Python 编写的 Python 解释器，它的目标是提供比标准 CPython（Python 的官方实现）更高的性能和更好的灵活性。
+
+- 使用 **Just-In-Time (JIT) 编译器**，可以在运行时动态优化代码，从而显著提高某些场景下（如数值计算、长时间运行的脚本）的性能。
+- 兼容 Python 3 的语法和标准库。
+- 支持多种底层技术（如 C、RPython 等），使得开发更灵活。
 
 ### 其他
 
 `.pyc` 文件可以删除。
-
-
 
 
 

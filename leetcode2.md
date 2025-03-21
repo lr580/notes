@@ -2779,6 +2779,14 @@
 - 718\.最长重复子数组
 
   DP / 二分+字符串哈希
+  
+- 2680\.最大或值
+
+  贪心+前缀和 / <u>贪心+位运算</u>
+
+- 2787\.将一个数字表示成幂的和的方案数
+
+  背包DP
 
 ## 算法
 
@@ -10697,5 +10705,48 @@ func min(x, y int) int {
 
 字符串哈希+二分：参考蓝桥2024pythonA省赛E题吊坠，在我的其他笔记 `.md`，即算法练习部分，有。略，很显然。
 
+##### 2680\.最大或值
 
+[题目](https://leetcode.cn/problems/maximum-or)
+
+贪心，对一个数一直操作比对多个数分别操作好，容易反证。维护前后缀 or。
+
+```go
+func findLength(nums1 []int, nums2 []int) (ans int) {
+	n, m := len(nums1), len(nums2)
+	dp := make([][]int, 2)
+	dp[0] = make([]int, m+1)
+	dp[1] = make([]int, m+1)
+	for i := 1; i <= n; i++ {
+		for j := 1; j <= m; j++ {
+			if nums1[i-1] == nums2[j-1] {
+				dp[i&1][j] = dp[(i-1)&1][j-1] + 1
+			} else {
+				dp[i&1][j] = 0
+			}
+			ans = max(ans, dp[i&1][j])
+		}
+	}
+	return
+}
+```
+
+优化：设整体异或和为 `allOr`，记录出现过 $\ge2$ 个 $1$ 的所有位为 `fixed`，即当前 `allOr & x` 为 $1$ 的所有位的或。那么去掉 `x` 的异或和为 `(allOr^x)|fixed`。故
+
+```go
+func maximumOr(nums []int, k int) int64 {
+    allOr, fixed := 0, 0
+    for _, x := range nums {
+        // 如果在计算 allOr |= x 之前，allOr 和 x 有公共的 1
+        // 那就意味着有多个 nums[i] 在这些比特位上都是 1
+        fixed |= allOr & x // 把公共的 1 记录到 fixed 中
+        allOr |= x // 所有数的 OR
+    }
+    ans := 0
+    for _, x := range nums {
+        ans = max(ans, (allOr^x)|fixed|x<<k)
+    }
+    return int64(ans)
+}
+```
 
