@@ -1544,7 +1544,7 @@ print(-float('-inf')/9-9) #是inf
 
 > `u''` unicode 字符串 (python2 里 type 不一样)， py3 里与一般字符串等价
 
-可以组合如 `rf'\n{2*2}'`
+可以组合如 `rf'\n{2*2}'` (或 fr)
 
 ##### 函数
 

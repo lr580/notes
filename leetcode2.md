@@ -2787,6 +2787,14 @@
 - 2787\.将一个数字表示成幂的和的方案数
 
   背包DP
+  
+- 2643\.一最多的行
+
+  签到
+
+- 2116\.判断一个括号字符串是否有效
+
+  **括号序列 数学/STL/贪心**
 
 ## 算法
 
@@ -10747,6 +10755,91 @@ func maximumOr(nums []int, k int) int64 {
         ans = max(ans, (allOr^x)|fixed|x<<k)
     }
     return int64(ans)
+}
+```
+
+##### 2643\.一最多的行
+
+[题目](https://leetcode.cn/problems/row-with-maximum-ones)
+
+```go
+func rowAndMaximumOnes(mat [][]int) []int {
+    mxCnt, idx := 0, 0
+	for i, row := range mat {
+		cnt := 0
+		for _, v := range row {
+			cnt += v
+		}
+		if cnt > mxCnt {
+			mxCnt = cnt
+			idx = i
+		}
+	}
+	return []int{idx, mxCnt}
+}
+```
+
+##### 2116\.判断一个括号字符串是否有效
+
+[题目](https://leetcode.cn/problems/check-if-a-parentheses-string-can-be-valid)
+
+贪心，首先枚举最多可以得到多少个 `(`，这个过程如果失配就 fail。然后继续枚举，看看最多得到多少个 `)`，这个过程如果失配就 fail。[src](https://leetcode.cn/problems/check-if-a-parentheses-string-can-be-valid/solutions/3624031/python3javacgotypescript-yi-ti-yi-jie-ta-9t9b/?envType=daily-question&envId=2025-03-23)
+
+```go
+func canBeValid(s string, locked string) bool {
+	n := len(s)
+	if n%2 == 1 {
+		return false
+	}
+	x := 0
+	for i := range s {
+		if s[i] == '(' || locked[i] == '0' {
+			x++
+		} else if x > 0 {
+			x--
+		} else {
+			return false
+		}
+	}
+	x = 0
+	for i := n - 1; i >= 0; i-- {
+		if s[i] == ')' || locked[i] == '0' {
+			x++
+		} else if x > 0 {
+			x--
+		} else {
+			return false
+		}
+	}
+	return true
+}
+```
+
+一次遍历，对不 lock 的位置，视为 `?`，并分别选择 ±，维护所有可能到达的左-右的数目，使用 set 位运算维护，或直接维护最大最小值(因为一定是连续的集合)，看看最后是否有一个可能的状态是 0 即可。
+
+```go
+func canBeValid(s, locked string) bool {
+    if len(s)%2 > 0 {
+        return false
+    }
+    mn, mx := 0, 0
+    for i, lock := range locked {
+        if lock == '1' { // 不能改
+            d := 1 - int(s[i]%2*2) // 左括号是 1，右括号是 -1
+            mx += d
+            if mx < 0 { // c 不能为负
+                return false
+            }
+            mn += d
+        } else { // 可以改
+            mx++ // 改成左括号，c 加一
+            mn-- // 改成右括号，c 减一
+        }
+        if mn < 0 { // c 不能为负
+            mn = 1 // 此时 c 的取值范围都是奇数，最小的奇数是 1
+        }
+    }
+    return mn == 0 // 说明最终 c 能是 0
 }
 ```
 
