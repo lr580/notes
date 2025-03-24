@@ -2594,8 +2594,6 @@ geometry 宏包，如：
 \end{description}
 ```
 
-
-
 #### 表格
 
 ##### 基础
@@ -2730,7 +2728,11 @@ large & 0.151s \\
   \makegapedcells
 ```
 
+如果不想这样手动控制，想要自动换行，可以设置列宽固定
 
+```tex
+\begin{tabular}{p{1.4cm}p{5cm}}
+```
 
 ##### 跨行列
 

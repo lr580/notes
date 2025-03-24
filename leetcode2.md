@@ -2795,6 +2795,10 @@
 - 2116\.判断一个括号字符串是否有效
 
   **括号序列 数学/STL/贪心**
+  
+- 2255\.统计是给定字符串前缀的字符串数目
+
+  签到
 
 ## 算法
 
@@ -10840,6 +10844,22 @@ func canBeValid(s, locked string) bool {
         }
     }
     return mn == 0 // 说明最终 c 能是 0
+}
+```
+
+##### 2255\.统计是给定字符串前缀的字符串数目
+
+[题目](https://leetcode.cn/problems/count-prefixes-of-a-given-string)
+
+```go
+import "strings"
+func countPrefixes(words []string, s string) (ans int) {
+	for _, v := range words {
+		if strings.HasPrefix(s, v) {
+			ans++
+		}
+	}
+	return
 }
 ```
 

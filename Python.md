@@ -9874,6 +9874,13 @@ def plot(words, scores, top_k = 10):
     plt.show()
 ```
 
+```python
+ax.tick_params(axis='both', which='major', labelsize=14)  # 坐标轴刻度
+plt.legend(loc="upper left", fontsize=16)
+```
+
+
+
 ##### 颜色
 
 colormap
@@ -9943,6 +9950,65 @@ cohort,avg_time_to_first_purchase
 2023-02-01T00:00:00.000Z,19
 2023-04-01T00:00:00.000Z,39
 ```
+
+日期做 y 轴的多图折线例子：
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+import datetime
+from matplotlib.dates import DateFormatter, HourLocator
+
+# 1. 生成时间序列（5分钟间隔，288个点）
+start_time = datetime.datetime(2018, 1, 7, 0, 0, 0)
+time_points = [start_time + datetime.timedelta(minutes=5*i) for i in range(288)]
+
+# 2. 生成示例数据（3条折线）
+np.random.seed(42)  # 固定随机种子以便复现
+y1 = np.random.randn(288).cumsum()          # 折线1：随机游走
+y2 = np.sin(np.linspace(0, 4*np.pi, 288))   # 折线2：正弦波
+y3 = np.linspace(0, 100, 288)               # 折线3：线性增长
+
+# 3. 设置图像大小和样式
+plt.figure(figsize=(10, 4))  # 固定长宽比（英寸）
+
+# 4. 绘制多条折线
+plt.plot(time_points, y1, label="随机指标", color="#1f77b4", linewidth=1.5)
+plt.plot(time_points, y2, label="周期指标", color="#ff7f0e", linewidth=1.5, linestyle="--")
+plt.plot(time_points, y3, label="增长指标", color="#2ca02c", linewidth=1.5, linestyle=":")
+
+class ForceFourDigitYearFormatter(DateFormatter):
+    def __call__(self, x, pos=None):
+        result = super().__call__(x, pos)
+        if len(result.split('-')[0]) == 2:  # 如果年份是两位
+            return "20" + result  # 补全为四位
+        return result
+
+# 5. 优化坐标轴显示
+ax = plt.gca()
+# ax.xaxis.set_major_formatter(DateFormatter("%y-%m-%d %H:%M"))  # 时间格式化为"小时:分钟"
+ax.xaxis.set_major_formatter(ForceFourDigitYearFormatter("%Y-%m-%d %H:%M"))
+ax.xaxis.set_major_locator(HourLocator(interval=6))   # 每3小时一个主刻度
+# plt.xticks(rotation=45)                              # 旋转X轴标签
+
+# 6. 添加图表元素
+plt.title("24小时多指标监控（5分钟粒度）", fontsize=14, pad=20)
+plt.xlabel("时间", fontsize=12)
+plt.ylabel("指标值", fontsize=12)
+plt.grid(True, linestyle="--", alpha=0.5)
+plt.legend(loc="upper left", fontsize=10)
+
+# 7. 固定长宽比（可选）
+# ax.set_aspect("auto")  # 默认自动调整
+# ax.set_aspect(0.05)    # 手动调整Y/X轴比例
+
+# 8. 保存或显示
+plt.tight_layout()
+plt.savefig("multi_line_time_series.png", dpi=300, bbox_inches="tight")
+plt.show()
+```
+
+
 
 #### 双图重合
 
@@ -10634,6 +10700,13 @@ pd.DataFrame(columns=columns)
 pd.DataFrame(index=diamonds.index)
 ```
 
+动态插入行：(假设有 3 列)
+
+```python
+df.loc[len(df)] = [10, 11, 12]
+df.loc['new_row'] = [13, 14, 15] # 字符串index
+```
+
 全为 NaN 的：(各列类型 object)
 
 ```python
@@ -10665,6 +10738,8 @@ pd.DataFrame(np.array([[1,2],[3,4],[5,6]]))
 [参考](https://blog.csdn.net/m0_46419189/article/details/123111493)
 
 ###### csv
+
+index 控制是否有第0列
 
 ```python
 with pd.ExcelWriter("pca_result.xlsx") as writer:
