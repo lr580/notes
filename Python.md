@@ -1836,6 +1836,8 @@ x.update({3:50,4:False})  # x |= {3:50,4:False}
 d={1:6,2:10,3:100,4:6}|{2:58,3:85}#{1: 6, 2: 58, 3: 85, 4: 6}
 ```
 
+合并多个dict: `d={**a, **b, **c}` (有重复的话按顺序从左到右覆盖)
+
 删除一项用pop(key)，用法同list，也可以用 `del x[key]`，这两种用法不存在都会报错
 
 查找key用in 或in .keys()
@@ -5923,6 +5925,16 @@ def Encode(Message): # 加密
     return json.dumps(Message).encode('utf-8')
 def Decode(Binary): # 解密
 	return json.loads(Binary.decode('utf-8'))
+```
+
+完整 json 例子：
+
+```python
+a='{"a":{"b":100,"c":580}, "d":[99,82,44,353],"e":"66ABC","ff":100}'
+import json
+j=json.loads(a) # 一个dict, j['a']也是一个dict, j['ff']是int
+json.dumps({'a':{'b':6,'c':[111,222]}, 'd':'12398'})
+# 字符串 '{"a": {"b": 6, "c": [111, 222]}, "d": "12398"}'
 ```
 
 
@@ -10662,11 +10674,43 @@ data = pd.read_excel('pca_data.xlsx',index_col=0)
 
 `header=n` 跳过前 n 行，第 n+1 行作为表名。(疑似不能和 `skiprows=n` 混用)
 
+从第五行第三列为左上角：
 
+```python
+data_1_xlsx = pd.read_excel('/home/project/2022_january.xlsx', skiprows=4,index_col=2)
+```
+
+
+
+###### json
+
+设有 `json1.json` 如下：
+
+```json
+{"sample1": {"feature": [12, 34, 56], "label": 0},
+ "sample2": {"feature": [87, 65, 43], "label": 1}}
+```
+
+```python
+import pandas as pd
+df = pd.read_json('json1.json')
+print(df) 
+'''           sample1       sample2
+feature  [12, 34, 56]  [87, 65, 43]
+label               0             1'''
+```
 
 ###### 构造
 
 使用 dict (key: string, value: list of int / string) 构造。
+
+> 创建两行数据：dict套list
+>
+> ```python
+> x=pd.DataFrame({'A': [1, 2, 3], 'C': [4, 3, 5]})
+> print(x)
+> ```
+>
 
 ```python
 data = {
@@ -10677,7 +10721,7 @@ data = {
 df = pd.DataFrame(data)
 ```
 
-或反过来：
+或反过来：list套dict
 
 ```python
 pd.DataFrame([{'name':'lr580','value':580},{'name':'lr581','value':581}])
@@ -10727,6 +10771,16 @@ df_1 = pd.DataFrame().assign(x=x, y=y)
 pd.DataFrame(np.array([[1,2],[3,4],[5,6]]))
 ```
 
+index为字符串的：等价于列，内层行，即 {[]} 逻辑
+
+```python
+t2 = {"sample1": {"feature": [12, 34, 56], "label": 0}, "sample2": {"feature": [87, 65, 43], "label": 1}}
+df2 = pd.DataFrame(t2)
+'''           sample1       sample2
+feature  [12, 34, 56]  [87, 65, 43]
+label               0             1'''
+```
+
 ###### low_memory
 
 默认 True，即：根据文件的一些推测来分配数据的类型，以降低内存使用量。
@@ -10769,7 +10823,7 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 >            all_data.to_csv(os.path.join(data_dir, data_basename.split('-')[0]+ '.csv'),index=False) 
 > ```
 
-###### md
+###### md/tex
 
 `.to_markdown(index=False)`。
 
@@ -10785,7 +10839,7 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 
 同理有 `.to_latex`
 
-##### 基本操作
+##### 成员属性
 
 `.info` 总行数列数，按顺序输出各列名, not-null 计数,
 
@@ -10793,61 +10847,61 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 
 **列名字符串区分大小写**。默认每列同一个数据类型。
 
-创建两行数据：
+##### 取元素
 
-```python
-x=pd.DataFrame({'A': [1, 2, 3], 'C': [4, 3, 5]})
-print(x)
-```
-
-从 numpy 转回来：
-
-```python
-pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
-```
+###### 列
 
 取一列：`[列名str]`。取行区间`[起:止]` (切片语法同 python)。用下标取就 `iloc[]`
+
+取所有列(含下表列) `df.columns`，取指定列，可以 for 和取下标，得 str，可以 `.tolist()`
 
 > 如，取前两列外的每一列：`df.iloc[:, 2:]`；取定值 `.iloc[0]['A']`
 >
 > 取特定若干列：`df[['text', 'num_hashtags']]`；取一列是 series，这样取多列还是 df 类型。(tuple 不行，一定是)
 >
 > 若干行+若干列举例：`print(df.iloc[:5][['DURATION', 'AFFECTED']])`
->
+
+列赋值，可以直接把 numpy (1,n) shape 的赋值
+
+> 用列值进行 01 分类：`get_dummies`
+
+###### 行
+
 > 逐行遍历：`.iterrows()`，返回 `(idx,row)`，row 可以  `.列名`(不用引号)取值
 >
-> 取特定类型的类：
->
-> ```python
-> df.select_dtypes(include=[np.number])
-> df.select_dtypes(include=[np.number]).columns.tolist()
-> ```
-
-取单独元素 `.at[行号, 列str]` 或 `.loc[]`，可以取和赋值
 
 行号是否在表里：`行号 in df.index`
-
-> loc 和 iloc 的区别在于，对行 loc 是下标值作索引，iloc 是第几个下标
-
-转 numpy(丢失表头)：`.to_numpy()`，转列表 `.tolist()`，转 set 直接 `set(df[])`，
-
-转字典 `to_dict()`，key 是列(str 或多索引就 tuple，见聚合索引), value 是 dict(行index: 值)
-
-简要统计 `.describe()`  (mean, std, min, 4分位数, max)(是一个 df, 索引是字符如 max)
-
-取所有列(含下表列) `df.columns`，取指定列，可以 for 和取下标，得 str，可以 `.tolist()`
 
 取行下标范围 `df.index` 有属性 `start,step,stop`，其中 stop 是第一个越界
 
 > 如果是聚合下标，见下文。
 
-用列值进行 01 分类：`get_dummies`
+###### 元素
+
+取单独元素 `.at[行号, 列str]` 或 `.loc[]`，可以取和赋值
+
+> loc 和 iloc 的区别在于，对行 loc 是下标值作索引，iloc 是第几个下标
 
 取 `.values` 可以转化为 np array。然后可以丢进 tensor。
 
 > `df[col].values.shape` 是一维；`df[[col]].values.shape` 是二维(前者算 series 转；后者算一列 df 转，故第二维为 1)
 
-列赋值，可以直接把 numpy (1,n) shape 的赋值
+##### 遍历
+
+取下标
+
+```python
+t2 = {"features": [1, 4, 5], "label": [0, 1, 0] }
+df2 = pd.DataFrame(t2)
+print(df2)
+for j, row in df2.items(): # j: 列名 
+    for i, v in row.items(): # i : 行号
+        print(j, i, v) # features 0 1
+```
+
+##### 统计
+
+简要统计 `.describe()`  (mean, std, min, 4分位数, max)(是一个 df, 索引是字符如 max)
 
 ##### 数据类型
 
@@ -10871,15 +10925,46 @@ cols_to_convert = df.columns.drop('date')
 df[cols_to_convert] = df[cols_to_convert].astype(int)
 ```
 
+> 特定类型的类：
+>
+> > ```python
+> > df.select_dtypes(include=[np.number])
+> > df.select_dtypes(include=[np.number]).columns.tolist()
+> > ```
+
+
+
 ##### 类型转换
 
-转 list：
+###### list
 
 ```python
 df['column_with_values'].tolist()
 ```
 
+###### numpy
 
+(丢失表头)：`.to_numpy()`
+
+从 numpy 转回来：
+
+> ```python
+> pd.DataFrame(nparr, column=x.columns,index=list(range(...)))
+> ```
+
+###### set
+
+转 set 直接 `set(df[])`
+
+###### dict
+
+转字典 `to_dict()`，key 是列(str 或多索引就 tuple，见聚合索引), value 是 dict(行index: 值)
+
+```python
+print(df2.to_dict()) # {'features': {0: 1, 1: 4, 2: 5}, 'label': {0: 0, 1: 1, 2: 0}}
+for j, row in df2.items():
+    print(row.to_dict()) # {0: 1, 1: 4, 2: 5}
+```
 
 #### 常规运算
 
@@ -12392,7 +12477,7 @@ sheet0['A1'].coordinate
 cell_value = ws.cell(row=1, column=1).value  # 行列索引从 1 开始
 ```
 
-
+属性：`cell.row cell.column cell.value` 等，cell.value 不一定是字符串，row, column 是整数(1-indexed)
 
 按行或列遍历：
 
@@ -18861,9 +18946,7 @@ print(out.shape)  # 输出: torch.Size([10, 32])
 
 
 
-### easytorch
 
-[参考](https://github.com/cnstark/easytorch)
 
 ### yolo
 
@@ -19294,6 +19377,10 @@ print(output.shape)  # 应该输出: torch.Size([8, 16, 64])
 
 ### 杂项
 
+#### easytorch
+
+[参考](https://github.com/cnstark/easytorch)
+
 #### 决策树
 
 XGBoost（Extreme Gradient Boosting）和CatBoost（Categorical Boosting）都是流行的梯度提升库，用于解决分类、回归和其他机器学习任务。它们都是基于决策树的集成学习方法，但在实现和特定功能上有所不同。
@@ -19625,8 +19712,6 @@ else:
     print('请求失败')
 ```
 
-
-
 ### bs
 
 beautiful soup 版本 4 和 3 区别很大。这里按 4 版本来。
@@ -19769,6 +19854,13 @@ rows_with_california = soup.find_all('tr', {'td': lambda td: td and 'california'
 div_elements = soup.find_all('div', class_='Table_table-name__5rpOt')
 for div in div_elements:
     content = div.get_text().strip()
+```
+
+基于结果继续找：
+
+```python
+t = soup.find('table')
+tr = t.find_all('tr')
 ```
 
 

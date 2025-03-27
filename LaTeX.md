@@ -2620,7 +2620,7 @@ geometry 宏包，如：
 
 ##### 列间距
 
-全部一起调：
+全部一起调：(table 里， tabular 外，这样是调单个表)
 
 ```tex
 \setlength{\tabcolsep}{2pt} % 默认 6
@@ -3583,6 +3583,8 @@ signed main() /* 注释 */
 ###### 样式
 
 在 tex 的附录位置输入：(其中 `ref` 是同目录文件名，`unsrt` 表示按引用顺序排序，若 `plain` 就是按文件顺序)
+
+> unsrt 的具体排序不是按渲染出来的篇幅里的先后，而是按照在 tex 代码里的先后，如表格里 cite 了 A，正文里 cite 了 B，只要表格在代码在前，不管在 pdf 表格在前在后，A 的编号都小于 B。
 
 ```tex
 \bibliography{ref}

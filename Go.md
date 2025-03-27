@@ -770,7 +770,17 @@ fmt.Println(string([]byte{97, 228, 189, 160, 229, 165, 189}))
 // "a你好"
 ```
 
+###### rune[]
 
+转过来转回去，如字符串反转
+
+```go
+rs := []rune(s)
+for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
+    rs[i], rs[j] = rs[j], rs[i]
+}
+return string(rs)
+```
 
 #### 字符
 
@@ -1979,6 +1989,18 @@ func calc(x, y int) (sum, sub int) {
 
 ```go
 fmt.Println(calc(5, 3))
+```
+
+可以是切片，多个切片
+
+```go
+func f(s string) ([]int64, []int64) {
+    n := len(s)
+    to0 := make([]int64, n)
+    to1 := make([]int64, n)
+    // ...
+    return to0, to1
+}
 ```
 
 #### 高阶

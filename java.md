@@ -280,6 +280,8 @@ windows - show view - ant, 点 + add build files, 加了之后右击 run as ant 
 
 ##### 快键
 
+ctrl+z 自动换行(word wrap)
+
 ctrl+alt+s 设置
 
 ctrl+alt+l 格式化代码
