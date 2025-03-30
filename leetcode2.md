@@ -2799,6 +2799,10 @@
 - 2255\.统计是给定字符串前缀的字符串数目
 
   签到
+  
+- 2711\.对角线上不同值的数量差
+
+  前缀和 / 位运算 + 模拟(对角线)
 
 ## 算法
 
@@ -10862,4 +10866,128 @@ func countPrefixes(words []string, s string) (ans int) {
 	return
 }
 ```
+
+##### 2711\.对角线上不同值的数量差
+
+[题目](https://leetcode.cn/problems/difference-of-number-of-distinct-values-on-diagonals)
+
+我的模拟：先定义每条对角线如何运算，然后对第一行和第一列为对角线起点，直接复用运算。
+
+```go
+package main
+
+func differenceOfDistinctValues(grid [][]int) [][]int {
+	n, m := len(grid), len(grid[0])
+	ans := make([][]int, n)
+	for i := range ans {
+		ans[i] = make([]int, m)
+	}
+	abs := func(x int) int {
+		if x < 0 {
+			return -x
+		}
+		return x
+	}
+	f := func(x, y int) {
+		tlv := make(map[int]bool)
+		tkn := []int{}
+		i, j := x, y
+		for ; i < n && j < m; i, j = i+1, j+1 {
+			tkn = append(tkn, len(tlv))
+			tlv[grid[i][j]] = true
+		}
+		brv := make(map[int]bool)
+		brn := 0
+		i, j = i-1, j-1
+		for ; i >= x && j >= y; i, j = i-1, j-1 {
+			ans[i][j] = abs(tkn[len(tkn)-1] - brn)
+			tkn = tkn[:len(tkn)-1]
+			brv[grid[i][j]] = true
+			brn = len(brv)
+		}
+	}
+	for i := 1; i < n; i++ {
+		f(i, 0)
+	}
+	for i := 0; i < m; i++ {
+		f(0, i)
+	}
+	return ans
+}
+```
+
+另一种遍历主对角线：设有 $n$ 列，设对角线编号为 $k=i-j+n$，则从右上角到左下角为 $1\to m+n-1$。且 $i=k+j-n$ 或者说 $j=n+i-k$。故每个 $k$，对应的 $j\in[\max(0, n-k), \min(n-1,n+m-1-k)]$。可以原地存储，先存左上，再更新为左上-右下，并共用 set，来优化内存。
+
+```go
+func differenceOfDistinctValues(grid [][]int) [][]int {
+    m, n := len(grid), len(grid[0])
+    ans := make([][]int, m)
+    for i := range ans {
+        ans[i] = make([]int, n)
+    }
+    set := map[int]struct{}{}
+
+    // 第一排在右上，最后一排在左下
+    // 每排从左上到右下
+    // 令 k=i-j+n，那么右上角 k=1，左下角 k=m+n-1
+    for k := 1; k < m+n; k++ {
+        // 核心：计算 j 的最小值和最大值
+        minJ := max(n-k, 0)       // i=0 的时候，j=n-k，但不能是负数
+        maxJ := min(m+n-1-k, n-1) // i=m-1 的时候，j=m+n-1-k，但不能超过 n-1
+
+        clear(set)
+        for j := minJ; j <= maxJ; j++ {
+            i := k + j - n
+            ans[i][j] = len(set) // topLeft[i][j] == len(set)
+            set[grid[i][j]] = struct{}{}
+        }
+
+        clear(set)
+        for j := maxJ; j >= minJ; j-- {
+            i := k + j - n
+            ans[i][j] = abs(ans[i][j] - len(set)) // bottomRight[i][j] == len(set)
+            set[grid[i][j]] = struct{}{}
+        }
+    }
+    return ans
+}
+
+func abs(x int) int { if x < 0 { return -x }; return x }
+```
+
+位运算，显然：
+
+```go
+func differenceOfDistinctValues(grid [][]int) [][]int {
+    m, n := len(grid), len(grid[0])
+    ans := make([][]int, m)
+    for i := range ans {
+        ans[i] = make([]int, n)
+    }
+
+    for k := 1; k < m+n; k++ {
+        minJ := max(n-k, 0)
+        maxJ := min(m+n-1-k, n-1)
+
+        set := uint(0)
+        for j := minJ; j <= maxJ; j++ {
+            i := k + j - n
+            ans[i][j] = bits.OnesCount(set) // set 的大小
+            set |= 1 << grid[i][j] // 把 grid[i][j] 加到 set 中
+        }
+
+        set = 0
+        for j := maxJ; j >= minJ; j-- {
+            i := k + j - n
+            ans[i][j] = abs(ans[i][j] - bits.OnesCount(set))
+            set |= 1 << grid[i][j]
+        }
+    }
+    return ans
+}
+
+func abs(x int) int { if x < 0 { return -x }; return x }
+```
+
+
 

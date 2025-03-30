@@ -1152,6 +1152,13 @@ fmt.Printf("%v %T", score, score)
 occur := map[byte]bool{}
 ```
 
+set 的思路：bool 为 val，或：
+
+```go
+set := map[int]struct{}{}
+// 赋值：set[x] = struct{}{}
+```
+
 带初始值：
 
 ```go
@@ -1203,7 +1210,7 @@ score["AA"]++
 fmt.Println(score) // AA 项是 1
 ```
 
-
+全删了：`clear(score)`。Go 1.21 版本引入的新内置函数
 
 ##### 嵌套结构
 
@@ -1375,6 +1382,12 @@ fmt.Println(p3, p4) // &{0 0} &{5 80}
 p7 := node{y: 6}
 p8 := node{x: 7} // 只7不行
 fmt.Println(p7, p8)
+```
+
+空结构体：如用于 map value 做 set
+
+```go
+a := struct{}{}
 ```
 
 ##### 权限
@@ -3355,6 +3368,43 @@ math.MinInt
 func Abs(x float64) float64 // 对于整数类型，Go 语言没有内置的绝对值函数
 func Pow(i, p float64) float64
 ```
+
+##### 位运算
+
+```go
+package main
+import (
+	"fmt"
+	"math/bits"
+)
+func main() {
+	x := uint(0b11010101)         // 二进制表示，十进制为 213
+	fmt.Printf("Number: %b\n", x) // 必须要uint
+	fmt.Printf("Number of set bits: %d\n", bits.OnesCount(x)) // 5
+
+	// 对于不同大小的整数有对应的函数
+	var y uint64 = 0xFFFFFFFFFFFFFFFF
+	fmt.Printf("OnesCount64(%064b) = %d\n", y, bits.OnesCount64(y)) // 64
+}
+```
+
+```go
+var x uint32 = 0b1000 // 28, 3
+fmt.Printf("Leading zeros: %d\n", bits.LeadingZeros32(x))
+fmt.Printf("Trailing zeros: %d\n", bits.TrailingZeros32(x))
+var y uint64 = 0b1000 // 60, 3
+fmt.Printf("Leading zeros: %d\n", bits.LeadingZeros64(y))
+fmt.Printf("Trailing zeros: %d\n", bits.TrailingZeros64(y))
+```
+
+```go
+var x uint = 1023 // 10
+fmt.Printf("Len of %d: %d bits\n", x, bits.Len(x))
+var y uint64 = 1 << 63 // 64
+fmt.Printf("Len of %d: %d bits\n", y, bits.Len64(y))
+```
+
+
 
 ### 时间
 
