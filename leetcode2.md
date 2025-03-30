@@ -2807,6 +2807,18 @@
 - 2712\.使所有字符相等的最小成本
 
   前缀和 / <u>思维</u>
+  
+- 2716\.最小化字符串长度
+
+  签到 STL/位运算 思维
+
+- 2109\.向字符串添加空格
+
+  模拟 字符串
+  
+- 2360\.图中的最长环
+
+  DFS tarjan 内向基环树 
 
 ## 算法
 
@@ -10960,6 +10972,164 @@ func minimumCost(s string) (ans int64) {
         }
     }
     return
+}
+```
+
+##### 2716\.最小化字符串长度
+
+[题目](https://leetcode.cn/problems/minimize-string-length)
+
+```go
+func minimizedStringLength(s string) int {
+    m := make(map[rune]bool)
+    for _, c := range s {
+        m[c] = true
+    }
+    return len(m)
+}
+```
+
+```go
+func minimizedStringLength(s string) int {
+    set := map[rune]struct{}{}
+    for _, c := range s {
+        set[c] = struct{}{}
+    }
+    return len(set)
+}
+```
+
+```go
+func minimizedStringLength(s string) int {
+    mask := uint(0)
+    for _, c := range s {
+        mask |= 1 << (c - 'a') // 把 c-'a' 加到集合中
+    }
+    return bits.OnesCount(mask) // 集合的大小
+}
+```
+
+##### 2109\.向字符串添加空格
+
+[题目](https://leetcode.cn/problems/adding-spaces-to-a-string)
+
+朴素 sb，8ms
+
+```go
+package main
+import "strings"
+func addSpaces(s string, spaces []int) string {
+	j, m := 0, len(spaces)
+	sb := strings.Builder{}
+	for i, v := range s {
+		if j < m && spaces[j] <= i {
+			sb.WriteByte(' ')
+			j++
+		}
+		sb.WriteRune(v)
+	}
+	return sb.String()
+}
+```
+
+换成静态数组，更慢 11ms
+
+```go
+func addSpaces(s string, spaces []int) string {
+	ans := make([]byte, 0, len(s)+len(spaces))
+	j := 0
+	for i, c := range s {
+		if j < len(spaces) && spaces[j] == i {
+			ans = append(ans, ' ')
+			j++
+		}
+		ans = append(ans, byte(c))
+	}
+	return string(ans)
+}
+```
+
+分组添加，很快，0ms，分隔符思路
+
+```go
+func addSpaces(s string, spaces []int) string {
+	spaces = append(spaces, len(s)) // 这样可以在循环中处理最后一段
+	ans := make([]byte, 0, len(s)+len(spaces))
+	ans = append(ans, s[:spaces[0]]...)
+	for i := 1; i < len(spaces); i++ {
+		ans = append(ans, ' ')
+		ans = append(ans, s[spaces[i-1]:spaces[i]]...)
+	}
+	return string(ans)
+}
+```
+
+##### 2360\.图中的最长环
+
+[题目](https://leetcode.cn/problems/longest-cycle-in-a-graph)
+
+我的：
+
+```go
+package main
+
+func longestCycle(edges []int) (ans int) {
+	n := len(edges)
+	g := make([][]int, n)
+	for u, v := range edges {
+		if v != -1 {
+			g[u] = append(g[u], v)
+		}
+	}
+	dfn := make([]int, n)
+	t := 1
+	vis := make([]int, n)
+	var dfs func(u int) // tarjan
+	dfs = func(u int) {
+		if vis[u] > 0 {
+			if vis[u] == 1 {
+				ans = max(ans, t-dfn[u])
+			}
+			return
+		}
+		vis[u] = 1
+		dfn[u] = t
+		t++
+		for _, v := range g[u] {
+			dfs(v)
+		}
+		vis[u] = 2
+	}
+    ans = -1
+	for i := 0; i < n; i++ {
+		dfs(i)
+	}
+	return
+}
+```
+
+有向图，树，添加一条有向边，至少会形成一个环，称为内向基环树。定义：(ds)
+
+1. 每个点有且仅有一个出边
+2. 由多棵基环树组成，即：一个环和若干指向该环的树
+
+```go
+func longestCycle(edges []int) int {
+    ans := -1
+    curTime := 1 // 当前时间
+    visTime := make([]int, len(edges)) // 首次访问 x 的时间
+    for x := range edges {
+        startTime := curTime // 本轮循环的开始时间
+        for x != -1 && visTime[x] == 0 { // 没有访问过 x
+            visTime[x] = curTime // 记录访问 x 的时间
+            curTime++
+            x = edges[x] // 访问下一个节点
+        }
+        if x != -1 && visTime[x] >= startTime { // x 在本轮循环中访问了两次，说明 x 在环上
+            ans = max(ans, curTime-visTime[x]) // 前后两次访问 x 的时间差，即为环长
+        }
+    }
+    return ans // 如果没有找到环，返回的是 ans 的初始值 -1
 }
 ```
 

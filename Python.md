@@ -19497,7 +19497,13 @@ accuracy = accuracy_score(y_test, y_pred_binary)
 print(f'Accuracy: {accuracy}')
 ```
 
+#### MNE
 
+脑机相关
+
+```sh
+pip install mne
+```
 
 ## 网络
 

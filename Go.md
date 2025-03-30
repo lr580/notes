@@ -782,6 +782,34 @@ for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
 return string(rs)
 ```
 
+##### stringbuilder
+
+stringbuilder
+
+```go
+package main
+import (
+	"fmt"
+	"strings"
+)
+func main() {
+	var builder strings.Builder
+	builder.WriteString("Hello, ")
+	builder.WriteString("World!")
+	builder.Write([]byte(" Welcome to Go."))
+	builder.WriteByte(' ')
+	builder.WriteRune('🚀')
+
+	result := builder.String()
+	fmt.Println(result)//输出: Hello, World! Welcome to Go. 🚀
+	builder.Reset()
+	builder.WriteString("New content")
+	fmt.Println(builder.String()) // 输出: New content
+}
+```
+
+
+
 #### 字符
 
 ##### 常规
@@ -2075,6 +2103,16 @@ fmt.Println(ff(8, 9))
 func(x, y int) {
     fmt.Println(x * y)
 }(10, 11)
+```
+
+递归函数：先声明再定义
+
+```go
+var dfs func(u int)
+dfs = func(u int) {
+    // ...
+    dfs(v)
+}
 ```
 
 ##### 闭包
@@ -3999,8 +4037,6 @@ for node, _ := t.Ceiling(mn); node.Key <= mx; node, _ = t.Ceiling(mn) { // _ 是
     t.Remove(j) // 删除
 }
 ```
-
-
 
 ### 数值
 
