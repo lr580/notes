@@ -2800,6 +2800,27 @@
 
   签到
   
+- 2829\.k-avoiding数组的最小总和
+
+  贪心 / 数学优化
+  
+- 2712\.使所有字符相等的最小成本
+
+  前缀和 / <u>思维</u>
+  
+- 2716\.最小化字符串长度
+
+  签到 STL/位运算 思维
+
+- 2109\.向字符串添加空格
+
+  模拟 字符串
+  
+- 2360\.图中的最长环
+
+  DFS tarjan 内向基环树 
+
+  
 - 2711\.对角线上不同值的数量差
 
   前缀和 / 位运算 + 模拟(对角线)
@@ -10864,6 +10885,506 @@ func countPrefixes(words []string, s string) (ans int) {
 		}
 	}
 	return
+}
+```
+
+##### 2829\.k-avoiding数组的最小总和
+
+[题目](https://leetcode.cn/problems/determine-the-minimum-sum-of-a-k-avoiding-array)
+
+贪心取 $[1,\lfloor\dfrac k2\rfloor]\cup[k,\infty)$ 的前 $n$ 个元素，可以等差数列优化。
+
+```go
+package main
+
+func minimumSum(n int, k int) (s int) {
+	cnt := 0
+	for i := 1; i <= k/2; i++ {
+		s += i
+		cnt++
+		if cnt == n {
+			return
+		}
+	}
+	for i := k; cnt < n; i++ {
+		s += i
+		cnt++
+	}
+	return
+}
+```
+
+设 $m=\min(\lfloor\dfrac k2\rfloor,n)$，取 $\dfrac{m(m+1)}2$ 和 $n-m$ 个首项为 $k$ 的 $\dfrac{(n-m)(2k+n-m-1)}2$。
+
+```go
+func minimumSum(n, k int) int {
+    m := min(k/2, n)
+    return (m*(m+1) + (k*2+n-m-1)*(n-m)) / 2
+}
+```
+
+##### 2712\.使所有字符相等的最小成本
+
+[题目](https://leetcode.cn/problems/minimum-cost-to-make-all-characters-equal)
+
+容易发现，如果对 <= i 的全部用前缀翻转，>i 的全部用后缀翻转，要反转的下标是固定的，故答案一定不会比在这两部分都有前缀有后缀更差。维护前缀后缀，分别表示把这段前缀/后缀全部变成0/1所需的代价和，其代价和就是所有当前下标不等于下一个下标字符的下标和。
+
+```go
+func minimumCost(s string) (ans int64) {
+	n := len(s)
+	getPrefix := func(s string) ([]int64, []int64) {
+		sumPos := int64(0)
+		to0 := make([]int64, n)
+		to1 := make([]int64, n)
+		for i := int64(0); i < int64(n); i++ {
+			if s[i] == '0' {
+				to0[i] = sumPos
+				to1[i] = sumPos + i + 1
+			} else {
+				to1[i] = sumPos
+				to0[i] = sumPos + i + 1
+			}
+			if i+1 < int64(n) && s[i] != s[i+1] {
+				sumPos += i + 1
+			}
+		}
+		return to0, to1
+	}
+	to0p, to1p := getPrefix(s)
+	rs := []rune(s)
+	for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
+		rs[i], rs[j] = rs[j], rs[i]
+	}
+	ans = min(to0p[n-1], to1p[n-1])
+	to0s, to1s := getPrefix(string(rs))
+	for i, j := 0, n-1; i < n-1; i, j = i+1, j-1 {
+		to0v := to0p[i] + to0s[j-1]
+		to1v := to1p[i] + to1s[j-1]
+		ans = min(ans, to0v, to1v)
+	}
+	return
+}
+```
+
+贪心：每对相邻字符串相互独立，目标是每个相邻相等，每次操作只会改变一个相邻相等，其他等价不变。故每对选最小的即可。
+
+```go
+func minimumCost(s string) (ans int64) {
+    n := len(s)
+    for i := 1; i < n; i++ {
+        if s[i-1] != s[i] {
+            ans += int64(min(i, n-i))
+        }
+    }
+    return
+}
+```
+
+##### 2716\.最小化字符串长度
+
+[题目](https://leetcode.cn/problems/minimize-string-length)
+
+```go
+func minimizedStringLength(s string) int {
+    m := make(map[rune]bool)
+    for _, c := range s {
+        m[c] = true
+    }
+    return len(m)
+}
+```
+
+```go
+func minimizedStringLength(s string) int {
+    set := map[rune]struct{}{}
+    for _, c := range s {
+        set[c] = struct{}{}
+    }
+    return len(set)
+}
+```
+
+```go
+func minimizedStringLength(s string) int {
+    mask := uint(0)
+    for _, c := range s {
+        mask |= 1 << (c - 'a') // 把 c-'a' 加到集合中
+    }
+    return bits.OnesCount(mask) // 集合的大小
+}
+```
+
+##### 2109\.向字符串添加空格
+
+[题目](https://leetcode.cn/problems/adding-spaces-to-a-string)
+
+朴素 sb，8ms
+
+```go
+package main
+import "strings"
+func addSpaces(s string, spaces []int) string {
+	j, m := 0, len(spaces)
+	sb := strings.Builder{}
+	for i, v := range s {
+		if j < m && spaces[j] <= i {
+			sb.WriteByte(' ')
+			j++
+		}
+		sb.WriteRune(v)
+	}
+	return sb.String()
+}
+```
+
+换成静态数组，更慢 11ms
+
+```go
+func addSpaces(s string, spaces []int) string {
+	ans := make([]byte, 0, len(s)+len(spaces))
+	j := 0
+	for i, c := range s {
+		if j < len(spaces) && spaces[j] == i {
+			ans = append(ans, ' ')
+			j++
+		}
+		ans = append(ans, byte(c))
+	}
+	return string(ans)
+}
+```
+
+分组添加，很快，0ms，分隔符思路
+
+```go
+func addSpaces(s string, spaces []int) string {
+	spaces = append(spaces, len(s)) // 这样可以在循环中处理最后一段
+	ans := make([]byte, 0, len(s)+len(spaces))
+	ans = append(ans, s[:spaces[0]]...)
+	for i := 1; i < len(spaces); i++ {
+		ans = append(ans, ' ')
+		ans = append(ans, s[spaces[i-1]:spaces[i]]...)
+	}
+	return string(ans)
+}
+```
+
+##### 2360\.图中的最长环
+
+[题目](https://leetcode.cn/problems/longest-cycle-in-a-graph)
+
+我的：
+
+```go
+package main
+
+func longestCycle(edges []int) (ans int) {
+	n := len(edges)
+	g := make([][]int, n)
+	for u, v := range edges {
+		if v != -1 {
+			g[u] = append(g[u], v)
+		}
+	}
+	dfn := make([]int, n)
+	t := 1
+	vis := make([]int, n)
+	var dfs func(u int) // tarjan
+	dfs = func(u int) {
+		if vis[u] > 0 {
+			if vis[u] == 1 {
+				ans = max(ans, t-dfn[u])
+			}
+			return
+		}
+		vis[u] = 1
+		dfn[u] = t
+		t++
+		for _, v := range g[u] {
+			dfs(v)
+		}
+		vis[u] = 2
+	}
+    ans = -1
+	for i := 0; i < n; i++ {
+		dfs(i)
+	}
+	return
+}
+```
+
+有向图，树，添加一条有向边，至少会形成一个环，称为内向基环树。定义：(ds)
+
+1. 每个点有且仅有一个出边
+2. 由多棵基环树组成，即：一个环和若干指向该环的树
+
+```go
+func longestCycle(edges []int) int {
+    ans := -1
+    curTime := 1 // 当前时间
+    visTime := make([]int, len(edges)) // 首次访问 x 的时间
+    for x := range edges {
+        startTime := curTime // 本轮循环的开始时间
+        for x != -1 && visTime[x] == 0 { // 没有访问过 x
+            visTime[x] = curTime // 记录访问 x 的时间
+            curTime++
+            x = edges[x] // 访问下一个节点
+        }
+        if x != -1 && visTime[x] >= startTime { // x 在本轮循环中访问了两次，说明 x 在环上
+            ans = max(ans, curTime-visTime[x]) // 前后两次访问 x 的时间差，即为环长
+        }
+    }
+    return ans // 如果没有找到环，返回的是 ans 的初始值 -1
+}
+```
+
+##### 2829\.k-avoiding数组的最小总和
+
+[题目](https://leetcode.cn/problems/determine-the-minimum-sum-of-a-k-avoiding-array)
+
+贪心取 $[1,\lfloor\dfrac k2\rfloor]\cup[k,\infty)$ 的前 $n$ 个元素，可以等差数列优化。
+
+```go
+package main
+
+func minimumSum(n int, k int) (s int) {
+	cnt := 0
+	for i := 1; i <= k/2; i++ {
+		s += i
+		cnt++
+		if cnt == n {
+			return
+		}
+	}
+	for i := k; cnt < n; i++ {
+		s += i
+		cnt++
+	}
+	return
+}
+```
+
+设 $m=\min(\lfloor\dfrac k2\rfloor,n)$，取 $\dfrac{m(m+1)}2$ 和 $n-m$ 个首项为 $k$ 的 $\dfrac{(n-m)(2k+n-m-1)}2$。
+
+```go
+func minimumSum(n, k int) int {
+    m := min(k/2, n)
+    return (m*(m+1) + (k*2+n-m-1)*(n-m)) / 2
+}
+```
+
+##### 2712\.使所有字符相等的最小成本
+
+[题目](https://leetcode.cn/problems/minimum-cost-to-make-all-characters-equal)
+
+容易发现，如果对 <= i 的全部用前缀翻转，>i 的全部用后缀翻转，要反转的下标是固定的，故答案一定不会比在这两部分都有前缀有后缀更差。维护前缀后缀，分别表示把这段前缀/后缀全部变成0/1所需的代价和，其代价和就是所有当前下标不等于下一个下标字符的下标和。
+
+```go
+func minimumCost(s string) (ans int64) {
+	n := len(s)
+	getPrefix := func(s string) ([]int64, []int64) {
+		sumPos := int64(0)
+		to0 := make([]int64, n)
+		to1 := make([]int64, n)
+		for i := int64(0); i < int64(n); i++ {
+			if s[i] == '0' {
+				to0[i] = sumPos
+				to1[i] = sumPos + i + 1
+			} else {
+				to1[i] = sumPos
+				to0[i] = sumPos + i + 1
+			}
+			if i+1 < int64(n) && s[i] != s[i+1] {
+				sumPos += i + 1
+			}
+		}
+		return to0, to1
+	}
+	to0p, to1p := getPrefix(s)
+	rs := []rune(s)
+	for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
+		rs[i], rs[j] = rs[j], rs[i]
+	}
+	ans = min(to0p[n-1], to1p[n-1])
+	to0s, to1s := getPrefix(string(rs))
+	for i, j := 0, n-1; i < n-1; i, j = i+1, j-1 {
+		to0v := to0p[i] + to0s[j-1]
+		to1v := to1p[i] + to1s[j-1]
+		ans = min(ans, to0v, to1v)
+	}
+	return
+}
+```
+
+贪心：每对相邻字符串相互独立，目标是每个相邻相等，每次操作只会改变一个相邻相等，其他等价不变。故每对选最小的即可。
+
+```go
+func minimumCost(s string) (ans int64) {
+    n := len(s)
+    for i := 1; i < n; i++ {
+        if s[i-1] != s[i] {
+            ans += int64(min(i, n-i))
+        }
+    }
+    return
+}
+```
+
+##### 2716\.最小化字符串长度
+
+[题目](https://leetcode.cn/problems/minimize-string-length)
+
+```go
+func minimizedStringLength(s string) int {
+    m := make(map[rune]bool)
+    for _, c := range s {
+        m[c] = true
+    }
+    return len(m)
+}
+```
+
+```go
+func minimizedStringLength(s string) int {
+    set := map[rune]struct{}{}
+    for _, c := range s {
+        set[c] = struct{}{}
+    }
+    return len(set)
+}
+```
+
+```go
+func minimizedStringLength(s string) int {
+    mask := uint(0)
+    for _, c := range s {
+        mask |= 1 << (c - 'a') // 把 c-'a' 加到集合中
+    }
+    return bits.OnesCount(mask) // 集合的大小
+}
+```
+
+##### 2109\.向字符串添加空格
+
+[题目](https://leetcode.cn/problems/adding-spaces-to-a-string)
+
+朴素 sb，8ms
+
+```go
+package main
+import "strings"
+func addSpaces(s string, spaces []int) string {
+	j, m := 0, len(spaces)
+	sb := strings.Builder{}
+	for i, v := range s {
+		if j < m && spaces[j] <= i {
+			sb.WriteByte(' ')
+			j++
+		}
+		sb.WriteRune(v)
+	}
+	return sb.String()
+}
+```
+
+换成静态数组，更慢 11ms
+
+```go
+func addSpaces(s string, spaces []int) string {
+	ans := make([]byte, 0, len(s)+len(spaces))
+	j := 0
+	for i, c := range s {
+		if j < len(spaces) && spaces[j] == i {
+			ans = append(ans, ' ')
+			j++
+		}
+		ans = append(ans, byte(c))
+	}
+	return string(ans)
+}
+```
+
+分组添加，很快，0ms，分隔符思路
+
+```go
+func addSpaces(s string, spaces []int) string {
+	spaces = append(spaces, len(s)) // 这样可以在循环中处理最后一段
+	ans := make([]byte, 0, len(s)+len(spaces))
+	ans = append(ans, s[:spaces[0]]...)
+	for i := 1; i < len(spaces); i++ {
+		ans = append(ans, ' ')
+		ans = append(ans, s[spaces[i-1]:spaces[i]]...)
+	}
+	return string(ans)
+}
+```
+
+##### 2360\.图中的最长环
+
+[题目](https://leetcode.cn/problems/longest-cycle-in-a-graph)
+
+我的：
+
+```go
+package main
+
+func longestCycle(edges []int) (ans int) {
+	n := len(edges)
+	g := make([][]int, n)
+	for u, v := range edges {
+		if v != -1 {
+			g[u] = append(g[u], v)
+		}
+	}
+	dfn := make([]int, n)
+	t := 1
+	vis := make([]int, n)
+	var dfs func(u int) // tarjan
+	dfs = func(u int) {
+		if vis[u] > 0 {
+			if vis[u] == 1 {
+				ans = max(ans, t-dfn[u])
+			}
+			return
+		}
+		vis[u] = 1
+		dfn[u] = t
+		t++
+		for _, v := range g[u] {
+			dfs(v)
+		}
+		vis[u] = 2
+	}
+    ans = -1
+	for i := 0; i < n; i++ {
+		dfs(i)
+	}
+	return
+}
+```
+
+有向图，树，添加一条有向边，至少会形成一个环，称为内向基环树。定义：(ds)
+
+1. 每个点有且仅有一个出边
+2. 由多棵基环树组成，即：一个环和若干指向该环的树
+
+```go
+func longestCycle(edges []int) int {
+    ans := -1
+    curTime := 1 // 当前时间
+    visTime := make([]int, len(edges)) // 首次访问 x 的时间
+    for x := range edges {
+        startTime := curTime // 本轮循环的开始时间
+        for x != -1 && visTime[x] == 0 { // 没有访问过 x
+            visTime[x] = curTime // 记录访问 x 的时间
+            curTime++
+            x = edges[x] // 访问下一个节点
+        }
+        if x != -1 && visTime[x] >= startTime { // x 在本轮循环中访问了两次，说明 x 在环上
+            ans = max(ans, curTime-visTime[x]) // 前后两次访问 x 的时间差，即为环长
+        }
+    }
+    return ans // 如果没有找到环，返回的是 ans 的初始值 -1
 }
 ```
 

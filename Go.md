@@ -770,6 +770,44 @@ fmt.Println(string([]byte{97, 228, 189, 160, 229, 165, 189}))
 // "a你好"
 ```
 
+###### rune[]
+
+转过来转回去，如字符串反转
+
+```go
+rs := []rune(s)
+for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
+    rs[i], rs[j] = rs[j], rs[i]
+}
+return string(rs)
+```
+
+##### stringbuilder
+
+stringbuilder
+
+```go
+package main
+import (
+	"fmt"
+	"strings"
+)
+func main() {
+	var builder strings.Builder
+	builder.WriteString("Hello, ")
+	builder.WriteString("World!")
+	builder.Write([]byte(" Welcome to Go."))
+	builder.WriteByte(' ')
+	builder.WriteRune('🚀')
+
+	result := builder.String()
+	fmt.Println(result)//输出: Hello, World! Welcome to Go. 🚀
+	builder.Reset()
+	builder.WriteString("New content")
+	fmt.Println(builder.String()) // 输出: New content
+}
+```
+
 
 
 #### 字符
@@ -1994,6 +2032,18 @@ func calc(x, y int) (sum, sub int) {
 fmt.Println(calc(5, 3))
 ```
 
+可以是切片，多个切片
+
+```go
+func f(s string) ([]int64, []int64) {
+    n := len(s)
+    to0 := make([]int64, n)
+    to1 := make([]int64, n)
+    // ...
+    return to0, to1
+}
+```
+
 #### 高阶
 
 ##### 函数变量
@@ -2066,6 +2116,16 @@ fmt.Println(ff(8, 9))
 func(x, y int) {
     fmt.Println(x * y)
 }(10, 11)
+```
+
+递归函数：先声明再定义
+
+```go
+var dfs func(u int)
+dfs = func(u int) {
+    // ...
+    dfs(v)
+}
 ```
 
 ##### 闭包
@@ -4027,8 +4087,6 @@ for node, _ := t.Ceiling(mn); node.Key <= mx; node, _ = t.Ceiling(mn) { // _ 是
     t.Remove(j) // 删除
 }
 ```
-
-
 
 ### 数值
 
