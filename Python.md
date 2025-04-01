@@ -1088,6 +1088,12 @@ fp.write(str)
 
 写内容到文件
 
+> 输出重定向：
+>
+> ```sh
+> python a.py > res.txt
+> ```
+
 #### 编码
 
 ##### 检查编码
@@ -1536,7 +1542,7 @@ print(-float('-inf')/9-9) #是inf
 
 `r''` 代表里面的转义符一律当普通字符。
 
-`b''` 二进制字符串(只能有ASACII)，type 为 bytes  
+`b''` 二进制字符串(只能有ASCII)，type 为 bytes  
 
 > 普通字符串通过 `.encode()` 方法转化为二进制字符串；逆运算为 `.decode`
 
@@ -1545,6 +1551,15 @@ print(-float('-inf')/9-9) #是inf
 > `u''` unicode 字符串 (python2 里 type 不一样)， py3 里与一般字符串等价
 
 可以组合如 `rf'\n{2*2}'` (或 fr)
+
+长文本跨行，每个字符串换成 `f''` 之类的也行。
+
+```python
+print('123'
+'456')
+```
+
+
 
 ##### 函数
 
@@ -7398,6 +7413,7 @@ arr.reshape(tuple 维度)
 
 ```python
 np.zeros(维度)#单一维度可以用int，否则用tuple，类型默认float
+# 建立一数组同理，用ones；全是某个值x：np.full(n, x)
 ```
 
 > ```python
@@ -7418,7 +7434,7 @@ np.empty(img1.shape, img1.dtype)
 np.empty_like(img, dtype=float) #复制形状
 ```
 
-建立一数组同理，用ones
+
 
 建立python range：
 
@@ -7490,9 +7506,9 @@ mixed_array = np.array([(1.5, 2, 3),
 
 `.nbytes` 字节数， `/2**20` 是 MB。
 
-##### 变换
 
-插入：
+
+##### 插入
 
 ```python
 np.insert(原数组, 插入位置, values=插入值, axis=轴) #轴0是插入行，1插入列
@@ -7503,6 +7519,8 @@ np.insert(原数组, 插入位置, values=插入值, axis=轴) #轴0是插入行
 ```python
 h=np.insert(np.eye(5),1,values=np.ones(5),axis=0)  #values形状会随axis不同而变化
 ```
+
+##### 降维
 
 扁平化，即降维：
 
@@ -8479,6 +8497,8 @@ result_df.to_csv('./step2/result.csv', index=False)
 ```
 
 ##### npy
+
+> vscode 可以安装 NumPy Viewer，查看数据，形状等
 
 单个数组，只能用于 NumPy 数组
 

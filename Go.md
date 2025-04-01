@@ -3412,6 +3412,20 @@ if err != nil {
 }
 ```
 
+### 数据结构
+
+#### slices
+
+[backward](https://blog.csdn.net/bigwhite20xx/article/details/139346846) [0x3f](https://leetcode.cn/problems/solving-questions-with-brainpower/solutions/1213919/dao-xu-dp-by-endlesscheng-2qkc/?envType=daily-question&envId=2025-04-01) 逆向遍历：
+
+```go
+func mostPoints(questions [][]int) int64 {
+    // ...
+    for i, q := range slices.Backward(questions) { // ...
+```
+
+
+
 ### 数学
 
 #### math

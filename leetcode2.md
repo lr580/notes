@@ -2820,10 +2820,17 @@
 
   DFS tarjan 内向基环树 
 
-  
 - 2711\.对角线上不同值的数量差
 
   前缀和 / 位运算 + 模拟(对角线)
+  
+- 2278\.字母在字符串中的百分比
+
+  签到
+  
+- 2140\.解决智力问题
+
+  DP
 
 ## 算法
 
@@ -11510,5 +11517,84 @@ func differenceOfDistinctValues(grid [][]int) [][]int {
 func abs(x int) int { if x < 0 { return -x }; return x }
 ```
 
+##### 2278\.字母在字符串中的百分比
 
+[题目](https://leetcode.cn/problems/percentage-of-letter-in-string)
+
+```go
+func percentageLetter(s string, letter byte) int {
+    n := 0
+    for _, c := range s {
+        if byte(c) == letter {
+            n++
+        }
+    }
+    return n*100/len(s)
+}
+```
+
+```go
+func percentageLetter(s string, letter byte) int {
+    return strings.Count(s, string(letter)) * 100 / len(s)
+}
+```
+
+##### 2140\.解决智力问题
+
+[题目](https://leetcode.cn/problems/solving-questions-with-brainpower)
+
+```go
+func mostPoints(questions [][]int) int64 {
+    n := len(questions)
+    dp := make([]int64, n)
+    dp[n-1] = int64(questions[n-1][0])
+    for i := n-2; i >=0; i-- {
+        dp[i] = max(int64(questions[i][0]), dp[i+1])
+        if i+questions[i][1]+1<n {
+            dp[i] = max(dp[i], int64(questions[i][0])+dp[i+questions[i][1]+1])
+        }
+    }
+    return dp[0]
+}
+```
+
+其他实现：
+
+```go
+func mostPoints(questions [][]int) int64 {
+    n := len(questions)
+    dp := make([]int64, n + 1) // 解决每道题及以后题目的最高分数
+    for i := n - 1; i >= 0; i-- {
+        dp[i] = max(dp[i + 1], int64(questions[i][0]) + dp[min(n, i + questions[i][1] + 1)])
+    }
+    return dp[0]
+}
+```
+
+```go
+func mostPoints(questions [][]int) int64 {
+    n := len(questions)
+    f := make([]int64, n+1)
+    for i, q := range slices.Backward(questions) {
+        j := min(i+q[1]+1, n)
+        f[i] = max(f[i+1], f[j]+int64(q[0]))
+    }
+    return f[0]
+}
+```
+
+顺推，从查表变成刷表：
+
+```go
+func mostPoints(questions [][]int) int64 {
+    n := len(questions)
+    f := make([]int64, n+1)
+    for i, q := range questions {
+        f[i+1] = max(f[i+1], f[i])
+        j := min(i+q[1]+1, n)
+        f[j] = max(f[j], f[i]+int64(q[0]))
+    }
+    return f[n]
+}
+```
 
