@@ -4195,6 +4195,8 @@ import mod
 import mod1,mod2,...
 import mod as abbr #引用并缩写
 import mod1,mod2,... as abbr #共用一个缩写
+from sklearn.ensemble import (RandomForestClassifier, GradientBoostingClassifier,
+                              VotingClassifier, StackingClassifier) # 多行
 ```
 
 格式B
@@ -8489,12 +8491,38 @@ s = (x.conj() * x).real
 
 ##### csv
 
-pandas 库，假设 result 是一维 nd array
+`savetxt()`
 
 ```python
-result_df = pd.DataFrame(result, columns=['result'])
-result_df.to_csv('./step2/result.csv', index=False)
+import numpy as np
+# 假设 y_proba 是 (n, 3) 的 NumPy 数组
+y_proba = np.array([
+    [0.1, 0.7, 0.2],  # 样本1的概率分布
+    [0.3, 0.4, 0.3],  # 样本2的概率分布
+    [0.8, 0.1, 0.1],  # 样本3的概率分布
+])
+# 保存为 CSV（不带列名）
+np.savetxt('class_probabilities.csv', y_proba, delimiter=',', fmt='%.4f')
+# 如果需要列名（例如 "Class1", "Class2", "Class3"）
+header = "Class1,Class2,Class3"
+np.savetxt('class_probabilities_with_header.csv', y_proba, delimiter=',', fmt='%.4f', header=header, comments='')
 ```
+
+读取：
+
+```python
+data = np.loadtxt('data.csv', delimiter=',') 
+```
+
+
+
+> pandas 库，假设 result 是一维 nd array
+>
+> ```python
+> result_df = pd.DataFrame(result, columns=['result'])
+> result_df.to_csv('./step2/result.csv', index=False)
+> ```
+>
 
 ##### npy
 
@@ -9742,6 +9770,8 @@ plt.plot(dimensions, min_distances, marker='o')
 - `'x'`: 叉号
 - `'D'`: 菱形
 - `'H'`: 六边形
+
+`alpha=1` 不透明，0透明；`s=40` 尺寸。`color=xxxx`
 
 ##### 坐标轴
 
@@ -14318,7 +14348,8 @@ print(user.dict()) #{'id': 1, 'name': 'Alice', 'email': 'alice@example.com', 'ag
 
 
 
-## 文本处理
+> ## 文本处理
+>
 
 ### chardet
 
@@ -14828,7 +14859,7 @@ column_transformer = ColumnTransformer(
 
 StandardScaler $Z=\dfrac{X-\mu}\sigma$；显然 $\sigma=\sqrt{\dfrac{\sum(X_i-\mu)^2}{n}} $
 
-这意味着转换后的数据将围绕 0 居中，具有单位标准差。例子见上。
+这意味着转换后的数据将围绕 0 居中，具有单位标准差。例子见上。对逻辑回归等有明显改进。
 
 参数：`with_mean=False`，因此它不会对数据进行均值中心化，但会除以标准差进行缩放。
 
@@ -15048,6 +15079,45 @@ print("auc的值：{}".format(auc))
 
 
 #### 机器学习
+
+##### 逻辑回归
+
+输入 (n, m) 的 X， (n, ) 的 Y，类型  `numpy.ndarray`, `pandas.DataFrame` 等
+
+ds
+
+1. penalty `'l1'`, `'l2'`, `'elasticnet'`, `'none'`（默认 `'l2'`）。
+2. C 正则化强度的倒数，控制模型复杂度。值越小，正则化越强。默认 1.0
+3. solver 优化算法
+   - `'liblinear'`：适用于小数据集，支持 `'l1'` 和 `'l2'`。
+   - `'lbfgs'`（默认）：基于拟牛顿法，适用于 `'l2'` 或无正则化。
+   - `'newton-cg'`：牛顿法，适合 `'l2'` 或无正则化。
+   - `'sag'` 和 `'saga'`：随机平均梯度下降，适合大数据集。`'saga'` 还支持 `'elasticnet'`。
+4. `multi_class` 多分类策略
+   - `'ovr'`（一对多）：为每个类别训练一个二分类模型。
+   - `'multinomial'`（多项式）：直接多分类，需求解器支持（如 `'lbfgs'`, `'saga'`）。
+   - `'auto'`（默认）：根据数据和求解器自动选择。
+5. max_iter 最大迭代次数
+6. tol 当损失函数变化小于此值时，停止优化。默认1e-4
+7. `class_weight` 调整类别不平衡 如 `class_weight={0: 0.5, 1: 1.0}`。
+8. `random_state` 默认 None
+9. `n_jobs` 并行计算，默认 None
+
+```python
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+model = LogisticRegression(multi_class='multinomial', solver='lbfgs', max_iter=1000)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+```
+
+```sh
+# 获取每个样本属于每个类的概率
+y_proba = model.predict_proba(X_test)
+```
+
+
 
 ##### 决策树回归
 
@@ -15450,6 +15520,12 @@ ax.set_ylabel('X2')
 plt.legend()
 plt.title('线性SVM决策边界与支持向量')
 plt.show()
+```
+
+##### 梯度提升
+
+```python
+GradientBoostingClassifier(n_estimators=150,learning_rate=0.1, max_depth=5,random_state=42)
 ```
 
 
@@ -16286,6 +16362,20 @@ df['user'] = df['user'].apply(
         if isinstance(x, list) and re.match(r'^[a-zA-Z]+$', word) and word not in ENGLISH_STOP_WORDS
     ] if isinstance(x, list) else []
 )
+```
+
+#### 评价指标
+
+##### accuracy_score
+
+准确率 = (正确预测的样本数) / (总样本数)
+
+```python
+from sklearn.metrics import accuracy_score
+y_true = [0, 1, 2, 0, 1, 2]
+y_pred = [0, 2, 1, 0, 0, 1]
+acc = accuracy_score(y_true, y_pred)
+print(f"准确率: {acc:.2f}")  # 输出: 准确率: 0.33
 ```
 
 
@@ -18197,6 +18287,10 @@ print("Output tensor:\n", output_tensor)
           [-0.3873,  0.0000,  0.3873],
           [ 0.7746,  1.1619,  1.5492]]]], grad_fn=<NativeBatchNormBackward0>
 ```
+
+###### BatchNorm1d
+
+二维或三维数据，对第二个维度为通道数，同上操作。
 
 ###### AdaptiveAvgPool2d
 
