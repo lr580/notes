@@ -1657,10 +1657,12 @@ zfill(n) 补充前导零直到长度为n
 表示空，不等同于0，也不等同于零元素集合(数学空集)，类型也不一样：
 
 ```python
-type(None)
+type(None) # <class 'NoneType'>
 ```
 
 > `x=...` 会导致得到单例对象 `Ellipsis` 省略，可用于 np 多维切片缺省维度。
+
+判断：`a is None`
 
 #### complex
 
@@ -8072,13 +8074,13 @@ np.where(np.abs(a-1.9)<0.2)
 
 ##### 均值
 
-均值：
+均值：注意比 `/n` 常数好，推荐调库。
 
 ```python
 np.mean(arr)
 ```
 
-对每列：`axis=0`
+对每列：`axis=0`，也可以对一维 ndarray 数组求，即 `np.mean(arrs, axis=0)`。
 
 三维数组，对每个矩阵求均值，如：
 
@@ -14306,6 +14308,16 @@ with open('example.pkl', 'rb') as f:
     print(loaded_dict) # dict
 ```
 
+可以用来存储 sklearn 训练的机器学习模型等。第二种写法：
+
+```python
+s = pickle.dumps(model)
+with open(dist, 'wb') as f:
+    f.write(s)
+```
+
+
+
 ### h5py
 
 h5 文件是 HDF5 格式的文件，主要用于存储大型数据集，如科学计算和机器学习。要查看行数，可以使用 Python 的 `h5py` 库来读取数据集
@@ -14344,37 +14356,6 @@ user_data = {
 }
 user = User(**user_data)
 print(user.dict()) #{'id': 1, 'name': 'Alice', 'email': 'alice@example.com', 'age': 30}
-```
-
-
-
-> ## 文本处理
->
-
-### chardet
-
-常用编码：utf-8,gbk,gb2312,ascii; euc-jp (日文)
-
-> ##### detect
->
-
-检查编码，传入二进制数据，返回一个字典，其中key为encoding的元素是编码方式。
-
-据此可以设计一个返回文件编码的函数：
-
-```python
-import chardet
-def check(d):#d是文件路径，返回编码方式(str)
-    with open(d,'rb') as df:
-        dt=df.read()
-    return chardet.detect(dt)['encoding']
-```
-
-随后再正式打开文件：
-
-```python
-with open(d,'r',encoding=check(d)) as f:
-    f.read()
 ```
 
 
@@ -14861,6 +14842,12 @@ StandardScaler $Z=\dfrac{X-\mu}\sigma$；显然 $\sigma=\sqrt{\dfrac{\sum(X_i-\m
 
 这意味着转换后的数据将围绕 0 居中，具有单位标准差。例子见上。对逻辑回归等有明显改进。
 
+```python
+scale = StandardScaler()
+X_train = scale.fit_transform(X_train)
+X_test = scale.transform(X_test)
+```
+
 参数：`with_mean=False`，因此它不会对数据进行均值中心化，但会除以标准差进行缩放。
 
 分列标准缩放：
@@ -15018,63 +15005,7 @@ class TimeToMinutesTransformer(BaseEstimator, TransformerMixin):
 
 pipeline 处理结果如果 0 多，可能会转换为 `<class 'scipy.sparse._csr.csr_matrix'>`，需要转化为 numpy 数组才能传 pandas。可以使用 `.toarray()` 方法传。
 
-#### 统计特征
 
-sklearn.metrics
-
-##### 余弦相似
-
-两两比较，vec1, vec2 里的各个，得到相似性
-
-```python
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
-vec1 = np.array([[1, 0, 1], [1,1,1]])
-vec2 = np.array([[0, 1, 1], [1,1,1]])
-similarity = cosine_similarity(vec1, vec2)
-print(similarity)
-'''[[0.5        0.81649658]
- [0.81649658 1.        ]]'''
-```
-
-
-
-
-
-##### 其他例子
-
-```python
-import numpy as np
-import pandas as pd
-from sklearn.ensemble import RandomForestClassifier # 导入随机森林模型
-from sklearn.model_selection import train_test_split  # 导入数据集划分模块
-import matplotlib.pyplot as plt
-from sklearn.metrics import roc_auc_score
-from sklearn.metrics import classification_report
-
-data_path ='/data/bigfiles/6e36e995-2472-4362-8f4e-bae6da732da2'
-df = pd.read_csv(data_path,sep=';')
-features=pd.get_dummies(df.iloc[:,:-1])
-
-df['y'] = df['y'].replace(to_replace=['no', 'yes'], value=[0, 1])
-labels=df.loc[:,'y']
-
-x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=1)# 按4：1的比例划分训练和测试集
-
-# 任务4. 构建模型， 并对训练集X_train训练
-RFC=RandomForestClassifier(n_estimators=164,random_state=90)
-RFC.fit(x_train,y_train)
-
-print('\n训练集上的得分为：{}'.format(RFC.score(x_train,y_train)))# 给出训练的精度
-x_pre_test=RFC.predict(x_test)# 对于测试集x_test进行预测
-print(classification_report(y_test, x_pre_test))# 其他指标计算
-
-
-x_pro_test = RFC.predict_proba(x_test)# 预测测试集概率值
-print("验证集的预测可能性：{}".format(x_pro_test))
-auc=roc_auc_score(y_test, x_pro_test[:, 1])#计算验证集的auc值,参数为预测值和概率估计
-print("auc的值：{}".format(auc))
-```
 
 
 
@@ -16378,6 +16309,93 @@ acc = accuracy_score(y_true, y_pred)
 print(f"准确率: {acc:.2f}")  # 输出: 准确率: 0.33
 ```
 
+##### f1_score
+
+`F1 = 2 * (precision * recall) / (precision + recall)`
+
+`Precision = TP / (TP + FP)`
+
+`Recall = TP / (TP + FN)`
+
+- TP (True Positives)：真正例，模型正确预测为正类的样本数
+- FP (False Positives)：假正例，模型错误预测为正类的样本数
+
+```python
+from sklearn.metrics import f1_score
+y_true = [0, 1, 1, 0, 1, 0]
+y_pred = [0, 1, 0, 0, 1, 1]
+f1 = f1_score(y_true, y_pred)
+print(f"Binary F1 score: {f1:.2f}")
+```
+
+分母为0整个分式设为0，设置：`zero_division=0`
+
+##### cosine_similarity
+
+两两比较，vec1, vec2 里的各个，得到相似性
+
+- 值范围在 -1 到 1 之间
+- 1 表示完全相同方向
+- 0 表示正交(无关)
+- -1 表示完全相反方向
+- 对向量长度不敏感，只关注方向
+
+```
+cosine_similarity = (A·B) / (||A|| * ||B||)
+```
+
+```python
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+vec1 = np.array([[1, 0, 1], [1,1,1]])
+vec2 = np.array([[0, 1, 1], [1,1,1]])
+similarity = cosine_similarity(vec1, vec2)
+print(similarity)
+'''[[0.5        0.81649658]
+ [0.81649658 1.        ]]'''
+```
+
+```python
+vectors = np.array([[1, 2, 3],[4, 5, 6],[7, 8, 9],[1, 1, 1]])
+similarity_matrix = cosine_similarity(vectors)
+print(similarity_matrix) # 4x4
+```
+
+##### 其他例子
+
+```python
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier # 导入随机森林模型
+from sklearn.model_selection import train_test_split  # 导入数据集划分模块
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import classification_report
+
+data_path ='/data/bigfiles/6e36e995-2472-4362-8f4e-bae6da732da2'
+df = pd.read_csv(data_path,sep=';')
+features=pd.get_dummies(df.iloc[:,:-1])
+
+df['y'] = df['y'].replace(to_replace=['no', 'yes'], value=[0, 1])
+labels=df.loc[:,'y']
+
+x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=1)# 按4：1的比例划分训练和测试集
+
+# 任务4. 构建模型， 并对训练集X_train训练
+RFC=RandomForestClassifier(n_estimators=164,random_state=90)
+RFC.fit(x_train,y_train)
+
+print('\n训练集上的得分为：{}'.format(RFC.score(x_train,y_train)))# 给出训练的精度
+x_pre_test=RFC.predict(x_test)# 对于测试集x_test进行预测
+print(classification_report(y_test, x_pre_test))# 其他指标计算
+
+
+x_pro_test = RFC.predict_proba(x_test)# 预测测试集概率值
+print("验证集的预测可能性：{}".format(x_pro_test))
+auc=roc_auc_score(y_test, x_pro_test[:, 1])#计算验证集的auc值,参数为预测值和概率估计
+print("auc的值：{}".format(auc))
+```
+
 
 
 #### 辅助功能
@@ -17035,11 +17053,11 @@ numpy 与 tensor 互转：
 
 
 ```python
-x = torch.tensor([[1,1,4,5,1,4],[1,9,1,9,8,1]]) #也可以传np array
-print(x.numpy())
 import numpy as np
 na = np.array([1,1,4,5,1,4])
 print(torch.tensor(na))
+# x = torch.from_numpy(image).float()
+print(x.numpy())
 ```
 
 标量转化：(用 item())
@@ -18608,6 +18626,35 @@ x = torch.tensor([-1.0, 0.0, 1.0, 2.0])
 sigmoid_x = torch.sigmoid(x)
 print(sigmoid_x) # tensor([0.2689, 0.5000, 0.7311, 0.8808])
 ```
+
+#### 卷积
+
+##### avg_pool
+
+```python
+import numpy as np
+import torch
+import torch.nn.functional as F
+def average_pooling(image, pool_size, stride):
+    image_tensor = torch.from_numpy(image).float()
+    # 添加批次和通道维度 (PyTorch需要4D输入: [batch, channels, height, width])
+    image_tensor = image_tensor.unsqueeze(0).unsqueeze(0)
+    # 执行平均池化
+    pooled_tensor = F.avg_pool2d(image_tensor, kernel_size=pool_size, stride=stride)
+    # 移除批次和通道维度，并转换为numpy数组
+    pooled_image = pooled_tensor.squeeze().numpy()
+    return pooled_image
+def main():
+    image = np.array([
+        [1, 2, 3, 4],
+        [5, 6, 7, 8],
+        [9, 10, 11, 12],
+        [13, 14, 15, 16]])
+    pooled_image = average_pooling(image, (2, 2), 2)
+    print(pooled_image) #[[ 3.5  5.5] [11.5 13.5]]
+```
+
+
 
 #### 损失函数
 
@@ -21191,6 +21238,115 @@ final_memory = get_memory_usage()
 print(f"创建后内存使用: {final_memory / (1024 * 1024):.2f} MB")
 print(f"内存增加: {(final_memory - initial_memory) / (1024 * 1024):.2f} MB")
 ```
+
+## 文本处理
+
+### chardet
+
+常用编码：utf-8,gbk,gb2312,ascii; euc-jp (日文)
+
+> ##### detect
+
+检查编码，传入二进制数据，返回一个字典，其中key为encoding的元素是编码方式。
+
+据此可以设计一个返回文件编码的函数：
+
+```python
+import chardet
+def check(d):#d是文件路径，返回编码方式(str)
+    with open(d,'rb') as df:
+        dt=df.read()
+    return chardet.detect(dt)['encoding']
+```
+
+随后再正式打开文件：
+
+```python
+with open(d,'r',encoding=check(d)) as f:
+    f.read()
+```
+
+### jieba
+
+中文分词库
+
+```python
+import jieba
+text = "我爱自然语言处理技术"
+seg_list = jieba.cut(text, cut_all=False) #返回生成器
+print(list(seg_list)) #['我', '爱', '自然语言', '处理', '技术']
+# cut_all=True: ['我', '爱', '自然', '自然语言', '语言', '处理', '技术']
+# lcut 是 jieba 分词库中的一个便捷方法，它是 jieba.cut() 方法的列表(list)形式返回版本。
+```
+
+```python
+jieba.add_word("自然语言处理")
+# 或者从文件加载词典
+# jieba.load_userdict("userdict.txt")
+seg_list = jieba.cut("自然语言处理技术很强大")
+```
+
+还可以标词性 (n. v. 等)，分析 top k
+
+```python
+import jieba.analyse
+text = "自然语言处理是人工智能领域的一个重要方向"
+# 基于TF-IDF算法
+keywords = jieba.analyse.extract_tags(text, topK=3)
+print("关键词:", keywords) #['自然语言', '人工智能', '领域']
+# 基于TextRank算法
+keywords = jieba.analyse.textrank(text, topK=3)
+print("关键词(TextRank):", keywords) # ['领域', '处理', '人工智能']
+```
+
+### gensim
+
+Word2Vec 是一种广泛使用的词嵌入（Word Embedding）技术，能够将单词转换为稠密向量（即词向量）
+
+```python
+from gensim.models import Word2Vec
+from gensim.models.word2vec import LineSentence  # 用于处理文本数据
+
+# 示例文本（需分好词的句子列表）
+sentences = [
+    ["I", "love", "natural", "language", "processing"],
+    ["Word2Vec", "is", "a", "popular", "model"],
+    ["Gensim", "makes", "training", "easy"]
+]
+
+# 训练模型
+model = Word2Vec(
+    sentences=sentences,  # 输入数据
+    vector_size=100,      # 词向量维度（原参数名`size`已弃用）
+    window=5,            # 上下文窗口大小
+    min_count=1,          # 忽略出现次数低于此的单词
+    workers=4,           # 并行线程数
+    sg=1,                # 1=Skip-gram, 0=CBOW
+    epochs=10            # 迭代次数（原参数名`iter`已弃用）
+)
+
+# 保存与加载模型
+model.save("word2vec.model")
+loaded_model = Word2Vec.load("word2vec.model")
+```
+
+```python
+# 获取单词向量
+vector = model.wv["Gensim"]  # 获取"Gensim"的词向量
+print(type(vector), vector.shape) # <class 'numpy.ndarray'> (100,)
+print('NOTFOUND' in model.wv) #False / in model.wv.index_to_key
+
+# 找相似词
+similar_words = model.wv.most_similar("love", topn=3)
+print(similar_words)  
+# 输出：[('model', 0.15016479790210724), ('language', 0.12813477218151093), ('easy', 0.0931011214852333)]
+
+# 计算相似度
+similarity = model.wv.similarity("Word2Vec", "model")
+print(similarity) #-0.06900333
+```
+
+
 
 ## 其他
 
