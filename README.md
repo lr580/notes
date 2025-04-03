@@ -52,9 +52,13 @@
 
   介绍：HTML, CSS, JavaScrpit,  TypeScript, 微信开发者(wxml, wxss等)和 Cocos creator学习笔记
 
-- 后端
+- 后端基架
 
-  介绍：PHP(含ThinkPHP框架)、MySQL、Docker、Yii 学习笔记
+  介绍：MySQL、Docker 学习笔记
+
+- 后端语言
+
+  介绍：Node.js、PHP(含ThinkPHP框架) 学习笔记
 
 - LaTeX
 
