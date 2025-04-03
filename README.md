@@ -50,7 +50,7 @@
 
 - web
 
-  介绍：HTML, CSS, JavaScrpit, TypeScript, 微信开发者(wxml, wxss等)和 Cocos creator学习笔记
+  介绍：HTML, CSS, JavaScrpit,  TypeScript, 微信开发者(wxml, wxss等)和 Cocos creator学习笔记
 
 - 后端
 

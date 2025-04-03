@@ -2831,6 +2831,10 @@
 - 2140\.解决智力问题
 
   DP
+  
+- 2874\.有序三元组中的最大值II
+
+  前缀和(DP)
 
 ## 算法
 
@@ -11597,4 +11601,64 @@ func mostPoints(questions [][]int) int64 {
     return f[n]
 }
 ```
+
+##### 2874\.有序三元组中的最大值II
+
+[题目](https://leetcode.cn/problems/maximum-value-of-an-ordered-triplet-ii)
+
+先枚举 j 维护最大差值，再枚举 k 维护答案
+
+```go
+package main
+
+func maximumTripletValue(nums []int) (ans int64) {
+	n := len(nums)
+	mxi := nums[0]
+	maxdis := make([]int, n)
+	for j := 1; j < n; j++ {
+		maxdis[j] = max(maxdis[j-1], mxi-nums[j])
+		mxi = max(mxi, nums[j])
+	}
+	for k := 2; k < n; k++ {
+		ans = max(ans, int64(maxdis[k-1])*int64(nums[k]))
+	}
+	return
+}
+```
+
+优化：
+
+```python
+func maximumTripletValue(nums []int) int64 {
+    var ans, maxDiff, preMax int
+    for _, x := range nums {
+        ans = max(ans, maxDiff*x)
+        maxDiff = max(maxDiff, preMax-x)
+        preMax = max(preMax, x)
+    }
+    return int64(ans)
+}
+```
+
+也可以枚举 j 为最后，维护前后的最大值，i, k 都取最大值即可，显然。
+
+```go
+func maximumTripletValue(nums []int) int64 {
+    ans := 0
+    n := len(nums)
+    sufMax := make([]int, n+1)
+    for i := n - 1; i > 1; i-- {
+        sufMax[i] = max(sufMax[i+1], nums[i])
+    }
+
+    preMax := 0
+    for j, x := range nums {
+        ans = max(ans, (preMax-x)*sufMax[j+1])
+        preMax = max(preMax, x)
+    }
+    return int64(ans)
+}
+```
+
+
 

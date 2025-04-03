@@ -667,13 +667,15 @@ fmt.Println(unsafe.Sizeof(true)) // 1
 
 ##### 基础
 
-双引号；string；反引号可以多行；len 求长度
+双引号/反引号；string；len 求长度
 
 ```go
 var s = `即得易见平凡
 仿照上例显然` // 不要对齐不然会有多余空格
 fmt.Println(s, len(s)) //一个中文3个长度
 ```
+
+反引号可以多行，不转义字符，本身不能包含反引号
 
 要修改字符串， 需要先将其转换成[]rune 或[]byte， 完成后再转换为 string。 无论哪种转换，都会重新分配内存， 并复制字节数组  
 
@@ -2319,6 +2321,14 @@ func init() {
 }
 var x = 1
 ```
+
+#### main函数
+
+所在的包必须为main包，可以使用flag包来获取和解析命令行参数
+
+参数：`func main()` 或 `func main(args []string)`
+
+可以定义返回值如 `func main() int`，但推荐退出状态通过 `os.Exit()` 来控制
 
 ### 异常
 

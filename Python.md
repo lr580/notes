@@ -10664,7 +10664,7 @@ audiometric = pd.read_csv('audiometric.csv')
 # 会输出有几行、几列；返回值是 DataFrame
 ```
 
-> 可以读 `.tsv`，加参数 `sep='\t'`
+> 可以读 `.tsv`，加参数 `sep='\t'` (跟后缀无关，单纯修改分隔符)
 >
 > 可以读 `.txt`
 >
@@ -10843,9 +10843,13 @@ label               0             1'''
 
 [参考](https://blog.csdn.net/m0_46419189/article/details/123111493)
 
-###### csv
+###### csv/xlsx
 
-index 控制是否有第0列
+index=True/False 控制是否有行索引
+
+`header=False/None`（不保存列名）
+
+`sep='\t'` 保存的分隔符
 
 ```python
 with pd.ExcelWriter("pca_result.xlsx") as writer:
@@ -11305,6 +11309,20 @@ print(df)
 ```python
 grouped_df = df.groupby('City').mean()
 ```
+
+> 按下标为1的列分组，取第七列的最大值，得到结果：下标列为分组，值列为最大值
+>
+> ```python
+> result = df.groupby(1)[7].max() 
+> # <class 'pandas.core.series.Series'>
+> ```
+>
+> 如果要转换下标，把下标列作为普通列(列名是1，即第1列)，并让max列的列名为 7，则：
+>
+> ```python
+> result = result.reset_index()
+> # <class 'pandas.core.frame.DataFrame'>
+> ```
 
 同一列两个运算：
 
