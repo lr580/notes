@@ -54,7 +54,7 @@
 
 - 后端基架
 
-  介绍：MySQL、Docker 学习笔记
+  介绍：MySQL 等数据库、NoSQL(Redis，MongoDB)、Docker 学习笔记
 
 - 后端语言
 
@@ -74,7 +74,7 @@
   
 - 数据库
 
-  介绍：数据库理论(不含MySQL 语法，其在后端笔记中)，Redis，MongoDB，分布式数据库等
+  介绍：数据库理论(不含MySQL 语法，其在后端笔记中)，分布式数据库等
   
 - 计算机网络
 

@@ -23458,6 +23458,56 @@ public:
 };
 ```
 
+我 go 先求最大深度，然后求所有最大深度点并维护父亲列表，不断对所有最大深度点同时跳父亲直到只剩下一个点。
+
+```go
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+func maxDepth(r *TreeNode) int {
+    if r == nil {
+        return 0
+    }
+    return max(maxDepth(r.Left), maxDepth(r.Right)) + 1
+}
+func lcaDeepestLeaves(root *TreeNode) *TreeNode {
+    d := maxDepth(root)
+    s := make(map[*TreeNode]bool)
+    fa := make(map[*TreeNode]*TreeNode)
+    var dfs func(r, f *TreeNode, c int)
+    dfs = func(r, f *TreeNode, c int) {
+        if r == nil {
+            return
+        }
+        if c == d {
+            s[r] = true
+        }
+        fa[r] = f
+        dfs(r.Left, r, c+1)
+        dfs(r.Right, r, c+1)
+    }
+    dfs(root, nil, 1)
+    for ; len(s) > 1; {
+        s2 := make(map[*TreeNode]bool)
+        for k := range s {
+            s2[fa[k]] = true
+        }
+        s = s2
+    }
+    for k := range s {
+        return k
+    }
+    return nil
+}
+```
+
+
+
 题解：直接 DFS
 
 ```c++
