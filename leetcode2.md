@@ -2835,6 +2835,14 @@
 - 2874\.有序三元组中的最大值II
 
   前缀和(DP)
+  
+- 1863\.找出所有子集的异或总和再求和
+
+  爆搜 / <u>数学+位运算</u>
+  
+- 368\.最大整除子集
+
+  DP/最长路(拓扑排序) 数论
 
 ## 算法
 
@@ -11660,5 +11668,137 @@ func maximumTripletValue(nums []int) int64 {
 }
 ```
 
+##### 1863\.找出所有子集的异或总和再求和
 
+[题目](https://leetcode.cn/problems/sum-of-all-subset-xor-totals)
 
+二进制枚举
+
+```go
+func subsetXORSum(nums []int) (s int) {
+    n := len(nums)
+    for i:=0;i<1<<n;i++ {
+        x := 0
+        for j:=0;j<n;j++ {
+            if (i>>j)&1==1 {
+                x ^= nums[j]
+            }
+        }
+        s +=x
+    }
+    return
+}
+```
+
+设元素全是 0/1，那么只要子集有奇数个 1，异或和一定是 1。
+
+设有 $m$ 个 1，$n-m$ 个 $0$，在 $m$ 个 1 里选出奇数个 1 的方案数一定是 $2^{m-1}$ 
+
+多种证明方法，一种是二项式定理，$2^m=(1+1)^m=C_m^0+\cdots C_m^m$，且 $0^m=(1-1)^n=C_m^0-C_m^1+\cdots+(-1)^mC_m^m$，相减得 $2^m-0^m=2(C_m^1+C_m^3+\cdots)$，故 $C_m^1+C_m^3+\cdots=2^{m-1}$。
+
+则剩下的 $0$ 选与不选都不影响有奇数个 $1$，总方案数为 $2^{m-1}2^{n-m}=2^{n-1}$。
+
+即，只要有至少一个 $1$，异或和为 $1$ 的方案数一定是 $2^{n-1}$。
+
+由于每个位相互独立互不影响，故每个位分别这样算，然后加起来即可。设第 $x_1,\cdots, x_t$ 位有 $1$，则答案为 $2^{x_1}2^{n-1}+\cdots+2^{x_t}2^{n-1}$，即 $orsum\cdot 2^{n-1}$，其中原数组全部或起来 $orsum=2^{x_1}+\cdots+2^{x_t}$。
+
+```go
+func subsetXORSum(nums []int) int {
+    or := 0
+    for _, x := range nums {
+        or |= x
+    }
+    return or << (len(nums) - 1)
+}
+```
+
+##### 368\.最大整除子集
+
+[题目](https://leetcode.cn/problems/largest-divisible-subset)
+
+相互整除的元素，等价于排序后，后一个元素总能被前一个元素整除。
+
+等价于维护DAG(边权为1)的最长路，按拓扑序(升序即可)DP即可。
+
+```go
+package main
+
+import "sort"
+
+func largestDivisibleSubset(nums []int) (ans []int) {
+	sort.Ints(nums)
+	n := len(nums)
+	prv := make([]int, n)
+	for u := 0; u < n; u++ {
+		prv[u] = -1
+	}
+	siz := make([]int, n)
+	mxSiz, mxIdx := 0,0
+	for u := 0; u < n; u++ {
+		for v := u+1; v < n; v++ {
+			if nums[v]%nums[u] != 0 {
+				continue
+			}
+			if siz[v] < siz[u]+1 {
+				siz[v] = siz[u] + 1
+				prv[v] = u
+				if siz[v] > mxSiz {
+					mxSiz = siz[v]
+					mxIdx = v
+				}
+			}
+		}
+	}
+	for mxIdx != -1 {
+		ans = append(ans, nums[mxIdx])
+		mxIdx = prv[mxIdx]
+	}
+	return
+}
+```
+
+> 优化前：
+>
+> ```go
+> package main
+> 
+> import "sort"
+> 
+> func largestDivisibleSubset(nums []int) (ans []int) {
+> 	sort.Ints(nums)
+> 	n := len(nums)
+> 	g := make([][]int, n)
+> 	du := make([]int, n)
+> 	for i := 0; i < n; i++ {
+> 		for j := i+1; j < n; j++ {
+> 			if nums[j]%nums[i] == 0 {
+> 				g[i] = append(g[i], j)
+> 				du[i]++
+> 			}
+> 		}
+> 	}
+> 	prv := make([]int, n)
+> 	for u := 0; u < n; u++ {
+> 		prv[u] = -1
+> 	}
+> 	siz := make([]int, n)
+> 	mxSiz, mxIdx := 0, 0
+> 	for u := 0; u < n; u++ {
+> 		for _, v := range g[u] {
+> 			if siz[v] < siz[u]+1 {
+> 				siz[v] = siz[u] + 1
+> 				prv[v] = u
+> 				if siz[v] > mxSiz {
+> 					mxSiz = siz[v]
+> 					mxIdx = v
+> 				}
+> 			}
+> 		}
+> 	}
+> 	for mxIdx != -1 {
+> 		ans = append(ans, nums[mxIdx])
+> 		mxIdx = prv[mxIdx]
+> 	}
+> 	return
+> }
+> ```
