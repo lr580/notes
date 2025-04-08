@@ -3488,6 +3488,24 @@ var y uint64 = 1 << 63 // 64
 fmt.Printf("Len of %d: %d bits\n", y, bits.Len64(y))
 ```
 
+##### 大整数
+
+- `NewInt` 创建大整数
+- `Lsh` 实现左移位操作
+- `Or` 实现按位或操作
+- `Bit` 检查特定位的值
+
+```go
+import "math/big"
+// ... 
+f := big.NewInt(1)
+p := new(big.Int)
+for _, x := range nums { // nums []int
+    f.Or(f, p.Lsh(f, uint(x)))
+}
+return f.Bit(s) == 1 // s int
+```
+
 
 
 ### 时间

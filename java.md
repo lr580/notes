@@ -131,6 +131,12 @@ javap -verbose Turtle.class | findstr "major version # 版本查询，linux find
 java -jar CritterGUI.jar
 ```
 
+查看运行的 java 程序：（Java Virtual Machine Process Status Tool） jps
+
+```sh
+jps
+```
+
 
 
 ### 项目建立
@@ -10291,6 +10297,8 @@ Collections 静态操作：
 - binarySearch(list, value)
 
   如果查找成功返回对应下标(有多个相等的则返回任意)，如果查找失败，返回一个负数v，其 `-(v+1)` 代表该值应该插入到的位置。
+  
+- singletonList(value) 转单元素列表
 
 有两种实现类：
 

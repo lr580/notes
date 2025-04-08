@@ -5896,7 +5896,7 @@ thr.join()
 ```python
 import zipfile
 with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-    zip_ref.extractall(extract_to)
+    zip_ref.extractall(extract_to) # 不写to就地解压
 print("文件解压完成，解压到：", extract_to)
 ```
 
@@ -7282,98 +7282,8 @@ get 得到所显示的值
 
 
 
-## 远程处理
-
-### pymysql
-
-连接到数据库：`connect(host=url字符串, user=数据库用户名字符串, password=数据库用户密码字符串, database=数据库名字符串, charset=字符集)` ，返回一个对象，该对象可以使用 `.cursor()` 方法得到用于操作的对象，得到的对象有方法：
-
-`execute(sql语句字符串)` 执行一条数据库指令
-
-`fetchall()` 得到输出(tuple的tuple，第一个维度是行，第二个是列)
-
-> 如：
+> ## 远程处理
 >
-> ```python
-> import pymysql as sql
-> oj = sql.connect(host=hosturl, user=username, password=password,
->          database='scnuoj', charset='utf8') #utf要小写
-> cur = oj.cursor()
-> cid = input('输入比赛ID:')
-> cmd_getProblem = 'select problem_id,title from problem, contest_problem where problem_id=problem.id and contest_id='+cid
-> #如果是修改，记得commit。参考github官方例子 oj.commit()
-> lens = cur.execute(cmd_getProblem)
-> print(lens, cur.fetchall())
-> ```
-
-注：
-
-- 读入的日期会以 `datetime` 格式保存。
-
-建议用 `with oj.cursor() as cur` 写法，会自动关闭。
-
-写一定要 commit，不然不成功，如：
-
-```python
-import pymysql as sql
-from random import randint
-oj = sql.connect(host='192.168.126.128', port=8066, user='root', password='root', database='mstest', charset='UTF8')
-with oj.cursor() as cur:
-    sql = "INSERT INTO t_user VALUES (%s, %s)"
-    values = (randint(1, 65535), '白茶')
-    cur.execute(sql, values)
-    oj.commit()
-with oj.cursor() as cur:
-    cmd = 'SELECT * FROM t_user'
-    cur.execute(cmd)
-    print(cur.fetchall()) # 多维元组，按行列表示值，类型按数据表的
-```
-
-
-
-### paramiko
-
-[参考](https://www.cnblogs.com/erlou96/p/16878288.html) [参考2](https://zhuanlan.zhihu.com/p/456447145)
-
-#### 远程命令
-
-```python
-# import os
-# os.system('ssh root@174.136.237.70')
-# os.system('ls')
-import paramiko
-ssh = paramiko.SSHClient()
-ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-ssh.connect(
-    hostname='174.136.237.70',
-    username='root'
-) #假设已经免密登录了
-stdin,stdout,stderr = ssh.exec_command('ls')
-result = stdout.read().decode()
-print(result)
-```
-
-多条指令分号隔开，如 `ls;cd py;ls`。输出会合并。
-
-#### 文件传输
-
-```python
-#文件上传
-#从ssh.connect之后继续:
-sftp = paramiko.SFTPClient.from_transport(ssh.get_transport())
-localpath = 'combs.cpp'
-remotepath = '/root/c.cpp' #路径不能写~等,而且要完整有c.cpp不可缺省
-sftp.put(localpath,remotepath)
-```
-
-```python
-#文件下载:
-localpath = 'dest.py'
-remotepath = '/root/py/crawl.py'
-sftp.get(remotepath,localpath)
-```
-
-
 
 
 
@@ -10645,7 +10555,7 @@ plot(x, [f(x), 2 * x - 3], 'x', 'f(x)', legend=['f(x)', 'Tangent line (x=1)'])
 
 [文档](https://pandas.pydata.org/docs/index.html)
 
-#### 基本
+#### 读写
 
 ##### 读入
 
@@ -10714,8 +10624,9 @@ plt.show()
 
 需要：
 
-```
+```sh
 pip install openpyxl
+pip install xlrd # (.xls)
 ```
 
 也可以读 excel，默认第一行是表头，没有列头。如果要列头加默认参数如：[参考](https://blog.csdn.net/qq_18351157/article/details/124865696)
@@ -10895,6 +10806,8 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 
 同理有 `.to_latex`
 
+#### 基本
+
 ##### 成员属性
 
 `.info` 总行数列数，按顺序输出各列名, not-null 计数,
@@ -10903,16 +10816,14 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 
 **列名字符串区分大小写**。默认每列同一个数据类型。
 
-##### 取元素
+##### 列
 
-###### 列
-
-取一列：`[列名str]`。取行区间`[起:止]` (切片语法同 python)。用下标取就 `iloc[]`
+取一列：`[列名str]`。取行区间`[起:止]` (切片语法同 python)。用下标取就 `iloc[]`。检查列是否存在(不存在取会报错)：`'colname' in df.columns`。
 
 取所有列(含下表列) `df.columns`，取指定列，可以 for 和取下标，得 str，可以 `.tolist()`
 
-> 如，取前两列外的每一列：`df.iloc[:, 2:]`；取定值 `.iloc[0]['A']`
->
+
+
 > 取特定若干列：`df[['text', 'num_hashtags']]`；取一列是 series，这样取多列还是 df 类型。(tuple 不行，一定是)
 >
 > 若干行+若干列举例：`print(df.iloc[:5][['DURATION', 'AFFECTED']])`
@@ -10920,8 +10831,10 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 列赋值，可以直接把 numpy (1,n) shape 的赋值
 
 > 用列值进行 01 分类：`get_dummies`
+>
+> 每个列转大写：`df.columns = df.columns.str.upper()`
 
-###### 行
+##### 行
 
 > 逐行遍历：`.iterrows()`，返回 `(idx,row)`，row 可以  `.列名`(不用引号)取值
 >
@@ -10932,15 +10845,58 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 
 > 如果是聚合下标，见下文。
 
-###### 元素
+##### 元素
 
 取单独元素 `.at[行号, 列str]` 或 `.loc[]`，可以取和赋值
 
-> loc 和 iloc 的区别在于，对行 loc 是下标值作索引，iloc 是第几个下标
+loc 和 iloc 的区别在于，对行 loc 是下标值作索引，iloc 是第几个下标
+
+`iloc` 与 `loc` 的应用例子：
+
+- 取前两列外的每一列：`df.iloc[:, 2:]`；取定值 `.iloc[0]['A']`
+
+- 如分别两个具体条件筛选：(行列)
+
+  ```python
+  mask = df['OCC_TITLE'] == 'Computer Programmers' # 行筛
+  columns = ['A_PCT10', 'A_PCT25',  'Year'] # 列筛
+  df = df.loc[mask, columns].copy() # 行列共筛结果
+  ```
+
+  
 
 取 `.values` 可以转化为 np array。然后可以丢进 tensor。
 
 > `df[col].values.shape` 是一维；`df[[col]].values.shape` 是二维(前者算 series 转；后者算一列 df 转，故第二维为 1)
+
+##### 视图
+
+即引用，指针，修改它等于修改原来的。用 `is_view` 判断。
+
+```python
+import numpy as np
+import pandas as pd
+
+df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+
+# 视图（连续切片）
+df_view = df[:2]
+# df_view["C"] = 6 # 不修改就是视图，修改了就复制了且报warning
+print(df_view._is_view)  # True
+print(np.shares_memory(df, df_view))  # True
+
+# 副本（布尔索引）
+df_copy = df[df['A'] > 1]
+# df_copy["D"] = 7 # 不会修改
+print(df_copy._is_view)  # False
+print(np.shares_memory(df, df_copy))  # False
+
+# print(df) # 不变 (即使取消注释)
+```
+
+
+
+
 
 ##### 遍历
 
@@ -11617,6 +11573,7 @@ print(pd.merge(df1, df2, left_on='key1', right_on='key2', how='inner'))
 
 ```python
 .rename(columns={0: 'p-value'})
+# df.rename(columns={'NAICS_TITLE': 'OCC_TITLE'})
 ```
 
 > 其他重命名：
@@ -12475,6 +12432,7 @@ plt.show()
 
 ```cmd
 pip install openpyxl
+pip install xlrd # (.xls)
 ```
 
 加载：(方法不唯一)
@@ -19697,6 +19655,7 @@ import requests
 response=requests.get('http://127.0.0.1:8080/')
 print(response.status_code) #200
 print(response.text) #'Hello world!'
+# html = response.content (读网页HTML str源码)
 ```
 
 ```python
@@ -19727,6 +19686,12 @@ print(requests.post('http://127.0.0.1:8080/submit',json=pam).text)
  ```python
  response.json() #dict
  ```
+
+#### 异常
+
+两种手段，第一个是 `if response.status_code == 200` 继续处理否则手动报错
+
+第二个是，`response.raise_for_status()`，类似assert 5xx 4xx 错误。
 
 #### response对象
 
@@ -19864,6 +19829,17 @@ session.mount('https://', adapter)
 > getAllCaseData()
 > ```
 
+#### 流
+
+stream=True 不会立即下载整个文件，而是保持连接打开，允许你逐块（chunk）读取数据。 `stream=True` 允许你分块读取数据（例如 `response.iter_content(chunk_size=8192)`），避免内存爆炸
+
+```python
+response = session.get(url, stream=True)
+with open(filepath, 'wb') as f:
+    for chunk in response.iter_content(chunk_size=8192):  # 每次读取 8KB
+        f.write(chunk)
+```
+
 
 
 #### 代理
@@ -19879,6 +19855,27 @@ response = requests.get(url, proxies=proxies)
 `socks5h` 与 `socks5` 的区别在于，`socks5h` 会让代理服务器来处理域名解析，而 `socks5` 则是在本地解析。需要：`pip install pysocks`。
 
 #### 文件
+
+##### 下载
+
+流(8K+)或一次性 (ds)
+
+```python
+response = session.get(url, headers=headers, stream=True)
+
+with open(filepath, 'wb') as f:
+    for chunk in response.iter_content(chunk_size=8192):  # 每次读取 8KB
+        f.write(chunk)
+```
+
+```python
+response = session.get(url, headers=headers)  # stream=False（默认）
+data = response.content  # 整个文件加载到内存
+with open(filepath, 'wb') as f:
+    f.write(data)  # 一次性写入
+```
+
+
 
 ##### 上传
 
@@ -19896,6 +19893,214 @@ if response.status_code == 200:
 else:
     print('请求失败')
 ```
+
+#### 报头
+
+报头准备：
+
+```python
+user_agent_list = [
+ 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '
+  'Chrome/45.0.2454.85 Safari/537.36 115Browser/6.0.3',
+ 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50',
+ 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50',
+ 'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.0; Trident/4.0)',
+ 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0)',
+ 'Mozilla/5.0 (Windows NT 6.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1',
+ 'Opera/9.80 (Windows NT 6.1; U; en) Presto/2.8.131 Version/11.11',
+ 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_0) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.56 Safari/535.11',
+ 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; SE 2.X MetaSr 1.0; SE 2.X MetaSr 1.0; .NET CLR 2.0.50727; SE 2.X MetaSr 1.0)',
+ 'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0',
+ 'Mozilla/5.0 (Windows NT 6.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1',
+]
+```
+
+> 移动端：
+>
+> ```python
+> 'Mozilla/6.0 (iPhone; CPU iPhone OS 8_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/8.0 Mobile/10A5376e Safari/8536.25'
+> ```
+
+
+
+获取一个结果：
+
+```python
+def getres(url):
+    try:
+        ua = random.choice(user_agent_list)
+        req = request.Request(url)
+        req.add_header('User-Agent', ua)
+        res = request.urlopen(req)
+        return res
+    except ConnectionError:
+        print('连接出错，无法连接: %s'%url)
+        return None
+```
+
+> 位置参数url：网址参数
+>
+> 默认参数data：None， 或POST/GET   打开网页要用的方法；提交/获取，HTTP协议之一
+>
+> 默认参数proxies=None  代理
+>
+> 创建一个类文件对象file-like，返回网页代码
+
+> 查看网页信息： urllib request
+>
+> ```python
+> response = urllib.request.urlopen('http://python.org/')
+> print("查看 response 的返回类型：",type(response))
+> print("查看反应地址信息: ",response)
+> print("查看头部信息1(http header)：\n",response.info())
+> print("查看头部信息2(http header)：\n",response.getheaders())
+> print("输出头部属性信息：",response.getheader("Server"))
+> print("查看响应状态信息1(http status)：\n",response.status)
+> print("查看响应状态信息2(http status)：\n",response.getcode())
+> print("查看响应 url 地址：\n",response.geturl())
+> page = response.read()
+> print("输出网页源码:",page.decode('utf-8'))
+> ```
+
+抓取并写入一个网页的HTML及其编码方式：
+
+```python
+def gethtml(url):
+    res = getres(url)
+    q = res.read()
+    ic = chardet.detect(q).get('encoding', 'utf-8') # dict的get方法，如果得不到，默认采用utf-8
+    return [str(q.decode(ic, 'ignore')), ic]
+```
+
+获取并写入一张图片：
+
+```python
+res = getres(url)
+if not res == None:
+    with open(objcwd, 'wb') as f:
+        f.write(res.read())
+```
+
+
+
+如若遇到报错：
+
+```shell
+urllib.error.URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1091)>
+```
+
+那么需要添加代码，设置全局取消证书验证：
+
+```python
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+```
+
+#### robots.txt
+
+##### 基本概念
+
+[解释文档](https://moz.com/learn/seo/robotstxt)
+
+在网站根目录下的 `robots.txt`(大小写敏感，不可 `Robots.TXT` 等)，全员可看。子域名可以独立。
+
+遵循 robots exclusion protocol (REP) 协议，指示爬虫怎么爬。(建议性规约)
+
+- 空行：隔开不同的爬虫主体
+- `#` 注释
+- `Disallow: 路径` 可以含通配符如 `*?$`(以什么结尾)
+- `Allow: 路径`
+- `Crawl-delay: 数字毫秒`
+
+> 参考样例：
+>
+> ```plain
+> # See http://www.linkedin.com/legal/crawling-terms.
+> 
+> User-agent: Googlebot
+> Disallow: /addContacts*
+> Allow: /settings/loid-email-unsubscribe*
+> Allow: /help/
+> 
+> User-agent: Applebot
+> Disallow: /addContacts*
+> Allow: /help/
+> 
+> User-agent: *
+> Disallow: /
+> ```
+>
+> ```
+> User-agent: *
+> Allow: /
+> ```
+
+爬虫程序爬取前首先读 `robots.txt`。
+
+#### 示例
+
+urllib request
+
+##### 爬取HTML
+
+```python
+res = gethtml('https://oj.socoding.cn/')
+with open('a.html', 'w', encoding=res[1]) as f:
+    f.write(res[0])
+```
+
+
+
+##### 爬取特定关键字
+
+```python
+htmls = gethtml('https://oj.socoding.cn/p/1557')
+res = re.findall('>([^>]{0,}?鞘翅[^<]{0,}?)<', htmls[0])
+for i in res:
+    print(i + '\n')
+```
+
+
+
+##### 爬取图片
+
+```python
+res = gethtml('https://oj.socoding.cn/user/view?id=29')
+addrs = re.findall(
+    r"<img class='img-thumbnail img-fluid' src=\"(.{1,}?)\"", res[0])
+cnt=0
+for i in addrs:
+    p = 'https://oj.socoding.cn/'+i
+    d = p[p.rfind('/')+1:]
+    res = getres(p)
+    if not None == res:N
+        with open(d,'wb') as f:
+            f.write(res.read())
+```
+
+
+
+##### 爬取多个网页的标题
+
+```python
+enc = ''
+ans = ''
+for i in range(1, 8):
+    idx = str(i)
+    url = 'https://oj.socoding.cn/problem/index?page=' + idx
+    htmls = gethtml(url)
+    enc = htmls[1]
+    # r"<a class=\"text-dark\" href=\"(.{1,}?)\">(.{1,}?)</a>", htmls[0])
+    result = re.findall(
+        r"<a class=\"badge badge-secondary\"(.{1,}?)</a></td><td><a class=\"text-dark\" href=\"(.{1,}?)\">(.{1,}?)</a>", htmls[0])
+    for j in result:
+        ans += j[-1] + ' https://oj.socoding.cn' + j[-2] + '\n'
+    print('Done ' + idx + ', find ' + str(len(result)))
+with open('titles.txt', 'w', encoding=enc) as f:
+    f.write(ans)
+```
+
+
 
 ### bs
 
@@ -19995,6 +20200,8 @@ soup.find(name=None, attrs={}, recursive=True, text=None)
 
 ```python
 soup.find_all(tag)
+# 查找所有 class 以 "percentiles_medianAmount" 开头的 h3 标签
+h3_tags = soup.find_all('h3', class_=lambda x: x and x.startswith('percentiles_medianAmount'))
 ```
 
 print 输出 tag 返回 HTML 格式显示(不含多余空白)
@@ -20041,11 +20248,19 @@ for div in div_elements:
     content = div.get_text().strip()
 ```
 
-基于结果继续找：
+基于结果继续找：(找子类)
 
 ```python
 t = soup.find('table')
 tr = t.find_all('tr')
+```
+
+```python
+divs = soup.find_all('div', class_=lambda x: x and x.startswith('per'))
+for div in divs: 
+    p_tags = div.find_all('p', class_='Mui')
+    for p_tag in p_tags:
+        text = p_tag.get_text()
 ```
 
 
@@ -20323,233 +20538,71 @@ root.protocol("WM_DELETE_WINDOW", ex)
 root.mainloop()
 ```
 
+### selenium
 
-
-
-
-### 爬虫
-
-#### 基本准备
-
-加载模块
+可以模拟用户在浏览器中的操作，常用于自动化测试、网页抓取和网页自动化
 
 ```python
-from urllib import request
+pip install selenium
 ```
 
-> 通常还需要引入的库：
+
+
+### pymysql
+
+连接到数据库：`connect(host=url字符串, user=数据库用户名字符串, password=数据库用户密码字符串, database=数据库名字符串, charset=字符集)` ，返回一个对象，该对象可以使用 `.cursor()` 方法得到用于操作的对象，得到的对象有方法：
+
+`execute(sql语句字符串)` 执行一条数据库指令
+
+`fetchall()` 得到输出(tuple的tuple，第一个维度是行，第二个是列)
+
+> 如：
 >
 > ```python
-> import random, chardet, re, os
+> import pymysql as sql
+> oj = sql.connect(host=hosturl, user=username, password=password,
+>       database='scnuoj', charset='utf8') #utf要小写
+> cur = oj.cursor()
+> cid = input('输入比赛ID:')
+> cmd_getProblem = 'select problem_id,title from problem, contest_problem where problem_id=problem.id and contest_id='+cid
+> #如果是修改，记得commit。参考github官方例子 oj.commit()
+> lens = cur.execute(cmd_getProblem)
+> print(lens, cur.fetchall())
 > ```
 
-报头准备：
+注：
+
+- 读入的日期会以 `datetime` 格式保存。
+
+建议用 `with oj.cursor() as cur` 写法，会自动关闭。
+
+写一定要 commit，不然不成功，如：
 
 ```python
-user_agent_list = [
- 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '
-  'Chrome/45.0.2454.85 Safari/537.36 115Browser/6.0.3',
- 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50',
- 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50',
- 'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.0; Trident/4.0)',
- 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0)',
- 'Mozilla/5.0 (Windows NT 6.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1',
- 'Opera/9.80 (Windows NT 6.1; U; en) Presto/2.8.131 Version/11.11',
- 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_0) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.56 Safari/535.11',
- 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; SE 2.X MetaSr 1.0; SE 2.X MetaSr 1.0; .NET CLR 2.0.50727; SE 2.X MetaSr 1.0)',
- 'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0',
- 'Mozilla/5.0 (Windows NT 6.1; rv:2.0.1) Gecko/20100101 Firefox/4.0.1',
-]
+import pymysql as sql
+from random import randint
+oj = sql.connect(host='192.168.126.128', port=8066, user='root', password='root', database='mstest', charset='UTF8')
+with oj.cursor() as cur:
+    sql = "INSERT INTO t_user VALUES (%s, %s)"
+    values = (randint(1, 65535), '白茶')
+    cur.execute(sql, values)
+    oj.commit()
+with oj.cursor() as cur:
+    cmd = 'SELECT * FROM t_user'
+    cur.execute(cmd)
+    print(cur.fetchall()) # 多维元组，按行列表示值，类型按数据表的
 ```
 
-> 移动端：
+
+
+
+
+> ### 远程操作
 >
-> ```python
-> 'Mozilla/6.0 (iPhone; CPU iPhone OS 8_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/8.0 Mobile/10A5376e Safari/8536.25'
-> ```
-
-获取一个结果：
-
-```python
-def getres(url):
-    try:
-        ua = random.choice(user_agent_list)
-        req = request.Request(url)
-        req.add_header('User-Agent', ua)
-        res = request.urlopen(req)
-        return res
-    except ConnectionError:
-        print('连接出错，无法连接: %s'%url)
-        return None
-```
-
-> 位置参数url：网址参数
->
-> 默认参数data：None， 或POST/GET   打开网页要用的方法；提交/获取，HTTP协议之一
->
-> 默认参数proxies=None  代理
->
-> 创建一个类文件对象file-like，返回网页代码
-
-> 查看网页信息：
->
-> ```python
-> response = urllib.request.urlopen('http://python.org/')
-> print("查看 response 的返回类型：",type(response))
-> print("查看反应地址信息: ",response)
-> print("查看头部信息1(http header)：\n",response.info())
-> print("查看头部信息2(http header)：\n",response.getheaders())
-> print("输出头部属性信息：",response.getheader("Server"))
-> print("查看响应状态信息1(http status)：\n",response.status)
-> print("查看响应状态信息2(http status)：\n",response.getcode())
-> print("查看响应 url 地址：\n",response.geturl())
-> page = response.read()
-> print("输出网页源码:",page.decode('utf-8'))
-> ```
-
-抓取并写入一个网页的HTML及其编码方式：
-
-```python
-def gethtml(url):
-    res = getres(url)
-    q = res.read()
-    ic = chardet.detect(q).get('encoding', 'utf-8') # dict的get方法，如果得不到，默认采用utf-8
-    return [str(q.decode(ic, 'ignore')), ic]
-```
-
-获取并写入一张图片：
-
-```python
-res = getres(url)
-if not res == None:
-    with open(objcwd, 'wb') as f:
-        f.write(res.read())
-```
-
-
-
-如若遇到报错：
-
-```shell
-urllib.error.URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1091)>
-```
-
-那么需要添加代码，设置全局取消证书验证：
-
-```python
-import ssl
-ssl._create_default_https_context = ssl._create_unverified_context
-```
-
-#### robots.txt
-
-##### 基本概念
-
-[解释文档](https://moz.com/learn/seo/robotstxt)
-
-在网站根目录下的 `robots.txt`(大小写敏感，不可 `Robots.TXT` 等)，全员可看。子域名可以独立。
-
-遵循 robots exclusion protocol (REP) 协议，指示爬虫怎么爬。(建议性规约)
-
-- 空行：隔开不同的爬虫主体
-- `#` 注释
-- `Disallow: 路径` 可以含通配符如 `*?$`(以什么结尾)
-- `Allow: 路径`
-- `Crawl-delay: 数字毫秒`
-
-> 参考样例：
->
-> ```plain
-> # See http://www.linkedin.com/legal/crawling-terms.
-> 
-> User-agent: Googlebot
-> Disallow: /addContacts*
-> Allow: /settings/loid-email-unsubscribe*
-> Allow: /help/
-> 
-> User-agent: Applebot
-> Disallow: /addContacts*
-> Allow: /help/
-> 
-> User-agent: *
-> Disallow: /
-> ```
->
-> ```
-> User-agent: *
-> Allow: /
-> ```
-
-爬虫程序爬取前首先读 `robots.txt`。
-
-#### 示例
-
-##### 爬取HTML
-
-```python
-res = gethtml('https://oj.socoding.cn/')
-with open('a.html', 'w', encoding=res[1]) as f:
-    f.write(res[0])
-```
-
-
-
-##### 爬取特定关键字
-
-```python
-htmls = gethtml('https://oj.socoding.cn/p/1557')
-res = re.findall('>([^>]{0,}?鞘翅[^<]{0,}?)<', htmls[0])
-for i in res:
-    print(i + '\n')
-```
-
-
-
-##### 爬取图片
-
-```python
-res = gethtml('https://oj.socoding.cn/user/view?id=29')
-addrs = re.findall(
-    r"<img class='img-thumbnail img-fluid' src=\"(.{1,}?)\"", res[0])
-cnt=0
-for i in addrs:
-    p = 'https://oj.socoding.cn/'+i
-    d = p[p.rfind('/')+1:]
-    res = getres(p)
-    if not None == res:N
-        with open(d,'wb') as f:
-            f.write(res.read())
-```
-
-
-
-##### 爬取多个网页的标题
-
-```python
-enc = ''
-ans = ''
-for i in range(1, 8):
-    idx = str(i)
-    url = 'https://oj.socoding.cn/problem/index?page=' + idx
-    htmls = gethtml(url)
-    enc = htmls[1]
-    # r"<a class=\"text-dark\" href=\"(.{1,}?)\">(.{1,}?)</a>", htmls[0])
-    result = re.findall(
-        r"<a class=\"badge badge-secondary\"(.{1,}?)</a></td><td><a class=\"text-dark\" href=\"(.{1,}?)\">(.{1,}?)</a>", htmls[0])
-    for j in result:
-        ans += j[-1] + ' https://oj.socoding.cn' + j[-2] + '\n'
-    print('Done ' + idx + ', find ' + str(len(result)))
-with open('titles.txt', 'w', encoding=enc) as f:
-    f.write(ans)
-```
-
-
-
-### 远程操作
 
 > 图源华为HCIA,HCIP课件，权侵删
 
-#### telnetlib
+### telnetlib
 
 标准库，实现了 `Telnet` 功能
 
@@ -20561,9 +20614,52 @@ with open('titles.txt', 'w', encoding=enc) as f:
 
 
 
-#### paramiko
+### paramiko
 
 是第三方库，需要先pip安装。用于SSH操作。
+
+> ### paramiko
+>
+
+[参考](https://www.cnblogs.com/erlou96/p/16878288.html) [参考2](https://zhuanlan.zhihu.com/p/456447145)
+
+##### 远程命令
+
+```python
+# import os
+# os.system('ssh root@174.136.237.70')
+# os.system('ls')
+import paramiko
+ssh = paramiko.SSHClient()
+ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+ssh.connect(
+    hostname='174.136.237.70',
+    username='root'
+) #假设已经免密登录了
+stdin,stdout,stderr = ssh.exec_command('ls')
+result = stdout.read().decode()
+print(result)
+```
+
+多条指令分号隔开，如 `ls;cd py;ls`。输出会合并。
+
+##### 文件传输
+
+```python
+#文件上传
+#从ssh.connect之后继续:
+sftp = paramiko.SFTPClient.from_transport(ssh.get_transport())
+localpath = 'combs.cpp'
+remotepath = '/root/c.cpp' #路径不能写~等,而且要完整有c.cpp不可缺省
+sftp.put(localpath,remotepath)
+```
+
+```python
+#文件下载:
+localpath = 'dest.py'
+remotepath = '/root/py/crawl.py'
+sftp.get(remotepath,localpath)
+```
 
 ![image-20220426201159100](img/image-20220426201159100.png)
 
@@ -21491,6 +21587,27 @@ with schemdraw.Drawing() as d:
     # 绘制电路图
     d.draw()
 ```
+
+### kagglehub
+
+从 kaggle 下载文件
+
+```sh
+pip install kagglehub
+```
+
+下载方法，参考 kaggle 数据集 download 下面的 API 代码，下载后的地址为 path，可以到那里去移动出来：[参考](https://blog.csdn.net/weixin_65259109/article/details/144778091)
+
+```python
+import kagglehub
+path = kagglehub.dataset_download("thedevastator/u-s-software-developer-salaries")
+for file in os.listdir(path):
+    shutil.move(os.path.join(path, file), out_file)
+```
+
+下载下来的可能是单独文件，具体打开path自行测试。
+
+下载了可能就不下载了，强制再次下载：` force_download=True`
 
 # 应用举例
 

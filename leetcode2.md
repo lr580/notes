@@ -2843,6 +2843,10 @@
 - 368\.最大整除子集
 
   DP/最长路(拓扑排序) 数论
+  
+- 416\.分割等和子集
+
+  DP(背包)
 
 ## 算法
 
@@ -11802,3 +11806,112 @@ func largestDivisibleSubset(nums []int) (ans []int) {
 > 	return
 > }
 > ```
+
+##### 416\.分割等和子集
+
+[题目](https://leetcode.cn/problems/partition-equal-subset-sum)
+
+```go
+func canPartition(nums []int) bool {
+    s := 0
+    for _, v := range nums {
+        s += v
+    }
+    if s % 2 != 0 {
+        return false
+    }
+    t := s / 2
+    dp := make([]bool, t+1)
+    dp[0] = true
+    for _, v := range nums {
+        for i := t; i >= v; i-- {
+            dp[i] = dp[i] || dp[i-v]
+        }
+    }
+    return dp[t]
+}
+```
+
+从 10多ms(上一份)优化到1s，只需要一个break
+
+```go
+func canPartition(nums []int) bool {
+    s := 0
+    for _, x := range nums {
+        s += x
+    }
+    if s%2 != 0 {
+        return false
+    }
+    s /= 2 // 注意这里把 s 减半了
+    f := make([]bool, s+1)
+    f[0] = true
+    s2 := 0
+    for _, x := range nums {
+        s2 = min(s2+x, s)
+        for j := s2; j >= x; j-- {
+            f[j] = f[j] || f[j-x]
+        }
+        if f[s] {
+            return true
+        }
+    }
+    return false
+}
+```
+
+位运算优化(bitset)：0ms
+
+```go
+func canPartition(nums []int) bool {
+    s := 0
+    for _, x := range nums {
+        s += x
+    }
+    if s%2 != 0 {
+        return false
+    }
+    s /= 2
+    f := big.NewInt(1)
+    p := new(big.Int)
+    for _, x := range nums {
+        f.Or(f, p.Lsh(f, uint(x)))
+    }
+    return f.Bit(s) == 1
+}
+```
+
+##### 3396\.使数组元素互不相同所需的最少操作次数
+
+[题目](https://leetcode.cn/problems/minimum-number-of-operations-to-make-elements-in-array-distinct/description/?envType=daily-question&envId=2025-04-08)
+
+```go
+func minimumOperations(nums []int) int {
+	n := len(nums)
+	s := make(map[int]bool)
+	for i := n - 1; i >= 0; i-- {
+		if !s[nums[i]] {
+			s[nums[i]] = true
+		} else {
+			return (i + 3) / 3
+		}
+	}
+	return 0
+}
+```
+
+写法2：
+
+```go
+func minimumOperations(nums []int) int {
+    seen := map[int]struct{}{}
+    for i, x := range slices.Backward(nums) {
+        if _, ok := seen[x]; ok {
+            return i/3 + 1
+        }
+        seen[x] = struct{}{}
+    }
+    return 0
+}
+```
+
