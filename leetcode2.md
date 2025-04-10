@@ -2847,6 +2847,18 @@
 - 416\.分割等和子集
 
   DP(背包)
+  
+- 3375\.使数组的值全部为K的最少操作次数
+
+  排序/map(unique)
+  
+- 2999\.统计强大整数的数目
+
+  <u>数位DP / 组合数学</u>
+  
+- 2843\.统计对称整数的数目
+
+  枚举 / 预处理+前缀和 / <u>数位DP</u>
 
 ## 算法
 
@@ -11912,6 +11924,344 @@ func minimumOperations(nums []int) int {
         seen[x] = struct{}{}
     }
     return 0
+}
+```
+
+##### 3375\.使数组的值全部为K的最少操作次数
+
+[题目](https://leetcode.cn/problems/minimum-operations-to-make-array-values-equal-to-k)
+
+一定要不大于最小元素，这样最小元素才能变成 k。不断把最大元素变成次大元素，直到所有元素都变成 k。
+
+两种写法：set / 排序邻元素遍历
+
+```go
+import "sort"
+func minOperations(nums []int, k int) int {
+	sort.Ints(nums)
+	if nums[0] < k {
+		return -1
+	}
+	n := len(nums)
+	i := sort.Search(n, func(i int) bool { return nums[i] > k })
+	s := make(map[int]bool)
+	for ; i < n; i++ {
+		s[nums[i]] = true
+	}
+	return len(s)
+}
+```
+
+```go
+import "sort"
+func minOperations(nums []int, k int) int {
+	sort.Ints(nums)
+	if nums[0] < k {
+		return -1
+	}
+	n := len(nums)
+	i := sort.Search(n, func(i int) bool { return nums[i] > k })
+	s := 0
+	if i < n {
+		s++
+	}
+	for j := i + 1; j < n; j++ {
+		if nums[j] != nums[j-1] {
+			s++
+		}
+	}
+	return s
+}
+```
+
+##### 2999\.统计强大整数的数目
+
+[题目](https://leetcode.cn/problems/count-the-number-of-powerful-integers)
+
+数位 DP，limitHigh 表示当前是否受到了上界的影响，初始是，之后每次都选最高位就是继续是限制。同理有 limitLow，也可以做两次(dp(High) - dp(Low-1))。
+
+不限制就记忆化，限制就不记忆化。显然限制只有一次，即限制状态数是线性的。复杂度 $O(D\log a)$，其中 $a$ 是上限，$D=10$ 是数位 limit。
+
+```go
+func numberOfPowerfulInt(start, finish int64, limit int, s string) int64 {
+	low := strconv.FormatInt(start, 10)
+	high := strconv.FormatInt(finish, 10)
+	n := len(high)
+	low = strings.Repeat("0", n-len(low)) + low // 补前导零，和 high 对齐
+	diff := n - len(s)
+
+	memo := make([]int64, n)
+	for i := range memo {
+		memo[i] = -1
+	}
+	var dfs func(int, bool, bool) int64
+	dfs = func(i int, limitLow, limitHigh bool) (res int64) {
+		if i == n {
+			return 1
+		}
+		
+		if !limitLow && !limitHigh {
+			p := &memo[i]
+			if *p >= 0 {
+				return *p
+			}
+			defer func() { *p = res }()
+		}
+
+		// 第 i 个数位可以从 lo 枚举到 hi
+		// 如果对数位还有其它约束，应当只在下面的 for 循环做限制，不应修改 lo 或 hi
+		lo := 0
+		if limitLow {
+			lo = int(low[i] - '0')
+		}
+		hi := 9
+		if limitHigh {
+			hi = int(high[i] - '0')
+		}
+
+		if i < diff { // 枚举这个数位填什么
+			for d := lo; d <= min(hi, limit); d++ {
+				res += dfs(i+1, limitLow && d == lo, limitHigh && d == hi)
+			}
+		} else { // 这个数位只能填 s[i-diff]
+			x := int(s[i-diff] - '0')
+			if lo <= x && x <= min(hi, limit) {
+				res += dfs(i+1, limitLow && x == lo, limitHigh && x == hi)
+			}
+		}
+		return
+	}
+	return dfs(0, true, true)
+}
+```
+
+不能设置为 `hi=min(hi,limit)`，这是因为high可能是大于limit的，比如 `high=63666` (灵神[视频](https://www.bilibili.com/video/BV1Fg4y1Q7wv) 45分钟例子)，`limit=5`，那么第一位搜 5 进入 limit，第二位只能选 0-3；但事实上第一位选 5 不是被限制，第二位可以任选 0-5。
+
+```c++
+class Solution {
+public:
+    long long numberOfPowerfulInt(long long start, long long finish, int limit, string s) {
+        string low = to_string(start);
+        string high = to_string(finish);
+        int n = high.size();
+        low = string(n - low.size(), '0') + low; // 补前导零，和 high 对齐
+        int diff = n - s.size();
+
+        vector<long long> memo(n, -1);
+        auto dfs = [&](this auto&& dfs, int i, bool limit_low, bool limit_high) -> long long {
+            if (i == low.size()) {
+                return 1;
+            }
+
+            if (!limit_low && !limit_high && memo[i] != -1) {
+                return memo[i]; // 之前计算过
+            }
+
+            // 第 i 个数位可以从 lo 枚举到 hi
+            // 如果对数位还有其它约束，应当只在下面的 for 循环做限制，不应修改 lo 或 hi
+            int lo = limit_low ? low[i] - '0' : 0;
+            int hi = limit_high ? high[i] - '0' : 9;
+
+            long long res = 0;
+            if (i < diff) { // 枚举这个数位填什么
+                for (int d = lo; d <= min(hi, limit); d++) {
+                    res += dfs(i + 1, limit_low && d == lo, limit_high && d == hi);
+                }
+            } else { // 这个数位只能填 s[i-diff]
+                int x = s[i - diff] - '0';
+                if (lo <= x && x <= min(hi, limit)) {
+                    res = dfs(i + 1, limit_low && x == lo, limit_high && x == hi);
+                }
+            }
+
+            if (!limit_low && !limit_high) {
+                memo[i] = res; // 记忆化 (i,false,false)
+            }
+            return res;
+        };
+        return dfs(0, true, true);
+    }
+};
+```
+
+```python
+class Solution:
+    def numberOfPowerfulInt(self, start: int, finish: int, limit: int, s: str) -> int:
+        high = list(map(int, str(finish)))  # 避免在 dfs 中频繁调用 int()
+        n = len(high)
+        low = list(map(int, str(start).zfill(n)))  # 补前导零，和 high 对齐
+        diff = n - len(s)
+
+        @cache
+        def dfs(i: int, limit_low: bool, limit_high: bool) -> int:
+            if i == n:
+                return 1
+
+            # 第 i 个数位可以从 lo 枚举到 hi
+            # 如果对数位还有其它约束，应当只在下面的 for 循环做限制，不应修改 lo 或 hi
+            lo = low[i] if limit_low else 0
+            hi = high[i] if limit_high else 9
+
+            res = 0
+            if i < diff:  # 枚举这个数位填什么
+                for d in range(lo, min(hi, limit) + 1):
+                    res += dfs(i + 1, limit_low and d == lo, limit_high and d == hi)
+            else:  # 这个数位只能填 s[i-diff]
+                x = int(s[i - diff])
+                if lo <= x <= min(hi, limit):
+                    res = dfs(i + 1, limit_low and x == lo, limit_high and x == hi)
+            return res
+
+        return dfs(0, True, True)
+```
+
+组合数学：i 0-indexed，preLen 是上界x长减去s长度。全体长度到 i 的数：
+
+- 如果当前位比限制要大，当前位和剩下的 s 之外的位，设一共有 preLen-i 位，它们都可以在 limit+1 个数任选。答案位 $(limit+1)^{preLen-1}$。
+- 否则，当前位限制，当前位取到 $x_i$，剩下的任取，故 $x_i(limit+1)^{preLen-i-1}$
+
+最后特判一下 s 位数(x的这几位)，是否有唯一答案。
+
+```go
+func numberOfPowerfulInt(start int64, finish int64, limit int, s string) int64 {
+    start_ := strconv.FormatInt(start - 1, 10)
+	finish_ := strconv.FormatInt(finish, 10)
+	return calculate(finish_, s, limit) - calculate(start_, s, limit)
+}
+
+func calculate(x string, s string, limit int) int64 {
+	if len(x) < len(s) {
+		return 0
+	}
+	if len(x) == len(s) {
+		if x >= s {
+			return 1
+		}
+		return 0
+	}
+
+	suffix := x[len(x) - len(s):]
+	var count int64
+	preLen := len(x) - len(s)
+
+	for i := 0; i < preLen; i++ {
+		digit := int(x[i] - '0')
+		if limit < digit {
+			count += int64(math.Pow(float64(limit + 1), float64(preLen - i)))
+			return count
+		}
+		count += int64(digit) * int64(math.Pow(float64(limit + 1), float64(preLen - 1- i)))
+	}
+	if suffix >= s {
+		count++
+	}
+	return count
+}
+```
+
+##### 2843\.统计对称整数的数目
+
+[题目](https://leetcode.cn/problems/count-symmetric-integers)
+
+```go
+package main
+
+var s [10001]int
+
+func init() {
+	for i := 1; i <= 9; i++ {
+		s[11*i]++
+	}
+	for x4 := 1; x4 <= 9; x4++ {
+		for x3 := 0; x3 <= 9; x3++ {
+			s2 := x3 + x4
+			for x2 := max(0, s2-9); x2 <= min(9, s2); x2++ {
+				x1 := s2 - x2
+				s[x1+x2*10+x3*100+x4*1000]++
+			}
+		}
+	}
+	for i := 1; i <= 10000; i++ {
+		s[i] += s[i-1]
+	}
+}
+func countSymmetricIntegers(low int, high int) int {
+	return s[high] - s[low-1]
+}
+```
+
+数位：
+
+```go
+func countSymmetricIntegers(low, high int) int {
+    lowS := strconv.Itoa(low)
+    highS := strconv.Itoa(high)
+    n := len(highS)
+    m := n / 2
+    diffLH := n - len(lowS)
+
+    memo := make([][][]int, n)
+    for i := range memo {
+        memo[i] = make([][]int, diffLH+1) // start <= diffLH
+        for j := range memo[i] {
+            memo[i][j] = make([]int, m*18+1)
+            for k := range memo[i][j] {
+                memo[i][j][k] = -1
+            }
+        }
+    }
+    var dfs func(int, int, int, bool, bool) int
+    dfs = func(i, start, diff int, limitLow, limitHigh bool) (res int) {
+        if i == n {
+            if diff != 0 {
+                return 0
+            }
+            return 1
+        }
+
+        // start 当 isNum 用
+        if start != -1 && !limitLow && !limitHigh {
+            p := &memo[i][start][diff+m*9]
+            if *p != -1 {
+                return *p
+            }
+            defer func() { *p = res }()
+        }
+
+        lo := 0
+        if limitLow && i >= diffLH {
+            lo = int(lowS[i-diffLH] - '0')
+        }
+        hi := 9
+        if limitHigh {
+            hi = int(highS[i] - '0')
+        }
+
+        // 如果前面没有填数字，且剩余数位个数是奇数，那么当前数位不能填数字
+        if start < 0 && (n-i)%2 > 0 {
+            if lo > 0 {
+                return 0 // 必须填数字但 lo > 0，不合法
+            }
+            return dfs(i+1, start, diff, true, false)
+        }
+
+        isLeft := start < 0 || i < (start+n)/2
+        for d := lo; d <= hi; d++ {
+            newStart := start
+            if start < 0 && d > 0 {
+                newStart = i // 记录第一个填数字的位置
+            }
+            newDiff := diff
+            if isLeft {
+                newDiff += d
+            } else {
+                newDiff -= d
+            }
+            res += dfs(i+1, newStart, newDiff, limitLow && d == lo, limitHigh && d == hi)
+        }
+        return
+    }
+    return dfs(0, -1, 0, true, true)
 }
 ```
 

@@ -714,6 +714,8 @@ fmt.Println(strings.Join([]string{"020", "5800", "5800"}, "-"))
 
 ###### 其他->字符串
 
+- `strconv.Itoa` 是 Go 语言标准库 `strconv` 包中的一个函数，用于将整数(int)转换为字符串(string)，对于其他整数类型(int8, int16, int32, int64, uint等)，需要使用 `FormatInt` 或 `FormatUint`
+
 ```go
 package main
 
@@ -1149,31 +1151,9 @@ c[0] *= 2
 fmt.Println(b, c)
 ```
 
-##### 排序
+> ##### 排序
 
-sort 包可以对切片(但不能数组)排序 [文档](https://golang.org/src/sort)
 
-```go
-import (
-	"fmt"
-	"sort"
-)
-func h3() {
-	a := []int{1, 4, 3, 7, 5, 8, 1}
-	sort.Ints(a)
-	fmt.Println(a)
-}
-```
-
-其他类型，如 `sort.Float64s`, `sort.Strings`。
-
-逆序排序：
-
-```go
-s := []string{"ABC", "abc", "0123", "ad"}
-sort.Sort(sort.Reverse(sort.StringSlice(s)))
-fmt.Println(s)
-```
 
 #### map
 
@@ -3173,7 +3153,7 @@ fmt.Printf("%v %d %d %p\n", a, len(a), cap(a), a)
   var name string
   var age int
   fmt.Print("Enter your name and age: ")
-  fmt.Scan(&name, &age) // 如输入 lr580 580 回车
+  fmt.Scan(&name, &age) // 如输入 lr580 空格或回车 580 回车
   fmt.Printf("Hello, %s! You are %d years old.\n", name, age)
   ```
 
@@ -3426,12 +3406,56 @@ if err != nil {
 
 #### slices
 
+##### min/max
+
+```go
+mn := slices.Min(nums)
+```
+
+##### 遍历
+
 [backward](https://blog.csdn.net/bigwhite20xx/article/details/139346846) [0x3f](https://leetcode.cn/problems/solving-questions-with-brainpower/solutions/1213919/dao-xu-dp-by-endlesscheng-2qkc/?envType=daily-question&envId=2025-04-01) 逆向遍历：
 
 ```go
 func mostPoints(questions [][]int) int64 {
     // ...
     for i, q := range slices.Backward(questions) { // ...
+```
+
+#### sort
+
+##### 排序
+
+sort 包可以对切片(但不能数组)排序 [文档](https://golang.org/src/sort)
+
+```go
+import (
+	"fmt"
+	"sort"
+)
+func h3() {
+	a := []int{1, 4, 3, 7, 5, 8, 1}
+	sort.Ints(a)
+	fmt.Println(a)
+}
+```
+
+其他类型，如 `sort.Float64s`, `sort.Strings`。
+
+逆序排序：
+
+```go
+s := []string{"ABC", "abc", "0123", "ad"}
+sort.Sort(sort.Reverse(sort.StringSlice(s)))
+fmt.Println(s)
+```
+
+##### 二分查找
+
+如表现同 C++ lower_bound (upper 改成 `>` 即可)
+
+```go
+i := sort.Search(n, func(i int) bool { return nums[i] >= k })
 ```
 
 
