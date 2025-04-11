@@ -1011,6 +1011,14 @@ for j := range f[0] {
 f[0][1] = [3]int{}
 ```
 
+数组套 slice：(第一维固定，第二位 slice)
+
+```go
+vis := [1024][]int
+```
+
+
+
 ##### 运算
 
 遍历与数组一样。不支持slice之间比较 `==, !=`，但可以与 nil 比较(见上面代码)
@@ -1143,6 +1151,8 @@ fmt.Println(a) //[30 31 33 34 35 36 37]
 
 ##### 复制
 
+c 必须已经申请内存，copy 不会申请内存
+
 ```go
 b := []int{1, 4, 3, 7}
 c := make([]int, 4, 4)
@@ -1151,7 +1161,24 @@ c[0] *= 2
 fmt.Println(b, c)
 ```
 
-> ##### 排序
+良好示范：
+
+```go
+if vis[v] == nil {
+    vis[v] = make([]int, len(vis[u]))  // 先分配一样大的空间
+    copy(vis[v], vis[u])   // 再复制数据
+}
+vis[v] = append(vis[v], i)             // 最后追加新元素
+```
+
+方法二：不管 nil 与否都可以
+
+```go
+vis[v] = append(vis[v], vis[u]...)  // 先复制 vis[u] 的所有元素
+vis[v] = append(vis[v], i)          // 再追加新元素
+```
+
+
 
 
 
