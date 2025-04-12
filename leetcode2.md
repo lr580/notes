@@ -2859,6 +2859,10 @@
 - 2843\.统计对称整数的数目
 
   枚举 / 预处理+前缀和 / <u>数位DP</u>
+  
+- 3272\.统计好整数的数目
+
+  组合数学
 
 ## 算法
 
@@ -12264,4 +12268,201 @@ func countSymmetricIntegers(low, high int) int {
     return dfs(0, -1, 0, true, true)
 }
 ```
+
+##### 3272\.统计好整数的数目
+
+[题目](https://leetcode.cn/problems/find-the-count-of-good-integers)
+
+> 错误的我的数位 DP：不能处理前导 0：
+>
+> ```go
+> package main
+> import "math/bits"
+> func countGoodIntegers(n int, k int) (ans int64) {
+> 	dp := make([][][]int64, n)
+> 	for i := 0; i < n; i++ {
+> 		dp[i] = make([][]int64, k)
+> 		for j := 0; j < k; j++ {
+> 			dp[i][j] = make([]int64, 1<<10)
+> 		}
+> 	}
+> 	for j := 0; j <= 9; j++ {
+> 		dp[0][j%k][1<<j] = 1
+> 	}
+> 	for i := 1; i < n; i++ { //第几位
+> 		low := 0
+> 		if i == n-1 {
+> 			low = 1
+> 		}
+> 		for j := low; j <= 9; j++ { //第i位选啥
+> 			for r := 0; r < k; r++ { //之前余多少
+> 				r2 := (r*10 + j) % k         // 现在余多少
+> 				for b := 0; b < 1<<10; b++ { //当前各数字奇偶性
+> 					dp[i][r2][b] += dp[i-1][r][b^(1<<j)]
+> 				}
+> 			}
+> 		}
+> 	}
+> 	for b := 0; b < 1<<10; b++ {
+> 		if bits.OnesCount(uint(b)) == 1 {
+> 			ans += dp[n-1][0][b]
+> 		}
+> 	}
+> 	return ans
+> }
+> ```
+
+枚举每个被k整除的回文数，计算每个回文数的排列组合。
+
+注意去除，如 `12021` 和 `21012` 若 k=1 都是合法的，且排列组合一样，故 map 去重只算一次。
+
+设当前回位数每个数位 $i$ 有 $cnt_i$ 个，共有 $n$ 位：
+
+- 若不含 $0$，计算为
+  $$
+  C_n^{cnt_1}C_{n-cnt_1}^{cnt_2}C_{n-cnt_1-cnt_2}^{cnt_3}\cdots=\prod_{i=1}^9C_{n-\sum_{j=1}^{i-1}cnt_j}^{cnt_i}
+  $$
+
+- 若含 $0$，第一个位置不能填，第一项 $n-1$ 而不是 $n$。计算为：
+  $$
+  C_{n-1}^{cnt_0}C_{n-cnt_0}^{cnt_2}C_{n-cnt_0-cnt_1}^{cnt_1}C_{n-cnt_0-cnt_1-cnt_2}^{cnt_3}\cdots=C_{n-1}^{cnt_0}\prod_{i=1}^9C_{n-\sum_{j=0}^{i-1}cnt_j}^{cnt_i}
+  $$
+  
+
+全部回文数的排列组合加起来即可。
+
+```go
+package main
+
+import "fmt"
+
+var pw [11]int64
+var C [11][11]int64 // 杨辉三角
+
+func init() {
+	pw[0] = 1
+	for i := 1; i <= 10; i++ {
+		pw[i] = pw[i-1] * 10
+	}
+	C[0][0] = 1
+	for i := 1; i <= 10; i++ {
+		C[i][0] = 1
+		for j := 1; j <= i; j++ {
+			C[i][j] = C[i-1][j] + C[i-1][j-1]
+		}
+	}
+}
+
+func comb(x int64, k int, sbin map[int64]int64) (ans int64) {
+	cnt := [10]int64{}
+	var num int64
+	for i := x; i > 0; i /= 10 {
+		cnt[i%10]++
+		num++
+	}
+	if x%int64(k) != 0 {
+		return int64(0)
+	}
+
+	// 判重
+	var v int64
+	for i := 0; i < 10; i++ {
+		v += pw[i] * int64(cnt[i])
+	}
+	if sbin[v] > 0 {
+		// fmt.Println("!!", sbin[v], x)
+		return int64(0)
+	}
+	sbin[v] = x
+
+	// 计算组合数
+	if cnt[0] > 0 {
+		ans = C[num-1][cnt[0]]
+		n := num - cnt[0]
+		for i := 1; i < 10; i++ {
+			ans *= C[n][cnt[i]]
+			n -= cnt[i]
+		}
+	} else {
+		ans = 1
+		n := num
+		for i := 0; i < 10; i++ {
+			ans *= C[n][cnt[i]]
+			n -= cnt[i]
+        }
+	}
+	return ans
+}
+
+func countGoodIntegers(n, k int) (ans int64) {
+	sbin := make(map[int64]int64) // 防止重复计数
+	m := n / 2
+	if n == 1 {
+		return int64(9 / k)
+	}
+	for i := pw[m-1]; i < pw[m]; i++ {
+		var iv int64
+		for it := i; it > 0; it /= 10 {
+			iv = iv*10 + it%10
+		}
+		if n%2 == 1 {
+			for j := int64(0); j <= 9; j++ {
+				ans += comb(iv+j*pw[m]+i*pw[m+1], k, sbin)
+			}
+		} else {
+			ans += comb(iv+i*pw[m], k, sbin)
+		}
+	}
+	return ans
+}
+```
+
+题解：第一位有 $n-cnt_0$ 个可以选，剩下的位任意，总方案数为 $(n-cnt_0)\cdot (n-1)!$，然后排除所有重复子项，除以全体 $cnt_i!$ 的乘积即可。即：$\dfrac{(n-cnt_0)\cdot (n-1)!}{\prod_{i=0}^9cnt_i!}$。用排序字符串写哈希更简单。
+
+```go
+func countGoodIntegers(n, k int) (ans int64) {
+	factorial := make([]int, n+1)
+	factorial[0] = 1
+	for i := 1; i <= n; i++ {
+		factorial[i] = factorial[i-1] * i
+	}
+
+	vis := map[string]bool{}
+	base := int(math.Pow10((n - 1) / 2))
+	for i := base; i < base*10; i++ { // 枚举回文数左半边
+		x := i
+		t := i
+		if n%2 > 0 {
+			t /= 10
+		}
+		for ; t > 0; t /= 10 {
+			x = x*10 + t%10
+		}
+		if x%k > 0 { // 回文数不能被 k 整除
+			continue
+		}
+
+		bs := []byte(strconv.Itoa(x))
+		slices.Sort(bs)
+		s := string(bs)
+		if vis[s] { // 不能重复统计
+			continue
+		}
+		vis[s] = true
+
+		cnt := [10]int{}
+		for _, c := range bs {
+			cnt[c-'0']++
+		}
+		res := (n - cnt[0]) * factorial[n-1]
+		for _, c := range cnt {
+			res /= factorial[c]
+		}
+		ans += int64(res)
+	}
+	return
+}
+```
+
+
 

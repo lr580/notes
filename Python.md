@@ -4726,7 +4726,7 @@ round(tan(radians(45)))
 int(degrees(asin(0.5)))
 ```
 
-最大公因数：(也有最小公倍数 lcm)
+最大公因数：(也有最小公倍数 lcm) 都可以传入多个参数
 
 ```python
 gcd(-3,-6) #3
@@ -6505,6 +6505,40 @@ string.ascii_digits
 '0123456789'
 string.punctuation
 '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
+```
+
+#### ast
+
+（Abstract Syntax Trees，抽象语法树）是 Python 的一个内置库，
+
+可以直接读 python 格式的变量字符串
+
+```python
+a = ast.literal_eval("[[25, 50000, 2000, 'G'],[30, 55000, 3000, 'G'],[35, 60000, 0, 'B'],[40, 65000, 4000, 'B'],[28, 48000, 1000, 'G']]")
+print(a[0][0]) # 25
+```
+
+它提供了将 Python 代码解析为抽象语法树的功能，并允许对语法树进行遍历和修改
+
+```python
+import ast
+
+code = """
+def hello(name):
+    print(f"Hello, {name}!")
+"""
+tree = ast.parse(code)
+for node in ast.walk(tree):
+    if isinstance(node, ast.FunctionDef):
+        print(f"Found function: {node.name}")
+# 修改 ast
+for node in ast.walk(tree):
+    if isinstance(node, ast.FunctionDef) and node.name == "hello":
+        node.name = "greet"
+modified_code = ast.unparse(tree)
+print(modified_code) 
+'''def greet(name):
+    print(f'Hello, {name}!')'''
 ```
 
 
