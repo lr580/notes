@@ -2710,7 +2710,7 @@ grep [option] pattern file|dir
 -R 递归查找文件夹
 -v 输出不符合条件的行
 --color 突出显示查找字符串
--E 使用拓展正则表达式 等同于egrep
+-E 使用拓展正则表达式 等同于egrep 
 ```
 
 grep 的规则表达式:
@@ -2735,7 +2735,9 @@ x\{m,n\}  #重复字符x，至少m次，不多于n次，如：'o\{5,10\}'匹配5
 \b    #单词锁定符，如: '\bgrep\b'只匹配grep。
 ```
 
-**实例：**
+
+
+实例：
 
 （1）查找指定进程
 
@@ -2773,7 +2775,11 @@ grep '^[^x]' test.txt
 grep -E 'ed|at' test.txt
 ```
 
-
+> 2024年阿里云秋招研发岗第一批笔试。在文件中查找不包含单词 "tom" 和不包含 "lisi" 的行
+>
+> 答：`grep -v -e "tom" -e "lisi" names.txt`
+>
+> 注意：不可以 `grep -v -e "tom|lisi" names.txt`，这是或不是和。
 
 
 
