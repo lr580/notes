@@ -2863,6 +2863,10 @@
 - 3272\.统计好整数的数目
 
   组合数学
+  
+- 1922\.统计好数字的数目
+
+  快速幂
 
 ## 算法
 
@@ -12464,5 +12468,9 @@ func countGoodIntegers(n, k int) (ans int64) {
 }
 ```
 
+##### 1922\.统计好数字的数目
 
+[题目](https://leetcode.cn/problems/count-good-numbers)
+
+显而易见。
 
