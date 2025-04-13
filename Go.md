@@ -1190,6 +1190,8 @@ vis[v] = append(vis[v], i)          // 再追加新元素
 
 map 类型的变量默认初始值为 nil， 需要使用 make()函数来分配内存，可以指定容量也可以不指定，没有 cap 有 len
 
+key 可以是：长度固定数组、string、int 等值可比较类型，结构体各字段可比较可以做 key，切片可以转 string / 固定数组。
+
 ```go
 score := make(map[string]int, 8)
 score["lr"] = 580
@@ -3448,6 +3450,27 @@ func mostPoints(questions [][]int) int64 {
     // ...
     for i, q := range slices.Backward(questions) { // ...
 ```
+
+##### sort
+
+```go
+bs := []byte(strconv.Itoa(x))
+slices.Sort(bs)
+```
+
+Go 1.21+ 中引入的一个泛型函数，对任何可比较的切片类型（包括 `int`、`float64`、`string` 等）进行排序。
+
+结构体排序 
+
+```go
+slices.SortFunc(nums, func(a, b int) int { return b - a })
+```
+
+
+
+##### Reverse
+
+翻转。`slices.Reverse(a)`
 
 #### sort
 
