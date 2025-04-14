@@ -16541,6 +16541,33 @@ tree = best_tree
 
 #### 导入导出
 
+##### pickle
+
+```python
+import pickle
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.datasets import load_iris
+iris = load_iris()
+X, y = iris.data, iris.target
+model = RandomForestClassifier()
+model.fit(X, y)
+
+# 使用pickle保存模型
+with open('model.pkl', 'wb') as file:
+    pickle.dump(model, file)
+# 从pickle文件加载模型
+with open('model.pkl', 'rb') as file:
+    loaded_model = pickle.load(file)
+
+sample = [[5.1, 3.5, 1.4, 0.2]]  # 示例数据
+prediction = loaded_model.predict(sample)
+print(f"预测结果: {prediction}")
+```
+
+
+
+##### joblib
+
 > ```python
 > from sklearn import svm
 > import joblib
@@ -21417,6 +21444,8 @@ with open(d,'r',encoding=check(d)) as f:
 ### jieba
 
 中文分词库
+
+默认精确模式。
 
 ```python
 import jieba

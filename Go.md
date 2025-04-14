@@ -3508,7 +3508,67 @@ fmt.Println(s)
 i := sort.Search(n, func(i int) bool { return nums[i] >= k })
 ```
 
+#### 容器
 
+##### heap
+
+默认小根堆，要手写一堆东西。也可以用第三方库。
+
+```go
+package main
+
+import (
+	"container/heap"
+	"fmt"
+)
+
+// 定义堆元素类型
+type IntHeap []int
+
+// 实现heap.Interface接口的方法
+func (h IntHeap) Len() int           { return len(h) }
+func (h IntHeap) Less(i, j int) bool { return h[i] < h[j] } // 最小堆
+func (h IntHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *IntHeap) Push(x interface{}) {
+	*h = append(*h, x.(int))
+}
+
+func (h *IntHeap) Pop() interface{} {
+	old := *h
+	n := len(old)
+	x := old[n-1]
+	*h = old[0 : n-1]
+	return x
+}
+
+func main() {
+	var n, k int
+	fmt.Scan(&n, &k)
+	a := make([]int, n+1)
+	for i := 1; i <= n; i++ {
+		fmt.Scan(&a[i])
+	}
+
+	// 初始化堆
+	h := &IntHeap{}
+	heap.Init(h)
+
+	for i := n; i >= 1; i-- {
+		if i%k == 0 && h.Len() > 0 {
+			heap.Pop(h)
+		}
+		heap.Push(h, -a[i]) // 使用负数实现最大堆效果
+	}
+
+	var ans int64
+	for h.Len() > 0 {
+		v := heap.Pop(h).(int)
+		ans += int64(-v)
+	}
+	fmt.Println(ans)
+}
+```
 
 ### 数学
 
@@ -4204,6 +4264,42 @@ for node, _ := t.Ceiling(mn); node.Key <= mx; node, _ = t.Ceiling(mn) { // _ 是
 }
 ```
 
+#### priorityqueue
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/emirpasic/gods/queues/priorityqueue"
+	"github.com/emirpasic/gods/utils"
+)
+
+func main() {
+	var n, k int
+	fmt.Scan(&n, &k)
+	a := make([]int, n+1)
+	for i := 1; i <= n; i++ {
+		fmt.Scan(&a[i])
+	}
+	pq := priorityqueue.NewWith(utils.IntComparator)
+	for i := n; i >= 1; i-- {
+		if i%k == 0 && pq.Size() > 0 {
+			pq.Dequeue()
+		}
+		pq.Enqueue(-a[i])
+	}
+	var ans int64
+	for _, v := range pq.Values() {
+		ans += int64(-v.(int))
+	}
+	fmt.Println(ans)
+}
+```
+
+
+
 ### 数值
 
 ```sh
@@ -4217,6 +4313,8 @@ fee, _ := decimal.NewFromString(".035")
 taxRate, _ := decimal.NewFromString(".08875")
 fmt.Println(fee.Add(taxRate)) // 0.12375
 ```
+
+
 
 # 框架
 

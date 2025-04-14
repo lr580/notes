@@ -325,6 +325,21 @@ URL uniform resource locator，又称网页地址/网址
 
 - 根目录以/开始，如 /images/top.jpg   /top.jpg
 
+> URI  Uniform Resource Identifier，统一资源标识符，广义概念，包含 URL 和 URN 两种子类型，是用于唯一标识某一资源的字符串，可以是资源的名称、位置或两者结合。
+>
+> ```
+> URI = scheme "://" host  ":"  port "/" path [ "?" query ][ "#" fragment ]
+> ```
+>
+> - scheme: 指底层用的协议，如http、https、ftp
+> - host: 服务器的IP地址或者域名
+> - port: 端口，http默认为80端口
+> - path: 访问资源的路径，就是各种web 框架中定义的route路由
+> - query: 查询字符串，为发送给服务器的参数，在这里更多发送数据分页、排序等参数。
+> - fragment: 锚点，定位到页面的资源
+>
+> URN Uniform Resource Name，统一资源名称，表示资源的永久名称，与位置无关（即使资源迁移，URN 仍有效），例如，ISBN，UUID。`urn:isbn:0451450523`。
+
 ## HEAD元素
 
 > head元素可以没有，不会报错

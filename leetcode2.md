@@ -2867,6 +2867,10 @@
 - 1922\.统计好数字的数目
 
   快速幂
+  
+- 1534\.统计好三元组
+
+  枚举 / <u>前缀和</u>
 
 ## 算法
 
@@ -12473,4 +12477,62 @@ func countGoodIntegers(n, k int) (ans int64) {
 [题目](https://leetcode.cn/problems/count-good-numbers)
 
 显而易见。
+
+```go
+package main
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+func countGoodTriplets(arr []int, a int, b int, c int) (ans int) {
+	n := len(arr)
+	for i := 0; i < n; i++ {
+		for j := i + 1; j < n; j++ {
+			for k := j + 1; k < n; k++ {
+				if abs(arr[i]-arr[j]) <= a && abs(arr[j]-arr[k]) <= b && abs(arr[i]-arr[k]) <= c {
+					ans++
+				}
+			}
+		}
+	}
+	return
+}
+```
+
+枚举 $j,k$，对 $i$ 满足：
+
+-  $|a_i-a_j|\le a\Rightarrow a_j-a\le a_i\le a_j+a$
+-  $|a_i-a_k|\le c\Rightarrow a_k-c\le a_i\le a_k+c$
+
+故 $a_i\in[\max(a_j-a,a_k-c,0),\min(a_j+a,a_k+c,\max a)]$。
+
+对 $a$ 的值域计数 bin，叠前缀和，然后可以查询这个区间有多少个 $a_i$。
+
+考虑到 $[0,x]$ 要求 $s[0-1]$，所以用 1 下标代表值 0，以此类推。
+
+```go
+func countGoodTriplets(arr []int, a, b, c int) (ans int) {
+    mx := slices.Max(arr)
+    s := make([]int, mx+2) // cnt 数组的前缀和
+    for j, y := range arr {
+        for _, z := range arr[j+1:] {
+            if abs(y-z) > b {
+                continue
+            }
+            l := max(y-a, z-c, 0)
+            r := min(y+a, z+c, mx)
+            ans += max(s[r+1]-s[l], 0) // 如果 l > r + 1，s[r + 1] - s[l] 可能是负数
+        }
+        for v := y + 1; v < mx+2; v++ {
+            s[v]++ // 把 y 加到 cnt 数组中，更新所有受到影响的前缀和
+        }
+    }
+    return
+}
+
+func abs(x int) int { if x < 0 { return -x }; return x }
+```
 
