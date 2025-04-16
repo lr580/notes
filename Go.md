@@ -3508,9 +3508,17 @@ fmt.Println(s)
 i := sort.Search(n, func(i int) bool { return nums[i] >= k })
 ```
 
-#### 容器
+简化：
 
-##### heap
+```go
+i := sort.SearchInts(nums, k)
+```
+
+
+
+### 容器
+
+#### heap
 
 默认小根堆，要手写一堆东西。也可以用第三方库。
 

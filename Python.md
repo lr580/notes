@@ -4634,23 +4634,6 @@ list(Counter([1,1,4,5,1,4]).elements()) # [1, 1, 1, 4, 4, 5]
 
 
 
-##### sortedlist
-
-有序列表，不满足集合的元素唯一性
-
-```python
-from sortedcontainers import sortedlist
-xs = sortedlist.SortedList()
-# sortedlist.SortedList(list(range(1,1+n)))
-xs.add(2)
-xs.add(1)
-xs.remove(1) # 多个的话删一个
-print(xs[-1] - xs[0]) # 取元素用[]
-print(2 in a)
-```
-
-
-
 ##### namedtuple
 
 ```python
@@ -21107,7 +21090,7 @@ def postPredict(file: UploadFile = File(...)):
 
 ### sortedcontainers
 
-#### SortedSet
+##### SortedSet
 
 与 set 差不多用法
 
@@ -21140,7 +21123,7 @@ s.add(7) # 插入元素
 print(s[s.bisect_right(5)]) # 输出7
 ```
 
-#### SortedDict
+##### SortedDict
 
 ```python
 from sortedcontainers import SortedDict
@@ -21151,6 +21134,43 @@ print(d.bisect_left(1)) #下标1
 print(d.peekitem(0)) # 第0个元素键值对 (1, 9)
 print(d.peekitem(d.bisect_left(2))[1]) #5
 ```
+
+##### sortedlist
+
+有序列表，不满足集合的元素唯一性
+
+可以当 C++ pbds 红黑树 map 用，维护有序 CRUD 的同时求下标排名。
+
+```python
+from sortedcontainers import sortedlist
+xs = sortedlist.SortedList()
+# sortedlist.SortedList(list(range(1,1+n)))
+xs.add(2)
+xs.add(1)
+xs.remove(1) # 多个的话删一个
+print(xs[-1] - xs[0]) # 取元素用[]
+print(2 in a)
+```
+
+```python
+from sortedcontainers import SortedList # 力扣2179
+class Solution:
+    def goodTriplets(self, nums1: List[int], nums2: List[int]) -> int:
+        n = len(nums1)
+        p = [0] * n
+        for i, x in enumerate(nums1):
+            p[x] = i
+        ans = 0
+        s = SortedList()
+        for i in range(1, n - 1):
+            s.add(p[nums2[i - 1]])
+            y = p[nums2[i]]
+            less = s.bisect_left(y)
+            ans += less * (n - 1 - y - (i - less))
+        return ans
+```
+
+
 
 ### easydict
 

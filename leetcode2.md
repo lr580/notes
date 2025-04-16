@@ -1740,7 +1740,7 @@
   
 - 2970\.统计移除递增子数组的数目I
 
-  暴力 / <u>双指针</u>
+  暴力 / 二分 / <u>双指针</u>
   
 - 3011\.判断一个数组是否可以变为有序
 
@@ -2852,6 +2852,10 @@
 
   排序/map(unique)
   
+- 435\.无重叠区间
+
+  **贪心**
+  
 - 2999\.统计强大整数的数目
 
   <u>数位DP / 组合数学</u>
@@ -2871,6 +2875,14 @@
 - 1534\.统计好三元组
 
   枚举 / <u>前缀和</u>
+
+- 2179\.统计数组中好三元组数目
+
+  树状数组
+  
+- 2537\.统计好子数组的数目
+
+  滑动窗口
 
 ## 算法
 
@@ -12534,5 +12546,161 @@ func countGoodTriplets(arr []int, a, b, c int) (ans int) {
 }
 
 func abs(x int) int { if x < 0 { return -x }; return x }
+```
+
+##### 2179\.统计数组中好三元组数目
+
+[题目](https://leetcode.cn/problems/count-good-triplets-in-an-array)
+
+把 nums1 变成 iota 0,1,2,..., n-1 ，则原问题为统计 nums2 的上升三元组对数。故需要计算每个位置前面小于它和后面大于它的个数相乘即可。树状数组/线段树/平衡树都可以。
+
+```go
+package main
+
+type fenwick struct {
+	n int
+	a []int
+}
+
+func NewFenwick(n int) *fenwick {
+	return &fenwick{n: n, a: make([]int, n+1)}
+}
+
+func (t *fenwick) Add(i int) {
+	for ; i <= t.n; i += i & -i {
+		t.a[i] += 1
+	}
+}
+
+func (t *fenwick) Query(i int) (sum int) {
+	for ; i > 0; i -= i & -i {
+		sum += t.a[i]
+	}
+	return
+}
+
+func (t *fenwick) QueryRange(l, r int) int {
+	return max(0, t.Query(r)-t.Query(l-1))
+}
+
+func goodTriplets(nums1 []int, nums2 []int) (ans int64) {
+	n := len(nums1)
+	v2i := make([]int, n)
+	for i, v := range nums1 {
+		v2i[v] = i
+	}
+	for i, v := range nums2 {
+		nums2[i] = v2i[v]
+	}
+	lt := make([]int64, n) // lt[i]: <i 有几个小于它的元素
+	gt := make([]int64, n) // gt[i]: >i 有几个大于它的元素
+	t1 := NewFenwick(n)
+	for i, v := range nums2 {
+		v++
+		lt[i] = int64(t1.QueryRange(1, v-1))
+		t1.Add(v)
+	}
+	t2 := NewFenwick(n)
+	for i := n - 1; i >= 0; i-- {
+		v := nums2[i] + 1
+		gt[i] = int64(t2.QueryRange(v+1, n))
+		t2.Add(v)
+	}
+	for i := 1; i < n-1; i++ {
+		ans += lt[i] * gt[i]
+	}
+	return
+}
+
+```
+
+优化：0-indexed，当前元素是 v，下标是 i，设左侧有 x 个元素比 v 小。在 [0, n-1] 全排列里，恒有 n-1-v 个元素比 v 大，在前面的 i 个元素中，既然 x 个比它小，那就有 i-x 个元素比它大，那么 n-1-v - (i-x) 个元素比它大，不用再算 gt 了。
+
+```go
+func goodTriplets(nums1, nums2 []int) (ans int64) {
+	n := len(nums1)
+	p := make([]int, n)
+	for i, v := range nums1 {
+		p[v] = i
+	}
+	tree := make([]int, n+1)
+	for i := 1; i < n-1; i++ {
+		for j := p[nums2[i-1]] + 1; j <= n; j += j & -j { // 将 p[nums2[i-1]]+1 加入树状数组
+			tree[j]++
+		}
+		y, less := p[nums2[i]], 0
+		for j := y; j > 0; j &= j - 1 { // 计算 less
+			less += tree[j]
+		}
+		ans += int64(less) * int64(n-1-y-(i-less))
+	}
+	return
+}
+```
+
+Python sortedList
+
+```python
+from sortedcontainers import SortedList
+
+class Solution:
+    def goodTriplets(self, nums1: List[int], nums2: List[int]) -> int:
+        n = len(nums1)
+        p = [0] * n
+        for i, x in enumerate(nums1):
+            p[x] = i
+        ans = 0
+        s = SortedList()
+        for i in range(1, n - 1):
+            s.add(p[nums2[i - 1]])
+            y = p[nums2[i]]
+            less = s.bisect_left(y)
+            ans += less * (n - 1 - y - (i - less))
+        return ans
+```
+
+##### 2537\.统计好子数组的数目
+
+[题目](https://leetcode.cn/problems/count-the-number-of-good-subarrays)
+
+```go
+package main
+
+func countGood(nums []int, k int) (ans int64) {
+	bin := make(map[int]int)
+	var cnt int // never > int32 since l++
+	l := 0      // [l, r] longest invalid
+	for _, v := range nums {
+		cnt += bin[v]
+		bin[v]++
+		for cnt >= k {
+			v2 := nums[l]
+			bin[v2]--
+			cnt -= bin[v2]
+			l++
+		}
+		ans += int64(l)
+	}
+	return
+}
+```
+
+##### 435\.无重叠区间
+
+[题目](https://leetcode.cn/problems/non-overlapping-intervals)
+
+右端点排序，然后贪心算当前能选的即可。每次都是一个最优子问题。
+
+```python
+class Solution:
+    def eraseOverlapIntervals(self, intervals: List[List[int]]) -> int:
+        intervals.sort(key=lambda x: x[1])
+        ans = 0
+        pre_r = -inf
+        for l, r in intervals:
+            if l >= pre_r:
+                ans += 1
+                pre_r = r
+        return len(intervals) - ans
 ```
 
