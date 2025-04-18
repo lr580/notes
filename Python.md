@@ -16267,6 +16267,19 @@ print(result_df)
 result_df.to_csv('user_tfidf_scores.csv', index=False)
 ```
 
+载入训练好的，取出现过的词汇。
+
+```python
+def text_to_sequence(text, file="vectorizer.pkl"):
+    with open('vectorizer.pkl', 'rb') as file:
+        vectorizer = pickle.load(file)
+        vocab = vectorizer.vocabulary_
+    word2idx = {word: idx for idx,word in enumerate(vocab)}
+    words = jieba.lcut(text)
+    seq1 = vectorizer.transform([' '.join(words)])
+    return seq1
+```
+
 
 
 ##### 停用词
@@ -18877,6 +18890,13 @@ print(f'Accuracy of the model on the test set: {100 * correct / total:.2f}%')
 
 ##### pt/pth
 
+`.pth` 和 `.pt` 是 PyTorch 的约定扩展名，**实际是相同的文件格式**（纯二进制文件）。
+
+社区习惯：
+
+- `.pth`：多用于模型权重。
+- `.pt`：用于完整模型或通用序列化数据。
+
 ###### 常规
 
 保存模型和参数
@@ -19069,6 +19089,14 @@ for epoch in range(5):  # loop over the dataset multiple times
 torch.save(net.state_dict(), './step3/cnn.pkl')
 print('Finished Training')
 ```
+
+### onnx
+
+ONNX（Open Neural Network Exchange，开放神经网络交换）是一种用于表示深度学习模型的开放格式标准。使不同深度学习框架之间能够互操作、跨平台、跨框架的模型表示格式，支持PyTorch、TensorFlow、MXNet、Caffe2等主流框架之间的模型转换，允许在一个框架中训练模型，在另一个框架中部署。
+
+使用protobuf二进制格式存储模型，定义了通用的计算图表示
+
+提供运行时(ONNX Runtime)用于高效推理，多种优化和转换工具
 
 ### PyG
 

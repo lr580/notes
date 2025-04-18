@@ -2883,6 +2883,18 @@
 - 2537\.统计好子数组的数目
 
   滑动窗口
+  
+- 2176\.统计数组中相等且可以被整除的数对
+
+  枚举 / <u>数学</u>
+  
+- 2364\.统计坏数对的数目
+
+  STL
+
+- 2563\.统计公平数对的数目
+
+  STL+二分 / <u>二分</u> / <u>二分+双指针</u>
 
 ## 算法
 
@@ -12702,5 +12714,139 @@ class Solution:
                 ans += 1
                 pre_r = r
         return len(intervals) - ans
+```
+
+##### 2176\.统计数组中相等且可以被整除的数对
+
+[题目](https://leetcode.cn/problems/count-equal-and-divisible-pairs-in-an-array)
+
+枚举 $j$，设 $d=\gcd(j,k)$，则 $ij\equiv0(\bmod k)\Rightarrow i\dfrac jdd\equiv0\bmod(\dfrac kdd)$，由于 $d|0$ 恒成立，根据同余性质：[src](https://oi-wiki.org/math/number-theory/basic/#%E5%90%8C%E4%BD%99)
+
+- 若 $a,b\in Z,d,m\in N^*,d|a,d|b,d|m,a\equiv b(\bmod m)$ 则 $\dfrac ad\equiv\dfrac bd(\bmod \dfrac md)$
+
+故 $i\dfrac jdd\equiv0\bmod(\dfrac kdd)\Rightarrow i\dfrac jd\equiv0(\bmod\dfrac kd)$。显然 $\dfrac jd|\dfrac kd$ 不成立，故 $i$ 必须是 $\dfrac kd$ 的倍数。设数值 $v$，则任意 $\dfrac kd|i$ 均可以是答案。
+
+故对每个 $\dfrac kd$ 叠前缀和。预处理每个数的因数表，对每个数值 $v$ 和下标 $i$，对 $i$ 的每个因数 $i'$，即 $i'|i$，都累加贡献。
+
+注意特判 0。
+
+```go
+const mx = 101
+var divisors [mx][]int
+
+func init() {
+    // 预处理每个数的因子
+    for i := 1; i < mx; i++ {
+        for j := i; j < mx; j += i {
+            divisors[j] = append(divisors[j], i)
+        }
+    }
+}
+
+func countPairs(nums []int, k int) (ans int) {
+    type pair struct{ v, d int }
+    cnt := map[pair]int{}
+    for j, x := range nums { // 枚举 j，计算左边有多少个符合要求的 i
+        if j > 0 && x == nums[0] {
+            ans++ // 单独统计 i=0 的情况
+        }
+        k2 := k / gcd(k, j)
+        ans += cnt[pair{x, k2}] // 统计左边有多少个数，值为 x 且下标是 k2 的倍数
+        for _, d := range divisors[j] { // j 是 d 的倍数
+            cnt[pair{x, d}]++
+        }
+    }
+    return
+}
+
+func gcd(a, b int) int { for a != 0 { a, b = b%a, a }; return b }
+```
+
+##### 2364\.统计坏数对的数目
+
+[题目](https://leetcode.cn/problems/count-number-of-bad-pairs)
+
+```go
+package main
+
+func countBadPairs(nums []int) (ans int64) {
+	// j-i != nums[j]-nums[i] => j-nums[j] != i-nums[i]
+	m := map[int]int{}
+	for i, v := range nums {
+		x := i - v
+		ans += int64(i - m[x])
+		m[x]++
+	}
+	return
+}
+```
+
+##### 2563\.统计公平数对的数目
+
+[题目](https://leetcode.cn/problems/count-the-number-of-fair-pairs)
+
+红黑树上二分：pb_ds
+
+```python
+from sortedcontainers import *
+from typing import *
+class Solution:
+    def countFairPairs(self, nums: List[int], lower: int, upper: int) -> int:
+        a = SortedList()
+        ans = 0
+        for v in nums:
+            l = a.bisect_left(lower-v)
+            r = a.bisect_right(upper-v) - 1
+            ans += max(0, r-l+1)
+            a.add(v)
+        return ans
+```
+
+排序不影响结果。排序后直接二分即可。
+
+```python
+class Solution:
+    def countFairPairs(self, nums: List[int], lower: int, upper: int) -> int:
+        nums.sort()
+        ans = 0
+        for j, x in enumerate(nums):
+            # 注意要在 [0, j-1] 中二分，因为题目要求两个下标 i < j
+            r = bisect_right(nums, upper - x, 0, j)
+            l = bisect_left(nums, lower - x, 0, j)
+            ans += r - l  
+        return ans
+```
+
+```go
+func countFairPairs(nums []int, lower, upper int) (ans int64) {
+    slices.Sort(nums)
+    for j, x := range nums {
+        // 注意要在 [0, j-1] 中二分，因为题目要求两个下标 i < j
+        r := sort.SearchInts(nums[:j], upper-x+1)
+        l := sort.SearchInts(nums[:j], lower-x)
+        ans += int64(r - l)
+    }
+    return
+}
+```
+
+其中，对 l, r 的二分，分别各自满足随着 j 增加，x 增大，故查询变小，可以单调，双指针。
+
+```go
+func countFairPairs(nums []int, lower, upper int) (ans int64) {
+    slices.Sort(nums)
+    l, r := len(nums), len(nums)
+    for j, x := range nums {
+        for r > 0 && nums[r-1] > upper-x {
+            r--
+        }
+        for l > 0 && nums[l-1] >= lower-x {
+            l--
+        }
+        // 在方法一中，二分的结果必须 <= j，方法二同理
+        ans += int64(min(r, j)-min(l, j))
+    }
+    return
+}
 ```
 
