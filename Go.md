@@ -1840,6 +1840,16 @@ for i, v := range s {
 } // index = 0, 1, 2, 5 (一个中文3个字符)
 ```
 
+Go 1.4+ (s 是数组，取下标；是 slice/map 取值)
+
+```go
+for v := range s {
+    fmt.Printf("value:%c\n", v)
+}
+```
+
+
+
 ##### 多重循环跳出
 
 break

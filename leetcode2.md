@@ -2895,6 +2895,14 @@
 - 2563\.统计公平数对的数目
 
   STL+二分 / <u>二分</u> / <u>二分+双指针</u>
+  
+- 781\.森林中的兔子
+
+  STL 数学
+  
+- 2145\.统计隐藏数组数目
+
+  前缀和
 
 ## 算法
 
@@ -12849,4 +12857,77 @@ func countFairPairs(nums []int, lower, upper int) (ans int64) {
     return
 }
 ```
+
+##### 781\.森林中的兔子
+
+[题目](https://leetcode.cn/problems/rabbits-in-forest)
+
+设 $x$ 个人都说同一个数字 $v$，那么加上它自己，会有一个颜色有 $v+1$ 人，如果 $x\le v+1$ 它们可以都是一个颜色，否则，除一下分组颜色。
+
+```go
+func numRabbits(answers []int) (ans int) {
+	m := map[int]int{}
+	for _, v := range answers {
+		m[v+1]++
+	}
+	for i, v := range m {
+		ans += (v + i - 1) / i * i // ceil(v/i)
+	}
+	return
+}
+```
+
+一次遍历：
+
+```go
+func numRabbits(answers []int) (ans int) {
+    left := map[int]int{}
+    for _, x := range answers {
+        if left[x] == 0 {
+            ans += x + 1 // 找到了一个大小为 x+1 的颜色组
+            left[x] = x  // 允许其他 x 只兔子也回答 x
+        } else {
+            left[x]--
+        }
+    }
+    return
+}
+```
+
+##### 2145\.统计隐藏数组数目
+
+[题目](https://leetcode.cn/problems/count-the-hidden-sequences)
+
+叠前缀和，随便求任意一个原数组的值域跨度，若大于题设跨度无解。否则该值域跨度可在题设跨度内任意滑动，求出滑动方案数即可。
+
+```go
+func numberOfArrays(differences []int, lower int, upper int) int {
+	var minv, maxv, s int64
+	for _, v := range differences {
+		s += int64(v)
+		minv = min(minv, s)
+		maxv = max(maxv, s)
+	}
+	cnt := maxv - minv + 1
+	leng := upper - lower + 1
+	if cnt > int64(leng) {
+		return 0
+	}
+	return leng - int(cnt) + 1
+}
+```
+
+```go
+func numberOfArrays(differences []int, lower, upper int) int {
+    var s, minS, maxS int // s[0] = 0
+    for _, d := range differences {
+        s += d
+        minS = min(minS, s)
+        maxS = max(maxS, s)
+    }
+    return max(upper-lower-maxS+minS+1, 0)
+}
+```
+
+
 

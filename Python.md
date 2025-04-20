@@ -7396,6 +7396,8 @@ np.linspace(a,b,k)
 
 查看：`.dtype`
 
+可以赋值类型变量，如 `b=np.zeros((4,5), dtype=a.dtype)`
+
 > 如 `<U7` 数据类型：`<` 小端存储，`U` Unicode 字符串，`7` 最大字符数
 >
 > ```python
@@ -7413,6 +7415,8 @@ np.linspace(a,b,k)
 > string_array = np.array(['Hello', 'World', '12345', 'ABCDE'], dtype=np.dtype('U5'))
 > ```
 >
+
+
 
 ##### 结构化数组
 
@@ -10861,6 +10865,12 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 取行下标范围 `df.index` 有属性 `start,step,stop`，其中 stop 是第一个越界
 
 > 如果是聚合下标，见下文。
+
+> 直接筛选行，如任一列 >11000 的行去掉：
+>
+> ```python
+> df = df[~df.apply(lambda x: x > 11000).any(axis=1)]
+> ```
 
 ##### 元素
 
