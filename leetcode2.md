@@ -2903,6 +2903,14 @@
 - 2145\.统计隐藏数组数目
 
   前缀和
+  
+- 2338\.统计理想数组的数目
+
+  数论(质因数分解+组合数学)
+  
+- 1399\.统计最大组的数目
+
+  枚举 / <u>数位DP</u>
 
 ## 算法
 
@@ -12929,5 +12937,195 @@ func numberOfArrays(differences []int, lower, upper int) int {
 }
 ```
 
+##### 2338\.统计理想数组的数目
 
+[题目](https://leetcode.cn/problems/count-the-number-of-ideal-arrays)
+
+不妨推导一下，设最后一个数 $v$ 只有一个非 $1$ 因子，该因子次数为 $k$：
+
+- 对 $k=0$，随着 $n$ 增长，方案数为 $1,1,1,\cdots$，通项 $1$
+
+- 对 $k=1$，随着 $n$ 增长，方案数为 $1,2,3,\cdots$，通项 $n$
+
+- 对 $k=2$，随着 $n$ 增长，方案数为 $1,3,6,\cdots$，通项 $\dfrac{n(n+1)}2$
+
+  > 如 $v=4,n=2$，`14 24 44`，$n=3$，`114 124 144 224 244 444`
+
+- 对 $k=3$，随着 $n$ 增长，方案数为 $1,4,10,\cdots$，通项 $C_{n+k-1}^{k}$
+
+  > 如：$v=8,n=3$，`1114 1124 1144 1224 1244 1444 2224 2244 2444 4444`
+
+证明：观察易得，若 $k=1$ 方案数设为数列 $c=1,1,\cdots$；则 $k$ 每增加一次，新的方案数数列 $c'$ 总是上一个方案数数列 $c$ 的前缀和。
+
+根据 $k$ 阶前缀和的结论：
+
+> 对 $a=(1,1,\cdots)$ 的 $k$ 阶前缀和 $s_n$ 是 $\dfrac{n(n+1)\cdots(n+k-1)}{k!}=C_{n+k-1}^k$。
+>
+> 对任意 $a$ 的 $y$ 阶前缀和 $s_{y,x}=\sum_{i=1}^xC_{y+x-i-1}^{y-1}a_i=\sum_{i=1}^xC_{x-i}^{y-1}a_i$，可以 $O(x)$ 求。要求一段前缀和的和，可以求它更高一阶的两边界值。
+>
+> 证明见 SCNUOJ 题目高阶前缀和，题解在我博客思维/数学题单。
+
+可得，若 $a_{n-1}=v^k$，则方案数通项为 $C_{n+k-1}^{k}$。
+
+对双因子，如 $v=6=2^1\times3^1$，有：$n=1,4,9\cdots$，其中：
+
+$n=3$，`116 126 136 166 226 266 336 366 666`，$9=3^2$，其中 $3$ 是 $v=2,v=3$ 各自的。故猜测乘法原理，对每个质因子分别如上处理即可。
+
+```go
+package main
+
+const maxn = 10000
+const mod = int64(1e9 + 7)
+
+var b [maxn + 1]map[int]int //各数的质因数分解
+var f [maxn + 99]int64      //阶乘
+var invf [maxn + 99]int64
+
+func qpow(a, b int64) int64 {
+	r := int64(1)
+	for ; b > 0; b >>= 1 {
+		if (b & 1) == 1 {
+			r = r * a % mod
+		}
+		a = a * a % mod
+	}
+	return r
+}
+func C(a, b int) int64 { // a个选b个
+	return f[a] * invf[b] % mod * invf[a-b] % mod
+}
+func init() {
+	for i := 1; i <= maxn; i++ {
+		b[i] = make(map[int]int)
+		x := i
+		for j := 2; j*j <= x; j++ {
+			if x%j == 0 {
+				cnt := 0
+				for x%j == 0 {
+					cnt++
+					x /= j
+				}
+				b[i][j] = cnt
+			}
+		}
+		if x > 1 {
+			b[i][x] = 1
+		}
+	}
+	f[0] = 1
+	for i := 1; i < len(f); i++ {
+		f[i] = f[i-1] * int64(i) % mod
+	}
+	invf[len(f)-1] = qpow(f[len(f)-1], mod-2)
+	// f[i]*(i+1)=f[i+1] -> (i+1)/f[i+1]=1/f[i]
+	for i := len(f) - 2; i >= 0; i-- {
+		invf[i] = int64(i+1) * invf[i+1] % mod
+	}
+}
+func idealArrays(n int, maxValue int) int {
+	ans := int64(0)
+	for i := 1; i <= maxValue; i++ {
+		s := int64(1)
+		for _, k := range b[i] {
+			s = s * C(n+k-1, k) % mod
+		}
+		ans = (ans + s) % mod
+	}
+	return int(ans)
+}
+```
+
+质因数分解的优化：参见 nlogn 枚举因数，既然都枚举因数了，用同样的办法来统计每个数的质因数的个数即可。
+
+严格证明：类似差分，相邻做除法求商分，即 $q_0=a_0,a_i=\dfrac{a_i}{a_{i-1}}(i\ge1)$。对商分求前缀积就是原数组。故原问题等价于如何构造 $q$，使得 $\prod_{i=0}^{n-1}q_i=a_{n-1}$。固定枚举 $a_{n-1}$，显然构造的元素由 $1$ 和 $a_{n-1}$ 的全体质因数构成。
+
+建模为球盒问题，若只考虑 $a_{n-1}=v^k$，等价于放 $k$ 个无区别球到 $n$ 个有区别盒，允许空盒，根据隔板法(加 $n$ 个虚空球，隔 $k-1$ 个板)公式得 $C_{n+k-1}^{n-1}=C_{n+k-1}^k$。若 $a_{n-1}$ 由多个因数组成，各个因素代表的球怎么放是相互独立的，所以直接乘法原理即可。
+
+还可以 min25 筛 [src](https://leetcode.cn/problems/count-the-number-of-ideal-arrays/solutions/3658527/min25shai-jie-fa-by-vclip-2uji/?envType=daily-question&envId=2025-04-22)
+
+##### 1399\.统计最大组的数目
+
+[题目](https://leetcode.cn/problems/count-largest-group)
+
+```go
+func countLargestGroup(n int) (ans int) {
+	cnt := map[int]int{}
+	top := 0
+	for i := 1; i <= n; i++ {
+		x := 0
+		for j := i; j > 0; j /= 10 {
+			x += j % 10
+		}
+		cnt[x]++
+	}
+	for _, v := range cnt {
+		if v == top {
+			ans++
+		} else if v > top {
+			ans = 1
+			top = v
+		}
+	}
+	return
+}
+```
+
+设数位从左往右第 i 位开始，要凑数位和剩下的是 left，是否受到高位限制是 limitHigh。则对共 9n 个数位和都看看方案数，然后求最大方案数的出现频次即可。
+
+```go
+func countLargestGroup(n int) (ans int) {
+	s := strconv.Itoa(n)
+	m := len(s)
+	memo := make([][]int, m)
+	for i := range memo {
+		memo[i] = make([]int, m*9+1)
+		for j := range memo[i] {
+			memo[i][j] = -1
+		}
+	}
+
+	var dfs func(i, left int, limitHigh bool) int
+	dfs = func(i, left int, limitHigh bool) (res int) {
+		if i == m {
+			if left == 0 {
+				return 1
+			}
+			return
+		}
+
+		if !limitHigh {
+			p := &memo[i][left]
+			if *p != -1 {
+				return *p
+			}
+			defer func() { *p = res }()
+		}
+
+		// 当前数位至多填 hi
+		hi := 9
+		if limitHigh {
+			hi = int(s[i] - '0')
+		}
+
+		for d := 0; d <= min(hi, left); d++ { // 枚举当前数位填 d
+			res += dfs(i+1, left-d, limitHigh && d == hi)
+		}
+		return
+	}
+
+	maxCnt := 0
+	for target := 1; target <= m*9; target++ { // 枚举目标数位和
+		cnt := dfs(0, target, true)
+		if cnt > maxCnt {
+			maxCnt = cnt
+			ans = 1
+		} else if cnt == maxCnt {
+			ans++
+		}
+	}
+	return
+}
+```
+
+数位 $d=10$，i 有 $\log n$ 个，left 有 $d\log n$ 个，故状态数是 $O(d\log^2n)$，转移方程复杂度 $d$，故时间复杂度 $O(d^2\log^2n)$。
 

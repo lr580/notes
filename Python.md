@@ -14,13 +14,15 @@
 >
 > - 动态：运行时类型可变；强：倾向于不允许隐式类型转换，例如：`1+'1'`
 
-### 安装/使用python
+`.pyc` 文件可以删除。
+
+### 安装/使用
 
 python3.4是最后支持window XP的版本。不要安装最新的版本，往往会出现bugs，安装一个小版本号，如3.9是最新，安装3.8的稳定版。
 
 必须勾选add python.exe to Path，使用略。
 
-### 测试
+#### 测试
 
 查看版本：
 
@@ -56,7 +58,7 @@ python -c "import tensorflow as tf; print(tf.__version__)"
 
 ### 第三方库
 
-##### 常规
+#### 常规
 
 > linux 无 pip：(gpt)
 >
@@ -92,7 +94,7 @@ pip install plotly pandas # 一次装两个
 >
 > [pil] 是一个可选依赖项的标记，表示安装 qrcode 库时同时安装 Pillow 库（PIL 的一个分支）
 
-##### 镜像
+#### 镜像
 
 可以加上调用国内镜像的选项，加快下载速度：
 
@@ -138,7 +140,7 @@ trusted-host=mirrors.aliyun.com
 > pip config unset global.index-url
 > ```
 
-##### 管理
+#### 管理
 
 查看装了什么包：`pip list`
 
@@ -175,7 +177,12 @@ pip install 库名 --upgrade
 
 可以安装下载好的库文件而不是在线下载，文件后缀名是whl，命令同上
 
-##### 列举
+#### 列举
+
+- `conda` 包的格式通常是 `包名=版本=构建字符串`，例如 `numpy=1.26.4`。
+- `pip` 包的格式通常是 `包名==版本`，例如 `numpy==1.26.4`。
+
+##### freeze
 
 可以使用下面指令获取当前机子装了的全部包：
 
@@ -187,7 +194,9 @@ pip freeze > requirements.txt
 > pip list --format=freeze > pip_packages1.txt
 > ```
 
-对当前项目，则先用 `pip` 安装 `pipreqs` ，然后使用：(可以直接 `pipreqs ./`)
+##### pipreqs
+
+对当前项目，则先用 `pip` 安装 `pipreqs` ，然后使用：(可以直接 `pipreqs ./` 或 `pipreqs .`)
 
 ```bash
 pipreqs ./ --encoding utf8
@@ -196,13 +205,15 @@ pipreqs ./ --encoding utf8
 那么导出的 `requirements.txt` 可以用下面指令批量安装：
 
 ```bash
-pip install -r requirement.txt
+pip install -r requirements.txt
 ```
 
 > 如果里面任意一项输入不正确，如版本找不到，全部都不会安装，不会弹 error 直接结束。
 
-- `conda` 包的格式通常是 `包名=版本=构建字符串`，例如 `numpy=1.26.4`。
-- `pip` 包的格式通常是 `包名==版本`，例如 `numpy==1.26.4`。
+- `--force`：覆盖现有的 `requirements.txt`
+- `--ignore <dirs>`：忽略某些目录（如 `venv`、`tests`）
+- `--encoding <utf-8>`：指定文件编码
+- `--mode <gt|compat>`：控制版本号的生成方式
 
 ### 编译
 
@@ -250,9 +261,15 @@ pyinstaller.exe 路径 -F
 2. 使用python编译程序本身存在着局限。因此运行程序的速度是比较慢的。
 3. 要编译的程序尽可能减少应用的模块，否则此程序会过于庞大。
 
-### 使用提示
+> ### 使用提示
 
-1. 请不要在中文(全角)下输入单词后回车或使用快捷键，不要在大写状态使用快捷键，否则可能不成功。
+#### PyPy3
+
+PyPy3 是 Python 3 的一个替代实现，由 PyPy 项目开发。PyPy 是一个用 Python 编写的 Python 解释器，它的目标是提供比标准 CPython（Python 的官方实现）更高的性能和更好的灵活性。
+
+- 使用 **Just-In-Time (JIT) 编译器**，可以在运行时动态优化代码，从而显著提高某些场景下（如数值计算、长时间运行的脚本）的性能。
+- 兼容 Python 3 的语法和标准库。
+- 支持多种底层技术（如 C、RPython 等），使得开发更灵活。
 
 ### 规范
 
@@ -287,40 +304,6 @@ help(x) #同help(int)
 help(list.extend)
 ```
 
-#### 标准化编程
-
-更多请参见C学习笔记
-
-> 编写程序的六个步骤
->
-> （1）定义程序目标
->
-> 用一般的概念来考虑你需要用程序解决的问题，应该涉及到的计算和操作。
->
-> （2）设计程序
->
-> 明确编写程序的用户界面、目标用户（客户）、编写大致所需时间，明确如何表示、处理、存储数据等等。
->
-> （3）编写代码和调试程序
->
-> 写出完整的python代码。
->
-> 一般地，编写代码的时候，每写完一个小功能（或子函数、或一段比较长的代码），都应该先调试一下这一部分是否有bug，如果有的话，立刻修复，然后再继续编写。如果全部代码都写完再一起调试，往往查找bug是非常困难的。
->
-> 在编写代码时，建议养成每写完一部分重要代码（或隔一段时间）后立刻备份的习惯，即复制并保留一份一模一样的源码，以免断电、误删等失误带来不必要的损失。
->
-> （4）编译程序
->
-> 当调试无误后，就可以编译程序了，记得写上程序的基本信息（程序名、版本号等），建议在32位和64位环境下都编译一份，否则64位的用户打开不了32位的.exe程序，32位的用户也打开不了64位的.exe程序。
->
-> （5）维护和修改程序
->
-> 程序总是要时常更新、维护、升级的。当你发现程序有可以改进、修复的时候，记得及时维护你的程序（除非你弃坑了）。如果程序功能比较复杂，最好给用户写好说明书，配有图文解说。
->
-> （6）发布程序
->
-> 将.exe文件（或安装包）发布。
-
 #### 其他
 
 ##### 缩进
@@ -342,8 +325,6 @@ if 0:print(2)
 elif 1:print(3)
 else:print(4)
 ```
-
-
 
 ##### dir
 
@@ -379,7 +360,7 @@ a=1
 print(_) #7
 ```
 
-
+请不要在中文(全角)下输入单词后回车或使用快捷键，不要在大写状态使用快捷键，否则可能不成功。
 
 #### jupyter
 
@@ -430,6 +411,25 @@ import random
 
 
 
+##### 运行.py
+
+```python
+%run aa/bb/xxx.py
+```
+
+注意运行目录是当前 ipynb 的目录，而不是代码文件所在的目录。
+
+注意如果代码有中文(如注释)，GBK，可能会报错。
+
+运行，并导入里边定义的变量/函数，加上 `-i` 参数，如 `%run -i util.py`。或者直接 import 路径即可。如：`src/dataAnalysis.py`
+
+```python
+from src.dataAnalysis import getAnnualLineCharts
+getAnnualLineCharts()
+```
+
+> 注意 `-i` 的覆盖性比 from import 要高，而且会执行 main()；如果做了 `-i`，那么 from import 的无论如何更新都不会在 ipynb 见到。
+
 对 `import` 本地文件，当其更新时，不必重新运行 `ipynb`：
 
 ```python
@@ -439,6 +439,10 @@ import random
 
 > 如果没有这个，因为每次会在 `__pycache__` 里读取第一次编译好的字节码，所以不会实时更新。
 >
+> - 加载 IPython 的 `autoreload` 扩展（一个内置工具），激活模块自动重载功能
+> - 2 是全自动；0 是关闭，1 是半自动 (%aimport 控制哪些生效)
+
+在这之后，只要保存即可，无需重新运行 from import。再次调用就生效。
 
 ##### 查阅帮助
 
@@ -799,18 +803,6 @@ conda remove mkl-service mkl_fft mkl_random
 ```sh
 conda config --set auto_activate_base False
 ```
-
-### PyPy3
-
-PyPy3 是 Python 3 的一个替代实现，由 PyPy 项目开发。PyPy 是一个用 Python 编写的 Python 解释器，它的目标是提供比标准 CPython（Python 的官方实现）更高的性能和更好的灵活性。
-
-- 使用 **Just-In-Time (JIT) 编译器**，可以在运行时动态优化代码，从而显著提高某些场景下（如数值计算、长时间运行的脚本）的性能。
-- 兼容 Python 3 的语法和标准库。
-- 支持多种底层技术（如 C、RPython 等），使得开发更灵活。
-
-### 其他
-
-`.pyc` 文件可以删除。
 
 
 
@@ -2984,16 +2976,64 @@ except MyError as e:
 
 
 
-### 文件读写
+### with
 
 with ... as ... 可以在读写错误时自动关闭文件。
+
+`with` 语句是 Python 中用于资源管理的重要语法结构，它简化了异常处理中资源分配和释放的代码。
+
+1. 自动资源管理：确保文件、网络连接等资源在使用后被正确关闭
+2. 异常安全：即使在代码块中发生异常，也能保证清理操作被执行
+3. 上下文管理：用于需要特定设置和清理操作的场景
+
+原理：
+
+1. `__enter__()` - 进入上下文时调用，返回要管理的资源
+2. `__exit__()` - 退出上下文时调用，处理清理工作
+
+```python
+class MyContextManager: # 可以定义 init
+    def __enter__(self):
+        print("进入上下文")
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        print("退出上下文")
+        if exc_type:  # 如果有异常发生
+            print(f"异常: {exc_val}")
+        return True  # 返回True表示异常已处理
+    #返回False的话，异常会继续往上抛，如果外层不含try就报错了
+
+with MyContextManager() as cm:
+    print("在上下文中执行操作")
+with MyContextManager() as cm:
+    print(cm)
+    raise ValueError("测试异常")
+    print("456")
+```
+
+简化：
+
+```python
+from contextlib import contextmanager
+
+@contextmanager
+def my_context():
+    print("进入上下文")  # 相当于 __enter__
+    try:
+        yield "资源"     # yield 前的代码相当于 __enter__
+    finally:
+        print("退出上下文")  # yield 后的代码相当于 __exit__
+
+with my_context() as resource:
+    print(f"使用 {resource}")
+```
 
 
 
 扩展：自定义 with
 
 ```python
-#@save
 class Benchmark:
     """用于测量运行时间"""
     def __init__(self, description='Done'):
@@ -3112,6 +3152,8 @@ f() #输出g
 
 在函数内写一个字符串，表示函数注释，以后调用函数时悬停能看到该字符串：
 
+> 如果写的三双引号，注意要在引号开头的内容之间加一个空格(见下例)
+
 ```python
 def toGrey(img):
     'fuck'
@@ -3122,7 +3164,7 @@ def toGrey(img):
 
 ```python
 def toGrey(img):
-    """这是第一行
+    """ 这是第一行
     789
     
     这是第二行\n\n第三行"""
@@ -5846,9 +5888,7 @@ winsound.PlaySound(文件路径, winsound.SND_LOOP) 代表单次播放
 
 #### threading
 
-> **进程**(process)：正在运行的程序的实例。例如：运行着的QQ、浏览器以及Word文档等等。
->
-> **线程**(thread)：程序中一个单一的顺序控制流程。在之前所有的学习的python程序，都是单进程、单线程程序。单线程就是只能像一条线一样顺次执行任务，如果中途出错或运算量巨大，就容易卡机或崩溃。
+##### 常规
 
 ```python
 import threading
@@ -5873,6 +5913,45 @@ thr.start()
 ```python
 thr.join()
 ```
+
+##### 锁
+
+```python
+import threading
+
+lock = threading.Lock()
+shared_resource = 0
+
+def increment():
+    global shared_resource
+    for _ in range(100000):
+        lock.acquire()
+        shared_resource += 1
+        lock.release()
+
+threads = []
+for _ in range(10):
+    t = threading.Thread(target=increment)
+    threads.append(t)
+    t.start()
+
+for t in threads:
+    t.join()
+
+print(f"Final value: {shared_resource}")  # 应该输出 1000000
+```
+
+使用 with 简写 increment
+
+```python
+def increment():
+    global shared_resource
+    for _ in range(100000):
+        with lock:
+            shared_resource += 1
+```
+
+此外还有可重入锁 RLock。
 
 #### zipfile
 
@@ -10684,6 +10763,59 @@ feature  [12, 34, 56]  [87, 65, 43]
 label               0             1'''
 ```
 
+orient
+
+- records，每行数据作为一个独立的字
+
+  ```json
+  [{"姓名": "张三", "年龄": 25, "城市": "北京"},
+    {"姓名": "李四", "年龄": 30, "城市": "上海"},
+    {"姓名": "王五", "年龄": 28, "城市": "广州"}]
+  ```
+
+- columns，默认，列名作为顶层键，值按行索引存储
+
+  ```json
+  { "姓名": {"0": "张三", "1": "李四", "2": "王五"},
+    "年龄": {"0": 25, "1": 30, "2": 28},
+    "城市": {"0": "北京", "1": "上海", "2": "广州"}}
+  ```
+
+- index，行索引作为顶层键，值按列名存储
+
+  ```json
+  { "0": {"姓名": "张三", "年龄": 25, "城市": "北京"},
+    "1": {"姓名": "李四", "年龄": 30, "城市": "上海"},
+    "2": {"姓名": "王五", "年龄": 28, "城市": "广州"}}
+  ```
+
+- values，仅输出值组成的二维数组（无行列标签）
+
+  ```json
+  [["张三", 25, "北京"], ["李四", 30, "上海"], ["王五", 28, "广州"]]
+  ```
+
+- split
+
+  ```json
+  {"columns": ["姓名", "年龄", "城市"],
+    "index": [0, 1, 2],
+    "data": [["张三", 25, "北京"], ["李四", 30, "上海"], ["王五", 28, "广州"]]}
+  ```
+
+读取后，都为：(index 除外，index 的列也是 0, 1, 2 没其他区别了)
+
+```
+   姓名  年龄  城市
+0  张三  25  北京
+1  李四  30  上海
+2  王五  28  广州
+```
+
+
+
+
+
 ###### 构造
 
 使用 dict (key: string, value: list of int / string) 构造。
@@ -10827,6 +10959,15 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 
 同理有 `.to_latex`
 
+###### json
+
+`force_ascii=False`
+
+- 默认值为 `True`，此时所有非 ASCII 字符会被转义为 Unicode 编码（如 `\uXXXX`）。
+- 设置为 `False` 时，非 ASCII 字符会原样保留在输出中（更易读）。
+
+以及 orient 一样的，参见读入 json 一节的输入输出例子，倒转即可。
+
 #### 基本
 
 ##### 成员属性
@@ -10937,6 +11078,172 @@ for j, row in df2.items(): # j: 列名
     for i, v in row.items(): # i : 行号
         print(j, i, v) # features 0 1
 ```
+
+##### 索引
+
+###### 常规
+
+取索引 `.index`，再转列表：`.tolist()`
+
+将普通列设为索引或将索引退回成普通列：
+
+```python
+data = {'Name': ['Alice', 'Bob', 'Charlie'],
+        'Age': [25, 30, 35]} #初始0-2索引，2个普通列
+df = pd.DataFrame(data)
+# 设置索引为 'Name' 列，删掉初始索引
+df.set_index('Name', inplace=True)
+# 使用 reset_index 重置索引，归还初始状态
+df_reset = df.reset_index()
+print(df_reset)
+```
+
+可以设置 `reset_index(drop=1)`，顺手把原本的索引列即上例 name 删了
+
+inplace 如果设置为 `False`（默认值），则不会修改原始 DataFrame，而是返回一个新的 DataFrame
+
+###### 聚合索引
+
+多列多聚合函数导致的：
+
+```python
+data2 = {
+    'group': ['A', 'B', 'A', 'B', 'A'],
+    'x': [1, 2, 3, 4, 5],
+    'y': [2, 1, 4, 3, 5]
+}
+df=pd.DataFrame(data2)
+df.groupby('group').agg(['mean','std']).to_dict()
+'''      x                   y          
+      mean       std      mean       std
+group                                   
+A      3.0  2.000000  3.666667  1.527525
+B      3.0  1.414214  2.000000  1.414214'''
+# {('x', 'mean'): {'A': 3.0, 'B': 3.0}, ('x', 'std'): {'A': 2.0, 'B': 1.4142135623730951}, ('y', 'mean'): {'A': 3.6666666666666665, 'B': 2.0}, ('y', 'std'): {'A': 1.5275252316519468, 'B': 1.4142135623730951}}
+```
+
+
+
+生成跟上面 group by 双索引一样的数据：
+
+```python
+# 创建示例数据
+data = {
+    'Temperature': [0.0, 2.3, 8.0, 7.1, 5.5, 6.2],
+    'Rainfall': [0.0, 13.1, 5.0, 6.7, 15.3, 10.1]
+}
+
+# 创建多层索引
+arrays = [
+    ['Berlin', 'Berlin', 'London', 'London', 'Paris', 'Paris'],
+    ['2021-01-01', '2021-01-02', '2021-01-01', '2021-01-02', '2021-01-01', '2021-01-02']
+]
+index = pd.MultiIndex.from_arrays(arrays, names=('City', 'Date'))
+
+# 创建DataFrame
+df = pd.DataFrame(data, index=index)
+
+```
+
+聚合索引，输出一行：
+
+```python
+print(grouped_df.loc[('Berlin', '2021-01-01')])
+```
+
+指定行的指定列：(`numpy.float64` 可以强转 float)
+
+```python
+print(grouped_df.loc[('Berlin', '2021-01-01'), 'Temperature'])
+```
+
+此时 `df.index`：
+
+- `df.index.nlevels` int 有几个聚合
+
+- `df.index.get_level_values(-1)` 取全体特定一列的行下标值
+
+  再取最后一行的最后一列下标 `df.index.get_level_values(-1)[-1]`
+
+  可以用 for 遍历，把两个 -1 变成 i,j 即可
+
+##### series
+
+直接构造：
+
+```python
+tweets = pd.Series(["This is a tweet #example", "Another tweet #test #example", "No hashtag here"])
+```
+
+取某一列：
+
+```python
+data = {'A': [1, 2, 3],
+        'B': [4, 5, 6]}
+df = pd.DataFrame(data)
+series = df['A'].squeeze()
+series.loc[1]
+df.loc[1, 'A'] #等价
+```
+
+支持直接 in：
+
+```python
+V0 = edges.iloc[:5, 0]
+if 300 in V0: ...
+```
+
+应用：使用 boolean series 筛选元素：
+
+```python
+w=df.apply(lambda x:x[0]>3, axis=1)
+df[w]
+```
+
+> 对 dataframe 只在 只有一列时转换，否则不转换：`.squeeze('columns')`
+
+转回 data frame：`.to_frame()`
+
+取某个值：`get(index, default=None)`
+
+取全部值，即转 numpy：`series.values`。
+
+
+
+遍历某个 list，将每个元素(str 如 `20-30`)作为上下界作用于某列进行筛选，然后筛选完了求平均值或其他返回一元值的操作
+
+```python
+def effectiveness(df):
+    vaccinated_data = df[df['Vaccinated'] == True]
+    unvaccinated_data = df[df['Vaccinated'] == False]
+    p_V = vaccinated_data['Severe Sickness'].mean()
+    p_U = unvaccinated_data['Severe Sickness'].mean()
+    return 1 - (p_V / p_U)
+
+AGE_GROUPS = [
+    '12-15',
+// ...
+    '80-89',
+    '90-'
+]
+
+def stratified_effectiveness(df):    
+    def get_effectiveness(age_range):
+        age_range = age_range.split('-')
+        if age_range[-1] == '':
+            age_range[-1] = '999'
+        age_range = [int(i) for i in age_range]
+        left, right = age_range
+        rows = df[(df['Age'] >= left) & (df['Age'] <= right)]
+        return effectiveness(rows)
+    
+    result = pd.Series(AGE_GROUPS).map(get_effectiveness)
+    # 如果不加 index，默认 index 为 0 开始的整数，加了就指定为该字符串
+    result.index = AGE_GROUPS
+    return result
+```
+
+
 
 ##### 统计
 
@@ -11075,83 +11382,6 @@ B[A[A.isna()].index]
 ```python
 df['OUTAGE.START.TIME'] = pd.to_timedelta(df['OUTAGE.START.TIME'], errors='coerce')
 df['OUTAGE.START.DATE'] = df['OUTAGE.START.DATE'].combine_first(pd.Timestamp(0))
-```
-
-
-
-##### series
-
-直接构造：
-
-```python
-tweets = pd.Series(["This is a tweet #example", "Another tweet #test #example", "No hashtag here"])
-```
-
-取某一列：
-
-```python
-data = {'A': [1, 2, 3],
-        'B': [4, 5, 6]}
-df = pd.DataFrame(data)
-series = df['A'].squeeze()
-series.loc[1]
-df.loc[1, 'A'] #等价
-```
-
-支持直接 in：
-
-```python
-V0 = edges.iloc[:5, 0]
-if 300 in V0: ...
-```
-
-应用：使用 boolean series 筛选元素：
-
-```python
-w=df.apply(lambda x:x[0]>3, axis=1)
-df[w]
-```
-
-> 对 dataframe 只在 只有一列时转换，否则不转换：`.squeeze('columns')`
->
-
-转回 data frame：`.to_frame()`
-
-取某个值：`get(index, default=None)`
-
-
-
-遍历某个 list，将每个元素(str 如 `20-30`)作为上下界作用于某列进行筛选，然后筛选完了求平均值或其他返回一元值的操作
-
-```python
-def effectiveness(df):
-    vaccinated_data = df[df['Vaccinated'] == True]
-    unvaccinated_data = df[df['Vaccinated'] == False]
-    p_V = vaccinated_data['Severe Sickness'].mean()
-    p_U = unvaccinated_data['Severe Sickness'].mean()
-    return 1 - (p_V / p_U)
-
-AGE_GROUPS = [
-    '12-15',
-// ...
-    '80-89',
-    '90-'
-]
-
-def stratified_effectiveness(df):    
-    def get_effectiveness(age_range):
-        age_range = age_range.split('-')
-        if age_range[-1] == '':
-            age_range[-1] = '999'
-        age_range = [int(i) for i in age_range]
-        left, right = age_range
-        rows = df[(df['Age'] >= left) & (df['Age'] <= right)]
-        return effectiveness(rows)
-    
-    result = pd.Series(AGE_GROUPS).map(get_effectiveness)
-    # 如果不加 index，默认 index 为 0 开始的整数，加了就指定为该字符串
-    result.index = AGE_GROUPS
-    return result
 ```
 
 
@@ -11394,90 +11624,6 @@ df.groupby('A').filter(lambda df:df['B'].min()>=5) #如果>5则返回空
 df.groupby('A').filter(lambda df:(df['B'].min()>=5) & (df.shape[0] > 1))
 ```
 
-##### 索引
-
-将普通列设为索引或将索引退回成普通列：
-
-```python
-data = {'Name': ['Alice', 'Bob', 'Charlie'],
-        'Age': [25, 30, 35]} #初始0-2索引，2个普通列
-df = pd.DataFrame(data)
-# 设置索引为 'Name' 列，删掉初始索引
-df.set_index('Name', inplace=True)
-# 使用 reset_index 重置索引，归还初始状态
-df_reset = df.reset_index()
-print(df_reset)
-```
-
-可以设置 `reset_index(drop=1)`，顺手把原本的索引列即上例 name 删了
-
-inplace 如果设置为 `False`（默认值），则不会修改原始 DataFrame，而是返回一个新的 DataFrame
-
-##### 聚合索引
-
-多列多聚合函数导致的：
-
-```python
-data2 = {
-    'group': ['A', 'B', 'A', 'B', 'A'],
-    'x': [1, 2, 3, 4, 5],
-    'y': [2, 1, 4, 3, 5]
-}
-df=pd.DataFrame(data2)
-df.groupby('group').agg(['mean','std']).to_dict()
-'''      x                   y          
-      mean       std      mean       std
-group                                   
-A      3.0  2.000000  3.666667  1.527525
-B      3.0  1.414214  2.000000  1.414214'''
-# {('x', 'mean'): {'A': 3.0, 'B': 3.0}, ('x', 'std'): {'A': 2.0, 'B': 1.4142135623730951}, ('y', 'mean'): {'A': 3.6666666666666665, 'B': 2.0}, ('y', 'std'): {'A': 1.5275252316519468, 'B': 1.4142135623730951}}
-```
-
-
-
-生成跟上面 group by 双索引一样的数据：
-
-```python
-# 创建示例数据
-data = {
-    'Temperature': [0.0, 2.3, 8.0, 7.1, 5.5, 6.2],
-    'Rainfall': [0.0, 13.1, 5.0, 6.7, 15.3, 10.1]
-}
-
-# 创建多层索引
-arrays = [
-    ['Berlin', 'Berlin', 'London', 'London', 'Paris', 'Paris'],
-    ['2021-01-01', '2021-01-02', '2021-01-01', '2021-01-02', '2021-01-01', '2021-01-02']
-]
-index = pd.MultiIndex.from_arrays(arrays, names=('City', 'Date'))
-
-# 创建DataFrame
-df = pd.DataFrame(data, index=index)
-
-```
-
-聚合索引，输出一行：
-
-```python
-print(grouped_df.loc[('Berlin', '2021-01-01')])
-```
-
-指定行的指定列：(`numpy.float64` 可以强转 float)
-
-```python
-print(grouped_df.loc[('Berlin', '2021-01-01'), 'Temperature'])
-```
-
-此时 `df.index`：
-
-- `df.index.nlevels` int 有几个聚合
-
-- `df.index.get_level_values(-1)` 取全体特定一列的行下标值
-
-  再取最后一行的最后一列下标 `df.index.get_level_values(-1)[-1]`
-
-  可以用 for 遍历，把两个 -1 变成 i,j 即可
-
 
 
 ##### transform
@@ -11499,6 +11645,8 @@ df['City_Average'] = df.groupby('City')['Sales'].transform(calculate_mean)
 
 ##### 排序
 
+行：
+
 ```python
 data = {'Name': ['Alice', 'Bob', 'Charlie', 'David'],
         'Age': [24, 42, 35, 29]}
@@ -11509,7 +11657,12 @@ avg_df.sort_values() # series 排序，升序
 avg_df.sort_values(ascending = False) # 降序
 ```
 
+列排序：如按 mean 的大小升序
 
+```python
+col_means = df2.mean().sort_values(ascending=True)
+columns = col_means.index.tolist()
+```
 
 ##### concat
 
@@ -19947,7 +20100,8 @@ response = session.get(url, headers=headers, stream=True)
 
 with open(filepath, 'wb') as f:
     for chunk in response.iter_content(chunk_size=8192):  # 每次读取 8KB
-        f.write(chunk)
+        if chunk:  # 过滤掉 keep-alive 空 chunk
+			f.write(chunk)
 ```
 
 ```python
@@ -20908,17 +21062,13 @@ with fs.open(path, 'r') as f:
 几乎都是 GPT 生成。
 
 ```python
-#你的核心业务代码,也可以单独写一个.py然后import过来
 def mainFunc(name):
     #返回的是你业务代码处理得到的结果
-    return {'data': name + "爱lr580", 'type': 3}
-
+    return {'data': name + " or lr580", 'type': 3}
 
 from flask import Flask, request
-
 # print(__name__) '__main__'
 app = Flask(__name__)
-
 
 @app.route('/', methods=['POST'])
 def call_mainFunc():
@@ -20942,7 +21092,7 @@ requests.post('http://127.0.0.1:52580/',data={'name':'yym'}).text
 <!DOCTYPE html>
 <html>
     <head>
-        <title>lr580是米娜桑的主人</title>
+        <title>lr580网页</title>
     </head>
     <body>
         <form>
@@ -20952,7 +21102,6 @@ requests.post('http://127.0.0.1:52580/',data={'name':'yym'}).text
         </form>
         <div id="result"></div>
         <script>
-        //你用jquery也行，我懒，就不用了
 		function callPythonServer() {
 			// 获取输入框中的名称
 			var name = document.getElementById("name").value;
@@ -20981,6 +21130,24 @@ requests.post('http://127.0.0.1:52580/',data={'name':'yym'}).text
     </body>
 </html>
 ```
+
+JSON：
+
+```python
+@app.route('/predict', methods=['POST'])
+def predict():
+    input_data = request.get_json()['input']
+    output = model.predict(input_data).tolist()
+    return jsonify({'output':output,'current_model':current_model})
+```
+
+```python
+r = requests.post('http://localhost:5000/predict', json={'input': [[.1, .2, .3, .4, .5], [.5, .4, .3, .2, .1]]})
+print(r.json())
+# {'current_model': 'svm_1.pkl', 'output': [0, 0]}
+```
+
+
 
 ### fastapi
 
