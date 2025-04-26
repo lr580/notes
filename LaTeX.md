@@ -1947,11 +1947,13 @@ LaTeX Workshop 默认的编译工具是 latexmk，根据需要修改所需的工
 
 
 
-> ### 在线使用
+### overleaf
 
 [overleaf](https://www.overleaf.com/)
 
+可以共享在线协作编辑，有有限版本记录查看，有templates模板大全。大部分按钮所见即所得，略介绍。
 
+点击左上角menu弹出菜单，可以修改编译选项如xelatex改为pdflatex。右边recompile按钮的三角菜单点开可以from scratch清除缓存编译如果遇到未知问题。
 
 ## 基本语法
 

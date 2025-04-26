@@ -274,6 +274,7 @@ git grep 字符串
 以问号“?”通配单个字符
 以方括号“[]”包含单个字符的匹配列表；
 以叹号“!”表示不忽略(跟踪)匹配到的文件或目录；
+# 开头是注释，请单独一行写
 ```
 
 例如：
@@ -309,7 +310,8 @@ abc/*
 
 ```shell
 git rm -r --cached .
-git add .gitignore # 或者直接跳第三行也行
+# 或者直接跳第三行也行
+git add .gitignore
 git add .
 git commit -m "..."
 ```

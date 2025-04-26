@@ -2911,6 +2911,10 @@
 - 1399\.统计最大组的数目
 
   枚举 / <u>数位DP</u>
+  
+- 2444\.统计定界子数组的数组
+
+  滑动窗口
 
 ## 算法
 
@@ -13128,4 +13132,31 @@ func countLargestGroup(n int) (ans int) {
 ```
 
 数位 $d=10$，i 有 $\log n$ 个，left 有 $d\log n$ 个，故状态数是 $O(d\log^2n)$，转移方程复杂度 $d$，故时间复杂度 $O(d^2\log^2n)$。
+
+##### 2444\.统计定界子数组的数目
+
+[题目](https://leetcode.cn/problems/count-subarrays-with-fixed-bounds)
+
+```go
+func countSubarrays(nums []int, minK int, maxK int) (ans int64) {
+	lastMin := -1
+	lastMax := -1
+	lastFail := -1
+	for i, v := range nums {
+		if v < minK || v > maxK {
+			lastFail = i
+		}
+		if v == minK {
+			lastMin = i
+		}
+		if v == maxK {
+			lastMax = i
+		}
+		lastAvail := min(lastMin, lastMax)
+		len := max(0, lastAvail-lastFail)
+		ans += int64(len)
+	}
+	return
+}
+```
 

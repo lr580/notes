@@ -978,6 +978,8 @@ f'{6:02d},{1/3:+.6f}' #前导零，带符号小数；指数就e，同理
 
 ##### 常规
 
+###### 基本
+
 ```python
 open(文件路径, 打开方式(='r'))
 ```
@@ -991,6 +993,8 @@ fp = open('a.txt', 'r')
 注意 `/` 开头表示根目录，在 windows 表示当前磁盘，如 `/a.txt` 等于 `D:/a.txt`。
 
 > `\` 是 windows 标准的路径分隔符；在类 Unix 系统（如 Linux 和 macOS）中，`/` 是标准的路径分隔符
+
+###### 标识符
 
 常用的打开方式标识符有：
 
@@ -1006,6 +1010,8 @@ fp = open('a.txt', 'r')
 
 还有两个默认参数，encoding=None,errors=None
 
+###### encoding
+
 encoding是编码方式(不区分大小写，如UTf-8也能过)，常见的有：
 
 - utf-8
@@ -1018,13 +1024,19 @@ encoding是编码方式(不区分大小写，如UTf-8也能过)，常见的有�
 
 如果以b读写，不填encoding。
 
+###### errors
+
 如下方式自动忽略错误：
 
 ```python
 errors='ignore'
 ```
 
+###### newline
 
+newline 参数，默认 None，读写时，将所有换行符（`\r\n`、`\r`、`\n`）统一转换为 `\n`。若参数为空字符串 `''`，不会任何转换。若为其他，如参数为 `\n`, `\r\n`，则读等同 None，写时用该参数指定的方法。
+
+###### 关闭
 
 以非with方法打开文件，**需要关闭文件**：
 
@@ -5094,6 +5106,32 @@ os.chown(file_path, 1000, 1000)
 os.environ['PYTHONHASHSEED'] = '42'
 ```
 
+##### StringIO
+
+在内存中构建字符串，像操作文件一样操作字符串
+
+```python
+from io import StringIO
+
+# 创建一个StringIO对象
+output = StringIO("原来的文本，也可以不填参数")
+
+# 写入数据
+output.write('第一行文本\n') # 从头写，会覆盖掉原来的文本
+output.write('第二行文本\n')
+
+# 获取所有写入的内容
+content = output.getvalue()
+print(content)
+
+# 可以像文件一样读取
+output.seek(0)  # 将指针移回开头
+print(output.readline())  # 读取一行
+
+# 关闭StringIO对象
+output.close()
+```
+
 
 
 ##### 应用举例
@@ -6018,7 +6056,12 @@ json.dumps({'a':{'b':6,'c':[111,222]}, 'd':'12398'})
 # 字符串 '{"a": {"b": 6, "c": [111, 222]}, "d": "12398"}'
 ```
 
+还有 load, dump 方法，区别在于第二个参数是文件指针，直接把结果写进去
 
+dump 可以设置 
+
+- `indent=2`，使得有缩进(2个空格)，否则在一行输出。
+- `ensure_ascii`：默认为 `True`，非 ASCII 字符会被转义（如 `中文` → `\u4e2d\u6587`）。设为 `False` 可保留原字符。
 
 #### functools
 
@@ -6568,6 +6611,48 @@ string.ascii_digits
 string.punctuation
 '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
 ```
+
+#### csv
+
+```python
+import csv
+
+with open('data.csv', 'r', newline='') as f:  # 建议使用 newline='' 避免换行问题
+    reader = csv.reader(f)  # 返回一个 reader 对象
+    for row in reader:      # 逐行读取
+        print(row)          # 每行是一个列表，如 ['Name', 'Age', 'City']
+```
+
+```python
+import csv
+
+data = [
+    ["Name", "Age", "City"],
+    ["Alice", 25, "New York"],
+    ["Bob", 30, "London"],
+]
+
+with open('output.csv', 'w', newline='') as f:  # newline='' 避免 Windows 出现空行
+    writer = csv.writer(f)
+    writer.writerows(data)  # 写入多行
+# writerow 写单行
+```
+
+
+
+根据某行读另一行：
+
+```python
+def read_prices(file):
+    prices = []
+    with open(file, 'r', encoding='utf8') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            prices.append(float(row['price']))
+    return prices
+```
+
+
 
 #### ast
 
@@ -8090,7 +8175,7 @@ np.where(np.abs(a-1.9)<0.2)
 np.mean(arr)
 ```
 
-对每列：`axis=0`，也可以对一维 ndarray 数组求，即 `np.mean(arrs, axis=0)`。
+对每列：`axis=0`，也可以对一维 ndarray 数组求，即 `np.mean(arrs, axis=0)`。`axis=-1`，即对最后一个维度，即若二维就是 `axis=1`
 
 三维数组，对每个矩阵求均值，如：
 
@@ -8099,6 +8184,15 @@ data = np.array([[[ 1, -2],[ 3, -4]],   [[-1,  2],[ 4, -5]]])
 print(np.mean(np.abs(data), axis=(1, 2))) #[2.5 ,3.]
 #做了abs，故(1+2+3+4)/4=2.5
 ```
+
+axis 是多少，最后维度就把这个维度去掉。axis 也可以是一些，如：
+
+```python
+axises = tuple(range(len(X.shape)-1)) # 除了最后一个维度外，则 mean.shape = X.shape[-1]
+mean = np.mean(X, axis=axises)
+```
+
+可以用 keepdims=True 来保持维度，如 `(a,b), axis=-1 -> (a,1)`，不然就 `(a,)` 了。
 
 ##### 方差
 
@@ -8123,6 +8217,15 @@ numpy_std_sample = np.std(data, ddof=1) # 即分母 N-1
 - `axis`：指定计算方差的轴。默认为 `None`，表示计算整个数组的方差。如果指定了轴的值，将沿着该轴计算方差。
 - `dtype`：指定返回结果的数据类型。默认为 None，即使用输入数组的数据类型。
 - `ddof`：计算方差时的自由度修正值。默认为 0，表示使用总体方差的无偏估计器（除以 n）。如果指定为 1，表示使用样本方差的无偏估计器（除以 n-1）。
+
+> 如手写对最后一层做层归一化：
+>
+> ```python
+> def layer_norm(X: np.ndarray, epsilon: float=1e-5)->np.ndarray:
+>     mean = np.mean(X, axis=-1, keepdims=True)
+>     std = np.std(X, axis=-1, keepdims=True)
+>     return (X - mean)/(np.sqrt(std**2 + epsilon))
+> ```
 
 ##### 协方差
 
@@ -9332,1322 +9435,6 @@ print(points)
 
 方法二：没这么准 sklearn MDS
 
-### matplotlib
-
-是第三方库，需要手动安装。[官方文档](https://matplotlib.org/3.6.0/gallery/index.html)
-
-通常如此加载：
-
-```python
-import matplotlib.pyplot as plt
-```
-
-#### 基础绘图
-
-##### 基础
-
-分为绘制和展示两部分：
-
-```python
-plt.plot(数据) #折线图
-plt.show() #如果plot多次，自动赋予不同颜色
-```
-
-如：
-
-```python
-plt.plot([1,4,9,16,25])#点(0,1),(1,4),...，下类同;也可以nparray
-plt.plot([-1,-1,-1,-1])
-plt.show()
-```
-
-保存到文件：(重名覆盖)
-
-```python
-plt.savefig(输出文件名含后缀)
-```
-
-> `bbox_inches='tight'` 参数可以确保图形的所有部分都能适当显示，不会被裁剪
-
-##### 折线
-
-```python
-import pandas as pd
-import matplotlib.pyplot as plt
-
-df = pd.read_csv('results1.csv')
-df['month'] = pd.to_datetime(df['month'])
-
-plt.figure(figsize=(9,6))
-for country in df['country'].unique():
-    country_data = df[df['country'] == country]
-    plt.plot(country_data['month'], country_data['monthly_active_users'], marker='o', label=country.upper())
-
-plt.title('Monthly Active Users by Country (2023)')
-plt.xlabel('Month')
-plt.ylabel('Monthly Active Users')
-plt.legend(title='Country')
-plt.grid(True)
-plt.xticks(df['month'].unique(), rotation=45)
-plt.tight_layout() 
-
-plt.show()
-```
-
-> 数据文件参考：
->
-> ```
-> month,country,monthly_active_users
-> 2023-01-01T00:00:00.000Z,au,2815
-> 2023-01-01T00:00:00.000Z,ca,3405
-> 2023-01-01T00:00:00.000Z,gb,7135
-> 2023-01-01T00:00:00.000Z,us,19833
-> 2023-02-01T00:00:00.000Z,au,2178
-> 2023-02-01T00:00:00.000Z,ca,2707
-> 2023-02-01T00:00:00.000Z,gb,6672
-> 2023-02-01T00:00:00.000Z,us,18391
-> 2023-03-01T00:00:00.000Z,au,13
-> 2023-03-01T00:00:00.000Z,ca,5
-> 2023-03-01T00:00:00.000Z,gb,25
-> 2023-03-01T00:00:00.000Z,us,71
-> ```
-
-##### 散点
-
-绘制二维散点点图：[具体参考](https://www.runoob.com/matplotlib/matplotlib-scatter.html)
-
-```python
-plt.scatter([1,5,10],[-3,-2,-1],s=10)
-#s是点的面积，画三个点(1,-3),(5,-2),...
-```
-
-```python
-plt.scatter([1,5,10],[-3,-2,-1],s=100,edgecolor='none')
-#点比较连续的时候增设一个默认参数显示效果更佳
-```
-
-可以绘制单个点：
-
-```python
-plt.scatter(1,2,s=50)
-```
-
-可以用marker属性描述点型：(每个点实心) [参考](https://www.runoob.com/matplotlib/matplotlib-marker.html)
-
-```python
-marker='x'; marker='o'
-```
-
-> - markersize，简写为 ms：定义标记的大小。
-> - markerfacecolor，简写为 mfc：定义标记内部的颜色。
-> - markeredgecolor，简写为 mec：定义标记边框的颜色。
->
-> ```python
-> plt.plot(ypoints, marker = 'o', ms = 20, mec = 'r')
-> plt.plot(ypoints, marker = 'o', ms = 20, mec = '#4CAF50', mfc = '#4CAF50')
-> ```
-
-多个颜色：
-
-```python
-import numpy as np
-import matplotlib.pyplot as plt
-n = 5000
-points = np.random.rand(n, 2)
-labels = np.random.randint(0, 15, n)  # 15个类别
-# 使用tab20 colormap
-plt.figure(figsize=(8, 6))
-plt.scatter(points[:, 0], points[:, 1], c=labels, cmap='tab20', alpha=0.7)
-plt.title('Scatter Plot with Different Colors for Each Class')
-plt.colorbar(label='Class')
-plt.show()
-```
-
-
-
-##### 柱状
-
-打横：
-
-```python
-def plot(words, scores, top_k = 10):
-    top_k_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
-    top_words = [words[i] for i in top_k_indices]
-    top_scores = [scores[i] for i in top_k_indices]
-    plt.figure(figsize=(5, 8))
-    plt.barh(top_words, top_scores, color='skyblue')
-    plt.xlabel('TF-IDF Score')
-    plt.title(f'Top {top_k} Words by TF-IDF Score')
-    plt.gca().invert_yaxis()  # 反转 y 轴，使得最高分的单词在顶部
-    plt.show()
-```
-
-
-
-多个合并
-
-```python
-import pandas as pd
-import matplotlib.pyplot as plt
-
-data = pd.read_csv('results2.csv', parse_dates=['cohort_month'])
-data['cohort_month'] = data['cohort_month'].dt.strftime('%Y-%m')
-
-plt.figure(figsize=(9, 6))
-# 折线图
-# for label, df in data.groupby('cohort_month'):
-    # plt.plot(df['attr_puzzle_level'], df['number_of_completers'], label=label)
-for i, group in data.groupby('cohort_month'):
-    plt.bar(group['attr_puzzle_level'] + 0.15 * (pd.to_datetime(i).month - 7), 
-            group['number_of_completers'], 
-            width=0.3, 
-            label=f'Cohort {i}')
-
-plt.title('Completers per Level by Monthly Cohort')
-plt.xlabel('Puzzle Level')
-plt.ylabel('Number of Completers')
-plt.legend(title='Cohort Month')
-plt.grid(True)
-plt.show()
-```
-
-> ```
-> cohort_month,attr_puzzle_level,number_of_completers
-> 2023-07-01T00:00:00.000Z,1,1340
-> 2023-07-01T00:00:00.000Z,2,1258
-> 2023-07-01T00:00:00.000Z,3,1250
-> 2023-08-01T00:00:00.000Z,1,1363
-> 2023-08-01T00:00:00.000Z,2,1263
-> 2023-08-01T00:00:00.000Z,3,1215
-> 2023-09-01T00:00:00.000Z,1,1146
-> 2023-09-01T00:00:00.000Z,2,1095
-> 2023-09-01T00:00:00.000Z,3,1062
-> ```
-
-
-
-##### 其他
-
-[柱状图参考](https://www.runoob.com/matplotlib/matplotlib-bar.html)
-
-[饼图参考](https://www.runoob.com/matplotlib/matplotlib-pie.html)
-
-横纵坐标旋转：`plot(ylt,xlt)`
-
-```python
-lt = list(range(img.shape[0]-1, -1, -1))
-plt.plot(sumHori, lt) #x坐标点集, y坐标点集
-```
-
-> ```python
-> # 画多条线, fmt 是颜色等, [表示可选]
-> plot([x], y, [fmt], [x2], y2, [fmt2], ..., **kwargs)
-> plot(x, y, 'bo')  # 创建 y 中数据与 x 中对应值的二维线图，使用蓝色实心圈绘制(o是空心散点而不是无点折线)
-> plot(y, 'r+')     # 使用红色 + 号
-> # fmt = '[marker][line][color]'
-> # 例如 o:r，o 表示实心圆标记，: 表示虚线，r 表示颜色为红色。
-> ```
->
-> [具体参考](https://www.runoob.com/matplotlib/matplotlib-marker.html)
-
-
-
-##### 举例
-
-###### 横纵坐标转置
-
-```python
-img = cv2.imread('../../imgs/02.png')
-img = toGrey(img)
-img = toBinary(img, getThrestHold(img)) #二值图像
-sumVert = ((255-img)//255).sum(axis=0)
-sumHori = ((255-img)//255).sum(axis=1)
-
-plt.subplot(221)
-plt.imshow(img, 'gray')
-plt.subplot(222)
-# lt = list(range(img.shape[0]-1, -1, -1))
-lt = list(range(img.shape[0]))
-plt.ylim(img.shape[0], 0)  # 这个倒了lt自己也会倒
-plt.plot(sumHori, lt)
-plt.subplot(223)
-plt.plot(sumVert)
-plt.show()
-```
-
-###### 半平面和点涂色
-
-```python
-w = [1, -1, -1] # 1-x_1-x_2
-def g2(): # 分界线所在也是红色的
-    c, a, b = w
-    
-    x = np.linspace(-1, 2, 400)
-    y = np.linspace(-1, 2, 400)
-    X, Y = np.meshgrid(x, y)
-
-    Z = a*X + b*Y + c
-
-    plt.figure(figsize=(6,6))
-    plt.contourf(X, Y, Z, levels=[0, Z.max()], colors='red', alpha=0.3)
-
-    points = {'(0,0)': (0, 0), '(0,1)': (0, 1), '(1,0)': (1, 0), '(1,1)': (1, 1)}
-    for label, (x, y) in points.items():
-        color = 'blue' if label == '(1,1)' else 'red'
-        plt.scatter(x, y, color=color)
-        plt.text(x, y, label, fontsize=12, horizontalalignment='right')
-
-    plt.xlim(-1, 2)
-    plt.ylim(-1, 2)
-    plt.axhline(0, color='black',linewidth=0.5)
-    plt.axvline(0, color='black',linewidth=0.5)
-    plt.grid(color = 'gray', linestyle = '--', linewidth = 0.5)
-    plt.title('Graph of ax + by + c >= 0 with specific points marked')
-    plt.xlabel('x')
-    plt.ylabel('y')
-    plt.show()
-```
-
-###### 等高线图
-
-二元正态分布(给定半正定矩阵)的等高图：
-
-```python
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import multivariate_normal
-
-# 定义均值和协方差矩阵
-mean = [0, 0]
-cov = [[3, -1], [-1, 3]]  # 对角线上是方差，非对角线上是协方差
-
-# 生成网格点
-x, y = np.linspace(-3, 3, 300), np.linspace(-3, 3, 300)
-X, Y = np.meshgrid(x, y)
-
-# 多元正态分布的PDF
-pos = np.dstack((X, Y))
-rv = multivariate_normal(mean, cov)
-Z = rv.pdf(pos)
-
-# 绘制等高线图
-plt.contour(X, Y, Z, levels=10, cmap='viridis')  # 使用viridis颜色图
-plt.colorbar()  # 显示颜色条
-plt.title('二元高斯分布的等高线图')
-plt.xlabel('X')
-plt.ylabel('Y')
-plt.axis('equal')
-plt.show()
-```
-
-
-
-#### 绘图
-
-##### 等高线
-
-poe
-
-```python
-import numpy as np
-import matplotlib.pyplot as plt
-
-# 创建网格数据
-x = np.linspace(-2, 2, 50)
-y = np.linspace(-2, 2, 50)
-XX, YY = np.meshgrid(x, y)
-
-# 定义函数 Z
-Z = XX**2 + YY**2  # 一个简单的抛物面
-
-# 创建图形和坐标轴
-fig, ax = plt.subplots()
-
-# 绘制等高线
-ax.contour(XX, YY, Z, colors='b', levels=[0, 1, 2, 3], alpha=0.7)
-
-# 添加标题和标签
-ax.set_title('Simple Contour Plot')
-ax.set_xlabel('X-axis')
-ax.set_ylabel('Y-axis')
-
-# 显示图形
-plt.show()
-```
-
-
-
-#### 属性
-
-##### 基本
-
-图表预设定：(必须放在绘图，如scatter之前)
-
-图的大小：(宽、高)
-
-```python
-plt.figure(figsize=(10,5))
-plt.figure(figsize=(10,5),dpi=128) #改单位
-```
-
-属性：[参考](https://www.runoob.com/matplotlib/matplotlib-marker.html)
-
-> **颜色字符：**'b' 蓝色，'m' 洋红色，'g' 绿色，'y' 黄色，'r' 红色，'k' 黑色，'w' 白色，'c' 青绿色，'#008000' RGB 颜色符串。多条曲线不指定颜色时，会自动选择不同颜色。
->
-> **线型参数：**'‐' 实线，'‐‐' 破折线，'‐.' 点划线，':' 虚线。
->
-> **标记字符：**'.' 点标记，',' 像素标记(极小点)，'o' 实心圈标记，'v' 倒三角标记，'^' 上三角标记，'>' 右三角标记，'<' 左三角标记., 'H' 六边形, 'D'菱形..等等。(marker)
->
-> ```python
-> plot(y, 'r+')     # 使用红色 + 号
-> ```
-
-- 线宽 linewidth / lw
-
-  ```python
-  plt.plot(ypoints, linewidth = '12.5')
-  ```
-
-- 线形状linestyle [参考](https://www.runoob.com/matplotlib/matplotlib-line.html)
-
-  ```python
-  plt.plot(ypoints, linestyle = 'dotted')
-  ```
-
-- 线色 c / color，使用单词或范围为$[0,1]$的RGB三元tuple（1浅0深），一般使用单词即可，使用tuple可能会出问题 [参考](https://www.runoob.com/html/html-colorvalues.html)
-
-  颜色可以映射，如：
-
-  ```python
-  xv=list(range(1,1001))
-  yv=[x**2 for x in xv] #蓝色由浅到深
-  plt.scatter(xv,yv,s=40,edgecolor='none',c=yv,cmap=plt.cm.Blues)
-  ```
-
-- 图例名字label [带中文参考](https://www.runoob.com/matplotlib/matplotlib-label.htmls)
-
-图表基本设定：
-
-```python
-plt.title('A title',fontsize=24) #标题设置
-plt.xlabel('xv',fontsize=14) #x轴名字
-plt.ylabel('saw',fontsize=14) 
-plt.tick_params(axis='both',labelsize=14) #或x或y，坐标上数字大小
-```
-
-> ```python
-> import numpy as np
-> from matplotlib import pyplot as plt
-> import matplotlib
->  
-> # fname 为 你下载的字体库路径，注意 SourceHanSansSC-Bold.otf 字体的路径，size 参数设置字体大小
-> zhfont1 = matplotlib.font_manager.FontProperties(fname="SourceHanSansSC-Bold.otf", size=18)
-> font1 = {'color':'blue','size':20}
-> font2 = {'color':'darkred','size':15}
-> x = np.arange(1,11)
-> y =  2  * x +  5
-> 
-> # fontdict 可以使用 css 来设置字体样式
-> plt.title("菜鸟教程 - 测试", fontproperties=zhfont1, fontdict = font1)
->  
-> # fontproperties 设置中文显示，fontsize 设置字体大小
-> plt.xlabel("x 轴", fontproperties=zhfont1)
-> plt.ylabel("y 轴", fontproperties=zhfont1)
-> plt.plot(x,y)
-> plt.show()
-> ```
->
-> title() 方法提供了 loc 参数来设置标题显示的位置，可以设置为: 'left', 'right', 和 'center'， 默认值为 'center'。
->
-> xlabel() 方法提供了 loc 参数来设置 x 轴显示的位置，可以设置为: 'left', 'right', 和 'center'， 默认值为 'center'。
->
-> ylabel() 方法提供了 loc 参数来设置 y 轴显示的位置，可以设置为: 'bottom', 'top', 和 'center'， 默认值为 'center'。
-
-##### 点样式
-
-```python
-plt.plot(dimensions, min_distances, marker='o')
-```
-
-- `'o'`: 圆圈
-- `'.'`: 点
-- `'^'`: 上三角
-- `'v'`: 下三角
-- `'<'`: 左三角
-- `'>'`: 右三角
-- `'s'`: 正方形
-- `'p'`: 五边形
-- `'*'`: 星号
-- `'+'`: 加号
-- `'x'`: 叉号
-- `'D'`: 菱形
-- `'H'`: 六边形
-
-`alpha=1` 不透明，0透明；`s=40` 尺寸。`color=xxxx`
-
-##### 坐标轴
-
-锁定坐标轴范围为$x\in[-12,12],y\in[-5,5]$。也可以用 `xlim(a,b)`, `ylim`。可以 $a\ge b$ 则画图序列也跟着倒序。
-
-```python
-plt.axis([-12,12,-5,5]) 
-```
-
-设置坐标轴坐标尺(每隔多少显示一次数字)：(y同理)
-
-```python
-plt.gca().xaxis.set_major_locator(plt.MultipleLocator(1))
-```
-
-只显示特定的几个刻度：
-
-```python
-start_date = df['date'].min()
-end_date = df['date'].max()
-middle_date = df['date'][int(len(df['date']) / 2)]
-axs[i].set_xticks([start_date, middle_date, end_date])
-```
-
-
-
-隐藏坐标轴：(与上面不会冲突)(该命令会引发warning)
-
-```python
-plt.axes().get_xaxis().set_visible(False)
-plt.axes().get_yaxis().set_visible(False)
-```
-
-不显示坐标轴：
-
-```python
-plt.axis('off')
-```
-
-对数坐标轴：
-
-```python
-plt.xscale('log')
-```
-
-横纵相等：
-
-```python
-plt.axis('equal')
-```
-
-
-
-日期：
-
-```python
-fig.autofmt_xdate()
-```
-
-这个方法用于自动格式化 x 轴上的日期标签，使它们倾斜以防止标签之间的重叠。默认情况下，日期标签可能会水平排列，当标签过多时很容易相互覆盖，导致无法清晰阅读。`fig.autofmt_xdate()` 会将这些标签倾斜（通常是45度倾斜），从而改善图表的可读性。
-
-##### 标题
-
-`plt.title()`作用: 用于为单个子图添加标题。
-
-`plt.suptitle()`作用: 用于为整个图形添加一个大标题。
-
-标题都在上方。
-
-```python
-import matplotlib.pyplot as plt
-import numpy as np
-x = np.linspace(0, 10, 100)
-y1 = np.sin(x)
-y2 = np.cos(x)
-
-fig, axs = plt.subplots(2, 1, figsize=(8, 6))
-axs[0].plot(x, y1)
-axs[0].set_title('正弦波')
-axs[1].plot(x, y2)
-axs[1].set_title('余弦波')
-
-plt.suptitle('三角函数图', fontsize=16)
-plt.tight_layout(rect=[0, 0, 1, 0.95])  # 确保整体标题不被遮挡
-plt.show()
-```
-
-
-
-##### 图例
-
-图例使用：
-
-```python
-plt.scatter([0,2,3,4],[3,3,2,3],label='pic1',c='chocolate')
-plt.plot([0,1,2,3,4],label='pic2')
-plt.legend(loc=2)
-plt.show()
-```
-
-loc控制图例的方位，具体为：$\left[\matrix{2&3\\1&4}\right]$
-
-```python
-ax1.legend(loc='upper right')
-ax2.legend(loc='upper right', bbox_to_anchor=(1, 1))
-```
-
-bbox to anchor:
-
-第一个值（x 轴位置）：范围通常在 0 到 1 之间，表示相对于图表宽度的比例。1 表示右边缘，0 表示左边缘。
-
-第二个值（y 轴位置）：同样在 0 到 1 之间，表示相对于图表高度的比例。1 表示顶部，0 表示底部。
-
-双图(twin)，画完第一个图，第二个图会把第一个图的图例挡住，gpt 4o mini：
-
-```python
-handles1, labels1 = ax1.get_legend_handles_labels()
-handles2, labels2 = ax2.get_legend_handles_labels()
-handles = [Patch(color='b', label='Ward Hierarchical Cluster'), Patch(color='r', label='GMM (KMeans++ Init) Cluster')]
-ax2.legend(handles=handles, loc='upper right')
-```
-
-透明度：
-
-```python
-[Patch(color=c1, alpha=1, label=y1name), Patch(color=c2, alpha=1, label=y2name)]
-```
-
-
-
-##### 网格
-
-添加网格：[参考](https://www.runoob.com/matplotlib/matplotlib-grid.html)
-
-```python
-plt.grid()
-```
-
-> - b：可选，默认为 None，可以设置布尔值，true 为显示网格线，false 为不显示，如果设置 `**kwargs` 参数，则值为 true。
-> - which：可选，可选值有 'major'、'minor' 和 'both'，默认为 'major'，表示应用更改的网格线。
-> - axis：可选，设置显示哪个方向的网格线，可以是取 'both'（默认），'x' 或 'y'，分别表示两个方向，x 轴方向或 y 轴方向。
-> - `**kwargs`：可选，设置网格样式，可以是 color='r', linestyle='-' 和 linewidth=2，分别表示网格线的颜色，样式和宽度。
-
-##### 字体大小
-
-每个 word 的 scores 的打横条形图
-
-```python
-def plot(words, scores, top_k = 10):
-    top_k_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
-    top_words = [words[i] for i in top_k_indices]
-    top_scores = [scores[i] for i in top_k_indices]
-
-    plt.figure(figsize=(5, 8))
-    plt.barh(top_words, top_scores, color='skyblue')
-    plt.xlabel('TF-IDF Score',fontsize=14)
-    plt.title(f'Top {top_k} Words by TF-IDF Score', fontsize=16)
-    plt.gca().invert_yaxis()  # 反转 y 轴，使得最高分的单词在顶部
-    plt.xticks(fontsize=12)  # 增大x轴刻度字体
-    plt.yticks(fontsize=12)  # 增大y轴刻度字体
-    plt.tight_layout()  # 自动调整子图参数
-    plt.show()
-```
-
-```python
-ax.tick_params(axis='both', which='major', labelsize=14)  # 坐标轴刻度
-plt.legend(loc="upper left", fontsize=16)
-```
-
-
-
-##### 颜色
-
-colormap
-
-- `tab20` 20色
-- `viridis` 深紫色到亮黄色的连续渐变
-
-```python
-plt.scatter(points[:, 0], points[:, 1], c=labels, cmap='tab20', alpha=0.7)
-```
-
-
-
-##### 保存
-
-保存图表：
-
-```python
-plt.savefig('pic.png',bbox_inches='tight') #必须在show之前
-```
-
-
-
-举例：
-
-```python
-import matplotlib.pyplot as plt
-
-xv = list(range(1, 27))
-yv = [1, 2, 4, 8, 16, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 21, 22, 23, 24, 25, 26, 1, 2, 3, 4]
-plt.figure(figsize=(13, 8))
-plt.grid()
-plt.plot(xv, yv, 'o-') #点线形状
-plt.xlabel('n')
-plt.ylabel('cwnd')
-for i in zip(xv, yv): #写文本
-    plt.annotate('%s' % i[1], xy=(i[0], i[1] + 1))
-plt.show()
-```
-
-##### 日期
-
-日期格式：
-
-```python
-import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.dates import DateFormatter
-data = pd.read_csv('results3.csv')
-data['cohort'] = pd.to_datetime(data['cohort'])
-plt.plot(data['cohort'], data['avg_time_to_first_purchase'], marker='o')
-plt.title('Average Time to First Purchase')
-plt.xlabel('Cohort')
-plt.ylabel('Average Time (days)')
-
-date_formatter = DateFormatter('%Y-%m-%d')
-plt.gca().xaxis.set_major_formatter(date_formatter)
-
-# 自动调整日期标签以避免重叠
-plt.gcf().autofmt_xdate()
-plt.show()
-```
-
-```
-cohort,avg_time_to_first_purchase
-2023-01-01T00:00:00.000Z,4
-2023-02-01T00:00:00.000Z,19
-2023-04-01T00:00:00.000Z,39
-```
-
-日期做 y 轴的多图折线例子：
-
-```python
-import matplotlib.pyplot as plt
-import numpy as np
-import datetime
-from matplotlib.dates import DateFormatter, HourLocator
-
-# 1. 生成时间序列（5分钟间隔，288个点）
-start_time = datetime.datetime(2018, 1, 7, 0, 0, 0)
-time_points = [start_time + datetime.timedelta(minutes=5*i) for i in range(288)]
-
-# 2. 生成示例数据（3条折线）
-np.random.seed(42)  # 固定随机种子以便复现
-y1 = np.random.randn(288).cumsum()          # 折线1：随机游走
-y2 = np.sin(np.linspace(0, 4*np.pi, 288))   # 折线2：正弦波
-y3 = np.linspace(0, 100, 288)               # 折线3：线性增长
-
-# 3. 设置图像大小和样式
-plt.figure(figsize=(10, 4))  # 固定长宽比（英寸）
-
-# 4. 绘制多条折线
-plt.plot(time_points, y1, label="随机指标", color="#1f77b4", linewidth=1.5)
-plt.plot(time_points, y2, label="周期指标", color="#ff7f0e", linewidth=1.5, linestyle="--")
-plt.plot(time_points, y3, label="增长指标", color="#2ca02c", linewidth=1.5, linestyle=":")
-
-class ForceFourDigitYearFormatter(DateFormatter):
-    def __call__(self, x, pos=None):
-        result = super().__call__(x, pos)
-        if len(result.split('-')[0]) == 2:  # 如果年份是两位
-            return "20" + result  # 补全为四位
-        return result
-
-# 5. 优化坐标轴显示
-ax = plt.gca()
-# ax.xaxis.set_major_formatter(DateFormatter("%y-%m-%d %H:%M"))  # 时间格式化为"小时:分钟"
-ax.xaxis.set_major_formatter(ForceFourDigitYearFormatter("%Y-%m-%d %H:%M"))
-ax.xaxis.set_major_locator(HourLocator(interval=6))   # 每3小时一个主刻度
-# plt.xticks(rotation=45)                              # 旋转X轴标签
-
-# 6. 添加图表元素
-plt.title("24小时多指标监控（5分钟粒度）", fontsize=14, pad=20)
-plt.xlabel("时间", fontsize=12)
-plt.ylabel("指标值", fontsize=12)
-plt.grid(True, linestyle="--", alpha=0.5)
-plt.legend(loc="upper left", fontsize=10)
-
-# 7. 固定长宽比（可选）
-# ax.set_aspect("auto")  # 默认自动调整
-# ax.set_aspect(0.05)    # 手动调整Y/X轴比例
-
-# 8. 保存或显示
-plt.tight_layout()
-plt.savefig("multi_line_time_series.png", dpi=300, bbox_inches="tight")
-plt.show()
-```
-
-
-
-#### 双图重合
-
-##### 双折线
-
-```python
-x = np.arange(0, 10, 0.1)
-y1 = np.sin(x)  # 第一个数据集
-y2 = np.exp(x / 5)  # 第二个数据集
-fig, ax1 = plt.subplots()
-ax1.plot(x, y1, 'b-', label='sin(x)')
-ax1.set_xlabel('X轴')
-ax1.set_ylabel('sin(x)', color='b')
-ax1.tick_params(axis='y', labelcolor='b')
-ax2 = ax1.twinx()
-ax2.plot(x, y2, 'r-', label='exp(x/5)')
-ax2.set_ylabel('exp(x/5)', color='r')
-ax2.tick_params(axis='y', labelcolor='r')
-ax1.legend(loc='upper left')
-ax2.legend(loc='upper right')
-plt.title('双y轴折线图示例')
-plt.show()
-```
-
-##### 双柱状
-
-两个柱状图(尺度一样)
-
-```python
-import matplotlib.pyplot as plt
-import numpy as np
-
-labels = ['指标 1', '指标 2']
-result_A = [50, 80]
-result_B = [70, 60]
-x = np.arange(len(labels)) 
-width = 0.35 
-
-fig, ax = plt.subplots()
-bars1 = ax.bar(x - width/2, result_A, width, label='结果 A')
-bars2 = ax.bar(x + width/2, result_B, width, label='结果 B')
-
-ax.set_ylabel('值')
-ax.set_title('结果对比')
-ax.set_xticks(x)
-ax.set_xticklabels(labels)
-ax.legend()
-plt.show()
-```
-
-(尺度不一样)
-
-```python
-def compareWardAndGMM(seed=8914, show=False):
-    '''对比Ward和GMM的聚类结果'''
-    p = utils.readCSV()
-    p_dist = utils.getDisMatrix(p)
-    with open('steps_ward.txt', 'r') as f:
-        steps = eval(f.read())
-    label_ward = cluster.ClusterFromSteps(p.shape[0], steps, 15)
-    sse_ward = calcSSE(p, label_ward, 15) # 大整数
-    silhouette_ward = calcSilhouette(p_dist, label_ward) # 小整数
-    label_gmm, model = gmm.GMMcluster(p, 15, 'kmeans++', seed)
-    sse_gmm = calcSSE(p, label_gmm, 15) # 大整数
-    silhouette_gmm = calcSilhouette(p_dist, label_gmm) # 小整数
-
-    labels = ['SSE', 'Silhoutte Coefficient']
-    fig, ax1 = plt.subplots()
-    width = 0.35 # 柱子宽
-    x = np.arange(2)
-    ax1.bar(x - width/2, [sse_ward, sse_gmm], width, label='Ward Hierarchical Cluster', color='b')
-    ax1.set_ylabel('SSE')
-    ax1.set_xticks(x)
-    ax1.set_xticklabels(labels)
-    
-    ax2 = ax1.twinx()  # 共享x轴
-    ax2.bar(x + width/2, [silhouette_ward, silhouette_gmm], width, label='GMM (KMeans++ Init) Cluster', color='r')
-    ax2.set_ylabel('Silhouette Coefficient')
-    
-    # ax1.legend(loc='upper right')
-    # ax2.legend(loc='upper right', bbox_to_anchor=(1, 0.9))
-    handles1, labels1 = ax1.get_legend_handles_labels()
-    handles2, labels2 = ax2.get_legend_handles_labels()
-    handles = [Patch(color='b', label='Ward Hierarchical Cluster'), Patch(color='r', label='GMM (KMeans++ Init) Cluster')]
-    ax2.legend(handles=handles, loc='upper right')
-    
-    plt.title('Ward Hierarchical Cluster VS GMM Cluster')
-    if show:
-        plt.show()
-    else:
-        plt.savefig(f'Ward_vs_GMM_compare.png')
-```
-
-
-
-#### 子图
-
-##### 不重叠
-
-```python
-subplot(nrows, ncols, index, **kwargs)
-subplot(pos, **kwargs)
-subplot(**kwargs)
-subplot(ax)
-```
-
-以上函数将整个绘图区域分成 nrows 行和 ncols 列，然后从左到右，从上到下的顺序对每个子区域进行编号 `1...N` ，左上的子区域的编号为 1、右下的区域编号为 N，编号可以通过参数 index 来设置。
-
-###### 例子
-
-> ```python
-> import matplotlib.pyplot as plt
-> import numpy as np
-> 
-> #plot 1:
-> x = np.array([0, 6])
-> y = np.array([0, 100])
-> 
-> plt.subplot(2, 2, 1)
-> plt.plot(x,y)
-> plt.title("plot 1") #子图标题
-> 
-> #plot 2:
-> x = np.array([1, 2, 3, 4])
-> y = np.array([1, 4, 9, 16])
-> 
-> plt.subplot(2, 2, 2)
-> plt.plot(x,y)
-> plt.title("plot 2")
-> 
-> #plot 3:
-> x = np.array([1, 2, 3, 4])
-> y = np.array([3, 1, 4, 2])
-> 
-> plt.subplot(2, 2, 3)
-> plt.plot(x,y)
-> plt.title("plot 3")
-> 
-> #plot 4:
-> x = np.array([1, 2, 3, 4])
-> y = np.array([4, 3, 2, 1])
-> 
-> plt.subplot(224) #这样也行
-> plt.plot(x,y)
-> plt.title("plot 4")
-> 
-> plt.suptitle("RUNOOB subplot Test") #大标题
-> plt.show()
-> ```
-
-> ```python
-> import numpy as np
-> import matplotlib.pyplot as plt
-> 
-> def generate_data(d):
->     """生成 d 维的数据集，每个维度包含 1000 个点，每个点的坐标在 [-1, 1] 之间随机生成。"""
->     return np.random.uniform(-1, 1, (1000, d))
-> 
-> def calculate_distances(data):
->     """计算数据集中的点到原点的欧氏距离，并返回最近和最远的距离。"""
->     distances = np.sqrt(np.sum(data**2, axis=1))
->     return np.min(distances), np.max(distances)
-> 
-> # 设定一系列维度 d
-> dimensions = [2, 4, 8, 16, 32, 64, 128, 256, 512]
-> min_distances = []
-> max_distances = []
-> 
-> # 对于每个维度，生成数据并计算距离
-> for d in dimensions:
->     data = generate_data(d)
->     min_dist, max_dist = calculate_distances(data)
->     min_distances.append(min_dist)
->     max_distances.append(max_dist)
-> 
-> # 绘制图表
-> plt.figure(figsize=(14, 6))
-> 
-> # △0(d) 随 d 变化的图表
-> plt.subplot(1, 2, 1)
-> plt.plot(dimensions, min_distances, marker='o')
-> plt.xlabel('Dimension d')
-> plt.ylabel('Minimum Distance to Origin (△0(d))')
-> plt.title('Minimum Distance to Origin vs Dimension')
-> plt.xscale('log')
-> 
-> # △1(d)/△0(d) 随 d 变化的图表
-> plt.subplot(1, 2, 2)
-> plt.plot(dimensions, np.array(max_distances) / np.array(min_distances), marker='o')
-> plt.xlabel('Dimension d')
-> plt.ylabel('Ratio of Max to Min Distance (△1(d)/△0(d))')
-> plt.title('Ratio of Max to Min Distance vs Dimension')
-> plt.xscale('log')
-> 
-> plt.tight_layout()
-> plt.show()
-> ```
-
-##### 重叠
-
-三个折线图为例。
-
-```python
-import matplotlib.pyplot as plt
-import numpy as np
-
-# 创建数据
-x = np.arange(10)
-y1 = np.random.rand(10)
-y2 = np.random.rand(10)
-y3 = np.random.rand(10)
-
-# 创建子图
-fig, ax = plt.subplots()
-
-# 绘制三条折线图
-ax.plot(x, y1, label='Line 1')
-ax.plot(x, y2, label='Line 2')
-ax.plot(x, y3, label='Line 3')
-
-# 添加图例
-ax.legend()
-
-# 显示图形
-plt.show()
-```
-
-##### 参数
-
-`plt.tight_layout()`: 这个方法自动调整子图参数，以确保图表的内容（如轴标题、轴标签等）不会相互重叠，并且整体布局看起来整洁。这是一种自动管理图表内部元素间距的方式，尤其在创建多个子图时非常有用。
-
-##### flatten
-
-```python
-fig, axs = plt.subplots(2, 2, figsize=(8, 6))
-axs = axs.flatten()  # 将子图数组扁平化，方便索引
-ax1 = axs[i] # 绘制第 i 个子图，
-ax1.plot(np.arange(2, len(seq_sse) + 2) #...即把fig都换成ax1
-```
-
-##### 双折线子图
-
-```python
-def plotDoubleLines(y1, y2, x, y1name, y2name, ax1):
-    '''绘制双Y轴折线图给定两个序列为y1,y2，x轴为x，两个序列名字为y1name,y2name'''
-    ax1.set_xlabel('Number of Clusters')
-    c1, c2 = 'lightcoral', 'steelblue' # 绘图颜色(teal, orange)
-    
-    ax1.plot(x, y1, marker='o', label=y1name, color=c1)
-    ax1.set_ylabel(y1name, color=c1)
-    ax1.tick_params(axis='y', labelcolor=c1)
-    
-    ax2 = ax1.twinx()
-    ax2.plot(x, y2, marker='o', label=y2name, color=c2)
-    ax2.set_ylabel(y2name, color=c2)
-    ax2.tick_params(axis='y', labelcolor=c2)
-
-    ax1.legend(loc='upper left')
-    ax2.legend(loc='upper right')
-    ax1.grid()
-def plotLines(metric):
-    '''绘图展示四种聚类的指标(metric)可取SSE和silhouette和both'''
-    p = utils.readCSV()
-    fig, axs = plt.subplots(2, 2, figsize=(8, 6))
-    axs = axs.flatten()  # 将子图数组扁平化，方便索引
-    
-    for i, type_ in enumerate(cluster.ALL_TYPES):
-        with open(f'steps_{type_}.txt', 'r') as f:
-            steps = eval(f.read())
-        plt.subplot(2,2,i+1)
-        seq1= calcSSEs(p.shape[0], steps, p)
-        seq2 = calcSilhouettes(p.shape[0], steps, p)
-        plotDoubleLines(seq1[1:25], seq2[1:25], np.arange(2, 26), 'SSE', 'silhouette', axs[i])
-        
-    plt.tight_layout()
-    # plt.show()
-    plt.savefig(f'{metric}_partial.png')
-```
-
-
-
-#### 图片
-
-##### 常规
-
-本质是对 numpy 二维数组(np.uint8) 绘制，或者对三维数组(第三维RGB等)绘制
-
-```python
-import matplotlib.image as mpimg
-```
-
-```python
-img = mpimg.imread('img/keepOut.jpg') #类型是numpy.ndarray
-#读JPG类型是uint8,读PNG类型是float32且有透明通道
-plt.imshow(img)
-plt.show()
-plt.savefig() #与上一行不兼容，建议加 bbox_inches='tight' 去白边框
-mpimg.imsave(des, img2) #同理保存
-#mpimg.imsave(dest, imgs[i], cmap='gray') 黑白保存
-```
-
-> 如：
->
-> ```python
-> import matplotlib.pyplot as plt
-> import matplotlib.image as mpimg
-> def keepOut(src, desc):
->     img = mpimg.imread('img/keepOut.jpg')
->     # img2 = mpimg.imread(src)
->     plt.figure(figsize=(10, 10), dpi=60)  # 600*600
->     plt.axis('off')
->     plt.imshow(img)
-> 
->     # img2 = mpimg.imread(src)
-> 
->     # w, h = [int(i) for i in img2.shape[:2]]
->     # plt.imshow(img2)
->     # plt.show()
->     plt.savefig(desc, bbox_inches='tight')
-> keepOut('cf.png', 'out.jpg')
-> ```
-
-
-
-##### 缩放叠加
-
-手写即可，记得 copy 解除只读，如：
-
-```python
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-
-
-def keepOut(src, desc, limx=150, limy=150):
-    img = mpimg.imread('img/keepOut.jpg')
-    plt.figure(figsize=(10, 10), dpi=60)  # 600*600
-    plt.axis('off')
-
-    img1 = img.copy()
-    img2 = mpimg.imread(src)
-    ox, oy = 225, 40
-    rows, cols = img2.shape[:2]
-    rx = min(rows, limx)
-    ry = min(cols, limy)
-    for i in range(rx):
-        for j in range(ry):
-            x, y = int(i/rx*rows), int(j/ry*cols)
-            img1[i+ox][j+oy] = img2[x][y][:3]
-
-    plt.imshow(img1)
-    plt.savefig(desc, bbox_inches='tight')
-```
-
-
-
-##### 灰度拉伸
-
-手写实现 matlab 的 `imshow(,[])`，如：
-
-```python
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import numpy as np
-
-img = mpimg.imread('img2.tif')
-rows, cols = img.shape[:2]
-plt.figure(figsize=(rows // 10, cols // 10), dpi=10)
-plt.axis('off')
-img2 = img.copy()
-img2 = ( (img - np.min(img) ) / (np.max(img) - np.min(img)))*255
-img2 = img2.astype(int)
-plt.imshow(img2,cmap="Greys_r") #不加参数是彩色图
-#第二个参数建议为'gray'与上者不同
-plt.savefig('img20.tif', bbox_inches='tight')
-```
-
-
-
-##### 任意位置插入
-
-[figimage](https://matplotlib.org/3.6.0/api/_as_gen/matplotlib.pyplot.figimage.html#matplotlib.pyplot.figimage)
-
-注意坐标轴以左下角为原点，x 从左到右，y 从上到下
-
-
-
-#### 文字
-
-先搞一张画布：
-
-```python
-plt.figure(figsize=(620//20, 700//20), dpi=20, facecolor='grey')
-```
-
-> 大概是y中心上角原点，x最左原点
-
-```python
-# 设置显示中文字体
-plt.rcParams['font.family'] = ['sans-serif']
-plt.rcParams['font.sans-serif'] = ['SimHei']
-```
-
-> 其他方案：deepseek
->
-> ```python
-> plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体
-> plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
-> ```
-
-重新设置坐标范围(不然范围是 $[0,1]$)，并关闭坐标轴显示
-
-```python
-plt.axis('off')
-plt.xlim([0, 620])
-plt.ylim([0, 700])
-```
-
-绘制文字：
-
-```python
-plt.text(20, 30, text4, fontsize=100)
-plt.xlabel('下标值 i',fontsize=11)
-plt.ylabel('函数值 softmax(x_i/T)',fontsize=11)
-```
-
-dpi 越高，字体辨认越好，建议 100
-
-
-
-#### 形状
-
-矩形示例：
-
-```python
-rect = mpatches.Rectangle(
-    (10, 80), 650, 200, fill=True, color="silver", alpha=0.5, zorder=1)
-plt.gca().add_patch(rect)
-```
-
-[颜色参考](https://matplotlib.org/3.6.0/gallery/color/named_colors.html#sphx-glr-gallery-color-named-colors-py)
-
-#### 动画
-
-##### 爱心放大缩小
-
-绘制爱心(散点，越外面越离散偏移值越大)
-
-```python
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-
-# 设置参数
-num_frames = 100  # 动画帧数
-heart_size = 15  # 初始爱心大小
-num_borders = 10  # 爱心边框的数量
-border_gap = 0.5  # 边框间的距离
-max_offset = 5  # 最外层边框的最大偏移量
-base_size = heart_size - num_borders * border_gap  # 最内层爱心的大小
-t_values = np.linspace(0, 2 * np.pi, 1000)  # 参数t的值，用于绘制爱心曲线
-
-def heart_curve(t, size=1):
-    """计算爱心曲线上的点。"""
-    x = 16 * size * np.sin(t)**3
-    y = 13 * size * np.cos(t) - 5 * size * np.cos(2*t) - 2 * size * np.cos(3*t) - size * np.cos(4*t)
-    return x, y
-
-# 动画更新函数
-def update_heart_curve_animation(frame, ax):
-    ax.clear()
-    expanded_heart_size = heart_size * 20  # 考虑放大因子
-    ax.set_xlim(-expanded_heart_size, expanded_heart_size)
-    ax.set_ylim(-expanded_heart_size * 1.2, 1.2 * expanded_heart_size)
-    ax.set_aspect('equal')
-    ax.axis('off')  # 隐藏坐标轴
-
-    scale_factor = 1 + np.sin(frame * np.pi / num_frames) * 0.3  # 放大缩小的比例因子
-
-    for i in range(num_borders):
-        current_size = (base_size + i * border_gap) * scale_factor  # 考虑放缩的当前边框大小
-        offset = (max_offset / num_borders) * i  # 当前边框的偏移量
-        
-        # 计算爱心曲线上的点，并根据当前帧调整大小
-        rate = (num_borders - i) / num_borders
-        t_part = np.random.choice(t_values, int(t_values.size * rate))
-        curve_x, curve_y = heart_curve(t_part, current_size)
-        
-        # 为每个点添加随机偏移
-        curve_x += np.random.normal(0, offset, curve_x.shape)
-        curve_y += np.random.normal(0, offset, curve_y.shape)
-
-        # 越靠外的边框点越细
-        point_sizes = int(6.0 * rate)
-
-        ax.scatter(curve_x, curve_y, s=point_sizes, color='red', alpha=0.6)
-
-# 创建图形和坐标轴
-fig, ax = plt.subplots()
-expanded_heart_size = heart_size * 20  # 考虑放大因子
-ax.set_xlim(-expanded_heart_size, expanded_heart_size)
-ax.set_ylim(-expanded_heart_size, 1.5 * expanded_heart_size)
-ax.set_aspect('equal')
-ax.axis('off')  # 隐藏坐标轴
-
-# 创建动画
-heart_curve_anim = FuncAnimation(fig, update_heart_curve_animation, fargs=(ax,), frames=num_frames, interval=25, blit=False)
-
-plt.show()
-```
-
-
-
-#### 举例
-
-##### 绘图集成
-
-```python
-import numpy as np
-from matplotlib_inline import backend_inline
-#from d2l import torch as d2l
-def use_svg_display():  #@save
-    backend_inline.set_matplotlib_formats('svg')
-def set_figsize(figsize=(3.5, 2.5)):  #@save
-    use_svg_display()
-    d2l.plt.rcParams['figure.figsize'] = figsize
-#@save
-def set_axes(axes, xlabel, ylabel, xlim, ylim, xscale, yscale, legend):
-    axes.set_xlabel(xlabel)
-    axes.set_ylabel(ylabel)
-    axes.set_xscale(xscale)
-    axes.set_yscale(yscale)
-    axes.set_xlim(xlim)
-    axes.set_ylim(ylim)
-    if legend:
-        axes.legend(legend)
-    axes.grid()
-#@save
-def plot(X, Y=None, xlabel=None, ylabel=None, legend=[], xlim=None,
-         ylim=None, xscale='linear', yscale='linear',
-         fmts=('-', 'm--', 'g-.', 'r:'), figsize=(3.5, 2.5), axes=None):
-    """Plot data points."""
-
-    def has_one_axis(X):  # True if X (tensor or list) has 1 axis
-        return (hasattr(X, "ndim") and X.ndim == 1 or isinstance(X, list)
-                and not hasattr(X[0], "__len__"))
-
-    if has_one_axis(X): 
-        X = [X]
-    if Y is None:
-        X, Y = [[]] * len(X), X
-    elif has_one_axis(Y):
-        Y = [Y]
-    if len(X) != len(Y):
-        X = X * len(Y)
-
-    set_figsize(figsize)
-    if axes is None:
-        axes = d2l.plt.gca()
-    axes.cla()
-    for x, y, fmt in zip(X, Y, fmts):
-        axes.plot(x,y,fmt) if len(x) else axes.plot(y,fmt)
-    set_axes(axes, xlabel, ylabel, xlim, ylim, xscale, yscale, legend)
-x = np.arange(0, 3, 0.1)
-plot(x, [f(x), 2 * x - 3], 'x', 'f(x)', legend=['f(x)', 'Tangent line (x=1)'])
-```
 
 
 
@@ -10684,7 +9471,7 @@ audiometric = pd.read_csv('audiometric.csv')
 > dtype={"fips": str}
 > ```
 
-不含表头：`header=None`
+不含表头：`header=None`；第一列当 index：`index_col=0`
 
 不含表头，已知有若干列，分配列名：
 
@@ -10763,7 +9550,7 @@ feature  [12, 34, 56]  [87, 65, 43]
 label               0             1'''
 ```
 
-orient
+orient 参数
 
 - records，每行数据作为一个独立的字
 
@@ -10810,6 +9597,12 @@ orient
 0  张三  25  北京
 1  李四  30  上海
 2  王五  28  广州
+```
+
+以其中一个读取为例(最好是读文件)
+
+```python
+print(pd.read_json('''[["张三", 25, "北京"], ["李四", 30, "上海"], ["王五", 28, "广州"]]''', orient='values'))
 ```
 
 
@@ -10909,7 +9702,7 @@ label               0             1'''
 
 ###### csv/xlsx
 
-index=True/False 控制是否有行索引
+index=True/False 控制是否有行索引，默认 true
 
 `header=False/None`（不保存列名）
 
@@ -10961,12 +9754,29 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 
 ###### json
 
+`indent=None` 输出一行，`indent=2` 指定每级缩进的单位空格数（这里是 2 个空格），让 JSON 数据按层级缩进显示
+
 `force_ascii=False`
 
 - 默认值为 `True`，此时所有非 ASCII 字符会被转义为 Unicode 编码（如 `\uXXXX`）。
 - 设置为 `False` 时，非 ASCII 字符会原样保留在输出中（更易读）。
 
 以及 orient 一样的，参见读入 json 一节的输入输出例子，倒转即可。
+
+```python
+import pandas as pd
+# 最好是读文件
+df = pd.read_json('''{ "姓名": {"0": "张三", "1": "李四", "2": "王五"},
+  "年龄": {"0": 25, "1": 30, "2": 28},
+  "城市": {"0": "北京", "1": "上海", "2": "广州"}}''')
+df.to_json('t_record.json', orient='records', force_ascii=False)
+df.to_json('t_index.json', orient='index', force_ascii=False)
+df.to_json('t_columns.json', orient='columns', force_ascii=False)
+df.to_json('t_split.json', orient='split', force_ascii=False)
+df.to_json('t_values.json', orient='values', force_ascii=False)
+```
+
+
 
 #### 基本
 
@@ -10984,7 +9794,9 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 
 取所有列(含下表列) `df.columns`，取指定列，可以 for 和取下标，得 str，可以 `.tolist()`
 
+删一列 `df.drop(columns=['col1'])`，或 `df.drop(['col1'], axis=1)`，就地则 `inplace=True`
 
+> 取一列外的全部列：`df.loc[:, df.columns != 'col1']` 或 `df[df.columns.difference(['要排除的列名'])]`
 
 > 取特定若干列：`df[['text', 'num_hashtags']]`；取一列是 series，这样取多列还是 df 类型。(tuple 不行，一定是)
 >
@@ -10995,6 +9807,26 @@ with pd.ExcelWriter("pca_result.xlsx") as writer:
 > 用列值进行 01 分类：`get_dummies`
 >
 > 每个列转大写：`df.columns = df.columns.str.upper()`
+
+取子列例子：返回都是 df，
+
+- `head(n)` 头几列，默认 5
+- `tail(n)` 尾几列，默认 5
+- `sample(n)` 随机不重几列，默认 1
+- `iloc[a:b]`中间连续下标(0开始)为 [a,b)
+
+```python
+import pandas as pd
+data = {'Name': ['Alice', 'Bob', 'Carol', 'David', 'Eva'],
+        'Age': [25, 30, 35, 40, 45],
+        'City': ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix']}
+df = pd.DataFrame(data)
+print(df.head(3))
+print(df.tail(3))
+print(df.sample(3))
+```
+
+
 
 ##### 行
 
@@ -11316,16 +10148,22 @@ for j, row in df2.items():
 
 ##### nan/null
 
+###### NA
+
 常量：`pd.NA`。
-
-判断当前元素是否是 null(如 `datetime` 的 coerce)：`pd.notnull(x)`。
-
-或对立含义 `isnull`。
 
 去掉 nan 行：`dropna()`。(返回去掉的 df，不修改原有的)
 
 ```python
 df.dropna(subset=['Column1']) # 不加就任意一行 NA 就删
+```
+
+删掉有 nan 的行，或指定列有 nan 的行：
+
+```python
+df.dropna()
+df.dropna(axis=1) #的列，而不是的行
+df.dropna(subset=['B'])
 ```
 
 `isna()`：(反义 `notna`)
@@ -11350,7 +10188,7 @@ B[A.dropna().index]
 B[A[A.isna()].index]
 ```
 
-将 nan 用一个值/一些值替换，如：`x.fillna(x.mean())`，如：
+将 nan 用一个值/一些值替换，如：`x = x.fillna(x.mean())`，计算每列均值，如果当前位置是空就把均值填进去。如：
 
 - fill 了会把 object 转成 fill 的数据类型
 - 可对一个列使用如 `df['MW'] = df['MW'].fillna(0)`
@@ -11384,9 +10222,46 @@ df['OUTAGE.START.TIME'] = pd.to_timedelta(df['OUTAGE.START.TIME'], errors='coerc
 df['OUTAGE.START.DATE'] = df['OUTAGE.START.DATE'].combine_first(pd.Timestamp(0))
 ```
 
+###### null
+
+判断当前元素是否是 null(如 `datetime` 的 coerce)：`pd.notnull(x)`。
+
+或对立含义 `isnull`。
+
+##### 去重
+
+```python
+df.duplicated() # 所有列
+df.duplicated(subset=['A', 'B']) # 检查特定列是否有重复
+df.duplicated().sum() # 计算重复行的数量
+```
+
+清理（行）冗余数据：
+
+```python
+# 删除完全重复的行（所有列值都相同）
+df_unique = df.drop_duplicates()
+#时间戳重复的脏数据,保留第一个,假设有Column为DATATIME
+df.drop_duplicates(subset = ['DATATIME'],keep='first',inplace=True)
+```
+
+取列去重，返回 `np.ndarray`
+
+```python
+vacs['A'].unique() # 获取列'A'的唯一值 类似 C++ sort unique 后
+```
+
+> 去重数目 `nunique()`
+
+类似 Python counter，取每个值出现次数：
+
+```python
+value_counts = df['A'].value_counts()
+```
 
 
-##### 数据处理
+
+##### 基础运算
 
 可以直接两列运算：`df[new_col_name] = df[col1] * df[col2]`
 
@@ -11407,21 +10282,6 @@ country_only = vacs[vacs['Country_Region'] == country]
 > df.loc[df['A'] == 'abc', 'A'] = 'def'
 > ```
 
-清理冗余数据：
-
-```python
-#时间戳重复的脏数据,保留第一个,假设有Column为DATATIME
-df.drop_duplicates(subset = ['DATATIME'],keep='first',inplace=True)
-```
-
-取列去重，返回 `np.ndarray`
-
-```python
-vacs['Country_Region'].unique()
-```
-
-> 去重数目 `nunique()`
-
 
 
 插入一个二分类列，表示某一列是否为 `np.nan`。
@@ -11430,15 +10290,7 @@ vacs['Country_Region'].unique()
 israel.assign(null_age=israel['Age'].isna()) # isna() 返回布尔列
 ```
 
-删掉有 nan 的行，或指定列有 nan 的行：
-
-```python
-df.dropna()
-df.dropna(axis=1) #的列，而不是的行
-df.dropna(subset=['B'])
-```
-
-取取值范围在区间内的列：
+取取值范围在区间内的列：(也可以用query
 
 ```python
 rows = df[(df['Age'] >= left) & (df['Age'] <= right)]
@@ -11543,7 +10395,7 @@ grouped_df = df.groupby('City').mean()
 stat_df = df.groupby('U.S._STATE')['OUTAGE.DURATION'].agg(['mean', 'count'])
 ```
 
-其他聚合函数，如 min, max, sum, size(计数),count, var(方差), median(中位数), nunique(不同值的数目)。这些聚合函数也可以直接对原表或子表使用，如 `df.min()`
+其他聚合函数，如 min, max, sum, size(计数),count, var(方差), median(中位数), nunique(不同值的数目)。这些聚合函数也可以直接对原表或子表使用，如各列最小值 `df.min()`。若按行则 `axis=1` 参数。
 
 分位数：
 
@@ -11825,11 +10677,14 @@ pivot_table = df.pivot_table(index='Gender', columns='Study_Group', values='Test
 
 ##### 查询
 
+可以达到筛选的作用。也可以 inplace 参数。
+
 满足某个字符串 eval 表达式的所有行：(返回 DataFrame)
 
 ```python
 w=pd.DataFrame([{'name':'lr580','value':580},{'name':'lr581','value':581}])
 w.query('value >= 581') #相等就 ==
+# df.query(' 0 <= acousticness_yr <= 1')
 ```
 
 > 相互等效：
@@ -11844,28 +10699,6 @@ w.query('value >= 581') #相等就 ==
 ```python
 min_date, max_date = '1900-01-01', '9999-12-31'
 case_data = case_data.query('date >= @min_date and date <= @max_date')
-```
-
-
-
-##### 子列
-
-返回都是 df，
-
-- `head(n)` 头几列，默认 5
-- `tail(n)` 尾几列，默认 5
-- `sample(n)` 随机不重几列，默认 1
-- `iloc[a:b]`中间连续下标(0开始)为 [a,b)
-
-```python
-import pandas as pd
-data = {'Name': ['Alice', 'Bob', 'Carol', 'David', 'Eva'],
-        'Age': [25, 30, 35, 40, 45],
-        'City': ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix']}
-df = pd.DataFrame(data)
-print(df.head(3))
-print(df.tail(3))
-print(df.sample(3))
 ```
 
 
@@ -12788,6 +11621,1350 @@ wb.save('99mul.xlsx')
 > }
 > ```
 
+## 数据绘图
+
+### matplotlib
+
+是第三方库，需要手动安装。[官方文档](https://matplotlib.org/3.6.0/gallery/index.html)
+
+通常如此加载：
+
+```python
+import matplotlib.pyplot as plt
+```
+
+#### 基础绘图
+
+##### 基础
+
+分为绘制和展示两部分：
+
+```python
+plt.plot(数据) #折线图
+plt.show() #如果plot多次，自动赋予不同颜色
+```
+
+如：
+
+```python
+plt.plot([1,4,9,16,25])#点(0,1),(1,4),...，下类同;也可以nparray
+plt.plot([-1,-1,-1,-1])
+plt.show()
+```
+
+保存到文件：(重名覆盖)
+
+```python
+plt.savefig(输出文件名含后缀)
+```
+
+> `bbox_inches='tight'` 参数可以确保图形的所有部分都能适当显示，不会被裁剪
+
+##### 折线
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df = pd.read_csv('results1.csv')
+df['month'] = pd.to_datetime(df['month'])
+
+plt.figure(figsize=(9,6))
+for country in df['country'].unique():
+    country_data = df[df['country'] == country]
+    plt.plot(country_data['month'], country_data['monthly_active_users'], marker='o', label=country.upper())
+
+plt.title('Monthly Active Users by Country (2023)')
+plt.xlabel('Month')
+plt.ylabel('Monthly Active Users')
+plt.legend(title='Country')
+plt.grid(True)
+plt.xticks(df['month'].unique(), rotation=45)
+plt.tight_layout() 
+
+plt.show()
+```
+
+> 数据文件参考：
+>
+> ```
+> month,country,monthly_active_users
+> 2023-01-01T00:00:00.000Z,au,2815
+> 2023-01-01T00:00:00.000Z,ca,3405
+> 2023-01-01T00:00:00.000Z,gb,7135
+> 2023-01-01T00:00:00.000Z,us,19833
+> 2023-02-01T00:00:00.000Z,au,2178
+> 2023-02-01T00:00:00.000Z,ca,2707
+> 2023-02-01T00:00:00.000Z,gb,6672
+> 2023-02-01T00:00:00.000Z,us,18391
+> 2023-03-01T00:00:00.000Z,au,13
+> 2023-03-01T00:00:00.000Z,ca,5
+> 2023-03-01T00:00:00.000Z,gb,25
+> 2023-03-01T00:00:00.000Z,us,71
+> ```
+
+##### 散点
+
+绘制二维散点点图：[具体参考](https://www.runoob.com/matplotlib/matplotlib-scatter.html)
+
+```python
+plt.scatter([1,5,10],[-3,-2,-1],s=10)
+#s是点的面积，画三个点(1,-3),(5,-2),...
+```
+
+```python
+plt.scatter([1,5,10],[-3,-2,-1],s=100,edgecolor='none')
+#点比较连续的时候增设一个默认参数显示效果更佳
+```
+
+可以绘制单个点：
+
+```python
+plt.scatter(1,2,s=50)
+```
+
+可以用marker属性描述点型：(每个点实心) [参考](https://www.runoob.com/matplotlib/matplotlib-marker.html)
+
+```python
+marker='x'; marker='o'
+```
+
+> - markersize，简写为 ms：定义标记的大小。
+> - markerfacecolor，简写为 mfc：定义标记内部的颜色。
+> - markeredgecolor，简写为 mec：定义标记边框的颜色。
+>
+> ```python
+> plt.plot(ypoints, marker = 'o', ms = 20, mec = 'r')
+> plt.plot(ypoints, marker = 'o', ms = 20, mec = '#4CAF50', mfc = '#4CAF50')
+> ```
+
+多个颜色：
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+n = 5000
+points = np.random.rand(n, 2)
+labels = np.random.randint(0, 15, n)  # 15个类别
+# 使用tab20 colormap
+plt.figure(figsize=(8, 6))
+plt.scatter(points[:, 0], points[:, 1], c=labels, cmap='tab20', alpha=0.7)
+plt.title('Scatter Plot with Different Colors for Each Class')
+plt.colorbar(label='Class')
+plt.show()
+```
+
+
+
+##### 柱状
+
+打横：
+
+```python
+def plot(words, scores, top_k = 10):
+    top_k_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+    top_words = [words[i] for i in top_k_indices]
+    top_scores = [scores[i] for i in top_k_indices]
+    plt.figure(figsize=(5, 8))
+    plt.barh(top_words, top_scores, color='skyblue')
+    plt.xlabel('TF-IDF Score')
+    plt.title(f'Top {top_k} Words by TF-IDF Score')
+    plt.gca().invert_yaxis()  # 反转 y 轴，使得最高分的单词在顶部
+    plt.show()
+```
+
+
+
+多个合并
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+data = pd.read_csv('results2.csv', parse_dates=['cohort_month'])
+data['cohort_month'] = data['cohort_month'].dt.strftime('%Y-%m')
+
+plt.figure(figsize=(9, 6))
+# 折线图
+# for label, df in data.groupby('cohort_month'):
+    # plt.plot(df['attr_puzzle_level'], df['number_of_completers'], label=label)
+for i, group in data.groupby('cohort_month'):
+    plt.bar(group['attr_puzzle_level'] + 0.15 * (pd.to_datetime(i).month - 7), 
+            group['number_of_completers'], 
+            width=0.3, 
+            label=f'Cohort {i}')
+
+plt.title('Completers per Level by Monthly Cohort')
+plt.xlabel('Puzzle Level')
+plt.ylabel('Number of Completers')
+plt.legend(title='Cohort Month')
+plt.grid(True)
+plt.show()
+```
+
+> ```
+> cohort_month,attr_puzzle_level,number_of_completers
+> 2023-07-01T00:00:00.000Z,1,1340
+> 2023-07-01T00:00:00.000Z,2,1258
+> 2023-07-01T00:00:00.000Z,3,1250
+> 2023-08-01T00:00:00.000Z,1,1363
+> 2023-08-01T00:00:00.000Z,2,1263
+> 2023-08-01T00:00:00.000Z,3,1215
+> 2023-09-01T00:00:00.000Z,1,1146
+> 2023-09-01T00:00:00.000Z,2,1095
+> 2023-09-01T00:00:00.000Z,3,1062
+> ```
+
+
+
+##### 其他
+
+[柱状图参考](https://www.runoob.com/matplotlib/matplotlib-bar.html)
+
+[饼图参考](https://www.runoob.com/matplotlib/matplotlib-pie.html)
+
+横纵坐标旋转：`plot(ylt,xlt)`
+
+```python
+lt = list(range(img.shape[0]-1, -1, -1))
+plt.plot(sumHori, lt) #x坐标点集, y坐标点集
+```
+
+> ```python
+> # 画多条线, fmt 是颜色等, [表示可选]
+> plot([x], y, [fmt], [x2], y2, [fmt2], ..., **kwargs)
+> plot(x, y, 'bo')  # 创建 y 中数据与 x 中对应值的二维线图，使用蓝色实心圈绘制(o是空心散点而不是无点折线)
+> plot(y, 'r+')     # 使用红色 + 号
+> # fmt = '[marker][line][color]'
+> # 例如 o:r，o 表示实心圆标记，: 表示虚线，r 表示颜色为红色。
+> ```
+>
+> [具体参考](https://www.runoob.com/matplotlib/matplotlib-marker.html)
+
+
+
+##### 举例
+
+###### 横纵坐标转置
+
+```python
+img = cv2.imread('../../imgs/02.png')
+img = toGrey(img)
+img = toBinary(img, getThrestHold(img)) #二值图像
+sumVert = ((255-img)//255).sum(axis=0)
+sumHori = ((255-img)//255).sum(axis=1)
+
+plt.subplot(221)
+plt.imshow(img, 'gray')
+plt.subplot(222)
+# lt = list(range(img.shape[0]-1, -1, -1))
+lt = list(range(img.shape[0]))
+plt.ylim(img.shape[0], 0)  # 这个倒了lt自己也会倒
+plt.plot(sumHori, lt)
+plt.subplot(223)
+plt.plot(sumVert)
+plt.show()
+```
+
+###### 半平面和点涂色
+
+```python
+w = [1, -1, -1] # 1-x_1-x_2
+def g2(): # 分界线所在也是红色的
+    c, a, b = w
+    
+    x = np.linspace(-1, 2, 400)
+    y = np.linspace(-1, 2, 400)
+    X, Y = np.meshgrid(x, y)
+
+    Z = a*X + b*Y + c
+
+    plt.figure(figsize=(6,6))
+    plt.contourf(X, Y, Z, levels=[0, Z.max()], colors='red', alpha=0.3)
+
+    points = {'(0,0)': (0, 0), '(0,1)': (0, 1), '(1,0)': (1, 0), '(1,1)': (1, 1)}
+    for label, (x, y) in points.items():
+        color = 'blue' if label == '(1,1)' else 'red'
+        plt.scatter(x, y, color=color)
+        plt.text(x, y, label, fontsize=12, horizontalalignment='right')
+
+    plt.xlim(-1, 2)
+    plt.ylim(-1, 2)
+    plt.axhline(0, color='black',linewidth=0.5)
+    plt.axvline(0, color='black',linewidth=0.5)
+    plt.grid(color = 'gray', linestyle = '--', linewidth = 0.5)
+    plt.title('Graph of ax + by + c >= 0 with specific points marked')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.show()
+```
+
+###### 等高线图
+
+二元正态分布(给定半正定矩阵)的等高图：
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import multivariate_normal
+
+# 定义均值和协方差矩阵
+mean = [0, 0]
+cov = [[3, -1], [-1, 3]]  # 对角线上是方差，非对角线上是协方差
+
+# 生成网格点
+x, y = np.linspace(-3, 3, 300), np.linspace(-3, 3, 300)
+X, Y = np.meshgrid(x, y)
+
+# 多元正态分布的PDF
+pos = np.dstack((X, Y))
+rv = multivariate_normal(mean, cov)
+Z = rv.pdf(pos)
+
+# 绘制等高线图
+plt.contour(X, Y, Z, levels=10, cmap='viridis')  # 使用viridis颜色图
+plt.colorbar()  # 显示颜色条
+plt.title('二元高斯分布的等高线图')
+plt.xlabel('X')
+plt.ylabel('Y')
+plt.axis('equal')
+plt.show()
+```
+
+
+
+#### 绘图
+
+##### 等高线
+
+poe
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 创建网格数据
+x = np.linspace(-2, 2, 50)
+y = np.linspace(-2, 2, 50)
+XX, YY = np.meshgrid(x, y)
+
+# 定义函数 Z
+Z = XX**2 + YY**2  # 一个简单的抛物面
+
+# 创建图形和坐标轴
+fig, ax = plt.subplots()
+
+# 绘制等高线
+ax.contour(XX, YY, Z, colors='b', levels=[0, 1, 2, 3], alpha=0.7)
+
+# 添加标题和标签
+ax.set_title('Simple Contour Plot')
+ax.set_xlabel('X-axis')
+ax.set_ylabel('Y-axis')
+
+# 显示图形
+plt.show()
+```
+
+
+
+#### 属性
+
+##### 基本
+
+图表预设定：(必须放在绘图，如scatter之前)
+
+图的大小：(宽、高)
+
+```python
+plt.figure(figsize=(10,5))
+plt.figure(figsize=(10,5),dpi=128) #改单位
+```
+
+属性：[参考](https://www.runoob.com/matplotlib/matplotlib-marker.html)
+
+> **颜色字符：**'b' 蓝色，'m' 洋红色，'g' 绿色，'y' 黄色，'r' 红色，'k' 黑色，'w' 白色，'c' 青绿色，'#008000' RGB 颜色符串。多条曲线不指定颜色时，会自动选择不同颜色。
+>
+> **线型参数：**'‐' 实线，'‐‐' 破折线，'‐.' 点划线，':' 虚线。
+>
+> **标记字符：**'.' 点标记，',' 像素标记(极小点)，'o' 实心圈标记，'v' 倒三角标记，'^' 上三角标记，'>' 右三角标记，'<' 左三角标记., 'H' 六边形, 'D'菱形..等等。(marker)
+>
+> ```python
+> plot(y, 'r+')     # 使用红色 + 号
+> ```
+
+- 线宽 linewidth / lw
+
+  ```python
+  plt.plot(ypoints, linewidth = '12.5')
+  ```
+
+- 线形状linestyle [参考](https://www.runoob.com/matplotlib/matplotlib-line.html)
+
+  ```python
+  plt.plot(ypoints, linestyle = 'dotted')
+  ```
+
+- 线色 c / color，使用单词或范围为$[0,1]$的RGB三元tuple（1浅0深），一般使用单词即可，使用tuple可能会出问题 [参考](https://www.runoob.com/html/html-colorvalues.html)
+
+  颜色可以映射，如：
+
+  ```python
+  xv=list(range(1,1001))
+  yv=[x**2 for x in xv] #蓝色由浅到深
+  plt.scatter(xv,yv,s=40,edgecolor='none',c=yv,cmap=plt.cm.Blues)
+  ```
+
+- 图例名字label [带中文参考](https://www.runoob.com/matplotlib/matplotlib-label.htmls)
+
+图表基本设定：
+
+```python
+plt.title('A title',fontsize=24) #标题设置
+plt.xlabel('xv',fontsize=14) #x轴名字
+plt.ylabel('saw',fontsize=14) 
+plt.tick_params(axis='both',labelsize=14) #或x或y，坐标上数字大小
+```
+
+> ```python
+> import numpy as np
+> from matplotlib import pyplot as plt
+> import matplotlib
+> 
+> # fname 为 你下载的字体库路径，注意 SourceHanSansSC-Bold.otf 字体的路径，size 参数设置字体大小
+> zhfont1 = matplotlib.font_manager.FontProperties(fname="SourceHanSansSC-Bold.otf", size=18)
+> font1 = {'color':'blue','size':20}
+> font2 = {'color':'darkred','size':15}
+> x = np.arange(1,11)
+> y =  2  * x +  5
+> 
+> # fontdict 可以使用 css 来设置字体样式
+> plt.title("菜鸟教程 - 测试", fontproperties=zhfont1, fontdict = font1)
+> 
+> # fontproperties 设置中文显示，fontsize 设置字体大小
+> plt.xlabel("x 轴", fontproperties=zhfont1)
+> plt.ylabel("y 轴", fontproperties=zhfont1)
+> plt.plot(x,y)
+> plt.show()
+> ```
+>
+> title() 方法提供了 loc 参数来设置标题显示的位置，可以设置为: 'left', 'right', 和 'center'， 默认值为 'center'。
+>
+> xlabel() 方法提供了 loc 参数来设置 x 轴显示的位置，可以设置为: 'left', 'right', 和 'center'， 默认值为 'center'。
+>
+> ylabel() 方法提供了 loc 参数来设置 y 轴显示的位置，可以设置为: 'bottom', 'top', 和 'center'， 默认值为 'center'。
+
+##### 点样式
+
+```python
+plt.plot(dimensions, min_distances, marker='o')
+```
+
+- `'o'`: 圆圈
+- `'.'`: 点
+- `'^'`: 上三角
+- `'v'`: 下三角
+- `'<'`: 左三角
+- `'>'`: 右三角
+- `'s'`: 正方形
+- `'p'`: 五边形
+- `'*'`: 星号
+- `'+'`: 加号
+- `'x'`: 叉号
+- `'D'`: 菱形
+- `'H'`: 六边形
+
+`alpha=1` 不透明，0透明；`s=40` 尺寸。`color=xxxx`
+
+##### 坐标轴
+
+锁定坐标轴范围为$x\in[-12,12],y\in[-5,5]$。也可以用 `xlim(a,b)`, `ylim`。可以 $a\ge b$ 则画图序列也跟着倒序。
+
+```python
+plt.axis([-12,12,-5,5]) 
+```
+
+设置坐标轴坐标尺(每隔多少显示一次数字)：(y同理)
+
+```python
+plt.gca().xaxis.set_major_locator(plt.MultipleLocator(1))
+```
+
+只显示特定的几个刻度：
+
+```python
+start_date = df['date'].min()
+end_date = df['date'].max()
+middle_date = df['date'][int(len(df['date']) / 2)]
+axs[i].set_xticks([start_date, middle_date, end_date])
+```
+
+
+
+隐藏坐标轴：(与上面不会冲突)(该命令会引发warning)
+
+```python
+plt.axes().get_xaxis().set_visible(False)
+plt.axes().get_yaxis().set_visible(False)
+```
+
+不显示坐标轴：
+
+```python
+plt.axis('off')
+```
+
+对数坐标轴：
+
+```python
+plt.xscale('log')
+```
+
+横纵相等：
+
+```python
+plt.axis('equal')
+```
+
+
+
+日期：
+
+```python
+fig.autofmt_xdate()
+```
+
+这个方法用于自动格式化 x 轴上的日期标签，使它们倾斜以防止标签之间的重叠。默认情况下，日期标签可能会水平排列，当标签过多时很容易相互覆盖，导致无法清晰阅读。`fig.autofmt_xdate()` 会将这些标签倾斜（通常是45度倾斜），从而改善图表的可读性。
+
+##### 标题
+
+`plt.title()`作用: 用于为单个子图添加标题。
+
+`plt.suptitle()`作用: 用于为整个图形添加一个大标题。
+
+标题都在上方。
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+x = np.linspace(0, 10, 100)
+y1 = np.sin(x)
+y2 = np.cos(x)
+
+fig, axs = plt.subplots(2, 1, figsize=(8, 6))
+axs[0].plot(x, y1)
+axs[0].set_title('正弦波')
+axs[1].plot(x, y2)
+axs[1].set_title('余弦波')
+
+plt.suptitle('三角函数图', fontsize=16)
+plt.tight_layout(rect=[0, 0, 1, 0.95])  # 确保整体标题不被遮挡
+plt.show()
+```
+
+
+
+##### 图例
+
+图例使用：
+
+```python
+plt.scatter([0,2,3,4],[3,3,2,3],label='pic1',c='chocolate')
+plt.plot([0,1,2,3,4],label='pic2')
+plt.legend(loc=2)
+plt.show()
+```
+
+loc控制图例的方位，具体为：$\left[\matrix{2&3\\1&4}\right]$
+
+```python
+ax1.legend(loc='upper right')
+ax2.legend(loc='upper right', bbox_to_anchor=(1, 1))
+```
+
+bbox to anchor:
+
+第一个值（x 轴位置）：范围通常在 0 到 1 之间，表示相对于图表宽度的比例。1 表示右边缘，0 表示左边缘。
+
+第二个值（y 轴位置）：同样在 0 到 1 之间，表示相对于图表高度的比例。1 表示顶部，0 表示底部。
+
+双图(twin)，画完第一个图，第二个图会把第一个图的图例挡住，gpt 4o mini：
+
+```python
+handles1, labels1 = ax1.get_legend_handles_labels()
+handles2, labels2 = ax2.get_legend_handles_labels()
+handles = [Patch(color='b', label='Ward Hierarchical Cluster'), Patch(color='r', label='GMM (KMeans++ Init) Cluster')]
+ax2.legend(handles=handles, loc='upper right')
+```
+
+透明度：
+
+```python
+[Patch(color=c1, alpha=1, label=y1name), Patch(color=c2, alpha=1, label=y2name)]
+```
+
+
+
+##### 网格
+
+添加网格：[参考](https://www.runoob.com/matplotlib/matplotlib-grid.html)
+
+```python
+plt.grid()
+```
+
+> - b：可选，默认为 None，可以设置布尔值，true 为显示网格线，false 为不显示，如果设置 `**kwargs` 参数，则值为 true。
+> - which：可选，可选值有 'major'、'minor' 和 'both'，默认为 'major'，表示应用更改的网格线。
+> - axis：可选，设置显示哪个方向的网格线，可以是取 'both'（默认），'x' 或 'y'，分别表示两个方向，x 轴方向或 y 轴方向。
+> - `**kwargs`：可选，设置网格样式，可以是 color='r', linestyle='-' 和 linewidth=2，分别表示网格线的颜色，样式和宽度。
+
+##### 字体大小
+
+每个 word 的 scores 的打横条形图
+
+```python
+def plot(words, scores, top_k = 10):
+    top_k_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+    top_words = [words[i] for i in top_k_indices]
+    top_scores = [scores[i] for i in top_k_indices]
+
+    plt.figure(figsize=(5, 8))
+    plt.barh(top_words, top_scores, color='skyblue')
+    plt.xlabel('TF-IDF Score',fontsize=14)
+    plt.title(f'Top {top_k} Words by TF-IDF Score', fontsize=16)
+    plt.gca().invert_yaxis()  # 反转 y 轴，使得最高分的单词在顶部
+    plt.xticks(fontsize=12)  # 增大x轴刻度字体
+    plt.yticks(fontsize=12)  # 增大y轴刻度字体
+    plt.tight_layout()  # 自动调整子图参数
+    plt.show()
+```
+
+```python
+ax.tick_params(axis='both', which='major', labelsize=14)  # 坐标轴刻度
+plt.legend(loc="upper left", fontsize=16)
+```
+
+
+
+##### 颜色
+
+colormap
+
+- `tab20` 20色
+- `viridis` 深紫色到亮黄色的连续渐变
+
+```python
+plt.scatter(points[:, 0], points[:, 1], c=labels, cmap='tab20', alpha=0.7)
+```
+
+
+
+##### 保存
+
+保存图表：
+
+```python
+plt.savefig('pic.png',bbox_inches='tight') #必须在show之前
+```
+
+
+
+举例：
+
+```python
+import matplotlib.pyplot as plt
+
+xv = list(range(1, 27))
+yv = [1, 2, 4, 8, 16, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 21, 22, 23, 24, 25, 26, 1, 2, 3, 4]
+plt.figure(figsize=(13, 8))
+plt.grid()
+plt.plot(xv, yv, 'o-') #点线形状
+plt.xlabel('n')
+plt.ylabel('cwnd')
+for i in zip(xv, yv): #写文本
+    plt.annotate('%s' % i[1], xy=(i[0], i[1] + 1))
+plt.show()
+```
+
+##### 日期
+
+日期格式：
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.dates import DateFormatter
+data = pd.read_csv('results3.csv')
+data['cohort'] = pd.to_datetime(data['cohort'])
+plt.plot(data['cohort'], data['avg_time_to_first_purchase'], marker='o')
+plt.title('Average Time to First Purchase')
+plt.xlabel('Cohort')
+plt.ylabel('Average Time (days)')
+
+date_formatter = DateFormatter('%Y-%m-%d')
+plt.gca().xaxis.set_major_formatter(date_formatter)
+
+# 自动调整日期标签以避免重叠
+plt.gcf().autofmt_xdate()
+plt.show()
+```
+
+```
+cohort,avg_time_to_first_purchase
+2023-01-01T00:00:00.000Z,4
+2023-02-01T00:00:00.000Z,19
+2023-04-01T00:00:00.000Z,39
+```
+
+日期做 y 轴的多图折线例子：
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+import datetime
+from matplotlib.dates import DateFormatter, HourLocator
+
+# 1. 生成时间序列（5分钟间隔，288个点）
+start_time = datetime.datetime(2018, 1, 7, 0, 0, 0)
+time_points = [start_time + datetime.timedelta(minutes=5*i) for i in range(288)]
+
+# 2. 生成示例数据（3条折线）
+np.random.seed(42)  # 固定随机种子以便复现
+y1 = np.random.randn(288).cumsum()          # 折线1：随机游走
+y2 = np.sin(np.linspace(0, 4*np.pi, 288))   # 折线2：正弦波
+y3 = np.linspace(0, 100, 288)               # 折线3：线性增长
+
+# 3. 设置图像大小和样式
+plt.figure(figsize=(10, 4))  # 固定长宽比（英寸）
+
+# 4. 绘制多条折线
+plt.plot(time_points, y1, label="随机指标", color="#1f77b4", linewidth=1.5)
+plt.plot(time_points, y2, label="周期指标", color="#ff7f0e", linewidth=1.5, linestyle="--")
+plt.plot(time_points, y3, label="增长指标", color="#2ca02c", linewidth=1.5, linestyle=":")
+
+class ForceFourDigitYearFormatter(DateFormatter):
+    def __call__(self, x, pos=None):
+        result = super().__call__(x, pos)
+        if len(result.split('-')[0]) == 2:  # 如果年份是两位
+            return "20" + result  # 补全为四位
+        return result
+
+# 5. 优化坐标轴显示
+ax = plt.gca()
+# ax.xaxis.set_major_formatter(DateFormatter("%y-%m-%d %H:%M"))  # 时间格式化为"小时:分钟"
+ax.xaxis.set_major_formatter(ForceFourDigitYearFormatter("%Y-%m-%d %H:%M"))
+ax.xaxis.set_major_locator(HourLocator(interval=6))   # 每3小时一个主刻度
+# plt.xticks(rotation=45)                              # 旋转X轴标签
+
+# 6. 添加图表元素
+plt.title("24小时多指标监控（5分钟粒度）", fontsize=14, pad=20)
+plt.xlabel("时间", fontsize=12)
+plt.ylabel("指标值", fontsize=12)
+plt.grid(True, linestyle="--", alpha=0.5)
+plt.legend(loc="upper left", fontsize=10)
+
+# 7. 固定长宽比（可选）
+# ax.set_aspect("auto")  # 默认自动调整
+# ax.set_aspect(0.05)    # 手动调整Y/X轴比例
+
+# 8. 保存或显示
+plt.tight_layout()
+plt.savefig("multi_line_time_series.png", dpi=300, bbox_inches="tight")
+plt.show()
+```
+
+
+
+#### 双图重合
+
+##### 双折线
+
+```python
+x = np.arange(0, 10, 0.1)
+y1 = np.sin(x)  # 第一个数据集
+y2 = np.exp(x / 5)  # 第二个数据集
+fig, ax1 = plt.subplots()
+ax1.plot(x, y1, 'b-', label='sin(x)')
+ax1.set_xlabel('X轴')
+ax1.set_ylabel('sin(x)', color='b')
+ax1.tick_params(axis='y', labelcolor='b')
+ax2 = ax1.twinx()
+ax2.plot(x, y2, 'r-', label='exp(x/5)')
+ax2.set_ylabel('exp(x/5)', color='r')
+ax2.tick_params(axis='y', labelcolor='r')
+ax1.legend(loc='upper left')
+ax2.legend(loc='upper right')
+plt.title('双y轴折线图示例')
+plt.show()
+```
+
+##### 双柱状
+
+两个柱状图(尺度一样)
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+labels = ['指标 1', '指标 2']
+result_A = [50, 80]
+result_B = [70, 60]
+x = np.arange(len(labels)) 
+width = 0.35 
+
+fig, ax = plt.subplots()
+bars1 = ax.bar(x - width/2, result_A, width, label='结果 A')
+bars2 = ax.bar(x + width/2, result_B, width, label='结果 B')
+
+ax.set_ylabel('值')
+ax.set_title('结果对比')
+ax.set_xticks(x)
+ax.set_xticklabels(labels)
+ax.legend()
+plt.show()
+```
+
+(尺度不一样)
+
+```python
+def compareWardAndGMM(seed=8914, show=False):
+    '''对比Ward和GMM的聚类结果'''
+    p = utils.readCSV()
+    p_dist = utils.getDisMatrix(p)
+    with open('steps_ward.txt', 'r') as f:
+        steps = eval(f.read())
+    label_ward = cluster.ClusterFromSteps(p.shape[0], steps, 15)
+    sse_ward = calcSSE(p, label_ward, 15) # 大整数
+    silhouette_ward = calcSilhouette(p_dist, label_ward) # 小整数
+    label_gmm, model = gmm.GMMcluster(p, 15, 'kmeans++', seed)
+    sse_gmm = calcSSE(p, label_gmm, 15) # 大整数
+    silhouette_gmm = calcSilhouette(p_dist, label_gmm) # 小整数
+
+    labels = ['SSE', 'Silhoutte Coefficient']
+    fig, ax1 = plt.subplots()
+    width = 0.35 # 柱子宽
+    x = np.arange(2)
+    ax1.bar(x - width/2, [sse_ward, sse_gmm], width, label='Ward Hierarchical Cluster', color='b')
+    ax1.set_ylabel('SSE')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(labels)
+    
+    ax2 = ax1.twinx()  # 共享x轴
+    ax2.bar(x + width/2, [silhouette_ward, silhouette_gmm], width, label='GMM (KMeans++ Init) Cluster', color='r')
+    ax2.set_ylabel('Silhouette Coefficient')
+    
+    # ax1.legend(loc='upper right')
+    # ax2.legend(loc='upper right', bbox_to_anchor=(1, 0.9))
+    handles1, labels1 = ax1.get_legend_handles_labels()
+    handles2, labels2 = ax2.get_legend_handles_labels()
+    handles = [Patch(color='b', label='Ward Hierarchical Cluster'), Patch(color='r', label='GMM (KMeans++ Init) Cluster')]
+    ax2.legend(handles=handles, loc='upper right')
+    
+    plt.title('Ward Hierarchical Cluster VS GMM Cluster')
+    if show:
+        plt.show()
+    else:
+        plt.savefig(f'Ward_vs_GMM_compare.png')
+```
+
+
+
+#### 子图
+
+##### 不重叠
+
+```python
+subplot(nrows, ncols, index, **kwargs)
+subplot(pos, **kwargs)
+subplot(**kwargs)
+subplot(ax)
+```
+
+以上函数将整个绘图区域分成 nrows 行和 ncols 列，然后从左到右，从上到下的顺序对每个子区域进行编号 `1...N` ，左上的子区域的编号为 1、右下的区域编号为 N，编号可以通过参数 index 来设置。
+
+###### 例子
+
+> ```python
+> import matplotlib.pyplot as plt
+> import numpy as np
+> 
+> #plot 1:
+> x = np.array([0, 6])
+> y = np.array([0, 100])
+> 
+> plt.subplot(2, 2, 1)
+> plt.plot(x,y)
+> plt.title("plot 1") #子图标题
+> 
+> #plot 2:
+> x = np.array([1, 2, 3, 4])
+> y = np.array([1, 4, 9, 16])
+> 
+> plt.subplot(2, 2, 2)
+> plt.plot(x,y)
+> plt.title("plot 2")
+> 
+> #plot 3:
+> x = np.array([1, 2, 3, 4])
+> y = np.array([3, 1, 4, 2])
+> 
+> plt.subplot(2, 2, 3)
+> plt.plot(x,y)
+> plt.title("plot 3")
+> 
+> #plot 4:
+> x = np.array([1, 2, 3, 4])
+> y = np.array([4, 3, 2, 1])
+> 
+> plt.subplot(224) #这样也行
+> plt.plot(x,y)
+> plt.title("plot 4")
+> 
+> plt.suptitle("RUNOOB subplot Test") #大标题
+> plt.show()
+> ```
+
+> ```python
+> import numpy as np
+> import matplotlib.pyplot as plt
+> 
+> def generate_data(d):
+>  """生成 d 维的数据集，每个维度包含 1000 个点，每个点的坐标在 [-1, 1] 之间随机生成。"""
+>  return np.random.uniform(-1, 1, (1000, d))
+> 
+> def calculate_distances(data):
+>  """计算数据集中的点到原点的欧氏距离，并返回最近和最远的距离。"""
+>  distances = np.sqrt(np.sum(data**2, axis=1))
+>  return np.min(distances), np.max(distances)
+> 
+> # 设定一系列维度 d
+> dimensions = [2, 4, 8, 16, 32, 64, 128, 256, 512]
+> min_distances = []
+> max_distances = []
+> 
+> # 对于每个维度，生成数据并计算距离
+> for d in dimensions:
+>  data = generate_data(d)
+>  min_dist, max_dist = calculate_distances(data)
+>  min_distances.append(min_dist)
+>  max_distances.append(max_dist)
+> 
+> # 绘制图表
+> plt.figure(figsize=(14, 6))
+> 
+> # △0(d) 随 d 变化的图表
+> plt.subplot(1, 2, 1)
+> plt.plot(dimensions, min_distances, marker='o')
+> plt.xlabel('Dimension d')
+> plt.ylabel('Minimum Distance to Origin (△0(d))')
+> plt.title('Minimum Distance to Origin vs Dimension')
+> plt.xscale('log')
+> 
+> # △1(d)/△0(d) 随 d 变化的图表
+> plt.subplot(1, 2, 2)
+> plt.plot(dimensions, np.array(max_distances) / np.array(min_distances), marker='o')
+> plt.xlabel('Dimension d')
+> plt.ylabel('Ratio of Max to Min Distance (△1(d)/△0(d))')
+> plt.title('Ratio of Max to Min Distance vs Dimension')
+> plt.xscale('log')
+> 
+> plt.tight_layout()
+> plt.show()
+> ```
+
+##### 重叠
+
+三个折线图为例。
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+# 创建数据
+x = np.arange(10)
+y1 = np.random.rand(10)
+y2 = np.random.rand(10)
+y3 = np.random.rand(10)
+
+# 创建子图
+fig, ax = plt.subplots()
+
+# 绘制三条折线图
+ax.plot(x, y1, label='Line 1')
+ax.plot(x, y2, label='Line 2')
+ax.plot(x, y3, label='Line 3')
+
+# 添加图例
+ax.legend()
+
+# 显示图形
+plt.show()
+```
+
+##### 参数
+
+`plt.tight_layout()`: 这个方法自动调整子图参数，以确保图表的内容（如轴标题、轴标签等）不会相互重叠，并且整体布局看起来整洁。这是一种自动管理图表内部元素间距的方式，尤其在创建多个子图时非常有用。
+
+##### flatten
+
+```python
+fig, axs = plt.subplots(2, 2, figsize=(8, 6))
+axs = axs.flatten()  # 将子图数组扁平化，方便索引
+ax1 = axs[i] # 绘制第 i 个子图，
+ax1.plot(np.arange(2, len(seq_sse) + 2) #...即把fig都换成ax1
+```
+
+##### 双折线子图
+
+```python
+def plotDoubleLines(y1, y2, x, y1name, y2name, ax1):
+    '''绘制双Y轴折线图给定两个序列为y1,y2，x轴为x，两个序列名字为y1name,y2name'''
+    ax1.set_xlabel('Number of Clusters')
+    c1, c2 = 'lightcoral', 'steelblue' # 绘图颜色(teal, orange)
+    
+    ax1.plot(x, y1, marker='o', label=y1name, color=c1)
+    ax1.set_ylabel(y1name, color=c1)
+    ax1.tick_params(axis='y', labelcolor=c1)
+    
+    ax2 = ax1.twinx()
+    ax2.plot(x, y2, marker='o', label=y2name, color=c2)
+    ax2.set_ylabel(y2name, color=c2)
+    ax2.tick_params(axis='y', labelcolor=c2)
+
+    ax1.legend(loc='upper left')
+    ax2.legend(loc='upper right')
+    ax1.grid()
+def plotLines(metric):
+    '''绘图展示四种聚类的指标(metric)可取SSE和silhouette和both'''
+    p = utils.readCSV()
+    fig, axs = plt.subplots(2, 2, figsize=(8, 6))
+    axs = axs.flatten()  # 将子图数组扁平化，方便索引
+    
+    for i, type_ in enumerate(cluster.ALL_TYPES):
+        with open(f'steps_{type_}.txt', 'r') as f:
+            steps = eval(f.read())
+        plt.subplot(2,2,i+1)
+        seq1= calcSSEs(p.shape[0], steps, p)
+        seq2 = calcSilhouettes(p.shape[0], steps, p)
+        plotDoubleLines(seq1[1:25], seq2[1:25], np.arange(2, 26), 'SSE', 'silhouette', axs[i])
+        
+    plt.tight_layout()
+    # plt.show()
+    plt.savefig(f'{metric}_partial.png')
+```
+
+
+
+#### 图片
+
+##### 常规
+
+本质是对 numpy 二维数组(np.uint8) 绘制，或者对三维数组(第三维RGB等)绘制
+
+```python
+import matplotlib.image as mpimg
+```
+
+```python
+img = mpimg.imread('img/keepOut.jpg') #类型是numpy.ndarray
+#读JPG类型是uint8,读PNG类型是float32且有透明通道
+plt.imshow(img)
+plt.show()
+plt.savefig() #与上一行不兼容，建议加 bbox_inches='tight' 去白边框
+mpimg.imsave(des, img2) #同理保存
+#mpimg.imsave(dest, imgs[i], cmap='gray') 黑白保存
+```
+
+> 如：
+>
+> ```python
+> import matplotlib.pyplot as plt
+> import matplotlib.image as mpimg
+> def keepOut(src, desc):
+>  img = mpimg.imread('img/keepOut.jpg')
+>  # img2 = mpimg.imread(src)
+>  plt.figure(figsize=(10, 10), dpi=60)  # 600*600
+>  plt.axis('off')
+>  plt.imshow(img)
+> 
+>  # img2 = mpimg.imread(src)
+> 
+>  # w, h = [int(i) for i in img2.shape[:2]]
+>  # plt.imshow(img2)
+>  # plt.show()
+>  plt.savefig(desc, bbox_inches='tight')
+> keepOut('cf.png', 'out.jpg')
+> ```
+
+
+
+##### 缩放叠加
+
+手写即可，记得 copy 解除只读，如：
+
+```python
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+
+
+def keepOut(src, desc, limx=150, limy=150):
+    img = mpimg.imread('img/keepOut.jpg')
+    plt.figure(figsize=(10, 10), dpi=60)  # 600*600
+    plt.axis('off')
+
+    img1 = img.copy()
+    img2 = mpimg.imread(src)
+    ox, oy = 225, 40
+    rows, cols = img2.shape[:2]
+    rx = min(rows, limx)
+    ry = min(cols, limy)
+    for i in range(rx):
+        for j in range(ry):
+            x, y = int(i/rx*rows), int(j/ry*cols)
+            img1[i+ox][j+oy] = img2[x][y][:3]
+
+    plt.imshow(img1)
+    plt.savefig(desc, bbox_inches='tight')
+```
+
+
+
+##### 灰度拉伸
+
+手写实现 matlab 的 `imshow(,[])`，如：
+
+```python
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import numpy as np
+
+img = mpimg.imread('img2.tif')
+rows, cols = img.shape[:2]
+plt.figure(figsize=(rows // 10, cols // 10), dpi=10)
+plt.axis('off')
+img2 = img.copy()
+img2 = ( (img - np.min(img) ) / (np.max(img) - np.min(img)))*255
+img2 = img2.astype(int)
+plt.imshow(img2,cmap="Greys_r") #不加参数是彩色图
+#第二个参数建议为'gray'与上者不同
+plt.savefig('img20.tif', bbox_inches='tight')
+```
+
+
+
+##### 任意位置插入
+
+[figimage](https://matplotlib.org/3.6.0/api/_as_gen/matplotlib.pyplot.figimage.html#matplotlib.pyplot.figimage)
+
+注意坐标轴以左下角为原点，x 从左到右，y 从上到下
+
+
+
+#### 文字
+
+先搞一张画布：
+
+```python
+plt.figure(figsize=(620//20, 700//20), dpi=20, facecolor='grey')
+```
+
+> 大概是y中心上角原点，x最左原点
+
+```python
+# 设置显示中文字体
+plt.rcParams['font.family'] = ['sans-serif']
+plt.rcParams['font.sans-serif'] = ['SimHei']
+```
+
+> 其他方案：deepseek
+>
+> ```python
+> plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体
+> plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
+> ```
+
+重新设置坐标范围(不然范围是 $[0,1]$)，并关闭坐标轴显示
+
+```python
+plt.axis('off')
+plt.xlim([0, 620])
+plt.ylim([0, 700])
+```
+
+绘制文字：
+
+```python
+plt.text(20, 30, text4, fontsize=100)
+plt.xlabel('下标值 i',fontsize=11)
+plt.ylabel('函数值 softmax(x_i/T)',fontsize=11)
+```
+
+dpi 越高，字体辨认越好，建议 100
+
+
+
+#### 形状
+
+矩形示例：
+
+```python
+rect = mpatches.Rectangle(
+    (10, 80), 650, 200, fill=True, color="silver", alpha=0.5, zorder=1)
+plt.gca().add_patch(rect)
+```
+
+[颜色参考](https://matplotlib.org/3.6.0/gallery/color/named_colors.html#sphx-glr-gallery-color-named-colors-py)
+
+#### 动画
+
+##### 爱心放大缩小
+
+绘制爱心(散点，越外面越离散偏移值越大)
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+# 设置参数
+num_frames = 100  # 动画帧数
+heart_size = 15  # 初始爱心大小
+num_borders = 10  # 爱心边框的数量
+border_gap = 0.5  # 边框间的距离
+max_offset = 5  # 最外层边框的最大偏移量
+base_size = heart_size - num_borders * border_gap  # 最内层爱心的大小
+t_values = np.linspace(0, 2 * np.pi, 1000)  # 参数t的值，用于绘制爱心曲线
+
+def heart_curve(t, size=1):
+    """计算爱心曲线上的点。"""
+    x = 16 * size * np.sin(t)**3
+    y = 13 * size * np.cos(t) - 5 * size * np.cos(2*t) - 2 * size * np.cos(3*t) - size * np.cos(4*t)
+    return x, y
+
+# 动画更新函数
+def update_heart_curve_animation(frame, ax):
+    ax.clear()
+    expanded_heart_size = heart_size * 20  # 考虑放大因子
+    ax.set_xlim(-expanded_heart_size, expanded_heart_size)
+    ax.set_ylim(-expanded_heart_size * 1.2, 1.2 * expanded_heart_size)
+    ax.set_aspect('equal')
+    ax.axis('off')  # 隐藏坐标轴
+
+    scale_factor = 1 + np.sin(frame * np.pi / num_frames) * 0.3  # 放大缩小的比例因子
+
+    for i in range(num_borders):
+        current_size = (base_size + i * border_gap) * scale_factor  # 考虑放缩的当前边框大小
+        offset = (max_offset / num_borders) * i  # 当前边框的偏移量
+        
+        # 计算爱心曲线上的点，并根据当前帧调整大小
+        rate = (num_borders - i) / num_borders
+        t_part = np.random.choice(t_values, int(t_values.size * rate))
+        curve_x, curve_y = heart_curve(t_part, current_size)
+        
+        # 为每个点添加随机偏移
+        curve_x += np.random.normal(0, offset, curve_x.shape)
+        curve_y += np.random.normal(0, offset, curve_y.shape)
+
+        # 越靠外的边框点越细
+        point_sizes = int(6.0 * rate)
+
+        ax.scatter(curve_x, curve_y, s=point_sizes, color='red', alpha=0.6)
+
+# 创建图形和坐标轴
+fig, ax = plt.subplots()
+expanded_heart_size = heart_size * 20  # 考虑放大因子
+ax.set_xlim(-expanded_heart_size, expanded_heart_size)
+ax.set_ylim(-expanded_heart_size, 1.5 * expanded_heart_size)
+ax.set_aspect('equal')
+ax.axis('off')  # 隐藏坐标轴
+
+# 创建动画
+heart_curve_anim = FuncAnimation(fig, update_heart_curve_animation, fargs=(ax,), frames=num_frames, interval=25, blit=False)
+
+plt.show()
+```
+
+
+
+#### 举例
+
+##### 绘图集成
+
+```python
+import numpy as np
+from matplotlib_inline import backend_inline
+#from d2l import torch as d2l
+def use_svg_display():  #@save
+    backend_inline.set_matplotlib_formats('svg')
+def set_figsize(figsize=(3.5, 2.5)):  #@save
+    use_svg_display()
+    d2l.plt.rcParams['figure.figsize'] = figsize
+#@save
+def set_axes(axes, xlabel, ylabel, xlim, ylim, xscale, yscale, legend):
+    axes.set_xlabel(xlabel)
+    axes.set_ylabel(ylabel)
+    axes.set_xscale(xscale)
+    axes.set_yscale(yscale)
+    axes.set_xlim(xlim)
+    axes.set_ylim(ylim)
+    if legend:
+        axes.legend(legend)
+    axes.grid()
+#@save
+def plot(X, Y=None, xlabel=None, ylabel=None, legend=[], xlim=None,
+         ylim=None, xscale='linear', yscale='linear',
+         fmts=('-', 'm--', 'g-.', 'r:'), figsize=(3.5, 2.5), axes=None):
+    """Plot data points."""
+
+    def has_one_axis(X):  # True if X (tensor or list) has 1 axis
+        return (hasattr(X, "ndim") and X.ndim == 1 or isinstance(X, list)
+                and not hasattr(X[0], "__len__"))
+
+    if has_one_axis(X): 
+        X = [X]
+    if Y is None:
+        X, Y = [[]] * len(X), X
+    elif has_one_axis(Y):
+        Y = [Y]
+    if len(X) != len(Y):
+        X = X * len(Y)
+
+    set_figsize(figsize)
+    if axes is None:
+        axes = d2l.plt.gca()
+    axes.cla()
+    for x, y, fmt in zip(X, Y, fmts):
+        axes.plot(x,y,fmt) if len(x) else axes.plot(y,fmt)
+    set_axes(axes, xlabel, ylabel, xlim, ylim, xscale, yscale, legend)
+x = np.arange(0, 3, 0.1)
+plot(x, [f(x), 2 * x - 3], 'x', 'f(x)', legend=['f(x)', 'Tangent line (x=1)'])
+```
+
+### seaborn
+
+能够一行地绘制更多统计图表。基于 Matplotlib 的统计可视化库。
+
+统计导向：专注于统计关系可视化（如分布、回归、分类数据），内置复杂图表（箱线图、小提琴图、热力图等）。更简洁的声明式 API，
+
+多数图表通过单行函数生成。默认使用现代美学设计（网格背景、柔和配色），直接生成更专业的图表，尤其适合学术和商业报告。
+
+##### 热力图
+
+`sims` 是 6x6 二维列表，数值在 0-1
+
+```python
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+plt.figure(figsize=(8, 6))
+sns.heatmap(sims, annot=True, cmap='viridis', cbar=True)
+plt.title('Heatmap of Random 6x6 Matrix')
+plt.xlabel('Column Index')
+plt.ylabel('Row Index')
+plt.savefig(f'conv_patient_{patient}.png', dpi=300)
+plt.show()
+```
+
 
 
 ### plotly
@@ -13065,25 +13242,6 @@ fig.write_image("residual_plot.png")
 ```
 
 支持 `.png, .jpg, .svg, .pdf` 等。其中 SVG 是矢量图。
-
-### seaborn
-
-##### 热力图
-
-`sims` 是 6x6 二维列表，数值在 0-1
-
-```python
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-plt.figure(figsize=(8, 6))
-sns.heatmap(sims, annot=True, cmap='viridis', cbar=True)
-plt.title('Heatmap of Random 6x6 Matrix')
-plt.xlabel('Column Index')
-plt.ylabel('Row Index')
-plt.savefig(f'conv_patient_{patient}.png', dpi=300)
-plt.show()
-```
 
 
 
@@ -14415,20 +14573,6 @@ print(results.summary())
 > - **Kurtosis (峰度)**: 11.128，远大于正态分布的峰度3，表明残差分布具有较尖的峰和较厚的尾部。
 
 ## 文件处理
-
-### csv
-
-根据某行读另一行：
-
-```python
-def read_prices(file):
-    prices = []
-    with open(file, 'r', encoding='utf8') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            prices.append(float(row['price']))
-    return prices
-```
 
 
 
@@ -16304,9 +16448,9 @@ print(points)
 
 ##### 文本向量化
 
-1. **词汇表构建**：`CountVectorizer` 首先对所有文档中的单词进行统计，创建一个词汇表。词汇表中的每个单词都对应一个特征索引。
-2. **文本向量化**：对于每个文档，`CountVectorizer` 会根据词汇表中的单词出现的频次来构建一个稀疏的特征向量。如果某个词汇表中的单词在文档中出现，则在相应的特征位置上会显示出现的次数，如果没有出现，则为0。
-3. **预处理和标准化**：`CountVectorizer` 还提供了多种参数来进行文本的预处理，如转换为小写、去除停用词、应用词干提取等。
+1. 词汇表构建：`CountVectorizer` 首先对所有文档中的单词进行统计，创建一个词汇表。词汇表中的每个单词都对应一个特征索引。
+2. 文本向量化：对于每个文档，`CountVectorizer` 会根据词汇表中的单词出现的频次来构建一个稀疏的特征向量。如果某个词汇表中的单词在文档中出现，则在相应的特征位置上会显示出现的次数，如果没有出现，则为0。
+3. 预处理和标准化：`CountVectorizer` 还提供了多种参数来进行文本的预处理，如转换为小写、去除停用词、应用词干提取等。
 
 ```python
 from sklearn.feature_extraction.text import CountVectorizer
@@ -16325,6 +16469,8 @@ joblib.dump(pipeline, 'text_clf_pipeline.joblib')
 ```
 
 ##### TF-IDF
+
+###### 数值输出
 
 ```python
 import pandas as pd
@@ -16430,6 +16576,8 @@ print(result_df)
 result_df.to_csv('user_tfidf_scores.csv', index=False)
 ```
 
+###### 模型训练应用
+
 载入训练好的，取出现过的词汇。
 
 ```python
@@ -16441,6 +16589,68 @@ def text_to_sequence(text, file="vectorizer.pkl"):
     words = jieba.lcut(text)
     seq1 = vectorizer.transform([' '.join(words)])
     return seq1
+```
+
+分词过的文本(一行一个中文字符串，空格分割词汇)，进行训练。
+
+```python
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+
+with open('news_train.txt', encoding='utf-8') as f:
+    texts = f.readlines()
+with open('label_newstrain.txt') as f:
+    labels = [int(i) for i in f.readlines()]
+# 划分训练测试集
+X_train, X_test, y_train, y_test = train_test_split(texts, labels, test_size=0.2, random_state=42)
+
+# TF-IDF向量化（已分词所以不需要再分词，设置analyzer='word'）
+tfidf = TfidfVectorizer(
+    analyzer='word',  # 使用已分词
+    token_pattern=r'(?u)\b\w+\b',  # 保留所有单词
+    max_features=5000,  # 限制特征数量
+    ngram_range=(1, 2)  # 包含1-gram和2-gram
+)
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import LinearSVC
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.naive_bayes import ComplementNB
+
+# 可选模型（根据数据规模选择）：
+# - 小规模数据：LogisticRegression/ComplementNB
+# - 大规模数据：LinearSVC
+# - 需要特征重要性时：RandomForest
+
+# 推荐组合（线性模型+TF-IDF）
+model = Pipeline([
+    ('tfidf', tfidf),
+    ('clf', LinearSVC(
+        C=1.0,
+        class_weight='balanced',  # 处理类别不平衡
+        max_iter=1000,
+        random_state=42
+    ))
+])
+
+# 训练模型
+model.fit(X_train, y_train)
+
+from sklearn.metrics import classification_report, f1_score
+from sklearn.model_selection import GridSearchCV
+
+# 基础评估
+y_pred = model.predict(X_test)
+print(classification_report(y_test, y_pred))
+
+model.fit(texts, labels)
+with open('news_test.txt', encoding='utf-8') as f:
+    texts_test = f.readlines()
+y_test = model.predict(texts_test)
+t = '\n'.join(str(i) for i in y_test)
+with open('pred_test.txt', 'w') as f:
+    f.write(t)
 ```
 
 
@@ -16466,7 +16676,36 @@ df['user'] = df['user'].apply(
 
 #### 评价指标
 
-##### accuracy_score
+##### 二分类
+
+手写版本：
+
+```python
+tp+=((predicted==1)&(label==1)).sum().item() # torch
+tn+=((predicted==0)&(label==0)).sum().item()
+fp+=((predicted==1)&(label==0)).sum().item()
+fn+=((predicted==0)&(label==1)).sum().item()
+
+accuracy=(tp+tn)/(tp+tn+fn+fp)*100
+precision=tp/(tp+fp)
+recall=tp/(tp+fn)
+f1=(2*precision*recall)/(precision+recall)
+```
+
+调库：(有几种不同的算法，如加权等，这里略)
+
+```python
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+all_preds.extend(predicted.cpu().numpy()) # torch
+all_labels.extend(label.cpu().numpy())
+
+accuracy = accuracy_score(all_labels, all_preds)
+precision = precision_score(all_labels, all_preds)
+recall = recall_score(all_labels, all_preds)
+f1 = f1_score(all_labels, all_preds)
+```
+
+###### accuracy_score
 
 准确率 = (正确预测的样本数) / (总样本数)
 
@@ -16478,7 +16717,7 @@ acc = accuracy_score(y_true, y_pred)
 print(f"准确率: {acc:.2f}")  # 输出: 准确率: 0.33
 ```
 
-##### f1_score
+###### f1_score
 
 `F1 = 2 * (precision * recall) / (precision + recall)`
 
@@ -16498,6 +16737,13 @@ print(f"Binary F1 score: {f1:.2f}")
 ```
 
 分母为0整个分式设为0，设置：`zero_division=0`
+
+##### r2_score
+
+```python
+from sklearn.metrics import r2_score
+r2 = r2_score(y_true, y_pred)
+```
 
 ##### cosine_similarity
 
@@ -16723,8 +16969,6 @@ prediction = loaded_model.predict(sample)
 print(f"预测结果: {prediction}")
 ```
 
-
-
 ##### joblib
 
 > ```python
@@ -16857,6 +17101,44 @@ print(f'X:{X}')
 print(f'数据集X的形状：{X.shape}') # (1797, 64)
 print(f'Y:{Y}') #0-9 的一维np
 print(digits.feature_names) #['pixel_0_0', 'pixel_0_1', ..., 'pixel_7_7']
+```
+
+#### 管道
+
+创建工作流。用于把数据处理和模型主体堆叠，如文本向量化/标准化/降维+模型，合成一个整体作为模型。
+
+第一种方法，Pipeline 类。
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+
+iris = load_iris()
+X, y = iris.data, iris.target
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+pipe = Pipeline([
+    ('scaler', StandardScaler()),  # 第一步：标准化
+    ('classifier', LogisticRegression())  # 第二步：逻辑回归
+])
+
+pipe.fit(X_train, y_train)
+score = pipe.score(X_test, y_test)
+print(f"模型准确率: {score:.2f}")
+```
+
+不需要每个步骤都命名，可以用 make_pipeline
+
+```python
+from sklearn.pipeline import make_pipeline # 前面一样
+pipe = make_pipeline(
+    StandardScaler(),  # 自动命名为'standardscaler-1'
+    LogisticRegression()  # 自动命名为'logisticregression-1'
+)
+pipe.fit(X_train, y_train) # ... 后面一样
 ```
 
 
@@ -17556,6 +17838,15 @@ x = torch.randn(10, 3, 32, 32)
 y = flatten(x)
 print(y.shape)  # torch.Size([10, 3072])
 ```
+
+可以只展一部分，如第 0 维不展开：
+
+```python
+x = torch.randn(2, 3, 4)
+y = torch.flatten(x, start_dim=1)  # 形状变为 [2, 12]
+```
+
+同理，`end_dim`，是闭区间，`[start, end]`。
 
 ###### transpose
 
@@ -19253,13 +19544,7 @@ torch.save(net.state_dict(), './step3/cnn.pkl')
 print('Finished Training')
 ```
 
-### onnx
 
-ONNX（Open Neural Network Exchange，开放神经网络交换）是一种用于表示深度学习模型的开放格式标准。使不同深度学习框架之间能够互操作、跨平台、跨框架的模型表示格式，支持PyTorch、TensorFlow、MXNet、Caffe2等主流框架之间的模型转换，允许在一个框架中训练模型，在另一个框架中部署。
-
-使用protobuf二进制格式存储模型，定义了通用的计算图表示
-
-提供运行时(ONNX Runtime)用于高效推理，多种优化和转换工具
 
 ### PyG
 
@@ -19745,9 +20030,52 @@ print(output.shape)  # 应该输出: torch.Size([8, 16, 64])
 - 控制是否为查询（Query）、键（Key）和值（Value）向量添加可学习的偏置（bias） 默认 true
 - 默认权重和投影层都不会 drop
 
+### openai
 
+可以调用 LLM API。如：
+
+普通询问：
+
+```python
+from openai import OpenAI
+client = OpenAI(api_key="sk-...", base_url="https://api.deepseek.com")
+response = client.chat.completions.create(
+    model="deepseek-chat",
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant"},
+        {"role": "user", "content": "介绍LLM API"},
+    ],
+    stream=False
+)
+```
+
+返回值处理：[参考格式](https://api-docs.deepseek.com/zh-cn/api/create-completion)
+
+- 有 choices(多个回答，一般一个，取下标0，取下面的 message.content)
+
+  ```python
+  print(response.choices[0].message.content)
+  ```
+
+- 直接按 json 输出这个返回值。
+
+  ```python
+  result = response.model_dump_json(indent=2)
+  with open('test1.json', 'w', encoding='utf-8') as f:
+      f.write(result)
+  ```
+
+  
 
 ### 杂项
+
+#### onnx
+
+ONNX（Open Neural Network Exchange，开放神经网络交换）是一种用于表示深度学习模型的开放格式标准。使不同深度学习框架之间能够互操作、跨平台、跨框架的模型表示格式，支持PyTorch、TensorFlow、MXNet、Caffe2等主流框架之间的模型转换，允许在一个框架中训练模型，在另一个框架中部署。
+
+使用protobuf二进制格式存储模型，定义了通用的计算图表示
+
+提供运行时(ONNX Runtime)用于高效推理，多种优化和转换工具
 
 #### easytorch
 
@@ -20380,6 +20708,15 @@ print(soup.text) #str,标签全部退散，含\n代替
 
 第 20 行，可以固定解析器：`features='lxml'`
 
+也可以直接读文件：
+
+```python
+with open('a.html', 'r', encoding='utf-8') as f:
+    soup = BeautifulSoup(f, features="html.parser")
+```
+
+
+
 ##### 解析器
 
 `html.parser`
@@ -20503,9 +20840,23 @@ for div in divs:
 
 ##### 基本属性
 
+取标签内容：
+
 ```python
 p = soup.find('div')
 print(p.text) #str
+print(p.string) #str
+```
+
+- string 仅当标签只有一个子节点且为字符串时，返回该字符串；否则返回 `None`
+
+- text 递归提取标签及其所有子标签的文本内容，合并为一个字符串（包括换行符等空白字符）。
+
+  可以认为 text 是当前标签和所有各层子标签的 string 的 `''.join`
+
+取所有属性：
+
+```python
 print(p.attrs) #dict(str: str), 如{'id': 'content'}
 ```
 
@@ -20515,11 +20866,48 @@ print(p.attrs) #dict(str: str), 如{'id': 'content'}
 p.get('id') #'content'
 ```
 
+也可以直接取 `[]`，但是查无报错。如 `a['href']`。
+
 多个 class 返回 str 列表：
 
 ```python
 soup.find('p').get('class') #['star-rating', 'Four']
 ```
+
+##### select
+
+使用 CSS 选择器语法来查找文档中的元素
+
+```python
+special_content = soup.select('.content.special') ## 选择同时有content和special类的元素
+div_direct_ps = soup.select('div > p') # 直接子元素选择
+list_items = soup.select('ul li') # 选择ul下的所有li元素
+p_with_class = soup.select('p[class]') # 选择有class属性的p元素
+p_content = soup.select('p[class="content"]') # 选择class等于content的p元素
+```
+
+选择单个元素
+
+```python
+first_p = soup.select_one('p')
+```
+
+> 善用 select 可以大大降低 for 的难度，如：
+>
+> ```python
+> ul = soup.find('ul')
+> lis = ul.find_all('li')
+> ans = []
+> for li in lis:
+>     a = li.find('a') # 如 <a href="Action.html">Action</a>
+>     ans.append(a.string+'.html') 
+> return ans
+> ```
+>
+> ```python
+> links = soup.select('ul li a')
+> return [link['href'] for link in links]
+> ```
 
 
 
@@ -20946,6 +21334,8 @@ for obj in bucket.objects.all():
 
 #### 读取
 
+##### 常规
+
 将这些内容下载到 jupyter 所在服务器：
 
 ```python
@@ -20985,7 +21375,34 @@ mat_data = scipy.io.loadmat(BytesIO(data))
 > aws s3 cp s3://meg-visual-moving-target/visual_moving_target_project/README.txt a.txt
 > ```
 
+##### 进度条
 
+与 tqdm 使用
+
+```python
+def load_mat_from_s3(bucket_name, file_key):
+    print(f"开始下载文件: s3://{bucket_name}/{file_key}")
+    
+    # 获取文件大小（用于进度条）
+    file_size = s3.head_object(Bucket=bucket_name, Key=file_key)['ContentLength']
+    
+    # 使用 tqdm 包装下载过程
+    with tqdm(total=file_size, unit='B', unit_scale=True, desc="下载进度") as pbar:
+        s3_object = s3.get_object(Bucket=bucket_name, Key=file_key)
+        file_content = b''
+        for chunk in s3_object['Body'].iter_chunks(chunk_size=1024):
+            file_content += chunk
+            pbar.update(len(chunk))
+    
+    print("文件下载完成，开始解析...")
+    mat_data = scipy.io.loadmat(io.BytesIO(file_content))
+    print("解析完成！")
+    return mat_data
+```
+
+
+
+##### 其他
 
 > 权限问题：
 >
@@ -21793,6 +22210,8 @@ loop 就是内层为一个 it，搞去外层。
 ```
  86%|██████████████████████████████████████████████▍       | 86/100 [00:04<00:00, 19.70it/s]
 ```
+
+> 下载大文件，一个例子参见 boto3 库。
 
 ### ipywidgets
 
