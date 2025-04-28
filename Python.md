@@ -4547,9 +4547,7 @@ __import__('a')
 
 有待深入研究。
 
-
-
-### 常用标准库
+### 数据结构
 
 #### collections
 
@@ -4736,7 +4734,416 @@ max_x1, max_x2 = nlargest(2, (x + y for x, y in points)) #最大次大
 min_x1, min_x2 = nsmallest(2, (x + y for x, y in points))#最小次小
 ```
 
+#### bisect
 
+二分库
+
+- `bisect_left(arr, v)` 第一个 $\ge v$ 的最小下标，对应 lower bound
+
+  ```python
+  a=[2,3,3,6,6,6]
+  bisect_left(a,0) #0
+  bisect_left(a,2) #0
+  bisect_left(a,3) #1
+  bisect_left(a,4) #1
+  bisect_left(a,6) #3
+  bisect_left(a,7) #6
+  bisect_left([],0) #0
+  ```
+
+  `(arr, v, lo=0, hi=None, key=None)`，指定二分的下标范围是 $[lo,hi)$，对数组元素执行 key 函数得到的返回值进行比较(即映射函数)。
+
+  如：`return bisect_left(range(right), totalTrips, left, key=f)`
+
+- `bisect_right(arr, v)` 第一个 $> v$ 的最小下标，对应 upper bound
+
+  ```python
+  a=[2,3,3,6,6,6]
+  bisect_right(a,0) #0
+  bisect_right(a,2) #1
+  ```
+
+  支持 `lo,hi` 参数，代表区间 [lo,hi)。返回的下标仍然相对 arr 首元素。
+
+  ```python
+  a=[2,3,3,6,6,6]
+  bisect_left(a,0,3,5) #3
+  bisect_left(a,100,3,5) #5
+  ```
+
+  3.10 之前，不支持自定义比较依据。之后可以 `key=`:
+
+  ```python
+  a = [6, 6, 6, 3, 3, 2]
+  bisect_left(a,-6,key=lambda x:-x) #找6, 返回0
+  bisect_left(a,-5,key=lambda x:-x) #找5, 返回3
+  bisect_left(a,-1,key=lambda x:-x) #找1, 返回6
+  bisect_right(a,-7,key=lambda x:-x) #0
+  bisect_right(a,-6,key=lambda x:-x) #3
+  ```
+
+- `insort_left(arr, v)` 将 `v` 插入到 `arr`，返回 None，保持有序，插入到相同元素的左
+
+- `insort_right(arr, v)` 将 `v` 插入到 `arr`，返回 None，保持有序，插入到相同元素的右
+
+二分答案：
+
+- 01 二分：False 在左，True 在右，check 传入 int 作为参数，返回布尔值
+
+```python
+# 注意 range 并不会创建 list，它是 O(1) 的
+bisect_left(range(1_000_000_001), True, key=check)
+```
+
+[例题](https://leetcode.cn/problems/maximum-number-of-alloys/solutions/2446024/er-fen-da-an-fu-ti-dan-by-endlesscheng-3jdr/)
+
+```python
+class Solution:
+    def maxNumberOfAlloys(self, n: int, k: int, budget: int, composition: List[List[int]], stock: List[int], cost: List[int]) -> int:
+        ans = 0
+        mx = min(stock) + budget
+        for comp in composition:
+            def f(num: int) -> int:
+                money = 0
+                for s, base, c in zip(stock, comp, cost):
+                    if s < base * num:
+                        money += (base * num - s) * c
+                        if money > budget:
+                            break
+                return money
+            ans += bisect_right(range(ans + 1, mx + 1), budget, key=f)
+        return ans
+```
+
+
+
+### 语法增强
+
+#### functools
+
+##### 缓存
+
+1. 版本要求：
+
+   - `@cache` 是在 Python 3.9 中引入的。
+   - `@lru_cache` 在较早的版本中就已经存在（Python 3.2 及以上版本）。
+
+2. 缓存策略：
+
+   - `@cache` 本质上是 `@lru_cache(maxsize=None)` 的简化版本。它不限制缓存大小，所以会缓存所有调用的结果。
+
+     对一个函数名如 `f`，可以调用 `f.cache_clear()` 来清除缓存。
+
+   - `@lru_cache` 允许你指定一个 `maxsize` 参数，用于限制缓存的大小。如果设置了 `maxsize`，它将采用“最近最少使用”（LRU）策略来淘汰旧的缓存项。
+
+```python
+from functools import lru_cache, cache
+@lru_cache(maxsize=None) # 或 @cache ,都不加就 TLE
+def fibonacci_mod(n):
+    MOD = 10**9 + 7
+    if n < 2:
+        return n
+    return (fibonacci_mod(n - 1) + fibonacci_mod(n - 2)) % MOD
+print(fibonacci_mod(400))
+```
+
+可以直接对函数使用，表示某个函数的计算结果缓存记忆化
+
+```python
+from math import comb
+from functools import cache
+comb=cache(comb)
+comb(10000000,10000000-30000)>1 #slow
+comb(10000000,10000000-30000)>1 #in a flash
+```
+
+
+
+#### operator
+
+提供 `or_` 等函数，可用于 reduce 等。
+
+```python
+from functools import reduce
+from operator import or_
+reduce(or_, [1,2,6]) # 7
+```
+
+基本运算的函数写法：
+
+```python
+operator.mul(3,5) # 3*5
+```
+
+可以用作排序依据：
+
+```python
+from operator import itemgetter
+people = [('张三', 30), ('李四', 25), ('王五', 40)]
+# 使用 itemgetter(1) 来获取每个元组的第二个元素，即年龄
+sorted_people = sorted(people, key=itemgetter(1))
+print(sorted_people)
+#多关键字：itemgetter(1,0)
+```
+
+```python
+from operator import attrgetter
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+people = [Person('张三', 30), Person('李四', 25), Person('王五', 40)]
+sorted_people = sorted(people, key=attrgetter('age'))
+for person in sorted_people:
+    print(person.name, person.age)
+```
+
+
+
+#### typing
+
+类型检查，提出警告但不报错。3.5+
+
+常见的：
+
+- `List, Tuple, Set, Dict`，如 `Dict[str, int]`
+
+- `Any`
+
+- 函数返回值 `def add(x: int, y: int) -> int`
+
+- `Union` 是可以取里面几种的一种作输入如 `Union[int, str]`
+
+  类比 rust，`Optional` 是 `Union` 特况，表示还可以是 `None`
+
+  `Optional[xx]` 要么是 None，要么是 xx
+
+- `Callable` 可调用对象如函数
+
+例如：
+
+```python
+from typing import List
+def f(a: List[int]) -> int:
+    print(sum(a))
+# typing = 默认值
+def g(a:int=1):
+    ...
+```
+
+> 具体使用：安装第三方库
+>
+> ```
+> pip install mypy
+> ```
+>
+> 执行：
+>
+> ```sh
+> mypy code.py
+> ```
+
+含默认参数：
+
+```python
+def loadModel(modelname:str, device:str='cpu'):
+```
+
+
+
+自定义类：
+
+```python
+"""
+# Definition for a Node.
+class Node:
+    def __init__(self, val: int = 0, left: 'Node' = None, right: 'Node' = None, next: 'Node' = None):
+        self.val = val
+        self.left = left
+        self.right = right
+        self.next = next
+"""
+
+class Solution:
+    def connect(self, root: 'Node') -> 'Node':
+        ...
+# Optional[Node] 则：None 或 Node
+```
+
+
+
+#### itertools
+
+```python
+from itertools import *
+```
+
+可以枚举排列组合等
+
+如：
+
+- 笛卡尔积
+
+  `product(iterable, repeat=1)` ，输出 $len^{repeat}$ 个元素
+
+  `product(iterable1, iterable2, ...)` 多个集合笛卡尔积
+
+  对 dict 使用，等价于对 keys 使用
+
+- 排列 `permutaions(iterable, m = len)`
+
+  按照给定参数的顺序而不是字典序返回排列，每个排列是 tuple；组合、笛卡尔积同理
+
+  ```python
+  list(permutations([1,5,3]))
+  #[(1, 5, 3), (1, 3, 5), (5, 1, 3), (5, 3, 1), (3, 1, 5), (3, 5, 1)]
+  ```
+
+- 组合 `combinations(iterable, m)` 
+
+- 带自身重复的组合(每个元素可以选无限次) `combinations_with_replacement()`
+
+- 前缀和 `list(accumulate(nums, initial=0))`  (增加首元素0,即对 [0]+nums 叠，长度加一；不加该参数长度不变原地叠)
+
+  `list(accumulate(numbers, lambda x, y: x * y))` 前缀积(或 `operator.mul` 为参数)
+
+- `pairwise(a)` 返回 a 相邻两个元素值组成的元组的迭代器
+
+- `tee(a, n=2)` 返回 a 的多个迭代器，如 `x,y=tee(a)`
+
+- `count(i)` 从 i 开始每次不断自增的无限迭代器 (break 跳出)
+
+- `groupby(x, key=None)`，对可迭代对象 x 分组，分组依据默认为元素本身，返回迭代器，每次返回一个元组 (k, g)，其中 k 是键，g 是迭代器。取长度可以 `len(list(g))`。
+
+例：
+
+```python
+list1 = [1, 2]
+list2 = [3, 4]
+cartesian_product = list(itertools.product(list1, list2))
+# 输出: [(1, 3), (1, 4), (2, 3), (2, 4)]
+cartesian_product = list(itertools.product(list1, repeat=3))
+# 输出: [(1, 1, 1), (1, 1, 2), (1, 2, 1), (1, 2, 2), (2, 1, 1), (2, 1, 2), (2, 2, 1), (2, 2, 2)]
+```
+
+```python
+for i in product('1234', repeat=2):
+    print(''.join(i), end=' ')
+for i in product('1234', 'abc', 'AB'):
+    print(''.join(i), end=' ')
+for i in permutations(("abc", "def", "ghi")):
+    print(i)
+for i in combinations_with_replacement("abcd", 3):
+    print(''.join(i), end=' ')
+```
+
+排列数组合数建议用算法知识计算，也可以调第三方库：(可以对 `numpy` 数组两两算组合)
+
+```python
+from scipy.special import comb, perm
+print(perm(5, 2)) # A(n, m) 返回 double
+print(comb(5, [i for i in range(6)])) # C(n, m)
+```
+
+连接多个迭代器：
+
+```python
+from itertools import chain
+list1 = [1, 2, 3]
+list2 = [4, 5, 6]
+list3 = [7, 8, 9]
+for item in chain.from_iterable([list1, list2, list3]):
+    print(item)
+```
+
+```python
+# 层序遍历模板
+q = list(chain.from_iterable((node.left, node.right) for node in q))
+```
+
+```python
+from itertools import count
+for i in count(2): # 无线迭代器
+    print(i)
+    if i >= 5: break  # 仅示例，实际中会是无限的
+```
+
+```python
+from itertools import groupby
+for ch, s in groupby('1222334555'):
+    print(ch, len(list(s)))
+```
+
+#### keyword
+
+输出所有关键字的字符串列表
+
+```python
+import keyword
+print(keyword.kwlist)
+```
+
+#### builtin
+
+```python
+import builtins
+builtin_functions = [func for func in dir(builtins) if callable(getattr(builtins, func))]
+builtin_functions
+```
+
+#### warning
+
+警报清理：
+
+```python
+import warnings
+warnings.filterwarnings('ignore', category=RuntimeWarning)
+```
+
+可以清除诸如：
+
+```
+C:\Program Files\Python313\Lib\site-packages\numpy\linalg_linalg.py:2832: RuntimeWarning: overflow encountered in multiply
+s = (x.conj() * x).real
+```
+
+#### ast
+
+（Abstract Syntax Trees，抽象语法树）是 Python 的一个内置库，
+
+可以直接读 python 格式的变量字符串
+
+```python
+a = ast.literal_eval("[[25, 50000, 2000, 'G'],[30, 55000, 3000, 'G'],[35, 60000, 0, 'B'],[40, 65000, 4000, 'B'],[28, 48000, 1000, 'G']]")
+print(a[0][0]) # 25
+```
+
+它提供了将 Python 代码解析为抽象语法树的功能，并允许对语法树进行遍历和修改
+
+```python
+import ast
+
+code = """
+def hello(name):
+    print(f"Hello, {name}!")
+"""
+tree = ast.parse(code)
+for node in ast.walk(tree):
+    if isinstance(node, ast.FunctionDef):
+        print(f"Found function: {node.name}")
+# 修改 ast
+for node in ast.walk(tree):
+    if isinstance(node, ast.FunctionDef) and node.name == "hello":
+        node.name = "greet"
+modified_code = ast.unparse(tree)
+print(modified_code) 
+'''def greet(name):
+    print(f'Hello, {name}!')'''
+```
+
+
+
+### 数学
 
 #### math
 
@@ -4833,7 +5240,46 @@ num = random.randrange(5, 51)
 num = random.randrange(0, 101, 5)
 ```
 
+#### mpmath
 
+```python
+import mpmath
+mpmath.mp.dps = 50
+result = mpmath.mpf(1) / 7
+print(result) #mpf('0.14285714285714285714285714285714285714285714285714281')
+# or str(result)
+```
+
+
+
+#### decimal
+
+以例子说明：
+
+```python
+from decimal import *
+getcontext().prec = 20
+x = Decimal('1')
+y = Decimal('7.0')
+print(x) # 50 位
+print((x / y * y * y).quantize(Decimal('0.00'), ROUND_HALF_DOWN)) # 2位
+#第二个参数可以不填
+```
+
+> 精度：(官方文档)
+>
+> ROUND_CEILING (towards Infinity),
+> ROUND_DOWN (towards zero),
+> ROUND_FLOOR (towards -Infinity),
+> ROUND_HALF_DOWN (to nearest with ties going towards zero),
+> ROUND_HALF_EVEN (to nearest with ties going to nearest even integer),
+> ROUND_HALF_UP (to nearest with ties going away from zero), or
+> ROUND_UP (away from zero).
+> ROUND_05UP (away from zero if last digit after rounding towards zero would have been 0 or 5; otherwise towards zero)
+
+
+
+### 系统
 
 #### sys
 
@@ -4855,7 +5301,102 @@ sys.executable # '...\\Python310\\pythonw.exe' 绝对路径
 sys.version # 'Python version: 3.10.6 (tags/v3.10.6:9c7b4bd, Aug  1 2022, 21:53:49) [MSC v.1932 64 bit (AMD64)]'
 ```
 
+#### threading
 
+##### 常规
+
+```python
+import threading
+```
+
+创建线程：
+
+```python
+thr = threading.Thread(target=线程目标函数, args=线程拥有的参数tuple)
+```
+
+如果使用全局变量，可以不传入参数`args`，但是需要申明global
+
+启动线程：
+
+```python
+thr.start()
+```
+
+可以在start后加一句这个，如果不能正常启动：
+
+```python
+thr.join()
+```
+
+##### 锁
+
+```python
+import threading
+
+lock = threading.Lock()
+shared_resource = 0
+
+def increment():
+    global shared_resource
+    for _ in range(100000):
+        lock.acquire()
+        shared_resource += 1
+        lock.release()
+
+threads = []
+for _ in range(10):
+    t = threading.Thread(target=increment)
+    threads.append(t)
+    t.start()
+
+for t in threads:
+    t.join()
+
+print(f"Final value: {shared_resource}")  # 应该输出 1000000
+```
+
+使用 with 简写 increment
+
+```python
+def increment():
+    global shared_resource
+    for _ in range(100000):
+        with lock:
+            shared_resource += 1
+```
+
+此外还有可重入锁 RLock。
+
+#### subprocess
+
+执行 cmd 命令
+
+```python
+import subprocess
+subprocess.run('echo Hello, World!', shell=True)
+```
+
+当 `shell=True` 时，传递给 `subprocess.run()` 的命令字符串会被解释器解析。这允许你执行复杂的命令，比如使用管道 (`|`)、重定向 (`>` 和 `<`) 以及其他 shell 特性。
+
+#### argparse
+
+处理 CLI 参数：
+
+```python
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--experiment', type=str, default='test_momentum', help='Specify the experiment that you want to run')
+parser.add_argument('-p', type=int, default=80, help='Some port')
+parser.add_argument("-c", "--cfg", default="stdmae/STDMAE_PEMS03.py", help="training config")
+args = parser.parse_args()
+print(args.experiment) #上面那个experiment;或args.p
+```
+
+- `help` 参数提供了这个选项的简短描述。当用户在命令行中运行程序并带上 `-h` 或 `--help` 时，这些帮助信息会显示出来。
+
+### 文件
 
 #### os
 
@@ -5212,7 +5753,83 @@ output_filename = '/path/to/your/output/archive_name' # 不需要带后缀.zip�
 shutil.make_archive(output_filename, 'zip', folder_path)
 ```
 
+#### glob
 
+文件通配符。提供了函数用于从目录通配符搜索中生成文件列表。
+
+语法：(类比 Linux)
+
+-  `*` 表示零到任意多个字符。所有本层文件和子目录
+-  `**` 表示所有文件、目录、子目录和子目录的文件(与上面相比多了子目录下的)
+-  `?` 单个字符
+-  `[]` 范围内字符，如 `[0-9]`
+
+函数：`glob` 列出当前目录下符合条件的文件名：
+
+```python
+import glob
+print(glob.glob('*.py'))  # 当前目录下所有.py
+```
+
+```PYTHON
+print(glob.glob('**', recursive=True))  # 所有目录下
+print(glob.glob('**/*.py', recursive=True))  # 所有目录下的.py
+```
+
+glob函数默认不搜索以· 点号开头的文件和路径，如果要求的话需要单独特判
+
+```python
+print(glob.glob('.gitignore'))
+print(glob.glob('.vscode/*'))
+```
+
+> 用 `/` 或`\\` 分割目录都可以
+
+
+
+`iglob` 每次返回可迭代对象，如：
+
+```python
+f = glob.iglob('*.py')
+print(f)
+for py in f:
+    print(py)
+```
+
+
+
+`escape` 将特殊符号一般化处理(转义化)：
+
+```python
+print(glob.escape('?[]*.py'))
+```
+
+
+
+#### pathlib
+
+打开某个路径的文件：
+
+```python
+from pathlib import Path
+data_dir = Path('.vscode') # data_dir = Path('.') 当前路径
+file_path = data_dir / 'launch.json'
+with open(file_path, 'r', encoding='utf8') as f:
+    print(f.readlines())
+```
+
+没有就下载：
+
+```python
+# Download Israeli COVID vaccinations data from the ☁️
+if not pathlib.Path(data_dir / 'israel.csv').exists():
+    urllib.request.urlretrieve(
+        'https://f000.backblazeb2.com/file/dsc-data/covid-israel/israel.csv',
+        data_dir / 'israel.csv'
+    )
+```
+
+### 字符串
 
 #### re
 
@@ -5570,30 +6187,46 @@ matches = re.findall(pattern, text)
 print(matches)  # 输出: ['hello', 'world']
 ```
 
-#### pathlib
+#### string
 
-打开某个路径的文件：
-
-```python
-from pathlib import Path
-data_dir = Path('.vscode') # data_dir = Path('.') 当前路径
-file_path = data_dir / 'launch.json'
-with open(file_path, 'r', encoding='utf8') as f:
-    print(f.readlines())
-```
-
-没有就下载：
+字符串常量
 
 ```python
-# Download Israeli COVID vaccinations data from the ☁️
-if not pathlib.Path(data_dir / 'israel.csv').exists():
-    urllib.request.urlretrieve(
-        'https://f000.backblazeb2.com/file/dsc-data/covid-israel/israel.csv',
-        data_dir / 'israel.csv'
-    )
+import string
+string.ascii_lowercase
+'abcdefghijklmnopqrstuvwxyz'
+string.ascii_uppercase
+'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+string.ascii_letters
+'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+string.ascii_digits
+'0123456789'
+string.punctuation
+'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
+```
+
+#### hashlib
+
+> 它提供了多种常见的加密算法,如 MD5、SHA-1、SHA-256 等
+
+md5 加密一个文件或二进制文本，返回32字符的十六进制字符串：
+
+```python
+hashlib.md5('你好'.encode('utf-8')).hexdigest()
+# '7eca689f0d3389d9dea66ae112e5cfd7'
+```
+
+```python
+import hashlib
+hashlib.md5(b'aba').hexdigest()
+def md5(path):
+    with open(path,'rb') as f:
+        return hashlib.md5(f.read()).hexdigest()
 ```
 
 
+
+### 多媒体/格式
 
 #### datetime
 
@@ -5924,73 +6557,6 @@ winsound.PlaySound(文件路径, winsound.SND_LOOP) 代表单次播放
 
 
 
-#### threading
-
-##### 常规
-
-```python
-import threading
-```
-
-创建线程：
-
-```python
-thr = threading.Thread(target=线程目标函数, args=线程拥有的参数tuple)
-```
-
-如果使用全局变量，可以不传入参数`args`，但是需要申明global
-
-启动线程：
-
-```python
-thr.start()
-```
-
-可以在start后加一句这个，如果不能正常启动：
-
-```python
-thr.join()
-```
-
-##### 锁
-
-```python
-import threading
-
-lock = threading.Lock()
-shared_resource = 0
-
-def increment():
-    global shared_resource
-    for _ in range(100000):
-        lock.acquire()
-        shared_resource += 1
-        lock.release()
-
-threads = []
-for _ in range(10):
-    t = threading.Thread(target=increment)
-    threads.append(t)
-    t.start()
-
-for t in threads:
-    t.join()
-
-print(f"Final value: {shared_resource}")  # 应该输出 1000000
-```
-
-使用 with 简写 increment
-
-```python
-def increment():
-    global shared_resource
-    for _ in range(100000):
-        with lock:
-            shared_resource += 1
-```
-
-此外还有可重入锁 RLock。
-
 #### zipfile
 
 ```python
@@ -6023,7 +6589,15 @@ def zip_conv_files(zip_filename, directory):
 zip_conv_files('conv_files.zip', '你的目录路径')
 ```
 
+#### zlib
 
+压缩解压缩
+
+```python
+import zlib
+print(zlib.compress(b'hello!'*20)) #b'x\x9c\xcbH\xcd\xc9\xc9W\xcc\xa0;\t\x00|B,%'
+print(zlib.decompress(b'x\x9cKLLJJ\x1c\x06\x18\x00\xe9]L-')) #b'aabb'*50
+```
 
 #### json
 
@@ -6063,428 +6637,9 @@ dump 可以设置
 - `indent=2`，使得有缩进(2个空格)，否则在一行输出。
 - `ensure_ascii`：默认为 `True`，非 ASCII 字符会被转义（如 `中文` → `\u4e2d\u6587`）。设为 `False` 可保留原字符。
 
-#### functools
 
-##### 缓存
 
-1. 版本要求：
-   - `@cache` 是在 Python 3.9 中引入的。
-   - `@lru_cache` 在较早的版本中就已经存在（Python 3.2 及以上版本）。
-   
-2. 缓存策略：
-   - `@cache` 本质上是 `@lru_cache(maxsize=None)` 的简化版本。它不限制缓存大小，所以会缓存所有调用的结果。
-   
-     对一个函数名如 `f`，可以调用 `f.cache_clear()` 来清除缓存。
-   
-   - `@lru_cache` 允许你指定一个 `maxsize` 参数，用于限制缓存的大小。如果设置了 `maxsize`，它将采用“最近最少使用”（LRU）策略来淘汰旧的缓存项。
 
-```python
-from functools import lru_cache, cache
-@lru_cache(maxsize=None) # 或 @cache ,都不加就 TLE
-def fibonacci_mod(n):
-    MOD = 10**9 + 7
-    if n < 2:
-        return n
-    return (fibonacci_mod(n - 1) + fibonacci_mod(n - 2)) % MOD
-print(fibonacci_mod(400))
-```
-
-可以直接对函数使用，表示某个函数的计算结果缓存记忆化
-
-```python
-from math import comb
-from functools import cache
-comb=cache(comb)
-comb(10000000,10000000-30000)>1 #slow
-comb(10000000,10000000-30000)>1 #in a flash
-```
-
-#### operator
-
-提供 `or_` 等函数，可用于 reduce 等。
-
-```python
-from functools import reduce
-from operator import or_
-reduce(or_, [1,2,6]) # 7
-```
-
-
-
-#### itertools
-
-```python
-from itertools import *
-```
-
-可以枚举排列组合等
-
-如：
-
-- 笛卡尔积
-
-  `product(iterable, repeat=1)` ，输出 $len^{repeat}$ 个元素
-
-  `product(iterable1, iterable2, ...)` 多个集合笛卡尔积
-
-  对 dict 使用，等价于对 keys 使用
-
-- 排列 `permutaions(iterable, m = len)`
-
-  按照给定参数的顺序而不是字典序返回排列，每个排列是 tuple；组合、笛卡尔积同理
-
-  ```python
-  list(permutations([1,5,3]))
-  #[(1, 5, 3), (1, 3, 5), (5, 1, 3), (5, 3, 1), (3, 1, 5), (3, 5, 1)]
-  ```
-
-- 组合 `combinations(iterable, m)` 
-
-- 带自身重复的组合(每个元素可以选无限次) `combinations_with_replacement()`
-
-- 前缀和 `list(accumulate(nums, initial=0))`  (增加首元素0,即对 [0]+nums 叠，长度加一；不加该参数长度不变原地叠)
-
-  `list(accumulate(numbers, lambda x, y: x * y))` 前缀积(或 `operator.mul` 为参数)
-
-- `pairwise(a)` 返回 a 相邻两个元素值组成的元组的迭代器
-
-- `tee(a, n=2)` 返回 a 的多个迭代器，如 `x,y=tee(a)`
-
-- `count(i)` 从 i 开始每次不断自增的无限迭代器 (break 跳出)
-
-- `groupby(x, key=None)`，对可迭代对象 x 分组，分组依据默认为元素本身，返回迭代器，每次返回一个元组 (k, g)，其中 k 是键，g 是迭代器。取长度可以 `len(list(g))`。
-
-例：
-
-```python
-list1 = [1, 2]
-list2 = [3, 4]
-cartesian_product = list(itertools.product(list1, list2))
-# 输出: [(1, 3), (1, 4), (2, 3), (2, 4)]
-cartesian_product = list(itertools.product(list1, repeat=3))
-# 输出: [(1, 1, 1), (1, 1, 2), (1, 2, 1), (1, 2, 2), (2, 1, 1), (2, 1, 2), (2, 2, 1), (2, 2, 2)]
-```
-
-```python
-for i in product('1234', repeat=2):
-    print(''.join(i), end=' ')
-for i in product('1234', 'abc', 'AB'):
-    print(''.join(i), end=' ')
-for i in permutations(("abc", "def", "ghi")):
-    print(i)
-for i in combinations_with_replacement("abcd", 3):
-    print(''.join(i), end=' ')
-```
-
-排列数组合数建议用算法知识计算，也可以调第三方库：(可以对 `numpy` 数组两两算组合)
-
-```python
-from scipy.special import comb, perm
-print(perm(5, 2)) # A(n, m) 返回 double
-print(comb(5, [i for i in range(6)])) # C(n, m)
-```
-
-连接多个迭代器：
-
-```python
-from itertools import chain
-list1 = [1, 2, 3]
-list2 = [4, 5, 6]
-list3 = [7, 8, 9]
-for item in chain.from_iterable([list1, list2, list3]):
-    print(item)
-```
-
-```python
-# 层序遍历模板
-q = list(chain.from_iterable((node.left, node.right) for node in q))
-```
-
-```python
-from itertools import count
-for i in count(2): # 无线迭代器
-    print(i)
-    if i >= 5: break  # 仅示例，实际中会是无限的
-```
-
-```python
-from itertools import groupby
-for ch, s in groupby('1222334555'):
-    print(ch, len(list(s)))
-```
-
-
-
-#### mpmath
-
-```python
-import mpmath
-mpmath.mp.dps = 50
-result = mpmath.mpf(1) / 7
-print(result) #mpf('0.14285714285714285714285714285714285714285714285714281')
-# or str(result)
-```
-
-
-
-#### decimal
-
-以例子说明：
-
-```python
-from decimal import *
-getcontext().prec = 20
-x = Decimal('1')
-y = Decimal('7.0')
-print(x) # 50 位
-print((x / y * y * y).quantize(Decimal('0.00'), ROUND_HALF_DOWN)) # 2位
-#第二个参数可以不填
-```
-
-> 精度：(官方文档)
->
-> ROUND_CEILING (towards Infinity),
-> ROUND_DOWN (towards zero),
-> ROUND_FLOOR (towards -Infinity),
-> ROUND_HALF_DOWN (to nearest with ties going towards zero),
-> ROUND_HALF_EVEN (to nearest with ties going to nearest even integer),
-> ROUND_HALF_UP (to nearest with ties going away from zero), or
-> ROUND_UP (away from zero).
-> ROUND_05UP (away from zero if last digit after rounding towards zero would have been 0 or 5; otherwise towards zero)
-
-
-
-#### glob
-
-文件通配符。提供了函数用于从目录通配符搜索中生成文件列表。
-
-语法：(类比 Linux)
-
--  `*` 表示零到任意多个字符。所有本层文件和子目录
-- `**` 表示所有文件、目录、子目录和子目录的文件(与上面相比多了子目录下的)
-- `?` 单个字符
-- `[]` 范围内字符，如 `[0-9]`
-
-函数：`glob` 列出当前目录下符合条件的文件名：
-
-```python
-import glob
-print(glob.glob('*.py'))  # 当前目录下所有.py
-```
-
-```PYTHON
-print(glob.glob('**', recursive=True))  # 所有目录下
-print(glob.glob('**/*.py', recursive=True))  # 所有目录下的.py
-```
-
-glob函数默认不搜索以· 点号开头的文件和路径，如果要求的话需要单独特判
-
-```python
-print(glob.glob('.gitignore'))
-print(glob.glob('.vscode/*'))
-```
-
-> 用 `/` 或`\\` 分割目录都可以
-
-
-
-`iglob` 每次返回可迭代对象，如：
-
-```python
-f = glob.iglob('*.py')
-print(f)
-for py in f:
-    print(py)
-```
-
-
-
-`escape` 将特殊符号一般化处理(转义化)：
-
-```python
-print(glob.escape('?[]*.py'))
-```
-
-#### subprocess
-
-执行 cmd 命令
-
-```python
-import subprocess
-subprocess.run('echo Hello, World!', shell=True)
-```
-
-当 `shell=True` 时，传递给 `subprocess.run()` 的命令字符串会被解释器解析。这允许你执行复杂的命令，比如使用管道 (`|`)、重定向 (`>` 和 `<`) 以及其他 shell 特性。
-
-#### typing
-
-类型检查，提出警告但不报错。3.5+
-
-常见的：
-
-- `List, Tuple, Set, Dict`，如 `Dict[str, int]`
-
-- `Any`
-
-- 函数返回值 `def add(x: int, y: int) -> int`
-
-- `Union` 是可以取里面几种的一种作输入如 `Union[int, str]`
-
-  类比 rust，`Optional` 是 `Union` 特况，表示还可以是 `None`
-
-  `Optional[xx]` 要么是 None，要么是 xx
-
-- `Callable` 可调用对象如函数
-
-例如：
-
-```python
-from typing import List
-def f(a: List[int]) -> int:
-    print(sum(a))
-# typing = 默认值
-def g(a:int=1):
-    ...
-```
-
-> 具体使用：安装第三方库
->
-> ```
-> pip install mypy
-> ```
->
-> 执行：
->
-> ```sh
-> mypy code.py
-> ```
-
-含默认参数：
-
-```python
-def loadModel(modelname:str, device:str='cpu'):
-```
-
-
-
-自定义类：
-
-```python
-"""
-# Definition for a Node.
-class Node:
-    def __init__(self, val: int = 0, left: 'Node' = None, right: 'Node' = None, next: 'Node' = None):
-        self.val = val
-        self.left = left
-        self.right = right
-        self.next = next
-"""
-
-class Solution:
-    def connect(self, root: 'Node') -> 'Node':
-        ...
-# Optional[Node] 则：None 或 Node
-```
-
-#### bisect
-
-二分库
-
-- `bisect_left(arr, v)` 第一个 $\ge v$ 的最小下标，对应 lower bound
-
-  ```python
-  a=[2,3,3,6,6,6]
-  bisect_left(a,0) #0
-  bisect_left(a,2) #0
-  bisect_left(a,3) #1
-  bisect_left(a,4) #1
-  bisect_left(a,6) #3
-  bisect_left(a,7) #6
-  bisect_left([],0) #0
-  ```
-
-  `(arr, v, lo=0, hi=None, key=None)`，指定二分的下标范围是 $[lo,hi)$，对数组元素执行 key 函数得到的返回值进行比较(即映射函数)。
-
-  如：`return bisect_left(range(right), totalTrips, left, key=f)`
-
-- `bisect_right(arr, v)` 第一个 $> v$ 的最小下标，对应 upper bound
-
-  ```python
-  a=[2,3,3,6,6,6]
-  bisect_right(a,0) #0
-  bisect_right(a,2) #1
-  ```
-
-  支持 `lo,hi` 参数，代表区间 [lo,hi)。返回的下标仍然相对 arr 首元素。
-
-  ```python
-  a=[2,3,3,6,6,6]
-  bisect_left(a,0,3,5) #3
-  bisect_left(a,100,3,5) #5
-  ```
-
-  3.10 之前，不支持自定义比较依据。之后可以 `key=`:
-
-  ```python
-  a = [6, 6, 6, 3, 3, 2]
-  bisect_left(a,-6,key=lambda x:-x) #找6, 返回0
-  bisect_left(a,-5,key=lambda x:-x) #找5, 返回3
-  bisect_left(a,-1,key=lambda x:-x) #找1, 返回6
-  bisect_right(a,-7,key=lambda x:-x) #0
-  bisect_right(a,-6,key=lambda x:-x) #3
-  ```
-
-- `insort_left(arr, v)` 将 `v` 插入到 `arr`，返回 None，保持有序，插入到相同元素的左
-
-- `insort_right(arr, v)` 将 `v` 插入到 `arr`，返回 None，保持有序，插入到相同元素的右
-
-二分答案：
-
-- 01 二分：False 在左，True 在右，check 传入 int 作为参数，返回布尔值
-
-```python
-# 注意 range 并不会创建 list，它是 O(1) 的
-bisect_left(range(1_000_000_001), True, key=check)
-```
-
-[例题](https://leetcode.cn/problems/maximum-number-of-alloys/solutions/2446024/er-fen-da-an-fu-ti-dan-by-endlesscheng-3jdr/)
-
-```python
-class Solution:
-    def maxNumberOfAlloys(self, n: int, k: int, budget: int, composition: List[List[int]], stock: List[int], cost: List[int]) -> int:
-        ans = 0
-        mx = min(stock) + budget
-        for comp in composition:
-            def f(num: int) -> int:
-                money = 0
-                for s, base, c in zip(stock, comp, cost):
-                    if s < base * num:
-                        money += (base * num - s) * c
-                        if money > budget:
-                            break
-                return money
-            ans += bisect_right(range(ans + 1, mx + 1), budget, key=f)
-        return ans
-```
-
-
-
-#### argparse
-
-处理 CLI 参数：
-
-```python
-import argparse
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--experiment', type=str, default='test_momentum', help='Specify the experiment that you want to run')
-parser.add_argument('-p', type=int, default=80, help='Some port')
-parser.add_argument("-c", "--cfg", default="stdmae/STDMAE_PEMS03.py", help="training config")
-args = parser.parse_args()
-print(args.experiment) #上面那个experiment;或args.p
-```
-
-- `help` 参数提供了这个选项的简短描述。当用户在命令行中运行程序并带上 `-h` 或 `--help` 时，这些帮助信息会显示出来。
 
 #### urllib
 
@@ -6495,121 +6650,6 @@ print(args.experiment) #上面那个experiment;或args.p
 ```python
 import urllib.parse
 urllib.parse.quote('你好！ a+b=c/d') # 得到字符串 '%E4%BD%A0%E5%A5%BD%EF%BC%81%20a%2Bb%3Dc/d'
-```
-
-
-
-#### hashlib
-
-> 它提供了多种常见的加密算法,如 MD5、SHA-1、SHA-256 等
-
-md5 加密一个文件或二进制文本，返回32字符的十六进制字符串：
-
-```python
-hashlib.md5('你好'.encode('utf-8')).hexdigest()
-# '7eca689f0d3389d9dea66ae112e5cfd7'
-```
-
-```python
-import hashlib
-hashlib.md5(b'aba').hexdigest()
-def md5(path):
-    with open(path,'rb') as f:
-        return hashlib.md5(f.read()).hexdigest()
-```
-
-
-
-#### operator
-
-基本运算的函数写法：
-
-```python
-operator.mul(3,5) # 3*5
-```
-
-可以用作排序依据：
-
-```python
-from operator import itemgetter
-people = [('张三', 30), ('李四', 25), ('王五', 40)]
-# 使用 itemgetter(1) 来获取每个元组的第二个元素，即年龄
-sorted_people = sorted(people, key=itemgetter(1))
-print(sorted_people)
-#多关键字：itemgetter(1,0)
-```
-
-```python
-from operator import attrgetter
-class Person:
-    def __init__(self, name, age):
-        self.name = name
-        self.age = age
-people = [Person('张三', 30), Person('李四', 25), Person('王五', 40)]
-sorted_people = sorted(people, key=attrgetter('age'))
-for person in sorted_people:
-    print(person.name, person.age)
-```
-
-#### zlib
-
-压缩解压缩
-
-```python
-import zlib
-print(zlib.compress(b'hello!'*20)) #b'x\x9c\xcbH\xcd\xc9\xc9W\xcc\xa0;\t\x00|B,%'
-print(zlib.decompress(b'x\x9cKLLJJ\x1c\x06\x18\x00\xe9]L-')) #b'aabb'*50
-```
-
-#### keyword
-
-输出所有关键字的字符串列表
-
-```python
-import keyword
-print(keyword.kwlist)
-```
-
-#### builtin
-
-```python
-import builtins
-builtin_functions = [func for func in dir(builtins) if callable(getattr(builtins, func))]
-builtin_functions
-```
-
-#### warning
-
-警报清理：
-
-```python
-import warnings
-warnings.filterwarnings('ignore', category=RuntimeWarning)
-```
-
-可以清除诸如：
-
-```
-C:\Program Files\Python313\Lib\site-packages\numpy\linalg_linalg.py:2832: RuntimeWarning: overflow encountered in multiply
-s = (x.conj() * x).real
-```
-
-#### string
-
-字符串常量
-
-```python
-import string
-string.ascii_lowercase
-'abcdefghijklmnopqrstuvwxyz'
-string.ascii_uppercase
-'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-string.ascii_letters
-'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-string.ascii_digits
-'0123456789'
-string.punctuation
-'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
 ```
 
 #### csv
@@ -6650,42 +6690,6 @@ def read_prices(file):
         for row in reader:
             prices.append(float(row['price']))
     return prices
-```
-
-
-
-#### ast
-
-（Abstract Syntax Trees，抽象语法树）是 Python 的一个内置库，
-
-可以直接读 python 格式的变量字符串
-
-```python
-a = ast.literal_eval("[[25, 50000, 2000, 'G'],[30, 55000, 3000, 'G'],[35, 60000, 0, 'B'],[40, 65000, 4000, 'B'],[28, 48000, 1000, 'G']]")
-print(a[0][0]) # 25
-```
-
-它提供了将 Python 代码解析为抽象语法树的功能，并允许对语法树进行遍历和修改
-
-```python
-import ast
-
-code = """
-def hello(name):
-    print(f"Hello, {name}!")
-"""
-tree = ast.parse(code)
-for node in ast.walk(tree):
-    if isinstance(node, ast.FunctionDef):
-        print(f"Found function: {node.name}")
-# 修改 ast
-for node in ast.walk(tree):
-    if isinstance(node, ast.FunctionDef) and node.name == "hello":
-        node.name = "greet"
-modified_code = ast.unparse(tree)
-print(modified_code) 
-'''def greet(name):
-    print(f'Hello, {name}!')'''
 ```
 
 

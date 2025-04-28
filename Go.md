@@ -3447,8 +3447,11 @@ if err != nil {
 
 ##### min/max
 
+> 内置函数 min, max 不能拿来算数组，`nums...` 也不行。
+
 ```go
 mn := slices.Min(nums)
+mx := slices.Max(nums)
 ```
 
 ##### 遍历
@@ -4334,17 +4337,18 @@ fmt.Println(fee.Add(taxRate)) // 0.12375
 
 
 
-# 框架
-
-## Gin
-
-[官网](https://gin-gonic.com/zh-cn/)
-
-### 基础
-
-#### 安装使用
-
-```go
-go get -u github.com/gin-gonic/gin
-```
+> # 框架
+>
+> ## Gin
+>
+> [官网](https://gin-gonic.com/zh-cn/)
+>
+> ### 基础
+>
+> #### 安装使用
+>
+> ```go
+> go get -u github.com/gin-gonic/gin
+> ```
+>
 

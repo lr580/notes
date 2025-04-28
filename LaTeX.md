@@ -102,29 +102,7 @@ ctrl+t
 int a=1;
 ``````
 
-#### 居中/右
 
-居右：
-
-<p align="right">——蒟蒻lr580</p>
-
-居中：
-
-<center>标题</center>
-
-支持 div 常见样式
-
-<div style="background-color:#feeeed;color:#fe4c61;font-size:26px;font-weight:900" align="center">C++入门</div>
-
-#### 分页
-
-实用 HTML 语法可以实现分页(导出 pdf 时生效)
-
-```html
-<div STYLE="page-break-after: always;"></div>
-```
-
-可以去偏好设置-markdown 开显示行号
 
 #### 任务列表
 
@@ -161,7 +139,39 @@ int a=1;
 > ---
 > ```
 
+#### 批注
 
+这是正文。[^这是批注标号]
+
+[^这是批注标号]: 批注由两部分组成，出现处和解释处。typora支持，使用中括号+^来定义批注，解释就空行同理冒号。如本例所示，鼠标放到批注会冒出这一段解释。在实际打印为pdf时，批注内容一定会放到整个pdf的最后面。并且不会显示批注标号，会显示1,2,3...
+
+希望在当前页出现批注，可以在当前页加分隔符。
+
+### HTML功能
+
+#### 居中/右
+
+居右：
+
+<p align="right">——蒟蒻lr580</p>
+
+居中：
+
+<center>标题</center>
+
+支持 div 常见样式
+
+<div style="background-color:#feeeed;color:#fe4c61;font-size:26px;font-weight:900" align="center">C++入门</div>
+
+#### 分页
+
+实用 HTML 语法可以实现分页(导出 pdf 时生效)
+
+```html
+<div STYLE="page-break-after: always;"></div>
+```
+
+可以去偏好设置-markdown 开显示行号
 
 ### 其他设置
 

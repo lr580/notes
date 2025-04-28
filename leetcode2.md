@@ -2915,14 +2915,26 @@
 - 2444\.统计定界子数组的数组
 
   滑动窗口
+  
+- 3392\.统计符合条件长度为3的子数组数目
+
+  签到
+  
+- 2302\.统计得分小于K的子数组数目
+
+  滑动窗口
+  
+- 2962\.统计最大元素出现至少K次的子数组
+
+  枚举 / 滑动窗口
+
+
 
 ## 算法
 
 > 力扣其他，CF杂题，其他杂题是 `leetcode.md` 搬过来的；力扣是新的力扣常规题。
 
 ### 力扣其他
-
-> ### 力扣比赛
 
 #### 周赛327
 
@@ -13155,6 +13167,91 @@ func countSubarrays(nums []int, minK int, maxK int) (ans int64) {
 		lastAvail := min(lastMin, lastMax)
 		len := max(0, lastAvail-lastFail)
 		ans += int64(len)
+	}
+	return
+}
+```
+
+##### 3392\.统计符合条件长度为3的子数组数目
+
+[题目](https://leetcode.cn/problems/count-subarrays-of-length-three-with-a-condition/)
+
+```go
+func countSubarrays(nums []int) (ans int) {
+    n := len(nums)
+    for i := 1; i < n-1; i++ {
+        if (nums[i-1]+nums[i+1])*2 == nums[i] {
+            ans++
+        }
+    }
+    return
+}
+```
+
+##### 2302\.统计得分小于K的子数组数目
+
+[题目](https://leetcode.cn/problems/count-subarrays-with-score-less-than-k)
+
+```go
+package main
+
+func countSubarrays(nums []int, k int64) (ans int64) {
+	l := 0
+	s := int64(0)
+	for r, v := range nums {
+		s += int64(v)
+		for int64(r-l+1)*s >= k {
+			s -= int64(nums[l])
+			l++
+		}
+		ans += int64(r - l + 1)
+	}
+	return
+}
+```
+
+##### 2962\.统计最大元素出现至少K次的子数组
+
+[题目](https://leetcode.cn/problems/count-subarrays-where-max-element-appears-at-least-k-times)
+
+我的枚举：
+
+```go
+func countSubarrays(nums []int, k int) (ans int64) {
+	mx := 0
+	for _, v := range nums {
+		mx = max(mx, v)
+	}
+	idx := []int{}
+	for i, v := range nums {
+		if v == mx {
+			idx = append(idx, i)
+		}
+		if len(idx) >= k {
+			ans += int64(idx[len(idx)-k] + 1)
+		}
+	}
+	return
+}
+```
+
+感觉不如滑动窗口：
+
+```go
+func countSubarrays(nums []int, k int) (ans int64) {
+	mx := slices.Max(nums)
+	cntMx, left := 0, 0
+	for _, x := range nums {
+		if x == mx {
+			cntMx++
+		}
+		for cntMx == k {
+			if nums[left] == mx {
+				cntMx--
+			}
+			left++
+		}
+		ans += int64(left)
 	}
 	return
 }
