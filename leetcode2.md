@@ -2927,8 +2927,10 @@
 - 2962\.统计最大元素出现至少K次的子数组
 
   枚举 / 滑动窗口
+  
+- 1295\.统计位数为偶数的数字
 
-
+  签到
 
 ## 算法
 
@@ -13252,6 +13254,39 @@ func countSubarrays(nums []int, k int) (ans int64) {
 			left++
 		}
 		ans += int64(left)
+	}
+	return
+}
+```
+
+##### 1295\.统计位数为偶数的数字
+
+[题目](https://leetcode.cn/problems/find-numbers-with-even-number-of-digits)
+
+```go
+func findNumbers(nums []int) (ans int) {
+    for _, v := range nums {
+        cnt := 0
+        for ;v > 0;v/=10 {
+            cnt++
+        }
+        if cnt%2==0 {
+            ans++
+        }
+    }
+    return
+}
+```
+
+```go
+func findNumbers(nums []int) (ans int) {
+	for _, x := range nums {
+		for x >= 100 {
+			x /= 100
+		}
+		if x >= 10 {
+			ans++
+		}
 	}
 	return
 }
