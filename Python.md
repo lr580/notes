@@ -9798,7 +9798,7 @@ df.to_json('t_values.json', orient='values', force_ascii=False)
 
 取所有列(含下表列) `df.columns`，取指定列，可以 for 和取下标，得 str，可以 `.tolist()`
 
-删一列 `df.drop(columns=['col1'])`，或 `df.drop(['col1'], axis=1)`，就地则 `inplace=True`
+删一列 `df.drop(columns=['col1'])`，或 `df.drop(['col1'], axis=1)`，就地则 `inplace=True`。甚至可以 `del df['col1']`
 
 > 取一列外的全部列：`df.loc[:, df.columns != 'col1']` 或 `df[df.columns.difference(['要排除的列名'])]`
 
@@ -10565,6 +10565,8 @@ pd.merge(left, right, how='inner', on=None, left_on=None, right_on=None)
 - `on`: 指定用于连接的列名，如果 `left` 和 `right` 都具有相同的列名，可以简单地使用 `on`。
 
 - `left_on` 和 `right_on`: 如果要连接的列在左右两个 DataFrame 中具有不同的列名，可以使用这两个参数来分别指定左右的列名。
+
+- `suffixes=('_left', '_right')` 列命名冲突如何解决。
 
 如：
 
