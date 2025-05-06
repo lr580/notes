@@ -2955,6 +2955,14 @@
 - 1920\.基于排列构建数组
 
   签到
+  
+- 3341\.到达最后一个房间的最少时间I
+
+  Dijkstra
+
+- 3342.到达最后一个房间的最少时间II
+
+  Dijkstra
 
 ## 算法
 
@@ -13582,5 +13590,135 @@ func buildArray(nums []int) []int {
     }
     return ans
 }
+```
+
+##### 3341\.到达最后一个房间的最少时间I
+
+[题目](https://leetcode.cn/problems/find-minimum-time-to-reach-last-room-i)
+
+BFS+优先级队列的本质就是堆优化 dijkstra。
+
+```go
+func minTimeToReach(moveTime [][]int) int {
+	n, m := len(moveTime), len(moveTime[0])
+	d := make([][]int, n)
+	v := make([][]bool, n)
+	for i := range d {
+		d[i] = make([]int, m)
+		v[i] = make([]bool, m)
+		for j := range d[i] {
+			d[i][j] = math.MaxInt32
+		}
+	}
+
+	dirs := [][]int{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}
+	d[0][0] = 0
+	q := &PriorityQueue{}
+	heap.Push(q, State{0, 0, 0})
+
+	for q.Len() > 0 {
+		s := heap.Pop(q).(State)
+		if v[s.x][s.y] {
+			continue
+		}
+		v[s.x][s.y] = true
+		for _, dir := range dirs {
+			nx, ny := s.x + dir[0], s.y + dir[1]
+			if nx < 0 || nx >= n || ny < 0 || ny >= m {
+				continue
+			}
+			dist := max(d[s.x][s.y], moveTime[nx][ny]) + 1
+			if d[nx][ny] > dist {
+				d[nx][ny] = dist
+				heap.Push(q, State{nx, ny, dist})
+			}
+		}
+	}
+
+	return d[n - 1][m - 1]
+}
+
+type State struct {
+	x, y, dis int
+}
+
+type PriorityQueue []State
+
+func (pq PriorityQueue) Len() int           { 
+    return len(pq) 
+}
+
+func (pq PriorityQueue) Less(i, j int) bool { 
+    return pq[i].dis < pq[j].dis 
+}
+
+func (pq PriorityQueue) Swap(i, j int) { 
+    pq[i], pq[j] = pq[j], pq[i] 
+}
+
+func (pq *PriorityQueue) Push(x interface{}) { 
+    *pq = append(*pq, x.(State)) 
+}
+
+func (pq *PriorityQueue) Pop() interface{} {
+	old := *pq
+	n := len(old)
+	x := old[n - 1]
+	*pq = old[:n - 1]
+	return x
+}
+```
+
+##### 3342\.到达最后一个房间的最少时间II
+
+[题目](https://leetcode.cn/problems/find-minimum-time-to-reach-last-room-ii)
+
+棋盘下标i+j就是步数，决定了花费1/2秒
+
+```go
+var dirs = []struct{ x, y int }{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}
+
+func minTimeToReach(moveTime [][]int) (ans int) {
+	n, m := len(moveTime), len(moveTime[0])
+	dis := make([][]int, n)
+	for i := range dis {
+		dis[i] = make([]int, m)
+		for j := range dis[i] {
+			dis[i][j] = math.MaxInt
+		}
+	}
+	dis[0][0] = 0
+
+	h := hp{{}}
+	for {
+		top := heap.Pop(&h).(tuple)
+		i, j := top.x, top.y
+		if i == n-1 && j == m-1 {
+			return top.dis
+		}
+		if top.dis > dis[i][j] {
+			continue
+		}
+		time := (i+j)%2 + 1
+		for _, d := range dirs {
+			x, y := i+d.x, j+d.y
+			if 0 <= x && x < n && 0 <= y && y < m {
+				newD := max(top.dis, moveTime[x][y]) + time
+				if newD < dis[x][y] {
+					dis[x][y] = newD
+					heap.Push(&h, tuple{newD, x, y})
+				}
+			}
+		}
+	}
+}
+
+type tuple struct{ dis, x, y int }
+type hp []tuple
+func (h hp) Len() int           { return len(h) }
+func (h hp) Less(i, j int) bool { return h[i].dis < h[j].dis }
+func (h hp) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *hp) Push(v any)        { *h = append(*h, v.(tuple)) }
+func (h *hp) Pop() (v any)      { a := *h; *h, v = a[:len(a)-1], a[len(a)-1]; return }
 ```
 
