@@ -6240,6 +6240,18 @@ no hang up
 >
 > *Uniq Visitor*，它代表访问人数，近似：IP 地址
 
+#### 文件对比
+
+##### code
+
+vscode，对比两个文件，在图形化窗口比较
+
+```sh
+code --diff .\moviedb1.sql .\moviedb2.sql
+```
+
+
+
 ## 维护
 
 ### 清理垃圾

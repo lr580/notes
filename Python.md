@@ -1563,6 +1563,13 @@ print('123'
 '456')
 ```
 
+可以用占位符，可以变量，如：
+
+```python
+furl = "https://movie.douban.com/top250?start=%d"
+url = furl % (i * 25)
+```
+
 
 
 ##### 函数

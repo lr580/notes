@@ -2931,6 +2931,30 @@
 - 1295\.统计位数为偶数的数字
 
   签到
+  
+- 2071\.你可以安排的最多任务数目
+
+  **二分+贪心+STL**
+
+- 838\.推多米诺
+
+  模拟 / BFS
+
+- 1007\.行相等的最少多米诺旋转
+
+  枚举 / <u>贪心</u>
+
+- 1128\.等价多米诺骨牌对的数量
+
+  STL 哈希 计数
+
+- 790\.多米诺和托米诺
+
+  <u>DP / 矩阵快速幂</u>
+
+- 1920\.基于排列构建数组
+
+  签到
 
 ## 算法
 
@@ -13289,6 +13313,274 @@ func findNumbers(nums []int) (ans int) {
 		}
 	}
 	return
+}
+```
+
+##### 2071\.你可以安排的最多任务数目
+
+[题目](https://leetcode.cn/problems/maximum-number-of-tasks-you-can-assign)
+
+二分枚举能完成 k 个任务，显然单调。当只有前 k 个最简单任务时，选最好的 k 个工人，从差往好枚举，对每个工人和对应的任务：
+
+- 若当前工人不吃药可以完成剩下最简单的任务，显然直接让他做这个
+- 如果哪怕当前工人吃了药，也做不了剩下最简单的任务，那一定无法完成全部任务 (缺的这个没办法补)
+- 当工人吃药后，可以让他完成能做的最难的的任务，等价于删了工人再加入强化后的该工人
+
+我的逻辑：(fail)
+
+> ```python
+> from typing import *
+> import heapq
+> class Solution:
+>     def maxTaskAssign(self, tasks: List[int], workers: List[int], pills: int, strength: int) -> int:
+>         tasks.sort()
+>         workers.sort()
+>         n = len(tasks)
+>         lf, rf, ans = 1, n, 0
+>         while lf<=rf:
+>             cf = (lf+rf)>>1
+>             w = list(zip(workers[-cf:], [True]*cf))
+>             i = 0
+>             p = pills
+>             while w:
+>                 v, notPilled = heapq.heappop(w)
+>                 if v >= tasks[i]:
+>                     i += 1
+>                     continue
+>                 if p and notPilled:
+>                     p -= 1
+>                     heapq.heappush(w, (v+strength, False))
+>             if i != cf:
+>                 rf = cf - 1
+>             else:
+>                 lf = cf + 1
+>                 ans = cf
+>         return ans
+> ```
+
+可以使用 deque 维护这个过程，避免删了再加的堆操作。
+
+```go
+func maxTaskAssign(tasks, workers []int, pills, strength int) int {
+	slices.Sort(tasks)
+	slices.Sort(workers)
+	m := len(workers)
+	ans := sort.Search(min(len(tasks), m), func(k int) bool {
+		k++
+		// 贪心：用最强的 k 名工人，完成最简单的 k 个任务
+		i, p := 0, pills
+		validTasks := []int{}
+		for _, w := range workers[m-k:] { // 枚举工人
+			// 在吃药的情况下，把能完成的任务记录到 validTasks 中
+			for ; i < k && tasks[i] <= w+strength; i++ {
+				validTasks = append(validTasks, tasks[i])
+			}
+			// 即使吃药也无法完成任务
+			if len(validTasks) == 0 {
+				return true
+			}
+			// 无需吃药就能完成（最简单的）任务
+			if w >= validTasks[0] {
+				validTasks = validTasks[1:]
+				continue
+			}
+			// 必须吃药
+			if p == 0 { // 没药了
+				return true
+			}
+			p--
+			// 完成（能完成的）最难的任务
+			validTasks = validTasks[:len(validTasks)-1]
+		}
+		return false
+	})
+	return ans
+}
+```
+
+##### 838\.推多米诺
+
+[题目](https://leetcode.cn/problems/push-dominoes)
+
+懒得写，最好的思路是分类讨论，也可以 BFS。
+
+```go
+func fill(s []byte, ch byte) {
+    for i := range s {
+        s[i] = ch
+    }
+}
+
+func pushDominoes(dominoes string) string {
+    s := []byte("L" + dominoes + "R") // 前后各加一个哨兵
+    n := len(s)
+    pre := 0 // 上一个 L 或 R 的位置
+    for i, ch := range s {
+        if ch == '.' {
+            continue
+        }
+        if ch == s[pre] { // L...L 或 R...R
+            fill(s[pre:i], ch) // 全变成 s[i]
+        } else if ch == 'L' { // R...L
+            fill(s[pre+1:(pre+i+1)/2], 'R') // 前一半变 R
+            fill(s[(pre+i)/2+1:i], 'L')     // 后一半变 L
+        }
+        pre = i
+    }
+    return string(s[1 : n-1]) // 去掉前后哨兵
+}
+```
+
+##### 1007\.行相等的最少多米诺旋转
+
+[题目](https://leetcode.cn/problems/minimum-domino-rotations-for-equal-row)
+
+可以直接枚举所有的目标值和上/下。懒得写。
+
+- 优化一：上下枚举变成维护两个变量，目标在上半和下半的次数，取最小
+- 优化二：第一列的上面或下面一定是目标，否则无解，故解两次即可
+
+```python
+class Solution:
+    def minDominoRotations(self, tops: List[int], bottoms: List[int]) -> int:
+        def min_rot(target: int) -> int:
+            to_top = to_bottom = 0
+            for x, y in zip(tops, bottoms):
+                if x != target and y != target:
+                    return inf
+                if x != target:
+                    to_top += 1  # 把 y 旋转到上半
+                elif y != target:
+                    to_bottom += 1  # 把 x 旋转到下半
+            return min(to_top, to_bottom)
+
+        ans = min(min_rot(tops[0]), min_rot(bottoms[0]))
+        return -1 if ans == inf else ans
+```
+
+##### 1128\.等价多米诺骨牌对的数量
+
+[题目](https://leetcode.cn/problems/number-of-equivalent-domino-pairs)
+
+```go
+func numEquivDominoPairs(dominoes [][]int) (ans int) {
+	m := map[int]int{}
+	for _, pr := range dominoes {
+		x, y := min(pr[0], pr[1]), max(pr[0], pr[1])
+		m[x*10+y]++
+	}
+	for _, v := range m {
+		ans +=  v*(v-1)/2
+	}
+	return ans
+}
+```
+
+也可以一次枚举：
+
+```go
+func numEquivDominoPairs(dominoes [][]int) (ans int) {
+    cnt := [10][10]int{}
+    for _, d := range dominoes {
+        a, b := min(d[0], d[1]), max(d[0], d[1]) // 保证 a <= b
+        ans += cnt[a][b]
+        cnt[a][b]++
+    }
+    return
+}
+```
+
+##### 790\.多米诺和托米诺
+
+[题目](https://leetcode.cn/problems/domino-and-tromino-tiling)
+
+直接 0x3f。略。
+
+- n<=1000，DP 即可
+- n<=1e8，DP 的数学化简
+- n<=1e18，DP + 矩阵快速幂
+
+```go
+func numTilings(n int) int {
+    if n == 1 {
+        return 1
+    }
+    a, b, c := 1, 1, 2
+    for i := 3; i <= n; i++ {
+        a, b, c = b, c, (c*2+a)%1_000_000_007
+    }
+    return c
+}
+```
+
+```go
+const mod = 1_000_000_007
+
+type matrix [][]int
+
+func newMatrix(n, m int) matrix {
+    a := make(matrix, n)
+    for i := range a {
+        a[i] = make([]int, m)
+    }
+    return a
+}
+
+// 返回矩阵 a 和矩阵 b 相乘的结果
+func (a matrix) mul(b matrix) matrix {
+    c := newMatrix(len(a), len(b[0]))
+    for i, row := range a {
+        for k, x := range row {
+            if x == 0 {
+                continue
+            }
+            for j, y := range b[k] {
+                c[i][j] = (c[i][j] + x*y) % mod
+            }
+        }
+    }
+    return c
+}
+
+// a^n * f
+func (a matrix) powMul(n int, f matrix) matrix {
+    res := f
+    for ; n > 0; n /= 2 {
+        if n%2 > 0 {
+            res = a.mul(res)
+        }
+        a = a.mul(a)
+    }
+    return res
+}
+
+func numTilings(n int) int {
+    if n == 1 {
+        return 1
+    }
+    f2 := matrix{{2}, {1}, {1}}
+    m := matrix{
+        {2, 0, 1},
+        {1, 0, 0},
+        {0, 1, 0},
+    };
+    fn := m.powMul(n-2, f2)
+    return fn[0][0]
+}
+```
+
+##### 1920\.基于排列构建数组
+
+[题目](https://leetcode.cn/problems/build-array-from-permutation)
+
+```go
+func buildArray(nums []int) []int {
+    n := len(nums)
+    ans := make([]int, n)
+    for i, v := range nums {
+        ans[i] = nums[v]
+    }
+    return ans
 }
 ```
 
