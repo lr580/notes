@@ -11767,7 +11767,8 @@ plt.colorbar(label='Class')
 plt.show()
 ```
 
-
+> 散点图矩阵：多个变量，两两画散点，设数据n维特征，画nxn矩阵。
+>
 
 ##### 柱状
 
@@ -13148,6 +13149,39 @@ def draw_choropleth(tots, pops_fixed):
 
 `ISO` 是三个字母的国家编号。再补充。
 
+##### 平行坐标
+
+```python
+import plotly.express as px
+import pandas as pd
+
+# 加载鸢尾花数据集
+df = px.data.iris()
+
+# 绘制平行坐标图
+fig = px.parallel_coordinates(
+    df,
+    color="species_id",  # 按类别着色
+    dimensions=["sepal_length", "sepal_width", "petal_length", "petal_width"],
+    labels={
+        "sepal_length": "花萼长度 (cm)",
+        "sepal_width": "花萼宽度 (cm)",
+        "petal_length": "花瓣长度 (cm)",
+        "petal_width": "花瓣宽度 (cm)",
+    },
+    color_continuous_scale=px.colors.diverging.Tealrose,  # 颜色方案
+)
+
+# 更新布局
+fig.update_layout(
+    title="鸢尾花数据集平行坐标图（按类别着色）",
+    width=800,
+)
+fig.show()
+```
+
+
+
 #### 图表属性
 
 行列标题，表名(左上角)：
@@ -13276,6 +13310,28 @@ grap.x_title='Result'
 grap.y_title='Frequency'
 grap.add('D6',fr) #图例
 grap.render_to_file('dice.svg') #生成可用浏览器打开的图表文件
+```
+
+### datashader
+
+基于像素的可视化，颜色表示密度
+
+```python
+import datashader as ds
+import pandas as pd
+from datashader import transfer_functions as tf
+import numpy as np
+import matplotlib.pyplot as plt
+# 生成随机大数据
+df = pd.DataFrame({'x': np.random.randn(1_000_000), 
+                   'y': np.random.randn(1_000_000)})
+# 创建像素图
+canvas = ds.Canvas(plot_width=800, plot_height=600)
+agg = canvas.points(df, 'x', 'y')
+img = tf.shade(agg)
+plt.imshow(img.to_pil())
+plt.axis('off')  # 关闭坐标轴
+plt.show()
 ```
 
 
