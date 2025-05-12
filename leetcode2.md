@@ -2963,6 +2963,22 @@
 - 3342.到达最后一个房间的最少时间II
 
   Dijkstra
+  
+- 3343\.统计平衡排列的数目
+
+  **DP/记忆化搜索 组合数学**
+  
+- 2918\.数组的最小相等和
+
+  思维 签到
+  
+- 1550\.存在连续三个奇数的数组
+
+  签到
+
+- 2094\.找出3位偶数
+
+  签到 枚举
 
 ## 算法
 
@@ -13720,5 +13736,246 @@ func (h hp) Less(i, j int) bool { return h[i].dis < h[j].dis }
 func (h hp) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 func (h *hp) Push(v any)        { *h = append(*h, v.(tuple)) }
 func (h *hp) Pop() (v any)      { a := *h; *h, v = a[:len(a)-1], a[len(a)-1]; return }
+```
+
+##### 3343\.统计平衡排列的数目
+
+[题目](https://leetcode.cn/problems/count-number-of-balanced-permutations)
+
+略。看题解。
+
+```go
+const MOD = 1_000_000_007
+
+func countBalancedPermutations(num string) int {
+	tot, n := 0, len(num)
+	cnt := make([]int, 10)
+	for _, ch := range num {
+		d := int(ch - '0')
+		cnt[d]++
+		tot += d
+	}
+	if tot%2 != 0 {
+		return 0
+	}
+
+	target := tot / 2
+	maxOdd := (n + 1) / 2
+	/* 预计算组合数 */
+	comb := make([][]int, maxOdd + 1)
+	for i := range comb {
+		comb[i] = make([]int, maxOdd + 1)
+		comb[i][i], comb[i][0] = 1, 1
+		for j := 1; j < i; j++ {
+			comb[i][j] = (comb[i - 1][j] + comb[i - 1][j - 1]) % MOD
+		}
+	}
+
+	psum := make([]int, 11)
+	for i := 9; i >= 0; i-- {
+		psum[i] = psum[i + 1] + cnt[i]
+	}
+
+	memo := make([][][]int, 10)
+	for i := range memo {
+		memo[i] = make([][]int, target + 1)
+		for j := range memo[i] {
+			memo[i][j] = make([]int, maxOdd + 1)
+			for k := range memo[i][j] {
+				memo[i][j][k] = -1
+			}
+		}
+	}
+
+	var dfs func(pos, curr, oddCnt int) int
+	dfs = func(pos, curr, oddCnt int) int {
+		/* 如果剩余位置无法合法填充，或者当前奇数位置元素和大于目标值 */
+		if oddCnt < 0 || psum[pos] < oddCnt || curr > target {
+			return 0
+		}
+		if pos > 9 {
+			if curr == target && oddCnt == 0 {
+				return 1
+			}
+			return 0
+		}
+		if memo[pos][curr][oddCnt] != -1 {
+			return memo[pos][curr][oddCnt]
+		}
+		/* 偶数位剩余需要填充的位数 */
+		evenCnt := psum[pos] - oddCnt
+		res := 0
+		start := max(0, cnt[pos] - evenCnt)
+		end := min(cnt[pos], oddCnt)
+		for i := start; i <= end; i++ {
+			/* 当前数字在奇数位填充 i 位，偶数位填充 cnt[pos] - i 位 */
+			ways := comb[oddCnt][i] * comb[evenCnt][cnt[pos] - i] % MOD
+			res = (res + ways * dfs(pos + 1, curr + i * pos, oddCnt - i)%MOD) % MOD
+		}
+		memo[pos][curr][oddCnt] = res
+		return res
+	}
+
+	return dfs(0, 0, maxOdd)
+}
+
+```
+
+##### 2918\.数组的最小相等和
+
+[题目](https://leetcode.cn/problems/minimum-equal-sum-of-two-arrays-after-replacing-zeros)
+
+```go
+package main
+
+func sum(a []int) (ans int64, cnt0 int64) {
+	for _, v := range a {
+		ans += int64(v)
+		if v == 0 {
+			cnt0++
+		}
+	}
+	return
+}
+func minSum(nums1 []int, nums2 []int) int64 {
+	s1, n1 := sum(nums1)
+	s2, n2 := sum(nums2)
+	if n1 > 0 && n2 > 0 {
+		return max(s1+n1, s2+n2)
+	}
+	if n2 == 0 && n1 != 0 {
+		if s1+n1 <= s2 {
+			return s2
+		}
+		return -1
+	}
+	if n1 == 0 && n2 != 0 {
+		if s2+n2 <= s1 {
+			return s1
+		}
+		return -1
+	}
+	if s1 == s2 {
+		return s1
+	}
+	return -1
+}
+```
+
+```go
+func calc(nums []int) (sum int64, zero bool) {
+	for _, x := range nums {
+		if x == 0 {
+			zero = true
+			sum++
+		} else {
+			sum += int64(x)
+		}
+	}
+	return
+}
+
+func minSum(nums1, nums2 []int) int64 {
+	s1, zero1 := calc(nums1)
+	s2, zero2 := calc(nums2)
+	if !zero1 && s1 < s2 || !zero2 && s2 < s1 {
+		return -1
+	}
+	return max(s1, s2)
+}
+```
+
+##### 1550\.存在连续三个奇数的数组
+
+[题目](https://leetcode.cn/problems/three-consecutive-odds/)
+
+```go
+func threeConsecutiveOdds(arr []int) bool {
+    for i := 1; i < len(arr) - 1; i++ {
+        if arr[i]&1==1 && arr[i-1]&1==1 && arr[i+1]&1==1 {
+            return true
+        }
+    }
+    return false
+}
+```
+
+##### 2094\.找出3位偶数
+
+[题目](https://leetcode.cn/problems/finding-3-digit-even-numbers)
+
+```go
+func findEvenNumbers(digits []int) []int {
+	cnt := [10]int{}
+	for _, d := range digits {
+		cnt[d]++
+	}
+	cnt2 := [10]int{}
+	ans := []int{}
+	for i := 100; i <= 998; i += 2 {
+		a, b, c := i/100, i/10%10, i%10
+		cnt2[a]++
+		cnt2[b]++
+		cnt2[c]++
+		if cnt2[a] <= cnt[a] && cnt2[b] <= cnt[b] && cnt2[c] <= cnt[c] {
+			ans = append(ans, i)
+		}
+		cnt2[a]--
+		cnt2[b]--
+		cnt2[c]--
+	}
+	return ans
+}
+```
+
+```go
+func findEvenNumbers(digits []int) (ans []int) {
+    cnt := [10]int{}
+    for _, d := range digits {
+        cnt[d]++
+    }
+
+next:
+    for i := 100; i < 1000; i += 2 { // 枚举所有三位数偶数 i
+        c := [10]int{}
+        for x := i; x > 0; x /= 10 { // 枚举 i 的每一位 d
+            d := x % 10
+            c[d]++
+            // 如果 i 中 d 的个数比 digits 中的还多，那么 i 无法由 digits 中的数字组成
+            if c[d] > cnt[d] {
+                continue next // 枚举下一个偶数
+            }
+        }
+        ans = append(ans, i)
+    }
+    return
+}
+```
+
+```go
+func findEvenNumbers(digits []int) (ans []int) {
+    cnt := make([]int, 10)
+    for _, d := range digits {
+        cnt[d]++
+    }
+
+    // i=0 百位，i=1 十位，i=2 个位，x 表示当前正在构造的数字
+    var dfs func(i, x int)
+    dfs = func(i, x int) {
+        if i == 3 {
+            ans = append(ans, x)
+            return
+        }
+        for d, c := range cnt {
+            if c > 0 && (i == 0 && d > 0 || i == 1 || i == 2 && d%2 == 0) {
+                cnt[d]-- // 消耗一个数字 d
+                dfs(i+1, x*10+d)
+                cnt[d]++ // 复原
+            }
+        }
+    }
+    dfs(0, 0)
+    return
+}
 ```
 

@@ -22152,6 +22152,56 @@ with open(d,'r',encoding=check(d)) as f:
     f.read()
 ```
 
+### word/doc
+
+```sh
+pip install python-docx olefile pywin32
+```
+
+举例：查找所有文件夹里的word文件是否有某个关键字：
+
+```python
+import os
+from docx import Document
+import olefile  # 用于处理.doc文件
+import win32com.client as win32  # 仅Windows可用
+
+def search_in_docx(filepath, keyword):
+    try:
+        doc = Document(filepath)
+        for para in doc.paragraphs:
+            if keyword in para.text:
+                return True
+        return False
+    except:
+        return False
+
+def search_in_doc(filepath, keyword):
+    try:
+        # 使用Word应用程序打开.doc文件（仅Windows）
+        word = win32.gencache.EnsureDispatch('Word.Application')
+        doc = word.Documents.Open(filepath)
+        content = word.Selection.Text
+        doc.Close(False)
+        word.Quit()
+        return keyword in content
+    except:
+        return False
+
+keyword = "流畅的导航"
+for root, dirs, files in os.walk("文件夹路径"):
+    for file in files:
+        filepath = os.path.join(root, file)
+        if file.endswith(".docx"):
+            if search_in_docx(filepath, keyword):
+                print(f"找到匹配文件: {filepath}")
+        elif file.endswith(".doc"):
+            if search_in_doc(filepath, keyword):
+                print(f"找到匹配文件: {filepath}")
+```
+
+
+
 ### jieba
 
 中文分词库
