@@ -6644,21 +6644,6 @@ dump 可以设置
 - `indent=2`，使得有缩进(2个空格)，否则在一行输出。
 - `ensure_ascii`：默认为 `True`，非 ASCII 字符会被转义（如 `中文` → `\u4e2d\u6587`）。设为 `False` 可保留原字符。
 
-
-
-
-
-#### urllib
-
-> 提供了多种处理 URL 的功能,如发送 HTTP 请求、解析 URL、编码/解码 URL 等
-
-将字符串转化为 URL 编码，如空格转义：
-
-```python
-import urllib.parse
-urllib.parse.quote('你好！ a+b=c/d') # 得到字符串 '%E4%BD%A0%E5%A5%BD%EF%BC%81%20a%2Bb%3Dc/d'
-```
-
 #### csv
 
 ```python
@@ -6697,6 +6682,204 @@ def read_prices(file):
         for row in reader:
             prices.append(float(row['price']))
     return prices
+```
+
+### 网络
+
+#### urllib
+
+> 提供了多种处理 URL 的功能,如发送 HTTP 请求、解析 URL、编码/解码 URL 等
+
+将字符串转化为 URL 编码，如空格转义：
+
+```python
+import urllib.parse
+urllib.parse.quote('你好！ a+b=c/d') # 得到字符串 '%E4%BD%A0%E5%A5%BD%EF%BC%81%20a%2Bb%3Dc/d'
+```
+
+#### html
+
+在Python中处理HTML时，经常需要转换HTML实体（如 `<` 转换为 `<`，`&` 转换为 `&` 等）。可以使用 `html` 模块中的 `unescape()` 函数来实现这一功能。
+
+```python
+from html import unescape
+text = "&lt;p&gt;Hello &amp; Welcome&lt;/p&gt;"
+text = unescape(text)
+print(text)  # 输出: <p>Hello & Welcome</p>
+```
+
+注意顺序不能变：清除 HTML 只保留文本：
+
+```python
+def clean_description(html_text):
+    """清理HTML标签并转义特殊字符"""
+    # 去除HTML标签
+    text = re.sub(r'<[^>]+>', '', html_text)
+    # 转换HTML实体
+    text = unescape(text)
+    # 清理多余空格和换行
+    text = re.sub(r'\s+', ' ', text).strip()
+    # 转义SQL中的单引号
+    return text.replace("'", "''")
+```
+
+
+
+#### email
+
+以腾讯企业微信为例，需要在邮箱设置-客户端设置勾选开启 IMAP/SMTP 服务 [参考](https://blog.csdn.net/weixin_43458983/article/details/134012676)
+
+假设要下载某个时间后的全部附件，并且输出邮件的基本信息(发件人，时间，标题等)：(powered by deepseek r1) 需要跑几分钟正常，邮件多
+
+> 无法解决的情况：发 onedrive 超链接等
+
+```python
+import imaplib
+import email
+from email.header import decode_header
+from email.utils import parsedate_to_datetime
+from datetime import datetime
+import os
+import pytz
+import chardet
+
+# 务必在邮箱手动开启邮箱的客户端设置勾选使用 IMAP 服务
+# 配置区（必须修改）=========================================
+EMAIL = 'zhangsan@mail2.sysu.edu.cn'     # 企业邮箱
+AUTH_CODE = '123456'              # NetID 登录邮箱的密码
+TARGET_DATE = datetime(2025,4,10).replace(tzinfo=pytz.timezone('Asia/Shanghai'))
+ATTACH_DIR = 'attachments_clean'       # 下载目录
+# =========================================================
+
+def decode_filename(encoded_name):
+    """改进后的多重编码处理函数"""
+    if not encoded_name:
+        return "unnamed"
+    
+    if isinstance(encoded_name, str):
+        # 如果已经是字符串但包含编码字（如=?gbk?Q?...），需继续解码
+        decoded_parts = decode_header(encoded_name)
+    else:
+        decoded_parts = decode_header(encoded_name)
+
+    result = []
+    for part, encoding in decoded_parts:
+        if isinstance(part, bytes):
+            # 优先使用header中指定的编码
+            encodings_to_try = []
+            if encoding:
+                encodings_to_try.append(encoding.lower())
+            # 补充中文常用编码（调整顺序）
+            encodings_to_try += ['gb18030', 'gbk', 'gb2312', 'utf-8', 'big5', 'iso-8859-1']
+            
+            decoded = None
+            for enc in encodings_to_try:
+                try:
+                    decoded = part.decode(enc)
+                    break
+                except (UnicodeDecodeError, LookupError):
+                    continue
+            
+            # 最终fallback：使用chardet检测
+            if not decoded:
+                try:
+                    det = chardet.detect(part)
+                    enc = det['encoding'] if det['confidence'] > 0.6 else 'utf-8'
+                    decoded = part.decode(enc, errors='replace')
+                except:
+                    decoded = part.decode('utf-8', errors='replace')
+            
+            result.append(decoded)
+        else:
+            result.append(str(part))
+    
+    return ''.join(result).strip()
+
+def sanitize_filename(filename):
+    """清理非法字符"""
+    keep_chars = (' ','.','_','-')
+    return "".join(c for c in filename if c.isalnum() or c in keep_chars).strip()
+
+def get_mails():
+    os.makedirs(ATTACH_DIR, exist_ok=True)
+    
+    with imaplib.IMAP4_SSL('imap.exmail.qq.com', 993) as mail:
+        mail.login(EMAIL, AUTH_CODE)
+        mail.select('INBOX')
+        
+        # 获取所有邮件UID
+        status, data = mail.search(None, 'ALL')
+        if status != 'OK':
+            raise Exception("邮件搜索失败")
+
+        valid_count = 0
+        for uid in data[0].split():
+            _, msg_data = mail.fetch(uid, '(RFC822)')
+            msg = email.message_from_bytes(msg_data[0][1])
+            
+            # 日期过滤
+            mail_date = parse_mail_date(msg.get('Date'))
+            if not mail_date or mail_date < TARGET_DATE:
+                continue
+                
+            # 处理邮件内容
+            mail_info = {
+                'id': uid.decode(),
+                'from': msg.get('From'),
+                'date': mail_date.strftime('%Y-%m-%d %H:%M:%S'),
+                'subject': decode_filename(msg['Subject']),
+                'attachments': []
+            }
+
+            # 处理正文和附件
+            for part in msg.walk():
+                # 处理附件
+                if part.get_filename():
+                    orig_name = part.get_filename()
+                    clean_name = sanitize_filename(decode_filename(orig_name))
+                    
+                    # 生成唯一文件名：日期_邮件ID_原文件名（清理后）
+                    file_ext = os.path.splitext(clean_name)[1][:5]  # 取前5位扩展名
+                    # safe_name = f"{mail_date.strftime('%Y%m%d')}_{uid.decode()}_{clean_name[:50]}{file_ext}"
+                    safe_name = f"{clean_name}"
+                    filepath = os.path.join(ATTACH_DIR, safe_name.encode('utf-8').decode('utf-8'))
+                    
+                    try:
+                        with open(filepath, 'wb') as f:
+                            f.write(part.get_payload(decode=True))
+                        mail_info['attachments'].append({
+                            'original_name': orig_name,
+                            'saved_name': safe_name
+                        })
+                    except Exception as e:
+                        print(f"附件保存失败: {str(e)}")
+
+            # 输出结果
+            print(f"\n{'='*50}")
+            print(f"邮件ID: {mail_info['id']}")
+            print(f"日期: {mail_info['date']}")
+            print(f"主题: {mail_info['subject']}")
+            if mail_info['attachments']:
+                print("成功保存附件:")
+                for att in mail_info['attachments']:
+                    print(f"  - 原始名: {att['original_name']}")
+                    print(f"    保存为: {att['saved_name']}")
+            
+            valid_count += 1
+
+        print(f"\n共处理 {valid_count} 封符合要求的邮件")
+
+def parse_mail_date(date_str):
+    """带时区解析的日期处理"""
+    try:
+        dt = parsedate_to_datetime(date_str)
+        return dt.astimezone(pytz.timezone('Asia/Shanghai'))
+    except:
+        return None
+
+if __name__ == '__main__':
+    get_mails()
+    print(f"\n所有附件已保存至: {os.path.abspath(ATTACH_DIR)}")
 ```
 
 
@@ -21242,6 +21425,8 @@ pip install selenium
 
 
 ### pymysql
+
+> 也可以用 `mysql-connector-python`，官方，性能快一些，API 相似。
 
 连接到数据库：`connect(host=url字符串, user=数据库用户名字符串, password=数据库用户密码字符串, database=数据库名字符串, charset=字符集)` ，返回一个对象，该对象可以使用 `.cursor()` 方法得到用于操作的对象，得到的对象有方法：
 

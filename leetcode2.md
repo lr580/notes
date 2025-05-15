@@ -2979,6 +2979,22 @@
 - 2094\.找出3位偶数
 
   签到 枚举
+  
+- 3335\.字符串转换后的长度I
+
+  枚举
+
+- 3337\.字符串转换后的长度II
+
+  DP 矩阵快速幂
+  
+- 2900\.最长相邻不相等子序列I
+
+  签到 贪心
+
+- 2901.最长相邻不相等子序列II
+
+  BFS / DP / <u>子序列DP</u>
 
 ## 算法
 
@@ -13976,6 +13992,395 @@ func findEvenNumbers(digits []int) (ans []int) {
     }
     dfs(0, 0)
     return
+}
+```
+
+##### 3335\.字符串转换后的长度I
+
+[题目](https://leetcode.cn/problems/total-characters-in-string-after-transformations-i)
+
+```go
+package main
+
+func lengthAfterTransformations(s string, t int) int {
+	const mod = int64(1e9 + 7)
+	var b = [2][26]int64{}
+	for _, c := range s {
+		b[0][int(c-'a')]++
+	}
+	for j := 1; j <= t; j++ {
+		for i := 0; i < 25; i++ {
+			b[j&1][i+1] = b[(j-1)&1][i]
+		}
+		b[j&1][0] = b[(j-1)&1][25]
+		b[j&1][1] += b[(j-1)&1][25]
+		b[j&1][1] %= mod
+	}
+	var ans int64
+	for i := 0; i < 26; i++ {
+		ans += b[t&1][i]
+	}
+	return int(ans % mod)
+}
+```
+
+##### 3337\.字符串转换后的长度II
+
+[题目](https://leetcode.cn/problems/total-characters-in-string-after-transformations-ii)
+
+```go
+package main
+
+const mod int64 = 1e9 + 7
+
+type matrix [][]int64
+
+func mul(a, b matrix) matrix {
+    n1 := len(a)
+    n2 := len(a[0])
+    n3 := len(b[0])
+    c := make(matrix, n1)
+    for i := 0; i < n1; i++ {
+        c[i] = make([]int64, n3)
+        for k := 0; k < n2; k++ { // 局部性原理，这样快
+            for j := 0; j < n3; j++ {
+                c[i][j] = (c[i][j] + a[i][k]*b[k][j]) % mod
+            }
+        }
+    }
+    return c
+}
+
+func lengthAfterTransformations(s string, t int, nums []int) int {
+    a := make(matrix, 1)
+    a[0] = make([]int64, 26)
+    for _, c := range s {
+        a[0][int(c-'a')]++
+    }
+    
+    b := make(matrix, 26)
+    for i := 0; i < 26; i++ {
+        b[i] = make([]int64, 26)
+    }
+    for i := 0; i < 26; i++ {
+        for j, cnt := (i+1)%26, 0; cnt < nums[i]; j, cnt = (j+1)%26, cnt+1 {
+            b[i][j] = 1
+        }
+    }
+    
+    p := make(matrix, 26)
+    for i := 0; i < 26; i++ {
+        p[i] = make([]int64, 26)
+        p[i][i] = 1
+    }
+    
+
+
+    for ; t > 0; t >>= 1 {
+        if t & 1 == 1 {
+            p = mul(p, b)
+        }
+        b = mul(b, b)
+    }
+    
+    a = mul(a, p)
+    
+    var ans int64
+    for i := 0; i < 26; i++ {
+        ans = (ans + a[0][i]) % mod
+    }
+    return int(ans)
+}
+```
+
+优化：不需要单位矩阵，直接用向量
+
+```go
+const mod = 1_000_000_007
+
+type matrix [][]int
+
+func newMatrix(n, m int) matrix {
+	a := make(matrix, n)
+	for i := range a {
+		a[i] = make([]int, m)
+	}
+	return a
+}
+
+func (a matrix) mul(b matrix) matrix {
+	c := newMatrix(len(a), len(b[0]))
+	for i, row := range a {
+		for k, x := range row {
+			if x == 0 {
+				continue
+			}
+			for j, y := range b[k] {
+				c[i][j] = (c[i][j] + x*y) % mod
+			}
+		}
+	}
+	return c
+}
+
+// a^n * f0
+func (a matrix) powMul(n int, f0 matrix) matrix {
+	res := f0
+	for ; n > 0; n /= 2 {
+		if n%2 > 0 {
+			res = a.mul(res)
+		}
+		a = a.mul(a)
+	}
+	return res
+}
+
+func lengthAfterTransformations(s string, t int, nums []int) (ans int) {
+	const size = 26
+	f0 := newMatrix(size, 1)
+	for i := range f0 {
+		f0[i][0] = 1
+	}
+	m := newMatrix(size, size)
+	for i, c := range nums {
+		for j := i + 1; j <= i+c; j++ {
+			m[i][j%size] = 1
+		}
+	}
+	mt := m.powMul(t, f0)
+
+	cnt := [26]int{}
+	for _, c := range s {
+		cnt[c-'a']++
+	}
+	for i, row := range mt {
+		ans += row[0] * cnt[i]
+	}
+	return ans % mod
+}
+```
+
+##### 2900\.最长相邻不相等子序列I
+
+[题目](https://leetcode.cn/problems/longest-unequal-adjacent-groups-subsequence-i)
+
+答案一定是 010101.... / 101010.... ，第一个一定能选，如果不选，假设第一个是 0，后面是 0101...，把那个0和第一个0互换成立答案不会更差；如果第一个是 0，后面是 10101...，加上第一个答案更优。综上所述，贪心算第一个，答案不会变得更差。
+
+```go
+
+func getLongestSubsequence(words []string, groups []int) (ans []string) {
+	last := groups[0]
+	ans = append(ans, words[0])
+	for i := 1; i < len(words); i++ {
+		if groups[i] != last {
+			last = groups[i]
+			ans = append(ans, words[i])
+		}
+	}
+	return
+}
+```
+
+```go
+func getLongestSubsequence(words []string, groups []int) (ans []string) {
+	n := len(groups)
+	for i, g := range groups {
+		if i == n-1 || g != groups[i+1] { // i 是连续相同段的末尾
+			ans = append(ans, words[i])
+		}
+	}
+	return
+}
+```
+
+##### 2901\.最长相邻不相等子序列II
+
+[题目](https://leetcode.cn/problems/longest-unequal-adjacent-groups-subsequence-ii)
+
+我的 BFS：
+
+```go
+func getWordsInLongestSubsequence(words []string, groups []int) (ans []string) {
+	n := len(words)
+	g := make([][]int, n)
+	for i := 0; i < n; i++ {
+		for j := i + 1; j < n; j++ {
+			s, t := words[i], words[j]
+			if len(s) != len(t) || groups[i] == groups[j] {
+				continue
+			}
+			hm := 0
+			for k := 0; k < len(s); k++ {
+				if s[k] != t[k] {
+					hm++
+				}
+			}
+			if hm == 1 {
+				g[i] = append(g[i], j)
+			}
+		}
+	}
+	dp := make([]int, n)
+	q := []int{}
+	prv := make([]int, n)
+	vis := make([]bool, n)
+	for i := 0; i < n; i++ {
+		prv[i] = -1
+		dp[i] = 1
+		q = append(q, i)
+	}
+	for len(q) > 0 {
+		u := q[0]
+		q = q[1:]
+		if vis[u] {
+			continue
+		}
+		vis[u] = true
+		for _, v := range g[u] {
+			if dp[u]+1 > dp[v] {
+				dp[v] = dp[u] + 1
+				prv[v] = u
+				q = append(q, v)
+			}
+		}
+	}
+	mxi, mxv := -1, -1
+	for i := 0; i < n; i++ {
+		if dp[i] > mxv {
+			mxv = dp[i]
+			mxi = i
+		}
+	}
+	stk := []int{}
+	for i := mxi; i != -1; i = prv[i] {
+		stk = append(stk, i)
+	}
+	for i := len(stk) - 1; i >= 0; i-- {
+		ans = append(ans, words[stk[i]])
+	}
+	return
+}
+```
+
+- 可以直接开定长 ans，最后不用 for 2 次
+
+```go
+func ok(s, t string) (diff bool) {
+	if len(s) != len(t) {
+		return
+	}
+	for i := range s {
+		if s[i] != t[i] {
+			if diff { // 汉明距离大于 1
+				return false
+			}
+			diff = true
+		}
+	}
+	return
+}
+
+func getWordsInLongestSubsequence(words []string, groups []int) []string {
+	n := len(words)
+	f := make([]int, n)
+	from := make([]int, n)
+	maxI := n - 1
+	for i := n - 1; i >= 0; i-- {
+		for j := i + 1; j < n; j++ {
+			// 提前比较 f[j] 与 f[i] 的大小，如果 f[j] <= f[i]，就不用执行更耗时的 check 了
+			if f[j] > f[i] && groups[j] != groups[i] && ok(words[i], words[j]) {
+				f[i] = f[j]
+				from[i] = j
+			}
+		}
+		f[i]++ // 加一写在这里
+		if f[i] > f[maxI] {
+			maxI = i
+		}
+	}
+
+	i := maxI
+	ans := make([]string, f[i])
+	for k := range ans {
+		ans[k] = words[i]
+		i = from[i]
+	}
+	return ans
+}
+```
+
+子序列 DP：
+
+- dp[i]，i 表示当前字符串，每个字符用 5 位表示，通配符用 11111 表示，那么 int64 可以表示状态，故 map dp。
+- 当前字符串的状态，转化为至多 10 个一样的子序列长度值，即当前字符串每个位置换成通配符。转移方程：每次取通配符替换后的 max。
+- 因为有 group 存在，需要同时维护最大值，次大值，及其方案。
+
+复杂度 $O(nL)$，其中 $L=10$ 是字符串长度。
+
+```go
+func getWordsInLongestSubsequence(words []string, groups []int) []string {
+	n := len(words)
+	fMap := map[int]struct{ maxF, j, maxF2, j2 int }{}
+	from := make([]int, n)
+	maxF, maxI := 0, 0
+	for i := n - 1; i >= 0; i-- {
+		w, g := words[i], groups[i]
+
+		// 计算 w 的哈希值
+		hash := 0
+		for _, ch := range w {
+			hash = hash<<5 | int(ch&31)
+		}
+
+		f := 0 // 方法一中的 f[i]
+		for j := range w {
+			h := hash | 31<<(j*5) // 用记号笔把 w[k] 涂黑（置为 11111）
+			t := fMap[h]
+			if g != groups[t.j] { // 可以从最大值转移过来
+				if t.maxF > f {
+					f = t.maxF
+					from[i] = t.j
+				}
+			} else { // 只能从次大值转移过来
+				if t.maxF2 > f {
+					f = t.maxF2
+					from[i] = t.j2
+				}
+			}
+		}
+
+		f++
+		if f > maxF {
+			maxF, maxI = f, i
+		}
+
+		// 用 f 更新 fMap[h] 的最大次大
+		// 注意要保证最大次大的 group 值不同
+		for j := range w {
+			h := hash | 31<<(j*5)
+			t := fMap[h]
+			if f > t.maxF { // 最大值需要更新
+				if g != groups[t.j] {
+					t.maxF2 = t.maxF // 旧最大值变成次大值
+					t.j2 = t.j
+				}
+				t.maxF = f
+				t.j = i
+			} else if f > t.maxF2 && g != groups[t.j] { // 次大值需要更新
+				t.maxF2 = f
+				t.j2 = i
+			}
+			fMap[h] = t
+		}
+	}
+
+	ans := make([]string, maxF)
+	i := maxI
+	for k := range ans {
+		ans[k] = words[i]
+		i = from[i]
+	}
+	return ans
 }
 ```
 
