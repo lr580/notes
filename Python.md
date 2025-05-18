@@ -6079,6 +6079,14 @@ s = re.sub(r'\bzhi yin\b', 'ji', s)
 s = re.sub('#', 'zhi yin', s)
 ```
 
+只保留大小写英文：
+
+```python
+s = re.sub(r'[^a-zA-Z]', '', s)
+```
+
+
+
 ##### match
 
 match 是从开始位置匹配。
@@ -21128,7 +21136,7 @@ soup.find('p').get('class') #['star-rating', 'Four']
 
 ##### select
 
-使用 CSS 选择器语法来查找文档中的元素
+使用 CSS 选择器语法来查找文档中的元素，返回列表
 
 ```python
 special_content = soup.select('.content.special') ## 选择同时有content和special类的元素
@@ -21422,6 +21430,31 @@ root.mainloop()
 pip install selenium
 ```
 
+下载一个 chromedriver，在[这里](https://googlechromelabs.github.io/chrome-for-testing/#stable)看下载地址，然后把 exe 放到某个地方。
+
+获取网页内容返回：
+
+```python
+def fetchWebpage(url, dest): 
+    # 适用于动态加载或者禁止 requests 的网页，获取 html 源码
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")  # 无头模式（可选）
+    chrome_options.add_argument("--disable-gpu")
+    project_root = os.path.dirname(os.path.abspath(__file__)) # 假设 chromedriver.exe 在项目根目录
+    chrome_driver_path = os.path.join(project_root, "chromedriver.exe")
+    service = Service(executable_path=chrome_driver_path)
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    try:
+        driver.get(url)
+        html_content = driver.page_source
+        with open(dest, "w", encoding="utf-8") as f:
+            f.write(html_content)
+    except Exception as e:
+        print(f"发生错误: {url} \n{e}")
+    finally:
+        driver.quit() # 关闭浏览器
+```
+
 
 
 ### pymysql
@@ -21471,7 +21504,15 @@ with oj.cursor() as cur:
     print(cur.fetchall()) # 多维元组，按行列表示值，类型按数据表的
 ```
 
+插入多个数据：
 
+```python
+skin_records = [(champion_id, str(skin['id']), skin['name']) for skin in skins ] # 总之是 (n, 3) 的二维 list
+insert_skin = """INSERT IGNORE INTO ChampionSkin 
+(champion_id, skin_id, skin_name) VALUES (%s, %s, %s)"""
+cursor.executemany(insert_skin, skin_records)
+conn.commit()
+```
 
 
 
