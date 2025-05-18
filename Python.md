@@ -8489,6 +8489,8 @@ percentile_97 = np.percentile(data, 97) # 9.73
 np.linalg.matrix_power(A, n)
 ```
 
+自带矩阵快速幂算法。参考力扣1931灵神题解。
+
 ##### 转置
 
 `.T` 对一维不变，二维横纵坐标改变

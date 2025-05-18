@@ -2995,6 +2995,14 @@
 - 2901.最长相邻不相等子序列II
 
   BFS / DP / <u>子序列DP</u>
+  
+- 79\.颜色分类
+
+  排序 / 双指针
+
+- 1931\.用三种不同颜色为网格涂色
+
+  状压DP / <u>矩阵快速幂</u>
 
 ## 算法
 
@@ -14383,4 +14391,313 @@ func getWordsInLongestSubsequence(words []string, groups []int) []string {
 	return ans
 }
 ```
+
+##### 79\.颜色分类
+
+[题目](https://leetcode.cn/problems/sort-colors)
+
+```go
+func swapColors(colors []int, target int) (countTarget int) {
+    for i, c := range colors {
+        if c == target {
+            colors[i], colors[countTarget] = colors[countTarget], colors[i]
+            countTarget++
+        }
+    }
+    return
+}
+
+func sortColors(nums []int) {
+    count0 := swapColors(nums, 0) // 把 0 排到前面
+    swapColors(nums[count0:], 1)  // nums[:count0] 全部是 0 了，对剩下的 nums[count0:] 把 1 排到前面
+}
+```
+
+```go
+func sortColors(nums []int) {
+    p0, p1 := 0, 0
+    for i, c := range nums {
+        if c == 0 {
+            nums[i], nums[p0] = nums[p0], nums[i]
+            if p0 < p1 {
+                nums[i], nums[p1] = nums[p1], nums[i]
+            }
+            p0++
+            p1++
+        } else if c == 1 {
+            nums[i], nums[p1] = nums[p1], nums[i]
+            p1++
+        }
+    }
+}
+```
+
+还有一种前后写法略。也可以插入排序略。
+
+##### 1931\.用三种不同颜色为网格涂色
+
+[题目](https://leetcode.cn/problems/sort-colors)
+
+> $m=1,ans=3\cdot 2^{n-1}$。
+>
+> $m=2,n=1,ans=6$，推广到 $n=2$：
+>
+> ```
+> 12 12 13
+> 21 23 21
+> ```
+>
+> 所以对每一个前一列，都有 $3$ 个不同扩展，故 $m=2,ans=2\cdot 3^n$。
+>
+> 显然 $n=1$，答案为 $3\cdot 2^{m-1}$ 作为列初始值。对其他情况，状压 DP 可以。
+
+状压，$O(nm3^{2m})$。实际上 pair 也可以预处理变成 $O(n3^{2m})$，略。空间 $O(n3^m)$。双百 0ms。
+
+> 实际上的这里的复杂度，经过代码 valid 筛选处理后，每个状态去掉相邻的，本质上是 $O(nm2^{2m})=O(nm4^m)$。
+
+```go
+package main
+
+const mod int64 = 1000000007
+const maxn = 1001
+
+var p3 = [6]int{0, 3, 9, 27, 81, 243}
+var dp [][]int64
+var f [][][]int64
+
+func state(i, m int) []int {
+	ans := make([]int, m)
+	for j, i0 := 0, i; j < m; i0, j = i0 / 3, j + 1 {
+		ans[j] = i0 % 3
+	}
+	return ans
+}
+
+func valid(st []int) bool {
+	for i := 1; i < len(st); i++ {
+		if st[i] == st[i-1] {
+			return false
+		}
+	}
+	return true
+}
+
+func solve(dp []int64, f [][]int64, m int) {
+	for i := 0; i < maxn; i++ {
+		f[i] = make([]int64, p3[m])
+	}
+	valids := [][]int{}
+	valids_idx := []int{}
+	for i := 0; i < p3[m]; i++ {
+		st := state(i, m)
+		if valid(st) {
+			f[0][i] = 1
+			valids = append(valids, st)
+			valids_idx = append(valids_idx, i)
+		}
+	}
+	for i := 1; i < maxn; i++ {
+		for v1i, v1 := range valids {
+			i1 := valids_idx[v1i]
+			for v2i, v2 := range valids {
+				same := false
+				for j := 0; j < m; j++ {
+					if v1[j] == v2[j] {
+						same = true
+						break
+					}
+				}
+				if !same {
+					f[i][i1] += f[i-1][valids_idx[v2i]]
+				}
+			}
+			f[i][i1] %= mod
+		}
+	}
+	for i := 0; i < maxn; i++ {
+		for _, v := range f[i] {
+			dp[i] += v
+		}
+		dp[i] %= mod
+	}
+}
+
+func init() {
+	dp = make([][]int64, 5)
+	f = make([][][]int64, 5)
+	for i := 0; i < 5; i++ {
+		dp[i] = make([]int64, maxn)
+		f[i] = make([][]int64, maxn)
+		solve(dp[i], f[i], i+1)
+	}
+}
+
+func colorTheGrid(m int, n int) int {
+	return int(dp[m-1][n-1]) // m=5, n=1 报错
+}
+```
+
+题解哈希但是 174ms，复杂度理论比我的少 m。大约是没有预处理吧。
+
+```go
+const mod = 1000000007
+
+func colorTheGrid(m int, n int) int {
+	// 哈希映射 valid 存储所有满足要求的对一行进行涂色的方案
+	valid := make(map[int][]int)
+
+	// 在 [0, 3^m) 范围内枚举满足要求的 mask
+	maskEnd := int(math.Pow(3, float64(m)))
+	for mask := 0; mask < maskEnd; mask++ {
+		color := make([]int, m)
+		mm := mask
+		for i := 0; i < m; i++ {
+			color[i] = mm % 3
+			mm /= 3
+		}
+		check := true
+		for i := 0; i < m-1; i++ {
+			if color[i] == color[i+1] {
+				check = false
+				break
+			}
+		}
+		if check {
+			valid[mask] = color
+		}
+	}
+
+	// 预处理所有的 (mask1, mask2) 二元组，满足 mask1 和 mask2 作为相邻行时，同一列上两个格子的颜色不同
+	adjacent := make(map[int][]int)
+	for mask1 := range valid {
+		for mask2 := range valid {
+			check := true
+			for i := 0; i < m; i++ {
+				if valid[mask1][i] == valid[mask2][i] {
+					check = false
+					break
+				}
+			}
+			if check {
+				adjacent[mask1] = append(adjacent[mask1], mask2)
+			}
+		}
+	}
+
+	f := make(map[int]int)
+	for mask := range valid {
+		f[mask] = 1
+	}
+	for i := 1; i < n; i++ {
+		g := make(map[int]int)
+		for mask2 := range valid {
+			for _, mask1 := range adjacent[mask2] {
+				g[mask2] = (g[mask2] + f[mask1]) % mod
+			}
+		}
+		f = g
+	}
+
+	ans := 0
+	for _, num := range f {
+		ans = (ans + num) % mod
+	}
+	return ans
+}
+```
+
+不用 map，不用预处理，9ms
+
+```go
+func colorTheGrid(m, n int) int {
+	const mod = 1_000_000_007
+	pow3 := make([]int, m)
+	pow3[0] = 1
+	for i := 1; i < m; i++ {
+		pow3[i] = pow3[i-1] * 3
+	}
+
+	valid := []int{}
+next:
+	for color := range pow3[m-1] * 3 {
+		for i := range m - 1 {
+			if color/pow3[i+1]%3 == color/pow3[i]%3 { // 相邻颜色相同
+				continue next
+			}
+		}
+		valid = append(valid, color)
+	}
+
+	nv := len(valid)
+	nxt := make([][]int, nv)
+	for i, color1 := range valid {
+	next2:
+		for j, color2 := range valid {
+			for _, p3 := range pow3 {
+				if color1/p3%3 == color2/p3%3 { // 相邻颜色相同
+					continue next2
+				}
+			}
+			nxt[i] = append(nxt[i], j)
+		}
+	}
+
+	f := make([][]int, n)
+	for i := range f {
+		f[i] = make([]int, nv)
+	}
+	for j := range f[0] {
+		f[0][j] = 1
+	}
+	for i := 1; i < n; i++ {
+		for j := range f[i] {
+			for _, k := range nxt[j] {
+				f[i][j] += f[i-1][k]
+			}
+			f[i][j] %= mod
+		}
+	}
+
+	ans := 0
+	for _, fv := range f[n-1] {
+		ans += fv
+	}
+	return ans % mod
+}
+```
+
+显然任意 $i\to i+1$ 转移相同，转移可以看成是状态 pair 的 0/1 邻接矩阵。故复杂度为 $(2^m)^3\log n$。空间复杂度仅需 $2^{2n}$。
+
+```python
+import numpy as np
+
+MOD = 1_000_000_007
+
+class Solution:
+    def colorTheGrid(self, m: int, n: int) -> int:
+        pow3 = [3 ** i for i in range(m)]
+        valid = []
+        for color in range(3 ** m):
+            for i in range(1, m):
+                if color // pow3[i] % 3 == color // pow3[i - 1] % 3:  # 相邻颜色相同
+                    break
+            else:  # 没有中途 break，合法
+                valid.append(color)
+
+        nv = len(valid)
+        m = np.zeros((nv, nv), dtype=object)
+        for i, color1 in enumerate(valid):
+            for j, color2 in enumerate(valid):
+                for p3 in pow3:
+                    if color1 // p3 % 3 == color2 // p3 % 3:  # 相邻颜色相同
+                        break
+                else:  # 没有中途 break，合法
+                    m[i, j] = 1
+
+        f0 = np.ones((nv,), dtype=object)
+        res = np.linalg.matrix_power(m, n - 1) @ f0
+        return np.sum(res) % MOD
+```
+
+
 
