@@ -3003,6 +3003,14 @@
 - 1931\.用三种不同颜色为网格涂色
 
   状压DP / <u>矩阵快速幂</u>
+  
+- 3024\.三角形类型
+
+  签到
+  
+- 3355\.零数组变换I
+
+  差分
 
 ## 算法
 
@@ -14699,5 +14707,86 @@ class Solution:
         return np.sum(res) % MOD
 ```
 
+##### 3024\.三角形类型
 
+[题目]()
+
+```go
+package main
+
+import "sort"
+
+func triangleType(nums []int) string {
+	sort.Ints(nums)
+	if nums[0]+nums[1] <= nums[2] {
+		return "none"
+	}
+	if nums[0] == nums[1] && nums[1] == nums[2] { 
+		return "equilateral" // 优化：只需要 nums[0] == nums[2]
+	}
+	if nums[0] == nums[1] || nums[1] == nums[2] {
+		return "isosceles"
+	}
+	return "scalene"
+}
+```
+
+或者直接用哈希表：
+
+```python
+class Solution:
+    def triangleType(self, nums: List[int]) -> str:
+        nums.sort()
+        if nums[0] + nums[1] <= nums[2]:
+            return "none"
+        return ("equilateral", "isosceles", "scalene")[len(set(nums)) - 1]
+```
+
+##### 3355\.零数组变换I
+
+[题目](https://leetcode.cn/problems/zero-array-transformation-i)
+
+```go
+package main
+
+func isZeroArray(nums []int, queries [][]int) bool {
+	n := len(nums)
+	a := make([]int, n+1)
+	for _, q := range queries {
+		l, r := q[0], q[1]
+		a[l]++
+		a[r+1]--
+	}
+	for i := 1; i <= n; i++ {
+		a[i] += a[i-1]
+	}
+	for i := 0; i < n; i++ {
+		if nums[i] > a[i] {
+			return false
+		}
+	}
+	return true
+}
+```
+
+```go
+func isZeroArray(nums []int, queries [][]int) bool {
+	diff := make([]int, len(nums)+1)
+	for _, q := range queries {
+		// 区间 [l,r] 中的数都加一
+		diff[q[0]]++
+		diff[q[1]+1]--
+	}
+
+	sumD := 0
+	for i, x := range nums {
+		sumD += diff[i]
+		// 此时 sumD 表示 x=nums[i] 要减掉多少
+		if x > sumD { // x 无法变成 0
+			return false
+		}
+	}
+	return true
+}
+```
 

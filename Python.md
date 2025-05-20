@@ -10944,7 +10944,9 @@ diffs = pivot_table.diff(axis=1)
 # df['A'] = df['A'].diff()
 ```
 
-则第一列变成 NaN，第二列变成第二列减第一列……
+则第一行变成 NaN，第二行变成第二行减第一行…… 可以 dropna()
+
+
 
 ##### 前缀和
 
@@ -12260,6 +12262,26 @@ plt.tick_params(axis='both',labelsize=14) #或x或y，坐标上数字大小
 > xlabel() 方法提供了 loc 参数来设置 x 轴显示的位置，可以设置为: 'left', 'right', 和 'center'， 默认值为 'center'。
 >
 > ylabel() 方法提供了 loc 参数来设置 y 轴显示的位置，可以设置为: 'bottom', 'top', 和 'center'， 默认值为 'center'。
+
+##### 全局
+
+可以全局设置，如：
+
+```python
+plt.rcParams.update({
+    'font.sans-serif': 'SimHei',  # 中文显示
+    'axes.unicode_minus': False,  # 解决负号显示问题
+    'figure.autolayout': True,    # 自动调整布局
+    'font.size': 14,              # 全局默认字体大小
+    'axes.titlesize': 18,         # 标题字体大小
+    'axes.labelsize': 16,         # 坐标轴标签字体大小
+    'xtick.labelsize': 14,        # X轴刻度字体大小
+    'ytick.labelsize': 14,        # Y轴刻度字体大小
+    'legend.fontsize': 14,        # 图例字体大小
+})
+```
+
+
 
 ##### 点样式
 
