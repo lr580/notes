@@ -1,9 +1,3 @@
-<!--<div align="center"></div>-->
-
-
-
-<div align="right" style="font-weight:900;font-size:20px;color:chocolate">--lr580</div>
-
 ## 简介
 
 这里公开我个人的一部分学习笔记，公开始于 2022-02-24 (笔记制作大约始于 2020-09)
@@ -60,9 +54,9 @@
 
   介绍：Node.js、PHP(含ThinkPHP框架) 学习笔记
 
-- LaTeX
+- 排版语言
 
-  介绍：事实上是只适用于 Typora 的 Markdown 和少部分 TeX 数学、绘图公式笔记
+  介绍：Markdown, Typora, Marp, LaTeX, beamer 和 Typst 笔记
 
 - git
 
