@@ -1,6 +1,4 @@
-> 此为第二版python3学习笔记，在第一版的基础上删减了大部分过于基础的内容，删除了大量图片实例，取之以代码。
->
-> <p align="right">——蒟蒻lr580</p>
+> 此为第二版python3学习笔记，在第一版的基础上删减了大部分过于基础的内容，删除了大量图片实例，取之以代码
 >
 > 2021/2/27 开始编写第二版python笔记
 
@@ -9986,7 +9984,7 @@ df.to_json('t_values.json', orient='values', force_ascii=False)
 
 ##### 成员属性
 
-`.info` 总行数列数，按顺序输出各列名, not-null 计数,
+`.info` 总行数列数，按顺序输出各列名, not-null 计数。
 
  `.shape` 依次是行数(不含表头)、列数。是独有的类型。可以用 `[]`
 
@@ -10347,6 +10345,17 @@ print(df2.to_dict()) # {'features': {0: 1, 1: 4, 2: 5}, 'label': {0: 0, 1: 1, 2:
 for j, row in df2.items():
     print(row.to_dict()) # {0: 1, 1: 4, 2: 5}
 ```
+
+##### head
+
+输出前五个。可以控制输出格式如浮点数，要不要 index：
+
+```python
+with pd.option_context('display.float_format', '{:.2f}'.format):
+        print(result_df.head().to_string(index=False))
+```
+
+
 
 #### 常规运算
 
@@ -11255,6 +11264,15 @@ print(f"Kendall correlation coefficient: {kendall_corr}")
 
 
 #### 字符串
+
+##### 中文
+
+输出对齐
+
+```python
+pd.set_option('display.unicode.ambiguous_as_wide', True)
+pd.set_option('display.unicode.east_asian_width', True)
+```
 
 ##### .str
 
@@ -19082,6 +19100,36 @@ print("Output tensor:\n", output_tensor)
 二维或三维数据，对第二个维度为通道数，同上操作。
 
 ###### AdaptiveAvgPool2d
+
+##### RNN
+
+###### LSTM
+
+```python
+torch.nn.LSTM(
+    input_size,     # 输入特征的维度（如词向量维度）
+    hidden_size,    # 隐藏状态的维度（决定输出大小）
+    num_layers=1,   # LSTM 的堆叠层数（默认1）
+    bias=True,      # 是否使用偏置项
+    batch_first=False,  # 若为True，输入/输出形状为(batch, seq_len, features)
+    dropout=0,      # 层间dropout概率（非最后一层）
+    bidirectional=False  # 是否双向LSTM
+)
+```
+
+```python
+import torch
+import torch.nn as nn
+lstm = nn.LSTM(input_size=10, hidden_size=20, num_layers=2, batch_first=True)
+
+# 输入数据 (batch_size=3, seq_len=5, input_size=10)
+inputs = torch.randn(3, 5, 10)
+
+output, (h_n, c_n) = lstm(inputs)
+
+print(output.shape)  # torch.Size([3, 5, 20]) (batch_first=True)
+print(h_n.shape)     # torch.Size([2, 3, 20]) (2层LSTM)
+```
 
 
 

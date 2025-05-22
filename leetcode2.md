@@ -3011,6 +3011,14 @@
 - 3355\.零数组变换I
 
   差分
+  
+- 3356.零数组变换II
+
+  二分 差分
+
+- 3362.零数组变换III
+
+  贪心 差分 堆 排序
 
 ## 算法
 
@@ -14788,5 +14796,149 @@ func isZeroArray(nums []int, queries [][]int) bool {
 	}
 	return true
 }
+```
+
+##### 3356.零数组变换II
+
+[题目](https://leetcode.cn/problems/zero-array-transformation-ii/)
+
+```go
+package main
+
+func isZeroArray(nums []int, queries [][]int, k int) bool {
+	n := len(nums)
+	a := make([]int, n+1)
+	for j := 0; j < k; j++ {
+		q := queries[j]
+		l, r, v := q[0], q[1], q[2]
+		a[l] += v
+		a[r+1] -= v
+	}
+	for i := 1; i <= n; i++ {
+		a[i] += a[i-1]
+	}
+	for i := 0; i < n; i++ {
+		if nums[i] > a[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func minZeroArray(nums []int, queries [][]int) int {
+	l, r, ans := 0, len(queries), -1
+	for l <= r {
+		k := (l + r) >> 1
+		if isZeroArray(nums, queries, k) {
+			ans = k
+			r = k - 1
+		} else {
+			l = k + 1
+		}
+	}
+	return ans
+}
+```
+
+##### 3362.零数组变换III
+
+[题目](https://leetcode.cn/problems/zero-array-transformation-iii/)
+
+区间按左端点长度排，每次遍历到当前下标，把所有以它为起点的区间都放到到候选区间里。
+
+设当前下标还需要凑几个区间（前缀和差分维护），那么从候选区间里，找出贡献最大的几个区间，区间右端点越右，其贡献一定不会比右端点比它左的更优。所以不断贪心的选出最右端点的区间。所以候选区间按右端点从大到小排序，用堆实现。
+
+如果候选区间都没了还凑不够就无解。
+
+```python
+from typing import List
+import heapq
+class Solution:
+    def maxRemoval(self, nums: List[int], queries: List[List[int]]) -> int:
+        need = 0
+        n, m = len(nums), len(queries)
+        a = [0] * (n+1)
+        s = [0] * n
+        
+        queries.sort(key=lambda x:x[0]) # (key=lambda x:(x[0], -x[1]))，这样的话多100ms
+        j = 0
+        def pick(l, r):
+            nonlocal need
+            # print(l, r)
+            a[l] += 1
+            a[r+1] -= 1
+            s[l] += 1
+            need += 1
+        pool = []
+        for i in range(n):
+            if i:
+                s[i] = s[i-1] + a[i]
+            while j < m and queries[j][0] <= i:
+                l, r = queries[j]
+                heapq.heappush(pool, (-r, (l, r)))
+                j += 1
+            while pool and s[i] < nums[i]:
+                _, (l, r) = heapq.heappop(pool)
+                if r < i:
+                    continue
+                pick(i, r)
+            if s[i] < nums[i]:
+                return -1
+                    
+        return m - need
+```
+
+更优的写法，比我的400ms快一倍
+
+```python
+class Solution:
+    def maxRemoval(self, nums: List[int], queries: List[List[int]]) -> int:
+        queries.sort(key=lambda q: q[0])  # 按照左端点从小到大排序
+        h = []
+        diff = [0] * (len(nums) + 1)
+        sum_d = j = 0
+        for i, x in enumerate(nums):
+            sum_d += diff[i]
+            # 维护左端点 <= i 的区间
+            while j < len(queries) and queries[j][0] <= i:
+                heappush(h, -queries[j][1])  # 取相反数表示最大堆
+                j += 1
+            # 选择右端点最大的区间
+            while sum_d < x and h and -h[0] >= i:
+                sum_d += 1
+                diff[-heappop(h) + 1] -= 1
+            if sum_d < x:
+                return -1
+        return len(h)
+```
+
+```go
+func maxRemoval(nums []int, queries [][]int) int {
+	slices.SortFunc(queries, func(a, b []int) int { return a[0] - b[0] })
+	h := hp{}
+	diff := make([]int, len(nums)+1)
+	sumD, j := 0, 0
+	for i, x := range nums {
+		sumD += diff[i]
+		// 维护左端点 <= i 的区间
+		for ; j < len(queries) && queries[j][0] <= i; j++ {
+			heap.Push(&h, queries[j][1])
+		}
+		// 选择右端点最大的区间
+		for sumD < x && h.Len() > 0 && h.IntSlice[0] >= i {
+			sumD++
+			diff[heap.Pop(&h).(int)+1]--
+		}
+		if sumD < x {
+			return -1
+		}
+	}
+	return h.Len()
+}
+
+type hp struct{ sort.IntSlice }
+func (h hp) Less(i, j int) bool { return h.IntSlice[i] > h.IntSlice[j] }
+func (h *hp) Push(v any)        { h.IntSlice = append(h.IntSlice, v.(int)) }
+func (h *hp) Pop() any          { a := h.IntSlice; v := a[len(a)-1]; h.IntSlice = a[:len(a)-1]; return v }
 ```
 
