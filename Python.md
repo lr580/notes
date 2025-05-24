@@ -4402,7 +4402,7 @@ import a
 print('b') # b.py
 ```
 
-
+如果涉及循环引用不行，可以先加载 a，然后在 b 用到 a 的那个函数里再写 import 
 
 #### 路径
 
@@ -12383,6 +12383,16 @@ fig.autofmt_xdate()
 
 这个方法用于自动格式化 x 轴上的日期标签，使它们倾斜以防止标签之间的重叠。默认情况下，日期标签可能会水平排列，当标签过多时很容易相互覆盖，导致无法清晰阅读。`fig.autofmt_xdate()` 会将这些标签倾斜（通常是45度倾斜），从而改善图表的可读性。
 
+日期显示年份：
+
+```python
+import matplotlib.dates as mdates
+plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+plt.gca().xaxis.set_major_locator(mdates.YearLocator())
+```
+
+
+
 ##### 标题
 
 `plt.title()`作用: 用于为单个子图添加标题。
@@ -16137,6 +16147,195 @@ clf = GaussianNB()
 clf.fit(X_train, y_train)
 accuracy = clf.score(X_test, y_test)
 print("Accuracy:", accuracy)
+```
+
+##### ARIMA
+
+做法参见 [我的仓库](https://github.com/lr580/stock_price_prediction)，需要选取 p, d, q 等。对参数选取方法，模型介绍请参见该仓库的文档说明。
+
+###### d参数选取
+
+不断差分直到平稳，那么d就是差分阶数。平稳性分析。
+
+```python
+from statsmodels.tsa.stattools import adfuller, kpss
+def adf_test(timeseries):
+    print('ADF检验结果:')
+    dftest = adfuller(timeseries, autolag='AIC')
+    dfoutput = pd.Series(dftest[0:4], index=['Test Statistic', 'p-value', '#Lags Used', 'Number of Observations Used'])
+    for key, value in dftest[4].items():
+        dfoutput['Critical Value (%s)' % key] = value
+    print(dfoutput)
+    
+    if dfoutput['p-value'] <= 0.05:
+        print("结论：p值 <= 0.05，拒绝原假设，序列是平稳的")
+    else:
+        print("结论：p值 > 0.05，不能拒绝原假设，序列是非平稳的")
+
+def kpss_test(timeseries):
+    kpsstest = kpss(timeseries, regression='c', nlags='auto')
+    kpss_output = pd.Series(kpsstest[0:3], index=['Test Statistic', 'p-value', 'Lags Used'])
+    for key, value in kpsstest[3].items():
+        kpss_output['Critical Value (%s)' % key] = value
+    print('KPSS检验结果:')
+    print(kpss_output)
+    
+    if kpss_output['p-value'] <= 0.05:
+        print("结论：p值 <= 0.05，拒绝原假设，序列是非平稳的")
+    else:
+        print("结论：p值 > 0.05，不能拒绝原假设，序列是平稳的")
+        
+def param_d_selection(d=1):
+    adf_test(train_data)
+    kpss_test(train_data)
+    train_data_diff = train_data.diff(periods=d).dropna()
+    adf_test(train_data_diff)
+    kpss_test(train_data_diff)
+```
+
+###### p,q参数选取
+
+根据,拖尾，断尾判断。断尾就是突然变0，拖尾就是从它开始慢慢变0。选取对应的下标。都拖尾ARMA(p,q)，只PACF截尾 AR(p)，p就是啥时候开始截；只 ACF 截尾就 MA(q)，都截尾就 (0,0)，白噪声。自相关性、偏自相关性。
+
+如果是白噪声，顺便做一下检测，>0.05 就是白噪声，ljung-box 检验。
+
+```python
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from statsmodels.tsa.stattools import acf, pacf
+from statsmodels.stats.diagnostic import acorr_ljungbox
+def model_selection(data, dest='model-selection.png', title='一阶差分后股票价格'):
+    print('acf:', acf(data, nlags=20))
+    print('pacf:', pacf(data, nlags=20))
+    print('Ljung-Box检验:\n', acorr_ljungbox(data, lags=20))
+
+    plt.figure(figsize=(12, 6))
+    plt.subplot(211)
+    plot_acf(data, lags=20, ax=plt.gca()) 
+    plt.title(f'{title}的ACF图')
+
+    plt.subplot(212)
+    plot_pacf(data, lags=20, ax=plt.gca(), method='ols')  
+    plt.title(f'{title}的PACF图')
+    plt.tight_layout()
+    if dest:
+        plt.savefig(dest)
+    else:
+        plt.show()
+```
+
+也可以网格搜索，使用 AIC/BIC 的最小值所在下标，如果不一致，参考上面 ACF/PACF。
+
+```python
+from statsmodels.tsa.arima.model import ARIMA
+def param_pq_selection():
+    aic_matrix = np.full((5, 5), np.nan)
+    bic_matrix = np.full((5, 5), np.nan)
+    for p in range(5):
+        for q in range(5):
+            try:
+                model = ARIMA(train_data, order=(p, 1, q))
+                model_fit = model.fit()
+                aic_matrix[p, q] = model_fit.aic
+                bic_matrix[p, q] = model_fit.bic
+            except:
+                continue
+    aic_table = pd.DataFrame(
+    aic_matrix,
+        index=[f"p={p}" for p in range(5)],
+        columns=[f"q={q}" for q in range(5)]
+    )
+
+    bic_table = pd.DataFrame(
+        bic_matrix,
+        index=[f"p={p}" for p in range(5)],
+        columns=[f"q={q}" for q in range(5)]
+    )
+
+    print("AIC 表格（越小越好）:")
+    print(aic_table.round(2), "\n")
+
+    print("BIC 表格（越小越好）:")
+    print(bic_table.round(2))
+                
+    def find_min_location(df):
+        min_idx = df.stack().idxmin()
+        p = int(min_idx[0].split('=')[1])
+        q = int(min_idx[1].split('=')[1])
+        return (p, q)
+
+    aic_min_p, aic_min_q = find_min_location(aic_table)
+    bic_min_p, bic_min_q = find_min_location(bic_table)
+
+    print(f"AIC 最小值位置: p={aic_min_p}, q={aic_min_q}")
+    print(f"BIC 最小值位置: p={bic_min_p}, q={bic_min_q}")
+```
+
+###### 模型预测
+
+可以多步预测(累加误差)，用预测值继续做输入。
+
+```python
+model = ARIMA(train_data, order=(0,1,0))
+model_fit = model.fit()
+forecast = model_fit.forecast(steps=len(test_data))
+```
+
+或者单步预测，每次用真实测试集输入。
+
+```python
+def arima_predict():
+    history = list(train_data) 
+    forecast = []            
+    
+    for i in range(len(test_data)):
+        model = ARIMA(history, order=(0, 1, 0))
+        model_fit = model.fit()
+        
+        yhat = model_fit.forecast(steps=1)
+        forecast.append(yhat[0])
+        
+        true_value = test_data.iloc[i] if hasattr(test_data, 'iloc') else test_data[i]
+        history.append(true_value)
+    global residuals
+    residuals = test_data - forecast
+```
+
+###### 残差分析
+
+自相关，直方图拟合，Q-Q图，证明残差(真实-预测)符合正态分布，则拟合充分。
+
+```python
+def residual_analysis():
+    plot_linechart(range(len(test_time)), residuals, '残差分布图', dest='residuals.png', timeformat=False, xlabel='下标')
+
+    mean = np.mean(residuals, axis=0)
+    std = np.std(residuals, axis=0)
+    residuals_z = (residuals - mean) / std
+
+    plt.figure(figsize=(6, 6))
+    sns.histplot(residuals_z, bins=15, stat='density', alpha=0.6, color='b', label='直方图')
+    sns.kdeplot(residuals_z, color='red', linewidth=2, label='KDE')
+    mu, std = 0, 1
+    xmin, xmax = plt.xlim()
+    x = np.linspace(xmin, xmax, 100)
+    p = norm.pdf(x, mu, std)
+    plt.plot(x, p, 'g', linewidth=2, label=f'N({mu:.0f}, {std:.0f})')
+    plt.title('残差分布直方图及其KDE,正态分布拟合')
+    plt.xlabel('残差值')
+    plt.ylabel('密度')
+    plt.legend()
+    plt.savefig('residuals_hist.png')
+
+    plt.figure(figsize=(6, 6))
+    qqplot(residuals_z, line='45', fit=True)
+    plt.title('残差Q-Q图')
+    plt.xlabel('理论正态分位数')
+    plt.ylabel('样本实际分位数')
+    plt.grid(True)
+    plt.savefig('residuals_qq.png')
+
+    model_selection(residuals, dest='residual_acf_pacf', title='残差')
+
 ```
 
 

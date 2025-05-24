@@ -3019,6 +3019,14 @@
 - 3362.零数组变换III
 
   贪心 差分 堆 排序
+  
+- 3068\.最大节点价值之和
+
+  树上DP / 思维+图论+DP
+
+- 2942\.查找包含给定字符的单词
+
+  签到
 
 ## 算法
 
@@ -14940,5 +14948,128 @@ type hp struct{ sort.IntSlice }
 func (h hp) Less(i, j int) bool { return h.IntSlice[i] > h.IntSlice[j] }
 func (h *hp) Push(v any)        { h.IntSlice = append(h.IntSlice, v.(int)) }
 func (h *hp) Pop() any          { a := h.IntSlice; v := a[len(a)-1]; h.IntSlice = a[:len(a)-1]; return v }
+```
+
+##### 3068\.最大节点价值之和
+
+[题目](https://leetcode.cn/problems/find-the-maximum-sum-of-node-values)
+
+树上DP，其转移方程是另一个DP。
+
+设状态：每个点的父亲边是否被操作。则对当前子树根结点的儿子的全部状态，看看选择了奇数个操作边和偶数个操作边下的最大值，这本身可以用一个简单的 DP 求解，子问题为：从等长序列 a0, a1；每个下标 i，a0[i], a1[i] 二选一，a1选了奇数次和偶数次下的最大值。
+
+在这之后这两个最值，根据当前状态父亲边是否被操作，考虑是否进行翻转。然后奇数次的话当前点异或，偶数次不异或。
+
+复杂度 O(n)。
+
+```go
+package main
+
+// 从等长序列 a0, a1；每个下标 i，a0[i], a1[i] 二选一，a1选了奇数次和偶数次下的最大值
+func findMinMax(a0, a1 []int64) (max0, max1 int64) {
+	var prvMax0, prvMax1 int64
+    max1 = -1e18
+    prvMax1 = -1e18
+	for i, _ := range a0 {
+		v0, v1 := a0[i], a1[i]
+		max0 = max(prvMax1+v1, prvMax0+v0)
+		max1 = max(prvMax1+v0, prvMax0+v1)
+		prvMax0, prvMax1 = max0, max1
+	}
+	return
+}
+
+func maximumValueSum(nums []int, k int, edges [][]int) int64 {
+	n := len(nums)
+	dp := make([][]int64, 2)
+	dp[0] = make([]int64, n) // 父亲边没动
+	dp[1] = make([]int64, n) // 父亲边动了
+	g := make([][]int, n)
+	for _, e := range edges {
+		u, v := e[0], e[1]
+		g[u] = append(g[u], v)
+		g[v] = append(g[v], u)
+	}
+	var dfs func(u, fa int)
+	dfs = func(u, fa int) {
+		a0, a1 := []int64{}, []int64{}
+		for _, v := range g[u] {
+			if v != fa {
+				dfs(v, u)
+				a0 = append(a0, dp[0][v])
+				a1 = append(a1, dp[1][v])
+			}
+		}
+		var oddMax int64  // 子边动了奇数次的最大值
+		var evenMax int64 // 子边动了偶数次的最大值
+		evenMax, oddMax = findMinMax(a0, a1)
+		v0, v1 := int64(nums[u]), int64(nums[u]^k)
+		dp[0][u] = max(oddMax+v1, evenMax+v0)
+		dp[1][u] = max(oddMax+v0, evenMax+v1)
+        // fmt.Println(a0, a1, dp[0][u], dp[1][u], oddMax, evenMax)
+	}
+	dfs(0, -1)
+	return dp[0][0]
+}
+```
+
+更好的 DP，直接设奇偶而不是设父亲。(返回值是父边分别不操作、操作)
+
+```go
+func maximumValueSum(nums []int, k int, edges [][]int) int64 {
+	n := len(nums)
+	g := make([][]int, n)
+	for _, e := range edges {
+		x, y := e[0], e[1]
+		g[x] = append(g[x], y)
+		g[y] = append(g[y], x)
+	}
+
+	var dfs func(int, int) (int, int)
+	dfs = func(x, fa int) (int, int) {
+		f0, f1 := 0, math.MinInt // f[x][0] 和 f[x][1]
+		for _, y := range g[x] {
+			if y != fa {
+				r0, r1 := dfs(y, x)
+				f0, f1 = max(f0+r0, f1+r1), max(f1+r0, f0+r1)
+			}
+		}
+		return max(f0+nums[x], f1+(nums[x]^k)), max(f1+nums[x], f0+(nums[x]^k))
+	}
+	ans, _ := dfs(0, -1)
+	return int64(ans)
+}
+```
+
+优化：
+
+1. 对一条路径都操作，等价于只有首位点被影响；因此可以实现树上任意两点同时+1或-1；因此树结构可以简化掉，看成是一个序列
+2. 每次操作，被异或的总点数必然是偶数个，要么+2，要么-2，要么+1-1。所以等价于上面我代码的子问题。即求操作偶数次的最大值。
+
+```go
+func maximumValueSum(nums []int, k int, _ [][]int) int64 {
+	f0, f1 := 0, math.MinInt
+	for _, x := range nums {
+		f0, f1 = max(f0+x, f1+(x^k)), max(f1+x, f0+(x^k))
+	}
+	return int64(f0)
+}
+```
+
+##### 2942\.查找包含给定字符的单词
+
+[题目](https://leetcode.cn/problems/find-words-containing-character)
+
+```go
+import "strings"
+func findWordsContaining(words []string, x byte) (ans []int) {
+	for i, w := range words {
+		if strings.Contains(w, string(x)) {
+            // if strings.IndexByte(s, x) >= 0 {
+			ans = append(ans, i)
+		}
+	}
+	return
+}
 ```
 

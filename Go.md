@@ -707,6 +707,7 @@ fmt.Println(strings.HasSuffix(str4, "0")) // all true
 fmt.Println(strings.Index(str4, "20"))    // 1
 fmt.Println(strings.Index(str4, "3"))     // -1
 fmt.Println(strings.LastIndex(str4, "0"))
+// 查找字符x：strings.IndexByte(s, x)
 fmt.Println(strings.Join([]string{"020", "5800", "5800"}, "-"))
 ```
 
