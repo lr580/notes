@@ -18824,25 +18824,6 @@ integer_value = float(tensor_value.item())
 
 相互转换
 
-##### 加载
-
-###### ImageFolder
-
-处理那些按目录存储的图像数据。它要求数据集的目录结构按照一定的方式组织：每个类别的图像存储在以该类别名命名的子目录中。`ImageFolder`可以从这样的目录结构中自动加载数据，并将子目录的名称作为类别标签。如 `cat/xxx.png` 和 `dog/abc.png`
-
-```python
-from torchvision.datasets import ImageFolder
-dataset = ImageFolder(root='path/to/root/')
-```
-
-###### DataLoader
-
-```python
-from torch.utils.data import DataLoader
-data_loader = DataLoader(dataset, batch_size=32, shuffle=True, num_workers=4)
-# dataset 如上面的 ImageFolder
-```
-
 
 
 ##### 预处理
@@ -18913,6 +18894,8 @@ for batch_features, batch_labels in dataloader:
 标签: tensor([0, 1])
 ```
 
+
+
 ##### TensorDataset
 
 结果同上面例子。
@@ -18927,6 +18910,15 @@ dataloader = DataLoader(dataset, batch_size=2, shuffle=True)
 for batch_features, batch_labels in dataloader:
     print("特征:", batch_features)
     print("标签:", batch_labels)
+```
+
+##### ImageFolder
+
+处理那些按目录存储的图像数据。它要求数据集的目录结构按照一定的方式组织：每个类别的图像存储在以该类别名命名的子目录中。`ImageFolder`可以从这样的目录结构中自动加载数据，并将子目录的名称作为类别标签。如 `cat/xxx.png` 和 `dog/abc.png`
+
+```python
+from torchvision.datasets import ImageFolder
+dataset = ImageFolder(root='path/to/root/')
 ```
 
 
@@ -19016,6 +19008,26 @@ for batch_features, batch_labels in dataloader:
 特征: tensor([[3., 4.]])
 标签: tensor([2])
 ```
+
+##### train_test_split
+
+可以按类别划分平衡数据(stratify=y)
+
+```python
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+# 模拟数据：1200个样本，6分类（类别0~5），其中类别5只有5个样本
+y = np.array([0]*400 + [1]*300 + [2]*200 + [3]*100 + [4]*95 + [5]*5)  # 类别分布不均匀
+# y = np.array([0]*200 + [1]*200 + [2]*200 + [3]*200 + [4]*200 + [5]*200)  # 类别分布均匀
+X = np.random.rand(len(y), 10)  # 随机生成特征
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+
+print("Test set class counts:", np.bincount(y_test))
+```
+
+
 
 ##### 举例
 

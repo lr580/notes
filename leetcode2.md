@@ -3027,6 +3027,10 @@
 - 2942\.查找包含给定字符的单词
 
   签到
+  
+- 2131\.连接两字母单词得到的最长回文串
+
+  贪心 字符串
 
 ## 算法
 
@@ -15072,4 +15076,86 @@ func findWordsContaining(words []string, x byte) (ans []int) {
 	return
 }
 ```
+
+##### 2131\.连接两字母单词得到的最长回文串
+
+[题目](https://leetcode.cn/problems/longest-palindrome-by-concatenating-two-letter-words)
+
+我的：68ms
+
+```go
+func longestPalindrome(words []string) (ans int) {
+	m := map[string]int{}
+	for _, w := range words {
+		wr := string([]byte{w[1], w[0]})
+		if m[wr] > 0 {
+			ans += 4
+			m[wr]--
+		} else {
+			m[w]++
+		}
+	}
+	singleton := false
+	for c := byte('a'); c <= 'z' && !singleton; c++ {
+		w := string([]byte{c, c})
+		if m[w] > 0 {
+			ans += 2
+			singleton = true
+		}
+	}
+	return
+}
+```
+
+题解：30ms
+
+```go
+func longestPalindrome(words []string) int {
+    freq := make(map[string]int)
+    for _, word := range words {
+        freq[word]++
+    }
+    res := 0
+    mid := false
+    for word, cnt := range freq {
+        rev := string(word[1]) + string(word[0])
+        if word == rev {
+            if cnt%2 == 1 {
+                mid = true
+            }
+            res += 2 * (cnt / 2 * 2)
+        } else if strings.Compare(word, rev) > 0 {
+            res += 4 * min(freq[word], freq[rev])
+        }
+    }
+    if mid {
+        res += 2
+    }
+    return res
+}
+```
+
+更优：no map 0ms
+
+```go
+func longestPalindrome(words []string) (ans int) {
+	cnt := [26][26]int{}
+	for _, w := range words {
+		cnt[w[0]-'a'][w[1]-'a']++
+	}
+
+	odd := 0 // 是否存在出现奇数次的 cnt[i][i]
+	for i := range cnt {
+		c := cnt[i][i]
+		ans += c - c%2 // 保证结果是偶数，也可以写成 c &^ 1
+		odd |= c % 2   // 存在出现奇数次的 cnt[i][i]
+		for j := i + 1; j < 26; j++ {
+			ans += min(cnt[i][j], cnt[j][i]) * 2
+		}
+	}
+	return (ans + odd) * 2 // 上面统计的是字符串个数，乘以 2 就是长度 
+}
+```
+
+
 
