@@ -6513,6 +6513,45 @@ update-locale LANG=zh_CN.UTF-8
 > ### XSHELL
 >
 
+#### 快捷指令
+
+##### alias
+
+win10 powershell，添加自定义函数，如，打开下面的配置文件
+
+```powershell
+notepad $PROFILE
+```
+
+> 不存在的话创建：
+>
+> ```powershell
+> New-Item -Type File -Path $PROFILE -Force
+> ```
+
+添加下面代码保存(根据自己的 alias 和实际内容修改)
+
+```powershell
+function sysu-server {
+    ssh tanzixin@172.18.167.114 -p 51199 @args
+}
+```
+
+保存，刷新：
+
+```powershell
+. $PROFILE
+```
+
+之后执行即可
+
+```powershell
+sysu-server
+# 等价于ssh tanzixin@172.18.167.114 -p 51199
+```
+
+
+
 
 
 ## 云服务器

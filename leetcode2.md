@@ -3031,6 +3031,10 @@
 - 2131\.连接两字母单词得到的最长回文串
 
   贪心 字符串
+  
+- 1857\.有向图中最大颜色值
+
+  拓扑排序DP / 记忆化DFS
 
 ## 算法
 
@@ -15157,5 +15161,154 @@ func longestPalindrome(words []string) (ans int) {
 }
 ```
 
+##### 1857\.有向图中最大颜色值
 
+[题目](https://leetcode.cn/problems/largest-color-value-in-a-directed-graph)
+
+假设答案就在某字母 c 取得， 那么其他字母的颜色可以忽略，问题简化为求字母 c 出现次数最多的路径，显然拓扑 DP 即可。现在只需要把这个问题重复 26 次，用一次拓扑序 BFS 即可同时维护每个点的这 26 个子问题。 
+
+```go
+package main
+
+func largestPathValue(colors string, edges [][]int) (ans int) {
+	n := len(colors)
+	dp := make([][]int, n) // 假设最大颜色是j, dp[i][j] 表示出现次数
+	g := make([][]int, n)
+	for i := 0; i < n; i++ {
+		dp[i] = make([]int, 26)
+	}
+	ru := make([]int, n)
+	for _, e := range edges {
+		u, v := e[0], e[1]
+		g[u] = append(g[u], v)
+		ru[v]++
+	}
+	q := []int{}
+	for i := 0; i < n; i++ {
+		if ru[i] == 0 {
+			q = append(q, i)
+		}
+	}
+	for len(q) > 0 {
+		u := q[0]
+		q = q[1:]
+		dp[u][colors[u]-'a']++
+		for _, v := range g[u] {
+			for i := 0; i < 26; i++ {
+				dp[v][i] = max(dp[v][i], dp[u][i])
+			}
+            ru[v]--
+            if ru[v] == 0 {
+                q = append(q, v)
+            }
+		}
+	}
+	for i := 0; i < n; i++ {
+		if ru[i] != 0 {
+			return -1
+		}
+		for j := 0; j < 26; j++ {
+			ans = max(ans, dp[i][j])
+		} 
+	}
+	return
+}
+```
+
+优化1：BFS 时 ans 只取当前点颜色的 max
+
+优化2：make 容量 n 的 q，看是否出队了 n 次：cap 实现
+
+```go
+func largestPathValue(colors string, edges [][]int) (ans int) {
+	n := len(colors)
+	g := make([][]int, n)
+	deg := make([]int, n)
+	for _, e := range edges {
+		x, y := e[0], e[1]
+		if x == y { // 自环
+			return -1
+		}
+		g[x] = append(g[x], y)
+		deg[y]++
+	}
+
+	q := make([]int, 0, n)
+	for i, d := range deg {
+		if d == 0 {
+			q = append(q, i) // 入度为 0 的点入队
+		}
+	}
+
+	f := make([][26]int, n)
+	for len(q) > 0 {
+		x := q[0] // x 的所有转移来源都计算完毕，也都更新到 f[x] 中
+		q = q[1:]
+		ch := colors[x] - 'a'
+		f[x][ch]++
+		ans = max(ans, f[x][ch])
+		for _, y := range g[x] {
+			for i, cnt := range f[x] {
+				f[y][i] = max(f[y][i], cnt) // 刷表法，更新邻居的最大值
+			}
+			deg[y]--
+			if deg[y] == 0 {
+				q = append(q, y)
+			}
+		}
+	}
+
+	if cap(q) > 0 { // 有节点没入队，说明有环
+		return -1
+	}
+	return
+}
+```
+
+也可以反方向，记忆化 DFS 来 DP，不过比较慢
+
+```go
+func largestPathValue(colors string, edges [][]int) (ans int) {
+	n := len(colors)
+	g := make([][]int, n)
+	for _, e := range edges {
+		x, y := e[0], e[1]
+		if x == y { // 自环
+			return -1
+		}
+		g[x] = append(g[x], y)
+	}
+
+	memo := make([][]int, n)
+	var dfs func(int) []int
+	dfs = func(x int) []int {
+		if memo[x] != nil { // x 计算中或者计算过
+			return memo[x] // 如果 memo[x] 是空列表，返回空列表，表示有环
+		}
+		memo[x] = []int{} // 用空列表表示计算中
+		res := make([]int, 26)
+		for _, y := range g[x] {
+			cy := dfs(y)
+			if len(cy) == 0 { // 有环
+				return cy
+			}
+			for i, c := range cy {
+				res[i] = max(res[i], c)
+			}
+		}
+		res[colors[x]-'a']++
+		memo[x] = res // 记忆化，同时也表示 x 计算完毕
+		return res
+	}
+
+	for x, ch := range colors {
+		res := dfs(x)
+		if len(res) == 0 { // 有环
+			return -1
+		}
+		ans = max(ans, res[ch-'a'])
+	}
+	return
+}
+```
 
