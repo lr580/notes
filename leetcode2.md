@@ -3035,6 +3035,14 @@
 - 1857\.有向图中最大颜色值
 
   拓扑排序DP / 记忆化DFS
+  
+- 3372\.连接两棵树后最大目标节点数目I
+
+  枚举 DFS
+
+- 3373\.连接两棵树后最大目标节点数目II
+
+  树上DP(换根)
 
 ## 算法
 
@@ -15309,6 +15317,121 @@ func largestPathValue(colors string, edges [][]int) (ans int) {
 		ans = max(ans, res[ch-'a'])
 	}
 	return
+}
+```
+
+##### 3372\.连接两棵树后最大目标节点数目I
+
+[题目](https://leetcode.cn/problems/maximize-the-number-of-target-nodes-after-connecting-trees-i)
+
+对第二棵树，总是链接最大的那个节点。最终对每棵树每个节点只需要 DFS 一次。
+
+```go
+func maxTargetNodes(edges1 [][]int, edges2 [][]int, k int) []int {
+	buildGraph := func(edges [][]int) [][]int {
+		g := make([][]int, len(edges)+1)
+		for _, e := range edges {
+			u, v := e[0], e[1]
+			g[u] = append(g[u], v)
+			g[v] = append(g[v], u)
+		}
+		return g
+	}
+	g1 := buildGraph(edges1)
+	g2 := buildGraph(edges2)
+	var dfs func([][]int, int, int, int) int
+	dfs = func(g [][]int, u, fa, k int) int {
+        if k < 0 {
+            return 0
+        }
+		if k == 0 {
+			return 1
+		}
+		res := 1
+		for _, v := range g[u] {
+			if v != fa {
+				res += dfs(g, v, u, k-1)
+			}
+		}
+		return res
+	}
+	g2max := 0
+	for u := 0; u < len(g2); u++ {
+		g2max = max(g2max, dfs(g2, u, u, k-1))
+	}
+	n := len(g1)
+	ans := make([]int, n)
+	for u := 0; u < n; u++ {
+		ans[u] = dfs(g1, u, u, k) + g2max
+	}
+	return ans
+}
+```
+
+##### 3373\.连接两棵树后最大目标节点数目II
+
+[题目](https://leetcode.cn/problems/maximize-the-number-of-target-nodes-after-connecting-trees-ii)
+
+换根树上DP，维护每个点为根的子树的奇偶点数，树1的偶点数+数2的max奇点数即可。
+
+```go
+func maxTargetNodes(edges1 [][]int, edges2 [][]int) []int {
+	buildGraph := func(edges [][]int) [][]int {
+		g := make([][]int, len(edges)+1)
+		for _, e := range edges {
+			u, v := e[0], e[1]
+			g[u] = append(g[u], v)
+			g[v] = append(g[v], u)
+		}
+		return g
+	}
+	g1 := buildGraph(edges1)
+	g2 := buildGraph(edges2)
+	solve := func(g [][]int) (odd, even []int) {
+		n := len(g)
+		odd = make([]int, n)
+		even = make([]int, n)
+		sonOdd := make([]int, n)
+		sonEven := make([]int, n)
+		var dfs1 func(int, int)
+		dfs1 = func(u, fa int) {
+			sonEven[u] = 1
+			for _, v := range g[u] {
+				if v != fa {
+					dfs1(v, u)
+					sonEven[u] += sonOdd[v]
+					sonOdd[u] += sonEven[v]
+				}
+			}
+		}
+		dfs1(0, 0)
+		var dfs2 func(int, int, int, int)
+		dfs2 = func(u, fa, fao, fae int) {
+			odd[u] = sonOdd[u] + fao
+			even[u] = sonEven[u] + fae
+			for _, v := range g[u] {
+				if v != fa {
+					fao2 := fae + sonEven[u] - sonOdd[v] // nowEven
+					fae2 := fao + sonOdd[u] - sonEven[v] // nowOdd
+					dfs2(v, u, fao2, fae2)
+				}
+			}
+		}
+		dfs2(0, 0, 0, 0)
+		return
+	}
+	_, even1 := solve(g1)
+	odd2, _ := solve(g2)
+	maxOdd := 0
+	for i := 0; i < len(odd2); i++ {
+		maxOdd = max(maxOdd, odd2[i])
+	}
+	n := len(even1)
+	ans := make([]int, n)
+	for i := 0; i < n; i++ {
+		ans[i] = maxOdd + even1[i]
+	}
+	return ans
 }
 ```
 
