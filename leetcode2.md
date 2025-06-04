@@ -3043,6 +3043,18 @@
 - 3373\.连接两棵树后最大目标节点数目II
 
   树上DP(换根)
+  
+- 1298\.你能从盒子里获得的最大糖果数
+
+  BFS
+
+- 909\.蛇梯棋
+
+  BFS
+  
+- 3403\.从盒子中找出字典序最大的字符串I
+
+  枚举 字符串 / 后缀数组 / <u>枚举优化</u>
 
 ## 算法
 
@@ -15432,6 +15444,260 @@ func maxTargetNodes(edges1 [][]int, edges2 [][]int) []int {
 		ans[i] = maxOdd + even1[i]
 	}
 	return ans
+}
+```
+
+##### 1298\.你能从盒子里获得的最大糖果数
+
+[题目](https://leetcode.cn/problems/maximum-candies-you-can-get-from-boxes)
+
+如果找到钥匙但还没有找到盒子，那么后面找到盒子时，就会递归这个盒子；如果找到盒子但还没有找到钥匙，那么后面找到钥匙时，就会递归对应的盒子。
+
+```go
+func maxCandies(status []int, candies []int, keys [][]int, containedBoxes [][]int, initialBoxes []int) (ans int) {
+	n := len(status)
+	own := make([]bool, n)
+	vis := make([]bool, n)
+	q := []int{}
+	add := func(u int) {
+		if own[u] && status[u] == 1 && !vis[u] {
+			q = append(q, u)
+		}
+	}
+	for _, u := range initialBoxes {
+		own[u] = true
+		add(u)
+	}
+	for len(q) > 0 {
+		u := q[0]
+		q = q[1:]
+		if vis[u] {
+			continue
+		}
+		vis[u] = true
+		ans += candies[u]
+		for _, v := range keys[u] {
+			status[v] = 1
+            add(v)
+		}
+		for _, v := range containedBoxes[u] {
+			own[v] = true
+			add(v)
+		}
+
+	}
+	return
+}
+```
+
+优化：去掉 vis
+
+```go
+func maxCandies(status []int, candies []int, keys [][]int, containedBoxes [][]int, initialBoxes []int) (ans int) {
+	hasKey := status // 把开着的盒子当作有钥匙
+	hasBox := make([]bool, len(status))
+	for _, x := range initialBoxes {
+		hasBox[x] = true
+	}
+
+	var dfs func(int)
+	dfs = func(x int) {
+		ans += candies[x]
+		hasBox[x] = false // 避免找到钥匙后重新访问开着的盒子
+
+		// 找到钥匙，打开盒子（说明我们先找到盒子，然后找到钥匙）
+		for _, y := range keys[x] {
+			hasKey[y] = 1
+			if hasBox[y] {
+				dfs(y)
+			}
+		}
+
+		// 找到盒子，使用钥匙（说明我们先找到钥匙，然后找到盒子）
+		for _, y := range containedBoxes[x] {
+			hasBox[y] = true
+			if hasKey[y] == 1 {
+				dfs(y)
+			}
+		}
+	}
+
+	for _, x := range initialBoxes {
+		if hasBox[x] && hasKey[x] == 1 { // 注意 dfs 中会修改 hasBox
+			dfs(x)
+		}
+	}
+	return
+}
+```
+
+##### 909\.蛇梯棋
+
+[题目](https://leetcode.cn/problems/snakes-and-ladders/)
+
+```go
+func snakesAndLadders(board [][]int) int {
+	n := len(board)
+	n2 := n*n + 1
+	pass := make([]int, n2)
+	i, j, idx, drt := n-1, 0, 1, 1
+	for idx < n2 {
+		pass[idx] = board[i][j]
+		j += drt
+		if j >= n || j < 0 {
+			j -= drt
+			i--
+			drt *= -1
+		}
+		idx++
+	}
+	g := make([][]int, n2)
+	for i := 1; i < n2; i++ {
+		for j := i + 1; j <= min(i+6, n2 - 1); j++ {
+			v := j
+			if pass[j] != -1 {
+				v = pass[j]
+			}
+			g[i] = append(g[i], v)
+		}
+	}
+	// vis := make([]bool, n2)
+	dp := make([]int, n2)
+	q := []int{1}
+    dp[1] = 1
+	for len(q) > 0 {
+		u := q[0]
+		q = q[1:]
+		for _, v := range g[u] {
+			if dp[v] == 0 {
+				dp[v] = dp[u] + 1
+				q = append(q, v)
+			}
+		}
+	}
+	return dp[n2-1] - 1
+}
+```
+
+```go
+func snakesAndLadders(board [][]int) (step int) {
+    n := len(board)
+    vis := make([]bool, n*n+1)
+    vis[1] = true // 题目保证起点没有蛇梯，不写也可以
+    q := []int{1} // 起点
+    for len(q) > 0 {
+        tmp := q
+        q = nil
+        for _, x := range tmp {
+            if x == n*n { // 终点
+                return
+            }
+            for y := x + 1; y <= min(x+6, n*n); y++ {
+                r, c := (y-1)/n, (y-1)%n
+                if r%2 > 0 {
+                    c = n - 1 - c // 奇数行从右到左
+                }
+                nxt := board[n-1-r][c]
+                if nxt < 0 {
+                    nxt = y
+                }
+                if !vis[nxt] {
+                    vis[nxt] = true // 有环的情况下，避免死循环
+                    q = append(q, nxt)
+                }
+            }
+        }
+        step++
+    }
+    return -1 // 无法到达终点
+}
+```
+
+##### 3403\.从盒子中找出字典序最大的字符串I
+
+[题目](https://leetcode.cn/problems/find-the-lexicographically-largest-string-from-the-box-i)
+
+令k=n-numFriends+1, 原串后面扩展长为k-1的空串，枚举有效起点下标，长为k的一定是最优的
+
+```go
+package main
+
+import "strings"
+
+func answerString(word string, numFriends int) string {
+    if numFriends == 1 {
+        return word
+    }
+	n := len(word)
+	k := n - numFriends + 1
+	ans := 0
+	w := word + strings.Repeat("A", k-1)
+	for l := 1; l < n; l++ {
+		for i := 0; i < k; i++ {
+			ca, cb := w[ans+i], w[l+i]
+			if ca > cb {
+				break
+			}
+			if ca < cb {
+				ans = l
+				break
+			}
+		}
+	}
+	return w[ans:min(n, ans+k)]
+}
+```
+
+不如调库
+
+```go
+func answerString(s string, k int) (ans string) {
+	if k == 1 {
+		return s
+	}
+	n := len(s)
+	for i := range n {
+		ans = max(ans, s[i:min(i+n-k+1, n)])
+	}
+	return
+}
+```
+
+go 自带后缀数组。取字典序最大的后缀的长为 n-k+1 的前缀，容易可以证明最优
+
+```go
+func answerString(s string, k int) string {
+	if k == 1 {
+		return s
+	}
+	sa := (*struct{_[]byte;sa[]int32})(unsafe.Pointer(suffixarray.New([]byte(s)))).sa
+	n := len(s)
+	i := int(sa[n-1])
+	return s[i:min(i+n-k+1, n)]
+}
+```
+
+类似 KMP 的跳过，其原理类似。
+
+```go
+func answerString(s string, k int) string {
+	if k == 1 {
+		return s
+	}
+	n := len(s)
+	i, j := 0, 1
+	for j < n {
+		k := 0
+		for j+k < n && s[i+k] == s[j+k] {
+			k++
+		}
+		if j+k < n && s[i+k] < s[j+k] {
+			i, j = j, max(j+1, i+k+1)
+		} else {
+			j += k + 1
+		}
+	}
+	return s[i:min(i+n-k+1, n)]
 }
 ```
 

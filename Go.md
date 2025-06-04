@@ -709,6 +709,7 @@ fmt.Println(strings.Index(str4, "3"))     // -1
 fmt.Println(strings.LastIndex(str4, "0"))
 // 查找字符x：strings.IndexByte(s, x)
 fmt.Println(strings.Join([]string{"020", "5800", "5800"}, "-"))
+fmt.Println(strings.Repeat("A", k-1))
 ```
 
 ##### 类型转换
@@ -3664,6 +3665,32 @@ func (pq *PriorityQueue) Pop() interface{} {
 	x := old[n - 1]
 	*pq = old[:n - 1]
 	return x
+}
+```
+
+#### 后缀数组
+
+如力扣 3403，取字典序最大的后缀的长为 n-k+1 的前缀
+
+```go
+package main
+
+import (
+	"index/suffixarray"
+	"unsafe"
+)
+
+func answerString(s string, k int) string {
+	if k == 1 {
+		return s
+	}
+	sa := (*struct {
+		_  []byte
+		sa []int32
+	})(unsafe.Pointer(suffixarray.New([]byte(s)))).sa
+	n := len(s)
+	i := int(sa[n-1])
+	return s[i:min(i+n-k+1, n)]
 }
 ```
 
