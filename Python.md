@@ -92,6 +92,14 @@ pip install plotly pandas # 一次装两个
 >
 > [pil] 是一个可选依赖项的标记，表示安装 qrcode 库时同时安装 Pillow 库（PIL 的一个分支）
 
+跳过依赖检查：`--no-deps` 
+
+```
+pip install d2l==0.17.6 --no-deps
+```
+
+
+
 #### 镜像
 
 可以加上调用国内镜像的选项，加快下载速度：
@@ -367,8 +375,6 @@ print(_) #7
 一种支持python的笔记本格式，可以使用vscode打开，需要安装插件(其中pip的pywin32安装较慢，特别是清华镜像源，建议官网或别的地方找正确的版本自己下载whl安装，看正确的版本只需要在pip install pywin32自动安装失败时看看它用的文件名叫啥就好了)
 
 ipynb使用十分简单，事实上就是一堆代码框，然后可以分块运行(注意没有文本框，只有代码框)，左上角的数字代表是否执行过(是则有数字)，和执行的先后顺序
-
-这个工具的使用本身十分简单……本处不赘述
 
 这个工具跟自带IDLE相比，可以有vscode插件加成，有输入提示，可以用 vscode 整
 
@@ -14970,7 +14976,17 @@ user = User(**user_data)
 print(user.dict()) #{'id': 1, 'name': 'Alice', 'email': 'alice@example.com', 'age': 30}
 ```
 
+### 压缩
 
+#### 7z
+
+```python
+import py7zr
+with py7zr.SevenZipFile('data/cifar-10/train.7z', mode='r') as archive:
+    archive.extractall()
+```
+
+解压到当前目录。
 
 ## 机器学习
 
@@ -18118,6 +18134,23 @@ print(x,y) #tensor([1160]) tensor([580], device='cuda:0')
 model = torch.nn.Linear(3, 1)  # 默认在 CPU 上
 model = model.to("cuda")
 ```
+
+###### 多设备
+
+```python
+# get_net(): ... return net  # 不再移动到设备，由训练函数处理 
+def train(net, ...):
+    if isinstance(devices, list):
+        device = devices[0] 
+        if len(devices) > 1:
+            net = nn.DataParallel(net, device_ids=devices)
+    else:
+        device = devices
+    
+    net = net.to(device)
+```
+
+
 
 ##### 梯度
 

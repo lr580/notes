@@ -2246,6 +2246,12 @@ find ./ -mtime -1 | xargs rm -rf
 find ./ -size 0 | xargs rm -rf
 ```
 
+统计有几个文件：
+
+```sh
+find . -maxdepth 1 -type f | wc -l
+```
+
 
 
 ##### ln

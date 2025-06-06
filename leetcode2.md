@@ -3055,6 +3055,18 @@
 - 3403\.从盒子中找出字典序最大的字符串I
 
   枚举 字符串 / 后缀数组 / <u>枚举优化</u>
+  
+- 1061\.按字典序排列最小的等效字符串
+
+  并查集
+
+- 2434\.使用机器人打印字典序最小的字符串
+
+  贪心 <u>+前缀和</u>
+
+- 3170\.删除星号以后字典序最小的字符串
+
+  贪心 <u>+位运算</u>
 
 ## 算法
 
@@ -15698,6 +15710,171 @@ func answerString(s string, k int) string {
 		}
 	}
 	return s[i:min(i+n-k+1, n)]
+}
+```
+
+##### 1061\.按字典序排列最小的等效字符串
+
+[题目](https://leetcode.cn/problems/lexicographically-smallest-equivalent-string)
+
+```go
+func smallestEquivalentString(s1 string, s2 string, baseStr string) string {
+	fa := [26]int{}
+	for i := 0; i < 26; i++ {
+		fa[i] = i
+	}
+	findFa := func(x int) int {
+		for x != fa[x] {
+			x = fa[x]
+		}
+		return x
+	}
+	m := len(s1)
+	for i := 0; i < m; i++ {
+		a, b := int(s1[i]-'a'), int(s2[i]-'a')
+		a, b = findFa(a), findFa(b)
+		if a != b {
+			fa[max(a, b)] = min(a, b)
+		}
+	}
+	n := len(baseStr)
+	ans := make([]byte, n)
+	for i := 0; i < n; i++ {
+		ans[i] = byte(findFa(int(baseStr[i]-'a')) + 'a')
+	}
+	return string(ans)
+}
+```
+
+##### 2434\.使用机器人打印字典序最小的字符串
+
+[题目](https://leetcode.cn/problems/using-a-robot-to-print-the-lexicographically-smallest-string)
+
+设tc为输出阈值字符，初始为字母a。当前t尾部小于等于tc时不断输出t的尾部，在每次加入字符到t的时候，查看tc是否在s里没有了，如果没有了，那么tc往后挪一位并继续上述过程。
+
+```go
+func robotWithString(s string) string {
+	n := len(s)
+	cnt := [27]int{}
+	for _, c := range s {
+		cnt[c-'a']++
+	}
+	cnt[26] = 1 // break usage
+	tc := 0
+	t := []byte{}
+	ans := []byte{}
+	flush := func() {
+		for len(t)>0&&int(t[len(t)-1]-'a') <= tc {
+			ans = append(ans, t[len(t)-1])
+			t = t[:len(t)-1]
+		}
+	}
+	for i := 0; i < n; i++ {
+		cnt[s[i]-'a']--
+		t = append(t, s[i])
+		for cnt[tc] == 0 {
+			flush()
+			tc++
+		}
+		flush()
+	}
+	return string(ans)
+}
+```
+
+也可以改用前缀min维护cnt
+
+```go
+func robotWithString(s string) string {
+	n := len(s)
+	// 计算后缀最小值
+	sufMin := make([]byte, n+1)
+	sufMin[n] = math.MaxUint8
+	for i := n - 1; i >= 0; i-- {
+		sufMin[i] = min(sufMin[i+1], s[i])
+	}
+
+	ans := make([]byte, 0, n)
+	st := sufMin[:0]
+	for i, ch := range s {
+		st = append(st, byte(ch))
+		for len(st) > 0 && st[len(st)-1] <= sufMin[i+1] {
+			ans = append(ans, st[len(st)-1])
+			st = st[:len(st)-1]
+		}
+	}
+	return string(ans)
+}
+```
+
+##### 3170\.删除星号以后字典序最小的字符串
+
+[题目](https://leetcode.cn/problems/lexicographically-minimum-string-after-removing-stars)
+
+```go
+package main
+
+func clearStars(s string) string {
+	n := len(s)
+	del := make([]bool, n)
+	idx := [26][]int{}
+	mi := byte(25)
+	idx[25] = append(idx[25], -1)
+	for i := 0; i < n; i++ {
+		if s[i] != '*' {
+			c := s[i] - 'a'
+			idx[c] = append(idx[c], i)
+			mi = min(c, mi)
+		} else {
+			del[i] = true
+			j := idx[mi][len(idx[mi])-1]
+			del[j] = true
+			idx[mi] = idx[mi][:len(idx[mi])-1]
+			for len(idx[mi]) == 0 {
+				mi++
+			}
+		}
+	}
+	ans := []byte{}
+	for i := 0; i < n; i++ {
+		if !del[i] {
+			ans = append(ans, s[i])
+		}
+	}
+	return string(ans)
+}
+```
+
+也可以用位运算维护 min：
+
+```go
+func clearStars(S string) string {
+	s := []byte(S)
+	stacks := [26][]int{}
+	mask := 0
+	for i, c := range s {
+		if c != '*' {
+			c -= 'a'
+			stacks[c] = append(stacks[c], i)
+			mask |= 1 << c // 标记第 c 个栈为非空
+		} else {
+			k := bits.TrailingZeros(uint(mask))
+			st := stacks[k]
+			s[st[len(st)-1]] = '*'
+			stacks[k] = st[:len(st)-1]
+			if len(stacks[k]) == 0 {
+				mask ^= 1 << k // 标记第 k 个栈为空
+			}
+		}
+	}
+
+	t := s[:0]
+	for _, c := range s {
+		if c != '*' {
+			t = append(t, c)
+		}
+	}
+	return string(t)
 }
 ```
 
