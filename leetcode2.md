@@ -3067,6 +3067,18 @@
 - 3170\.删除星号以后字典序最小的字符串
 
   贪心 <u>+位运算</u>
+  
+- 3442\.奇偶频次间的最大差值I
+
+  签到
+
+- 3445.奇偶频次间的最大差值II
+
+  **滑动窗口+前缀和**
+
+- 3423\.循环数组中相邻元素的最大差值
+
+  签到
 
 ## 算法
 
@@ -15875,6 +15887,89 @@ func clearStars(S string) string {
 		}
 	}
 	return string(t)
+}
+```
+
+##### 3442\.奇偶频次间的最大差值I
+
+[题目](https://leetcode.cn/problems/maximum-difference-between-even-and-odd-frequency-i)
+
+```go
+package main
+
+func maxDifference(s string) int {
+	bin := [26]int{}
+	for _, c := range s {
+		bin[c-'a']++
+	}
+	mx, mi := 0, 580
+	for i := 0; i < 26; i++ {
+		if bin[i]%2 == 1 {
+			mx = max(mx, bin[i])
+		} else if bin[i]>0 {
+			mi = min(mi, bin[i])
+		}
+	}
+	return mx - mi
+}
+```
+
+##### 3445.奇偶频次间的最大差值II
+
+[题目](https://leetcode.cn/problems/maximum-difference-between-even-and-odd-frequency-ii)
+
+灵神题解讲得很好，不赘述。
+
+```go
+func maxDifference(s string, k int) int {
+	const inf = math.MaxInt / 2
+	ans := -inf
+	for x := range 5 {
+		for y := range 5 {
+			if y == x {
+				continue
+			}
+			curS := [5]int{}
+			preS := [5]int{}
+			minS := [2][2]int{{inf, inf}, {inf, inf}}
+			left := 0
+			for i, b := range s {
+				curS[b-'0']++
+				r := i + 1
+				for r-left >= k && curS[x] > preS[x] && curS[y] > preS[y] {
+					p := &minS[preS[x]&1][preS[y]&1]
+					*p = min(*p, preS[x]-preS[y])
+					preS[s[left]-'0']++
+					left++
+				}
+                ans = max(ans, curS[x]-curS[y]-minS[curS[x]&1^1][curS[y]&1])
+			}
+		}
+	}
+	return ans
+}
+```
+
+##### 3423\.循环数组中相邻元素的最大差值
+
+[题目](https://leetcode.cn/problems/maximum-difference-between-adjacent-elements-in-a-circular-array)
+
+或 math.Abs
+
+```go
+func abs(x int) int {
+    if x >= 0 {
+        return x
+    }
+    return -x
+}
+func maxAdjacentDistance(nums []int) (ans int) {
+    n := len(nums)
+    for i := 1; i < n; i++ {
+        ans = max(ans, abs(nums[i]-nums[i-1]))
+    }
+    ans = max(ans, abs(nums[0]-nums[n-1]))
+    return
 }
 ```
 

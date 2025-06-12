@@ -544,7 +544,18 @@ bash Miniconda3-latest-Linux-x86_64.sh
 source ~/.bashrc
 ```
 
+> 如果不行，加一下path：如，安装接受看到输出的path
+>
+> ```
+> File or directory already exists: '/home/lr580/miniconda3'
+> ```
+>
+> ```sh
+> echo 'export PATH="$HOME/miniconda3/bin:$PATH"' >> ~/.bashrc
+> source ~/.bashrc
+> ```
 
+可能要重启 ssh / bash 才能生效。
 
 ##### 离线
 
@@ -657,7 +668,26 @@ conda config --set show_channel_urls yes
 conda config --remove channels https://mirrors.ustc.edu.cn/anaconda/pkgs/main/
 ```
 
+###### 配置文件
 
+如 `C:\Users\Admin\.condarc`
+
+```yaml
+ssl_verify: true
+channel_priority: strict
+solver: libmamba
+
+channels:
+  - conda-forge
+  - defaults
+
+default_channels:
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/msys2
+
+show_channel_urls: true
+```
 
 ##### mamba
 
@@ -667,7 +697,9 @@ conda config --remove channels https://mirrors.ustc.edu.cn/anaconda/pkgs/main/
 conda install -n base -c conda-forge mamba -y
 ```
 
-
+```sh
+mamba install numpy=1.25.2
+```
 
 ##### 新建环境
 
@@ -17843,6 +17875,8 @@ sudo apt install nvidia-cuda-toolkit
 
 安装 gpu toolkit，下载 [here](https://developer.nvidia.com/cuda-toolkit-archive)，选择 `nvidia-smi` 对应的版本，选的 version 10/11 是指 windows10/11。安装教程 [参考](https://blog.csdn.net/weixin_43741711/article/details/108908079)
 
+若 windows 已安装，则 wsl 里无需安装 CUDA。但 nvidia-cuda-toolkit 还是要的(nvcc)
+
 #### 模型信息
 
 ##### summary
@@ -20780,6 +20814,24 @@ print(f'Accuracy: {accuracy}')
 ```sh
 pip install mne
 ```
+
+#### wandb
+
+```sh
+pip install wandb
+```
+
+Weights & Biases (WandB) 是一个用于机器学习实验跟踪、可视化和协作的Python库。它帮助研究人员和工程师高效管理实验过程，记录超参数、指标、输出结果（如模型权重、图表等），并支持团队协作。
+
+需要注册登录然后获得 API。
+
+支持离线本地。[参考](https://blog.csdn.net/lyx_323/article/details/140951372)
+
+```python
+os.environ["WANDB_MODE"] = "offline"
+```
+
+
 
 ## 网络
 
