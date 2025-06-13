@@ -3080,6 +3080,10 @@
 
   签到
 
+- 2616\.最小化数对的最大差值
+
+  **二分 DP 排序 差分 贪心**
+
 ## 算法
 
 > 力扣其他，CF杂题，其他杂题是 `leetcode.md` 搬过来的；力扣是新的力扣常规题。
@@ -15971,5 +15975,146 @@ func maxAdjacentDistance(nums []int) (ans int) {
     ans = max(ans, abs(nums[0]-nums[n-1]))
     return
 }
+```
+
+##### 2616\.最小化数对的最大差值
+
+[题目](https://leetcode.cn/problems/minimize-the-maximum-difference-of-pairs)
+
+排序后只选相邻会比跨选更优，故等价于求排序后数组的差分数组里选择互不相邻的p个数，使得选出来的最大值最小。
+
+二分答案，使用打家劫舍型DP，对给定最大阈值，看看能不能打劫>=p个房舍。
+
+```go
+package main
+
+import (
+	"sort"
+)
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func minimizeMax(nums []int, p int) int {
+    n := len(nums)
+    if n == 1 || p == 0 {
+        return 0
+    }
+	sort.Ints(nums) // 排序后只选相邻会比跨选更优
+	d := make([]int, n-1)
+	mx := 0
+	for i := 0; i < n-1; i++ {
+		d[i] = abs(nums[i+1] - nums[i])
+		mx = max(mx, d[i])
+	} // 差分数组里选择互不相邻的p个数，使得选出来的最大值最小
+    if n == 2 {
+        return d[0]
+    }
+	dp0 := make([]int, n-1) // 当前选
+	dp1 := make([]int, n-1) // 当前不选
+    //fmt.Println(d)
+	l, r, res := 0, mx, mx
+	for l <= r {
+		c := (l + r) >> 1
+		if d[0] <= c {
+			dp0[0] = 1
+		} else { // flush multi query
+            dp0[0] = 0
+        }
+        if d[1] <= c {
+            dp0[1] = 1
+        } else {
+            dp0[1] = 0
+        }
+        dp1[1] = dp0[0]
+        //fmt.Println(c, 0, dp0[0], dp1[0])
+        //fmt.Println(c, 1, dp0[1], dp1[1])
+		for i := 2; i < n-1; i++ {
+			dp1[i] = max(dp0[i-1], dp1[i-1])
+			if d[i] <= c {
+				dp0[i] = 1 + max(dp0[i-2], dp1[i-1])
+			} else {
+				dp0[i] = dp1[i]
+			}
+            //fmt.Println(c, i, dp0[i], dp1[i])
+		}
+		ans := max(dp0[n-2], dp1[n-2])
+		if ans >= p {
+			r = c - 1
+			res = c
+		} else {
+			l = c + 1
+		}
+	}
+	return res
+}
+```
+
+也可以不差分，等价于打家劫舍跳 2 个。则 `f[n]=max(f[n-1],f[n-2]+1)`。注意到 `f[n-2]>=f[n-3]`。由于 `f[n-1], f[n-3]` 最多相差 1，故 `f[n-3]+1>=f[n-1]`。故 `f[n-2]+1>=f[n-3]+1>=f[n-1]`，故 `f[n]=f[n-2]+1`。故贪心成立。即：只要能选就选。
+
+```python
+class Solution:
+    def minimizeMax(self, nums: List[int], p: int) -> int:
+        nums.sort()
+        def check(mx: int) -> int:
+            cnt = i = 0
+            while i < len(nums) - 1:
+                if nums[i + 1] - nums[i] <= mx:  # 选 nums[i] 和 nums[i+1]
+                    cnt += 1
+                    i += 2
+                else:  # 不选 nums[i]
+                    i += 1
+            return cnt >= p
+        return bisect_left(range(nums[-1] - nums[0]), True, key=check)
+```
+
+```go
+func minimizeMax(nums []int, p int) int {
+    slices.Sort(nums)
+    n := len(nums)
+    return sort.Search(nums[n-1]-nums[0], func(mx int) bool {
+        cnt := 0
+        for i := 0; i < n-1; i++ {
+            if nums[i+1]-nums[i] <= mx { // 选 nums[i] 和 nums[i+1]
+                cnt++
+                i++
+            }
+        }
+        return cnt >= p
+    })
+}
+```
+
+优化：显然答案在差分数组的某个差分值取得，可以只对差分数组排序后的下标二分，降低搜索值域范围从连续整数为离散整数。
+
+```python
+class Solution:
+    def minimizeMax(self, nums: List[int], p: int) -> int:
+        nums.sort()
+        diffs = [0] + sorted(y - x for x, y in pairwise(nums))
+
+        def check(idx: int) -> int:
+            mx = diffs[idx]
+            cnt = i = 0
+            while i < len(nums) - 1:
+                if nums[i + 1] - nums[i] <= mx:  # 选 nums[i] 和 nums[i+1]
+                    cnt += 1
+                    i += 2
+                else:  # 不选 nums[i]
+                    i += 1
+            return cnt >= p
+
+        left, right = -1, len(nums) - 1
+        while left + 1 < right:
+            mid = (left + right) // 2
+            if check(mid):
+                right = mid
+            else:
+                left = mid
+        return diffs[right]
 ```
 
