@@ -790,6 +790,8 @@ conda activate 环境名
 ```
 
 > 对 windows，要在命令提示符，不能在 powershell。尽管运行代码可以在 powershell，但是其无法装包。
+>
+> 重复激活同一环境不会有任何变化(等价于忽视)
 
 之后可以装包。(如 `pip install -r requirements.txt`)
 
@@ -11922,7 +11924,7 @@ plt.show()
 plt.savefig(输出文件名含后缀)
 ```
 
-> `bbox_inches='tight'` 参数可以确保图形的所有部分都能适当显示，不会被裁剪
+> `bbox_inches='tight'` 参数可以确保图形的所有部分都能适当显示，不会被裁剪。可以保存矢量图，直接path后缀为svg/eps/pdf等即可。
 
 ##### 折线
 
@@ -12361,6 +12363,21 @@ plt.plot(dimensions, min_distances, marker='o')
 
 `alpha=1` 不透明，0透明；`s=40` 尺寸。`color=xxxx`
 
+##### 柱填充
+
+hatch
+
+```python
+hatches = ["", "//", ".."]
+bars = plt.bar(index + i * bar_width, method_vals, 
+              width=bar_width, color=colors[i],
+              hatch=hatches[i],
+              edgecolor='black',
+              label=method)
+```
+
+
+
 ##### 坐标轴
 
 锁定坐标轴范围为$x\in[-12,12],y\in[-5,5]$。也可以用 `xlim(a,b)`, `ylim`。可以 $a\ge b$ 则画图序列也跟着倒序。
@@ -12368,6 +12385,22 @@ plt.plot(dimensions, min_distances, marker='o')
 ```python
 plt.axis([-12,12,-5,5]) 
 ```
+
+只锁定一个，另一个靠数据自适应：
+
+```python
+plt.ylim(y_min, y_max)
+```
+
+不等距离数值等距离显示：
+
+```python
+lambdas = [0.5, 1, 2, 5, 10]
+x_positions = np.arange(len(lambdas))
+plt.xticks(x_positions, lambdas)
+```
+
+
 
 设置坐标轴坐标尺(每隔多少显示一次数字)：(y同理)
 
@@ -12457,6 +12490,12 @@ plt.tight_layout(rect=[0, 0, 1, 0.95])  # 确保整体标题不被遮挡
 plt.show()
 ```
 
+所有标题之类的文字支持latex，如：
+
+```python
+plt.xlabel(f"$\\lambda_{int(xname[1:])}$", fontsize=12)
+```
+
 
 
 ##### 图例
@@ -12483,6 +12522,13 @@ bbox to anchor:
 
 第二个值（y 轴位置）：同样在 0 到 1 之间，表示相对于图表高度的比例。1 表示顶部，0 表示底部。
 
+如左上角，但是中上：
+
+```python
+plt.legend(loc='upper left',  # 基本定位在左上角
+    bbox_to_anchor=(0, 0.95),  # (x, y) 坐标，0.95 表示靠近顶部但稍微下移)
+```
+
 双图(twin)，画完第一个图，第二个图会把第一个图的图例挡住，gpt 4o mini：
 
 ```python
@@ -12496,6 +12542,12 @@ ax2.legend(handles=handles, loc='upper right')
 
 ```python
 [Patch(color=c1, alpha=1, label=y1name), Patch(color=c2, alpha=1, label=y2name)]
+```
+
+透明也可以：
+
+```python
+plt.legend(loc='lower right', fontsize=10, framealpha=0.5)
 ```
 
 
@@ -12760,6 +12812,163 @@ def compareWardAndGMM(seed=8914, show=False):
         plt.show()
     else:
         plt.savefig(f'Ward_vs_GMM_compare.png')
+```
+
+##### 多柱状
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.ticker import PercentFormatter
+
+def plot_metric_comparison(dataset_name, metrics, method_names, metric_values, colors, hatches, output_filename):
+    """
+    绘制多方法多指标对比柱状图
+    
+    参数:
+    dataset_name -- 数据集名称 (str)
+    metrics -- 要展示的指标列表 (list of str)
+    method_names -- 方法名称列表 (list of str)
+    metric_values -- 指标值的嵌套字典 
+        {数据集名: {方法名: {指标: 值}}}
+    colors -- 每个方法对应的颜色 (list of str)
+    hatches -- 每个方法对应的填充样式 (list of str)
+    output_filename -- 输出文件名 (str)
+    """
+    
+    n_metrics = len(metrics)
+    n_methods = len(method_names)
+    
+    # 计算每个指标位置的柱状图位置
+    bar_width = 0.8 / n_methods
+    index = np.arange(n_metrics)
+    
+    plt.figure(figsize=(12, 8))
+    
+    # 首先收集所有数据点以确定y轴范围
+    all_values = []
+    for method in method_names:
+        method_vals = [metric_values[dataset_name][method][metric] for metric in metrics]
+        all_values.extend(method_vals)
+    
+    # 计算数据的范围 (修改点2：动态计算Y轴范围)
+    min_val = min(all_values)
+    max_val = max(all_values)
+    y_min = max(0, min_val * 0.96)  # 最低不低于0，但也不从0开始
+    y_max = min(1, max_val * 1.04)   # 最高不高于1
+    
+    # 为每个方法绘制柱状图
+    for i, method in enumerate(method_names):
+        method_vals = [metric_values[dataset_name][method][metric] for metric in metrics]
+        bars = plt.bar(index + i * bar_width, method_vals, 
+                      width=bar_width, color=colors[i],
+                      hatch=hatches[i],  # 修改点1：添加填充样式
+                      edgecolor='black',
+                      label=method)
+        
+        # 在柱子内部上方添加数值标签 (避免超出边界)
+        for bar in bars:
+            height = bar.get_height()
+            offset = max(height * 0.03, 0.01)  # 防止高度值过小时标签重叠
+            plt.text(bar.get_x() + bar.get_width()/2., 
+                    height - offset,  # 位置调整为柱子内部
+                    f"{height*100:.1f}%", 
+                    ha='center', va='top', fontsize=9, color='white',
+                    fontweight='bold')
+    
+    plt.title(f'{dataset_name} - Model Comparison', fontsize=16)
+    plt.ylabel('Score', fontsize=12)
+    plt.xlabel('Metrics', fontsize=12)
+    plt.xticks(index + bar_width*(n_methods-1)/2, metrics, fontsize=10)
+    
+    # 设置Y轴为百分比格式
+    plt.gca().yaxis.set_major_formatter(PercentFormatter(1.0))
+    
+    # 设置动态y轴范围 (修改点2)
+    plt.ylim(y_min, y_max)
+    
+    # 添加图例
+    plt.legend(loc='best', fontsize=10)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    
+    plt.tight_layout()
+    
+    # 保存为PDF
+    plt.savefig(output_filename, format='pdf', bbox_inches='tight')
+    plt.close()
+
+# 从提供的数据整理指标值（保持不变）
+metric_values = {
+    "foursquare_mini": {
+        "GATConv": {
+            "ACC@1": 0.7241,
+            "Macro-P": 0.7338,
+            "Macro-R": 0.7071,
+            "Macro-F1": 0.7102
+        },
+        "GraphConv": {
+            "ACC@1": 0.7211,
+            "Macro-P": 0.7260,
+            "Macro-R": 0.7041,
+            "Macro-F1": 0.7054
+        },
+        "SAGEConv": {
+            "ACC@1": 0.7270,
+            "Macro-P": 0.7346,
+            "Macro-R": 0.7104,
+            "Macro-F1": 0.7129
+        }
+    },
+    "weeplace_mini": {
+        "GATConv": {
+            "ACC@1": 0.5751,
+            "Macro-P": 0.6198,
+            "Macro-R": 0.5684,
+            "Macro-F1": 0.5786
+        },
+        "GraphConv": {
+            "ACC@1": 0.5734,
+            "Macro-P": 0.6164,
+            "Macro-R": 0.5664,
+            "Macro-F1": 0.5763
+        },
+        "SAGEConv": {
+            "ACC@1": 0.5703,
+            "Macro-P": 0.6170,
+            "Macro-R": 0.5621,
+            "Macro-F1": 0.5735
+        }
+    }
+}
+
+# 配置绘图参数
+metrics = ["ACC@1", "Macro-P", "Macro-R", "Macro-F1"]
+method_names = ["GATConv", "GraphConv", "SAGEConv"]
+colors = ["#4C72B0", "#55A868", "#C44E52"]  # 蓝色、绿色、红色
+
+# 修改点1：为每个方法指定不同的填充样式
+hatches = ["", "//", ".."]  # 实心、斜线、点状填充
+
+# 绘制两个数据集的图表
+plot_metric_comparison(
+    dataset_name="foursquare_mini",
+    metrics=metrics,
+    method_names=method_names,
+    metric_values=metric_values,
+    colors=colors,
+    hatches=hatches,  # 添加填充样式
+    output_filename="figures/cmp_foursquare_mini.pdf"
+)
+
+plot_metric_comparison(
+    dataset_name="weeplace_mini",
+    metrics=metrics,
+    method_names=method_names,
+    metric_values=metric_values,
+    colors=colors,
+    hatches=hatches,  # 添加填充样式
+    output_filename="figures/cmp_weeplace_mini.pdf"
+)
 ```
 
 

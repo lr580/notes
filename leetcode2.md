@@ -3083,6 +3083,22 @@
 - 2616\.最小化数对的最大差值
 
   **二分 DP 排序 差分 贪心**
+  
+- 2566\.替换一个数字后的最大差值
+
+  枚举 / 贪心
+
+- 1432\.改变一个整数能得到的最大差值
+
+  枚举 / 贪心
+  
+- 2016\.增量元素之间的最大差值
+
+  前缀和
+  
+- 2966\.划分数组并满足最大差限制
+
+  排序 贪心
 
 ## 算法
 
@@ -16116,5 +16132,157 @@ class Solution:
             else:
                 left = mid
         return diffs[right]
+```
+
+##### 2566\.替换一个数字后的最大差值
+
+[题目](https://leetcode.cn/problems/maximum-difference-by-remapping-a-digit)
+
+```go
+package main
+func minMaxDifference(num int) int {
+	mi, mx := int(1e9), 0
+	for d1 := 0; d1 < 10; d1++ {
+		for d2 := 0; d2 < 10; d2++ {
+			v := 0
+			for j, p := num, 1; j > 0; j, p = j/10, p*10 {
+				d := j % 10
+				if d == d1 {
+					d = d2
+				}
+				v += d * p
+			}
+			mi = min(mi, v)
+			mx = max(mx, v)
+		}
+	}
+	return mx - mi
+}
+```
+
+贪心：第一个非9变9；第一个非0(一定是最高位)变0
+
+```go
+func minMaxDifference(num int) int {
+    s := strconv.Itoa(num)
+    t := s
+    pos := 0
+    for pos < len(s) && s[pos] == '9' {
+        pos++
+    }
+    if pos < len(s) {
+        s = strings.ReplaceAll(s, string(s[pos]), "9")
+    }
+    t = strings.ReplaceAll(t, string(t[0]), "0")
+    max, _ := strconv.Atoi(s)
+    min, _ := strconv.Atoi(t)
+    return max - min
+}
+```
+
+##### 1432\.改变一个整数能得到的最大差值
+
+[题目](https://leetcode.cn/problems/max-difference-you-can-get-from-changing-an-integer/)
+
+```go
+package main
+
+import (
+	"strconv"
+	"strings"
+)
+
+func maxDiff(num int) (ans int) {
+	s := strconv.Itoa(num)
+    ma, mb := 0, int(1e9)
+	for x1 := '0'; x1 <= '9'; x1++ {
+		for x2 := '0'; x2 <= '9'; x2++ {
+			s1 := strings.Replace(s, string(x1), string(x2), -1)
+			if s1[0] == '0' {
+				continue
+			}
+			a, _ := strconv.Atoi(s1)
+            ma = max(ma, a)
+            mb = min(mb, a)
+		}
+	}
+	return ma-mb
+}
+```
+
+最大值和上一题一样，最小值，若最高为不为1换成1；否则，第一个>1的换为0，否则不操作。
+
+```go
+func maxDiff(num int) int {
+    s := strconv.Itoa(num)
+
+    replace := func(old byte, new string) int {
+        t := strings.ReplaceAll(s, string(old), new)
+        x, _ := strconv.Atoi(t)
+        return x
+    }
+
+    mx := num
+    for _, d := range s {
+        if d != '9' {
+            mx = replace(byte(d), "9")
+            break
+        }
+    }
+
+    mn := num
+    if s[0] != '1' {
+        mn = replace(s[0], "1")
+    } else {
+        for _, d := range s[1:] {
+            if d > '1' { // 不是 0 也不是 1
+                mn = replace(byte(d), "0")
+                break
+            }
+        }
+    }
+
+    return mx - mn
+}
+```
+
+##### 2016\.增量元素之间的最大差值
+
+[题目](https://leetcode.cn/problems/maximum-difference-between-increasing-elements)
+
+```go
+package main
+
+func maximumDifference(nums []int) int {
+	mi := int(2e9)
+	ans := -1
+	for _, v := range nums {
+		if v > mi {
+			ans = max(ans, v-mi)
+		}
+		mi = min(v, mi)
+	}
+	return ans
+}
+```
+
+##### 2966\.划分数组并满足最大差限制
+
+[题目](https://leetcode.cn/problems/divide-array-into-arrays-with-max-difference)
+
+```go
+func divideArray(nums []int, k int) [][]int {
+	sort.Ints(nums)
+	a := [][]int{}
+	n := len(nums)
+	for i, j := 0, 0; i < n; i, j = i+3, j+1 {
+		a = append(a, []int{})
+		if nums[i+2]-nums[i] > k {
+			return nil
+		}
+		a[j] = append(a[j], nums[i:i+3]...)
+	}
+	return a
+}
 ```
 
