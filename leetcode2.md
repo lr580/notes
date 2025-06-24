@@ -3099,6 +3099,26 @@
 - 2966\.划分数组并满足最大差限制
 
   排序 贪心
+  
+- 3443\.K次修改后的最大曼哈顿距离
+
+  **枚举 前缀和**
+  
+- 2138\.将字符串拆分为若干长度为k的组
+
+  签到
+  
+- 2081\.k镜像数字的和
+
+  枚举 模拟(回文，进制) 
+  
+- 2200\.找出数组中的所有K近邻下标
+
+  签到 / 差分 / 滑动窗口
+  
+- 2040\.两个有序数组的第K小乘积
+
+  二分+二分/滑动窗口
 
 ## 算法
 
@@ -16283,6 +16303,663 @@ func divideArray(nums []int, k int) [][]int {
 		a[j] = append(a[j], nums[i:i+3]...)
 	}
 	return a
+}
+```
+
+##### 3443\.K次修改后的最大曼哈顿距离
+
+[题目](https://leetcode.cn/problems/maximum-manhattan-distance-after-k-changes)
+
+枚举走到第 i 步最大。横纵可分离，因为对横用一次一定能增加 2 距离(除非改成全部同向了)，纵同理。所以横纵等价的，只要有效操作数一样的话。横纵分别维护即可。
+
+```go
+func maxDistance(s string, k int) (ans int) {
+	cnt := ['X']int{} // 'W' + 1 = 'X'
+	for _, ch := range s {
+		cnt[ch]++
+		left := k
+		f := func(a, b int) int {
+			d := min(a, b, left)
+			left -= d
+			return abs(a-b) + d*2
+		}
+		ans = max(ans, f(cnt['N'], cnt['S'])+f(cnt['E'], cnt['W']))
+	}
+	return
+}
+
+func abs(x int) int { if x < 0 { return -x }; return x }
+```
+
+##### 3085\.成为K特殊字符串需要删除的最少字符数
+
+[题目](https://leetcode.cn/problems/minimum-deletions-to-make-string-k-special)
+
+连续或离散枚举每个范围，不在范围内的删到是为止。特判单一字符。
+
+可以离散的原因是，少的肯定是删光的，如果不踩在某个已有值上，肯定不如滑到下一个已知值域更好，还能覆盖更多的。下面给出两种做法。
+
+```go
+func minimumDeletions(word string, k int) int {
+	cnt := [26]int{}
+	for _, c := range word {
+		cnt[c-'a']++
+	}
+    n := len(word)
+	ans := n
+    for _, v := range cnt {
+        ans = min(ans, n - v)
+    }
+	for l := 0; l < n; l++ {
+		s, r := 0, l+k
+		for _, v := range cnt {
+            if v == 0 {
+                continue
+            }
+			if v < l {
+				s += v
+			}
+			if v > r {
+				s += min(v, v - r)
+			}
+            // fmt.Println(v, s)
+		}
+        // fmt.Println(l, r, s)
+		ans = min(ans, s)
+	}
+	return ans
+}
+```
+
+```go
+func minimumDeletions(word string, k int) int {
+	cnt := [26]int{}
+	for _, c := range word {
+		cnt[c-'a']++
+	}
+    n := len(word)
+	ans := n
+    for _, v := range cnt {
+        ans = min(ans, n - v)
+    }
+	for _, l := range cnt {
+        if l == 0 {
+            continue
+        }
+		s, r := 0, l+k
+		for _, v := range cnt {
+            if v == 0 {
+                continue
+            }
+			if v < l {
+				s += v
+			}
+			if v > r {
+				s += min(v, v - r)
+			}
+            // fmt.Println(v, s)
+		}
+        // fmt.Println(l, r, s)
+		ans = min(ans, s)
+	}
+	return ans
+}
+```
+
+离散优化写法
+
+```go
+func minimumDeletions(word string, k int) int {
+	cnt := make([]int, 26)
+	for _, b := range word {
+		cnt[b-'a']++
+	}
+	slices.Sort(cnt)
+
+	maxSave := 0
+	for i, base := range cnt {
+		sum := 0
+		for _, c := range cnt[i:] {
+			sum += min(c, base+k) // 至多保留 base+k 个
+		}
+		maxSave = max(maxSave, sum)
+	}
+
+	return len(word) - maxSave
+}
+```
+
+若值域很大，无法枚举，则值排序，上滑动窗口。窗口外都是砍成右端点，乘法即可。
+
+```go
+func minimumDeletions(word string, k int) int {
+	const sigma = 26
+	cnt := [sigma]int{}
+	for _, b := range word {
+		cnt[b-'a']++
+	}
+	slices.Sort(cnt[:])
+
+	var maxSave, s, right int
+	for _, base := range cnt {
+		for right < sigma && cnt[right] <= base+k {
+			s += cnt[right]
+			right++
+		}
+		// 现在 s 表示出现次数不变的字母个数之和
+		// 再加上出现次数减少为 base+k 的 sigma-right 种字母，即为保留的字母总数
+		maxSave = max(maxSave, s+(base+k)*(sigma-right))
+		// 下一轮循环 base 全删
+		s -= base
+	}
+	return len(word) - maxSave
+}
+```
+
+##### 2138\.将字符串拆分为若干长度为k的组
+
+[题目](https://leetcode.cn/problems/divide-a-string-into-groups-of-size-k)
+
+```go
+import "strings"
+
+func divideString(s string, k int, fill byte) []string {
+	n := (len(s) + k - 1) / k
+	ans := make([]string, n)
+	for i := 0; i < n; i++ {
+		ans[i] = s[i*k : min(i*k+k, len(s))]
+	}
+	if len(ans[n-1]) != k {
+		ans[n-1] += strings.Repeat(string(fill), k-len(ans[n-1]))
+	}
+	return ans
+}
+```
+
+##### 2081\.k镜像数字的和
+
+[题目](https://leetcode.cn/problems/sum-of-k-mirror-numbers)
+
+我的枚举。
+
+```go
+package main
+
+import "fmt"
+
+var ans [10][31]int64
+var cnt [10]int
+
+func init() {
+	const DLIM = 18
+	pw10 := [DLIM]int64{1}
+	for i := 1; i < DLIM; i++ {
+		pw10[i] = pw10[i-1] * 10
+	}
+
+	// 判断它的 2-9 进制是否回文
+	// var bin [64]int64
+	solveComplete := false
+	sumcnt := 0
+	solve := func(x int64) {
+		for k := 2; k < 10; k++ {
+			if cnt[k] >= 30 {
+				continue
+			}
+			// m := 0
+			// for t := x; t > 0; t /= int64(k) {
+			// 	bin[m] = t % int64(k)
+			// 	m++
+			// }
+			// isPali := true
+			// for i, j := 0, m-1; i < j; i, j = i+1, j-1 {
+			// 	if bin[i] != bin[j] {
+			// 		isPali = false
+			// 		break
+			// 	}
+			// }
+			revx := int64(0)
+			for t, ki := x, int64(k); t > 0; t /= ki {
+				revx = revx*ki + t%ki
+			}
+
+			if x == revx {
+				cnt[k]++
+				ans[k][cnt[k]] = x
+				fmt.Println(k, cnt[k], x)
+				fmt.Println(cnt)
+				sumcnt++
+			}
+		}
+		if sumcnt == 30*8 {
+			fmt.Println("all finish at", x)
+			solveComplete = true
+		}
+	}
+
+	// 给定x，返回 x的回文x
+	pali := func(x int64) int64 {
+		var rev int64
+		for t := x; t > 0; t /= 10 {
+			rev = rev*10 + t%10
+		}
+		return rev
+	}
+
+	// 枚举 10 进制回文
+	for i := int64(1); i <= 9; i++ {
+		solve(i)
+	}
+	for d := 2; d < DLIM; d++ {
+		// fmt.Println("Searching", d)
+		if d%2 == 0 {
+			for l := pw10[d/2-1]; l < pw10[d/2] && !solveComplete; l++ {
+				solve(pali(l) + l*pw10[d/2])
+			}
+		} else {
+			for l := pw10[d/2-1]; l < pw10[d/2] && !solveComplete; l++ {
+				for y := 0; y < 10; y++ {
+					solve(pali(l) + l*pw10[d/2+1] + int64(y)*pw10[d/2])
+				}
+			}
+		}
+	}
+
+	for k := 2; k < 10; k++ {
+		fmt.Print(k, ": ")
+		for i := 1; i <= 30; i++ {
+			fmt.Print(ans[k][i], " ")
+			ans[k][i] += ans[k][i-1]
+		}
+		fmt.Println()
+	}
+}
+
+func kMirror(k int, n int) int64 {
+	return ans[k][n]
+}
+```
+
+题解其他写法：(关于枚举回文串的)
+
+```python
+const maxN = 30
+
+var ans [10][]int
+
+// 力扣 9. 回文数
+func isKPalindrome(x, k int) bool {
+	if x%k == 0 {
+		return false
+	}
+	rev := 0
+	for rev < x/k {
+		rev = rev*k + x%k
+		x /= k
+	}
+	return rev == x || rev == x/k
+}
+
+func doPalindrome(x int) bool {
+	done := true
+	for k := 2; k < 10; k++ {
+		if len(ans[k]) < maxN && isKPalindrome(x, k) {
+			ans[k] = append(ans[k], x)
+		}
+		if len(ans[k]) < maxN {
+			done = false
+		}
+	}
+	if !done {
+		return false
+	}
+
+	for k := 2; k < 10; k++ {
+		// 计算前缀和 
+		for i := 1; i < maxN; i++ {
+			ans[k][i] += ans[k][i-1]
+		}
+	}
+	return true
+}
+
+func init() {
+	for k := 2; k < 10; k++ {
+		ans[k] = make([]int, 0, maxN) // 预分配空间
+	}
+	for base := 1; ; base *= 10 {
+		// 生成奇数长度回文数，例如 base = 10，生成的范围是 101 ~ 999
+		for i := base; i < base*10; i++ {
+			x := i
+			for t := i / 10; t > 0; t /= 10 {
+				x = x*10 + t%10
+			}
+			if doPalindrome(x) {
+				return
+			}
+		}
+		// 生成偶数长度回文数，例如 base = 10，生成的范围是 1001 ~ 9999
+		for i := base; i < base*10; i++ {
+			x := i
+			for t := i; t > 0; t /= 10 {
+				x = x*10 + t%10
+			}
+			if doPalindrome(x) {
+				return
+			}
+		}
+	}
+}
+
+func kMirror(k, n int) int64 {
+	return int64(ans[k][n-1])
+}
+```
+
+实际上可以认为是折半搜索：
+
+```python
+func kMirror(k int, n int) int64 {
+    digit := make([]int, 100)
+	left, count, ans := 1, 0, int64(0)
+	for count < n {
+		right := left * 10
+		// op = 0 表示枚举奇数长度回文，op = 1 表示枚举偶数长度回文
+		for op := 0; op < 2; op++ {
+			// 枚举 i'
+			for i := left; i < right && count < n; i++ {
+				combined := int64(i)
+				x := i
+				if op == 0 {
+					x = i / 10
+				}
+				for x > 0 {
+					combined = combined * 10 + int64(x % 10)
+					x /= 10
+				}
+				if isPalindrome(combined, k, digit) {
+					count++
+					ans += combined
+				}
+			}
+		}
+		left = right
+	}
+	return ans
+}
+
+func isPalindrome(x int64, k int, digit []int) bool {
+	length := -1
+	for x > 0 {
+		length++
+		digit[length] = int(x % int64(k))
+		x /= int64(k)
+	}
+	for i, j := 0, length; i < j; i, j = i + 1, j - 1 {
+		if digit[i] != digit[j] {
+			return false
+		}
+	}
+	return true
+}
+```
+
+##### 2200\.找出数组中的所有K近邻下标
+
+[题目](https://leetcode.cn/problems/find-all-k-distant-indices-in-an-array)
+
+```go
+func findKDistantIndices(nums []int, key int, k int) (ans []int) {
+	n := len(nums)
+	p := make([]int, n+1)
+	for i := 0; i < n; i++ {
+		if nums[i] == key {
+			p[max(0, i-k)]++
+			p[min(n, i+k+1)]--
+		}
+	}
+	for i := 0; i < n; i++ {
+		if p[i] > 0 {
+			ans = append(ans, i)
+		}
+		p[i+1] += p[i]
+	}
+	return
+}
+```
+
+滑动窗口
+
+```python
+func findKDistantIndices(nums []int, key, k int) (ans []int) {
+	last := -k - 1 // 保证 key 不存在时 last < i-k
+	for i := k - 1; i >= 0; i-- {
+		if nums[i] == key {
+			last = i
+			break
+		}
+	}
+
+	for i := range nums {
+		if i+k < len(nums) && nums[i+k] == key {
+			last = i + k
+		}
+		if last >= i-k { // key 在窗口中
+			ans = append(ans, i)
+		}
+	}
+	return
+}
+```
+
+也是线性的
+
+```go
+func findKDistantIndices(nums []int, key int, k int) []int {
+    var res []int
+	r := 0 // 未被判断过的最小下标
+	n := len(nums)
+	for j := 0; j < n; j++ {
+		if nums[j] == key {
+			l := max(r, j - k)
+			r = min(n - 1, j + k) + 1
+			for i := l; i < r; i++ {
+				res = append(res, i)
+			}
+		}
+	}
+	return res
+}
+```
+
+##### 2040\.两个有序数组的第K小乘积
+
+[题目](https://leetcode.cn/problems/kth-smallest-product-of-two-sorted-arrays)
+
+```go
+package main
+
+func kthSmallestProduct(nums1 []int, nums2 []int, k int64) int64 {
+	n, m := len(nums1), len(nums2)
+	mul := func(i, j int) int64 {
+		return int64(nums1[i]) * int64(nums2[j])
+	}
+	lf, rf := int64(1e18), int64(-1e18)
+	for _, i := range []int{0, n - 1} {
+		for _, j := range []int{0, m - 1} {
+			lf = min(lf, mul(i, j))
+			rf = max(rf, mul(i, j))
+		}
+	}
+	ans := rf
+	for lf <= rf {
+		cf := (lf + rf) >> 1
+		cnt := int64(0) // nums (i, j), mul(i, j) <= cf
+		for i := 0; i < n; i++ {
+			if nums1[i] >= 0 { // find first j mul(i,j) > cf
+				lf2, rf2, ans2 := 0, m-1, m
+				for lf2 <= rf2 {
+					cf2 := (lf2 + rf2) >> 1
+					if mul(i, cf2) > cf {
+						ans2 = cf2
+						rf2 = cf2 - 1
+					} else {
+						lf2 = cf2 + 1
+					}
+				}
+				cnt += int64(ans2)
+			} else { // find last j mul(i,j) > cf
+				lf2, rf2, ans2 := 0, m-1, -1
+				for lf2 <= rf2 {
+					cf2 := (lf2 + rf2) >> 1
+					if mul(i, cf2) > cf {
+						ans2 = cf2
+						lf2 = cf2 + 1
+					} else {
+						rf2 = cf2 - 1
+					}
+				}
+				cnt += int64(m - 1 - ans2)
+			}
+		}
+		if cnt >= k {
+			ans = cf
+			rf = cf - 1
+		} else {
+			lf = cf + 1
+		}
+	}
+	return ans
+}
+```
+
+滑动窗口：
+
+```go
+func kthSmallestProduct(nums1 []int, nums2 []int, k int64) int64 {
+    n1, n2 := len(nums1), len(nums2)
+    pos1, pos2 := 0, 0
+    for pos1 < n1 && nums1[pos1] < 0 {
+        pos1++
+    }
+    for pos2 < n2 && nums2[pos2] < 0 {
+        pos2++
+    }
+    left, right := int64(-1e10), int64(1e10)
+    for left <= right {
+        mid := (left + right) / 2
+        count := int64(0)
+        i1, i2 := 0, pos2 - 1
+        for i1 < pos1 && i2 >= 0 {
+            if int64(nums1[i1]) * int64(nums2[i2]) > mid {
+                i1++
+            } else {
+                count += int64(pos1 - i1)
+                i2--
+            }
+        }
+        i1, i2 = pos1, n2 - 1
+        for i1 < n1 && i2 >= pos2 {
+            if int64(nums1[i1]) * int64(nums2[i2]) > mid {
+                i2--
+            } else {
+                count += int64(i2 - pos2 + 1)
+                i1++
+            }
+        }
+        i1, i2 = 0, pos2
+        for i1 < pos1 && i2 < n2 {
+            if int64(nums1[i1]) * int64(nums2[i2]) > mid {
+                i2++
+            } else {
+                count += int64(n2 - i2)
+                i1++
+            }
+        }
+        i1, i2 = pos1, 0
+        for i1 < n1 && i2 < pos2 {
+            if int64(nums1[i1]) * int64(nums2[i2]) > mid {
+                i1++
+            } else {
+                count += int64(n1 - i1)
+                i2++
+            }
+        }
+        if count < k {
+            left = mid + 1
+        } else {
+            right = mid - 1
+        }
+    }
+    return left
+}
+```
+
+```go
+func kthSmallestProduct(a, b []int, K int64) int64 {
+	n, m, k := len(a), len(b), int(K)
+	i0 := sort.SearchInts(a, 0) // 四个区域的水平分界线
+	j0 := sort.SearchInts(b, 0) // 四个区域的垂直分界线
+
+	corners := []int{a[0] * b[0], a[0] * b[m-1], a[n-1] * b[0], a[n-1] * b[m-1]}
+	left := slices.Min(corners)
+	right := slices.Max(corners)
+	ans := left + sort.Search(right-left, func(mx int) bool {
+		mx += left
+		cnt := 0
+
+		if mx < 0 {
+			// 右上区域
+			i, j := 0, j0
+			for i < i0 && j < m { // 注：可以加个 cnt < k 的判断，提前退出
+				if a[i]*b[j] > mx {
+					j++
+				} else {
+					cnt += m - j
+					i++
+				}
+			}
+
+			// 左下区域
+			i, j = i0, 0
+			for i < n && j < j0 {
+				if a[i]*b[j] > mx {
+					i++
+				} else {
+					cnt += n - i
+					j++
+				}
+			}
+		} else {
+			// 右上区域和左下区域的所有数都 <= 0 <= mx
+			cnt = i0*(m-j0) + (n-i0)*j0
+
+			// 左上区域
+			i, j := 0, j0-1
+			for i < i0 && j >= 0 {
+				if a[i]*b[j] > mx {
+					i++
+				} else {
+					cnt += i0 - i
+					j--
+				}
+			}
+
+			// 右下区域
+			i, j = i0, m-1
+			for i < n && j >= j0 {
+				if a[i]*b[j] > mx {
+					j--
+				} else {
+					cnt += j - j0 + 1
+					i++
+				}
+			}
+		}
+
+		return cnt >= k
+	})
+	return int64(ans)
 }
 ```
 

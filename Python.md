@@ -421,7 +421,7 @@ import random
 %run aa/bb/xxx.py
 ```
 
-注意运行目录是当前 ipynb 的目录，而不是代码文件所在的目录。
+注意运行目录是当前 ipynb 的目录，而不是代码文件所在的目录。这样运行的环境不是隔离的，后续可以用变量。
 
 注意如果代码有中文(如注释)，GBK，可能会报错。
 
@@ -476,6 +476,8 @@ ctrl+shift+p 打开 `settings.json` (一般可能在用户文件夹的 `AppData\
 ```
 
 格式化：pylint, autopep8 等插件
+
+pylance，是用来类型检查，快速跳转导航的插件
 
 ### conda
 
@@ -1008,6 +1010,32 @@ f'{6:02d},{1/3:+.6f}' #前导零，带符号小数；指数就e，同理
 "{{{}年}}".format(2023) # "{2023年}"#双大括号转义
 ```
 
+#### 重定向
+
+```python
+with open('output.txt', 'w') as f:
+    sys.stdout = f
+    print("This goes to the file.")
+```
+
+可以局部重定向(恢复 stdout 就行)，或者另一种局部重定向
+
+```python
+with open('output.txt', 'w') as f:
+    print("Hello, world!", file=f)
+    print("This is another line.", file=f)
+```
+
+双输出：
+
+```python
+def print_and_save(text, file):
+    print(text)
+    print(text, file=file)
+with open('output.txt', 'a') as f:
+    print_and_save("This goes both places.", f)
+```
+
 
 
 ### 文件I/O
@@ -1164,6 +1192,8 @@ print(e)
 with open(d,encoding=e) as f:
     print(f.read())
 ```
+
+
 
 ### 文档I/O
 
@@ -15217,6 +15247,48 @@ user = User(**user_data)
 print(user.dict()) #{'id': 1, 'name': 'Alice', 'email': 'alice@example.com', 'age': 30}
 ```
 
+### lmdb
+
+LMDB（Lightning Memory-Mapped Database）是一个超快速、紧凑的键值对嵌入式数据库系统
+
+> 1. 内存映射设计：
+>    - 使用操作系统内存映射文件技术
+>    - 数据库文件直接映射到进程内存空间
+>    - 读取操作几乎不需要系统调用
+> 2. 卓越性能：
+>    - 读取速度接近内存访问速度
+>    - 写入操作也极其高效
+>    - 特别适合高并发读取场景
+> 3. 极小开销：
+>    - 零拷贝设计
+>    - 没有运行时的内存开销
+>    - 数据库大小仅受磁盘空间限制
+> 4. ACID兼容：
+>    - 完全支持事务的原子性、一致性、隔离性和持久性
+>    - 崩溃安全设计
+> 5. 简单API：
+>    - 简洁的C语言API
+>    - 多种语言绑定（Python、Java等）
+
+```python
+import lmdb
+
+# 创建/打开数据库
+env = lmdb.open("./mydb", map_size=104857600)  # 100MB
+
+# 写入数据
+with env.begin(write=True) as txn:
+    txn.put(b"key1", b"value1")
+    txn.put(b"key2", b"value2")
+
+# 读取数据
+with env.begin() as txn:
+    value = txn.get(b"key1")
+    print(value)  # 输出: b'value1'
+```
+
+
+
 ### 压缩
 
 #### 7z
@@ -15703,7 +15775,15 @@ column_transformer = ColumnTransformer(
 )
 ```
 
+##### MinMax放缩
 
+将数据线性地缩放到给定范围（默认[0, 1]）$X_{\text{scaled}} = \frac{X - X_{\min}}{X_{\max} - X_{\min}}$
+
+```python
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()  # 默认范围[0,1]
+# scaler = MinMaxScaler(feature_range=(-1, 1))  # 可自定义范围
+```
 
 ##### 标准缩放
 
@@ -15760,6 +15840,17 @@ class StdScalerByGroup(BaseEstimator, TransformerMixin):
 
         return df.iloc[:, 1:]
 ```
+
+##### robust放缩
+
+$X_{\text{scaled}} = \frac{X - \text{median}(X)}{IQR(X)}$ 用中位数和四分位数范围进行缩放，适合含异常值的数据
+
+```python
+from sklearn.preprocessing import RobustScaler
+scaler = RobustScaler()
+```
+
+（IQR = Q3 - Q1，即第75百分位数 - 第25百分位数）
 
 ##### 缺失值填充
 
@@ -18393,7 +18484,13 @@ def train(net, ...):
     net = net.to(device)
 ```
 
+###### .cpu()
 
+已经 .cpu 再做一次的话不会有变化。不在同一设备就数据深拷贝
+
+NumPy 只能处理 CPU 上的数据，而 PyTorch 张量可能位于 GPU（如 `cuda:0`）。如果直接对 GPU 张量调用 `.numpy()`，会报错。一般先 detach，再 .cpu 再 .item()
+
+`.data_ptr()` 方法，可以查看张量的底层内存地址
 
 ##### 梯度
 
@@ -18404,6 +18501,12 @@ def train(net, ...):
 ```
 
 或者 with 语句。
+
+###### detach
+
+返回一个与原始张量共享数据但不参与梯度计算的新张量，不会复制数据，新张量仍然指向原存储位置。当需要将张量转换为 NumPy, Pandas 或进行纯数值计算时
+
+已经 detach 再做一次的话不会有变化。
 
 #### 运算
 
@@ -19400,6 +19503,8 @@ output_tensor = linear_layer(input_tensor)
 print(output_tensor.shape) # (3,5) # 则或 (3,6,5)
 ```
 
+初始权重默认服从 $w \sim U\left(-\sqrt{\frac{1}{n_{in}}}, \sqrt{\frac{1}{n_{in}}}\right)$
+
 ###### Sequential
 
 多层组合在一起，可以用下标取出每一层：
@@ -19486,9 +19591,72 @@ print(output_tensor)
         [2., 0., 4.]])'''
 ```
 
+###### PReLU
+
+Parametric ReLU 用可学习参数。缓解负半轴输出为0的神经元死亡问题。
+$$
+\text{PReLU}(x) = \begin{cases} 
+x & \text{if } x \geq 0 \\
+\alpha x & \text{if } x < 0 
+\end{cases}
+$$
+
+```python
+nn.PReLU()
+```
+
+###### ELU
+
+Exponential Linear Unit
+$$
+\text{ELU}(x) = \begin{cases} 
+x & \text{if } x \geq 0 \\
+\alpha (e^x - 1) & \text{if } x < 0 
+\end{cases}
+$$
+负半轴平滑过渡（指数函数），缓解梯度消失和Dead ReLU。
+
+```python
+nn.ELU(alpha=1.0)
+```
+
+###### SELU
+
+scaled ELU。
+
+- 具有自归一化（Self-Normalizing）特性，可保持数据均值和方差稳定。  
+- 需配合权重初始化（如LeCun正态初始化）
+
+$$
+\text{SELU}(x) = \lambda \begin{cases} 
+x & \text{if } x \geq 0 \\
+\alpha (e^x - 1) & \text{if } x < 0 
+\end{cases},
+\lambda \approx 1.0507, \alpha \approx 1.6733
+$$
+
+```
+nn.SELU()
+```
+
+###### Swish
+
+平滑非单调激活函数，类似ReLU但更平滑，$\beta$ 为参数。
+$$
+\text{Swish}(x) = x \cdot \sigma(\beta x) = \frac{x}{1 + e^{-\beta x}}
+$$
+
+```python
+class Swish(nn.Module):
+    def forward(self, x):
+        return x * torch.sigmoid(x)
+```
+
+
+
 ###### GELU
 
-**Gaussian Error Linear Unit**（高斯误差线性单元）。GELU 是一种平滑且非线性的激活函数，由 **Dan Hendrycks** 和 **Kevin Gimpel** 在 2016 年的论文提出。$GELU(x)=x\cdot\Phi(x)$，$\Phi$ 即标准正态分布的累积分布函数。
+Gaussian Error Linear Unit（高斯误差线性单元）。GELU 是一种平滑且非线性的激活函数，由 Dan Hendrycks 和 Kevin Gimpel 在 2016 年的论文提出。$GELU(x)=x\cdot\Phi(x)$，$\Phi$ 即标准正态分布的累积分布函数。
 
 ```python
 gelu = nn.GELU()
@@ -19968,6 +20136,62 @@ def main():
 import torch.nn as nn
 ```
 
+##### L1 Loss/MAE
+
+Mean Absolute Error
+$$
+L(y, \hat{y}) = \frac{1}{n} \sum_{i=1}^{n} |y_i - \hat{y}_i|
+$$
+异常值鲁棒，但在梯度更新时不如 MSE 稳定。
+
+```python
+torch.nn.L1Loss()
+```
+
+##### L2 Loss/MSE
+
+Mean Squared Error
+$$
+L(y, \hat{y}) = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
+$$
+对异常值敏感，但梯度更新更平滑。
+
+```python
+torch.nn.MSELoss()
+```
+
+##### Smooth L1
+
+$$
+L(y, \hat{y}) = \frac{1}{n} \sum_{i=1}^{n} 
+\begin{cases} 
+0.5 (y_i - \hat{y}_i)^2 / \beta, & \text{if } |y_i - \hat{y}_i| < \beta \\
+|y_i - \hat{y}_i| - 0.5 \beta, & \text{otherwise}
+\end{cases}
+$$
+
+结合了 L1 和 L2 Loss 的优点：在误差较小时使用平方函数（平滑梯度），较大时使用绝对值函数（减少异常值影响）。使用超参数 $\beta$，默认 1.0
+
+```python
+torch.nn.SmoothL1Loss(beta=1.0)
+```
+
+##### Huber Loss
+
+$$
+L(y, \hat{y}) = \frac{1}{n} \sum_{i=1}^{n} 
+\begin{cases} 
+0.5 (y_i - \hat{y}_i)^2, & \text{if } |y_i - \hat{y}_i| \leq \delta \\
+\delta \cdot (|y_i - \hat{y}_i| - 0.5 \delta), & \text{otherwise}
+\end{cases}
+$$
+
+类似 Smotth L1 Loss，用阈值切换L1/L2，对异常值鲁棒，同时在小误差时保持平滑梯度。
+
+```python
+torch.nn.HuberLoss(delta=1.0) 
+```
+
 
 
 ##### 交叉熵
@@ -20006,23 +20230,66 @@ import torch.optim as optim
 optimizer = optim.Adam(model.parameters(), lr=0.001)  # 优化器
 ```
 
+Adam优化器使用L2正则化 weight_decay
+
 ##### AdamW
 
 ```python
 self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate,weight_decay=self.weight_decay)
 ```
 
-##### 学习率衰减
+AdamW优化器作为Adam优化器改进版，它将权重衰减与梯度更新解耦，直接应用于参数本身，而不是通过梯度修改
 
-在 epoch=1,35,40 分别让学习率减半，传入优化器
+##### 调度器
+
+调度器(Scheduler)是深度学习训练过程中用于动态调整学习率(Learning Rate)的工具。它可以根据预定义的策略在训练过程中自动调整学习率，以帮助模型更好地收敛并可能达到更好的性能
+
+1. 在 epoch=1,35,40 分别让学习率减半，传入优化器
+   ```python
+   self.lr_scheduler = torch.optim.lr_scheduler.MultiStepLR( self.optimizer, milestones=[1,35,40],gamma=0.5)
+   ```
+
+2. 余弦退火调度器。让学习率按余弦函数从初始值平滑下降到0，避免学习率突变导致的训练震荡，前期保持较高学习率快速收敛，后期缓慢下降精细调优。查阅ICLR2017论文SGDR: STOCHASTIC GRADIENT DESCENT WITH WARM RESTARTS，得知余弦退火有助于加速收敛，改善性能
+
+   ```python
+   scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(trainer, T_max=num_epochs)
+   ```
+
+3. 单周期调度器。在一个周期内先增加学习率到最大值，然后再降低。
+
+   ```python
+   scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.01, steps_per_epoch=len(X_train)//32, epochs=epochs)
+   ```
+
+4. 循环学习率调度器。在基础学习率和最大学习率之间循环变化。
+
+   ```python
+   scheduler = optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-5, max_lr=0.01, step_size_up=200, cycle_momentum=False)
+   ```
+
+使用
 
 ```python
-self.lr_scheduler = torch.optim.lr_scheduler.MultiStepLR( self.optimizer, milestones=[1,35,40],gamma=0.5)
+optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=5e-2)
+scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs//4, eta_min=1e-5)
+
+for epoch in range(epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train)
+    loss = criterion(outputs, y_train)
+    loss.backward()
+    optimizer.step()
+    scheduler.step()
 ```
+
+
 
 ##### 超参数搜索
 
 > 有论文有 Tree-structured Parzen Estimator (TPE) 2011
+
+
 
 #### 模块
 
