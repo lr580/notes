@@ -622,6 +622,12 @@ wsl --unregister <原名称>
 wsl --import scnuoj-test <安装路径> <原安装文件路径>
 ```
 
+卸载：(如)
+
+```
+wsl --install -d Ubuntu-24.04
+```
+
 
 
 ### 装软件

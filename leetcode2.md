@@ -3119,6 +3119,10 @@
 - 2040\.两个有序数组的第K小乘积
 
   二分+二分/滑动窗口
+  
+- 2311\.小于等于K的最长二进制子序列
+
+  贪心
 
 ## 算法
 
@@ -16960,6 +16964,48 @@ func kthSmallestProduct(a, b []int, K int64) int64 {
 		return cnt >= k
 	})
 	return int64(ans)
+}
+```
+
+##### 2311\.小于等于K的最长二进制子序列
+
+[题目](https://leetcode.cn/problems/longest-binary-subsequence-less-than-or-equal-to-k)
+
+贪心选0，然后从后往前选1，可以证明其他方案不会更优。
+
+```go
+import "strings"
+
+func longestSubsequence(s string, k int) int {
+	ans := strings.Count(s, "0")
+	x := 0
+	p := 1
+	for i := len(s) - 1; i >= 0; i-- {
+		if s[i] == '1' && x+p <= k {
+			ans++
+			x += p
+		}
+		p *= 2
+		if p > k {
+			break
+		}
+	}
+	return ans
+}
+```
+
+```go
+func longestSubsequence(s string, k int) int {
+	n, m := len(s), bits.Len(uint(k))
+	if n < m {
+		return n // 全选
+	}
+	ans := m // 后缀长度
+	sufVal, _ := strconv.ParseInt(s[n-m:], 2, 0)
+	if int(sufVal) > k {
+		ans--
+	}
+	return ans + strings.Count(s[:n-m], "0") // 添加前导零
 }
 ```
 

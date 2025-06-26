@@ -20630,6 +20630,47 @@ torch.save(net.state_dict(), './step3/cnn.pkl')
 print('Finished Training')
 ```
 
+### TensorFlow
+
+#### 安装使用
+
+> TF 2.11 开始，Windows 不支持 CUDA 构建，可以用 WSL2
+
+> [参考](https://zhuanlan.zhihu.com/p/1897427950598608126)
+
+ds + SAGDFN(仓库requirement.txt)，一个兼容torch的tf环境，以 CUDA12.2 为例
+
+```python
+conda create -n SAGDFN python=3.8 -y
+conda activate SAGDFN
+conda install -c conda-forge cudatoolkit=11.2 cudnn=8.1 -y
+# pip install torch==1.8.1+cu111 torchvision==0.9.1+cu111 -f https://download.pytorch.org/whl/torch_stable.html
+pip install numpy==1.19.5 wrapt==1.12.1
+pip install tensorflow==2.4.1 tensorflow-gpu==2.4.1
+# 其他包
+pip install \
+  pandas==1.2.4 \
+  scipy==1.6.2 \
+  scikit-learn==0.24.2 \
+  statsmodels==0.12.2 \
+  tables==3.6.1 \
+  entmax==1.0
+```
+
+测试脚本：
+
+```python
+import numpy as np
+print("NumPy version:", np.__version__)  # 应为 1.19.5
+
+import tensorflow as tf
+print("TensorFlow version:", tf.__version__)  # 应为 2.4.1
+print("TF can access GPU?", tf.test.is_gpu_available())
+
+import torch
+print("PyTorch CUDA available?", torch.cuda.is_available())
+```
+
 
 
 ### PyG
