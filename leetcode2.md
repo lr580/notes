@@ -3055,6 +3055,10 @@
 - 3403\.从盒子中找出字典序最大的字符串I
 
   枚举 字符串 / 后缀数组 / <u>枚举优化</u>
+  
+- 2014\.重复K次的最长子序列
+
+  **爆搜 / +子序列自动机**
 
 ## 算法
 
@@ -15701,3 +15705,150 @@ func answerString(s string, k int) string {
 }
 ```
 
+##### 2014\.重复K次的最长子序列
+
+[题目](https://leetcode.cn/problems/longest-subsequence-repeated-k-times)
+
+直接看0神题解。
+
+```go
+// 47. 全排列 II
+// 枚举从 nums 中选任意个数的所有排列，用 f 处理枚举的排列
+func permuteFunc[T comparable](nums []T, f func([]T)) {
+    n := len(nums)
+    path := []T{}
+    onPath := make([]bool, n) // onPath[j] 表示 nums[j] 是否已经填入排列
+    var dfs func()
+    dfs = func() {
+        f(path)
+        if len(path) == n {
+            return
+        }
+        // 枚举 nums[j] 填入 path[i]
+        for j, on := range onPath {
+            // 如果 nums[j] 已填入排列，continue
+            // 如果 nums[j] 和前一个数 nums[j-1] 相等，且 nums[j-1] 没填入排列，continue
+            if on || j > 0 && nums[j] == nums[j-1] && !onPath[j-1] {
+                continue
+            }
+            path = append(path, nums[j])
+            onPath[j] = true // nums[j] 已填入排列（注意标记的是下标，不是值）
+            dfs() // 填排列的下一个数
+            onPath[j] = false // 恢复现场
+            path = path[:len(path)-1] // 恢复现场
+        }
+    }
+    dfs()
+}
+
+// 392. 判断子序列
+// 返回 seq*k 是否为 s 的子序列
+func isSubsequence(seq []byte, k int, s string) bool {
+    n := len(seq)
+    i := 0
+    for _, c := range s {
+        if seq[i%n] == byte(c) {
+            i++
+            if i == n*k { // seq*k 的所有字符匹配完毕
+                return true // seq*k 是 s 的子序列
+            }
+        }
+    }
+    return false
+}
+
+func longestSubsequenceRepeatedK(s string, k int) string {
+    cnt := [26]int{}
+    for _, c := range s {
+        cnt[c-'a']++
+    }
+    a := []byte{}
+    for i := 25; i >= 0; i-- { // 倒序，这样我们可以优先枚举字典序大的排列
+        bs := []byte{'a' + byte(i)}
+        a = append(a, bytes.Repeat(bs, cnt[i]/k)...)
+    }
+
+    ans := []byte{}
+    permuteFunc(a, func(seq []byte) {
+        // 先比大小（时间复杂度低），再判断是否为子序列（时间复杂度高）
+        if len(seq) > len(ans) || len(seq) == len(ans) && bytes.Compare(seq, ans) > 0 {
+            if isSubsequence(seq, k, s) {
+                ans = slices.Clone(seq)
+            }
+        }
+    })
+    return string(ans)
+}
+```
+
+其中，查找固定字符串的多个子序列，用子序列自动机，即：记录当前下标的最近下一个每个字母。具体参见代码。
+
+```go
+// 47. 全排列 II
+// 枚举从 nums 中选任意个数的所有排列，用 f 处理枚举的排列
+func permuteFunc[T comparable](nums []T, f func([]T)) {
+    n := len(nums)
+    path := []T{}
+    onPath := make([]bool, n) // onPath[j] 表示 nums[j] 是否已经填入排列
+    var dfs func()
+    dfs = func() {
+        f(path)
+        if len(path) == n {
+            return
+        }
+        // 枚举 nums[j] 填入 path[i]
+        for j, on := range onPath {
+            // 如果 nums[j] 已填入排列，continue
+            // 如果 nums[j] 和前一个数 nums[j-1] 相等，且 nums[j-1] 没填入排列，continue
+            if on || j > 0 && nums[j] == nums[j-1] && !onPath[j-1] {
+                continue
+            }
+            path = append(path, nums[j])
+            onPath[j] = true // nums[j] 已填入排列（注意标记的是下标，不是值）
+            dfs() // 填排列的下一个数
+            onPath[j] = false // 恢复现场
+            path = path[:len(path)-1] // 恢复现场
+        }
+    }
+    dfs()
+}
+
+// 392. 判断子序列
+// 返回 seq*k 是否为 s 的子序列
+func isSubsequence(seq []byte, k int, s string) bool {
+    n := len(seq)
+    i := 0
+    for _, c := range s {
+        if seq[i%n] == byte(c) {
+            i++
+            if i == n*k { // seq*k 的所有字符匹配完毕
+                return true // seq*k 是 s 的子序列
+            }
+        }
+    }
+    return false
+}
+
+func longestSubsequenceRepeatedK(s string, k int) string {
+    cnt := [26]int{}
+    for _, c := range s {
+        cnt[c-'a']++
+    }
+    a := []byte{}
+    for i := 25; i >= 0; i-- { // 倒序，这样我们可以优先枚举字典序大的排列
+        bs := []byte{'a' + byte(i)}
+        a = append(a, bytes.Repeat(bs, cnt[i]/k)...)
+    }
+
+    ans := []byte{}
+    permuteFunc(a, func(seq []byte) {
+        // 先比大小（时间复杂度低），再判断是否为子序列（时间复杂度高）
+        if len(seq) > len(ans) || len(seq) == len(ans) && bytes.Compare(seq, ans) > 0 {
+            if isSubsequence(seq, k, s) {
+                ans = slices.Clone(seq)
+            }
+        }
+    })
+    return string(ans)
+}
+```

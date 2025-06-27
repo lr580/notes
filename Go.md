@@ -2353,6 +2353,37 @@ var x = 1
 
 可以定义返回值如 `func main() int`，但推荐退出状态通过 `os.Exit()` 来控制
 
+#### 泛型
+
+```go
+package main
+
+import "fmt"
+
+// 泛型函数：打印任意类型的切片
+func PrintSlice[T any](s []T) {
+    for _, v := range s {
+        fmt.Print(v, " ")
+    }
+    fmt.Println()
+}
+
+func main() {
+    // 可以用于字符串切片
+    strSlice := []string{"Hello", "World"}
+    PrintSlice(strSlice) // 输出: Hello World 
+    // 还可以用于浮点数切片
+    floatSlice := []float64{1.1, 2.2, 3.3}
+    PrintSlice(floatSlice) // 输出: 1.1 2.2 3.3 
+}
+```
+
+```go
+func permuteFunc[T comparable](nums []T, f func([]T)) 
+```
+
+
+
 ### 异常
 
 > #### panic
