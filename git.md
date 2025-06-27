@@ -69,10 +69,11 @@ git config --global --get https.proxy
 git config --global http.sslVerify "false"
 ```
 
-增加缓存：
+增加缓存：(ssh不限制大小，但 http/https 会)
 
 ```sh
 git config --global http.postBuffer 524288000 #500MB
+# 和 git config --global https.postBuffer 524288000
 ```
 
 > 尝试ping：
@@ -81,7 +82,6 @@ git config --global http.postBuffer 524288000 #500MB
 > ssh -T git@github.com
 > ```
 >
-> 
 
 
 
@@ -154,18 +154,18 @@ Git 可以理解 kdiff3，tkdiff，meld，xxdiff，emerge，vimdiff，gvimdiff�
 如果本机没有密钥，将无法远程操作，可以先生成一个
 
 ```bash
-ssh-keygen -t rsa -C "邮箱"
+ssh-keygen -t rsa -C "邮箱或任意中英文备注信息"
 ```
+
+> rsa 可以换成别的算法，如 ed25519
 
 之后一路回车
 
 可以 `-f` 加上保存路径，如：
 
 ```bash
-ssh-keygen -t rsa -C "846770128@qq.com" -f lr581
+ssh-keygen -t rsa -C "123@qq.com" -f lr581
 ```
-
-
 
 注意一个 github 账号的公钥不能跟别的账号一样
 

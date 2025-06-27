@@ -622,6 +622,12 @@ wsl --unregister <原名称>
 wsl --import scnuoj-test <安装路径> <原安装文件路径>
 ```
 
+卸载：(如)
+
+```
+wsl --install -d Ubuntu-24.04
+```
+
 
 
 ### 装软件
@@ -2244,6 +2250,12 @@ find / -name "CON.FILE" -depth -print
 find ./  -type f | xargs grep "hh"
 find ./ -mtime -1 | xargs rm -rf
 find ./ -size 0 | xargs rm -rf
+```
+
+统计有几个文件：
+
+```sh
+find . -maxdepth 1 -type f | wc -l
 ```
 
 

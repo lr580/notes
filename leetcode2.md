@@ -1740,7 +1740,7 @@
   
 - 2970\.统计移除递增子数组的数目I
 
-  暴力 / 二分 / <u>双指针</u>
+  暴力 / <u>双指针</u>
   
 - 3011\.判断一个数组是否可以变为有序
 
@@ -3056,6 +3056,75 @@
 
   枚举 字符串 / 后缀数组 / <u>枚举优化</u>
   
+- 1061\.按字典序排列最小的等效字符串
+
+  并查集
+
+- 2434\.使用机器人打印字典序最小的字符串
+
+  贪心 <u>+前缀和</u>
+
+- 3170\.删除星号以后字典序最小的字符串
+
+  贪心 <u>+位运算</u>
+  
+- 3442\.奇偶频次间的最大差值I
+
+  签到
+
+- 3445.奇偶频次间的最大差值II
+
+  **滑动窗口+前缀和**
+
+- 3423\.循环数组中相邻元素的最大差值
+
+  签到
+
+- 2616\.最小化数对的最大差值
+
+  **二分 DP 排序 差分 贪心**
+  
+- 2566\.替换一个数字后的最大差值
+
+  枚举 / 贪心
+
+- 1432\.改变一个整数能得到的最大差值
+
+  枚举 / 贪心
+  
+- 2016\.增量元素之间的最大差值
+
+  前缀和
+  
+- 2966\.划分数组并满足最大差限制
+
+  排序 贪心
+  
+- 3443\.K次修改后的最大曼哈顿距离
+
+  **枚举 前缀和**
+  
+- 2138\.将字符串拆分为若干长度为k的组
+
+  签到
+  
+- 2081\.k镜像数字的和
+
+  枚举 模拟(回文，进制) 
+  
+- 2200\.找出数组中的所有K近邻下标
+
+  签到 / 差分 / 滑动窗口
+  
+- 2040\.两个有序数组的第K小乘积
+
+  二分+二分/滑动窗口
+  
+- 2311\.小于等于K的最长二进制子序列
+
+  贪心
+
+  
 - 2014\.重复K次的最长子序列
 
   **爆搜 / +子序列自动机**
@@ -3065,6 +3134,8 @@
 > 力扣其他，CF杂题，其他杂题是 `leetcode.md` 搬过来的；力扣是新的力扣常规题。
 
 ### 力扣其他
+
+> ### 力扣比赛
 
 #### 周赛327
 
@@ -15702,6 +15773,1246 @@ func answerString(s string, k int) string {
 		}
 	}
 	return s[i:min(i+n-k+1, n)]
+}
+```
+
+##### 1061\.按字典序排列最小的等效字符串
+
+[题目](https://leetcode.cn/problems/lexicographically-smallest-equivalent-string)
+
+```go
+func smallestEquivalentString(s1 string, s2 string, baseStr string) string {
+	fa := [26]int{}
+	for i := 0; i < 26; i++ {
+		fa[i] = i
+	}
+	findFa := func(x int) int {
+		for x != fa[x] {
+			x = fa[x]
+		}
+		return x
+	}
+	m := len(s1)
+	for i := 0; i < m; i++ {
+		a, b := int(s1[i]-'a'), int(s2[i]-'a')
+		a, b = findFa(a), findFa(b)
+		if a != b {
+			fa[max(a, b)] = min(a, b)
+		}
+	}
+	n := len(baseStr)
+	ans := make([]byte, n)
+	for i := 0; i < n; i++ {
+		ans[i] = byte(findFa(int(baseStr[i]-'a')) + 'a')
+	}
+	return string(ans)
+}
+```
+
+##### 2434\.使用机器人打印字典序最小的字符串
+
+[题目](https://leetcode.cn/problems/using-a-robot-to-print-the-lexicographically-smallest-string)
+
+设tc为输出阈值字符，初始为字母a。当前t尾部小于等于tc时不断输出t的尾部，在每次加入字符到t的时候，查看tc是否在s里没有了，如果没有了，那么tc往后挪一位并继续上述过程。
+
+```go
+func robotWithString(s string) string {
+	n := len(s)
+	cnt := [27]int{}
+	for _, c := range s {
+		cnt[c-'a']++
+	}
+	cnt[26] = 1 // break usage
+	tc := 0
+	t := []byte{}
+	ans := []byte{}
+	flush := func() {
+		for len(t)>0&&int(t[len(t)-1]-'a') <= tc {
+			ans = append(ans, t[len(t)-1])
+			t = t[:len(t)-1]
+		}
+	}
+	for i := 0; i < n; i++ {
+		cnt[s[i]-'a']--
+		t = append(t, s[i])
+		for cnt[tc] == 0 {
+			flush()
+			tc++
+		}
+		flush()
+	}
+	return string(ans)
+}
+```
+
+也可以改用前缀min维护cnt
+
+```go
+func robotWithString(s string) string {
+	n := len(s)
+	// 计算后缀最小值
+	sufMin := make([]byte, n+1)
+	sufMin[n] = math.MaxUint8
+	for i := n - 1; i >= 0; i-- {
+		sufMin[i] = min(sufMin[i+1], s[i])
+	}
+
+	ans := make([]byte, 0, n)
+	st := sufMin[:0]
+	for i, ch := range s {
+		st = append(st, byte(ch))
+		for len(st) > 0 && st[len(st)-1] <= sufMin[i+1] {
+			ans = append(ans, st[len(st)-1])
+			st = st[:len(st)-1]
+		}
+	}
+	return string(ans)
+}
+```
+
+##### 3170\.删除星号以后字典序最小的字符串
+
+[题目](https://leetcode.cn/problems/lexicographically-minimum-string-after-removing-stars)
+
+```go
+package main
+
+func clearStars(s string) string {
+	n := len(s)
+	del := make([]bool, n)
+	idx := [26][]int{}
+	mi := byte(25)
+	idx[25] = append(idx[25], -1)
+	for i := 0; i < n; i++ {
+		if s[i] != '*' {
+			c := s[i] - 'a'
+			idx[c] = append(idx[c], i)
+			mi = min(c, mi)
+		} else {
+			del[i] = true
+			j := idx[mi][len(idx[mi])-1]
+			del[j] = true
+			idx[mi] = idx[mi][:len(idx[mi])-1]
+			for len(idx[mi]) == 0 {
+				mi++
+			}
+		}
+	}
+	ans := []byte{}
+	for i := 0; i < n; i++ {
+		if !del[i] {
+			ans = append(ans, s[i])
+		}
+	}
+	return string(ans)
+}
+```
+
+也可以用位运算维护 min：
+
+```go
+func clearStars(S string) string {
+	s := []byte(S)
+	stacks := [26][]int{}
+	mask := 0
+	for i, c := range s {
+		if c != '*' {
+			c -= 'a'
+			stacks[c] = append(stacks[c], i)
+			mask |= 1 << c // 标记第 c 个栈为非空
+		} else {
+			k := bits.TrailingZeros(uint(mask))
+			st := stacks[k]
+			s[st[len(st)-1]] = '*'
+			stacks[k] = st[:len(st)-1]
+			if len(stacks[k]) == 0 {
+				mask ^= 1 << k // 标记第 k 个栈为空
+			}
+		}
+	}
+
+	t := s[:0]
+	for _, c := range s {
+		if c != '*' {
+			t = append(t, c)
+		}
+	}
+	return string(t)
+}
+```
+
+##### 3442\.奇偶频次间的最大差值I
+
+[题目](https://leetcode.cn/problems/maximum-difference-between-even-and-odd-frequency-i)
+
+```go
+package main
+
+func maxDifference(s string) int {
+	bin := [26]int{}
+	for _, c := range s {
+		bin[c-'a']++
+	}
+	mx, mi := 0, 580
+	for i := 0; i < 26; i++ {
+		if bin[i]%2 == 1 {
+			mx = max(mx, bin[i])
+		} else if bin[i]>0 {
+			mi = min(mi, bin[i])
+		}
+	}
+	return mx - mi
+}
+```
+
+##### 3445.奇偶频次间的最大差值II
+
+[题目](https://leetcode.cn/problems/maximum-difference-between-even-and-odd-frequency-ii)
+
+灵神题解讲得很好，不赘述。
+
+```go
+func maxDifference(s string, k int) int {
+	const inf = math.MaxInt / 2
+	ans := -inf
+	for x := range 5 {
+		for y := range 5 {
+			if y == x {
+				continue
+			}
+			curS := [5]int{}
+			preS := [5]int{}
+			minS := [2][2]int{{inf, inf}, {inf, inf}}
+			left := 0
+			for i, b := range s {
+				curS[b-'0']++
+				r := i + 1
+				for r-left >= k && curS[x] > preS[x] && curS[y] > preS[y] {
+					p := &minS[preS[x]&1][preS[y]&1]
+					*p = min(*p, preS[x]-preS[y])
+					preS[s[left]-'0']++
+					left++
+				}
+                ans = max(ans, curS[x]-curS[y]-minS[curS[x]&1^1][curS[y]&1])
+			}
+		}
+	}
+	return ans
+}
+```
+
+##### 3423\.循环数组中相邻元素的最大差值
+
+[题目](https://leetcode.cn/problems/maximum-difference-between-adjacent-elements-in-a-circular-array)
+
+或 math.Abs
+
+```go
+func abs(x int) int {
+    if x >= 0 {
+        return x
+    }
+    return -x
+}
+func maxAdjacentDistance(nums []int) (ans int) {
+    n := len(nums)
+    for i := 1; i < n; i++ {
+        ans = max(ans, abs(nums[i]-nums[i-1]))
+    }
+    ans = max(ans, abs(nums[0]-nums[n-1]))
+    return
+}
+```
+
+##### 2616\.最小化数对的最大差值
+
+[题目](https://leetcode.cn/problems/minimize-the-maximum-difference-of-pairs)
+
+排序后只选相邻会比跨选更优，故等价于求排序后数组的差分数组里选择互不相邻的p个数，使得选出来的最大值最小。
+
+二分答案，使用打家劫舍型DP，对给定最大阈值，看看能不能打劫>=p个房舍。
+
+```go
+package main
+
+import (
+	"sort"
+)
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func minimizeMax(nums []int, p int) int {
+    n := len(nums)
+    if n == 1 || p == 0 {
+        return 0
+    }
+	sort.Ints(nums) // 排序后只选相邻会比跨选更优
+	d := make([]int, n-1)
+	mx := 0
+	for i := 0; i < n-1; i++ {
+		d[i] = abs(nums[i+1] - nums[i])
+		mx = max(mx, d[i])
+	} // 差分数组里选择互不相邻的p个数，使得选出来的最大值最小
+    if n == 2 {
+        return d[0]
+    }
+	dp0 := make([]int, n-1) // 当前选
+	dp1 := make([]int, n-1) // 当前不选
+    //fmt.Println(d)
+	l, r, res := 0, mx, mx
+	for l <= r {
+		c := (l + r) >> 1
+		if d[0] <= c {
+			dp0[0] = 1
+		} else { // flush multi query
+            dp0[0] = 0
+        }
+        if d[1] <= c {
+            dp0[1] = 1
+        } else {
+            dp0[1] = 0
+        }
+        dp1[1] = dp0[0]
+        //fmt.Println(c, 0, dp0[0], dp1[0])
+        //fmt.Println(c, 1, dp0[1], dp1[1])
+		for i := 2; i < n-1; i++ {
+			dp1[i] = max(dp0[i-1], dp1[i-1])
+			if d[i] <= c {
+				dp0[i] = 1 + max(dp0[i-2], dp1[i-1])
+			} else {
+				dp0[i] = dp1[i]
+			}
+            //fmt.Println(c, i, dp0[i], dp1[i])
+		}
+		ans := max(dp0[n-2], dp1[n-2])
+		if ans >= p {
+			r = c - 1
+			res = c
+		} else {
+			l = c + 1
+		}
+	}
+	return res
+}
+```
+
+也可以不差分，等价于打家劫舍跳 2 个。则 `f[n]=max(f[n-1],f[n-2]+1)`。注意到 `f[n-2]>=f[n-3]`。由于 `f[n-1], f[n-3]` 最多相差 1，故 `f[n-3]+1>=f[n-1]`。故 `f[n-2]+1>=f[n-3]+1>=f[n-1]`，故 `f[n]=f[n-2]+1`。故贪心成立。即：只要能选就选。
+
+```python
+class Solution:
+    def minimizeMax(self, nums: List[int], p: int) -> int:
+        nums.sort()
+        def check(mx: int) -> int:
+            cnt = i = 0
+            while i < len(nums) - 1:
+                if nums[i + 1] - nums[i] <= mx:  # 选 nums[i] 和 nums[i+1]
+                    cnt += 1
+                    i += 2
+                else:  # 不选 nums[i]
+                    i += 1
+            return cnt >= p
+        return bisect_left(range(nums[-1] - nums[0]), True, key=check)
+```
+
+```go
+func minimizeMax(nums []int, p int) int {
+    slices.Sort(nums)
+    n := len(nums)
+    return sort.Search(nums[n-1]-nums[0], func(mx int) bool {
+        cnt := 0
+        for i := 0; i < n-1; i++ {
+            if nums[i+1]-nums[i] <= mx { // 选 nums[i] 和 nums[i+1]
+                cnt++
+                i++
+            }
+        }
+        return cnt >= p
+    })
+}
+```
+
+优化：显然答案在差分数组的某个差分值取得，可以只对差分数组排序后的下标二分，降低搜索值域范围从连续整数为离散整数。
+
+```python
+class Solution:
+    def minimizeMax(self, nums: List[int], p: int) -> int:
+        nums.sort()
+        diffs = [0] + sorted(y - x for x, y in pairwise(nums))
+
+        def check(idx: int) -> int:
+            mx = diffs[idx]
+            cnt = i = 0
+            while i < len(nums) - 1:
+                if nums[i + 1] - nums[i] <= mx:  # 选 nums[i] 和 nums[i+1]
+                    cnt += 1
+                    i += 2
+                else:  # 不选 nums[i]
+                    i += 1
+            return cnt >= p
+
+        left, right = -1, len(nums) - 1
+        while left + 1 < right:
+            mid = (left + right) // 2
+            if check(mid):
+                right = mid
+            else:
+                left = mid
+        return diffs[right]
+```
+
+##### 2566\.替换一个数字后的最大差值
+
+[题目](https://leetcode.cn/problems/maximum-difference-by-remapping-a-digit)
+
+```go
+package main
+func minMaxDifference(num int) int {
+	mi, mx := int(1e9), 0
+	for d1 := 0; d1 < 10; d1++ {
+		for d2 := 0; d2 < 10; d2++ {
+			v := 0
+			for j, p := num, 1; j > 0; j, p = j/10, p*10 {
+				d := j % 10
+				if d == d1 {
+					d = d2
+				}
+				v += d * p
+			}
+			mi = min(mi, v)
+			mx = max(mx, v)
+		}
+	}
+	return mx - mi
+}
+```
+
+贪心：第一个非9变9；第一个非0(一定是最高位)变0
+
+```go
+func minMaxDifference(num int) int {
+    s := strconv.Itoa(num)
+    t := s
+    pos := 0
+    for pos < len(s) && s[pos] == '9' {
+        pos++
+    }
+    if pos < len(s) {
+        s = strings.ReplaceAll(s, string(s[pos]), "9")
+    }
+    t = strings.ReplaceAll(t, string(t[0]), "0")
+    max, _ := strconv.Atoi(s)
+    min, _ := strconv.Atoi(t)
+    return max - min
+}
+```
+
+##### 1432\.改变一个整数能得到的最大差值
+
+[题目](https://leetcode.cn/problems/max-difference-you-can-get-from-changing-an-integer/)
+
+```go
+package main
+
+import (
+	"strconv"
+	"strings"
+)
+
+func maxDiff(num int) (ans int) {
+	s := strconv.Itoa(num)
+    ma, mb := 0, int(1e9)
+	for x1 := '0'; x1 <= '9'; x1++ {
+		for x2 := '0'; x2 <= '9'; x2++ {
+			s1 := strings.Replace(s, string(x1), string(x2), -1)
+			if s1[0] == '0' {
+				continue
+			}
+			a, _ := strconv.Atoi(s1)
+            ma = max(ma, a)
+            mb = min(mb, a)
+		}
+	}
+	return ma-mb
+}
+```
+
+最大值和上一题一样，最小值，若最高为不为1换成1；否则，第一个>1的换为0，否则不操作。
+
+```go
+func maxDiff(num int) int {
+    s := strconv.Itoa(num)
+
+    replace := func(old byte, new string) int {
+        t := strings.ReplaceAll(s, string(old), new)
+        x, _ := strconv.Atoi(t)
+        return x
+    }
+
+    mx := num
+    for _, d := range s {
+        if d != '9' {
+            mx = replace(byte(d), "9")
+            break
+        }
+    }
+
+    mn := num
+    if s[0] != '1' {
+        mn = replace(s[0], "1")
+    } else {
+        for _, d := range s[1:] {
+            if d > '1' { // 不是 0 也不是 1
+                mn = replace(byte(d), "0")
+                break
+            }
+        }
+    }
+
+    return mx - mn
+}
+```
+
+##### 2016\.增量元素之间的最大差值
+
+[题目](https://leetcode.cn/problems/maximum-difference-between-increasing-elements)
+
+```go
+package main
+
+func maximumDifference(nums []int) int {
+	mi := int(2e9)
+	ans := -1
+	for _, v := range nums {
+		if v > mi {
+			ans = max(ans, v-mi)
+		}
+		mi = min(v, mi)
+	}
+	return ans
+}
+```
+
+##### 2966\.划分数组并满足最大差限制
+
+[题目](https://leetcode.cn/problems/divide-array-into-arrays-with-max-difference)
+
+```go
+func divideArray(nums []int, k int) [][]int {
+	sort.Ints(nums)
+	a := [][]int{}
+	n := len(nums)
+	for i, j := 0, 0; i < n; i, j = i+3, j+1 {
+		a = append(a, []int{})
+		if nums[i+2]-nums[i] > k {
+			return nil
+		}
+		a[j] = append(a[j], nums[i:i+3]...)
+	}
+	return a
+}
+```
+
+##### 3443\.K次修改后的最大曼哈顿距离
+
+[题目](https://leetcode.cn/problems/maximum-manhattan-distance-after-k-changes)
+
+枚举走到第 i 步最大。横纵可分离，因为对横用一次一定能增加 2 距离(除非改成全部同向了)，纵同理。所以横纵等价的，只要有效操作数一样的话。横纵分别维护即可。
+
+```go
+func maxDistance(s string, k int) (ans int) {
+	cnt := ['X']int{} // 'W' + 1 = 'X'
+	for _, ch := range s {
+		cnt[ch]++
+		left := k
+		f := func(a, b int) int {
+			d := min(a, b, left)
+			left -= d
+			return abs(a-b) + d*2
+		}
+		ans = max(ans, f(cnt['N'], cnt['S'])+f(cnt['E'], cnt['W']))
+	}
+	return
+}
+
+func abs(x int) int { if x < 0 { return -x }; return x }
+```
+
+##### 3085\.成为K特殊字符串需要删除的最少字符数
+
+[题目](https://leetcode.cn/problems/minimum-deletions-to-make-string-k-special)
+
+连续或离散枚举每个范围，不在范围内的删到是为止。特判单一字符。
+
+可以离散的原因是，少的肯定是删光的，如果不踩在某个已有值上，肯定不如滑到下一个已知值域更好，还能覆盖更多的。下面给出两种做法。
+
+```go
+func minimumDeletions(word string, k int) int {
+	cnt := [26]int{}
+	for _, c := range word {
+		cnt[c-'a']++
+	}
+    n := len(word)
+	ans := n
+    for _, v := range cnt {
+        ans = min(ans, n - v)
+    }
+	for l := 0; l < n; l++ {
+		s, r := 0, l+k
+		for _, v := range cnt {
+            if v == 0 {
+                continue
+            }
+			if v < l {
+				s += v
+			}
+			if v > r {
+				s += min(v, v - r)
+			}
+            // fmt.Println(v, s)
+		}
+        // fmt.Println(l, r, s)
+		ans = min(ans, s)
+	}
+	return ans
+}
+```
+
+```go
+func minimumDeletions(word string, k int) int {
+	cnt := [26]int{}
+	for _, c := range word {
+		cnt[c-'a']++
+	}
+    n := len(word)
+	ans := n
+    for _, v := range cnt {
+        ans = min(ans, n - v)
+    }
+	for _, l := range cnt {
+        if l == 0 {
+            continue
+        }
+		s, r := 0, l+k
+		for _, v := range cnt {
+            if v == 0 {
+                continue
+            }
+			if v < l {
+				s += v
+			}
+			if v > r {
+				s += min(v, v - r)
+			}
+            // fmt.Println(v, s)
+		}
+        // fmt.Println(l, r, s)
+		ans = min(ans, s)
+	}
+	return ans
+}
+```
+
+离散优化写法
+
+```go
+func minimumDeletions(word string, k int) int {
+	cnt := make([]int, 26)
+	for _, b := range word {
+		cnt[b-'a']++
+	}
+	slices.Sort(cnt)
+
+	maxSave := 0
+	for i, base := range cnt {
+		sum := 0
+		for _, c := range cnt[i:] {
+			sum += min(c, base+k) // 至多保留 base+k 个
+		}
+		maxSave = max(maxSave, sum)
+	}
+
+	return len(word) - maxSave
+}
+```
+
+若值域很大，无法枚举，则值排序，上滑动窗口。窗口外都是砍成右端点，乘法即可。
+
+```go
+func minimumDeletions(word string, k int) int {
+	const sigma = 26
+	cnt := [sigma]int{}
+	for _, b := range word {
+		cnt[b-'a']++
+	}
+	slices.Sort(cnt[:])
+
+	var maxSave, s, right int
+	for _, base := range cnt {
+		for right < sigma && cnt[right] <= base+k {
+			s += cnt[right]
+			right++
+		}
+		// 现在 s 表示出现次数不变的字母个数之和
+		// 再加上出现次数减少为 base+k 的 sigma-right 种字母，即为保留的字母总数
+		maxSave = max(maxSave, s+(base+k)*(sigma-right))
+		// 下一轮循环 base 全删
+		s -= base
+	}
+	return len(word) - maxSave
+}
+```
+
+##### 2138\.将字符串拆分为若干长度为k的组
+
+[题目](https://leetcode.cn/problems/divide-a-string-into-groups-of-size-k)
+
+```go
+import "strings"
+
+func divideString(s string, k int, fill byte) []string {
+	n := (len(s) + k - 1) / k
+	ans := make([]string, n)
+	for i := 0; i < n; i++ {
+		ans[i] = s[i*k : min(i*k+k, len(s))]
+	}
+	if len(ans[n-1]) != k {
+		ans[n-1] += strings.Repeat(string(fill), k-len(ans[n-1]))
+	}
+	return ans
+}
+```
+
+##### 2081\.k镜像数字的和
+
+[题目](https://leetcode.cn/problems/sum-of-k-mirror-numbers)
+
+我的枚举。
+
+```go
+package main
+
+import "fmt"
+
+var ans [10][31]int64
+var cnt [10]int
+
+func init() {
+	const DLIM = 18
+	pw10 := [DLIM]int64{1}
+	for i := 1; i < DLIM; i++ {
+		pw10[i] = pw10[i-1] * 10
+	}
+
+	// 判断它的 2-9 进制是否回文
+	// var bin [64]int64
+	solveComplete := false
+	sumcnt := 0
+	solve := func(x int64) {
+		for k := 2; k < 10; k++ {
+			if cnt[k] >= 30 {
+				continue
+			}
+			// m := 0
+			// for t := x; t > 0; t /= int64(k) {
+			// 	bin[m] = t % int64(k)
+			// 	m++
+			// }
+			// isPali := true
+			// for i, j := 0, m-1; i < j; i, j = i+1, j-1 {
+			// 	if bin[i] != bin[j] {
+			// 		isPali = false
+			// 		break
+			// 	}
+			// }
+			revx := int64(0)
+			for t, ki := x, int64(k); t > 0; t /= ki {
+				revx = revx*ki + t%ki
+			}
+
+			if x == revx {
+				cnt[k]++
+				ans[k][cnt[k]] = x
+				fmt.Println(k, cnt[k], x)
+				fmt.Println(cnt)
+				sumcnt++
+			}
+		}
+		if sumcnt == 30*8 {
+			fmt.Println("all finish at", x)
+			solveComplete = true
+		}
+	}
+
+	// 给定x，返回 x的回文x
+	pali := func(x int64) int64 {
+		var rev int64
+		for t := x; t > 0; t /= 10 {
+			rev = rev*10 + t%10
+		}
+		return rev
+	}
+
+	// 枚举 10 进制回文
+	for i := int64(1); i <= 9; i++ {
+		solve(i)
+	}
+	for d := 2; d < DLIM; d++ {
+		// fmt.Println("Searching", d)
+		if d%2 == 0 {
+			for l := pw10[d/2-1]; l < pw10[d/2] && !solveComplete; l++ {
+				solve(pali(l) + l*pw10[d/2])
+			}
+		} else {
+			for l := pw10[d/2-1]; l < pw10[d/2] && !solveComplete; l++ {
+				for y := 0; y < 10; y++ {
+					solve(pali(l) + l*pw10[d/2+1] + int64(y)*pw10[d/2])
+				}
+			}
+		}
+	}
+
+	for k := 2; k < 10; k++ {
+		fmt.Print(k, ": ")
+		for i := 1; i <= 30; i++ {
+			fmt.Print(ans[k][i], " ")
+			ans[k][i] += ans[k][i-1]
+		}
+		fmt.Println()
+	}
+}
+
+func kMirror(k int, n int) int64 {
+	return ans[k][n]
+}
+```
+
+题解其他写法：(关于枚举回文串的)
+
+```python
+const maxN = 30
+
+var ans [10][]int
+
+// 力扣 9. 回文数
+func isKPalindrome(x, k int) bool {
+	if x%k == 0 {
+		return false
+	}
+	rev := 0
+	for rev < x/k {
+		rev = rev*k + x%k
+		x /= k
+	}
+	return rev == x || rev == x/k
+}
+
+func doPalindrome(x int) bool {
+	done := true
+	for k := 2; k < 10; k++ {
+		if len(ans[k]) < maxN && isKPalindrome(x, k) {
+			ans[k] = append(ans[k], x)
+		}
+		if len(ans[k]) < maxN {
+			done = false
+		}
+	}
+	if !done {
+		return false
+	}
+
+	for k := 2; k < 10; k++ {
+		// 计算前缀和 
+		for i := 1; i < maxN; i++ {
+			ans[k][i] += ans[k][i-1]
+		}
+	}
+	return true
+}
+
+func init() {
+	for k := 2; k < 10; k++ {
+		ans[k] = make([]int, 0, maxN) // 预分配空间
+	}
+	for base := 1; ; base *= 10 {
+		// 生成奇数长度回文数，例如 base = 10，生成的范围是 101 ~ 999
+		for i := base; i < base*10; i++ {
+			x := i
+			for t := i / 10; t > 0; t /= 10 {
+				x = x*10 + t%10
+			}
+			if doPalindrome(x) {
+				return
+			}
+		}
+		// 生成偶数长度回文数，例如 base = 10，生成的范围是 1001 ~ 9999
+		for i := base; i < base*10; i++ {
+			x := i
+			for t := i; t > 0; t /= 10 {
+				x = x*10 + t%10
+			}
+			if doPalindrome(x) {
+				return
+			}
+		}
+	}
+}
+
+func kMirror(k, n int) int64 {
+	return int64(ans[k][n-1])
+}
+```
+
+实际上可以认为是折半搜索：
+
+```python
+func kMirror(k int, n int) int64 {
+    digit := make([]int, 100)
+	left, count, ans := 1, 0, int64(0)
+	for count < n {
+		right := left * 10
+		// op = 0 表示枚举奇数长度回文，op = 1 表示枚举偶数长度回文
+		for op := 0; op < 2; op++ {
+			// 枚举 i'
+			for i := left; i < right && count < n; i++ {
+				combined := int64(i)
+				x := i
+				if op == 0 {
+					x = i / 10
+				}
+				for x > 0 {
+					combined = combined * 10 + int64(x % 10)
+					x /= 10
+				}
+				if isPalindrome(combined, k, digit) {
+					count++
+					ans += combined
+				}
+			}
+		}
+		left = right
+	}
+	return ans
+}
+
+func isPalindrome(x int64, k int, digit []int) bool {
+	length := -1
+	for x > 0 {
+		length++
+		digit[length] = int(x % int64(k))
+		x /= int64(k)
+	}
+	for i, j := 0, length; i < j; i, j = i + 1, j - 1 {
+		if digit[i] != digit[j] {
+			return false
+		}
+	}
+	return true
+}
+```
+
+##### 2200\.找出数组中的所有K近邻下标
+
+[题目](https://leetcode.cn/problems/find-all-k-distant-indices-in-an-array)
+
+```go
+func findKDistantIndices(nums []int, key int, k int) (ans []int) {
+	n := len(nums)
+	p := make([]int, n+1)
+	for i := 0; i < n; i++ {
+		if nums[i] == key {
+			p[max(0, i-k)]++
+			p[min(n, i+k+1)]--
+		}
+	}
+	for i := 0; i < n; i++ {
+		if p[i] > 0 {
+			ans = append(ans, i)
+		}
+		p[i+1] += p[i]
+	}
+	return
+}
+```
+
+滑动窗口
+
+```python
+func findKDistantIndices(nums []int, key, k int) (ans []int) {
+	last := -k - 1 // 保证 key 不存在时 last < i-k
+	for i := k - 1; i >= 0; i-- {
+		if nums[i] == key {
+			last = i
+			break
+		}
+	}
+
+	for i := range nums {
+		if i+k < len(nums) && nums[i+k] == key {
+			last = i + k
+		}
+		if last >= i-k { // key 在窗口中
+			ans = append(ans, i)
+		}
+	}
+	return
+}
+```
+
+也是线性的
+
+```go
+func findKDistantIndices(nums []int, key int, k int) []int {
+    var res []int
+	r := 0 // 未被判断过的最小下标
+	n := len(nums)
+	for j := 0; j < n; j++ {
+		if nums[j] == key {
+			l := max(r, j - k)
+			r = min(n - 1, j + k) + 1
+			for i := l; i < r; i++ {
+				res = append(res, i)
+			}
+		}
+	}
+	return res
+}
+```
+
+##### 2040\.两个有序数组的第K小乘积
+
+[题目](https://leetcode.cn/problems/kth-smallest-product-of-two-sorted-arrays)
+
+```go
+package main
+
+func kthSmallestProduct(nums1 []int, nums2 []int, k int64) int64 {
+	n, m := len(nums1), len(nums2)
+	mul := func(i, j int) int64 {
+		return int64(nums1[i]) * int64(nums2[j])
+	}
+	lf, rf := int64(1e18), int64(-1e18)
+	for _, i := range []int{0, n - 1} {
+		for _, j := range []int{0, m - 1} {
+			lf = min(lf, mul(i, j))
+			rf = max(rf, mul(i, j))
+		}
+	}
+	ans := rf
+	for lf <= rf {
+		cf := (lf + rf) >> 1
+		cnt := int64(0) // nums (i, j), mul(i, j) <= cf
+		for i := 0; i < n; i++ {
+			if nums1[i] >= 0 { // find first j mul(i,j) > cf
+				lf2, rf2, ans2 := 0, m-1, m
+				for lf2 <= rf2 {
+					cf2 := (lf2 + rf2) >> 1
+					if mul(i, cf2) > cf {
+						ans2 = cf2
+						rf2 = cf2 - 1
+					} else {
+						lf2 = cf2 + 1
+					}
+				}
+				cnt += int64(ans2)
+			} else { // find last j mul(i,j) > cf
+				lf2, rf2, ans2 := 0, m-1, -1
+				for lf2 <= rf2 {
+					cf2 := (lf2 + rf2) >> 1
+					if mul(i, cf2) > cf {
+						ans2 = cf2
+						lf2 = cf2 + 1
+					} else {
+						rf2 = cf2 - 1
+					}
+				}
+				cnt += int64(m - 1 - ans2)
+			}
+		}
+		if cnt >= k {
+			ans = cf
+			rf = cf - 1
+		} else {
+			lf = cf + 1
+		}
+	}
+	return ans
+}
+```
+
+滑动窗口：
+
+```go
+func kthSmallestProduct(nums1 []int, nums2 []int, k int64) int64 {
+    n1, n2 := len(nums1), len(nums2)
+    pos1, pos2 := 0, 0
+    for pos1 < n1 && nums1[pos1] < 0 {
+        pos1++
+    }
+    for pos2 < n2 && nums2[pos2] < 0 {
+        pos2++
+    }
+    left, right := int64(-1e10), int64(1e10)
+    for left <= right {
+        mid := (left + right) / 2
+        count := int64(0)
+        i1, i2 := 0, pos2 - 1
+        for i1 < pos1 && i2 >= 0 {
+            if int64(nums1[i1]) * int64(nums2[i2]) > mid {
+                i1++
+            } else {
+                count += int64(pos1 - i1)
+                i2--
+            }
+        }
+        i1, i2 = pos1, n2 - 1
+        for i1 < n1 && i2 >= pos2 {
+            if int64(nums1[i1]) * int64(nums2[i2]) > mid {
+                i2--
+            } else {
+                count += int64(i2 - pos2 + 1)
+                i1++
+            }
+        }
+        i1, i2 = 0, pos2
+        for i1 < pos1 && i2 < n2 {
+            if int64(nums1[i1]) * int64(nums2[i2]) > mid {
+                i2++
+            } else {
+                count += int64(n2 - i2)
+                i1++
+            }
+        }
+        i1, i2 = pos1, 0
+        for i1 < n1 && i2 < pos2 {
+            if int64(nums1[i1]) * int64(nums2[i2]) > mid {
+                i1++
+            } else {
+                count += int64(n1 - i1)
+                i2++
+            }
+        }
+        if count < k {
+            left = mid + 1
+        } else {
+            right = mid - 1
+        }
+    }
+    return left
+}
+```
+
+```go
+func kthSmallestProduct(a, b []int, K int64) int64 {
+	n, m, k := len(a), len(b), int(K)
+	i0 := sort.SearchInts(a, 0) // 四个区域的水平分界线
+	j0 := sort.SearchInts(b, 0) // 四个区域的垂直分界线
+
+	corners := []int{a[0] * b[0], a[0] * b[m-1], a[n-1] * b[0], a[n-1] * b[m-1]}
+	left := slices.Min(corners)
+	right := slices.Max(corners)
+	ans := left + sort.Search(right-left, func(mx int) bool {
+		mx += left
+		cnt := 0
+
+		if mx < 0 {
+			// 右上区域
+			i, j := 0, j0
+			for i < i0 && j < m { // 注：可以加个 cnt < k 的判断，提前退出
+				if a[i]*b[j] > mx {
+					j++
+				} else {
+					cnt += m - j
+					i++
+				}
+			}
+
+			// 左下区域
+			i, j = i0, 0
+			for i < n && j < j0 {
+				if a[i]*b[j] > mx {
+					i++
+				} else {
+					cnt += n - i
+					j++
+				}
+			}
+		} else {
+			// 右上区域和左下区域的所有数都 <= 0 <= mx
+			cnt = i0*(m-j0) + (n-i0)*j0
+
+			// 左上区域
+			i, j := 0, j0-1
+			for i < i0 && j >= 0 {
+				if a[i]*b[j] > mx {
+					i++
+				} else {
+					cnt += i0 - i
+					j--
+				}
+			}
+
+			// 右下区域
+			i, j = i0, m-1
+			for i < n && j >= j0 {
+				if a[i]*b[j] > mx {
+					j--
+				} else {
+					cnt += j - j0 + 1
+					i++
+				}
+			}
+		}
+
+		return cnt >= k
+	})
+	return int64(ans)
+}
+```
+
+##### 2311\.小于等于K的最长二进制子序列
+
+[题目](https://leetcode.cn/problems/longest-binary-subsequence-less-than-or-equal-to-k)
+
+贪心选0，然后从后往前选1，可以证明其他方案不会更优。
+
+```go
+import "strings"
+
+func longestSubsequence(s string, k int) int {
+	ans := strings.Count(s, "0")
+	x := 0
+	p := 1
+	for i := len(s) - 1; i >= 0; i-- {
+		if s[i] == '1' && x+p <= k {
+			ans++
+			x += p
+		}
+		p *= 2
+		if p > k {
+			break
+		}
+	}
+	return ans
+}
+```
+
+```go
+func longestSubsequence(s string, k int) int {
+	n, m := len(s), bits.Len(uint(k))
+	if n < m {
+		return n // 全选
+	}
+	ans := m // 后缀长度
+	sufVal, _ := strconv.ParseInt(s[n-m:], 2, 0)
+	if int(sufVal) > k {
+		ans--
+	}
+	return ans + strings.Count(s[:n-m], "0") // 添加前导零
 }
 ```
 

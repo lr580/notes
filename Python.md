@@ -92,6 +92,14 @@ pip install plotly pandas # 一次装两个
 >
 > [pil] 是一个可选依赖项的标记，表示安装 qrcode 库时同时安装 Pillow 库（PIL 的一个分支）
 
+跳过依赖检查：`--no-deps` 
+
+```
+pip install d2l==0.17.6 --no-deps
+```
+
+
+
 #### 镜像
 
 可以加上调用国内镜像的选项，加快下载速度：
@@ -368,8 +376,6 @@ print(_) #7
 
 ipynb使用十分简单，事实上就是一堆代码框，然后可以分块运行(注意没有文本框，只有代码框)，左上角的数字代表是否执行过(是则有数字)，和执行的先后顺序
 
-这个工具的使用本身十分简单……本处不赘述
-
 这个工具跟自带IDLE相比，可以有vscode插件加成，有输入提示，可以用 vscode 整
 
 ##### 安装
@@ -415,7 +421,7 @@ import random
 %run aa/bb/xxx.py
 ```
 
-注意运行目录是当前 ipynb 的目录，而不是代码文件所在的目录。
+注意运行目录是当前 ipynb 的目录，而不是代码文件所在的目录。这样运行的环境不是隔离的，后续可以用变量。
 
 注意如果代码有中文(如注释)，GBK，可能会报错。
 
@@ -470,6 +476,8 @@ ctrl+shift+p 打开 `settings.json` (一般可能在用户文件夹的 `AppData\
 ```
 
 格式化：pylint, autopep8 等插件
+
+pylance，是用来类型检查，快速跳转导航的插件
 
 ### conda
 
@@ -538,7 +546,18 @@ bash Miniconda3-latest-Linux-x86_64.sh
 source ~/.bashrc
 ```
 
+> 如果不行，加一下path：如，安装接受看到输出的path
+>
+> ```
+> File or directory already exists: '/home/lr580/miniconda3'
+> ```
+>
+> ```sh
+> echo 'export PATH="$HOME/miniconda3/bin:$PATH"' >> ~/.bashrc
+> source ~/.bashrc
+> ```
 
+可能要重启 ssh / bash 才能生效。
 
 ##### 离线
 
@@ -651,7 +670,26 @@ conda config --set show_channel_urls yes
 conda config --remove channels https://mirrors.ustc.edu.cn/anaconda/pkgs/main/
 ```
 
+###### 配置文件
 
+如 `C:\Users\Admin\.condarc`
+
+```yaml
+ssl_verify: true
+channel_priority: strict
+solver: libmamba
+
+channels:
+  - conda-forge
+  - defaults
+
+default_channels:
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
+  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/msys2
+
+show_channel_urls: true
+```
 
 ##### mamba
 
@@ -661,7 +699,9 @@ conda config --remove channels https://mirrors.ustc.edu.cn/anaconda/pkgs/main/
 conda install -n base -c conda-forge mamba -y
 ```
 
-
+```sh
+mamba install numpy=1.25.2
+```
 
 ##### 新建环境
 
@@ -752,6 +792,8 @@ conda activate 环境名
 ```
 
 > 对 windows，要在命令提示符，不能在 powershell。尽管运行代码可以在 powershell，但是其无法装包。
+>
+> 重复激活同一环境不会有任何变化(等价于忽视)
 
 之后可以装包。(如 `pip install -r requirements.txt`)
 
@@ -968,6 +1010,32 @@ f'{6:02d},{1/3:+.6f}' #前导零，带符号小数；指数就e，同理
 "{{{}年}}".format(2023) # "{2023年}"#双大括号转义
 ```
 
+#### 重定向
+
+```python
+with open('output.txt', 'w') as f:
+    sys.stdout = f
+    print("This goes to the file.")
+```
+
+可以局部重定向(恢复 stdout 就行)，或者另一种局部重定向
+
+```python
+with open('output.txt', 'w') as f:
+    print("Hello, world!", file=f)
+    print("This is another line.", file=f)
+```
+
+双输出：
+
+```python
+def print_and_save(text, file):
+    print(text)
+    print(text, file=file)
+with open('output.txt', 'a') as f:
+    print_and_save("This goes both places.", f)
+```
+
 
 
 ### 文件I/O
@@ -1124,6 +1192,8 @@ print(e)
 with open(d,encoding=e) as f:
     print(f.read())
 ```
+
+
 
 ### 文档I/O
 
@@ -11884,7 +11954,7 @@ plt.show()
 plt.savefig(输出文件名含后缀)
 ```
 
-> `bbox_inches='tight'` 参数可以确保图形的所有部分都能适当显示，不会被裁剪
+> `bbox_inches='tight'` 参数可以确保图形的所有部分都能适当显示，不会被裁剪。可以保存矢量图，直接path后缀为svg/eps/pdf等即可。
 
 ##### 折线
 
@@ -12323,6 +12393,21 @@ plt.plot(dimensions, min_distances, marker='o')
 
 `alpha=1` 不透明，0透明；`s=40` 尺寸。`color=xxxx`
 
+##### 柱填充
+
+hatch
+
+```python
+hatches = ["", "//", ".."]
+bars = plt.bar(index + i * bar_width, method_vals, 
+              width=bar_width, color=colors[i],
+              hatch=hatches[i],
+              edgecolor='black',
+              label=method)
+```
+
+
+
 ##### 坐标轴
 
 锁定坐标轴范围为$x\in[-12,12],y\in[-5,5]$。也可以用 `xlim(a,b)`, `ylim`。可以 $a\ge b$ 则画图序列也跟着倒序。
@@ -12330,6 +12415,22 @@ plt.plot(dimensions, min_distances, marker='o')
 ```python
 plt.axis([-12,12,-5,5]) 
 ```
+
+只锁定一个，另一个靠数据自适应：
+
+```python
+plt.ylim(y_min, y_max)
+```
+
+不等距离数值等距离显示：
+
+```python
+lambdas = [0.5, 1, 2, 5, 10]
+x_positions = np.arange(len(lambdas))
+plt.xticks(x_positions, lambdas)
+```
+
+
 
 设置坐标轴坐标尺(每隔多少显示一次数字)：(y同理)
 
@@ -12419,6 +12520,12 @@ plt.tight_layout(rect=[0, 0, 1, 0.95])  # 确保整体标题不被遮挡
 plt.show()
 ```
 
+所有标题之类的文字支持latex，如：
+
+```python
+plt.xlabel(f"$\\lambda_{int(xname[1:])}$", fontsize=12)
+```
+
 
 
 ##### 图例
@@ -12445,6 +12552,13 @@ bbox to anchor:
 
 第二个值（y 轴位置）：同样在 0 到 1 之间，表示相对于图表高度的比例。1 表示顶部，0 表示底部。
 
+如左上角，但是中上：
+
+```python
+plt.legend(loc='upper left',  # 基本定位在左上角
+    bbox_to_anchor=(0, 0.95),  # (x, y) 坐标，0.95 表示靠近顶部但稍微下移)
+```
+
 双图(twin)，画完第一个图，第二个图会把第一个图的图例挡住，gpt 4o mini：
 
 ```python
@@ -12458,6 +12572,12 @@ ax2.legend(handles=handles, loc='upper right')
 
 ```python
 [Patch(color=c1, alpha=1, label=y1name), Patch(color=c2, alpha=1, label=y2name)]
+```
+
+透明也可以：
+
+```python
+plt.legend(loc='lower right', fontsize=10, framealpha=0.5)
 ```
 
 
@@ -12722,6 +12842,163 @@ def compareWardAndGMM(seed=8914, show=False):
         plt.show()
     else:
         plt.savefig(f'Ward_vs_GMM_compare.png')
+```
+
+##### 多柱状
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.ticker import PercentFormatter
+
+def plot_metric_comparison(dataset_name, metrics, method_names, metric_values, colors, hatches, output_filename):
+    """
+    绘制多方法多指标对比柱状图
+    
+    参数:
+    dataset_name -- 数据集名称 (str)
+    metrics -- 要展示的指标列表 (list of str)
+    method_names -- 方法名称列表 (list of str)
+    metric_values -- 指标值的嵌套字典 
+        {数据集名: {方法名: {指标: 值}}}
+    colors -- 每个方法对应的颜色 (list of str)
+    hatches -- 每个方法对应的填充样式 (list of str)
+    output_filename -- 输出文件名 (str)
+    """
+    
+    n_metrics = len(metrics)
+    n_methods = len(method_names)
+    
+    # 计算每个指标位置的柱状图位置
+    bar_width = 0.8 / n_methods
+    index = np.arange(n_metrics)
+    
+    plt.figure(figsize=(12, 8))
+    
+    # 首先收集所有数据点以确定y轴范围
+    all_values = []
+    for method in method_names:
+        method_vals = [metric_values[dataset_name][method][metric] for metric in metrics]
+        all_values.extend(method_vals)
+    
+    # 计算数据的范围 (修改点2：动态计算Y轴范围)
+    min_val = min(all_values)
+    max_val = max(all_values)
+    y_min = max(0, min_val * 0.96)  # 最低不低于0，但也不从0开始
+    y_max = min(1, max_val * 1.04)   # 最高不高于1
+    
+    # 为每个方法绘制柱状图
+    for i, method in enumerate(method_names):
+        method_vals = [metric_values[dataset_name][method][metric] for metric in metrics]
+        bars = plt.bar(index + i * bar_width, method_vals, 
+                      width=bar_width, color=colors[i],
+                      hatch=hatches[i],  # 修改点1：添加填充样式
+                      edgecolor='black',
+                      label=method)
+        
+        # 在柱子内部上方添加数值标签 (避免超出边界)
+        for bar in bars:
+            height = bar.get_height()
+            offset = max(height * 0.03, 0.01)  # 防止高度值过小时标签重叠
+            plt.text(bar.get_x() + bar.get_width()/2., 
+                    height - offset,  # 位置调整为柱子内部
+                    f"{height*100:.1f}%", 
+                    ha='center', va='top', fontsize=9, color='white',
+                    fontweight='bold')
+    
+    plt.title(f'{dataset_name} - Model Comparison', fontsize=16)
+    plt.ylabel('Score', fontsize=12)
+    plt.xlabel('Metrics', fontsize=12)
+    plt.xticks(index + bar_width*(n_methods-1)/2, metrics, fontsize=10)
+    
+    # 设置Y轴为百分比格式
+    plt.gca().yaxis.set_major_formatter(PercentFormatter(1.0))
+    
+    # 设置动态y轴范围 (修改点2)
+    plt.ylim(y_min, y_max)
+    
+    # 添加图例
+    plt.legend(loc='best', fontsize=10)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    
+    plt.tight_layout()
+    
+    # 保存为PDF
+    plt.savefig(output_filename, format='pdf', bbox_inches='tight')
+    plt.close()
+
+# 从提供的数据整理指标值（保持不变）
+metric_values = {
+    "foursquare_mini": {
+        "GATConv": {
+            "ACC@1": 0.7241,
+            "Macro-P": 0.7338,
+            "Macro-R": 0.7071,
+            "Macro-F1": 0.7102
+        },
+        "GraphConv": {
+            "ACC@1": 0.7211,
+            "Macro-P": 0.7260,
+            "Macro-R": 0.7041,
+            "Macro-F1": 0.7054
+        },
+        "SAGEConv": {
+            "ACC@1": 0.7270,
+            "Macro-P": 0.7346,
+            "Macro-R": 0.7104,
+            "Macro-F1": 0.7129
+        }
+    },
+    "weeplace_mini": {
+        "GATConv": {
+            "ACC@1": 0.5751,
+            "Macro-P": 0.6198,
+            "Macro-R": 0.5684,
+            "Macro-F1": 0.5786
+        },
+        "GraphConv": {
+            "ACC@1": 0.5734,
+            "Macro-P": 0.6164,
+            "Macro-R": 0.5664,
+            "Macro-F1": 0.5763
+        },
+        "SAGEConv": {
+            "ACC@1": 0.5703,
+            "Macro-P": 0.6170,
+            "Macro-R": 0.5621,
+            "Macro-F1": 0.5735
+        }
+    }
+}
+
+# 配置绘图参数
+metrics = ["ACC@1", "Macro-P", "Macro-R", "Macro-F1"]
+method_names = ["GATConv", "GraphConv", "SAGEConv"]
+colors = ["#4C72B0", "#55A868", "#C44E52"]  # 蓝色、绿色、红色
+
+# 修改点1：为每个方法指定不同的填充样式
+hatches = ["", "//", ".."]  # 实心、斜线、点状填充
+
+# 绘制两个数据集的图表
+plot_metric_comparison(
+    dataset_name="foursquare_mini",
+    metrics=metrics,
+    method_names=method_names,
+    metric_values=metric_values,
+    colors=colors,
+    hatches=hatches,  # 添加填充样式
+    output_filename="figures/cmp_foursquare_mini.pdf"
+)
+
+plot_metric_comparison(
+    dataset_name="weeplace_mini",
+    metrics=metrics,
+    method_names=method_names,
+    metric_values=metric_values,
+    colors=colors,
+    hatches=hatches,  # 添加填充样式
+    output_filename="figures/cmp_weeplace_mini.pdf"
+)
 ```
 
 
@@ -14970,7 +15247,59 @@ user = User(**user_data)
 print(user.dict()) #{'id': 1, 'name': 'Alice', 'email': 'alice@example.com', 'age': 30}
 ```
 
+### lmdb
 
+LMDB（Lightning Memory-Mapped Database）是一个超快速、紧凑的键值对嵌入式数据库系统
+
+> 1. 内存映射设计：
+>    - 使用操作系统内存映射文件技术
+>    - 数据库文件直接映射到进程内存空间
+>    - 读取操作几乎不需要系统调用
+> 2. 卓越性能：
+>    - 读取速度接近内存访问速度
+>    - 写入操作也极其高效
+>    - 特别适合高并发读取场景
+> 3. 极小开销：
+>    - 零拷贝设计
+>    - 没有运行时的内存开销
+>    - 数据库大小仅受磁盘空间限制
+> 4. ACID兼容：
+>    - 完全支持事务的原子性、一致性、隔离性和持久性
+>    - 崩溃安全设计
+> 5. 简单API：
+>    - 简洁的C语言API
+>    - 多种语言绑定（Python、Java等）
+
+```python
+import lmdb
+
+# 创建/打开数据库
+env = lmdb.open("./mydb", map_size=104857600)  # 100MB
+
+# 写入数据
+with env.begin(write=True) as txn:
+    txn.put(b"key1", b"value1")
+    txn.put(b"key2", b"value2")
+
+# 读取数据
+with env.begin() as txn:
+    value = txn.get(b"key1")
+    print(value)  # 输出: b'value1'
+```
+
+
+
+### 压缩
+
+#### 7z
+
+```python
+import py7zr
+with py7zr.SevenZipFile('data/cifar-10/train.7z', mode='r') as archive:
+    archive.extractall()
+```
+
+解压到当前目录。
 
 ## 机器学习
 
@@ -15446,7 +15775,15 @@ column_transformer = ColumnTransformer(
 )
 ```
 
+##### MinMax放缩
 
+将数据线性地缩放到给定范围（默认[0, 1]）$X_{\text{scaled}} = \frac{X - X_{\min}}{X_{\max} - X_{\min}}$
+
+```python
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()  # 默认范围[0,1]
+# scaler = MinMaxScaler(feature_range=(-1, 1))  # 可自定义范围
+```
 
 ##### 标准缩放
 
@@ -15503,6 +15840,17 @@ class StdScalerByGroup(BaseEstimator, TransformerMixin):
 
         return df.iloc[:, 1:]
 ```
+
+##### robust放缩
+
+$X_{\text{scaled}} = \frac{X - \text{median}(X)}{IQR(X)}$ 用中位数和四分位数范围进行缩放，适合含异常值的数据
+
+```python
+from sklearn.preprocessing import RobustScaler
+scaler = RobustScaler()
+```
+
+（IQR = Q3 - Q1，即第75百分位数 - 第25百分位数）
 
 ##### 缺失值填充
 
@@ -17827,6 +18175,8 @@ sudo apt install nvidia-cuda-toolkit
 
 安装 gpu toolkit，下载 [here](https://developer.nvidia.com/cuda-toolkit-archive)，选择 `nvidia-smi` 对应的版本，选的 version 10/11 是指 windows10/11。安装教程 [参考](https://blog.csdn.net/weixin_43741711/article/details/108908079)
 
+若 windows 已安装，则 wsl 里无需安装 CUDA。但 nvidia-cuda-toolkit 还是要的(nvcc)
+
 #### 模型信息
 
 ##### summary
@@ -18119,6 +18469,29 @@ model = torch.nn.Linear(3, 1)  # 默认在 CPU 上
 model = model.to("cuda")
 ```
 
+###### 多设备
+
+```python
+# get_net(): ... return net  # 不再移动到设备，由训练函数处理 
+def train(net, ...):
+    if isinstance(devices, list):
+        device = devices[0] 
+        if len(devices) > 1:
+            net = nn.DataParallel(net, device_ids=devices)
+    else:
+        device = devices
+    
+    net = net.to(device)
+```
+
+###### .cpu()
+
+已经 .cpu 再做一次的话不会有变化。不在同一设备就数据深拷贝
+
+NumPy 只能处理 CPU 上的数据，而 PyTorch 张量可能位于 GPU（如 `cuda:0`）。如果直接对 GPU 张量调用 `.numpy()`，会报错。一般先 detach，再 .cpu 再 .item()
+
+`.data_ptr()` 方法，可以查看张量的底层内存地址
+
 ##### 梯度
 
 可以对函数用
@@ -18128,6 +18501,12 @@ model = model.to("cuda")
 ```
 
 或者 with 语句。
+
+###### detach
+
+返回一个与原始张量共享数据但不参与梯度计算的新张量，不会复制数据，新张量仍然指向原存储位置。当需要将张量转换为 NumPy, Pandas 或进行纯数值计算时
+
+已经 detach 再做一次的话不会有变化。
 
 #### 运算
 
@@ -19124,6 +19503,8 @@ output_tensor = linear_layer(input_tensor)
 print(output_tensor.shape) # (3,5) # 则或 (3,6,5)
 ```
 
+初始权重默认服从 $w \sim U\left(-\sqrt{\frac{1}{n_{in}}}, \sqrt{\frac{1}{n_{in}}}\right)$
+
 ###### Sequential
 
 多层组合在一起，可以用下标取出每一层：
@@ -19210,9 +19591,72 @@ print(output_tensor)
         [2., 0., 4.]])'''
 ```
 
+###### PReLU
+
+Parametric ReLU 用可学习参数。缓解负半轴输出为0的神经元死亡问题。
+$$
+\text{PReLU}(x) = \begin{cases} 
+x & \text{if } x \geq 0 \\
+\alpha x & \text{if } x < 0 
+\end{cases}
+$$
+
+```python
+nn.PReLU()
+```
+
+###### ELU
+
+Exponential Linear Unit
+$$
+\text{ELU}(x) = \begin{cases} 
+x & \text{if } x \geq 0 \\
+\alpha (e^x - 1) & \text{if } x < 0 
+\end{cases}
+$$
+负半轴平滑过渡（指数函数），缓解梯度消失和Dead ReLU。
+
+```python
+nn.ELU(alpha=1.0)
+```
+
+###### SELU
+
+scaled ELU。
+
+- 具有自归一化（Self-Normalizing）特性，可保持数据均值和方差稳定。  
+- 需配合权重初始化（如LeCun正态初始化）
+
+$$
+\text{SELU}(x) = \lambda \begin{cases} 
+x & \text{if } x \geq 0 \\
+\alpha (e^x - 1) & \text{if } x < 0 
+\end{cases},
+\lambda \approx 1.0507, \alpha \approx 1.6733
+$$
+
+```
+nn.SELU()
+```
+
+###### Swish
+
+平滑非单调激活函数，类似ReLU但更平滑，$\beta$ 为参数。
+$$
+\text{Swish}(x) = x \cdot \sigma(\beta x) = \frac{x}{1 + e^{-\beta x}}
+$$
+
+```python
+class Swish(nn.Module):
+    def forward(self, x):
+        return x * torch.sigmoid(x)
+```
+
+
+
 ###### GELU
 
-**Gaussian Error Linear Unit**（高斯误差线性单元）。GELU 是一种平滑且非线性的激活函数，由 **Dan Hendrycks** 和 **Kevin Gimpel** 在 2016 年的论文提出。$GELU(x)=x\cdot\Phi(x)$，$\Phi$ 即标准正态分布的累积分布函数。
+Gaussian Error Linear Unit（高斯误差线性单元）。GELU 是一种平滑且非线性的激活函数，由 Dan Hendrycks 和 Kevin Gimpel 在 2016 年的论文提出。$GELU(x)=x\cdot\Phi(x)$，$\Phi$ 即标准正态分布的累积分布函数。
 
 ```python
 gelu = nn.GELU()
@@ -19692,6 +20136,62 @@ def main():
 import torch.nn as nn
 ```
 
+##### L1 Loss/MAE
+
+Mean Absolute Error
+$$
+L(y, \hat{y}) = \frac{1}{n} \sum_{i=1}^{n} |y_i - \hat{y}_i|
+$$
+异常值鲁棒，但在梯度更新时不如 MSE 稳定。
+
+```python
+torch.nn.L1Loss()
+```
+
+##### L2 Loss/MSE
+
+Mean Squared Error
+$$
+L(y, \hat{y}) = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
+$$
+对异常值敏感，但梯度更新更平滑。
+
+```python
+torch.nn.MSELoss()
+```
+
+##### Smooth L1
+
+$$
+L(y, \hat{y}) = \frac{1}{n} \sum_{i=1}^{n} 
+\begin{cases} 
+0.5 (y_i - \hat{y}_i)^2 / \beta, & \text{if } |y_i - \hat{y}_i| < \beta \\
+|y_i - \hat{y}_i| - 0.5 \beta, & \text{otherwise}
+\end{cases}
+$$
+
+结合了 L1 和 L2 Loss 的优点：在误差较小时使用平方函数（平滑梯度），较大时使用绝对值函数（减少异常值影响）。使用超参数 $\beta$，默认 1.0
+
+```python
+torch.nn.SmoothL1Loss(beta=1.0)
+```
+
+##### Huber Loss
+
+$$
+L(y, \hat{y}) = \frac{1}{n} \sum_{i=1}^{n} 
+\begin{cases} 
+0.5 (y_i - \hat{y}_i)^2, & \text{if } |y_i - \hat{y}_i| \leq \delta \\
+\delta \cdot (|y_i - \hat{y}_i| - 0.5 \delta), & \text{otherwise}
+\end{cases}
+$$
+
+类似 Smotth L1 Loss，用阈值切换L1/L2，对异常值鲁棒，同时在小误差时保持平滑梯度。
+
+```python
+torch.nn.HuberLoss(delta=1.0) 
+```
+
 
 
 ##### 交叉熵
@@ -19730,23 +20230,66 @@ import torch.optim as optim
 optimizer = optim.Adam(model.parameters(), lr=0.001)  # 优化器
 ```
 
+Adam优化器使用L2正则化 weight_decay
+
 ##### AdamW
 
 ```python
 self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate,weight_decay=self.weight_decay)
 ```
 
-##### 学习率衰减
+AdamW优化器作为Adam优化器改进版，它将权重衰减与梯度更新解耦，直接应用于参数本身，而不是通过梯度修改
 
-在 epoch=1,35,40 分别让学习率减半，传入优化器
+##### 调度器
+
+调度器(Scheduler)是深度学习训练过程中用于动态调整学习率(Learning Rate)的工具。它可以根据预定义的策略在训练过程中自动调整学习率，以帮助模型更好地收敛并可能达到更好的性能
+
+1. 在 epoch=1,35,40 分别让学习率减半，传入优化器
+   ```python
+   self.lr_scheduler = torch.optim.lr_scheduler.MultiStepLR( self.optimizer, milestones=[1,35,40],gamma=0.5)
+   ```
+
+2. 余弦退火调度器。让学习率按余弦函数从初始值平滑下降到0，避免学习率突变导致的训练震荡，前期保持较高学习率快速收敛，后期缓慢下降精细调优。查阅ICLR2017论文SGDR: STOCHASTIC GRADIENT DESCENT WITH WARM RESTARTS，得知余弦退火有助于加速收敛，改善性能
+
+   ```python
+   scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(trainer, T_max=num_epochs)
+   ```
+
+3. 单周期调度器。在一个周期内先增加学习率到最大值，然后再降低。
+
+   ```python
+   scheduler = optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.01, steps_per_epoch=len(X_train)//32, epochs=epochs)
+   ```
+
+4. 循环学习率调度器。在基础学习率和最大学习率之间循环变化。
+
+   ```python
+   scheduler = optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-5, max_lr=0.01, step_size_up=200, cycle_momentum=False)
+   ```
+
+使用
 
 ```python
-self.lr_scheduler = torch.optim.lr_scheduler.MultiStepLR( self.optimizer, milestones=[1,35,40],gamma=0.5)
+optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=5e-2)
+scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs//4, eta_min=1e-5)
+
+for epoch in range(epochs):
+    model.train()
+    optimizer.zero_grad()
+    outputs = model(X_train)
+    loss = criterion(outputs, y_train)
+    loss.backward()
+    optimizer.step()
+    scheduler.step()
 ```
+
+
 
 ##### 超参数搜索
 
 > 有论文有 Tree-structured Parzen Estimator (TPE) 2011
+
+
 
 #### 模块
 
@@ -20085,6 +20628,47 @@ for epoch in range(5):  # loop over the dataset multiple times
 # Save the trained model
 torch.save(net.state_dict(), './step3/cnn.pkl')
 print('Finished Training')
+```
+
+### TensorFlow
+
+#### 安装使用
+
+> TF 2.11 开始，Windows 不支持 CUDA 构建，可以用 WSL2
+
+> [参考](https://zhuanlan.zhihu.com/p/1897427950598608126)
+
+ds + SAGDFN(仓库requirement.txt)，一个兼容torch的tf环境，以 CUDA12.2 为例
+
+```python
+conda create -n SAGDFN python=3.8 -y
+conda activate SAGDFN
+conda install -c conda-forge cudatoolkit=11.2 cudnn=8.1 -y
+# pip install torch==1.8.1+cu111 torchvision==0.9.1+cu111 -f https://download.pytorch.org/whl/torch_stable.html
+pip install numpy==1.19.5 wrapt==1.12.1
+pip install tensorflow==2.4.1 tensorflow-gpu==2.4.1
+# 其他包
+pip install \
+  pandas==1.2.4 \
+  scipy==1.6.2 \
+  scikit-learn==0.24.2 \
+  statsmodels==0.12.2 \
+  tables==3.6.1 \
+  entmax==1.0
+```
+
+测试脚本：
+
+```python
+import numpy as np
+print("NumPy version:", np.__version__)  # 应为 1.19.5
+
+import tensorflow as tf
+print("TensorFlow version:", tf.__version__)  # 应为 2.4.1
+print("TF can access GPU?", tf.test.is_gpu_available())
+
+import torch
+print("PyTorch CUDA available?", torch.cuda.is_available())
 ```
 
 
@@ -20747,6 +21331,24 @@ print(f'Accuracy: {accuracy}')
 ```sh
 pip install mne
 ```
+
+#### wandb
+
+```sh
+pip install wandb
+```
+
+Weights & Biases (WandB) 是一个用于机器学习实验跟踪、可视化和协作的Python库。它帮助研究人员和工程师高效管理实验过程，记录超参数、指标、输出结果（如模型权重、图表等），并支持团队协作。
+
+需要注册登录然后获得 API。
+
+支持离线本地。[参考](https://blog.csdn.net/lyx_323/article/details/140951372)
+
+```python
+os.environ["WANDB_MODE"] = "offline"
+```
+
+
 
 ## 网络
 
