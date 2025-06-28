@@ -3548,6 +3548,26 @@ sort.Sort(sort.Reverse(sort.StringSlice(s)))
 fmt.Println(s)
 ```
 
+自定义排序，如按另一个数组的大小排序下标
+
+```go
+func maxSubsequence(nums []int, k int) []int {
+	n := len(nums)
+	a := make([]int, n)
+	for i := 0; i < n; i++ {
+		a[i] = i
+	}
+	sort.Slice(a, func(i, j int) bool {
+		return nums[a[i]] > nums[a[j]]
+	})
+    // ...
+}
+//也可以写成：
+slices.SortFunc(idx, func(i, j int) int { return nums[j] - nums[i] })
+```
+
+
+
 ##### 二分查找
 
 如表现同 C++ lower_bound (upper 改成 `>` 即可)

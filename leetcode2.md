@@ -3124,10 +3124,13 @@
 
   贪心
 
-  
 - 2014\.重复K次的最长子序列
 
   **爆搜 / +子序列自动机**
+  
+- 2099\.找到和最大的长度为K的子序列
+
+  排序 贪心
 
 ## 算法
 
@@ -17163,3 +17166,55 @@ func longestSubsequenceRepeatedK(s string, k int) string {
     return string(ans)
 }
 ```
+
+##### 2099\.找到和最大的长度为K的子序列
+
+[题目](https://leetcode.cn/problems/find-subsequence-of-length-k-with-the-largest-sum)
+
+```go
+import "sort"
+
+func maxSubsequence(nums []int, k int) []int {
+	n := len(nums)
+	a := make([]int, n)
+	for i := 0; i < n; i++ {
+		a[i] = i
+	}
+	sort.Slice(a, func(i, j int) bool {
+		return nums[a[i]] > nums[a[j]]
+	})
+	ans := make([]int, k)
+	for i := 0; i < k; i++ {
+		ans[i] = a[i]
+	}
+	sort.Ints(ans)
+	for i := 0; i < k; i++ {
+		ans[i] = nums[ans[i]]
+	}
+	return ans
+}
+```
+
+更优雅：
+
+```go
+func maxSubsequence(nums []int, k int) []int {
+	// 创建下标数组，对下标数组排序
+	idx := make([]int, len(nums))
+	for i := range idx {
+		idx[i] = i
+	}
+	slices.SortFunc(idx, func(i, j int) int { return nums[j] - nums[i] })
+
+	// 对前 k 个下标排序
+	idx = idx[:k]
+	slices.Sort(idx)
+
+	// 取出 nums 的子序列
+	for i, j := range idx {
+		idx[i] = nums[j]
+	}
+	return idx
+}
+```
+
