@@ -3131,6 +3131,14 @@
 - 2099\.找到和最大的长度为K的子序列
 
   排序 贪心
+  
+- 1498\.满足条件的子序列数目
+
+  排序 二分/双指针 组合数学
+  
+- 594\.最长和谐子序列
+
+  签到 STL
 
 ## 算法
 
@@ -17215,6 +17223,78 @@ func maxSubsequence(nums []int, k int) []int {
 		idx[i] = nums[j]
 	}
 	return idx
+}
+```
+
+##### 1498\.满足条件的子序列数目
+
+[题目](https://leetcode.cn/problems/number-of-subsequences-that-satisfy-the-given-sum-condition)
+
+子序列问题排序后不变。枚举区间右端点，则左端点一定先增再降，所以也是双指针，且复杂度仍然是线性的。也可以二分，略。
+
+左端点是指：最小值必须不得超过哪个地方。设左端点是 $l$，需要在 $[0,l]$ 至少选一个数，方案为 $2^l-1$，以你为不能不选。然后在 $(l,r)$ 之间有 $r-l-1$ 个数，可选可不选不影响答案，方案数为 $2^{r-l-1}$，故乘法原理，得 $(2^l-1)2^{r-l-1}$。然后特判 $[r,r]$ 自己是不是合法的。
+
+```go
+import "sort"
+
+var pw2 [100003]int64
+
+const mod = int64(1e9 + 7)
+
+func init() {
+	pw2[0] = 1
+	for i := 1; i < 100003; i++ {
+		pw2[i] = (pw2[i-1] * 2) % mod
+	}
+}
+
+func numSubseq(nums []int, target int) int {
+	sort.Ints(nums)
+	n := len(nums)
+	l := 0
+    ans := int64(0)
+	for r := 0; r < n; r++ {
+		for l < r && l >= 0 && nums[l]+nums[r] <= target {
+			l++
+		}
+		for l >= 0 && nums[l]+nums[r] > target {
+			l--
+		}
+        sc := int64(pw2[min(l, r-1)+1] - 1) * pw2[max(0, r-l-1)]
+        //fmt.Println(l, r, ans, sc)
+		ans += (sc + mod) % mod
+		if nums[r]*2 <= target {
+            //fmt.Println(r, "ex", ans)
+			ans++
+		}
+	}
+	return int(ans % mod)
+}
+```
+
+也可以真双指针，而不是我的滑动窗口。设左右指针是排序后的最小最大值，且一定选。则当前 min-max 的答案是 $2^{max-min}$，这里的方案是：$[min+1,max]$ 可选可不选，也就是方案里的 max 值不是固定的。 
+
+算出当前答案后，想办法看看更大的能不能满足，所以+左，直到不满足，那对该右，所有左其实就都试过了。当不满足之后，把右往前挪动，此时，因为上面的可选可不选 $max$，所以此时 min 不用从头开始滑动了。
+
+二分略，看官方题解。
+
+##### 594\.最长和谐子序列
+
+[题目](https://leetcode.cn/problems/longest-harmonious-subsequence)
+
+```go
+
+func findLHS(nums []int) (ans int) {
+	b := make(map[int]int) // cnt := map[int]int{}
+	for _, v := range nums {
+		b[v]++
+	}
+	for k, v := range b {
+		if v2, ok := b[k+1]; ok {
+			ans = max(ans, v+v2)
+		}
+	}
+	return
 }
 ```
 
