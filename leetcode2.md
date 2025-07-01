@@ -3131,6 +3131,14 @@
 - 2099\.找到和最大的长度为K的子序列
 
   排序 贪心
+  
+- 3330\.找到初始输入字符串I
+
+  签到 计数 思维
+
+- 3333\.找到初始输入字符串II
+
+  **多项式FFT(生成函数) / 背包+前缀和**
 
 ## 算法
 
@@ -17218,3 +17226,109 @@ func maxSubsequence(nums []int, k int) []int {
 }
 ```
 
+##### 3330\.找到初始输入字符串I
+
+[题目](https://leetcode.cn/problems/find-the-original-typed-string-i)
+
+```go
+func possibleStringCount(word string) (ans int) {
+	p := 0
+    n := len(word)
+	for i := 1; i < n; i++ {
+		if word[i] != word[i-1] {
+			ans += i - 1 - p
+			p = i
+		}
+	}
+    ans += n - p // +1 (not change)
+	return
+}
+```
+
+写法二：
+
+```go
+func possibleStringCount(word string) int {
+	ans := 1
+	for i := 1; i < len(word); i++ {
+		if word[i-1] == word[i] {
+			ans++
+		}
+	}
+	return ans
+}
+```
+
+##### 3333\.找到初始输入字符串II
+
+[题目](https://leetcode.cn/problems/find-the-original-typed-string-ii)
+
+连续长为 $p+1$ 的同一字母，可以删除 $0,1,\cdots,p$ 次，等价于一个多项式 $(1+x+x^2+\cdots+x^{p-1})$。将原字符串每一连续字母子串转化为一个多项式，问题等价于将全部多项式相乘，求其结果的第 $0,\cdots, n-k$ 次共 $n-k+1$ 个系数之和。
+
+> 朴素暴力，显然不行，一开始以为是 $k$ 个系数之和。
+
+根据生成函数，略。暴力代码如下。
+
+```c++
+const mod = int64(1e9 + 7)
+
+// 1 + x + x^2 + ... + x^{n-1}
+func poly(n int) []int64 {
+	a := make([]int64, n)
+	for i := 0; i < n; i++ {
+		a[i] = 1
+	}
+	return a
+}
+
+// 朴素多项式乘法(k位截断)，只保留[0,k)项的系数, O(k^2)
+func mul(a, b []int64, k int) []int64 {
+	c := make([]int64, k)
+	n, m := len(a), len(b)
+	for i := 0; i < n; i++ {
+		for j := 0; j < m && i+j < k; j++ {
+			c[i+j] = (c[i+j] + a[i]*b[j]) % mod
+		}
+	}
+	return c
+}
+
+// 该函数用于计算数组a的n次幂，并返回结果数组, O(k^2logn)
+func qpow(a []int64, n, k int) []int64 {
+	r := poly(1)
+	for ; n > 0; n >>= 1 {
+		if n&1 == 1 {
+			r = mul(r, a, k)
+		}
+		a = mul(a, a, k)
+	}
+	return r
+}
+
+func possibleStringCount(word string, k int) int {
+	c := map[int]int{}
+	p := 0
+	n := len(word)
+	for i := 1; i < n; i++ {
+		if word[i] != word[i-1] {
+			c[i-p]++
+			p = i
+		}
+	}
+	c[n-p]++
+
+	a := poly(1)
+    k = n - k + 1
+	for x, y := range c {
+		b := qpow(poly(x), y, k)
+		a = mul(a, b, k)
+	}
+	ans := int64(0)
+	for i := 0; i < k; i++ {
+		ans = (ans + a[i]) % mod
+	}
+	return int(ans)
+}
+```
+
+生成函数，见白神。略。看不懂。
