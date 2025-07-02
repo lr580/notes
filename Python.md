@@ -18405,6 +18405,16 @@ print(x[2].item(),type(x[2].item())) # 2, int
 src=src.contiguous()
 ```
 
+清理：
+
+```python
+import gc
+gc.collect()
+torch.cuda.empty_cache()
+```
+
+
+
 ##### 参数
 
 `nn.Parameter` 将张量标记为可学习的参数，使其在反向传播时被自动更新
@@ -18507,6 +18517,16 @@ NumPy 只能处理 CPU 上的数据，而 PyTorch 张量可能位于 GPU（如 `
 返回一个与原始张量共享数据但不参与梯度计算的新张量，不会复制数据，新张量仍然指向原存储位置。当需要将张量转换为 NumPy, Pandas 或进行纯数值计算时
 
 已经 detach 再做一次的话不会有变化。
+
+###### clip
+
+训练过程，梯度截断，如对每个 batch：
+
+```python
+torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+```
+
+
 
 #### 运算
 
@@ -18614,6 +18634,17 @@ x = torch.tensor([0, 1, 2]).reshape((3, 1))  # 列
 y = torch.tensor([0, 10]).reshape((1, 2))  # 变二维
 print(x+y)
 ```
+
+###### 类型转换
+
+```python
+import torch
+x = torch.tensor([1.5, 2.7, 3.9])
+x_long = x.long() # 等价于 x_long = x.to(torch.long)
+# 类似的方法如 .float(), .double(), .half(), .int()
+```
+
+
 
 ###### id
 
@@ -18926,7 +18957,13 @@ x=torch.randn(3,25,7,11) #若25改为45，则维度3,9,7,11,5
 x.unfold(1,5,5).shape #torch.Size([3, 5, 7, 11, 5])
 ```
 
+###### masked_fill_
 
+```python
+x.masked_fill_(input, mask, value)
+```
+
+mask 是布尔值张量，mask 值 True 的地方设置为 value
 
 ##### 线代
 
@@ -19181,6 +19218,29 @@ d2l.plt.legend()
   ```python
   D = torch.einsum('ik,jkl,il->ij', [A, B, C])
   ```
+
+> 注意力计算：根据 Q,K 相乘(把它变形为 BHLE, BHES)，后两维矩阵乘法算出 BHLS；用爱因斯坦求和简化这个操作，等价于
+>
+> ```python
+> scores = torch.matmul(
+>    queries.transpose(1, 2), 
+>    keys.transpose(1, 2).transpose(2, 3) 
+> )
+> # 上面等价于下面
+> scores = torch.einsum("blhe,bshe->bhls", queries, keys)
+> # ... softmax, scale 放缩略
+> ```
+>
+> 再次矩阵乘法，得到注意力值；即先交换 V 的维度(BSHD)为BHSD；让BHLS 与 BHSD 矩阵乘法，得到 BHLD 再恢复为 BLHD 形状
+>
+> ```python
+> attn_weights = A  # [B, H, L, S]
+> values_t = values.permute(0, 2, 1, 3)  # [B, S, H, D] -> [B, H, S, D]
+> weighted = torch.matmul(attn_weights, values_t)  # [B, H, L, D]
+> V = weighted.permute(0, 2, 1, 3)
+> # 上面等价于下面
+> V = torch.einsum("bhls,bshd->blhd", A, values)
+> ```
 
 
 
@@ -20077,6 +20137,8 @@ output_probabilities = F.softmax(input_scores, dim=0)
 print(output_probabilities) # tensor([0.6590, 0.2424, 0.0986])
 ```
 
+dim是多少，那就把其他非dim的维度看成下标，循环多次计算dim这一个维度的softmax
+
 ###### tanh
 
 hyperbolic tangent
@@ -20230,7 +20292,12 @@ import torch.optim as optim
 optimizer = optim.Adam(model.parameters(), lr=0.001)  # 优化器
 ```
 
-Adam优化器使用L2正则化 weight_decay
+Adam优化器使用L2正则化 weight_decay，普通的梯度更新如：
+
+```python
+grad = gradient + weight_decay * param
+param = param - lr * m_hat / (sqrt(v_hat) + eps)
+```
 
 ##### AdamW
 
@@ -20239,6 +20306,14 @@ self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rat
 ```
 
 AdamW优化器作为Adam优化器改进版，它将权重衰减与梯度更新解耦，直接应用于参数本身，而不是通过梯度修改
+
+```
+grad = gradient
+m_hat, v_hat = ... 
+param = param - lr * (m_hat / (sqrt(v_hat) + eps) + weight_decay * param)
+```
+
+
 
 ##### 调度器
 
@@ -20283,9 +20358,24 @@ for epoch in range(epochs):
     scheduler.step()
 ```
 
+自定义：学习率因子x初始学习率=真实学习率；warmup 从 0 线性增长(学习率因子增长到1)；之后从1到0余弦衰减
 
+```python
+def get_lr_scheduler(optimizer):
+    def lr_lambda(current_step):
+        if current_step < warmup_steps:
+            return float(current_step) / float(max(1, warmup_steps))
+        progress = float(current_step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+        return max(0.0, 0.5 * (1.0 + math.cos(math.pi * progress)))
+    
+    return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
-##### 超参数搜索
+scheduler = get_lr_scheduler(optimizer)
+```
+
+##### 超参数
+
+##### 搜索
 
 > 有论文有 Tree-structured Parzen Estimator (TPE) 2011
 

@@ -17344,66 +17344,202 @@ func possibleStringCount(word string) int {
 
 根据生成函数，略。暴力代码如下。
 
-```c++
-const mod = int64(1e9 + 7)
+> ```c++
+> const mod = int64(1e9 + 7)
+> 
+> // 1 + x + x^2 + ... + x^{n-1}
+> func poly(n int) []int64 {
+> 	a := make([]int64, n)
+> 	for i := 0; i < n; i++ {
+> 		a[i] = 1
+> 	}
+> 	return a
+> }
+> 
+> // 朴素多项式乘法(k位截断)，只保留[0,k)项的系数, O(k^2)
+> func mul(a, b []int64, k int) []int64 {
+> 	c := make([]int64, k)
+> 	n, m := len(a), len(b)
+> 	for i := 0; i < n; i++ {
+> 		for j := 0; j < m && i+j < k; j++ {
+> 			c[i+j] = (c[i+j] + a[i]*b[j]) % mod
+> 		}
+> 	}
+> 	return c
+> }
+> 
+> // 该函数用于计算数组a的n次幂，并返回结果数组, O(k^2logn)
+> func qpow(a []int64, n, k int) []int64 {
+> 	r := poly(1)
+> 	for ; n > 0; n >>= 1 {
+> 		if n&1 == 1 {
+> 			r = mul(r, a, k)
+> 		}
+> 		a = mul(a, a, k)
+> 	}
+> 	return r
+> }
+> 
+> func possibleStringCount(word string, k int) int {
+> 	c := map[int]int{}
+> 	p := 0
+> 	n := len(word)
+> 	for i := 1; i < n; i++ {
+> 		if word[i] != word[i-1] {
+> 			c[i-p]++
+> 			p = i
+> 		}
+> 	}
+> 	c[n-p]++
+> 
+> 	a := poly(1)
+>     k = n - k + 1
+> 	for x, y := range c {
+> 		b := qpow(poly(x), y, k)
+> 		a = mul(a, b, k)
+> 	}
+> 	ans := int64(0)
+> 	for i := 0; i < k; i++ {
+> 		ans = (ans + a[i]) % mod
+> 	}
+> 	return int(ans)
+> }
+> ```
+>
 
-// 1 + x + x^2 + ... + x^{n-1}
-func poly(n int) []int64 {
-	a := make([]int64, n)
-	for i := 0; i < n; i++ {
-		a[i] = 1
-	}
-	return a
-}
+> 经过反问题改造：还是 TLE
+>
+> ```go
+> const mod = int64(1e9 + 7)
+> 
+> // 1 + x + x^2 + ... + x^{n-1}
+> func poly(n int) []int64 {
+> 	a := make([]int64, n)
+> 	for i := 0; i < n; i++ {
+> 		a[i] = 1
+> 	}
+> 	return a
+> }
+> 
+> // 朴素多项式乘法(k位截断)，只保留[0,k)项的系数, O(k^2)
+> func mul(a, b []int64, k int) []int64 {
+> 	c := make([]int64, k)
+> 	n, m := len(a), len(b)
+> 	for i := 0; i < n; i++ {
+> 		for j := 0; j < m && i+j < k; j++ {
+> 			c[i+j] = (c[i+j] + a[i]*b[j]) % mod
+> 		}
+> 	}
+> 	return c
+> }
+> 
+> // 该函数用于计算数组a的n次幂，并返回结果数组, O(k^2logn)
+> func qpow(a []int64, n, k int) []int64 {
+> 	r := poly(1)
+> 	for ; n > 0; n >>= 1 {
+> 		if n&1 == 1 {
+> 			r = mul(r, a, k)
+> 		}
+> 		a = mul(a, a, k)
+> 	}
+> 	return r
+> }
+> 
+> func possibleStringCount(word string, k int) int {
+> 	c := map[int]int{}
+> 	p := 0
+> 	n := len(word)
+> 	total := int64(1)
+>     m := 1
+> 	for i := 1; i < n; i++ {
+> 		if word[i] != word[i-1] {
+> 			c[i-p]++
+>             total = total * int64(i-p) % mod
+> 			p = i
+>             m++
+> 		}
+> 	}
+> 	c[n-p]++
+>     total = total * int64(n-p) % mod
+> 
+> 	a := poly(1)
+> 	k = k - m
+>     if k <= 0 {
+>         return int(total)
+>     }
+> 	for x, y := range c {
+> 		b := qpow(poly(x), y, k)
+> 		a = mul(a, b, k)
+> 	}
+> 	ans := int64(0)
+> 	for i := 0; i < k; i++ {
+> 		ans = (ans + a[i]) % mod
+> 	}
+> 	return int((total - ans + mod) % mod)
+> }
+> ```
 
-// 朴素多项式乘法(k位截断)，只保留[0,k)项的系数, O(k^2)
-func mul(a, b []int64, k int) []int64 {
-	c := make([]int64, k)
-	n, m := len(a), len(b)
-	for i := 0; i < n; i++ {
-		for j := 0; j < m && i+j < k; j++ {
-			c[i+j] = (c[i+j] + a[i]*b[j]) % mod
-		}
-	}
-	return c
-}
+生成函数，见白神。略。看不懂。
 
-// 该函数用于计算数组a的n次幂，并返回结果数组, O(k^2logn)
-func qpow(a []int64, n, k int) []int64 {
-	r := poly(1)
-	for ; n > 0; n >>= 1 {
-		if n&1 == 1 {
-			r = mul(r, a, k)
-		}
-		a = mul(a, a, k)
-	}
-	return r
-}
+多重背包，连续字符串是一种物品，每个物品有长度-1个。设 $f_{i,j}$ 表示前 $i$ 种物品选至多 $j$ 个。显然 $f_{0,j}=1$，即多项式 $(1+x+\cdots)$。设当前第 $i$ 组物品有 $c$ 个，显然，转移方程为：$f_{i,j}=\sum_{L=0}^cf_{i-1}[j-L]$。令 $p=j-L$，有：$f_{i,j}=\sum_{p=\max(0,j-c)}^jf_{i-1,p}$，使用前缀和优化 $f_{i-1}$，可以 $O(1)$ 递推。
 
+总原串数是，每个连续子串的方案数相乘。分为两部分：原串长度 >=k 和 <k。只需要求 <k 的即可。设最小原串的长度是 $m$，即组的个数。则可以认为是选择 +1，故答案为 $f_{m,k-1-m}$。
+
+```go
 func possibleStringCount(word string, k int) int {
-	c := map[int]int{}
-	p := 0
-	n := len(word)
-	for i := 1; i < n; i++ {
-		if word[i] != word[i-1] {
-			c[i-p]++
-			p = i
+	if len(word) < k { // 无法满足要求
+		return 0
+	}
+
+	const mod = 1_000_000_007
+	cnts := []int{}
+	ans := 1
+	cnt := 0
+	for i := range word {
+		cnt++
+		if i == len(word)-1 || word[i] != word[i+1] {
+			// 如果 cnt = 1，这组字符串必选，无需参与计算
+			if cnt > 1 {
+				if k > 0 {
+					cnts = append(cnts, cnt-1)
+				}
+				ans = ans * cnt % mod
+			}
+			k-- // 注意这里把 k 减小了
+			cnt = 0
 		}
 	}
-	c[n-p]++
 
-	a := poly(1)
-    k = n - k + 1
-	for x, y := range c {
-		b := qpow(poly(x), y, k)
-		a = mul(a, b, k)
+	if k <= 0 {
+		return ans
 	}
-	ans := int64(0)
-	for i := 0; i < k; i++ {
-		ans = (ans + a[i]) % mod
+
+	m := len(cnts)
+	f := make([][]int, m+1)
+	for i := range f {
+		f[i] = make([]int, k)
 	}
-	return int(ans)
+	for i := range f[0] {
+		f[0][i] = 1
+	}
+
+	s := make([]int, k+1)
+	for i, c := range cnts {
+		// 计算 f[i] 的前缀和数组 s
+		for j, v := range f[i] {
+			s[j+1] = s[j] + v
+		}
+		// 计算子数组和
+		for j := range f[i+1] {
+			f[i+1][j] = (s[j+1] - s[max(j-c, 0)]) % mod
+		}
+	}
+
+	return (ans - f[m][k-1] + mod) % mod // 保证结果非负
 }
 ```
 
-生成函数，见白神。略。看不懂。
+
+
+
+
