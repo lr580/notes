@@ -3139,6 +3139,7 @@
 - 594\.最长和谐子序列
 
   签到 STL
+  
 - 3330\.找到初始输入字符串I
 
   签到 计数 思维
@@ -3146,6 +3147,14 @@
 - 3333\.找到初始输入字符串II
 
   **多项式FFT(生成函数) / 背包+前缀和**
+  
+- 3304\.找出第K个字符I
+
+  签到
+
+- 3307\.找出第K个字符II
+
+  递归(位运算)
 
 ## 算法
 
@@ -17539,7 +17548,117 @@ func possibleStringCount(word string, k int) int {
 }
 ```
 
+##### 3304\.找出第K个字符I
 
+[题目](https://leetcode.cn/problems/find-the-k-th-character-in-string-game-i)
+
+预处理。
+
+```go
+package main
+
+var a [501]byte
+
+func init() {
+	k := 500
+	n := 1
+	a[0] = 0
+	for n < k {
+		for i, n0, j := 0, n, n; j < k && i < n0; i, j = i+1, j+1 {
+			a[j] = (a[i] + 1) % 26
+		}
+        n*=2
+	}
+}
+
+func kthCharacter(k int) byte {
+	return a[k-1] + 'a'
+}
+```
+
+二进制有几个1，答案就+多少。
+
+```python
+func kthCharacter(k int) byte {
+	return 'a' + byte(bits.OnesCount(uint(k-1)))
+}
+```
+
+##### 3307\.找出第K个字符II
+
+[题目](https://leetcode.cn/problems/find-the-k-th-character-in-string-game-ii)
+
+使用递归+指针，从高往低枚举，看看从起点怎么走到终点。
+
+```python
+package main
+
+func kthCharacter(k int64, operations []int) byte {
+	var dfs func(m, t int64) byte
+	dfs = func(m, t int64) byte {
+		if m == 1 {
+			return 0
+		}
+		for 1<<t >= m {
+			t--
+		}
+		prv := dfs(m-(1<<t), t)
+		if operations[t] == 1 {
+			prv = (prv + 1) % 26
+		}
+		return prv
+	}
+	return dfs(k, int64(60)) + 'a'
+}
+```
+
+```go
+func kthCharacter(k int64, operations []int) byte {
+	n := len(operations)
+	if n == 0 {
+		return 'a'
+	}
+	n-- // 注意这里减一了
+	op := operations[n]
+	operations = operations[:n]
+	if n >= 63 || k <= 1<<n { // k 在左半边
+		return kthCharacter(k, operations)
+	}
+	// k 在右半边
+	ans := kthCharacter(k-1<<n, operations)
+	return 'a' + (ans-'a'+byte(op))%26
+}
+```
+
+枚举法：从高到低
+
+```go
+func kthCharacter(k int64, operations []int) byte {
+	inc := 0
+	for i := bits.Len(uint(k-1)) - 1; i >= 0; i-- {
+		if k > 1<<i { // k 在右半边
+			inc += operations[i]
+			k -= 1 << i
+		}
+	}
+	return 'a' + byte(inc%26)
+}
+```
+
+从低到高：
+
+```go
+func kthCharacter(k int64, operations []int) byte {
+	k--
+	inc := 0
+	for i, op := range operations[:bits.Len(uint(k))] {
+		if k>>i&1 > 0 {
+			inc += op
+		} // inc += int(k) >> i & op
+	}
+	return 'a' + byte(inc%26)
+}
+```
 
 
 
