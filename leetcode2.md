@@ -3155,6 +3155,18 @@
 - 3307\.找出第K个字符II
 
   递归(位运算)
+  
+- 1394\.找出数组中的幸运数
+
+  签到
+  
+- 1865\.找出和为指定值的下标对
+
+  数据结构(STL, 哈希) 枚举
+  
+- 1353\.最多可以参加的会议数目
+
+  **排序 贪心 STL(堆)/并查集**
 
 ## 算法
 
@@ -17657,6 +17669,152 @@ func kthCharacter(k int64, operations []int) byte {
 		} // inc += int(k) >> i & op
 	}
 	return 'a' + byte(inc%26)
+}
+```
+
+##### 1394\.找出数组中的幸运数
+
+[题目](https://leetcode.cn/problems/find-lucky-integer-in-an-array)
+
+```go
+package main
+
+var b [501]int
+
+func findLucky(arr []int) int {
+	for _, v := range arr {
+		b[v]++
+	}
+	ans := -1
+	for _, v := range arr {
+		if v == b[v] && v > ans {
+			ans = v
+		}
+	}
+	for _, v := range arr {
+		b[v]--
+	}
+	return ans
+}
+```
+
+##### 1865\.找出和为指定值的下标对
+
+[题目](https://leetcode.cn/problems/finding-pairs-with-a-certain-sum)
+
+枚举左，哈希右。右原数组也要更新。
+
+```go
+type FindSumPairs struct {
+	a, b map[int]int
+	br   []int
+}
+
+func Constructor(nums1 []int, nums2 []int) FindSumPairs {
+	a := map[int]int{}
+	b := map[int]int{}
+	br := nums2
+	for _, v := range nums1 {
+		a[v]++
+	}
+	for _, v := range nums2 {
+		b[v]++
+	}
+	return FindSumPairs{a, b, br}
+}
+
+func (this *FindSumPairs) Add(index int, val int) {
+	x := this.br[index]
+	this.b[x]--
+	x += val
+    this.br[index] = x
+	this.b[x]++
+}
+
+func (this *FindSumPairs) Count(tot int) (ans int) {
+	for k, v := range this.a {
+		ans += v * this.b[tot-k]
+	}
+	return
+}
+
+/**
+ * Your FindSumPairs object will be instantiated and called as such:
+ * obj := Constructor(nums1, nums2);
+ * obj.Add(index,val);
+ * param_2 := obj.Count(tot);
+ */
+```
+
+##### 1353\.最多可以参加的会议数目
+
+[题目](https://leetcode.cn/problems/maximum-number-of-events-that-can-be-attended)
+
+有空再仔细看。
+
+```c++
+class Solution {
+public:
+    int maxEvents(vector<vector<int>>& events) {
+        int mx = 0;
+        for (auto& e : events) {
+            mx = max(mx, e[1]);
+        }
+
+        // 按照开始时间分组
+        vector<vector<int>> groups(mx + 1);
+        for (auto& e : events) {
+            groups[e[0]].push_back(e[1]);
+        }
+
+        int ans = 0;
+        priority_queue<int, vector<int>, greater<>> pq;
+        for (int i = 0; i <= mx; i++) {
+            // 删除过期会议
+            while (!pq.empty() && pq.top() < i) {
+                pq.pop();
+            }
+            // 新增可以参加的会议
+            for (int end_day : groups[i]) {
+                pq.push(end_day);
+            }
+            // 参加一个结束时间最早的会议
+            if (!pq.empty()) {
+                ans++;
+                pq.pop();
+            }
+        }
+        return ans;
+    }
+};
+```
+
+```go
+func maxEvents(events [][]int) (ans int) {
+    slices.SortFunc(events, func(a, b []int) int { return a[1] - b[1] })
+
+    mx := events[len(events)-1][1]
+    fa := make([]int, mx+2)
+    for i := range fa {
+        fa[i] = i
+    }
+
+    var find func(int) int
+    find = func(x int) int {
+        if fa[x] != x {
+            fa[x] = find(fa[x])
+        }
+        return fa[x]
+    }
+
+    for _, e := range events {
+        x := find(e[0]) // 查找从 startDay 开始的第一个可用天
+        if x <= e[1] {
+            ans++
+            fa[x] = x + 1 // 标记 x 已占用
+        }
+    }
+    return
 }
 ```
 

@@ -9962,6 +9962,14 @@ feature  [12, 34, 56]  [87, 65, 43]
 label               0             1'''
 ```
 
+###### dict
+
+设 students 的 dict，其 key 是学号，value还是dict，是键值对。转为有学号列和其他列的表。
+
+```python
+df = pd.DataFrame.from_dict(students, orient='index')
+```
+
 ###### low_memory
 
 默认 True，即：根据文件的一些推测来分配数据的类型，以降低内存使用量。
@@ -9984,6 +9992,9 @@ index=True/False 控制是否有行索引，默认 true
 with pd.ExcelWriter("pca_result.xlsx") as writer:
     data.to_excel(writer, index=True) #单个表单
 ```
+
+- index=False：表示保存Excel文件时不写入行索引（即最左侧的0,1,2...这列数字）
+- 如果设为 `index=True`（默认值），则会将DataFrame的自动生成的行索引作为第一列保存
 
 > excel 转 csv:
 >
@@ -10098,6 +10109,13 @@ print(df.tail(3))
 print(df.sample(3))
 ```
 
+列重排序
+
+```python
+column_order = ['学号', '姓名', '考勤']
+df = df[column_order]
+```
+
 
 
 ##### 行
@@ -10174,6 +10192,8 @@ print(np.shares_memory(df, df_copy))  # False
 
 取下标
 
+按列遍历
+
 ```python
 t2 = {"features": [1, 4, 5], "label": [0, 1, 0] }
 df2 = pd.DataFrame(t2)
@@ -10182,6 +10202,17 @@ for j, row in df2.items(): # j: 列名
     for i, v in row.items(): # i : 行号
         print(j, i, v) # features 0 1
 ```
+
+按行遍历
+
+```python
+for i, row in df_homework1.iterrows():
+    # print(row)
+    stu_id = row['学号'] # 如取列
+    score = row['总分']
+```
+
+
 
 ##### 索引
 
