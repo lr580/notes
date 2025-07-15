@@ -3167,6 +3167,14 @@
 - 1353\.最多可以参加的会议数目
 
   **排序 贪心 STL(堆)/并查集**
+  
+- 3136\.有效单词
+
+  签到
+  
+- 3201\.找出有效子序列的最大长度I
+
+  贪心 分类讨论
 
 ## 算法
 
@@ -17818,5 +17826,106 @@ func maxEvents(events [][]int) (ans int) {
 }
 ```
 
+##### 3136\.有效单词
 
+[题目](https://leetcode.cn/problems/valid-word)
+
+mine:
+
+```go
+func isValid(word string) bool {
+    if (len(word) < 3) {
+        return false;
+    }
+    has1, has2 := false, false
+    target := "AEIOUaeiou"
+    for _, v := range word {
+        if !(('0'<=v&&v<='9') || ('a'<=v&&v<='z') || ('A'<=v&&v<='Z')) {
+            return false;
+        }
+        if ('a'<=v&&v<='z') || ('A'<=v&&v<='Z') {
+            isTarget := false
+            for _, u := range target {
+                if u == v {
+                    isTarget = true
+                }
+            }
+            if isTarget {
+                has2 = true
+            } else {
+                has1 = true
+            }
+        }
+    }
+    return has1 && has2
+}
+```
+
+库函数：
+
+```go
+func isValid(word string) bool {
+	if len(word) < 3 {
+		return false
+	}
+	var f0, f1 bool
+	for _, c := range word {
+		if unicode.IsLetter(c) {
+			if strings.ContainsRune("aeiou", unicode.ToLower(c)) {
+				f1 = true
+			} else {
+				f0 = true
+			}
+		} else if !unicode.IsDigit(c) {
+			return false
+		}
+	}
+	return f0 && f1
+}
+```
+
+##### 3201\.找出有效子序列的最大长度I
+
+[题目](https://leetcode.cn/problems/find-the-maximum-length-of-valid-subsequence-i)
+
+只有3种情况：全部奇数、全部偶数、奇偶交叉
+
+```go
+func maximumLength(nums []int) (ans int) {
+    prv := (nums[0]%2)^1
+    ex, odd, even := 0, 0, 0
+    for _, v := range nums {
+        if v%2 != prv {
+            prv ^= 1
+            ex++
+        }
+        if v%2==0 {
+            odd++
+        } else {
+            even++
+        }
+    }
+    ans = max(odd, even)
+    ans = max(ans, ex)
+    ans = max(ans, 2)
+    return
+}
+```
+
+```go
+func maximumLength(nums []int) int {
+    res := 0
+    patterns := [][]int{{0, 0}, {0, 1}, {1, 0}, {1, 1}}
+    for _, pattern := range patterns {
+        cnt := 0
+        for _, num := range nums {
+            if num % 2 == pattern[cnt % 2] {
+                cnt++
+            }
+        }
+        res = max(res, cnt)
+    }
+    return res
+}
+```
 
