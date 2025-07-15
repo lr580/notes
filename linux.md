@@ -5995,6 +5995,12 @@ service vsftpd restart
 
 `wget -O wa.txt ftp://192.168.4.5/pub/anon.txt`
 
+可以保存，中断继续：可以不输出进度(输出也行)
+
+```sh
+wget --no-verbose --continue 'https://datasets.clickhouse.com/hits_compatible/hits.tsv.gz'
+```
+
 
 
 ##### httpd

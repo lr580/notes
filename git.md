@@ -861,6 +861,13 @@ git pull 远程仓库名 远程分支名
 > git@github.com:985892345/ExpressManagementSystem.git
 > ```
 
+拉取分支：ssh 和 https 方法 (实际上是一样的)
+
+```sh
+git clone -b vldbss-2025 https://github.com/oceanbase/miniob.git
+git clone -b vldbss-2025 git@github.com:oceanbase/miniob.git
+```
+
 
 
 如果获取失败，要指定本地分支和远程分支的链接
@@ -913,12 +920,6 @@ git init
 git fetch git@github.com:rushcheyo/AHOI-2021-junior.git
 git checkout solution.pdf
 ```
-
-
-
-
-
-
 
 #### 克隆
 
@@ -1272,7 +1273,57 @@ git push 远程仓库名 --tags #同步所有
 git push 远程仓库名 :refs/tag/标签名 #远程删除
 ```
 
+### 子模块
 
+submodule，在一个 Git 仓库中嵌套另一个 Git 仓库的功能。它允许将外部代码库作为项目的一部分进行管理，同时保持独立的版本控制
+
+#### 添加
+
+```sh
+git submodule add <远程仓库URL> <本地路径>
+```
+
+如：
+
+```sh
+git submodule add https://github.com/p-ranav/csv2 deps/3rd/csv2
+```
+
+如果被 `.gitignore` 忽略了目标路径，可以 `add -f`。需要用某个分支，[参考]([git入门之submodule的使用_git submodule-CSDN博客](https://blog.csdn.net/xinghaitao2005/article/details/147998685)) 用 `-b 分支名`。
+
+执行后，会写入 生成 `.gitmodules`。
+
+#### 列举
+
+查看所有子模块
+
+```sh
+git submodule status
+```
+
+#### .gitmodules
+
+有 `.gitmodules`。其配置格式如：
+
+```ini
+[submodule "deps/3rd/googletest"]
+	path = deps/3rd/googletest
+	url = https://github.com/google/googletest
+```
+
+也可以基于这个文件来做子模块 CRUD。
+
+> 其他指令，如更新子模块 (init, update)、删除子模块 (deinit)，用到再记录。
+
+#### 删除
+
+deinit 和 git 删除和文件删除
+
+```sh
+git submodule deinit -f deps/3rd/csv2
+git rm -f deps/3rd/csv2
+rm -rf .git/modules/deps/3rd/csv2
+```
 
 ## 其他命令
 
