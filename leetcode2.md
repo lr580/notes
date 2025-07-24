@@ -3203,6 +3203,22 @@
 - 2322\.从树中删除边的最小分数
 
   LCA 枚举
+  
+- 3487\.删除后的最大子数组元素和
+
+  STL 签到 贪心
+
+- 1290\.二进制链表转整数
+
+  签到
+
+- 2410\.运动员和训练师的最大匹配数
+
+  排序 双指针 贪心
+
+- 3169\.无需开会的工作日
+
+  排序 指针(区间)
 
 ## 算法
 
@@ -18519,3 +18535,193 @@ func minimumScore(nums []int, edges [][]int) int {
 ##### 3202\.找出有效子序列的最大长度II
 
 [题目](https://leetcode.cn/problems/find-the-maximum-length-of-valid-subsequence-ii)
+
+两种 DP。看 0 神。略。反正不算特别难吧。倒是可以学学。
+
+余数+最后一项。不同的余数等价于独立的问题，做模值域次DP。
+
+```go
+func maximumLength(nums []int, k int) (ans int) {
+	f := make([]int, k)
+	for m := 0; m < k; m++ {
+		clear(f)
+		for _, x := range nums {
+			x %= k
+			f[x] = f[(m-x+k)%k] + 1
+			ans = max(ans, f[x])
+		}
+	}
+	return
+}
+```
+
+或者按最后两项更新。
+
+```python
+class Solution:
+    def maximumLength(self, nums: List[int], k: int) -> int:
+        f = [[0] * k for _ in range(k)]
+        for x in nums:
+            x %= k
+            for y, fxy in enumerate(f[x]):
+                f[y][x] = fxy + 1
+        return max(map(max, f))
+```
+
+##### 3487\.删除后的最大子数组元素和
+
+[题目](https://leetcode.cn/problems/maximum-unique-subarray-sum-after-deletion)
+
+```java
+import java.util.HashSet;
+class Solution {
+    public int maxSum(int[] nums) {
+        HashSet<Integer> m = new HashSet<>();
+        int mx = (int)-1e9;
+        for(int x:nums) {
+            mx=Math.max(x,mx);
+        }
+        if(mx<=0) {
+            return mx;
+        }
+        int s = 0;
+        for(int x:nums) {
+            if(x>0&&!m.contains(x)) {
+                m.add(x);
+                s += x;
+            }
+        }
+        return s;
+    }
+}
+```
+
+##### 1290\.二进制链表转整数
+
+[题目](https://leetcode.cn/problems/convert-binary-number-in-a-linked-list-to-integer)
+
+```go
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+func getDecimalValue(head *ListNode) (ans int) {
+    for nil != head {
+        ans = (ans<<1)+head.Val
+        head=head.Next
+    }
+    return 
+}
+```
+
+##### 2410\.运动员和训练师的最大匹配数
+
+[题目](https://leetcode.cn/problems/maximum-matching-of-players-with-trainers)
+
+最大的训练员，找到最大能匹配的运动员。不断如此。
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int matchPlayersAndTrainers(int[] players, int[] trainers) {
+        Arrays.sort(players);
+        Arrays.sort(trainers);
+        int ans = 0;
+        int n = players.length, m = trainers.length;
+        int i=n-1;
+        for(int j=m-1;j>=0;j--) {
+            while(i>=0&&players[i]>trainers[j]) {
+                i--;
+            }
+            if(i>=0) {
+                i--;
+                ans++;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+或者，顺序枚举运动员，找到第一个能要的训练员。
+
+```python
+class Solution:
+    def matchPlayersAndTrainers(self, players: List[int], trainers: List[int]) -> int:
+        players.sort()
+        trainers.sort()
+        j, m = 0, len(trainers)
+        for i, p in enumerate(players):
+            while j < m and trainers[j] < p:
+                j += 1
+            if j == m:  # 无法找到匹配的训练师
+                return i
+            j += 1  # 匹配一位训练师
+        return len(players)  # 所有运动员都有匹配的训练师
+```
+
+或者，顺序枚举训练员，找到第一个能带的运动员。
+
+```python
+class Solution:
+    def matchPlayersAndTrainers(self, players: List[int], trainers: List[int]) -> int:
+        players.sort()
+        trainers.sort()
+        j, m = 0, len(players)
+        for t in trainers:
+            if j < m and players[j] <= t:
+                j += 1
+        return j
+```
+
+##### 3169\.无需开会的工作日
+
+[题目](https://leetcode.cn/problems/count-days-without-meetings)
+
+排序+区间维护。
+
+```java
+import java.util.Arrays;
+import java.util.Comparator;
+
+class Solution {
+    public int countDays(int days, int[][] meetings) {
+        Arrays.sort(meetings, Comparator.comparingInt(a -> a[0]));
+        int lastR = 0, s = 0;
+        for(int[] meeting : meetings) {
+            int l = meeting[0], r = meeting[1];
+            if(l>lastR) {
+                s+=l-lastR;
+            }
+            lastR = Math.max(lastR, r);
+        }
+        return s;
+    }
+}
+```
+
+也可以反向计算。求区间并的长。
+
+```java
+class Solution {
+    public int countDays(int days, int[][] meetings) {
+        Arrays.sort(meetings, (p, q) -> p[0] - q[0]); // 按照左端点从小到大排序
+        int start = 1, end = 0; // 当前合并区间的左右端点
+        for (int[] p : meetings) {
+            if (p[0] > end) { // 不相交
+                days -= end - start + 1; // 当前合并区间的长度
+                start = p[0]; // 下一个合并区间的左端点
+            }
+            end = Math.max(end, p[1]);
+        }
+        days -= end - start + 1; // 最后一个合并区间的长度
+        return days;
+    }
+}
+```
+
+
+

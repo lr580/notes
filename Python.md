@@ -10081,6 +10081,8 @@ df.to_json('t_values.json', orient='values', force_ascii=False)
 
 取所有列(含下表列) `df.columns`，取指定列，可以 for 和取下标，得 str，可以 `.tolist()`
 
+> 构造时指定列及其列名：`df = pd.DataFrame(columns=str列表)`
+
 删一列 `df.drop(columns=['col1'])`，或 `df.drop(['col1'], axis=1)`，就地则 `inplace=True`。甚至可以 `del df['col1']`
 
 > 取一列外的全部列：`df.loc[:, df.columns != 'col1']` 或 `df[df.columns.difference(['要排除的列名'])]`
@@ -10120,8 +10122,6 @@ column_order = ['学号', '姓名', '考勤']
 df = df[column_order]
 ```
 
-
-
 ##### 行
 
 > 逐行遍历：`.iterrows()`，返回 `(idx,row)`，row 可以  `.列名`(不用引号)取值
@@ -10138,6 +10138,14 @@ df = df[column_order]
 > ```python
 > df = df[~df.apply(lambda x: x > 11000).any(axis=1)]
 > ```
+
+插入行：(行索引 row name，如是字符串；values 是行数值列表)
+
+```python
+df.loc[row_name] = values
+```
+
+
 
 ##### 元素
 
@@ -17660,39 +17668,47 @@ similarity_matrix = cosine_similarity(vectors)
 print(similarity_matrix) # 4x4
 ```
 
-##### 其他例子
+##### 多分类
+
+| 方法         | 数学意义               | 适用场景                   |
+| ------------ | ---------------------- | -------------------------- |
+| **Macro**    | 所有类别的平等平均     | 需要平等关注每个类别       |
+| **Micro**    | 全体样本的全局统计量   | 类别平衡或关注整体性能     |
+| **Weighted** | 按样本量加权的类别平均 | 类别不平衡且需考虑样本分布 |
+
+公式，以 P 为例：
+$$
+P_{\text{macro}} = \frac{1}{C} \sum_{i=1}^{C} P_i, \quad \text{其中 } P_i = \frac{TP_i}{TP_i + FP_i}\\
+P_{\text{micro}} = \frac{\sum_{i=1}^{C} TP_i}{\sum_{i=1}^{C} (TP_i + FP_i)}\\
+P_{\text{weighted}} = \sum_{i=1}^{C} w_i P_i, \quad \text{其中 } w_i = \frac{n_i}{N}, \ n_i \text{为类别 } i \text{ 的样本数}, N=\sum_{i=1}^{C} n_i
+$$
+假设系 numpy 一维数组预测值和实际值 (0开始)
 
 ```python
-import numpy as np
-import pandas as pd
-from sklearn.ensemble import RandomForestClassifier # 导入随机森林模型
-from sklearn.model_selection import train_test_split  # 导入数据集划分模块
-import matplotlib.pyplot as plt
-from sklearn.metrics import roc_auc_score
-from sklearn.metrics import classification_report
+from sklearn.metrics import *
+accuracy = accuracy_score(y_true, y_pred)
+print(f"Accuracy: {accuracy:.4f}")
 
-data_path ='/data/bigfiles/6e36e995-2472-4362-8f4e-bae6da732da2'
-df = pd.read_csv(data_path,sep=';')
-features=pd.get_dummies(df.iloc[:,:-1])
+precision_macro = precision_score(y_true, y_pred, average='macro')
+precision_micro = precision_score(y_true, y_pred, average='micro')
+precision_weighted = precision_score(y_true, y_pred, average='weighted')
+print(f"Precision (macro): {precision_macro:.4f}")
+print(f"Precision (micro): {precision_micro:.4f}")
+print(f"Precision (weighted): {precision_weighted:.4f}")
 
-df['y'] = df['y'].replace(to_replace=['no', 'yes'], value=[0, 1])
-labels=df.loc[:,'y']
+recall_macro = recall_score(y_true, y_pred, average='macro')
+recall_micro = recall_score(y_true, y_pred, average='micro')
+recall_weighted = recall_score(y_true, y_pred, average='weighted')
+print(f"Recall (macro): {recall_macro:.4f}")
+print(f"Recall (micro): {recall_micro:.4f}")
+print(f"Recall (weighted): {recall_weighted:.4f}")
 
-x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=1)# 按4：1的比例划分训练和测试集
-
-# 任务4. 构建模型， 并对训练集X_train训练
-RFC=RandomForestClassifier(n_estimators=164,random_state=90)
-RFC.fit(x_train,y_train)
-
-print('\n训练集上的得分为：{}'.format(RFC.score(x_train,y_train)))# 给出训练的精度
-x_pre_test=RFC.predict(x_test)# 对于测试集x_test进行预测
-print(classification_report(y_test, x_pre_test))# 其他指标计算
-
-
-x_pro_test = RFC.predict_proba(x_test)# 预测测试集概率值
-print("验证集的预测可能性：{}".format(x_pro_test))
-auc=roc_auc_score(y_test, x_pro_test[:, 1])#计算验证集的auc值,参数为预测值和概率估计
-print("auc的值：{}".format(auc))
+f1_macro = f1_score(y_true, y_pred, average='macro')
+f1_micro = f1_score(y_true, y_pred, average='micro')
+f1_weighted = f1_score(y_true, y_pred, average='weighted')
+print(f"F1 Score (macro): {f1_macro:.4f}")
+print(f"F1 Score (micro): {f1_micro:.4f}")
+print(f"F1 Score (weighted): {f1_weighted:.4f}")
 ```
 
 
