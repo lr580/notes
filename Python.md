@@ -9802,7 +9802,11 @@ data = pd.read_excel('pca_data.xlsx',index_col=0)
 data_1_xlsx = pd.read_excel('/home/project/2022_january.xlsx', skiprows=4,index_col=2)
 ```
 
+只读一部分列(如第一三列)，自定义表头，跳过第一行表头。
 
+```python
+hw_df = pd.read_excel('homeworkfinal.xlsx', header=None, skiprows=1, usecols=[0, 2], names=['学号', '分数'])
+```
 
 ###### json
 

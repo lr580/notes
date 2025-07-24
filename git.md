@@ -868,6 +868,12 @@ git clone -b vldbss-2025 https://github.com/oceanbase/miniob.git
 git clone -b vldbss-2025 git@github.com:oceanbase/miniob.git
 ```
 
+`--depth=1` 是 `git clone` 命令的一个非常有用的选项，它用于创建一个"浅克隆"(shallow clone)，`--depth=1` 表示只克隆仓库的最新提交历史(HEAD)，不包含完整的历史记录。
+
+```sh
+git clone https://github.com/oceanbase/oceanbase --depth=1 -b vldbss-2025
+```
+
 
 
 如果获取失败，要指定本地分支和远程分支的链接

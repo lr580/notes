@@ -3175,6 +3175,34 @@
 - 3201\.找出有效子序列的最大长度I
 
   贪心 分类讨论
+  
+- 3202\.找出有效子序列的最大长度II
+
+  DP
+  
+- 1957\.删除字符使字符串变好
+
+  签到
+
+- 1948\.删除系统中的重复文件夹
+
+  树哈希 / 字典树
+
+- 1695\.删除子数组的最大得分
+
+  滑动窗口
+
+- 1233\.删除子文件夹
+
+  字符串哈希 / 排序
+  
+- 1717\.删除子字符串的最大得分
+
+  **贪心**
+  
+- 2322\.从树中删除边的最小分数
+
+  LCA 枚举
 
 ## 算法
 
@@ -17929,3 +17957,565 @@ func maximumLength(nums []int) int {
 }
 ```
 
+##### 1957\.删除字符使字符串变好
+
+[题目](https://leetcode.cn/problems/delete-characters-to-make-fancy-string)
+
+比判断 i-1, i-2 更好。
+
+```go
+func makeFancyString(s string) string {
+	ans := []byte{}
+	cnt := 0
+	for i, ch := range s {
+		cnt++
+		if cnt < 3 {
+			ans = append(ans, byte(ch))
+		}
+		if i < len(s)-1 && byte(ch) != s[i+1] {
+			cnt = 0 // 当前字母和下个字母不同，重置计数器
+		}
+	}
+	return string(ans)
+}
+```
+
+##### 1695\.删除子数组的最大得分
+
+[题目](https://leetcode.cn/problems/delete-duplicate-folders-in-system)
+
+```go
+package main
+
+func maximumUniqueSubarray(nums []int) (ans int) {
+	m := map[int]bool{}
+	l := 0
+	s := 0
+	for _, v := range nums {
+		for m[v] {
+			s -= nums[l]
+			m[nums[l]] = false
+            l++
+		}
+		m[v] = true
+		s += v
+		ans = max(ans, s)
+	}
+	return
+}
+```
+
+map 换成 bool[] 会更好。
+
+##### 1948\.删除系统中的重复文件夹
+
+[题目](https://leetcode.cn/problems/delete-duplicate-folders-in-system)
+
+树哈希，可以自由设计。这里考虑用 `根字符串(字树哈希)` 代表根哈希，直接用字符串做哈希值。
+
+```typescript
+
+class FileTreeNode {
+  value: string
+  subtreeHash: string
+  children: Map<string, FileTreeNode>
+  constructor(value: string) {
+    this.value = value
+    this.subtreeHash = ''
+    this.children = new Map()
+  }
+}
+
+class FileTree {
+  root = new FileTreeNode('/')
+
+  insert(path: string[]): void {
+    let root = this.root
+    for (const char of path) {
+      if (!root.children.has(char)) root.children.set(char, new FileTreeNode(char))
+      root = root.children.get(char)!
+    }
+  }
+}
+
+function deleteDuplicateFolder(paths: string[][]): string[][] {
+  const tree = new FileTree()
+  const hashCounter = new Map<string, number>()
+  paths.forEach(path => tree.insert(path))
+
+  // 1. 生成子树哈希，并将信息保存在每个节点上
+  dfs(tree.root)
+
+  // 2. 看子树哈希是否重复，回溯返回结果
+  const res: string[][] = []
+  bt(tree.root, [])
+  return res
+
+  function dfs(root: FileTreeNode): string {
+    const subTree: string[] = []
+    for (const child of root.children.values()) {
+      subTree.push(dfs(child))
+    }
+
+    subTree.sort()
+    root.subtreeHash = subTree.join('')
+
+    // 叶子结点子树哈希值不计入counter
+    if (root.children.size !== 0) {
+      hashCounter.set(root.subtreeHash, (hashCounter.get(root.subtreeHash) ?? 0) + 1)
+    }
+
+    const res = `${root.value}(${root.subtreeHash})`
+    return res
+  }
+
+  function bt(root: FileTreeNode, path: string[]): void {
+    if (hashCounter.get(root.subtreeHash)! >= 2) return
+    if (path.length > 0) res.push(path.slice())
+
+    for (const [childName, child] of root.children.entries()) {
+      path.push(childName)
+      bt(child, path)
+      path.pop()
+    }
+  }
+}
+```
+
+同理，构造一个字典树，每个节点不是一个字母是一个字符串。
+
+```go
+type trieNode struct {
+	son     map[string]*trieNode
+	name    string // 文件夹名称
+	deleted bool   // 删除标记
+}
+
+func deleteDuplicateFolder(paths [][]string) (ans [][]string) {
+	root := &trieNode{}
+	for _, path := range paths {
+		// 把 path 插到字典树中，见 208. 实现 Trie
+		cur := root
+		for _, s := range path {
+			if cur.son == nil {
+				cur.son = map[string]*trieNode{}
+			}
+			if cur.son[s] == nil {
+				cur.son[s] = &trieNode{}
+			}
+			cur = cur.son[s]
+			cur.name = s
+		}
+	}
+
+	exprToNode := map[string]*trieNode{} // 子树括号表达式 -> 子树根节点
+	var genExpr func(*trieNode) string
+	genExpr = func(node *trieNode) string {
+		if node.son == nil { // 叶子
+			return node.name // 表达式就是文件夹名
+		}
+
+		expr := make([]string, 0, len(node.son)) // 预分配空间
+		for _, son := range node.son {
+			// 每个子树的表达式外面套一层括号
+			expr = append(expr, "("+genExpr(son)+")")
+		}
+		slices.Sort(expr)
+
+		subTreeExpr := strings.Join(expr, "") // 按字典序拼接所有子树的表达式
+		n := exprToNode[subTreeExpr]
+		if n != nil { // 哈希表中有 subTreeExpr，说明有重复的文件夹
+			n.deleted = true    // 哈希表中记录的节点标记为删除
+			node.deleted = true // 当前节点标记为删除
+		} else {
+			exprToNode[subTreeExpr] = node
+		}
+
+		return node.name + subTreeExpr
+	}
+	for _, son := range root.son {
+		genExpr(son)
+	}
+
+	// 在字典树上回溯，仅访问未被删除的节点，并将路径记录到答案中
+	// 类似 257. 二叉树的所有路径
+	path := []string{}
+	var dfs func(*trieNode)
+	dfs = func(node *trieNode) {
+		if node.deleted {
+			return
+		}
+		path = append(path, node.name)
+		ans = append(ans, slices.Clone(path))
+		for _, son := range node.son {
+			dfs(son)
+		}
+		path = path[:len(path)-1] // 恢复现场
+	}
+	for _, son := range root.son {
+		dfs(son)
+	}
+	return
+}
+```
+
+##### 1233\.删除子文件夹
+
+[题目](https://leetcode.cn/problems/remove-sub-folders-from-the-filesystem)
+
+先按 / 的多寡排序；然后按 / 数目多少顺序遍历。对每个字符串，一个一个部分的添加子文件夹，判断添加后是不是哈希值存在。设有 n 个字符串，每个字符串长度是 m；复杂度是 O(nlogn + nm)
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+class Solution {
+    public:
+        vector<string> removeSubfolders(vector<string>& folder) {
+            map<int, vector<vector<string>>> a;
+            for(auto& path : folder) {
+                vector<string> tokens;
+                string token;
+                stringstream ss(path);
+                while (getline(ss, token, '/')) {
+                    tokens.push_back(token);
+                }
+                a[tokens.size()].push_back(tokens);
+            }
+
+            set<uint64_t> m;
+            vector<string> result;
+            auto push = [&](string& s, const string& t, uint64_t& h) {
+                for(auto& c : t) {
+                    h = h * 233 + c;
+                }
+                s += t;
+            };
+            for(auto& pr : a) {
+                for(auto& path : pr.second) {
+                    uint64_t h = 0;
+                    string s;
+                    bool ok = true;
+                    for(auto& token : path) {
+                        if(!token.size()) {
+                            continue; // first
+                        }
+                        push(s, "/", h);
+                        push(s, token, h);
+                        if(m.find(h) != m.end()) {
+                            ok = false;
+                            break;
+                        }
+                    }
+                    if (ok) {
+                        m.insert(h);
+                        result.push_back(s);
+                    }
+                }
+            }
+            return result;
+        }
+    };
+```
+
+排序后，维护没删的栈，如果当前不是栈顶的前缀；或者虽然是，但是它的文件名后边还有(不是接着 `/`)，那么就合法。比较快。
+
+```go
+func removeSubfolders(folder []string) []string {
+    slices.Sort(folder)
+    ans := folder[:1]
+    for _, s := range folder[1:] {
+        last := ans[len(ans)-1]
+        if !strings.HasPrefix(s, last) || s[len(last)] != '/' {
+            ans = append(ans, s)
+        }
+    }
+    return ans
+}
+```
+
+字典树：比字符串哈希慢。
+
+```c++
+struct Trie {
+    Trie(): ref(-1) {}
+
+    unordered_map<string, Trie*> children;
+    int ref;
+};
+
+class Solution {
+public:
+    vector<string> removeSubfolders(vector<string>& folder) {
+        auto split = [](const string& s) -> vector<string> {
+            vector<string> ret;
+            string cur;
+            for (char ch: s) {
+                if (ch == '/') {
+                    ret.push_back(move(cur));
+                    cur.clear();
+                }
+                else {
+                    cur.push_back(ch);
+                }
+            }
+            ret.push_back(move(cur));
+            return ret;
+        };
+
+        Trie* root = new Trie();
+        for (int i = 0; i < folder.size(); ++i) {
+            vector<string> path = split(folder[i]);
+            Trie* cur = root;
+            for (const string& name: path) {
+                if (!cur->children.count(name)) {
+                    cur->children[name] = new Trie();
+                }
+                cur = cur->children[name];
+            }
+            cur->ref = i;
+        }
+
+        vector<string> ans;
+
+        function<void(Trie*)> dfs = [&](Trie* cur) {
+            if (cur->ref != -1) {
+                ans.push_back(folder[cur->ref]);
+                return;
+            }
+            for (auto&& [_, child]: cur->children) {
+                dfs(child);
+            }
+        };
+
+        dfs(root);
+        return ans;
+    }
+};
+```
+
+##### 1717\.删除子字符串的最大得分
+
+[题目](https://leetcode.cn/problems/maximum-score-from-removing-substrings)
+
+贪心，略。看官方题解。
+
+```go
+func maximumGain(s string, x int, y int) int {
+    if x < y {
+        x, y = y, x
+        s2 := []rune(s)
+        for i := range s2 {
+            if s2[i] == 'a' {
+                s2[i] = 'b'
+            } else if s2[i] == 'b' {
+                s2[i] = 'a'
+            }
+        }
+        s = string(s2)
+    }
+
+    ans := 0
+    for i:=0; i < len(s); i++ {
+        cntA, cntB := 0, 0
+        for i < len(s) && (s[i] == 'a' || s[i] == 'b') {
+            if s[i] == 'a' {
+                cntA++
+            } else {
+                if cntA > 0 {
+                    cntA--
+                    ans += x
+                } else {
+                    cntB++
+                }
+            }
+            i++
+        }
+        if cntA < cntB {
+            ans += cntA * y
+        } else {
+            ans += cntB * y
+        }
+    }
+    return ans
+}
+```
+
+##### 2322\.从树中删除边的最小分数
+
+[题目](https://leetcode.cn/problems/maximum-erasure-value)
+
+最近公共祖先 倍增法LCA。枚举删的边的 pair。
+
+```go
+package main
+
+var f [1024][11]int 
+var d [1024]int
+
+func minimumScore(nums []int, edges [][]int) (ans int) {
+    n := len(nums)
+    // 初始化全局数组
+    for i := range f {
+        f[i] = [11]int{}
+        d[i] = 0
+    }
+    
+    xor := make([]int, n)
+    g := make([][]int, n)
+    for _, e := range edges {
+        u, v := e[0], e[1]
+        g[u] = append(g[u], v)
+        g[v] = append(g[v], u)
+    }
+    
+    var dfs func(int, int)
+    dfs = func(u, fa int) {
+        
+        d[u] = d[fa] + 1
+        f[u][0] = fa
+        
+        xor[u] = nums[u]
+        // 初始化整张倍增表（i=1到10）
+        for i := 1; i < 11; i++ {
+            f[u][i] = f[f[u][i-1]][i-1]
+        }
+        for _, v := range g[u] {
+            if v == fa {
+                continue
+            }
+            dfs(v, u)
+            xor[u] ^= xor[v]
+        }
+    }
+    dfs(0, 0) // 根节点父节点设为自身
+    
+    lca := func(u, v int) int {
+        if d[u] < d[v] {
+            u, v = v, u
+        }
+        // 修正：按指数幅度跳转深度
+        for i := 10; i >= 0; i-- {
+            if d[u]-(1<<i) >= d[v] {
+                u = f[u][i]
+            }
+        }
+        if u == v {
+            return u
+        }
+        for i := 10; i >= 0; i-- {
+            if f[u][i] != f[v][i] {
+                u = f[u][i]
+                v = f[v][i]
+            }
+        }
+        return f[u][0]
+    }
+    
+    getChild := func(u, v int) int {
+        if d[u] < d[v] {
+            return v
+        }
+        return u
+    }
+    
+    const inf = 1 << 30
+    ans = inf
+    update := func(x1, x2, x3 int) {
+        maxVal := max(max(x1, x2), x3)
+        minVal := min(min(x1, x2), x3)
+        ans = min(ans, maxVal-minVal)
+    }
+    
+    for i := 0; i < len(edges); i++ {
+        v1 := getChild(edges[i][0], edges[i][1])
+        for j := i + 1; j < len(edges); j++ {
+            v2 := getChild(edges[j][0], edges[j][1])
+            fv := lca(v1, v2)
+            if fv != v1 && fv != v2 {
+                update(xor[0]^xor[v1]^xor[v2], xor[v1], xor[v2])
+            } else if fv == v1 {
+                update(xor[0]^xor[v1], xor[v1]^xor[v2], xor[v2])
+            } else { // fv == v2
+                update(xor[0]^xor[v2], xor[v1]^xor[v2], xor[v1])
+            }
+        }
+    }
+    return
+}
+
+func min(a, b int) int {
+    if a < b {
+        return a
+    }
+    return b
+}
+
+func max(a, b int) int {
+    if a > b {
+        return a
+    }
+    return b
+}
+```
+
+如果只需要判断 u, v 是否谁是谁的祖先(/子树)，而不需要求不是祖先时的LCA是谁的话。可以：求每个节点进入和出来的时间戳
+
+```go
+func minimumScore(nums []int, edges [][]int) int {
+	n := len(nums)
+	g := make([][]int, n)
+	for _, e := range edges {
+		x, y := e[0], e[1]
+		g[x] = append(g[x], y)
+		g[y] = append(g[y], x)
+	}
+
+	xor := make([]int, n)
+	in := make([]int, n)
+	out := make([]int, n)
+	clock := 0
+	var dfs func(int, int)
+	dfs = func(x, fa int) {
+		clock++
+		in[x] = clock // 递
+		xor[x] = nums[x]
+		for _, y := range g[x] {
+			if y != fa {
+				dfs(y, x)
+				xor[x] ^= xor[y]
+			}
+		}
+		out[x] = clock // 归
+	}
+	dfs(0, -1)
+
+	// 判断 x 是否为 y 的祖先
+	isAncestor := func(x, y int) bool {
+		return in[x] < in[y] && in[y] <= out[x]
+	}
+
+	ans := math.MaxInt
+	// 枚举：删除 x 与 x 父节点之间的边，删除 y 与 y 父节点之间的边
+	for x := 2; x < n; x++ {
+		for y := 1; y < x; y++ {
+			var a, b, c int
+			if isAncestor(x, y) { // x 是 y 的祖先
+				a, b, c = xor[y], xor[x]^xor[y], xor[0]^xor[x]
+			} else if isAncestor(y, x) { // y 是 x 的祖先
+				a, b, c = xor[x], xor[x]^xor[y], xor[0]^xor[y]
+			} else { // x 和 y 分别属于两棵不相交的子树
+				a, b, c = xor[x], xor[y], xor[0]^xor[x]^xor[y]
+			}
+			ans = min(ans, max(a, b, c)-min(a, b, c))
+			if ans == 0 { // 不可能变小
+				return 0 // 提前返回
+			}
+		}
+	}
+	return ans
+}
+```
+
+##### 3202\.找出有效子序列的最大长度II
+
+[题目](https://leetcode.cn/problems/find-the-maximum-length-of-valid-subsequence-ii)
