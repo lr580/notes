@@ -3219,6 +3219,34 @@
 - 3169\.无需开会的工作日
 
   排序 指针(区间)
+  
+- 3440\.重新安排会议得到最多空余时间II
+
+  枚举 + 前缀和(/max)
+
+- 3439.重新安排会议得到最多空余时间I
+
+  滑动窗口
+
+- 1900\.最佳运动员的比拼回合
+
+  记忆化搜索 / <u>DP / **贪心(分类讨论,数学)**</u>
+
+- 1353\.最多可以参加的会议数目
+
+  贪心 排序 STL(堆) / <u>并查集</u>
+
+- 1751\.最多可以参加的会议数目II
+
+  离散化+DP / **排序+DP+二分**
+
+- 2163\.删除元素后和的最小差值
+
+  枚举(前后缀分解) STL(堆) 
+
+- 3480\.删除一个冲突对吼最大子数组数目
+
+  **枚举(区间) 双指针 思维**
 
 ## 算法
 
@@ -18719,6 +18747,486 @@ class Solution {
         }
         days -= end - start + 1; // 最后一个合并区间的长度
         return days;
+    }
+}
+```
+
+##### 3440\.重新安排会议得到最多空余时间II
+
+[题目](https://leetcode.cn/problems/reschedule-meetings-for-maximum-free-time-ii)
+
+对每个会议，要么不移动，要么原地移动(使其紧邻前一个或后一个)，要么移动到最大的间隔(前后缀max维护间隔max)里。枚举即可。
+
+```java
+class Solution {
+    public int maxFreeTime(int eventTime, int[] startTime, int[] endTime) {
+        int n = startTime.length;
+        int[] a = new int[n+1];
+        a[0] = startTime[0];
+        a[n] = eventTime - endTime[n-1];
+        int ans = Math.max(a[0], a[n]); // not move
+        for(int i=1;i<n;i++) {
+            a[i]=startTime[i]-endTime[i-1];
+            ans = Math.max(ans, a[i]); // not move
+        }
+        for(int i=0;i<n;i++) {
+            ans = Math.max(ans, a[i]+a[i+1]); // move nearby
+        }
+
+        int []pre = new int[n+1], suf=new int[n+1];
+        pre[0] = a[0];
+        for(int i=1;i<=n;i++) {
+            pre[i]=Math.max(pre[i-1], a[i]);
+        }
+        suf[n] = a[n];
+        for(int i=n-1;i>=0;i--) {
+            suf[i]=Math.max(suf[i+1], a[i]);
+        }
+        
+        for(int i=0;i<n;i++) { // move anywhere
+            int spare = 0;
+            if(i>0) {
+                spare = Math.max(spare, pre[i-1]);
+            }
+            if(i<n-1) {
+                spare = Math.max(spare, suf[i+2]);
+            }
+            if(spare>=endTime[i]-startTime[i]) {
+                ans = Math.max(ans, a[i]+a[i+1]+endTime[i]-startTime[i]);
+            }
+        }
+        return ans;
+    }
+}
+```
+
+也可以只维护top3max。
+
+```java
+class Solution {
+    private int eventTime;
+    private int[] startTime, endTime;
+
+    public int maxFreeTime(int eventTime, int[] startTime, int[] endTime) {
+        this.eventTime = eventTime;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        int n = startTime.length;
+
+        // 有 n+1 个空位，计算前三大的空位在哪
+        int a = 0, b = -1, c = -1;
+        for (int i = 1; i <= n; i++) {
+            int sz = get(i);
+            if (sz > get(a)) {
+                c = b; b = a; a = i;
+            } else if (b < 0 || sz > get(b)) {
+                c = b; b = i;
+            } else if (c < 0 || sz > get(c)) {
+                c = i;
+            }
+        }
+
+        int ans = 0;
+        // 枚举桌子
+        for (int i = 0; i < n; i++) {
+            int sz = endTime[i] - startTime[i];
+            if (i != a && i + 1 != a && sz <= get(a) ||
+                i != b && i + 1 != b && sz <= get(b) ||
+                sz <= get(c)) { // 可以移出去
+                ans = Math.max(ans, get(i) + sz + get(i + 1));
+            } else {
+                ans = Math.max(ans, get(i) + get(i + 1));
+            }
+        }
+        return ans;
+    }
+
+    // 计算空位长度
+    private int get(int i) {
+        if (i == 0) {
+            return startTime[0];
+        }
+        int n = startTime.length;
+        if (i == n) {
+            return eventTime - endTime[n - 1];
+        }
+        return startTime[i] - endTime[i - 1];
+    }
+}
+```
+
+##### 3439\.重新安排会议得到最多空余时间I
+
+[题目](https://leetcode.cn/problems/reschedule-meetings-for-maximum-free-time-i)
+
+```java
+class Solution {
+    public int maxFreeTime(int eventTime, int k, int[] startTime, int[] endTime) {
+        int n = startTime.length;
+        int a[] = new int[n+1];
+        a[0] = startTime[0];
+        a[n] = eventTime - endTime[n-1];
+        for(int i=1;i<n;i++) {
+            a[i]=startTime[i]-endTime[i-1];
+        }
+        int s = 0;
+        for(int i=0;i<=k;i++) {
+            s+=a[i];
+        }
+        int ans = s;
+        for(int i=k+1;i<=n;i++) {
+            s-=a[i-k-1];
+            s+=a[i];
+            ans=Math.max(ans,s);
+        }
+        return ans;
+    }
+}
+```
+
+##### 1900\.最佳运动员的比拼回合
+
+[题目](https://leetcode.cn/problems/the-earliest-and-latest-rounds-where-players-compete)
+
+我的记忆化搜索 爆搜。
+
+```go
+package main
+
+import (
+	"sort"
+	"strconv"
+	"strings"
+)
+
+func earliestAndLatest(n int, firstPlayer int, secondPlayer int) []int {
+	mi, mx := 999, 0
+	perm := func(a, b []int) [][]int {
+		ans := [][]int{}
+		now := []int{}
+		n := len(a)
+
+		// 650ms -> 250ms
+		seen := make(map[string]struct{})
+
+		var dfs1 func(i int)
+		dfs1 = func(i int) {
+			if i == n {
+				sortedNow := make([]int, len(now))
+				copy(sortedNow, now)
+				sort.Ints(sortedNow)
+
+				var sb strings.Builder
+				for j, num := range sortedNow {
+					if j > 0 {
+						sb.WriteString(",")
+					}
+					sb.WriteString(strconv.Itoa(num))
+				}
+				key := sb.String()
+
+				if _, exists := seen[key]; !exists {
+					seen[key] = struct{}{}
+					ans = append(ans, sortedNow)
+				}
+				return
+			}
+
+			now = append(now, a[i])
+			dfs1(i + 1)
+			now = now[:len(now)-1]
+
+			now = append(now, b[i])
+			dfs1(i + 1)
+			now = now[:len(now)-1]
+		}
+
+		dfs1(0)
+		return ans
+	}
+
+	m := map[string]bool{}
+	var dfs func(round int, players []int)
+	dfs = func(round int, players []int) {
+		// state := fmt.Sprintf("%d|", round)
+		// for _, player := range players {
+		// 	state += fmt.Sprintf("%d,", player)
+		// }
+		var sb strings.Builder // 250ms -> 185ms
+		sb.WriteString(strconv.Itoa(round))
+		sb.WriteString("|")
+		for i, player := range players {
+			if i > 0 {
+				sb.WriteString(",")
+			}
+			sb.WriteString(strconv.Itoa(player))
+		}
+		state := sb.String()
+		if m[state] {
+			return
+		}
+		m[state] = true
+		a, b := []int{}, []int{}
+		for i, j := 0, len(players)-1; i <= j; i, j = i+1, j-1 {
+            if (players[i] == firstPlayer && players[j] == secondPlayer) {// || (players[j] == firstPlayer && players[i] == secondPlayer) {
+				mi = min(mi, round)
+				mx = max(mx, round)
+				return
+			}
+			if players[i] == firstPlayer || players[i] == secondPlayer {
+				a = append(a, players[i])
+				b = append(b, players[i])
+			} else if players[j] == firstPlayer || players[j] == secondPlayer {
+				a = append(a, players[j])
+				b = append(b, players[j])
+			} else {
+				a = append(a, players[i])
+				b = append(b, players[j])
+			}
+		}
+		nextPlayers := perm(a, b)
+		// fmt.Println(round, players)
+		// fmt.Println(nextPlayers)
+		for _, players := range nextPlayers {
+			sort.Ints(players)
+			dfs(round+1, players)
+		}
+	}
+	players := make([]int, n)
+	for i := 1; i <= n; i++ {
+		players[i-1] = i
+	}
+	dfs(1, players)
+	return []int{mi, mx}
+}
+```
+
+优化：参见0神。显然其他人是谁不重要，只需要看这两个人在什么位置。则可以 DFS+DP。记忆化搜索的量大幅下降。甚至可以 O1 贪心。
+
+##### 1353\.最多可以参加的会议数目
+
+[题目](https://leetcode.cn/problems/maximum-number-of-events-that-can-be-attended)
+
+每次选取结束时间最早的一个会议参加。排序后用堆维护会议。
+
+```java
+import java.util.PriorityQueue;
+
+class Solution {
+    public int maxEvents(int[][] events) {
+        PriorityQueue<Integer> pq = new PriorityQueue<>();
+        Arrays.sort(events, (a, b) -> a[0] - b[0]);
+        int dayNum = 0;
+        for(int[] event : events) {
+            dayNum = Math.max(dayNum, event[1]);
+        }
+        int i=0, n=events.length, ans=0;
+        for(int d=1;d<=dayNum;d++) {
+            while(i<n&&events[i][0]<=d) {
+                pq.offer(events[i][1]);
+                i++;
+            }
+            while(!pq.isEmpty()&&pq.peek()<d) {
+                pq.poll();
+            }
+            if(!pq.isEmpty()) {
+                pq.poll();
+                ans++;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+或者按结束时间排序，对当前会议，找到 [l, r] 内第一个可用天来参会。用并查集维护区间可用天。即如果用了当前天，在链表作删除，等价于合并当前节点和它的下一个节点(直接+1就是下一个)，根节点表示可用天，非根就是不可用天。
+
+```java
+class Solution {
+    public int maxEvents(int[][] events) {
+        Arrays.sort(events, (a, b) -> a[1] - b[1]);
+
+        int mx = events[events.length - 1][1];
+        int[] fa = new int[mx + 2];
+        for (int i = 0; i < fa.length; i++) {
+            fa[i] = i;
+        }
+
+        int ans = 0;
+        for (int[] e : events) {
+            int x = find(e[0], fa); // 查找从 startDay 开始的第一个可用天
+            if (x <= e[1]) {
+                ans++;
+                fa[x] = x + 1; // 标记 x 已占用
+            }
+        }
+        return ans;
+    }
+
+    private int find(int x, int[] fa) {
+        if (fa[x] != x) {
+            fa[x] = find(fa[x], fa);
+        }
+        return fa[x];
+    }
+}
+```
+
+##### 1751\.最多可以参加的会议数目II
+
+[题目](https://leetcode.cn/problems/maximum-number-of-events-that-can-be-attended-ii)
+
+对时间离散化，设有 n 个会议，最多有 m=2n 个时间。做二维 DP 即可。i`dp[i][j]` 表示前i个离散时间里，参加了j个会议。
+
+复杂度分析：外层循环每执行一次，meetings会被遍历一次，其中meetings有n个元素，故复杂度为 O(nk+n^2)。
+
+```java
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.TreeSet;
+
+class Solution {
+    private HashMap<Integer, Integer> hs;
+    private int get(int v) { // 离散化
+        if(!hs.containsKey(v)) {
+            hs.put(v, hs.size()+1);
+        }
+        return hs.get(v);
+    }
+    public int maxValue(int[][] events, int k) {
+        int n = events.length;
+        hs = new HashMap<>();
+        TreeSet<Integer> times = new TreeSet<>();
+        for(int[] event : events) {
+            times.add(event[0]);
+            times.add(event[1]);
+        }
+        for(int time : times) {
+            get(time);
+        }
+        int m = hs.size();
+        ArrayList<int[]> meetings[] = new ArrayList[m+1];
+        for(int i=0;i<meetings.length;i++) {
+            meetings[i] = new ArrayList<>();
+        }
+        for(int[] event : events) {
+            int u = get(event[0]), v = get(event[1]), w = event[2];
+            meetings[v].add(new int[]{u, w});
+        }
+        
+        int dp[][] = new int[m+1][k+1];
+        for(int i=0;i<=m;i++) {
+            Arrays.fill(dp[i], (int)-1e9);
+        }
+        for(int i=0;i<=m;i++) {
+            dp[i][0] = 0;
+        }
+        int ans = 0;
+        for(int i=1;i<=m;i++) {
+            for(int j=k;j>=1;j--) {
+                dp[i][j]=dp[i-1][j];
+                for(int[] meeting : meetings[i]) {
+                    int v = meeting[0], w = meeting[1];
+                    dp[i][j] = Math.max(dp[i][j], dp[v-1][j-1]+w);
+                    //System.out.println("-- "+(v-1)+" "+(j-1)+" "+dp[v-1][j-1]+" "+w);
+                    ans = Math.max(ans, dp[i][j]);
+                }
+                //System.out.println(i+" "+j+" "+dp[i][j]);
+            }
+        }
+        return ans;
+    }
+}
+```
+
+按结束时间排序，设 `dp[i][j]` 表示前 i-1 个会议里参加了j个。对当前i，找到结束时间小于它开始时间的最大下标p，使得 `dp[i+1][j]=max(dp[i][j],dp[i+1][j-1]+v)`，分别表示选和不选。
+
+```java
+class Solution {
+    public int maxValue(int[][] events, int k) {
+        // 特判 k=1 的情况可以更快
+        if (k == 1) {
+            int mx = 0;
+            for (int[] e : events) {
+                mx = Math.max(mx, e[2]);
+            }
+            return mx;
+        }
+
+        Arrays.sort(events, (a, b) -> a[1] - b[1]); // 按照结束时间排序
+        int n = events.length;
+        int[][] f = new int[n + 1][k + 1];
+        for (int i = 0; i < n; i++) {
+            int p = search(events, i, events[i][0]);
+            for (int j = 1; j <= k; j++) {
+                f[i + 1][j] = Math.max(f[i][j], f[p + 1][j - 1] + events[i][2]);
+            }
+        }
+        return f[n][k];
+    }
+
+    // 返回 endDay[i] < upper 的最大 i
+    private int search(int[][] events, int right, int upper) {
+        int left = -1;
+        while (left + 1 < right) {
+            int mid = left + (right - left) / 2;
+            if (events[mid][1] < upper) {
+                left = mid;
+            } else {
+                right = mid;
+            }
+        }
+        return left;
+    }
+}
+```
+
+双倍经验，LC1235，即 k=1。
+
+##### 2163\.删除元素后和的最小差值
+
+[题目](https://leetcode.cn/problems/minimum-difference-in-sums-after-removal-of-elements)
+
+```java
+import java.util.PriorityQueue;
+import java.util.TreeSet;
+
+class Solution {
+    public long minimumDifference(int[] nums) {
+        int n = nums.length / 3;
+        long pre[] = new long[n+1];
+        PriorityQueue<Integer> mx = new PriorityQueue<>();
+        long s = 0;
+        for(int i=0;i<n;i++) {
+            mx.add(-nums[i]);
+            s += nums[i];
+        }
+        pre[0] = s;
+        for(int i=0;i<n;i++) {
+            mx.add(-nums[i+n]);
+            int x = -mx.poll();
+            s = s - x + nums[i+n];
+            pre[i+1] = s;
+        }
+        mx.clear();
+
+        long suf = 0;
+        s = 0;
+        PriorityQueue<Integer> mi = new PriorityQueue<>();
+        for(int i=n-1;i>=0;i--) {
+            mi.add(nums[2*n+i]);
+            s += nums[2*n+i];
+        }
+        suf = s;
+        long ans = pre[n] - suf;
+        for(int i=n-1;i>=0;i--) {
+            mi.add(nums[n+i]);
+            int x = mi.poll();
+            s = s - x + nums[i+n];
+            suf = s;
+            ans = Math.min(ans, pre[i]-suf);
+        }
+        return ans;
     }
 }
 ```
