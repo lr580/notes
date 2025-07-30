@@ -3218,7 +3218,7 @@
 
 - 3169\.无需开会的工作日
 
-  排序 指针(区间)
+  排序 指针(区间) / 离散化 差分 前缀和
   
 - 3440\.重新安排会议得到最多空余时间II
 
@@ -3244,9 +3244,17 @@
 
   枚举(前后缀分解) STL(堆) 
 
-- 3480\.删除一个冲突对吼最大子数组数目
+- 3480\.删除一个冲突对后最大子数组数目
 
   **枚举(区间) 双指针 思维**
+  
+- 2411\.按位或最大的最小子数组长度
+
+  ST表+二分 / logtrick
+  
+- 2419\.按位与最大的最长子数组
+
+  思维 位运算
 
 ## 算法
 
@@ -18751,6 +18759,39 @@ class Solution {
 }
 ```
 
+离散化+前缀和+差分
+
+```python
+from typing import *
+class Solution:
+    def countDays(self, days: int, meetings: List[List[int]]) -> int:
+        times = {days, 0} # 俩边界；+0 方便计算第一个区间，避免特判
+        for l, r in meetings: # 加入所有前缀和差分里要用的时间
+            times.add(l)
+            times.add(r+1)
+        # 把时间映射为相对顺序(order)，最小时间是0，次小是1，以此类推...
+        order2time = sorted(list(times)) # times -> order
+        time2order = {t: i for i, t in enumerate(order2time)} # order -> time
+        
+        m = len(times)
+        d = [0] * (m+1) # 差分数组
+        '''设当前时间 t0, t1, .... , t{m-1} 映射到了顺序 0, 1, 2, ..., m-1
+        那么不妨设差分数组里 d[0] 表示时间段 [t0, t1), d[1] 表示时间段 [t1, t2), ... , d[m-1] 表示时间段 [t{m-1}, 无穷/days)'''
+        for l, r in meetings:
+            d[time2order[l]] += 1
+            d[time2order[r+1]] -= 1
+        
+        # 正难则反，计算区间并的长度
+        ans = 0
+        for i in range(1, m):
+            d[i] += d[i-1]
+            if d[i] != 0:
+                ans += order2time[i+1] - order2time[i]
+        return days - ans
+```
+
+
+
 ##### 3440\.重新安排会议得到最多空余时间II
 
 [题目](https://leetcode.cn/problems/reschedule-meetings-for-maximum-free-time-ii)
@@ -19225,6 +19266,108 @@ class Solution {
             s = s - x + nums[i+n];
             suf = s;
             ans = Math.min(ans, pre[i]-suf);
+        }
+        return ans;
+    }
+}
+```
+
+##### 2411\.按位或最大的最小子数组长度
+
+[题目](https://leetcode.cn/problems/smallest-subarrays-with-maximum-bitwise-or)
+
+ST表可以求任意区间的或；固定左端点，二分右端点，可以求出最小长度。
+
+```java
+class Solution {
+    private static int lg2[]= new int[100010];
+    private static int st[][] = new int[100003][18];
+    private static boolean inited = false;
+    private void init() {
+        if(inited) return;
+        for(int i=2;i<lg2.length;i++) {
+            lg2[i] = lg2[i>>1] + 1;
+        }
+    }
+    public int[] smallestSubarrays(int[] nums) {
+        init();
+        int n = nums.length, m = lg2[n]+1;
+        for(int i=0;i<n;i++) {
+            st[i][0] = nums[i];
+        }
+        for(int j=1;j<m;j++) {
+            for(int i=0;i+(1<<j)-1<n;i++) {
+                st[i][j] = st[i][j-1] | st[i+(1<<(j-1))][j-1];
+            }
+        }
+        int mx = 0;
+        int[] ans = new int[n];
+        for(int i=n-1;i>=0;i--) {
+            mx |= nums[i];
+            int l = i, r = n-1, res = r;
+            while(l<=r) {
+                int c = (l+r)>>1;
+                int p = lg2[c-i+1];
+                int xor = st[i][p] | st[c-(1<<p)+1][p];
+                // System.out.println(mx + " " + i + " " + c + " " + xor + " " + p + " " + st[i][p] +" " + st[c-(1<<p)+1][p]);
+                if(xor == mx) {
+                    res = c;
+                    r = c-1;
+                } else {
+                    l = c+1;
+                }
+            }
+            ans[i] = res-i+1;
+        }
+        return ans;
+    }
+}
+```
+
+设有后缀或数组，现在要动态更新，插入一个新元素到后面。从后往前更新，如果新元素或了当前位置元素后不变，则显然再往前也不会变了。变只能0->1，只能变log次，所以是nlogn的。
+
+在这个变化过程中，不断更新最后一次改变的长度，对当前点，它的最后一次改变就是答案。
+
+```java
+class Solution {
+    public int[] smallestSubarrays(int[] nums) {
+        int n = nums.length;
+        int[] ans = new int[n];
+        for (int i = 0; i < n; i++) { // 计算右端点为 i 的子数组的或值
+            int x = nums[i];
+            ans[i] = 1; // 子数组的长度至少是 1
+            // 循环直到 nums[j] 无法增大，其左侧元素也无法增大
+            for (int j = i - 1; j >= 0 && (nums[j] | x) != nums[j]; j--) {
+                nums[j] |= x; // nums[j] 增大，现在 nums[j] = 原数组 nums[j] 到 nums[i] 的或值
+                ans[j] = i - j + 1; // nums[j] 最后一次增大时的子数组长度就是答案
+            }
+        }
+        return ans;
+    }
+}
+```
+
+##### 2419\.按位与最大的最长子数组
+
+[题目](https://leetcode.cn/problems/longest-subarray-with-maximum-bitwise-and)
+
+按位与肯定在长为1取得最大，看连续相等的max值是谁即可。
+
+```java
+class Solution {
+    public int longestSubarray(int[] nums) {
+        int n = nums.length;
+        int ans=0, cnt=0, mx=0;
+        for(int i=0;i<n;i++) {
+            mx = Math.max(mx, nums[i]);
+        }
+        for(int i=0;i<n;i++) {
+            if(nums[i]==mx) {
+                cnt++;
+            }else{
+                cnt=0;
+            }
+            ans = Math.max(ans, cnt);
         }
         return ans;
     }

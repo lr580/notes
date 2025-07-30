@@ -1899,6 +1899,8 @@ x=(1,) #或1,
 
 tuple内list可变，实例同理(dack)。切片取tuple复制后赋值，二者都变。
 
+可以+连接。
+
 > 没有copy方法，可以切片
 
 #### dict
@@ -2228,7 +2230,11 @@ class Number:
         self.v = v
 a = Number(1)
 b = Number(2)
-print(a.v, b.v, a.version, b.version, Number.version)
+print(a.v, b.v, a.version, b.version, Number.version) # 1 2 v1.0 v1.0 v1.0
+a.version = "2.0" # 等价于动态新增了成员属性而不是修改静态属性。
+print(a.v, b.v, a.version, b.version, Number.version) #1 2 2.0 v1.0 v1.0
+Number.version = "3.0"
+print(a.v, b.v, a.version, b.version, Number.version) #1 2 2.0 3.0 3.0
 ```
 
 静态方法：
@@ -2360,6 +2366,21 @@ poe: Python 采用了“我们都是成年人”的哲学，鼓励开发者遵�
 ##### getitem
 
 getitem 或 setitem
+
+实现了就可以 for 了，for 循环会从 0 开始依次尝试 `obj[0]`, `obj[1]`, `obj[2]`...直到捕获 `IndexError`
+
+```python
+class MySequence:
+    def __getitem__(self, index):
+        if index >= 5:
+            raise IndexError
+        return index * 2
+seq = MySequence()
+for item in seq:
+    print(item)
+```
+
+
 
 当然index也可以传tuple，按照index等于tuple处理即可类似numpy a[1,2]
 
