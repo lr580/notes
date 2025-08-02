@@ -10280,6 +10280,8 @@ public class SetToArrayExample {
 
 - set(int index, Object obj) 修改该索引对象为 obj
 
+- `List.of(x)` 创建一个不可变的列表，只有一个元素 x。多个元素 `of(x, y, ...)`，不允许 null 元素
+
 > subList(l, r) 取子列表 [l, r)，引用形式的，如这样可以删除 [2:] 的元素只留前两个
 >
 > ```java

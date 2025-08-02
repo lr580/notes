@@ -1663,6 +1663,8 @@ lower()将所有大写转小写，其他字符不变
 
 strip()取消首尾的全部空白字符，如空格、换行符、制表符
 
+> `strip('ab')` 的意思是首尾的所有 a 或 b (不是字符串 ab) 都删了，如 `aabcbbab` 得 `c`
+
 如果中间也去掉，可以使用reduce,filter办法：
 
 ```python
@@ -1730,6 +1732,8 @@ zfill(n) 补充前导零直到长度为n
 转置：`[::-1]`
 
 删最后：`[:-1]` 是 O1 的
+
+
 
 #### None
 
@@ -1946,6 +1950,8 @@ get(key,p=None)如果存在key返回key对应的value，否则返回p
 
 copy()副本
 
+`dict.fromkeys()` 是 Python 字典的一个类方法，用于创建一个新字典，其中包含指定的键和统一的值 `tmp = dict.fromkeys(['a', 'b'], 4)` 则 `{'a': 4, 'b': 4}`
+
 ##### 对象作key
 
 ```python
@@ -2086,11 +2092,14 @@ bytearray("你好", "utf-8") #第二个参数必填
 
 可以 append, pop 等常用 list 的操作。通过 `bytes` 函数转 bytes。
 
-### 对象
+### 类
 
 #### 基本概念
 
 自定义数据类型，即类。其变量是实例，有成员属性和成员函数(方法)。
+
+> - **对象(Object)**：是Python中所有数据的抽象概念，所有数据在Python中都是对象
+> - **实例(Instance)**：特指由类(class)创建的具体对象
 
 定义：
 
@@ -2174,6 +2183,22 @@ class chum(person):
 b=chum('李四',9,'鲨人') 
 print(a,b) #注意由于chum的repr未赋值，故与person同
 ```
+
+可以检查某类(不是实例)是否是某(些)类的子类
+
+```python
+print(issubclass(Dog, Animal))
+print(issubclass(Dog, (Animal, Cat))) # 任意一个
+print(issubclass(my_dog.__class__, Animal)) # 实例
+```
+
+检查实例，可以用这样，填父类到第二个参数可以检测是子类
+
+```python
+print(isinstance(my_dog, Animal))
+```
+
+
 
 > `super()` 可以不带任何参数使用，它会自动推断出当前类和实例。因此，以下两种写法在 Python 3 中是等价的：
 >
@@ -2269,6 +2294,56 @@ print(obj.get_private_attribute())  # 可以通过方法访问
 ```
 
 poe: Python 采用了“我们都是成年人”的哲学，鼓励开发者遵循命名约定，而不是强制的访问控制。
+
+#### 元类
+
+"类的类"，用于控制类的创建行为。普通类创建实例对象。元类创建类对象
+
+当Python解释器遇到类定义时，会执行以下步骤：
+
+1. 收集类属性
+2. 确定元类（默认是type）
+3. 执行元类的`__new__`方法创建类
+4. 执行元类的`__init__`方法初始化类
+
+```python
+class MyMeta(type):
+    def __new__(cls, name, bases, namespace):
+        print(f"Creating class {name}")
+        namespace['version'] = 1.0
+        return super().__new__(cls, name, bases, namespace)
+    
+    def __init__(self, name, bases, namespace):
+        super().__init__(name, bases, namespace)
+        print(f"Initializing class {name}")
+
+class MyClass(metaclass=MyMeta):
+    pass
+
+# 输出:
+# Creating class MyClass
+# Initializing class MyClass
+
+print(MyClass.version)  # 1.0
+```
+
+#### 抽象类
+
+抽象基类 (Abstract Base Classes, ABC)
+
+```python
+from abc import ABCMeta, abstractmethod
+class Animal(metaclass=ABCMeta):
+    @abstractmethod
+    def make_sound(self):
+        pass
+class Dog(Animal):
+    def make_sound(self):
+        return "Woof!"
+```
+
+- 装饰器的作用：强制子类必须实现该方法。如果子类没有实现该方法，尝试实例化时会抛出`TypeError`。
+- `ABCMeta`会阻止它的实例化。(报错)
 
 #### \_\_属性\_\_
 
@@ -2711,7 +2786,20 @@ and or not
 False or 0#0
 ```
 
+#### 其他运算
 
+##### is
+
+is 操作符，判断是否两个变量是同一个内存(即同一个对象)，如：
+
+```python
+'123' is '123' # True，因为缓存，字符串驻留 String Interning
+123 is 123 # True
+```
+
+NaN 是一个特殊的浮点数值，但 `NaN is NaN` 仍然返回 False
+
+一般用于检查 `None`、`True`、`False`，和单例模式对象是否同一个。
 
 ### 变量
 
@@ -2723,7 +2811,29 @@ False or 0#0
 a, (b,c,d) = [1, (2,3,4)]
 ```
 
+##### 缓存
 
+字符串驻留
+
+Python 会对某些字符串进行缓存（intern），以减少内存占用和提高比较效率。当一个字符串被驻留后，所有相同的字符串字面量都会指向同一个内存对象
+
+- 短字符串(A-Za-z0-9_ only)、空字符串、编译时确定的字符串、手动驻留 `sys.intern()`
+
+```python
+'123' is '123' # True, 或两个变量， a is b, 其中 a, b 都是 = '123';
+# 但是 '我' is '我' 是 True；而若 a is b (都是 '我') 就是 False
+```
+
+如果字符串是动态生成的（如拼接、读取输入等），可能不会被驻留
+
+整数也有类似的，对 [-5, 256] 缓存优化
+
+```python
+a = 256; b = 256; a is b # True
+a = 580; b = 580; a is b # False; 但是 580 is 580 是 True
+```
+
+float 则不会缓存。NaN 是一个特殊的浮点数值，但 `NaN is NaN` 仍然返回 False。`NaN` 必须用 `math.isnan()` 判断
 
 ## 流程控制
 
@@ -3649,6 +3759,10 @@ print(type(l) == tuple)  #子类不算
 print(isinstance(l, tuple))  #子类算
 ```
 
+##### issubclass
+
+类和类的。
+
 ##### all
 
 是否全为 true
@@ -3672,7 +3786,9 @@ all([[True,True],[True,False,True]]) # True
 > if all(v - x in it for v in nums2):
 > ```
 
+##### callable
 
+判断是否是可执行。实现 `__call__` 即可调用。函数，类(创建实例)，方法可调用。
 
 #### 数组函数
 
@@ -4309,6 +4425,8 @@ for _ in range(5):
 
 ### 闭包
 
+##### 基本
+
 闭包是一种函数，它可以“记住”并访问其定义时的作用域中的变量，即使在其外部被调用时也能保持这些变量的状态
 
 ```python
@@ -4326,9 +4444,21 @@ print(add(10)) # 输出: 15
 a2 = make_accumulator() # 与add相互独立，互不影响
 ```
 
+##### 作用域
 
+lambda函数引用的变量i是一个自由变量(free variable),它的值在lambda函数定义时并不会被固定。如下面两个函数，都是算 i=2，故输出 4,4
 
-
+```python
+def fn():
+    t = []
+    i = 0
+    while i < 2:
+        t.append(lambda x: print(i*x,end=","))
+        i += 1
+    return t
+for f in fn():
+    f(2)
+```
 
 ## 模块
 
@@ -5237,6 +5367,75 @@ print(modified_code)
     print(f'Hello, {name}!')'''
 ```
 
+#### abc
+
+抽象基类。见类一节。
+
+#### dis
+
+字节码。
+
+`PyCodeObject` 是一个核心的底层数据结构，它代表了编译后的 Python 代码（字节码）。当你编写 Python 代码并执行时，源代码会先被编译为一个或多个 `PyCodeObject` 对象，然后由 Python 虚拟机（PVM）执行这些对象中的字节码。
+
+> `PyCodeObject` 包含了 Python 代码的所有静态信息，主要包括：
+>
+> 1. **字节码指令序列**：编译后的操作码（opcode），由 Python 虚拟机直接执行。
+> 2. **常量表（co_consts）**：代码中用到的常量（如数字、字符串、元组等）。
+> 3. **符号表（co_names）**：代码引用的变量名、函数名等。
+> 4. **局部变量表（co_varnames）**：函数内定义的局部变量名。
+> 5. **自由变量表（co_freevars）**：闭包中引用的外部变量。
+> 6. **全局变量表（co_names）**：代码中使用的全局变量名。
+> 7. **文件名和代码块名称**（如 `co_filename` 和 `co_name`）。
+> 8. **行号表（co_lnotab）**：字节码与源代码行号的映射（用于调试和报错）。
+
+```python
+def example():
+    x = 1
+    y = 2
+    return x + y
+
+# 查看 PyCodeObject 的字段
+code_obj = example.__code__
+print("字节码指令:", code_obj.co_code)       # 输出字节码（二进制格式）
+print("常量表:", code_obj.co_consts)        # (None, 1, 2)
+print("局部变量:", code_obj.co_varnames)     # ('x', 'y')
+print("文件名:", code_obj.co_filename)      # 当前文件路径
+
+# 用 dis 模块查看字节码
+import dis
+dis.dis(example)  # 输出人类可读的字节码
+```
+
+> Python编译器在编译代码时，**每个独立的作用域（名字空间）会生成一个PyCodeObject对象**。根据代码结构分析：
+>
+> 1. 模块作用域：
+>    - 整个.py文件作为一个模块，编译后生成一个PyCodeObject对象，对应模块级别的代码（如变量a的赋值和函数调用Fun()）。
+> 2. 类作用域：
+>    - class A:定义了一个类，类体内部是一个独立的作用域，编译后生成第二个PyCodeObject对象。
+> 3. 函数作用域：
+>    - def Fun():定义了一个函数，函数体内部是另一个独立的作用域，编译后生成第三个PyCodeObject对象
+>
+> ```python
+> lass A:
+>     pass
+> def Fun():
+>     pass
+> a = A()
+> Fun()
+> ```
+
+#### inspect
+
+`inspect.signature()` 是 Python 标准库 `inspect` 模块中的一个函数，用于获取可调用对象（如函数、方法、类等）的签名信息。`.parameters` 可继续解析。如 `if 'mode' in inspect.signature(f).parameters:`
+
+```python
+import inspect
+def example_func(a, b=2, *args, c, d=4, **kwargs):
+    pass
+sig = inspect.signature(example_func)
+print(sig) # 输出: (a, b=2, *args, c, d=4, **kwargs)
+```
+
 
 
 ### 数学
@@ -5463,6 +5662,30 @@ def increment():
 ```
 
 此外还有可重入锁 RLock。
+
+#### multiprocessing
+
+线程池：如一个容纳2线程的池，运行3(1,2)+3(3,4)+3(5)=9s。
+
+```python
+from multiprocessing import Pool
+import time
+ 
+def task():
+    for i in range(3):
+        time.sleep(1)
+ 
+if __name__ == '__main__':
+    start = time.time()
+    p = Pool(2)
+    for i in range(5):
+        p.apply_async(task)
+    p.close()
+    p.join()
+    end = time.time()
+ 
+    print(end-start)
+```
 
 #### subprocess
 
@@ -9004,7 +9227,9 @@ batch_size = 32
 gen = data_generator('compressed_data.npz', batch_size)
 ```
 
+##### memmap
 
+内存映射。将大文件直接映射到内存中进行高效读写，特别适合处理超出物理内存限制的大型数组。懒加载：仅访问时加载所需数据部分，避免一次性读取整个文件。用 `np.memmap` 读写，一个文件保存一个numpy数组。
 
 #### 应用举例
 
@@ -19037,6 +19262,10 @@ x.masked_fill_(input, mask, value)
 
 mask 是布尔值张量，mask 值 True 的地方设置为 value
 
+###### 倒数
+
+`torch.reciprocal` 是 PyTorch 中的一个函数，用于计算输入张量中每个元素的倒数（即 1 除以该元素）
+
 ##### 线代
 
 逐元素点乘： `P*Q`
@@ -20833,7 +21062,11 @@ import torch
 print("PyTorch CUDA available?", torch.cuda.is_available())
 ```
 
+#### tensorboard
 
+兼容 PyTorch（通过 `torch.utils.tensorboard` 或第三方库如 `TensorBoardX`）
+
+可视化工具包，用于帮助开发者理解、调试和优化机器学习模型的训练过程。它通过交互式仪表盘展示模型的训练指标、计算图、权重分布、嵌入向量等数据，从而提升开发效率
 
 ### PyG
 
@@ -21319,6 +21552,81 @@ print(output.shape)  # 应该输出: torch.Size([8, 16, 64])
 - 控制是否为查询（Query）、键（Key）和值（Value）向量添加可学习的偏置（bias） 默认 true
 - 默认权重和投影层都不会 drop
 
+### basicTS
+
+时空序列预测(如交通流量预测)的框架。[文档](https://github.com/GestaltCogTeam/BasicTS/blob/master/README_CN.md) 有论文。基于 easytorch
+
+#### easytorch
+
+[参考](https://github.com/cnstark/easytorch) 可读性很差，没有官方文档，研究不太明白。主要是用到了 `easytorch.launch_training`，其中它的 `training_func` 是主要的，
+
+#### 基本使用
+
+##### 配置
+
+[使用步骤](https://github.com/GestaltCogTeam/BasicTS/blob/master/tutorial/getting_started_cn.md)，示例 [MLP](https://github.com/GestaltCogTeam/BasicTS/blob/master/examples/arch.py)，该 MLP 的[配置文件](https://github.com/GestaltCogTeam/BasicTS/blob/master/examples/regular_config.py)，带注释版本 [src](https://github.com/GestaltCogTeam/BasicTS/blob/master/examples/complete_config_cn.py)
+
+- **常规选项**: 描述一般设置，如配置说明、`GPU_NUM`、`RUNNER` 等。
+- **环境选项**: 包括设置如 `TF32`、`SEED`、`CUDNN`、`DETERMINISTIC` 等。
+- **数据集选项**: 指定 `NAME`、`TYPE`（数据集类）、`PARAMS`（数据集参数）等。
+- **数据缩放器选项**: 指定 `NAME`、`TYPE`（缩放器类）、`PARAMS`（缩放器参数）等。
+- **模型选项**: 指定 `NAME`、`TYPE`（模型类）、`PARAMS`（模型参数）等。
+- **评估指标选项**: 包括 `FUNCS`（评估指标函数）、`TARGET`（目标评估指标）、`NULL_VALUE`（缺失值处理）等。
+- 训练选项
+  - **常规**: 指定设置如 `EPOCHS`、`LOSS`、`EARLY_STOPPING` 等。
+  - **优化器**: 指定 `TYPE`（优化器类）、`PARAMS`（优化器参数）等。
+  - **调度器**: 指定 `TYPE`（调度器类）、`PARAMS`（调度器参数）等。
+  - **课程学习**: 包括设置如 `CL_EPOCHS`、`WARMUP_EPOCHS`、`STEP_SIZE` 等。
+  - **数据**: 指定设置如 `BATCH_SIZE`、`NUM_WORKERS`、`PIN_MEMORY` 等。
+- 验证选项
+  - **常规**: 包括验证频率 `INTERVAL`。
+  - **数据**: 指定设置如 `BATCH_SIZE`、`NUM_WORKERS`、`PIN_MEMORY` 等。
+- 测试选项
+  - **常规**: 包括测试频率 `INTERVAL`。
+  - **数据**: 指定设置如 `BATCH_SIZE`、`NUM_WORKERS`、`PIN_MEMORY` 等。
+
+##### 数据
+
+[文档](https://github.com/GestaltCogTeam/BasicTS/blob/master/tutorial/dataset_design_cn.md) 解压后，对 `.dat`，维度是 L时间步、N空间点、C特征数。此外还有 `json` 配置，描述数据特征等。
+
+##### 模型
+
+前两个分别是 x, y。
+
+- history_data (`torch.Tensor`): 历史数据，形状为 `[B, L, N, C]`，其中 `B` 代表批次大小，`L` 为序列长度，`N` 为节点数量，`C` 为特征数量。
+- future_data (`torch.Tensor` 或 `None`): 未来数据，形状为 `[B, L, N, C]`。如果未来数据不可用（例如在测试阶段），则此参数为 `None`。
+- batch_seen (`int`): 目前处理的批次数。
+- epoch (`int`): 当前的训练轮数。
+- train (`bool`): 表示模型是否处于训练模式
+
+forward 输出可以是一个形状为 `[B, L, N, C]` 的 `torch.Tensor`，其中通常 `C=1`，表示预测的值。或者，模型可以返回一个包含 `prediction` 键的字典，其中 `prediction` 包含上述描述的预测值。该字典还可以包含其他自定义键，作为损失函数和评估指标的参数
+
+可以在 baselines 文件夹找到内置模型，并运行，如 DCRNN。
+
+```sh
+python experiments/train.py -c baselines/${MODEL_NAME}/${DATASET_NAME}.py -g '{GPU_IDs}'
+```
+
+##### 执行器
+
+可以自定义执行器来完成整个训练测试流程。其中 `BaseTimeSeriesForecastingRunner` 是未实现类，`SimpleTimeSeriesForecastingRunner` 是一个实现类。具体见文档 [src](https://github.com/GestaltCogTeam/BasicTS/blob/master/tutorial/runner_design_cn.md)
+
+其中，Base... 该 runner 是 `BaseEpochRunner` 的子类，后者是抽象类，实现了 `train` 和 `test_pipeline` (测试流程)等方法。其中，`train` 结束就会调用 `test_pipeline`。感觉结构很复杂，像工程代码。
+
+##### 损失函数
+
+masked_mae 等指标，如果本来不用 masked，那就是普通的 mae。在 `BaseTimeSeriesForecastingRunner` 里，可以看到 `compute_evaluation_metrics` 方法，使用了配置文件里测试所看的多个horizon，如3/6/12。其中 overall 并不是离散 horizons 的直接平均和。
+
+##### 基准模型
+
+在 `baselines/` 有基准模型，这些模型为多个数据集都写了配置文件，模型本体在其文件夹下属 `arch/` 里。一个示例运行如下：
+
+```sh
+nohup python experiments/train.py -c baselines/DCRNN/PEMS07.py -g 0 &
+```
+
+结果可以在 checkpoints 找到，文件夹层次是模型名、参数(轮次，入出序列长)、训练次数里找到，训练完的可以看到不同 3,6,12, average 的损失。`test_metrics.json` 有。
+
 ### openai
 
 可以调用 LLM API。如：
@@ -21365,10 +21673,6 @@ ONNX（Open Neural Network Exchange，开放神经网络交换）是一种用于
 使用protobuf二进制格式存储模型，定义了通用的计算图表示
 
 提供运行时(ONNX Runtime)用于高效推理，多种优化和转换工具
-
-#### easytorch
-
-[参考](https://github.com/cnstark/easytorch)
 
 #### 决策树
 
@@ -23138,25 +23442,32 @@ class Solution:
 
 ### easydict
 
-参考 [here](https://blog.csdn.net/weixin_44598554/article/details/134311503)
+参考 [here](https://blog.csdn.net/weixin_44598554/article/details/134311503) 它允许用户通过属性（`.`）访问字典的键值，而不是传统的方括号（`['key']`）语法，从而让代码更简洁易读。并方便与 JSON 数据互相转换。
 
 ```python
-from easydict import EasyDict as edict
-config = edict()
-#   config的Train、Test键也设置为字典，实现嵌套
-config.Train = edict()
-config.Test  = edict()
-config.Train.model_path = './some_path'
+from easydict import EasyDict
 
-print(config)
-#   使用edict构建的字典依然支持基本的dict方法
-print(config.keys())
-print(config.items())
-'''
-{'Train': {'model_path': './some_path'}, 'Test': {}}
-dict_keys(['Train', 'Test'])
-dict_items([('Train', {'model_path': './some_path'}), ('Test', {})])
-'''
+# 创建 EasyDict 对象
+config = EasyDict()
+config.model = "GPT-4"
+config.temperature = 0.7
+config.languages = ["Python", "JavaScript"]
+
+# 访问属性
+print(config.model)  # 输出: "GPT-4"
+
+# 嵌套字典自动转换
+config.hyperparams = EasyDict({"batch_size": 32, "lr": 1e-3})
+print(config.hyperparams.lr)  # 输出: 0.001
+
+# 转换为原生字典
+config_dict = config.to_dict()
+print(type(config_dict))  # 输出: <class 'dict'>
+
+# 从字典初始化
+data = {"user": {"name": "Alice", "age": 30}}
+user = EasyDict(data)
+print(user.name)  # 输出: "Alice"
 ```
 
 ## 算法

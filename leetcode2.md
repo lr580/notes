@@ -3255,6 +3255,18 @@
 - 2419\.按位与最大的最长子数组
 
   思维 位运算
+  
+- 2683\.相邻值的按位异或
+
+  位运算 枚举+构造 / 思维
+  
+- 118\.杨辉三角
+
+  签到
+  
+- 2561\.重排水果
+
+  贪心 思维
 
 ## 算法
 
@@ -19374,5 +19386,125 @@ class Solution {
 }
 ```
 
+##### 2683\.相邻值的按位异或
 
+[题目](https://leetcode.cn/problems/neighboring-bitwise-xor)
+
+derived[0] 可以推导出两个原数组，分别顺着一路推下去，看看推出来是否没有矛盾。
+
+```java
+class Solution {
+    private int n;
+    private int[] original;
+    private boolean check(int[] derived) {
+        for(int i=1;i<n-1;i++) {
+            original[i+1] = original[i] ^ derived[i];
+        }
+        return (original[n-1]^original[0]) == derived[n-1];
+    }
+    public boolean doesValidArrayExist(int[] derived) {
+        n = derived.length;
+        if(n==1) {
+            return derived[0] == 0;
+        }
+        original = new int[n];
+        if (derived[0] == 0) {
+            original[0] = 0;
+            original[1] = 0;
+            if(check(derived)) {
+                return true;
+            }
+            original[0] = 1;
+            original[1] = 1;
+            if(check(derived)) {
+                return true;
+            }
+        } else {
+            original[0] = 0;
+            original[1] = 1;
+            if(check(derived)) {
+                return true;
+            }
+            original[0] = 1;
+            original[1] = 0;
+            if(check(derived)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+```
+
+将 original[n-1] 展开 为 original[n-2] xor derived[n-2]，同理不断展开 original 直到 0，得 `original[0] xor derived[0] xor ... xor derived[n-2]`，由于 `original[0] xor original[n-1] = derived[n-1]`，代入得 `derived[0] xor ... derived[n-2] = derived[n-1]`，两边异或 `derived[n-1]`，得 derived 异或和 = 0 是充要条件。
+
+```python
+class Solution:
+    def doesValidArrayExist(self, derived: List[int]) -> bool:
+        return reduce(xor, derived) == 0
+```
+
+##### 118\.杨辉三角
+
+[题目](https://leetcode.cn/problems/pascals-triangle)
+
+```java
+class Solution {
+    public List<List<Integer>> generate(int numRows) {
+        List<List<Integer>> list = new ArrayList<>();
+        for (int i = 0; i < numRows; i++) {
+            List<Integer> row = new ArrayList<>();
+            for (int j = 0; j <= i; j++) {
+                if (j == 0 || j == i) {
+                    row.add(1);
+                } else {
+                    row.add(list.get(i - 1).get(j - 1) + list.get(i - 1).get(j));
+                }
+            }
+            list.add(row);
+        }
+        return list;
+    }
+}
+```
+
+##### 2561\.重排水果
+
+[题目](https://leetcode.cn/problems/rearranging-fruits)
+
+每个元素出现偶数次就一定有解。考虑两种策略：1. 直接交换(那么拿最小的和最大的交换，设左右各有n个元素要交换，设左右分别前n小占了n1和n2个，显然n1+n2=n；则左n1匹配右边没选上n2的n-n2=n1个，右同理，可得：两边2n个元素的前n小就是答案)；2.间接交换(设全局最小值是c,拿c取左右走一遭，可以换掉两个元素，花费为2c)。故前n小若大于2c，选择2c即可。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+/* case1: a <-> b  cost=min(a,b)
+case2: a c | c b, a <-> c <-> b  cost=2c (c=min basket)
+策略1：一边min与另一边max互换
+*/
+using ll = long long;
+class Solution {
+public:
+    ll minCost(vector<int>& basket1, vector<int>& basket2) {
+        map<int, int> cnt, cnt1, cnt2;
+        for (auto &a : basket1) cnt[a]++, cnt1[a]++;
+        for (auto &a : basket2) cnt[a]++, cnt2[a]++;
+        for (auto &[k, v] : cnt) if (v % 2) return -1;
+        
+        int c = 2e9;
+        for (auto &[k, v] : cnt) c = min(c, k);
+        vector<int> a;
+        for (auto &[k, v] : cnt) {
+            for(int i = 0; i < max(cnt1[k] - cnt2[k], cnt2[k] - cnt1[k]) / 2; i++) {
+                a.push_back(k);
+            }
+        }
+        // for(auto&x:a) {cout<<x<<" ";}
+        ll ans = 0;
+        for(int i=0,n=a.size()/2;i<n;i++) {
+            ans+=min(2*c, a[i]);
+        }
+        return ans;
+    }
+};
+```
 
