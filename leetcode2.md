@@ -1654,7 +1654,7 @@
 
   贪心 + (multiset二分 / <u>双指针</u>)
   
-- 419\.甲板上的战舰
+- 419\.棋盘上的战舰
 
   BFS / 枚举
   
@@ -3267,6 +3267,14 @@
 - 2561\.重排水果
 
   贪心 思维
+  
+- 2106\.摘水果
+
+  枚举 滑动窗口
+  
+- 906\.水果成篮
+
+  滑动窗口
 
 ## 算法
 
@@ -19506,5 +19514,87 @@ public:
         return ans;
     }
 };
+```
+
+##### 2106\.摘水果
+
+[题目](https://leetcode.cn/problems/maximum-fruits-harvested-after-at-most-k-steps/)
+
+要么一边走到底，要么走到某个点折返。枚举。滑动窗口维护。
+
+```java
+class Solution {
+    public int maxTotalFruits(int[][] fruits, int startPos, int k) {
+        int si=0, n=fruits.length, ans=0;
+        while(si<n&& fruits[si][0]<=startPos) si++;
+        int[][] cntL = new int[si+2][2], cntR = new int[n-si+2][2];
+        // System.out.println((si+1)+" "+(n-si+1)+" "+si);
+        int nl=0,nr=0;
+        for(int i=si-1,j=1,s=0;i>=0;i--,j++) {
+            cntL[j][0] = startPos-fruits[i][0];
+            if(cntL[j][0]>k) break;
+            else nl++;
+            s += fruits[i][1];
+            cntL[j][1] = s;
+            ans = Math.max(ans, s);
+        }
+        for(int i=si,j=1,s=0;i<n;i++,j++) {
+            cntR[j][0] = fruits[i][0]-startPos;
+            if(cntR[j][0]>k) break;
+            else nr++;
+            s += fruits[i][1];
+            cntR[j][1] = s;
+            ans = Math.max(ans, s);
+        }
+        if(!(nl>0&&nr>0)) return ans;
+        //System.out.println(nl+" "+nr);
+        for(int r=nr,l=0;r>=0;r--) {
+            int dis=2*cntL[l][0]+cntR[r][0];
+            while(l<=nl&&dis<=k) {
+                l++;
+                // System.out.println("first "+l+" "+r);
+                dis = 2*cntL[l][0]+cntR[r][0];
+            }
+            int s = cntL[l-1][1] + cntR[r][1];
+            ans = Math.max(ans, s);
+        }
+        for(int l=nl,r=0;l>=0;l--) {
+            int dis=2*cntR[r][0]+cntL[l][0];
+            while(r<=nr&&dis<=k) {
+                r++;
+                dis = 2*cntR[r][0]+cntL[l][0];
+            }
+            int s = cntL[l][1] + cntR[r-1][1];
+            ans = Math.max(ans, s);
+        }
+        return ans;
+    }
+}
+```
+
+0x3f有优雅实现。
+
+##### 906\.水果成篮
+
+[题目](https://leetcode.cn/problems/fruit-into-baskets)
+
+```java
+import java.util.*;
+class Solution {
+    public int totalFruit(int[] fruits) {
+        int n = fruits.length, ans = 0, l = 0;
+        Map<Integer, Integer> m = new HashMap<>();
+        for(int r=0;r<n;r++) {
+            m.put(fruits[r], m.getOrDefault(fruits[r], 0)+1);
+            while(m.size()>2) {
+                int v= fruits[l++];
+                m.put(v, m.get(v)-1);
+                if(m.get(v)==0) m.remove(v);
+            }
+            ans = Math.max(ans, r-l+1);
+        }
+        return ans;
+    }
+}
 ```
 

@@ -1529,7 +1529,7 @@ list(enumerate('abc',1))
 
 ##### zip
 
-合并多个数组型，生成tuple，每个元素依次是参数的每个元素，需要强转(如list化)，zip的每个参数是一个数组，如果每个参数长度不一，最终生成取最小的
+合并多个数组型，生成tuple，每个元素依次是参数的每个元素，需要强转(如list化)，zip的每个参数是一个数组，如果每个参数长度不一，最终生成取最小的(多余的舍弃)
 
 ```python
 list(zip([(1,1),(2,2),(1,3)],(False,True,False),'def'))
@@ -1833,6 +1833,8 @@ pop(i)删除下标i的元素并返回，其余元素往前顶来补充，不填i
 
 remove(p)删除元素p，从头到尾，每次只删除一个，找不到报错ValueError；原地修改，返回 None
 
+del 也可以删除，如 `a=[1,2,3,4,5]` 下 `del a[1:3]` 则得到 `[1, 4, 5]`
+
 insert(i,p)在i处插入元素p，原i的元素往后推
 
 extend(数组)在尾部添加若干元素
@@ -1903,7 +1905,7 @@ x=(1,) #或1,
 
 tuple内list可变，实例同理(dack)。切片取tuple复制后赋值，二者都变。
 
-可以+连接。
+可以+连接。* 重复。
 
 > 没有copy方法，可以切片
 
@@ -1949,6 +1951,8 @@ d={1:6,2:10,3:100,4:6}|{2:58,3:85}#{1: 6, 2: 58, 3: 85, 4: 6}
 get(key,p=None)如果存在key返回key对应的value，否则返回p
 
 copy()副本
+
+`setdefault(k, v)`，查无则先插入 v 再返回 v；查有就直接返回 k 对应的值。
 
 `dict.fromkeys()` 是 Python 字典的一个类方法，用于创建一个新字典，其中包含指定的键和统一的值 `tmp = dict.fromkeys(['a', 'b'], 4)` 则 `{'a': 4, 'b': 4}`
 
@@ -2272,6 +2276,23 @@ class American(object):
 American.printNationality()
 ```
 
+类方法：(有 self)
+
+```python
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+    @classmethod
+    def from_birth_year(cls, name, birth_year): # cls 就是 self
+        """类方法：根据出生年份创建Person实例"""
+        age = 2023 - birth_year
+        return cls(name, age)  # 调用 __init__ 创建实例
+person1 = Person.from_birth_year("Alice", 1990)
+```
+
+
+
 #### 访问权限
 
 默认 public。
@@ -2579,6 +2600,10 @@ Return the square value of the input number.
 
 ##### slot
 
+用于限制类的实例可以拥有的属性，提供了一种优化内存使用和提升属性访问速度的机制。不再使用字典 (`__dict__`) 存储属性，而是使用固定大小的数组，则只能添加 `__slots__` 中定义的属性。
+
+尽管如此，如果没有赋值，属性仍然不存在，只是告诉可以设置什么属性。
+
 不要为类使用字典来存储实例属性的特殊属性，好处是减少内存占用
 
 ```python
@@ -2593,9 +2618,10 @@ p.z = 3  # 抛出 AttributeError，因为 'z' 不在 __slots__ 中
 
 注意：
 
-1. **继承**：如果一个类继承了使用了 `__slots__` 的类，子类也需要定义 `__slots__`。如果不这样做，子类会自动创建字典来存储属性，这可能会抵消使用 `__slots__` 带来的好处。
-2. **实例字典**：使用 `__slots__` 后，实例不再有 `__dict__` 属性（存储一个对象的所有属性，键值对）。这意味着不能再使用 `getattr()`、`setattr()` 和 `delattr()` 函数以动态的方式操作属性。
-3. **弱引用**：如果你的类需要支持弱引用（通过 `weakref` 模块），那么你需要在 `__slots__` 中包含 `'__weakref__'`。
+1. 继承：如果一个类继承了使用了 `__slots__` 的类，子类也需要定义 `__slots__`。如果不这样做，子类会自动创建字典来存储属性，这可能会抵消使用 `__slots__` 带来的好处。
+2. 如果子类定义了 `__slots__`，它包含父类和子类的 `__slots__`
+3. 实例字典：使用 `__slots__` 后，实例不再有 `__dict__` 属性（存储一个对象的所有属性，键值对）。这意味着不能再使用 `getattr()`、`setattr()` 和 `delattr()` 函数以动态的方式操作属性。
+4. 弱引用：如果你的类需要支持弱引用（通过 `weakref` 模块），那么你需要在 `__slots__` 中包含 `'__weakref__'`。
 
 对比 dict: 虽然可以直接操作 `__dict__`，但这并不是访问或修改属性的推荐方式。通常，直接使用点操作符（`.`）是更好的选择，因为这样可以触发相关的属性访问方法（如 `__get__`、`__set__` 和 `__delete__`）。
 
@@ -2810,6 +2836,12 @@ NaN 是一个特殊的浮点数值，但 `NaN is NaN` 仍然返回 False
 ```python
 a, (b,c,d) = [1, (2,3,4)]
 ```
+
+##### del
+
+1. `del` 删除的是引用而不是对象本身。Python 使用引用计数和垃圾回收机制来管理内存，只有当对象的引用计数降为0时，对象才会被真正销毁。
+2. 对于可变对象（如列表、字典），`del` 可以删除其中的元素；对于不可变对象（如字符串、元组），不能删除其中的元素。
+3. `del` 不能删除模块或函数，但可以删除它们的引用 (import math 后 del math)
 
 ##### 缓存
 
@@ -3407,7 +3439,12 @@ def f(a,b):
 f(*map(int,input().split()))
 ```
 
+顺序：普通参数(位置参数)、默认参数、可变位置参数(*args)、关键字参数、可变关键字参数(**kwargs)。
 
+```python
+def function_name(positional_args, default_args=value, *args, keyword_only_args, **kwargs):
+    # 函数体
+```
 
 #### 执行顺序
 
@@ -3606,8 +3643,39 @@ print(f(1,2,3))
 print(f(*[1,2,3])) # 含义同上
 ```
 
-> #### 关键字参数
->
+#### 关键字参数
+
+keyword argument
+
+```python
+def greet(name, message):
+    print(f"Hello {name}, {message}")
+greet(message="nice to meet you", name="Bob")  # 顺序可以颠倒
+```
+
+使用双星号 `**` 可以收集所有未匹配的关键字参数到一个字典中 `**kwargs`
+
+```python
+def build_profile(first, last, **user_info):
+    profile = {'first_name': first, 'last_name': last}
+    for key, value in user_info.items():
+        profile[key] = value
+    return profile
+user_profile = build_profile('John', 'Doe', age=30, occupation='engineer')
+print(user_profile)
+# 输出: {'first_name': 'John', 'last_name': 'Doe', 'age': 30, 'occupation': 'engineer'}
+```
+
+关键字参数必须在位置参数之后传递；不能重复传递同一个参数
+
+`*` 分隔符，表示后面的参数必须使用关键字参数的形式传递。强制某些参数必须通过关键字传递，提高代码可读性
+
+```python
+def fun(a, *, b): print(b)
+fun(1,b=2)
+```
+
+
 
 #### main参数
 
@@ -21588,6 +21656,8 @@ print(output.shape)  # 应该输出: torch.Size([8, 16, 64])
 ##### 数据
 
 [文档](https://github.com/GestaltCogTeam/BasicTS/blob/master/tutorial/dataset_design_cn.md) 解压后，对 `.dat`，维度是 L时间步、N空间点、C特征数。此外还有 `json` 配置，描述数据特征等。
+
+> 数据集 `TimeSeriesForecastingDataset` 读 pkl，取 `processed_data` 是数据，index 取 `train` / `valid` / `test`。 
 
 ##### 模型
 
