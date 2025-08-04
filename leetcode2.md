@@ -3275,6 +3275,14 @@
 - 906\.水果成篮
 
   滑动窗口
+  
+- 3477\.水果成篮II
+
+  签到
+
+- 3479\.水果成篮III
+
+  线段树二分 / 分块
 
 ## 算法
 
@@ -19597,4 +19605,139 @@ class Solution {
     }
 }
 ```
+
+##### 3479\.水果成篮III
+
+[题目](https://leetcode.cn/problems/fruits-into-baskets-iii)
+
+```java
+class SegTr {
+    private int mx[], x[], n;
+    public SegTr(int x[]) {
+        n = x.length;
+        mx = new int[4 * n];
+        this.x = x;
+        init(1, 1, n);
+    }
+
+    private void init(int p, int l, int r) {
+        if (l == r) {
+            mx[p] = x[l-1];
+            return;
+        }
+        int c = (l+r)>>1;
+        init(2*p, l, c-1);
+        init(2*p+1, c+1, r);
+        mx[p] = Math.max(mx[2*p], mx[2*p+1]);
+    }
+
+    public void update(int pos, int val) { update(1, 1, n, pos, val); }
+    private void update(int p, int l, int r, int pos, int val) {
+        if (l == r) {
+            mx[p] = val;
+            return;
+        }
+        int c = (l+r)>>1;
+        if (pos <= c) {
+            update(2*p, l, c, pos, val);
+        } else {
+            update(2*p+1, c+1, r, pos, val);
+        }
+        mx[p] = Math.max(mx[2*p], mx[2*p+1]);
+    }
+
+    public int query(int val) { return query(1, 1, n, val); }
+    private int query(int p, int l, int r, int val) { // first >= val
+        if (l == r) {
+            if (mx[p] >= val) return l;
+            return -1;
+        }
+        int c = (l+r)>>1;
+        if (mx[2*p] >= val) {
+            return query(2*p, l, c, val);
+        }
+        return query(2*p+1, c+1, r, val);
+    }
+}
+class Solution {
+    public int numOfUnplacedFruits(int[] fruits, int[] baskets) {
+        SegTr segtr = new SegTr(baskets);
+        int ans = 0;
+        for(int fruit:fruits) {
+            int pos = segtr.query(fruit);
+            if (pos == -1) {
+                ans++;
+            } else {
+                segtr.update(pos, 0);
+            }
+        }
+        return ans;
+    }
+}
+```
+
+可以合并两个操作。数组长度也可以更好的限制。
+
+```java
+class SegmentTree {
+    private final int[] max;
+
+    public SegmentTree(int[] a) {
+        int n = a.length;
+        max = new int[2 << (32 - Integer.numberOfLeadingZeros(n - 1))];
+        build(a, 1, 0, n - 1);
+    }
+
+    // 找区间内的第一个 >= x 的数，并更新为 -1，返回这个数的下标（没有则返回 -1）
+    public int findFirstAndUpdate(int o, int l, int r, int x) {
+        if (max[o] < x) { // 区间没有 >= x 的数
+            return -1;
+        }
+        if (l == r) {
+            max[o] = -1; // 更新为 -1，表示不能放水果
+            return l;
+        }
+        int m = (l + r) / 2;
+        int i = findFirstAndUpdate(o * 2, l, m, x); // 先递归左子树
+        if (i < 0) { // 左子树没找到
+            i = findFirstAndUpdate(o * 2 + 1, m + 1, r, x); // 再递归右子树
+        }
+        maintain(o);
+        return i;
+    }
+
+    private void maintain(int o) {
+        max[o] = Math.max(max[o * 2], max[o * 2 + 1]);
+    }
+
+    // 初始化线段树
+    private void build(int[] a, int o, int l, int r) {
+        if (l == r) {
+            max[o] = a[l];
+            return;
+        }
+        int m = (l + r) / 2;
+        build(a, o * 2, l, m);
+        build(a, o * 2 + 1, m + 1, r);
+        maintain(o);
+    }
+}
+
+class Solution {
+    public int numOfUnplacedFruits(int[] fruits, int[] baskets) {
+        SegmentTree t = new SegmentTree(baskets);
+        int n = baskets.length;
+        int ans = 0;
+        for (int x : fruits) {
+            if (t.findFirstAndUpdate(1, 0, n - 1, x) < 0) {
+                ans++;
+            }
+        }
+        return ans;
+    }
+}
+
+```
+
+
 
