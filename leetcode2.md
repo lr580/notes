@@ -3283,6 +3283,10 @@
 - 3479\.水果成篮III
 
   线段树二分 / 分块
+  
+- 3363\.最多可收集的水果数目
+
+  DP 思维
 
 ## 算法
 
@@ -19739,5 +19743,90 @@ class Solution {
 
 ```
 
+##### 3363\.最多可收集的水果数目
 
+[题目](https://leetcode.cn/problems/find-the-maximum-number-of-fruits-collected)
+
+由于只能走n-1步，第一个人一定走对角线；且另外两个人不可能走交集，一个在对角线以左下，一个在对角线以右上。直接这两个人各自普通 DP 即可。
+
+```java
+class Solution {
+    public int maxCollectedFruits(int[][] fruits) {
+        int n = fruits.length;
+        int ans = 0;
+        for (int i = 0; i < n; i++) {
+            ans += fruits[i][i];
+            fruits[i][i] = 0;
+        }
+
+        int dp[][] = new int[n][n];
+        for(int i=0;i<n;i++) {
+            Arrays.fill(dp[i], Integer.MIN_VALUE / 2);
+        }
+        dp[n-1][0] = fruits[n-1][0];
+        for(int j=1;j<n;j++) {
+            for(int i=j;i<n;i++) {
+                int v = dp[i][j-1];
+                if(i-1>=0) v=Math.max(v, dp[i-1][j-1]);
+                if(i+1<n) v=Math.max(v, dp[i+1][j-1]);
+                if(v>=0) dp[i][j]=v+fruits[i][j];
+            }
+        }
+        ans += dp[n-1][n-1];
+        dp[n-1][n-1] = Integer.MIN_VALUE / 2;
+        
+        dp[0][n-1] = fruits[0][n-1];
+        for(int i=1;i<n;i++) {
+            for(int j=i;j<n;j++) {
+                int v = dp[i-1][j];
+                if(j-1>=0) v=Math.max(v, dp[i-1][j-1]);
+                if(j+1<n) v=Math.max(v, dp[i-1][j+1]);
+                if(v>=0) dp[i][j]=v+fruits[i][j];
+            }
+        }
+        ans += dp[n-1][n-1];
+        return ans;
+    }
+}
+```
+
+```java
+class Solution {
+    public int maxCollectedFruits(int[][] fruits) {
+        int n = fruits.length;
+        int ans = 0;
+        // 从 (0, 0) 出发的小朋友
+        for (int i = 0; i < n; i++) {
+            ans += fruits[i][i];
+        }
+
+        // 从 (0, n - 1) 出发的小朋友
+        ans += dp(fruits);
+
+        // 从 (n - 1, 0) 出发的小朋友（按照主对角线翻转）
+        // 把下三角形中的数据填到上三角形中
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < i; j++) {
+                fruits[j][i] = fruits[i][j];
+            }
+        }
+        return ans + dp(fruits);
+    }
+
+    int dp(int[][] fruits) {
+        int n = fruits.length;
+        int[][] f = new int[n - 1][n + 1];
+        for (int[] row : f) {
+            Arrays.fill(row, Integer.MIN_VALUE);
+        }
+        f[0][n - 1] = fruits[0][n - 1];
+        for (int i = 1; i < n - 1; i++) {
+            for (int j = Math.max(n - 1 - i, i + 1); j < n; j++) {
+                f[i][j] = Math.max(Math.max(f[i - 1][j - 1], f[i - 1][j]), f[i - 1][j + 1]) + fruits[i][j];
+            }
+        }
+        return f[n - 2][n - 1];
+    }
+}
+```
 
