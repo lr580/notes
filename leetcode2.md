@@ -3287,6 +3287,14 @@
 - 3363\.最多可收集的水果数目
 
   DP 思维
+  
+- 808\.分汤
+
+  DP(记忆化搜索) 思维(剪枝)
+  
+- 231\.2的幂
+
+  位运算
 
 ## 算法
 
@@ -19828,5 +19836,51 @@ class Solution {
         return f[n - 2][n - 1];
     }
 }
+```
+
+##### 808\.分汤
+
+[题目](https://leetcode.cn/problems/soup-servings)
+
+显然，每25ml的区间答案是一样的，即[25x, 25(x+1) ) 区间答案一样。暴力打表，发现x>=235时，答案趋于1，故只需要计算前面x=235的答案。复杂度O(x^2)。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+map<pair<int,int>, double> m;
+double dfs(int a, int b) {
+    if(a<=0&&b<=0) return 1./2;
+    if(a<=0) return 1;
+    if(b<=0) return 0;
+    if(m.find({a,b}) != m.end()) return m[{a,b}];
+    double ans = 0;
+    ans += dfs(a-4, b);
+    ans += dfs(a-3, b-1);
+    ans += dfs(a-2, b-2);
+    ans += dfs(a-1, b-3);
+    return m[{a,b}] = ans/4;
+}
+class Solution {
+    public:
+        double soupServings(int n) {
+            int x=(n+24)/25;
+            if(x>=235) return 1;
+            return dfs(x,x);
+        }
+    };
+```
+
+记忆化搜索比DP更快。可以map转数组。实际上根据四舍五入，到179即可。
+
+##### 231\.2的幂
+
+[题目](https://leetcode.cn/problems/power-of-two)
+
+一定是正数(0也不是)。去掉最低位为0就是2的幂。
+
+```java
+return Integer.bitCount(n) == 1 && n > 0;
+return ((long)n&((long)n-1))==0 && n!=0;
+return n > 0 && (n & (n - 1)) == 0;
 ```
 

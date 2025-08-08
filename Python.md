@@ -4701,6 +4701,8 @@ print('b') # b.py
 
 同文件夹下直接写文件名，如上例(impa.py)
 
+寻路顺序：内置模块、sys.modules 缓存(已加载)、sys.path 列表
+
 ##### 异文件夹
 
 模块在文件夹里，只有单级文件夹，然后直接引用即可：
@@ -20583,6 +20585,11 @@ $$
 torch.nn.L1Loss()
 ```
 
+> ```python
+> mae = torch.abs(y_pred - y_true).mean() # MAE
+> mape = (torch.abs((y_true - y_pred) / y_true).mean()) * 100 #MAPE(*100)
+> ```
+
 ##### L2 Loss/MSE
 
 Mean Squared Error
@@ -20594,6 +20601,10 @@ $$
 ```python
 torch.nn.MSELoss()
 ```
+
+> ```python
+> rmse = torch.sqrt(((y_pred - y_true) ** 2).mean()) # RMSE
+> ```
 
 ##### Smooth L1
 
@@ -21700,6 +21711,10 @@ nohup python experiments/train.py -c baselines/DCRNN/PEMS07.py -g 0 &
 ```
 
 结果可以在 checkpoints 找到，文件夹层次是模型名、参数(轮次，入出序列长)、训练次数里找到，训练完的可以看到不同 3,6,12, average 的损失。`test_metrics.json` 有。
+
+##### 数据集
+
+以 PEMS03 为例，通道是 3，添加了 time of day, day of week；第一个通道还是原始流量数据。
 
 ### openai
 
