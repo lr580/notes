@@ -2190,6 +2190,8 @@ b=chum('李四',9,'鲨人')
 print(a,b) #注意由于chum的repr未赋值，故与person同
 ```
 
+super init 在init的哪调用都行，不必是第一行
+
 可以检查某类(不是实例)是否是某(些)类的子类
 
 ```python
@@ -2370,6 +2372,8 @@ class Dog(Animal):
 
 #### \_\_属性\_\_
 
+`__` 开头和结尾的属性或方法，又称魔术属性/方法
+
 ##### 概述
 
 [参考](https://blog.csdn.net/jiangnanjunxiu/article/details/139703915)
@@ -2456,6 +2460,10 @@ class Dog(Animal):
 > v1[1] = 20
 > print(v1)  # 输出: Vector(10, 20)
 > ```
+
+##### del
+
+析构函数
 
 ##### eq
 
@@ -2626,6 +2634,30 @@ p.z = 3  # 抛出 AttributeError，因为 'z' 不在 __slots__ 中
 4. 弱引用：如果你的类需要支持弱引用（通过 `weakref` 模块），那么你需要在 `__slots__` 中包含 `'__weakref__'`。
 
 对比 dict: 虽然可以直接操作 `__dict__`，但这并不是访问或修改属性的推荐方式。通常，直接使用点操作符（`.`）是更好的选择，因为这样可以触发相关的属性访问方法（如 `__get__`、`__set__` 和 `__delete__`）。
+
+##### enter
+
+实现 with 语句，需要实现 enter 和 exit 两个方法。
+
+```python
+class FileManager:
+    def __init__(self, filename):
+        self.filename = filename
+
+    def __enter__(self):
+        self.file = open(self.filename, 'r')
+        return self.file
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.file.close()
+
+with FileManager("test.txt") as f:
+    print(f.read())
+```
+
+> #### __方法\_\_
+
+
 
 #### 装饰器
 
@@ -2840,6 +2872,107 @@ NaN 是一个特殊的浮点数值，但 `NaN is NaN` 仍然返回 False
 ```python
 a, (b,c,d) = [1, (2,3,4)]
 ```
+
+#### 内置属性
+
+双下划线开头和结尾，如 `__name__`。
+
+内置全局变量和函数：
+
+```python
+__name__: 当前模块的名称（如果是主程序，值为 "__main__"）。
+
+__file__: 当前脚本的文件路径（在交互式环境中可能不存在）。
+
+__doc__: 模块、类或函数的文档字符串。
+
+__package__: 当前模块所属的包名。
+
+__loader__: 模块的加载器对象。
+
+__spec__: 模块的规范（importlib.machinery.ModuleSpec实例）。
+
+__builtins__: 内置函数和异常（通常是 builtins模块的引用）。
+
+__annotations__: 变量或函数参数的注解（Python 3+）。
+```
+
+模块和包的魔术属性：
+
+```python
+__all__: 定义 from module import *时导出的符号列表。
+
+__path__: 包的搜索路径（用于 __init__.py）。
+
+__version__: 模块的版本信息（约定俗成，非强制）。
+```
+
+解释器相关：
+
+```python
+__debug__: 如果 Python 以 -O或 -OO优化运行，则为 False，否则为 True。
+
+__import__: 内置的 import函数实现。
+
+__hash__: 定义对象的哈希值（用于 dict键和 set成员）。
+```
+
+##### name
+
+直接运行时：`__name__ == '__main__'`
+
+被导入时：`__name__ == '模块名'`
+
+##### file
+
+当前模块的文件路径（绝对或相对路径）。
+
+#### 变量特殊属性
+
+`__dict__`: 对象或类的属性字典。
+
+`__class__`: 对象的类。
+
+`__bases__`: 类的基类元组。
+
+`__mro__`: 方法解析顺序（用于多继承）。
+
+`__subclasses__()`: 返回类的直接子类列表。
+
+##### doc
+
+模块、类或函数的文档字符串（`"""docstring"""`）。
+
+```python
+def foo():
+    """这是一个函数的文档字符串"""
+    pass
+
+print(foo.__doc__)  # 输出：这是一个函数的文档字符串
+```
+
+##### class
+
+返回对象的类。
+
+```python
+num = 10
+print(num.__class__)  # 输出：<class 'int'>
+```
+
+##### bases
+
+返回类的基类（父类）元组。
+
+```python
+class Animal:
+    pass
+class Dog(Animal):
+    pass
+print(Dog.__bases__)  # 输出：(<class '__main__.Animal'>,)
+```
+
+#### 机制
 
 ##### del
 
@@ -4534,6 +4667,10 @@ for f in fn():
 
 ## 模块
 
+模块(Module)，单个 `.py` 文件，包含 Python 代码。将相关功能封装在一个文件中，方便复用。
+
+包(package)，包含 `__init__.py`文件的文件夹，用于组织多个模块或子包。包名是文件夹名（如 `my_package`）
+
 ### 引用方法
 
 #### 基本
@@ -4699,9 +4836,31 @@ print('b') # b.py
 
 #### 路径
 
+写法一：
+
+```python
+from abc import xxx
+```
+
 同文件夹下直接写文件名，如上例(impa.py)
 
-寻路顺序：内置模块、sys.modules 缓存(已加载)、sys.path 列表
+该写法，寻路顺序：内置模块、sys.modules 缓存(已加载)、sys.path 列表。
+
+写法二：从当前包的同级目录里查找。必须在包内部使用（即目录必须有 `__init__.py`），否则会报错
+
+```python
+from .abc import xxx
+```
+
+写法三：要求同上，上一级是包。取上级目录
+
+```python
+from ..abc import xxx
+from ...abc import xxx # 上上级
+from .. import 文件名 # 如文件名.py
+```
+
+
 
 ##### 异文件夹
 
@@ -4753,7 +4912,7 @@ sys.path.append('../../') #等价的相对路径
 
 #### \_\_all\_\_
 
-表示该模块里允许被 `from xx import *` 的 `*` 所包含的内容。是字符串或列表，表示变量名/函数名。
+表示该模块里允许被 `from xx import *` 的 `*` 所包含的内容。是字符串或列表，表示变量名/函数名。如果不写，默认所有。
 
  如：`ima.py`
 
@@ -4789,7 +4948,9 @@ ima.g()
 
 #### \_\_init\_\_.py
 
-有该 `.py` 的文件夹被视为一个模块，文件夹名可以当做模块名被 `import`。当引入该模块时，首先会执行 `__init__.py`。模块的 `__all__` 可以包含一系列该模块下文件名(不含后缀的相对名字)。
+有该 `.py` 的文件夹被视为一个包，文件夹名可以当做包名被 `import`。这样文件夹里的代码文件被视为一体，引用时看做向 `文件夹名.py` 引用。
+
+当引入该包时，首先会执行 `__init__.py`。模块的 `__all__` 可以包含一系列该包下文件名(不含后缀的相对名字)。如果不写，默认导出所有不以单下划线开头的内容。
 
 那么当执行时 `from import *`，其 `__all__` 下所有包含的会被一并 `import`。且这些文件被视作一个对象般去使用。
 
@@ -4872,6 +5033,12 @@ defaultdict 嵌套：
 def nd(): return defaultdict(list)
 g = defaultdict(nd)
 ```
+
+```python
+avg = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+```
+
+
 
 ##### queue
 
@@ -8882,6 +9049,8 @@ np.linalg.matrix_power(A, n)
 `.T` 对一维不变，二维横纵坐标改变
 
 对高维，使用 `.transpose((x,y,z,...))`  表示新的第几个维度对应旧的第几个维度
+
+对称矩阵检查：`print(np.array_equal(g, g.T))`
 
 ##### 逆元
 
@@ -18683,7 +18852,8 @@ print(torch.empty(5, 10)) # 形状
 ##### 数据类型
 
 ```python
-x = torch.tensor([[1,1,4,5,1,4],[1,9,1,9,8,1]]).float()
+x = torch.tensor([[1,1,4,5,1,4],[1,9,1,9,8,1]]).float() # 转 float32
+#注意 float64(double) 和 32 不一样，不能一起算
 ```
 
 ```python
@@ -21714,7 +21884,7 @@ nohup python experiments/train.py -c baselines/DCRNN/PEMS07.py -g 0 &
 
 ##### 数据集
 
-以 PEMS03 为例，通道是 3，添加了 time of day, day of week；第一个通道还是原始流量数据。
+以 PEMS03 为例，通道是 3，添加了 time of day, day of week；第一个通道还是原始流量数据。具体阅读数据的代码可以参见我的仓库 [src](https://github.com/lr580/llm4traffic_prediction)
 
 ### openai
 

@@ -3295,6 +3295,14 @@
 - 231\.2的幂
 
   位运算
+  
+- 869\.重新排序得到2的幂
+
+  搜索 / 打表
+  
+- 2438\.二的幂数组中查询范围内的乘积
+
+  位运算(构造) 前缀和+逆元 / 前缀和 / 预处理
 
 ## 算法
 
@@ -19882,5 +19890,156 @@ class Solution {
 return Integer.bitCount(n) == 1 && n > 0;
 return ((long)n&((long)n-1))==0 && n!=0;
 return n > 0 && (n & (n - 1)) == 0;
+```
+
+##### 869\.重新排序得到2的幂
+
+[题目](https://leetcode.cn/problems/reordered-power-of-2)
+
+next_permutation 前要排序。
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+class Solution {
+    public:
+        bool reorderedPowerOf2(int n) {
+            vector<int> a;
+            while(n){
+                a.push_back(n%10);
+                n/=10;
+            }
+            sort(a.begin(),a.end());
+            do{
+                if(a[0]==0) continue;
+                int x=0;
+                for(auto&v:a) x=x*10+v;
+                // cout<<x<<'\n';
+                if((x&(x-1))==0) return true;
+            }while(next_permutation(a.begin(),a.end()));
+            return false;
+        }
+    };
+```
+
+逆向：处理所有 2^k，看看是否输入是某个。
+
+```java
+class Solution {
+    private static final Set<String> powTwoSortedStrSet = new HashSet<>();
+
+    static {
+        final int MAX_N = 1_000_000_000;
+        for (int i = 1; i < MAX_N; i <<= 1) {
+            String s = intToSortedStr(i);
+            powTwoSortedStrSet.add(s);
+        }
+    }
+
+    private static String intToSortedStr(int n) {
+        char[] s = String.valueOf(n).toCharArray();
+        Arrays.sort(s);
+        return new String(s);
+    }
+
+    public boolean reorderedPowerOf2(int n) {
+        String s = intToSortedStr(n);
+        return powTwoSortedStrSet.contains(s);
+    }
+}
+```
+
+##### 2438\.二的幂数组中查询范围内的乘积
+
+[题目](https://leetcode.cn/problems/range-product-queries-of-powers)
+
+二进制就是最优 powers。前缀积+逆元快速询问。
+
+- 也可以直接预处理，powers 长度平方的数组大小。
+- 显然区间和是2的幂的前缀和，直接做指数前缀和即可。
+
+```java
+import java.util.ArrayList;
+
+class Solution {
+    private static final long mod = (long)(1e9)+7;
+    private long qpow(long a, long b) {
+        long r = 1;
+        while(b > 0) {
+            if((b & 1) == 1) {
+                r = r * a % mod;
+            }
+            a = a * a % mod;
+            b >>= 1;
+        }
+        return r;
+    }
+    public int[] productQueries(int n, int[][] queries) {
+        ArrayList<Integer> powers = new ArrayList<>();
+        for(int i=31;i>=0;i--) {
+            if((n & (1 << i)) != 0) {
+                powers.add(1<<i);
+                n ^= (1 << i);
+            }
+        }
+        int m = powers.size();
+        long a[] = new long[m+1];
+        for(int i=1;i<=m;i++) {
+            a[i] = powers.get(m-i);
+            //System.out.println(a[i]);
+        }
+        a[0] = 1;
+        for(int i=1;i<=m;i++) {
+            a[i] = (a[i] * a[i-1]) % mod;
+        }
+        long inva[] = new long[m+1];
+        for(int i=1;i<=m;i++) {
+            inva[i] = qpow(a[i], mod-2);
+        }
+        inva[0] = 1;
+        int q = queries.length;
+        int ans[] = new int[q];
+        for(int i=0;i<q;i++) {
+            int l = queries[i][0];
+            int r = queries[i][1];
+            //System.out.println(a[r+1]+" "+inva[l]);
+            ans[i] = (int)((a[r+1] * inva[l]) % mod);
+        }
+        return ans;
+    }
+}
+```
+
+```java
+class Solution {
+    private static final int MOD = 1_000_000_007;
+    private static final int MX = 436;
+    private static final int[] pow2 = new int[MX];
+
+    static {
+        pow2[0] = 1;
+        for (int i = 1; i < MX; i++) {
+            pow2[i] = pow2[i - 1] * 2 % MOD;
+        }
+    }
+
+    public int[] productQueries(int n, int[][] queries) {
+        List<Integer> s = new ArrayList<>();
+        s.add(0);
+        for (; n > 0; n &= n - 1) { // n &= n-1 去掉 n 的最低比特 1
+            int e = Integer.numberOfTrailingZeros(n);
+            // 直接计算 e 的前缀和
+            s.add(s.getLast() + e);
+        }
+
+        int[] ans = new int[queries.length];
+        for (int i = 0; i < queries.length; i++) {
+            int[] q = queries[i];
+            int sumE = s.get(q[1] + 1) - s.get(q[0]);
+            ans[i] = pow2[sumE];
+        }
+        return ans;
+    }
+}
 ```
 
