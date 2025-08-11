@@ -277,6 +277,23 @@ PyPy3 是 Python 3 的一个替代实现，由 PyPy 项目开发。PyPy 是一�
 - 兼容 Python 3 的语法和标准库。
 - 支持多种底层技术（如 C、RPython 等），使得开发更灵活。
 
+#### 缓存
+
+`.pyc`文件是 Python 的编译缓存文件（Compiled Python File），它是 Python 解释器将 `.py`源代码编译后的字节码（bytecode）文件。
+
+当 `import`一个模块（如 `import my_module`），Python 会在同级目录下生成 `__pycache__/my_module.cpython-XX.pyc`（`XX`是 Python 版本号）。
+
+它包含python版本，时间戳。若 `.py`修改时间晚于 `.pyc`，会重新编译。利用 pyc 文件可以反编译出源码。
+
+也可以手动获得缓存：
+
+```python
+import py_compile
+py_compile.compile('example.py')  # 生成 __pycache__/example.cpython-XX.pyc
+```
+
+启动 Python 时加 `-B`参数（不生成 `.pyc`）。
+
 ### 规范
 
 #### 标准头
@@ -2110,7 +2127,7 @@ bytearray("你好", "utf-8") #第二个参数必填
 定义：
 
 ```python
-class 类名(父类名):#父类可以不写，或写Object，父类可以有多个
+class 类名(父类名):#父类可以不写(空括号或无括号)，或写Object，父类可以有多个
     def __init__(self,参数): #构造函数,self是自己，即this
         self.成员属性=... #定义成员属性 
         # 不可以有多个构造函数
@@ -2469,6 +2486,20 @@ class Dog(Animal):
 
 是 `==` 调用的。与 is 区别在于 is 检查对象引用是否相同(也可以 is None)
 
+##### iter
+
+实现 for 迭代，如：
+
+```python
+@dataclass
+class DataList:
+    data : list[str]
+    def __iter__(self):
+        return iter(self.data)
+```
+
+
+
 ##### getitem
 
 getitem 或 setitem
@@ -2733,6 +2764,34 @@ print(p1 < p3)   # False
     key = (student_number, contest_problem_id)
     if last_submits[key] < submitCode:
         last_submits[key] = submitCode
+```
+
+可以转 json，也可以反转：
+
+```python
+from dataclasses import dataclass, asdict
+import json
+@dataclass
+class Person:
+    name: str
+    age: int
+    city: str
+person = Person(name="Alice", age=30, city="New York")
+with open("person.json", "w") as f:
+    json.dump(asdict(person), f, indent=4) 
+
+with open("person.json", "r") as f:
+    data = json.load(f)
+restored_person = Person(**data)
+print(restored_person)
+```
+
+在 `@dataclass`中，`__post_init__`方法会在对象构造完成后自动调用，适合在这里进行类型转换。
+
+```python
+def __post_init__(self):
+    if isinstance(self.X, list):
+        self.X = np.array(self.X, dtype=np.float32)
 ```
 
 
@@ -3120,6 +3179,14 @@ for x in range(n + 1):
         break
 else:
     print("No solution!")
+```
+
+迭代是引用，如：
+
+```python
+a=[[], [1]]
+for b in a:
+    b.append(6) #得到 a=[[6], [1, 6]]
 ```
 
 
@@ -7205,6 +7272,16 @@ dump 可以设置
 - `indent=2`，使得有缩进(2个空格)，否则在一行输出。
 - `ensure_ascii`：默认为 `True`，非 ASCII 字符会被转义（如 `中文` → `\u4e2d\u6587`）。设为 `False` 可保留原字符。
 
+自定义序列化，如：
+
+```python
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
+```
+
 #### csv
 
 ```python
@@ -9473,6 +9550,8 @@ gen = data_generator('compressed_data.npz', batch_size)
 ##### memmap
 
 内存映射。将大文件直接映射到内存中进行高效读写，特别适合处理超出物理内存限制的大型数组。懒加载：仅访问时加载所需数据部分，避免一次性读取整个文件。用 `np.memmap` 读写，一个文件保存一个numpy数组。
+
+转 array: `np.array(X)`，假设 X 是 memmap。
 
 #### 应用举例
 
@@ -21885,6 +21964,8 @@ nohup python experiments/train.py -c baselines/DCRNN/PEMS07.py -g 0 &
 ##### 数据集
 
 以 PEMS03 为例，通道是 3，添加了 time of day, day of week；第一个通道还是原始流量数据。具体阅读数据的代码可以参见我的仓库 [src](https://github.com/lr580/llm4traffic_prediction)
+
+图是 ndarray，01 数组
 
 ### openai
 
