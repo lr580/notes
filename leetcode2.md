@@ -3303,6 +3303,14 @@
 - 2438\.二的幂数组中查询范围内的乘积
 
   位运算(构造) 前缀和+逆元 / 前缀和 / 预处理
+  
+- 326\.3的幂
+
+  签到 数学
+  
+- 1780\.判断一个数字是否可以表示成三的幂的和
+
+  DP / <u>进制/倍增</u>
 
 ## 算法
 
@@ -20039,6 +20047,90 @@ class Solution {
             ans[i] = pow2[sumE];
         }
         return ans;
+    }
+}
+```
+
+##### 326\.3的幂
+
+[题目](https://leetcode.cn/problems/power-of-three)
+
+```java
+class Solution {
+    private static HashSet<Integer> m = new HashSet<>();
+    static {
+        long x = 1;
+        while (x <= Integer.MAX_VALUE) {
+            m.add((int) x);
+            x *= 3;
+        }
+    }
+    public boolean isPowerOfThree(int n) {
+        return m.contains(n);
+    }
+}
+```
+
+可知最大是 3^19，任意3的幂是它的因数，所以可以整除。
+
+```python
+return n > 0 and 1162261467 % n == 0
+```
+
+##### 1780\.判断一个数字是否可以表示成三的幂的和
+
+[题目](https://leetcode.cn/problems/check-if-number-is-a-sum-of-powers-of-three)
+
+```python
+class Solution {
+    private static boolean dp[] = new boolean[10000001];
+    static {
+        dp[0] = true;
+        for(int j=1;j<=10000000;j*=3) {
+            for(int i=10000000;i>=j;i--) {
+                dp[i] |= dp[i-j];
+            }
+        }
+    }
+    public boolean checkPowersOfThree(int n) {
+        return dp[n];
+    }
+}
+```
+
+倍增：从 3^i 开始能减就减。
+
+```java
+class Solution {
+    private static ArrayList<Integer> a = new ArrayList<>();
+    static {
+        for(int j=1;j<=10000000;j*=3) {
+            a.add(j);
+        }
+    }
+    public boolean checkPowersOfThree(int n) {
+        for(int i=a.size()-1;i>=0;i--) {
+            if(n>=a.get(i)) {
+                n-=a.get(i);
+            }
+        }
+        return n==0;
+    }
+}
+```
+
+可以将 *n* 转换成 3 进制。如果 *n* 的 3 进制表示中每一位均不为 2，那么答案为 True，否则为 False。
+
+```python
+class Solution {
+    public boolean checkPowersOfThree(int n) {
+        while (n != 0) {
+            if (n % 3 == 2) {
+                return false;
+            }
+            n /= 3;
+        }
+        return true;
     }
 }
 ```

@@ -2186,6 +2186,8 @@ print(b1.val, b3.val) # 30, 30
 
 #### 继承
 
+##### 语法
+
 继承单一父类时，可以用super方法调用父类的初始化函数等内容。同名函数可覆盖
 
 ```python
@@ -2268,6 +2270,34 @@ print(isinstance(my_dog, Animal))
 >      self.ele[fx] = set()
 > ```
 >
+
+##### MRO
+
+在 Python 中，当使用多重继承时，子类的方法调用顺序由 MRO（Method Resolution Order） 决定。MRO 是一个线性化的继承顺序列表，Python 使用 C3 线性化算法 来计算这个顺序
+
+在多重继承中，如果多个父类定义了同名方法，Python 需要决定调用哪个版本。
+
+规则如下：
+
+1. 子类优先于父类（`D`的 MRO 里 `D`自己排最前面）。
+2. 继承顺序决定优先级（`class D(B, C)`表示 `B`比 `C`优先级高）。
+3. 保持单调性（不能出现父类比子类更早被访问的情况）。
+
+查看：使用 `类名.__mro__`或 `类名.mro()`：
+
+```python
+print(D.__mro__)
+print(D.mro())
+```
+
+下面顺序决定了调用顺序：
+
+```python
+(<class '__main__.D'>, <class '__main__.B'>, <class '__main__.C'>, <class '__main__.A'>, <class 'object'>)
+# MRO(D) = [D] + merge(MRO(B), MRO(C), [B, C])
+```
+
+
 
 #### 静态
 
@@ -5016,6 +5046,8 @@ ima.g()
 #### \_\_init\_\_.py
 
 有该 `.py` 的文件夹被视为一个包，文件夹名可以当做包名被 `import`。这样文件夹里的代码文件被视为一体，引用时看做向 `文件夹名.py` 引用。
+
+> 变成包，也可以不用包而跟之前一样单独用单个文件模块。
 
 当引入该包时，首先会执行 `__init__.py`。模块的 `__all__` 可以包含一系列该包下文件名(不含后缀的相对名字)。如果不写，默认导出所有不以单下划线开头的内容。
 
@@ -12566,6 +12598,8 @@ plt.savefig(输出文件名含后缀)
 ```
 
 > `bbox_inches='tight'` 参数可以确保图形的所有部分都能适当显示，不会被裁剪。可以保存矢量图，直接path后缀为svg/eps/pdf等即可。
+
+在每次绘图后调用 `plt.close()`关闭图形。否则连续绘图多次可能会爆内存。
 
 ##### 折线
 
@@ -22002,7 +22036,9 @@ response = client.chat.completions.create(
       f.write(result)
   ```
 
-  
+- 深度思考的(如deepseek)，思考结果在 JSON 里位于 `choices[0].reasoning_content`。
+
+- usage 里可以看到 tokens 数量。计算 created 与返回结果的时间差，可以求出调用时间。
 
 ### 杂项
 
