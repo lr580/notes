@@ -3311,6 +3311,10 @@
 - 1780\.判断一个数字是否可以表示成三的幂的和
 
   DP / <u>进制/倍增</u>
+  
+- 342\.4的幂
+
+  签到 数学 位运算
 
 ## 算法
 
@@ -20133,5 +20137,39 @@ class Solution {
         return true;
     }
 }
+```
+
+##### 342\.4的幂
+
+[题目](https://leetcode.cn/problems/power-of-four)
+
+```java
+class Solution {
+    private static HashSet<Integer> a = new HashSet<>();
+    static {
+        long x=1;
+        while(x<=Integer.MAX_VALUE) {
+            a.add((int)x);
+            x*=4;
+        }
+    }
+    public boolean isPowerOfFour(int n) {
+        return a.contains(n);
+    }
+}
+```
+
+只有1个1，且必然在偶数位(即与0x555....与后不为0 / 0xaaaa... 与后为0)
+
+```python
+return n > 0 and n & (n - 1) == 0 and n & 0x55555555 > 0
+```
+
+二项式展开，得 `4^k=(3+1)^k`，展开后，除了最后一项是1，其他项模3都是0，即 `4^k%3=1` 恒成立。
+
+如果它是 2 的幂，显然 `2*4^k%3=2`。故条件等价于：是 2 的幂，且模 3 不为 2。
+
+```python
+return n > 0 and n & (n - 1) == 0 and n % 3 == 1
 ```
 
