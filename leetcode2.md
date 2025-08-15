@@ -3315,6 +3315,10 @@
 - 342\.4的幂
 
   签到 数学 位运算
+  
+- 1323\.6和9组成的最大数字
+
+  签到
 
 ## 算法
 
@@ -20171,5 +20175,44 @@ return n > 0 and n & (n - 1) == 0 and n & 0x55555555 > 0
 
 ```python
 return n > 0 and n & (n - 1) == 0 and n % 3 == 1
+```
+
+##### 1323\.6和9组成的最大数字
+
+[题目](https://leetcode.cn/problems/maximum-69-number)
+
+```java
+class Solution {
+    public int maximum69Number (int num) {
+        char[] c = Integer.toString(num).toCharArray();
+        for(int i=0; i<c.length; i++) {
+            if(c[i]=='6') {
+                c[i]='9';
+                break;
+            }
+        }
+        return Integer.parseInt(new String(c));
+    }
+}
+```
+
+```java
+String s = String.valueOf(num).replaceFirst("6", "9"); // 替换第一个 6
+```
+
+```java
+class Solution {
+    public int maximum69Number(int num) {
+        int maxBase = 0;
+        int base = 1;
+        for (int x = num; x > 0; x /= 10) {
+            if (x % 10 == 6) {
+                maxBase = base;
+            }
+            base *= 10;
+        }
+        return num + maxBase * 3;
+    }
+}
 ```
 
