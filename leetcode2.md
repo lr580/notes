@@ -3319,6 +3319,18 @@
 - 1323\.6和9组成的最大数字
 
   签到
+  
+- 837\.新21点
+
+  DP+前缀和 / DP+滑动窗口
+  
+- 679\.24点游戏
+
+  搜索 模拟
+  
+- 2348\.全0子数组的数目
+
+  计数
 
 ## 算法
 
@@ -20212,6 +20224,232 @@ class Solution {
             base *= 10;
         }
         return num + maxBase * 3;
+    }
+}
+```
+
+##### 837\.新21点
+
+[题目](https://leetcode.cn/problems/new-21-game)
+
+到达当前点的概率，把它均分给它能到达的全部下一个点。
+
+```java
+class Solution {
+    public double new21Game(int n, int k, int maxPts) {
+        double dp[] = new double[n+1];
+        double s[] = new double[n+2]; // 前缀和差分
+        double ans = 0;
+        dp[0] = 1;
+        for(int i=0;i<=n;i++) {
+            s[i] = i==0?0:s[i]+s[i-1];
+            dp[i] += s[i];
+            //System.out.println(i+" "+dp[i]);
+            if(i<k) {
+                double v = dp[i] / maxPts;
+                s[i+1] += v;
+                s[Math.min(n+1,i+maxPts+1)] -= v;
+            } else {
+                ans += dp[i];
+            }
+        }
+        return ans;
+    }
+}
+```
+
+或者从后往前推，即 `f[0]` 为答案，转移为 `f[i]=sum(i, i+maxPts, f)/maxPts`。显然，这就是概率公式。滑动窗口维护这个 sum 即可。
+
+```python
+class Solution:
+    def new21Game(self, n: int, k: int, maxPts: int) -> float:
+        f = [0.0] * (n + 1)
+        s = 0.0
+        for i in range(n, -1, -1):
+            f[i] = 1.0 if i >= k else s / maxPts
+            # 当前循环计算的是 f[i+1] + ... + f[i+maxPts]
+            # 下个循环计算的是 f[i] + ... + f[i+maxPts-1]，多了 f[i]，少了 f[i+maxPts]
+            s += f[i]
+            if i + maxPts <= n:
+                s -= f[i + maxPts]
+        return f[0]
+```
+
+##### 679\.24点游戏
+
+[题目](https://leetcode.cn/problems/24-game)
+
+```c++
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <utility> // for std::pair
+using namespace std;
+
+class Solution {
+public:
+    bool judgePoint24(vector<int>& cards) {
+        vector<double> nums(4);
+        for (int i = 0; i < 4; i++) {
+            nums[i] = static_cast<double>(cards[i]);
+        }
+        sort(nums.begin(), nums.end());
+        
+        do {
+            double a = nums[0], b = nums[1], c = nums[2], d = nums[3];
+            for (int op1 = 0; op1 < 4; op1++) {
+                for (int op2 = 0; op2 < 4; op2++) {
+                    for (int op3 = 0; op3 < 4; op3++) {
+                        // 情况1：((a op1 b) op2 c) op3 d
+                        auto step1 = calcTwo(a, b, op1);
+                        if (!step1.first) continue;
+                        auto step2 = calcTwo(step1.second, c, op2);
+                        if (!step2.first) continue;
+                        auto step3 = calcTwo(step2.second, d, op3);
+                        if (step3.first && near24(step3.second)) return true;
+                        
+                        // 情况2：(a op1 (b op2 c)) op3 d
+                        step1 = calcTwo(b, c, op2);
+                        if (!step1.first) continue;
+                        step2 = calcTwo(a, step1.second, op1);
+                        if (!step2.first) continue;
+                        step3 = calcTwo(step2.second, d, op3);
+                        if (step3.first && near24(step3.second)) return true;
+                        
+                        // 情况3：(a op1 b) op2 (c op3 d)
+                        auto step1a = calcTwo(a, b, op1);
+                        auto step1b = calcTwo(c, d, op3);
+                        if (!step1a.first || !step1b.first) continue;
+                        step2 = calcTwo(step1a.second, step1b.second, op2);
+                        if (step2.first && near24(step2.second)) return true;
+                        
+                        // 情况4：a op1 ((b op2 c) op3 d)
+                        step1 = calcTwo(b, c, op2);
+                        if (!step1.first) continue;
+                        step2 = calcTwo(step1.second, d, op3);
+                        if (!step2.first) continue;
+                        step3 = calcTwo(a, step2.second, op1);
+                        if (step3.first && near24(step3.second)) return true;
+                        
+                        // 情况5：a op1 (b op2 (c op3 d))
+                        step1 = calcTwo(c, d, op3);
+                        if (!step1.first) continue;
+                        step2 = calcTwo(b, step1.second, op2);
+                        if (!step2.first) continue;
+                        step3 = calcTwo(a, step2.second, op1);
+                        if (step3.first && near24(step3.second)) return true;
+                    }
+                }
+            }
+        } while (next_permutation(nums.begin(), nums.end()));
+        
+        return false;
+    }
+
+private:
+    // 计算两个数的运算，返回<是否成功, 结果>
+    pair<bool, double> calcTwo(double a, double b, int op) {
+        switch (op) {
+            case 0: return {true, a + b};
+            case 1: return {true, a - b};
+            case 2: return {true, a * b};
+            case 3:
+                if (fabs(b) < 1e-6) return {false, 0};
+                return {true, a / b};
+        }
+        return {false, 0};
+    }
+
+    // 检查结果是否接近24（容差1e-6）
+    bool near24(double val) {
+        return fabs(val - 24) < 1e-6;
+    }
+};
+```
+
+每次选两个(每次都不是按顺序就行)，其实括号无所谓。
+
+```c++
+class Solution {
+public:
+    static constexpr int TARGET = 24;
+    static constexpr double EPSILON = 1e-6;
+    static constexpr int ADD = 0, MULTIPLY = 1, SUBTRACT = 2, DIVIDE = 3;
+
+    bool judgePoint24(vector<int> &nums) {
+        vector<double> l;
+        for (const int &num : nums) {
+            l.emplace_back(static_cast<double>(num));
+        }
+        return solve(l);
+    }
+
+    bool solve(vector<double> &l) {
+        if (l.size() == 0) {
+            return false;
+        }
+        if (l.size() == 1) {
+            return fabs(l[0] - TARGET) < EPSILON;
+        }
+        int size = l.size();
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                if (i != j) {
+                    vector<double> list2 = vector<double>();
+                    for (int k = 0; k < size; k++) {
+                        if (k != i && k != j) {
+                            list2.emplace_back(l[k]);
+                        }
+                    }
+                    for (int k = 0; k < 4; k++) {
+                        if (k < 2 && i > j) {
+                            continue;
+                        }
+                        if (k == ADD) {
+                            list2.emplace_back(l[i] + l[j]);
+                        } else if (k == MULTIPLY) {
+                            list2.emplace_back(l[i] * l[j]);
+                        } else if (k == SUBTRACT) {
+                            list2.emplace_back(l[i] - l[j]);
+                        } else if (k == DIVIDE) {
+                            if (fabs(l[j]) < EPSILON) {
+                                continue;
+                            }
+                            list2.emplace_back(l[i] / l[j]);
+                        }
+                        if (solve(list2)) {
+                            return true;
+                        }
+                        list2.pop_back();
+                    }
+                }
+            }
+        }
+        return false;
+    }
+};
+```
+
+灵神题解有复杂度证明。
+
+##### 2348\.全0子数组的数目
+
+[题目](https://leetcode.cn/problems/number-of-zero-filled-subarrays)
+
+```java
+class Solution {
+    public long zeroFilledSubarray(int[] nums) {
+        long ans = 0;
+        int cnt = 0;
+        for(int v:nums) {
+            if(v==0) {
+                cnt++;
+                ans += cnt;
+            } else {
+                cnt = 0;
+            }
+        }
+        return ans;
     }
 }
 ```

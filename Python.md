@@ -5536,6 +5536,23 @@ class Solution:
 # Optional[Node] 则：None 或 Node
 ```
 
+pylance (vscode 插件)可以强制检测类型报错。给 pylance 用，告诉它强转类型了(实际上代码没有做，只影响静态类型检查器的理解)：
+
+```python
+from typing import cast
+from numpy.typing import NDArray, ArrayLike
+f(cast("ArrayLike", times))
+```
+
+pylance 会对 None 做检测，如果确信不是，可以加 assert。
+
+```python
+def dataToPlot(self):
+    time = self.input.time
+    # .time 是 time: Optional[datetime] = None
+    assert time is not None
+```
+
 
 
 #### itertools
