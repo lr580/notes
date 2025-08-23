@@ -5276,6 +5276,14 @@ print(bob[1])     # 输出: 30
 > print(new_bob.name)  # 输出: Robert
 > ```
 
+##### OrderedDict
+
+```python
+from collections import OrderedDict
+```
+
+也可以当 set 来用，维护键即可。但是取最值是 O(n) 的，所以要复杂度好得用 SortedDict。
+
 #### heapq
 
 小根堆：
@@ -6970,7 +6978,9 @@ timestamp() 方法，输出与该时间对应的一个长float – timestamp型�
 
 datetime对象本身可以比较大小
 
+.date() 提取日期部分（年、月、日）得到datetime.date
 
+.time() 提取时间部分（时、分、秒）得到datetime.time
 
 ##### str互转
 
@@ -7074,7 +7084,20 @@ c=datetime(2002,3,8,23,59,59)
 > #     print(date)
 > ```
 >
-> 
+
+有 total_seconds() 函数。
+
+##### dateutil
+
+自动识别
+
+```python
+from dateutil import parser
+date_str = "March 1, 2012"  # 或 "1-Mar-2012", "2022/05/15", "3rd Jan 2000"
+dt = parser.parse(date_str)  # 自动转换为 datetime 对象
+```
+
+
 
 
 
@@ -15948,6 +15971,24 @@ with env.begin() as txn:
     value = txn.get(b"key1")
     print(value)  # 输出: b'value1'
 ```
+
+### markdown
+
+md 转 HTML，然后用 beautiful soup 解析。装 `markdown` 库。
+
+如有表格：
+
+```python
+table = """| DATASET                   | #GEO   | #REL    | #USR | #DYNA       | PLACE                       | DURATION                         | INTERVAL |
+| ------------------------- | ------ | ------- | ---- | ----------- | --------------------------- | -------------------------------- | -------- |
+| METR_LA                   | 207    | 11,753  | —    | 7,094,304   | Los Angeles, USA            | Mar. 1, 2012 -   Jun. 27, 2012   | 5min     |"""
+import markdown
+html = markdown.markdown(table)
+```
+
+也可以直接解析表格。用 `md-table` 库。
+
+
 
 
 

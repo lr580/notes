@@ -1,4 +1,5 @@
-因为 `md` 太大加载太慢，所以分开多个 `leetcode`。记录算法题。
+> 因为 `md` 太大加载太慢，所以分开多个 `leetcode`。记录算法题。
+>
 
 ## 目录
 
@@ -3331,6 +3332,22 @@
 - 2348\.全0子数组的数目
 
   计数
+  
+- 1277\.统计全为1的正方形子矩阵
+
+  前缀和+二分 / <u>DP</u>
+  
+- 1504\.统计全1子矩形
+
+  前缀和+二分+枚举 / <u>枚举</u> / <u>单调栈上DP</u>
+  
+- 3195\.包含所有1的最小矩形面积I
+
+  签到
+  
+- 1493\.删除一个元素以后全为1的最长子数组
+
+  滑动窗口
 
 ## 算法
 
@@ -8081,6 +8098,1339 @@ int main() {
   return 0;
 }
 ```
+
+### SocodingOJ
+
+#### 2025新生训练营
+
+- Day1E-最强战力
+
+  数论 (Frobenius 硬币问题)
+
+- Day3G-a-simple-for-problem 2
+
+  数论分块
+
+- Day4D-魔法星阵
+
+  前缀和+二分 / DP
+
+- Day5C-??的魔法宝藏
+
+  **思维 数学(斐波那契数列) 二分/指针**
+
+- Day5D-broder
+
+  **树状数组 AC自动机 DFS 离线 扫描线**
+
+- Day7D-时间宝石
+
+  思维 计数/排序
+
+- Day7E-归途游戏
+
+  博弈论 质因数分解/数论
+
+- Day8G-更快的排序
+
+  分块 / 线段树 / <u>STL+区间合并</u>
+
+- Day9-▼
+
+  三分套三分
+
+- Day10B-Prefix Max Possible GCD
+
+  差分 前缀和(前缀GCD)
+
+- Day10E-Subset Add Subset Sum
+
+  高维前缀和差分
+
+- Day12A-鸭瑟夫问题
+
+  模拟 / <u>树状数组二分</u>
+
+- Day12C-鸭元
+
+  <u>枚举+堆</u>
+
+- Day12D-合照队形
+
+  <u>单调栈</u>
+
+- Day12E-012
+
+  <u>栈 滑动窗口 构造</u>
+
+- Day12F-Sqrt 1007
+
+  <u>二分 前缀和 单调栈/堆</u>
+
+- Day13A-Polynya
+
+  数据结构嵌套
+
+- Day13B-Nyajsoul I
+
+  **随机 计数 前缀和(前缀异或)**
+
+- Day13B2-Nyajsoul II
+
+  **随机 计数 前缀和(前缀异或) 构造**
+
+- Day13C-君主离线制
+
+  **博弈论 模拟 STL**
+
+- Day14D-群岛
+
+  tarjan (无向图求桥)
+
+##### Day1E-最强战力
+
+> 题意：对互质的 $a,b$，不能被 $a,b$ 线性表示(不全为0的非负系数 $x,y$，表示为 $ax+by$)的最大正整数为？
+
+```python
+a,b=[int(i) for i in input().split()]
+if a==1 or b==1:
+    print(0)
+else:
+    import math
+    print(math.lcm(a,b)-a-b)
+```
+
+其中由于互质，`lcm(a,b)=ab`。 Frobenius 硬币问题
+
+##### Day3G-a-simple-for-problem 2
+
+> 给定正整数 $n, a, b, c$，求 $$\sum_{i=1}^{n}\lfloor{\frac{a}{i}}\rfloor\lfloor{\frac{b}{i}}\rfloor\lfloor{\frac{c}{i}}\rfloor$$
+>
+> 答案可能很大，因此只需要输出答案对 $998244353$ 取模后的结果。
+>
+> 输入一行四个正整数 $n,a,b,c$ $(1\leq n,a,b,c\leq3\times 10^{14})$ 。
+
+数论分块。别人的代码，求出答案相等的区间，每个区间的计算，不会超过 1e7 个区间
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+const long long K = 998244353;
+long long ans=0;
+long long a,b,c,n;
+long long i=1;
+inline long long f(long long x)
+{
+	long long m=n;
+	long long y=x/i;
+	if(y) m=min(m,x/y);
+	return m;
+}
+int main()
+{
+	cin>>n>>a>>b>>c;
+	n=min(n,a);n=min(n,b);n=min(n,c);
+	while(i<=n)
+	{
+		long long l=min(f(a),min(f(b),f(c)));
+		long long aa=a/i;aa%=K;
+		long long bb=b/i;bb%=K;
+		long long cc=c/i;cc%=K;
+		long long zs=aa*bb;zs%=K;zs*=cc;zs%=K;
+		zs*=(l-i+1);zs%=K;
+		ans+=zs;ans%=K;
+		i=l+1;
+	}
+	cout<<ans<<endl;
+	return 0;
+}
+```
+
+##### Day4D-魔法星阵
+
+> 题意：给定01网格($n,m\le10^3$)，问网格里最大的1十字的半径是？
+
+二分+前缀和
+
+```python
+#include <bits/stdc++.h>
+using namespace std;
+const int M = 1003;
+int a[M][M], sr[M][M], sc[M][M];
+signed main() {
+    ios::sync_with_stdio(false), cin.tie(0), cout.tie(0);
+    int n, m, ans=0;
+    char c;
+    cin >> n >> m;
+    for(int i=1;i<=n;i++) {
+        for(int j=1;j<=m;j++) {
+            cin>>c;
+            a[i][j]=c-'0';
+            sr[i][j]=sr[i][j-1]+a[i][j];
+            sc[i][j]=sc[i-1][j]+a[i][j];
+        }
+    }
+    for(int i=1;i<=n;i++) {
+        for(int j=1;j<=m;j++) {
+            if(a[i][j]==0) continue;
+            int l=0, r=min({i,j,n-i+1,m-j+1})-1;
+            while(l<=r) {
+                int c = (l+r)/2;
+                int row = sr[i][j+c]-sr[i][j-c-1];
+                int col = sc[i+c][j]-sc[i-c-1][j];
+                bool ok = row==2*c+1 && col==2*c+1;
+                if(ok) {
+                    ans=max(ans, c);
+                    l=c+1;
+                } else {
+                    r=c-1;
+                }
+            }
+        }
+    }
+    cout<<ans;
+    return 0;
+}
+```
+
+别人的DP
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+int n,m;
+bool a[1005][1005]={0};
+int f[1005][1005][4]={0};
+int main()
+{
+	cin>>n>>m;
+	for(int i=1;i<=n;i++)
+	{
+		string s;
+		cin>>s;
+		for(int j=0;j<s.length();j++)
+		if(s[j]=='1')
+		{
+			a[i][j+1]=1;
+			f[i][j+1][0]=f[i][j][0]+1;
+			f[i][j+1][1]=f[i-1][j+1][1]+1;
+		}
+	}
+	int ans=1;
+	for(int i=n;i>=1;i--)
+	{
+		for(int j=m;j>=1;j--)
+		if(a[i][j])
+		{
+			f[i][j][2]=f[i][j+1][2]+1;
+			f[i][j][3]=f[i+1][j][3]+1;
+			int zs=min(f[i][j][2],f[i][j][3]);
+			zs=min(zs,f[i][j][1]);zs=min(zs,f[i][j][0]);
+			ans=max(ans,zs);
+		}
+	}
+	cout<<ans-1<<endl;
+	return 0;
+}
+```
+
+##### Day5C-??的魔法宝藏
+
+> 扼要题意：给定字符对数值的映射表，对映射后的字符串->数值列表，定义列表的大小按①列表长度；②字典序分别为优先级排序。数值可以做下面的变换：1->0；0->1； x-> x-2, x-1;   x-2,x-1 -> x。变换前后不能超过映射值域。请将给定的字符串变换到最小的形态。
+
+先将每个数值变换为全0列表，则DP可推得每个数值x能变换出fib[x]个0。求出字符串一共等价于多少个0，贪心地把这些0逆变换为当前能变的最大数值放到最后，可以保证最短且最大。注意把1变换为0。
+
+```python
+import string, bisect
+magic2char = " " + string.digits + "_" + string.ascii_letters
+char2magic = {v: k for k, v in enumerate(magic2char)}
+fib = [0, 1, 1]
+for i in range(61):
+    fib.append(fib[-1] + fib[-2])
+for _ in range(int(input())):
+    s = sum([fib[char2magic[c]] for c in input()])
+    ans = []
+    while s:
+        m = bisect.bisect_right(fib, s) - 1
+        ans.append(magic2char[m])
+        s -= fib[m]
+    print(''.join(ans[::-1]).replace('1','0'))
+```
+
+##### Day7D-时间宝石
+
+> 题意：两个字符串 $s,t$，对 $s$ 可以翻转任意偶数长度的连续子串，问能否变成 $t$
+
+只需要翻转相邻(swap)即可，故只要字符数完全一致，一定可以。
+
+```python
+for _ in range(int(input())):
+    s, t = sorted(input()), sorted(input())
+    print(['NO', 'YES'][s==t])
+```
+
+##### Day7E-归途游戏
+
+> 题意：对一个正整数 $N(\le10^9)$，每次可以减去它的一个奇质因子。若无法找到相减的数或者减后为0判负。问是否先手必胜？
+
+质因数分解，求出它的所有质因数和2因数。先手必胜策略：选择一个奇质因数去掉，使得去掉它后一定是因数和的奇偶性相反。不管去掉哪个奇质因数都是一样的。只要一开始因数和是奇数，一定必胜。
+
+```python
+for _ in range(int(input())):
+    n = int(input())
+    f = []
+    i = 2
+    while i*i<=n:
+        if n%i==0:
+            f.append(i)
+            while n%i==0:
+                n//=i
+        i+=1
+    if n>1:
+        f.append(n)
+    hasPrime = any(f%2==1 for f in f)
+    hasEven = any(f%2==0 for f in f)
+    if hasEven and hasPrime:
+        print("Orange")
+    else:
+        print("Me!")
+```
+
+解法二：奇数以及 $2^n$ 必败，否则必胜。这是因为 ① 奇数没有偶因数，跟上面解法一结论一样。② $2^n$ 必然没有奇因数；非 $2^n$ 的偶数一定有奇因数。只需要不断除以 $2$ 就能求出这个奇因数，之后结论同上。
+
+##### Day8G-更快的排序
+
+> 题意：给定长为 $n(\le10^5)$ 的 01序列，有 $q(\le10^5)$ 次操作，每次把一个区间 $[l,r]$ 内的所有 0 放前面1放后面；或者反过来。并且求出这个区间的 1 的数目输出。
+
+分块模拟。或者线段树区间修改+区间查询。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using ll = unsigned long long;
+ll a[1564] = {};
+const int M = 64;
+const ll FULL = 0xffffffffffffffff;
+// 区间查询1的数量 [l, r]
+int query(int l, int r) {
+    if (l > r) return 0;
+    int block_l = l / M;
+    int block_r = r / M;
+    int offset_l = l % M;
+    int offset_r = r % M;
+    ll ans = 0;
+
+    if (block_l == block_r) { // 单块
+        ll mask = FULL;
+        if (offset_l > 0) {
+            mask &= ~((1ULL << offset_l) - 1);
+        }
+        if (offset_r < M - 1) {
+            mask &= (1ULL << (offset_r + 1)) - 1;
+        }
+        ans += __builtin_popcountll(a[block_l] & mask);
+    } else { // 多块
+        // 第一部分：起始块
+        if (offset_l > 0) {
+            ll mask_left = FULL << offset_l;
+            ans += __builtin_popcountll(a[block_l] & mask_left);
+        } else {
+            ans += __builtin_popcountll(a[block_l]);
+        }
+        // 第二部分：中间完整块
+        for (int i = block_l + 1; i < block_r; i++) {
+            ans += __builtin_popcountll(a[i]);
+        }
+        // 第三部分：结束块
+        ll mask_right = (offset_r == M - 1) ? FULL : ((1ULL << (offset_r + 1)) - 1);
+        ans += __builtin_popcountll(a[block_r] & mask_right);
+    }
+    return ans;
+}
+
+// 区间设置值 [l, r]
+void update(int l, int r, int v) {
+    if (l > r) return;
+    int block_l = l / M;
+    int block_r = r / M;
+    int offset_l = l % M;
+    int offset_r = r % M;
+
+    if (block_l == block_r) { // 单块
+        ll mask = FULL;
+        if (offset_l > 0) {
+            mask &= ~((1ULL << offset_l) - 1);
+        }
+        if (offset_r < M - 1) {
+            mask &= (1ULL << (offset_r + 1)) - 1;
+        }
+        if (v) {
+            a[block_l] |= mask;
+        } else {
+            a[block_l] &= ~mask;
+        }
+    } else { // 多块
+        // 第一部分：起始块
+        if (offset_l > 0) {
+            ll mask_left = FULL << offset_l;
+            if (v) {
+                a[block_l] |= mask_left;
+            } else {
+                a[block_l] &= ~mask_left;
+            }
+        } else {
+            a[block_l] = v ? FULL : 0;
+        }
+        // 第二部分：中间完整块
+        for (int i = block_l + 1; i < block_r; i++) {
+            a[i] = v ? FULL : 0;
+        }
+        // 第三部分：结束块
+        ll mask_right = (offset_r == M - 1) ? FULL : ((1ULL << (offset_r + 1)) - 1);
+        if (v) {
+            a[block_r] |= mask_right;
+        } else {
+            a[block_r] &= ~mask_right;
+        }
+    }
+}
+
+void printBits(int n) {
+    int count = 0;
+    
+    for (int i = 0; i < n; i++) {
+        int block = i / M;      // 当前位所在的块
+        int bit_offset = i % M; // 块内位偏移
+        
+        // 输出当前位的值
+        if (a[block] & (1ULL << bit_offset)) {
+            cout << '1';
+        } else {
+            cout << '0';
+        }
+        
+        // 每64位添加换行符（可选）
+        if ((i + 1) % M == 0 && (i + 1) < n) {
+            cout << '\n';
+        }
+    }
+    cout << '\n'; // 添加最终换行
+}
+
+signed main() {
+    ios::sync_with_stdio(false), cin.tie(0), cout.tie(0);
+    int n, q;
+    cin>>n>>q;
+    char c;
+    for(int i=0,j=0,k=0;i<n;i++) {
+        cin>>c; // 小端存储
+        if(c == '1') {
+            a[j] |= (1ULL << k);
+        } else {
+            a[j] &= ~(1ULL << k);
+        }
+        if(++k == M) {
+            j++;
+            k=0;
+        }
+    }
+    while(q--) {
+        int op, l, r;
+        cin>>op>>l>>r;
+        l--;
+        r--;
+        int ans=query(l, r);
+        if(op==1) {
+            int r2=r, l2=r2-ans+1, r1=r2-ans, l1=l;
+            // cout<<l1<<" "<<r1<<" "<<l2<<" "<<r2<<'\n';
+            update(l1, r1, 0);
+            update(l2, r2, 1);
+        } else {
+            int l1=l, r1=l1+ans-1, l2=l1+ans, r2=r;
+            // cout<<l1<<" "<<r1<<" "<<l2<<" "<<r2<<'\n';
+            update(l1, r1, 1);
+            update(l2, r2, 0);
+        }
+        cout<<ans<<'\n';
+        // printBits(n);
+    }
+}
+```
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+long long n,q,a[1000005]={0};
+struct wrt
+{
+	int l,r;
+	int s;
+	int lz;
+}t[5000005]={0};
+int l_z(int p)
+{
+	if(t[p].lz!=-1)
+	{
+		int mid=(t[p].l+t[p].r)/2;
+		t[p*2].lz=t[p].lz;
+		t[p*2+1].lz=t[p].lz;
+		t[p*2].s=t[p].lz*(t[p*2].r-t[p*2].l+1);
+		t[p*2+1].s=t[p].lz*(t[p*2+1].r-t[p*2+1].l+1);
+		t[p].lz=-1;
+	}
+	return 0;
+}
+void build(int l,int r,int p)
+{
+	t[p].l=l;
+	t[p].r=r;
+	t[p].lz=-1;
+	if(l==r)
+	{
+		t[p].s=a[l];
+		return;
+	}
+	int mid=(l+r)>>1;
+	build(l,mid,p*2);
+	build(mid+1,r,p*2+1);
+	t[p].s=t[p*2].s+t[p*2+1].s;
+	return;
+}
+int rewrite(int l,int r,int v,int p)
+{
+	if(l<=t[p].l&&t[p].r<=r)
+	{
+		t[p].s=(t[p].r-t[p].l+1)*v;
+		t[p].lz=v;
+		return 0;
+	}
+	l_z(p);
+	int mid=(t[p].l+t[p].r)>>1;
+	if(l<=mid)rewrite(l,r,v,p*2);
+	if(r>mid)rewrite(l,r,v,p*2+1);
+	t[p].s=t[p*2].s+t[p*2+1].s;
+	return 0;
+}
+int check(int l,int r,int p)
+{
+	int mid=(t[p].l+t[p].r)>>1;
+	
+	if(t[p].l>=l&&t[p].r<=r)
+		return t[p].s;
+	l_z(p);
+	int ab=0;
+	if(l<=mid)
+		ab+=check(l,r,p*2);
+	if(r>mid)
+		ab+=check(l,r,p*2+1);
+	return ab;
+}
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(0),cout.tie(0);
+	cin>>n>>q;
+	string s;
+	cin>>s;
+	for(int i=1;i<=n;i++)
+		a[i]=int(s[i-1]-'0');
+	build(1,n,1);
+	for(int i=1;i<=q;i++)
+	{
+		int l,r,w;
+		cin>>w>>l>>r;
+		int sl1=check(l,r,1);
+		if(w==1)
+		{
+			rewrite(l,r-sl1,0,1);
+			rewrite(r-sl1+1,r,1,1);
+		}
+		else
+		{
+			rewrite(l,l+sl1-1,1,1);
+			rewrite(l+sl1,r,0,1);
+		}
+		cout<<sl1<<endl;
+	}
+	return 0;
+}
+```
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+
+int main()
+{
+	int n,q;
+	string s;
+	set<array<int,3>> st;
+	cin>>n>>q>>s;
+	for (int i=0;i<n;i++)
+		st.insert({i,i+1,s[i]-'0'});
+
+	for (int i=0;i<q;i++)
+	{
+		int op,l,r,sum[2]={};
+		cin>>op>>l>>r;
+		op--,l--;
+		
+		while (1)
+		{
+			auto it=st.lower_bound({r});
+			if (it==st.begin()) break;
+			it--;
+			auto &[tl,tr,t]=*it;
+			int nl=max(l,tl),nr=min(r,tr);
+			if (nl>=nr) break;
+			if (nl!=tl) st.insert({tl,nl,t});
+			if (nr!=tr) st.insert({nr,tr,t});
+			sum[t]+=nr-nl;
+			st.erase(it);
+		}
+
+		int m=l+sum[op];
+		if (l<m) st.insert({l,m,op});
+		if (m<r) st.insert({m,r,op^1});
+		cout<<sum[1]<<'\n';
+	}
+
+	return 0;
+}
+```
+
+##### Day9-▼
+
+> 对二维平面的 $n(\le10^5)$ 个点，找出一个坐标点离它们的最大欧式距离最小。
+
+每个维度上都单峰，可以三分套三分。题目有点卡常，三分时两个三分点可以取到中点+1，-1，使得每次缩减1/2值域而不是缩减1/3值域。
+
+```c++
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+
+using namespace std;
+
+int n;
+double r;
+
+struct point {
+  double x, y;
+} p[100005], o;
+
+double sqr(double x) { return x * x; }
+
+double dis(point a, point b) { return sqrt(sqr(a.x - b.x) + sqr(a.y - b.y)); }
+
+bool cmp(double a, double b) { return fabs(a - b) < 1e-8; }
+
+point geto(point a, point b, point c) {
+  double a1, a2, b1, b2, c1, c2;
+  point ans;
+  a1 = 2 * (b.x - a.x), b1 = 2 * (b.y - a.y),
+  c1 = sqr(b.x) - sqr(a.x) + sqr(b.y) - sqr(a.y);
+  a2 = 2 * (c.x - a.x), b2 = 2 * (c.y - a.y),
+  c2 = sqr(c.x) - sqr(a.x) + sqr(c.y) - sqr(a.y);
+  if (cmp(a1, 0)) {
+    ans.y = c1 / b1;
+    ans.x = (c2 - ans.y * b2) / a2;
+  } else if (cmp(b1, 0)) {
+    ans.x = c1 / a1;
+    ans.y = (c2 - ans.x * a2) / b2;
+  } else {
+    ans.x = (c2 * b1 - c1 * b2) / (a2 * b1 - a1 * b2);
+    ans.y = (c2 * a1 - c1 * a2) / (b2 * a1 - b1 * a2);
+  }
+  return ans;
+}
+
+int main() {
+  scanf("%d", &n);
+  for (int i = 1; i <= n; i++) scanf("%lf%lf", &p[i].x, &p[i].y);
+  for (int i = 1; i <= n; i++) swap(p[rand() % n + 1], p[rand() % n + 1]);
+  o = p[1];
+  for (int i = 1; i <= n; i++) {
+    if (dis(o, p[i]) < r || cmp(dis(o, p[i]), r)) continue;
+    o.x = (p[i].x + p[1].x) / 2;
+    o.y = (p[i].y + p[1].y) / 2;
+    r = dis(p[i], p[1]) / 2;
+    for (int j = 2; j < i; j++) {
+      if (dis(o, p[j]) < r || cmp(dis(o, p[j]), r)) continue;
+      o.x = (p[i].x + p[j].x) / 2;
+      o.y = (p[i].y + p[j].y) / 2;
+      r = dis(p[i], p[j]) / 2;
+      for (int k = 1; k < j; k++) {
+        if (dis(o, p[k]) < r || cmp(dis(o, p[k]), r)) continue;
+        o = geto(p[i], p[j], p[k]);
+        r = dis(o, p[i]);
+      }
+    }
+  }
+  printf("%.10lf %.10lf", o.x, o.y);
+  return 0;
+}
+```
+
+常数比较大：
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+using ll = long long;
+using db = double;
+const int maxn = 1e5+3;
+int a[maxn], b[maxn], n;
+db ansx, ansy, mind=6e18;
+const db eps = 1e-8;
+inline void update(db x, db y, db d) {
+    if(d<mind || (abs(d-mind)<eps && x<ansx) || (abs(d-mind)<eps && abs(x-ansx)<eps && y<ansy)) {
+        ansx=x, ansy=y, mind=d;
+    }
+}
+inline db dis(db x, db y) {
+    db maxd=0;
+    for(int i=0;i<n;i++) {
+        db d=(x-a[i])*(x-a[i])+(y-b[i])*(y-b[i]);
+        maxd=max(maxd, d);
+    }
+    // cout<<x<<" "<<y<<" "<<maxd<<'\n';
+    update(x, y, maxd);
+    return maxd;
+}
+inline db calc(db x) {
+    db yl=*min_element(b, b+n), yr=*max_element(b, b+n);
+    db res=6e18;
+    while(abs(yr-yl)>eps) {
+        db tri=(yr-yl)/3;
+        db ylc=yl+tri, yrc=yr-tri;
+        db lv=dis(x, ylc), rv=dis(x, yrc);
+        res=min({res,lv,rv});
+        if(lv<rv) {
+            yr=yrc-eps;
+        } else {
+            yl=ylc+eps;
+        }
+    }
+    return res;
+}
+int main() {
+    ios::sync_with_stdio(false), cin.tie(0), cout.tie(0);
+    cin >> n;
+    for(int i=0;i<n;i++) {
+        cin>>a[i]>>b[i];
+    }
+    db xl=*min_element(a, a+n), xr=*max_element(a, a+n);
+    while(abs(xr-xl)>eps) {
+        db tri=(xr-xl)/3;
+        db xlc=xl+tri, xrc=xr-tri;
+        db lv=calc(xlc), rv=calc(xrc);
+        // cout<<xlc<<" "<<lv<<" | "<<xrc<<" "<<rv<<"\n";
+        if(lv<rv) {
+            xr=xrc-eps;
+        }else{
+            xl=xlc+eps;
+        }
+    }
+    cout << fixed << setprecision(9);
+    cout << ansx << " " << ansy << "\n";
+}
+```
+
+##### Day10B-Prefix Max Possible GCD
+
+> 对数组 $a(n\le10^5)$ 的每个前缀子数组，都询问：能否让每个元素 $+k(k>0)$，使得操作后数组 $\gcd$ 最大，求出最大 $\gcd$。
+
+$+k$ 变换等价于差分数组不变，首项任意变化。故求差分数组的 gcd 即可。
+
+```python
+n = int(input())
+a = [int(i) for i in input().split()]
+d = [0] + [abs(a[i] - a[i-1]) for i in range(1, n)]
+ans = [0] * n
+ans[1] = d[1]
+from math import gcd
+for i in range(2, n):
+    ans[i] = gcd(ans[i-1], d[i])
+list(map(lambda x:print(x, end=' '), ans))
+```
+
+##### Day10E-Subset Add Subset Sum
+
+> 对有 $n(0\le n\le20)$ 个元素的集合的每个子集。进行 $q(\le2\times10^5)$ 次操作，首先进行增加操作：对包含询问输入的若干 $a_i$ 元素的全体集合，这些集合的权 $+x$。之后执行查询操作：对包含询问输入的若干 𝑎𝑖 元素的全体集合，求其权重和(模 998244353)。
+
+实际上就是 $n$ 维差分、前缀和板子。用逐维公式，修改操作就是差分数组，叠一次前缀和得到原数组，再叠一次得到前缀和数组，基于前缀和数组查询即可。
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+using ll = long long;
+ll dp[1<<20], mod=998244353;
+int n;
+int stage() {
+    int m, s = 0;
+    cin >> m;
+    for (int i = 0, a; i < m; i++) {
+        cin >> a;
+        s |= (1 << (a-1));
+    }
+    return s;
+}
+bool solved;
+void bfs() {
+    for(int j=0;j<n;j++) {
+        for(int i=0;i<1<<n;i++) {
+            if(i>>j&1) {
+                dp[i]=(dp[i]+dp[i^(1<<j)])%mod; 
+            }
+        }
+    }
+}
+void debug() {} //{for(int i=0;i<1<<n;i++) cout<<dp[i]<<" "; cout<<'\n';}
+void solve() {
+    if(solved) return;  
+    solved = true; 
+    debug();
+    bfs();
+    debug();
+    bfs();
+    debug();
+}
+signed main() {
+    std::ios_base::sync_with_stdio(false), cin.tie(0), cout.tie(0);
+    int q;
+    cin >> n >> q;
+    while(q--) {
+        int op, x;
+        cin >> op;
+        int s = stage();
+        if (op == 0) {
+            cin >> x;
+            dp[s] = (dp[s] + x) % mod;
+        } else{
+            solve();
+            cout << dp[s] << '\n';
+        }
+    }
+    return 0;
+}
+```
+
+##### Day12A-鸭瑟夫问题
+
+> 题意：约瑟夫问题，人数 $n\le5000$，报号数 $m\le10^{18}$，问每次输出谁。
+
+一开始每个位置都是1，每次置一个0。树状数组上二分，查出剩下的是第几个人。即 第 $k$ 个 1 所在的下标。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using i64=long long;
+
+template <class T>
+struct BIT
+{
+	int n;
+	vector<T> a;
+
+	BIT(int n_=0) { init(n_); }
+
+	void init(int n_)
+	{
+		n=n_;
+		a.assign(n,T{});
+	}
+
+	void add(int x,const T &v)
+	{
+		for (int i=x+1;i<=n;i+=i&-i)
+			a[i-1]=a[i-1]+v;
+	}
+
+	int select(const T &k)
+	{
+		int x=0;
+		T cur{};
+		for (int i=1<<__lg(n);i;i>>=1)
+		{
+			if (x+i<=n&&cur+a[x+i-1]<=k)
+			{
+				x+=i;
+				cur=cur+a[x-1];
+			}
+		}
+		return x;
+	}
+};
+
+int main()
+{
+	i64 n,m;
+	cin>>n>>m;
+	BIT<int> bit(n);
+	for (int i=0;i<n;i++) bit.add(i,1);
+
+	i64 p=-1;
+	for (int i=0;i<n;i++,p--)
+	{
+		p=(p+m)%(n-i);
+		int q=bit.select(p);
+		bit.add(q,-1);
+		cout<<q+1<<" \n"[i+1==n];
+	}
+	return 0;
+}
+```
+
+##### Day12C-鸭元
+
+> 题意：有 $n(\le10^5)$ 个长条，每个长条的位置是 $x$，耗时是 $t$。一开始位置是 $0$，移动一单位位置需要一单位时间。一共有 $m$ 时间可用，问最多可以做完多少个长条。
+
+按 $x$ 排序长条，枚举只做到前 $i$ 个长条，在里边选出 $\le m$ 的长条，即使用大根堆，不断弹出当前耗时最长的长条。堆最大长度就是答案。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using i64=long long;
+using i128=__int128;
+
+
+void R()
+{
+	int n;
+	i64 m;
+	cin>>n>>m;
+	vector<pair<i64,i64>> a(n);
+	for (auto &[x,t]:a)
+	{
+		cin>>x>>t;
+	}
+	sort(a.begin(),a.end());
+	priority_queue<i64> q;
+	i64 nowx=0,sum=0;
+	int ans=0;
+	for (auto [x,t]:a)
+	{
+		nowx=x;
+		while ((!q.empty())&&sum+nowx>m)
+		{
+			sum-=q.top();
+			q.pop();
+		}
+		if (sum+nowx+t<=m)
+		{
+			sum+=t;
+			q.push(t);
+		}
+		else if ((!q.empty())&&q.top()>t)
+		{
+			sum-=q.top();
+			q.pop();
+			sum+=t;
+			q.push(t);
+		}
+		ans=max(ans,(int)q.size());
+	}
+	cout<<ans<<'\n';
+	return;
+}
+
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(nullptr);
+	cout.tie(nullptr);
+
+	int T=1;
+	// cin>>T;
+	while (T--) R();
+	return 0;
+}
+```
+
+##### Day12D-合照队形
+
+> 题意：有 $n(\le2\times10^5)$ 个人，若两人中间没有任何人比它们高，则两人可见。问共有多少两人对是相互可见的。
+
+维护去重元素计数的单调栈。维护严格单调递减栈。如果有连续同高度的人看成同一个栈元素。每次弹栈时，弹出该元素的这些人与当前元素可见。还没弹出的那个人栈顶也可以看到自己。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using i64=long long;
+
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(nullptr);
+
+	int n;
+	i64 ans=0;
+	cin>>n;
+	vector<int> a(n);
+	for (int &x:a) cin>>x;
+
+	vector<array<int,2>> s;
+	for (int x:a)
+	{
+		int ti=1;
+		while (!s.empty()&&s.back()[0]<=x)
+		{
+			if (s.back()[0]==x) ti+=s.back()[1];
+			ans+=s.back()[1],s.pop_back();
+		}
+		if (!s.empty()) ans++;
+		s.push_back({x,ti});
+	}
+
+	cout<<ans;
+	return 0;
+}
+```
+
+##### Day12E-012
+
+> 题意：一个01串，长为 $n\le2\times10^5$，恰有 $k$ 个 $1$。要求选择 $k+1$ 长度的子序列，使得子序列恰有 $k$ 个 $0$ 和 $1$ 个 $1$。且子序列对应的下标区间不含之前应操作过的下标。输出方案或报告无解。
+
+滑动窗口，若当前长为k+1的窗口恰有1个1，输出这个窗口。删掉它之后，用栈倒退，更新下一个窗口。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+
+int main()
+{
+	ios::sync_with_stdio(false);
+	cin.tie(nullptr);
+	cout.tie(nullptr);
+	
+	int n,k;
+	string s;
+	cin>>n>>k>>s;
+
+	int one=0;
+	vector<vector<int>> ans;
+	vector<array<int,2>> stk;
+	for (int i=0;i<n;i++)
+	{
+		int t=s[i]-'0';
+		stk.push_back({t,i});
+		int m=stk.size();
+		if (t) one++;
+		if (m>k+1&&stk[m-k-2][0]) one--;
+		if (m>k&&one==1)
+		{
+			vector<int> tmp;
+			for (int j=0;j<=k;j++)
+			{
+				if (stk.back()[0]) one--;
+				tmp.push_back(stk.back()[1]);
+				stk.pop_back();
+				if (m>j+k+1&&stk[m-j-k-2][0]) one++;
+			}
+			ans.push_back(tmp);
+		}
+	}
+
+	reverse(ans.begin(),ans.end());
+	for (auto &v:ans)
+		for (int i=k;i>=0;i--)
+			cout<<v[i]+1<<" \n"[i==0];
+
+	return 0;
+}
+```
+
+##### Day12F-Sqrt 1007
+
+> 已知一个长为 $n$ 的数列 $\{ a_n \}$ 与两个数 $x$ 和 $d$，求一个最小的非负整数 $k$，使得下列条件满足：存在 $1 \leq l \leq r \leq n$，使得 $r-l+1 \leq d$ 且 $\lvert \sum_{i=l}^r  (a_i+ \lfloor \sqrt{1007} k \rfloor \frac{a_i}{\lvert a_i \rvert}) \rvert \geq x$。
+>
+> 第一行三个正整数 $n,x,d$ $(1 \leq d \leq n \leq 2 \times 10^5,1 \leq x \leq 10^{14})$。
+>
+> 第二行含有 $n$ 个整数，表示数列 $\{ a_i \}$ $(1 \leq |a_i| \leq 10^9)$。
+
+二分 k，注意 $a_i/|a_i|$ 就是 $sgn(a_i)$。维护滑动窗口内前缀和和最大最小值，最大-最小就是窗口内的求和最大值，看看它是否 $\ge x$。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+using i64=long long;
+
+constexpr double kkz=sqrt(1007);
+
+int main()
+{
+	i64 n,x,d;
+	cin>>n>>x>>d;
+	vector<int> a(n);
+	for (int &x:a) cin>>x;
+
+	auto chk=[&](i64 m)
+	{
+		i64 t=kkz*m;
+		vector<i64> b(n+1);
+		for (int i=0;i<n;i++)
+			b[i+1]=b[i]+a[i]+(a[i]>0?t:-t);
+
+		i64 res=0;
+		deque<int> q1,q2;
+		for (int i=0;i<=n;i++)
+		{
+			if (!q1.empty()&&q1[0]<i-d) q1.pop_front();
+			if (!q2.empty()&&q2[0]<i-d) q2.pop_front();
+
+			while (!q1.empty()&&b[q1.back()]>=b[i]) q1.pop_back();
+			while (!q2.empty()&&b[q2.back()]<=b[i]) q2.pop_back();
+			
+			q1.push_back(i); q2.push_back(i);
+			res=max(res,b[q2[0]]-b[q1[0]]);
+		}
+		return res<x;
+	};
+
+	i64 l=0,r=x;
+	while (l<r)
+	{
+		i64 mid=(l+r)/2;
+		if (chk(mid)) l=mid+1;
+		else r=mid;
+	}
+
+	cout<<l;
+	return 0;
+}
+```
+
+##### Day13A-Polynya
+
+> 有 $n(\le2\times10^5)$ 个人及其所属队伍和能力。队伍能力是队员能力的最大值。有 $q(\le2\times10^5)$ 次换队操作，问每次换队后最低能力的队伍的队伍能力是？
+
+```python
+from sortedcontainers import SortedList
+from collections import defaultdict
+n, q = [int(i) for i in input().split()]
+v = defaultdict(lambda :SortedList())
+v2 = SortedList()
+def modify(mi, mi2):
+    if mi != mi2:
+        if mi in v2:
+            v2.remove(mi)
+        if mi2:
+            v2.add(mi2)
+    # print(v, v2)
+def add(a, b):
+    mi = v[b][-1] if len(v[b]) else 0
+    v[b].add(a)
+    mi2 = v[b][-1]
+    modify(mi, mi2)
+def pop(a, b):
+    mi = v[b][-1]
+    v[b].remove(a)
+    mi2 = v[b][-1] if len(v[b]) else 0
+    modify(mi, mi2)
+val = [(0, 0)] * n
+for i in range(n):
+    a, b = [int(i) for i in input().split()]
+    add(a, b)
+    val[i] = (a, b)
+for _ in range(q):
+    c, d = [int(i) for i in input().split()]
+    a, b = val[c-1]
+    pop(a, b)
+    val[c-1] = (a, d)
+    add(a, d)
+    print(v2[0])
+```
+
+```c++
+#include <iostream>
+#include <vector>
+#include <set>
+#include <map>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    cout.tie(nullptr);
+    int n, q;
+    cin >> n >> q;
+    
+    map<int, multiset<int>> v;
+    multiset<int> v2;
+    
+    auto modify = [&](int mi, int mi2) {
+        if (mi != mi2) {
+            if (v2.find(mi) != v2.end()) {
+                v2.erase(v2.find(mi));
+            }
+            if (mi2 != 0) {
+                v2.insert(mi2);
+            }
+        }
+    };
+    
+    auto add = [&](int a, int b) {
+        int mi = v[b].empty() ? 0 : *v[b].rbegin();
+        v[b].insert(a);
+        int mi2 = *v[b].rbegin();
+        modify(mi, mi2);
+    };
+    
+    auto pop = [&](int a, int b) {
+        int mi = *v[b].rbegin();
+        v[b].erase(v[b].find(a));
+        int mi2 = v[b].empty() ? 0 : *v[b].rbegin();
+        modify(mi, mi2);
+    };
+    
+    vector<pair<int, int>> val(n);
+    for (int i = 0; i < n; ++i) {
+        int a, b;
+        cin >> a >> b;
+        add(a, b);
+        val[i] = {a, b};
+    }
+    
+    for (int _ = 0; _ < q; ++_) {
+        int c, d;
+        cin >> c >> d;
+        auto [a, b] = val[c-1];
+        pop(a, b);
+        val[c-1] = {a, d};
+        add(a, d);
+        cout << *v2.begin() << endl;
+    }
+    
+    return 0;
+}
+```
+
+##### Day13B-Nyajsoul I
+
+> 给定一个序列，求有多少个区间其中包含的数出现次数都为偶数。$n\le10^5$
+
+前缀异或。出现2次就异或为0。但是出现1次也可能异或0：如 `1^2^3=0`。所以把输入随机打散到 int32或int64 空间里，使得这种情况出现的概率期望足够低。
+
+```python
+import random
+from collections import defaultdict
+
+def count_even_occurrences(arr):
+    n = len(arr)
+    freq = defaultdict(int)
+    freq[0] = 1  # pre[0] = 0
+    rand_map = {}  # 元素值到随机标识符的映射
+    current_xor = 0  # 当前前缀异或值
+    
+    for val in arr:
+        if val not in rand_map:
+            # 生成64位随机整数作为标识符
+            rand_map[val] = random.getrandbits(64)
+        current_xor ^= rand_map[val]
+        freq[current_xor] += 1  # 更新频率
+    
+    ans = 0
+    for count in freq.values():
+        if count >= 2:
+            ans += count * (count - 1) // 2  # C(count, 2)
+    return ans
+
+n = int(input())
+arr = list(map(int, input().split()))
+print(count_even_occurrences(arr))
+```
+
+##### Day13B2-Nyajsoul II
+
+> 给定一个序列，求有多少个区间其中包含的数出现次数都为三的倍数。$n\le10^5$
+
+当一个数出现 0,1,2 次(模3)时，分别构造一个随机对应，使其等于 $a,b,a\oplus b$。这样，只要出现 3 次，这三次的随机对应就能合在一起抵消。
+
+```python
+from random import randint
+from collections import defaultdict
+n = int(input())
+base = [dict() for i in range(3)]
+cnt, cntsor = defaultdict(int), defaultdict(int)
+ans = sor = 0
+cntsor[0] = 1
+for a in [int(i) for i in input().split()]:
+    if a not in cnt:
+        cnt[a] = 0
+        base[0][a] = randint(1, int(1e18))
+        base[1][a] = randint(1, int(1e18))
+        base[2][a] = base[0][a] ^ base[1][a]
+    cnt[a] = (cnt[a] + 1) % 3
+    sor ^= base[cnt[a]][a]
+    ans += cntsor[sor]
+    cntsor[sor] += 1
+print(ans)
+```
+
+##### Day13C-君主离线制
+
+> CSP-S 2020 贪吃蛇，自行找洛谷题目。是黑题。
+
+##### Day14D-群岛
+
+> 无向图求桥，输出桥数+1。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+#define sc(x) scanf("%lld", &x)
+typedef long long ll;
+#define mn 100010
+#define mm 2000010
+struct edge
+{
+    ll to, nx;
+} e[mm * 2];
+ll hd[mn], cnt, n, ans, dfn[mn], low[mn], st, m;
+// vector<pair<ll, ll>> res;
+void adde(ll u, ll v)
+{
+    e[++cnt] = {v, hd[u]};
+    hd[u] = cnt;
+}
+void tarjan(ll u, ll fa)
+{
+    dfn[u] = low[u] = ++st;
+    for (ll i = hd[u], v; i; i = e[i].nx)
+    {
+        v = e[i].to;
+        if (v != fa)
+        {
+            if (!dfn[v])
+            {
+                tarjan(v, u);
+                low[u] = min(low[u], low[v]);
+                if (low[v] > dfn[u])
+                    ++ans; // res.emplace_back(min(u, v), max(u, v));
+            }
+            else if (v != fa)
+                low[u] = min(low[u], dfn[v]);
+        }
+    }
+}
+signed main()
+{
+    sc(n), sc(m);
+    for(ll i = 1, u, v; i <= m; ++i) {
+        sc(u), sc(v), adde(u, v), adde(v, u);
+    }
+    for (ll i = 1; i <= n; ++i)
+        if (!dfn[i])
+            tarjan(i, i);
+    printf("%lld", ans + 1);
+    return 0;
+}
+```
+
+
 
 ### 力扣
 
@@ -20448,6 +21798,589 @@ class Solution {
             } else {
                 cnt = 0;
             }
+        }
+        return ans;
+    }
+}
+```
+
+##### 1277\.统计全为1的正方形子矩阵
+
+[题目](https://leetcode.cn/problems/count-square-submatrices-with-all-ones)
+
+```java
+class Solution {
+    public int countSquares(int[][] matrix) {
+        int n = matrix.length, m = matrix[0].length;
+        int[][] s = new int[n+1][m+1];
+        for(int i=1;i<=n;i++) {
+            for(int j=1;j<=m;j++) {
+                s[i][j]=s[i-1][j]+s[i][j-1]-s[i-1][j-1]+matrix[i-1][j-1];
+            }
+        }
+        int ans = 0;
+        for(int i=1;i<=n;i++) {
+            for(int j=1;j<=m;j++) {
+                if(matrix[i-1][j-1]!=1) continue;
+                int lf = 1, rf = Math.min(n-i+1, m-j+1), siz=0;
+                while(lf<=rf) {
+                    int cf=(lf+rf)>>1;
+                    int i2 = i+cf-1, j2 = j+cf-1;
+                    int cnt = s[i2][j2]-s[i2][j-1]-s[i-1][j2]+s[i-1][j-1];
+                    if(cnt==cf*cf) {
+                        siz = cf;
+                        lf = cf+1;
+                    } else {
+                        rf = cf-1;
+                    }
+                }
+                ans += siz;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+看 0x3f：
+
+```java
+class Solution {
+    public int countSquares(int[][] matrix) {
+        int m = matrix.length;
+        int n = matrix[0].length;
+        int[][] f = new int[m + 1][n + 1];
+        int ans = 0;
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (matrix[i][j] > 0) {
+                    f[i + 1][j + 1] = Math.min(Math.min(f[i][j], f[i][j + 1]), f[i + 1][j]) + 1;
+                    ans += f[i + 1][j + 1];
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+##### 1504\.统计全1子矩形
+
+[题目](https://leetcode.cn/problems/count-submatrices-with-all-ones)
+
+枚举左上角横纵坐标，然后枚举右下角的横坐标，然后用二分枚举右下角的纵坐标。前缀和判断是否矩形全为1。
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+int s[153][153];
+class Solution {
+    public:
+        int numSubmat(vector<vector<int>>& mat) {
+            int n = mat.size(), m = mat[0].size(), ans = 0;
+            for(int i=1;i<=n;i++) {
+                for(int j=1;j<=m;j++) {
+                    s[i][j] = s[i][j-1] + s[i-1][j] - s[i-1][j-1] + mat[i-1][j-1];
+                }
+            }
+            for(int i=1;i<=n;i++) {
+                for(int j=1;j<=m;j++) {
+                    if(mat[i-1][j-1] == 0) continue;
+                    for(int i2=i;i2<=n;i2++) {
+                        if(mat[i2-1][j-1] == 0) break;
+                        int lf=j, rf=m, ansj2=j;
+                        while(lf<=rf) {
+                            int j2=(lf+rf)>>1;
+                            int cnt=s[i2][j2] - s[i-1][j2] - s[i2][j-1] + s[i-1][j-1];
+                            int need = (i2-i+1)*(j2-j+1);
+                            if(cnt == need) {
+                                ansj2=j2;
+                                lf=j2+1;
+                            } else {
+                                rf=j2-1;
+                            }
+                        }
+                        ans += ansj2-j+1;
+                    }
+                }
+            }
+            return ans;
+        }
+    };
+```
+
+维护行当前向右最大延伸，枚举三个坐标，枚举过程自然可以求出当前长度对应的最小宽度。
+
+```c++
+class Solution {
+public:
+    int numSubmat(vector<vector<int>>& mat) {
+        int m = mat.size(), n = mat[0].size();
+        int res = 0;
+        vector<vector<int>> row(m, vector<int>(n, 0));
+        
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (j == 0) {
+                    row[i][j] = mat[i][j];
+                } else {
+                    row[i][j] = (mat[i][j] == 0) ? 0 : row[i][j - 1] + 1;
+                }
+                int cur = row[i][j];
+                for (int k = i; k >= 0; --k) {
+                    cur = min(cur, row[k][j]);
+                    if (cur == 0) {
+                        break;
+                    }
+                    res += cur;
+                }
+            }
+        }
+        return res;
+    }
+};
+```
+
+单调栈，枚举右下角，将当前行作为底边，维护高度柱状图(类似上面的row做一个height)，维护单调栈，求对于右下角的柱状图高度，它往左第一个高度低于它的位置在哪，求得左上角，矩形数显然是底边宽x柱状图高。
+
+具体而言，维护严格单调递减栈(显然，同高度找最右就开始不满足了)。设最左边为无穷低。在代码里，`(i-j)*h` 是当前 h 的高度。而如果高度不顶到 h 的话，所有以i为右下角的矩阵(任意高度)，即 i 的高度 h' 的 h', h'-1, h'-2 .... ，的矩形，都可以拓展到当前右下角，得到高度 <h 的全部答案，即 DP。这个答案保存，在当前行继续往下递推时，还有用。对下一行了就清空了。手撕易懂。
+
+```c++
+class Solution {
+public:
+    int numSubmat(vector<vector<int>>& mat) {
+        int n = mat[0].size();
+        vector<int> heights(n, 0);
+        int res = 0;
+        for (const auto& row : mat) {
+            for (int i = 0; i < n; ++i) {
+                heights[i] = (row[i] == 0) ? 0 : heights[i] + 1;
+            }
+            stack<vector<int>> st;
+            st.push({-1, 0, -1});
+            for (int i = 0; i < n; ++i) {
+                int h = heights[i];
+                while (st.top()[2] >= h) {
+                    st.pop();
+                }
+                auto& top = st.top();
+                int j = top[0];
+                int prev = top[1];
+                int cur = prev + (i - j) * h;
+                st.push({i, cur, h});
+                res += cur;
+            }
+        }
+        return res;
+    }
+};
+```
+
+实际上枚举最快，3ms；单调栈20-55ms(看优化)，二分86ms。
+
+##### 3195\.包含所有1的最小矩形面积I
+
+[题目](https://leetcode.cn/problems/find-the-minimum-area-to-cover-all-ones-i)
+
+```java
+class Solution {
+    public int minimumArea(int[][] grid) {
+        int n = grid.length, m = grid[0].length;
+        int l = m, r = -1, u = n, d = -1;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                if (grid[i][j] == 1) {
+                    l = Math.min(l, j);
+                    r = Math.max(r, j);
+                    u = Math.min(u, i);
+                    d = Math.max(d, i);
+                }
+            }
+        }
+        return (r - l + 1) * (d - u + 1);
+    }
+}
+```
+
+##### 3197.包含所有1的最小矩形面积II
+
+[题目](https://leetcode.cn/problems/find-the-minimum-area-to-cover-all-ones-ii)
+
+有且仅有6种用两条线切开矩形的方法。判断其中3种，然后旋转后复用，得到另外3种。枚举两条切线，然后对给定情况，再处理三个区域的最小矩形即可。
+
+```python
+# 把矩阵 a 顺时针旋转 90°
+def rotate(a: List[List[int]]) -> List[List[int]]:
+    return list(zip(*reversed(a)))
+
+class Solution:
+    def minimumSum(self, grid: List[List[int]]) -> int:
+        return min(self.solve(grid), self.solve(rotate(grid)))
+
+    def solve(self, a: List[List[int]]) -> int:
+        # 3195. 包含所有 1 的最小矩形面积 I
+        # 限定在 a 的 [l,r) 列中
+        def minimumArea(a: List[List[int]], l: int, r: int) -> int:
+            left = top = inf
+            right = bottom = 0
+            for i, row in enumerate(a):
+                for j, x in enumerate(row[l:r]):
+                    if x:
+                        left = min(left, j)
+                        right = max(right, j)
+                        top = min(top, i)
+                        bottom = i
+            return (right - left + 1) * (bottom - top + 1)
+
+        ans = inf
+        m, n = len(a), len(a[0])
+
+        if m >= 3:
+            for i in range(1, m):
+                for j in range(i + 1, m):
+                    # 图片上左
+                    area = minimumArea(a[:i], 0, n)
+                    area += minimumArea(a[i:j], 0, n)
+                    area += minimumArea(a[j:], 0, n)
+                    ans = min(ans, area)
+
+        if m >= 2 and n >= 2:
+            for i in range(1, m):
+                for j in range(1, n):
+                    # 图片上中
+                    area = minimumArea(a[:i], 0, n)
+                    area += minimumArea(a[i:], 0, j)
+                    area += minimumArea(a[i:], j, n)
+                    ans = min(ans, area)
+
+                    # 图片上右
+                    area = minimumArea(a[:i], 0, j)
+                    area += minimumArea(a[:i], j, n)
+                    area += minimumArea(a[i:], 0, n)
+                    ans = min(ans, area)
+        return ans
+```
+
+注意到，可以枚举优化，分别维护四个角为左上角区域的最小矩形面积，在递推计算时，维护多一些信息即可推出，不难求出。可以处理出一水平一垂直的情况。同理可以复用旋转，只写左上角即可。具体细节看0x3f。
+
+对两水平，预处理每行最左最右的 1 的列号。在枚举第一条水平时，开一个维护 minmax 的变量，记录有 1 的行的所有水平的最左最右，并记录有 1 的最上最下即可。显然易得。
+
+```python
+def rotate(a: List[List[int]]) -> List[List[int]]:
+    return list(zip(*reversed(a)))
+
+class Solution:
+    def minimumSum(self, grid: List[List[int]]) -> int:
+        return min(self.solve(grid), self.solve(rotate(grid)))
+
+    def solve(self, a: List[List[int]]) -> int:
+        m, n = len(a), len(a[0])
+
+        def minimumArea(a: List[List[int]]) -> List[List[int]]:
+            m, n = len(a), len(a[0])
+            # f[i+1][j+1] 表示包含【左上角为 (0,0) 右下角为 (i,j) 的子矩形】中的所有 1 的最小矩形面积
+            f = [[0] * (n + 1) for _ in range(m + 1)]
+            border = [(-1, 0, 0)] * n
+            for i, row in enumerate(a):
+                left, right = -1, 0
+                for j, x in enumerate(row):
+                    if x:
+                        if left < 0:
+                            left = j
+                        right = j
+                    pre_top, pre_left, pre_right = border[j]
+                    if left < 0:  # 这一排目前全是 0
+                        f[i + 1][j + 1] = f[i][j + 1]  # 等于上面的结果
+                    elif pre_top < 0:  # 这一排有 1，上面全是 0
+                        f[i + 1][j + 1] = right - left + 1
+                        border[j] = (i, left, right)
+                    else:  # 这一排有 1，上面也有 1
+                        l = min(pre_left, left)
+                        r = max(pre_right, right)
+                        f[i + 1][j + 1] = (r - l + 1) * (i - pre_top + 1)
+                        border[j] = (pre_top, l, r)
+            return f
+
+        # 预处理每一行最左最右 1 的列号，用于中间区域最小矩形面积的计算
+        lr = [None] * m
+        for i in range(m):
+            l, r = -1, 0
+            for j in range(n):
+                if a[i][j] > 0:
+                    if l < 0:
+                        l = j
+                    r = j
+            lr[i] = (l, r)
+
+        # lt[i+1][j+1] = 包含【左上角为 (0,0) 右下角为 (i,j) 的子矩形】中的所有 1 的最小矩形面积
+        lt = minimumArea(a)
+        a = rotate(a)
+        # lb[i][j+1] = 包含【左下角为 (m-1,0) 右上角为 (i,j) 的子矩形】中的所有 1 的最小矩形面积
+        lb = rotate(rotate(rotate(minimumArea(a))))
+        a = rotate(a)
+        # rb[i][j] = 包含【右下角为 (m-1,n-1) 左上角为 (i,j) 的子矩形】中的所有 1 的最小矩形面积
+        rb = rotate(rotate(minimumArea(a)))
+        a = rotate(a)
+        # rt[i+1][j] = 包含【右上角为 (0,n-1) 左下角为 (i,j) 的子矩形】中的所有 1 的最小矩形面积
+        rt = rotate(minimumArea(a))
+
+        ans = inf
+        if m >= 3:
+            for i in range(1, m):
+                left, right, top, bottom = n, 0, m, 0
+                for j in range(i + 1, m):
+                    l, r = lr[j - 1]
+                    if l >= 0:
+                        left = min(left, l)
+                        right = max(right, r)
+                        top = min(top, j - 1)
+                        bottom = j - 1
+                    # 图片上左
+                    ans = min(ans, lt[i][n] + (right - left + 1) * (bottom - top + 1) + lb[j][n])
+
+        if m >= 2 and n >= 2:
+            for i in range(1, m):
+                for j in range(1, n):
+                    # 图片上中
+                    ans = min(ans, lt[i][n] + lb[i][j] + rb[i][j])
+                    # 图片上右
+                    ans = min(ans, lt[i][j] + rt[i][j] + lb[i][n])
+        return ans
+```
+
+使用四叉树构成的线段树；或二维线段树/树状数组，或二维ST表，或分块，可以完成该任务：
+
+这里只给出四叉线段树。四叉线段树，就是每一个节点维护一个矩形，从横纵中线分开四个子节点。使用灵神的枚举策略，将子矩阵的最大矩形覆盖替换为线段树上的查询即可。
+
+复杂度分析：由主定理，易得建树复杂度为 $O(n^{2\log_44})=O(n^2)$，查询复杂度为 $O(n^0\log_4n^2)=O(\log_2n)$ (若行列不相等，建树 $O(nm)$，查询 $O(\log_4nm)$)。容易理解，因为行列都每次缩减一半，所以查询复杂度和一般的二叉线段树一样。
+
+> 欢迎评论区给出其他数据结构的解法，如二维ST表。
+
+```c++
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <climits>
+using namespace std;
+
+class QuadTree {
+public:
+    struct Node {
+        int min_row, max_row;
+        int min_col, max_col;
+        bool valid;
+        Node() : valid(false) {}
+        Node(int r, int c) : min_row(r), max_row(r), min_col(c), max_col(c), valid(true) {}
+    };
+
+private:
+    struct QuadNode {
+        Node info;
+        QuadNode* children[4];
+        QuadNode() : info() {
+            for (int i = 0; i < 4; i++) children[i] = nullptr;
+        }
+    };
+
+    QuadNode* root;
+    int rows, cols;
+    vector<vector<int>> matrix;
+
+    // 合并两个节点信息
+    void mergeNodes(Node& a, const Node& b) {
+        if (!b.valid) return;
+        if (!a.valid) {
+            a = b;
+            return;
+        }
+        a.min_row = min(a.min_row, b.min_row);
+        a.max_row = max(a.max_row, b.max_row);
+        a.min_col = min(a.min_col, b.min_col);
+        a.max_col = max(a.max_col, b.max_col);
+    }
+
+    // 构建四分树
+    QuadNode* buildTree(int row_start, int row_end, int col_start, int col_end) {
+        QuadNode* node = new QuadNode();
+        if (row_start == row_end && col_start == col_end) {
+            if (matrix[row_start][col_start] == 1) {
+                node->info = Node(row_start, col_start);
+            }
+            return node;
+        }
+
+        int row_mid = (row_start + row_end) / 2;
+        int col_mid = (col_start + col_end) / 2;
+
+        // 递归构建四个子树
+        if (row_start <= row_mid && col_start <= col_mid) {
+            node->children[0] = buildTree(row_start, row_mid, col_start, col_mid);
+            mergeNodes(node->info, node->children[0]->info);
+        }
+        if (row_start <= row_mid && col_mid + 1 <= col_end) {
+            node->children[1] = buildTree(row_start, row_mid, col_mid + 1, col_end);
+            mergeNodes(node->info, node->children[1]->info);
+        }
+        if (row_mid + 1 <= row_end && col_start <= col_mid) {
+            node->children[2] = buildTree(row_mid + 1, row_end, col_start, col_mid);
+            mergeNodes(node->info, node->children[2]->info);
+        }
+        if (row_mid + 1 <= row_end && col_mid + 1 <= col_end) {
+            node->children[3] = buildTree(row_mid + 1, row_end, col_mid + 1, col_end);
+            mergeNodes(node->info, node->children[3]->info);
+        }
+        return node;
+    }
+
+    // 查询四分树
+    Node queryTree(QuadNode* node, int row_start, int row_end, int col_start, int col_end,
+                  int q_row_start, int q_row_end, int q_col_start, int q_col_end) {
+        Node res;
+        if (!node || !node->info.valid) return Node();
+
+        // 当前节点区域完全在查询区域内
+        if (q_row_start <= row_start && row_end <= q_row_end &&
+            q_col_start <= col_start && col_end <= q_col_end) {
+            return node->info;
+        }
+
+        // 当前节点区域与查询区域无重叠
+        if (row_end < q_row_start || row_start > q_row_end ||
+            col_end < q_col_start || col_start > q_col_end) {
+            return Node();
+        }
+
+        int row_mid = (row_start + row_end) / 2;
+        int col_mid = (col_start + col_end) / 2;
+
+        // 递归查询四个子树
+        if (node->children[0]) {
+            Node child_res = queryTree(node->children[0], row_start, row_mid, col_start, col_mid,
+                                      q_row_start, q_row_end, q_col_start, q_col_end);
+            mergeNodes(res, child_res);
+        }
+        if (node->children[1]) {
+            Node child_res = queryTree(node->children[1], row_start, row_mid, col_mid + 1, col_end,
+                                      q_row_start, q_row_end, q_col_start, q_col_end);
+            mergeNodes(res, child_res);
+        }
+        if (node->children[2]) {
+            Node child_res = queryTree(node->children[2], row_mid + 1, row_end, col_start, col_mid,
+                                      q_row_start, q_row_end, q_col_start, q_col_end);
+            mergeNodes(res, child_res);
+        }
+        if (node->children[3]) {
+            Node child_res = queryTree(node->children[3], row_mid + 1, row_end, col_mid + 1, col_end,
+                                      q_row_start, q_row_end, q_col_start, q_col_end);
+            mergeNodes(res, child_res);
+        }
+        return res;
+    }
+
+    // 释放四分树内存
+    void deleteTree(QuadNode* node) {
+        if (!node) return;
+        for (int i = 0; i < 4; i++) {
+            deleteTree(node->children[i]);
+        }
+        delete node;
+    }
+
+public: QuadTree() {}
+    QuadTree(vector<vector<int>>& mat) : matrix(mat) {
+        rows = matrix.size();
+        if (rows == 0) {
+            root = nullptr;
+            return;
+        }
+        cols = matrix[0].size();
+        root = buildTree(0, rows - 1, 0, cols - 1);
+    }
+
+    ~QuadTree() {
+        deleteTree(root);
+    }
+
+    Node query(int r1, int r2, int c1, int c2) {
+        if (r1 < 0 || r2 >= rows || c1 < 0 || c2 >= cols || r1 > r2 || c1 > c2) {
+            return Node();
+        }
+        return queryTree(root, 0, rows - 1, 0, cols - 1, r1, r2, c1, c2);
+    }
+};
+
+class Solution {
+        
+    public:
+        int minimumSum(vector<vector<int>>& grid) {
+            // init:
+            int n=grid.size(), m=grid[0].size(), ans=1e9;
+            QuadTree t(grid);
+            auto query=[&](int l1, int l2, int r1, int r2) {
+                if(l1>l2 || r1>r2) return 0;
+                QuadTree::Node r = t.query(l1, l2, r1, r2);
+                if(!r.valid) return 0;
+                int siz=(r.max_row-r.min_row+1)*(r.max_col-r.min_col+1);
+                return siz;
+            };
+
+            // 下方模板：
+            // 两横
+            for(int i=0;i<n;i++) {
+                for(int j=i;j<n;j++) {
+                    ans = min(ans, query(0, i, 0, m-1) + query(i+1, j, 0, m-1) + query(j+1, n-1, 0, m-1));
+                }
+            }
+            // 两竖
+            for(int i=0;i<m;i++) {
+                for(int j=i;j<m;j++) {
+                    ans = min(ans, query(0, n-1, 0, i) + query(0, n-1, i+1, j) + query(0, n-1, j+1, m-1));
+                }
+            }
+            // T 型分割
+            for(int i=0;i<n;i++) {
+                for(int j=0;j<m;j++) {
+                    ans = min(ans, query(0, i, 0, m-1) + query(i+1, n-1, 0, j) + query(i+1, n-1, j+1, m-1));
+                }
+            }
+            // 垂直对称：T型分割
+            for(int i=0;i<n;i++) {
+                for(int j=0;j<m;j++) {
+                    ans = min(ans, query(0, i, 0, j) + query(0, i, j+1, m-1) + query(i+1, n-1, 0, m-1));
+                }
+            }
+            // 逆时针旋转90度：T 型分割
+            for(int i=0;i<n;i++) {
+                for(int j=0;j<m;j++) {
+                    ans = min(ans, query(0, n-1, 0, j) + query(0, i, j+1, m-1) + query(i+1, n-1, j+1, m-1));
+                }
+            }
+            // 顺时针旋转90度：T 型分割
+            for(int i=0;i<n;i++) {
+                for(int j=0;j<m;j++) {
+                    ans = min(ans, query(0, i, 0, j) + query(i+1, n-1, 0, j) + query(0, n-1, j+1, m-1));
+                }
+            }
+            return ans;
+        }
+    };
+
+```
+
+##### 1493\.删除一个元素以后全为1的最长子数组
+
+[题目](https://leetcode.cn/problems/longest-subarray-of-1s-after-deleting-one-element)
+
+```c++
+class Solution {
+    public int longestSubarray(int[] nums) {
+        int ans = 0, n = nums.length, l = 0, cnt0 = 0;
+        for (int r = 0; r < n; r++) {
+            if (nums[r] == 0) cnt0++;
+            while (cnt0 > 1) {
+                if (nums[l++] == 0) cnt0--;
+            }
+            ans = Math.max(ans, r - l);
         }
         return ans;
     }
