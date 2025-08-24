@@ -3348,6 +3348,10 @@
 - 1493\.删除一个元素以后全为1的最长子数组
 
   滑动窗口
+  
+- 498\.对角线遍历
+
+  模拟
 
 ## 算法
 
@@ -22386,4 +22390,39 @@ class Solution {
     }
 }
 ```
+
+##### 498\.对角线遍历
+
+[题目](https://leetcode.cn/problems/diagonal-traverse)
+
+```java
+class Solution {
+    public int[] findDiagonalOrder(int[][] mat) {
+        int n = mat.length, m = mat[0].length;
+        int[] ans = new int[n * m];
+        int i = 0, j = 0, drt = 1;
+        for(int cnt = 0; cnt < n*m; cnt++) {
+            //System.out.println(i+" "+j);
+            while(!(i>=0&&i<n&&j>=0&&j<m)) {
+                i -= drt;
+                j += drt;
+            }
+            ans[cnt] = mat[i][j];
+            j += drt;
+            i -= drt;
+            if(!(i>=0&&i<n&&j>=0&&j<m)) {
+                if(drt==1) {
+                    i++;
+                } else {
+                    j++;
+                }
+                drt = -drt;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+另一种方法，根据第几条对角线，确定对角线起始的坐标，然后一路走到越界。
 
