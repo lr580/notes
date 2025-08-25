@@ -3352,6 +3352,10 @@
 - 498\.对角线遍历
 
   模拟
+  
+- 3000\.对角线最长的矩形的面积
+
+  签到
 
 ## 算法
 
@@ -22425,4 +22429,25 @@ class Solution {
 ```
 
 另一种方法，根据第几条对角线，确定对角线起始的坐标，然后一路走到越界。
+
+##### 3000\.对角线最长的矩形的面积
+
+[题目](https://leetcode.cn/problems/maximum-area-of-longest-diagonal-rectangle)
+
+```java
+class Solution {
+    public int areaOfMaxDiagonal(int[][] dimensions) {
+        int mxDiag = -1, mxArea = -1;
+        for (int i = 0; i < dimensions.length; i++) {
+            int x = dimensions[i][0], y = dimensions[i][1];
+            int diag = x * x + y * y;
+            if (diag > mxDiag || (diag == mxDiag && x * y > mxArea)) {
+                mxDiag = diag;
+                mxArea = x * y;
+            }
+        }
+        return mxArea;
+    }
+}
+```
 
