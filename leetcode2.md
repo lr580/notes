@@ -3356,6 +3356,14 @@
 - 3000\.对角线最长的矩形的面积
 
   签到
+  
+- 3459\.最长V形对角线段的长度
+
+  记忆化DFS
+  
+- 3446\.按对角线进行矩阵排序
+
+  签到 排序
 
 ## 算法
 
@@ -22447,6 +22455,119 @@ class Solution {
             }
         }
         return mxArea;
+    }
+}
+```
+
+##### 3459\.最长V形对角线段的长度
+
+[题目](https://leetcode.cn/problems/length-of-longest-v-shaped-diagonal-segment)
+
+```java
+class Solution {
+    private int a[][], n, m, dp[][][][];
+    private static int dr[][] = new int[][]{{-1,1},{1,1},{1,-1},{-1,-1}};
+
+    private int dfs(int i, int j, int d, int p, int req) {
+        if(i < 0 || i >= n || j < 0 || j >= m) return 0;
+        if(a[i][j] != req) return 0;
+        if(dp[i][j][d][p] != 0) return dp[i][j][d][p];
+        int nx = 0;
+        int i2 = i + dr[d][0], j2 = j + dr[d][1];
+        nx = Math.max(nx, dfs(i2, j2, d, p, 2-req));
+        if(p>0) {
+            i2 = i + dr[(d+1)%4][0];
+            j2 = j + dr[(d+1)%4][1];
+            nx = Math.max(nx, dfs(i2, j2, (d+1)%4, 0, 2-req));
+        }
+        dp[i][j][d][p] = 1 + nx;
+        return dp[i][j][d][p];
+    }
+    public int lenOfVDiagonal(int[][] grid) {
+        a = grid;
+        n = a.length;
+        m = a[0].length;
+        dp = new int[n][m][4][2];
+        int ans = 0;
+        for(int i = 0; i < n; i++) {
+            for(int j = 0; j < m; j++) {
+                if(a[i][j] == 1) {
+                    for(int d = 0; d < 4; d++) {
+                        for(int p = 0; p < 2; p++) {
+                            int x = i + dr[d][0], y = j + dr[d][1];
+                            ans = Math.max(ans, dfs(x, y, d, p, 2) + 1);
+                        }
+                    }
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+也可以压三维卡常，主函数里dfs只需要枚举=1的。
+
+##### 3446\.按对角线进行矩阵排序
+
+[题目](https://leetcode.cn/problems/sort-matrix-by-diagonals)
+
+```java
+import java.util.ArrayList;
+
+class Solution {
+    public int[][] sortMatrix(int[][] grid) {
+        int n=grid.length;
+        for(int i=0;i<n;i++) {
+            ArrayList<Integer> a=new ArrayList<>();
+            for(int j=0;i+j<n;j++) {
+                a.add(grid[i+j][j]);
+            }
+            Collections.sort(a);
+            Collections.reverse(a);
+            for(int j=0;i+j<n;j++) {
+                grid[i+j][j]=a.get(j);
+            }
+        }
+        for(int i=1;i<n;i++) {
+            ArrayList<Integer> a=new ArrayList<>();
+            for(int j=0;i+j<n;j++) {
+                a.add(grid[j][i+j]);
+            }
+            Collections.sort(a);
+            for(int j=0;i+j<n;j++) {
+                grid[j][i+j]=a.get(j);
+            }
+        }
+        return grid;
+    }
+}
+```
+
+一次遍历
+
+```java
+class Solution {
+    public int[][] sortMatrix(int[][] grid) {
+        int m = grid.length;
+        int n = grid[0].length;
+        // 第一排在右上，最后一排在左下
+        // 每排从左上到右下
+        // 令 k=i-j+n，那么右上角 k=1，左下角 k=m+n-1
+        for (int k = 1; k < m + n; k++) {
+            // 核心：计算 j 的最小值和最大值
+            int minJ = Math.max(n - k, 0); // i=0 的时候，j=n-k，但不能是负数
+            int maxJ = Math.min(m + n - 1 - k, n - 1); // i=m-1 的时候，j=m+n-1-k，但不能超过 n-1
+            List<Integer> a = new ArrayList<>(maxJ - minJ + 1); // 预分配空间
+            for (int j = minJ; j <= maxJ; j++) {
+                a.add(grid[k + j - n][j]); // 根据 k 的定义得 i=k+j-n
+            }
+            a.sort(minJ > 0 ? null : Comparator.reverseOrder());
+            for (int j = minJ; j <= maxJ; j++) {
+                grid[k + j - n][j] = a.get(j - minJ);
+            }
+        }
+        return grid;
     }
 }
 ```

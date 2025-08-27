@@ -5509,7 +5509,7 @@ def g(a:int=1):
     ...
 ```
 
-> 对暂时不知道的类型，如类内定义静态方法的参数，可以用引号，如 `a:'Myclass'`。
+> 对暂时不知道的类型，如类内定义静态方法的参数，可以用引号，如 `a:'Myclass'` (3.7前)。或者 3.7后，先 `from __future__ import annotations`，再直接 `a:Myclass`，即前向引用，允许你在代码中使用“尚未定义”的类名作为类型注解
 
 > 具体使用：安装第三方库
 >
@@ -5807,7 +5807,11 @@ sig = inspect.signature(example_func)
 print(sig) # 输出: (a, b=2, *args, c, d=4, **kwargs)
 ```
 
+#### __future\_\_
 
+`__future__`允许在当前的 Python 版本中，启用和体验未来版本中才会成为标准的新特性或语法改变。
+
+它的存在主要是为了解决一个关键问题：如何平稳地引入不向后兼容的更改
 
 ### 数学
 
@@ -21988,13 +21992,15 @@ print(output.shape)  # 应该输出: torch.Size([8, 16, 64])
 
 #### easytorch
 
-[参考](https://github.com/cnstark/easytorch) 可读性很差，没有官方文档，研究不太明白。主要是用到了 `easytorch.launch_training`，其中它的 `training_func` 是主要的，
+[参考](https://github.com/cnstark/easytorch) 可读性很差，没有官方文档，研究不太明白。主要是用到了 `easytorch.launch_training`，其中它的 `training_func` 是主要的。
 
 #### 基本使用
 
 ##### 配置
 
 [使用步骤](https://github.com/GestaltCogTeam/BasicTS/blob/master/tutorial/getting_started_cn.md)，示例 [MLP](https://github.com/GestaltCogTeam/BasicTS/blob/master/examples/arch.py)，该 MLP 的[配置文件](https://github.com/GestaltCogTeam/BasicTS/blob/master/examples/regular_config.py)，带注释版本 [src](https://github.com/GestaltCogTeam/BasicTS/blob/master/examples/complete_config_cn.py)
+
+自带断点，只要配置一样，重新跑会从上次训练到一半的地方继续开始。
 
 - **常规选项**: 描述一般设置，如配置说明、`GPU_NUM`、`RUNNER` 等。
 - **环境选项**: 包括设置如 `TF32`、`SEED`、`CUDNN`、`DETERMINISTIC` 等。
