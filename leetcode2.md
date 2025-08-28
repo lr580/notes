@@ -3364,6 +3364,10 @@
 - 3446\.按对角线进行矩阵排序
 
   签到 排序
+  
+- 3021\.Alice和Bob玩鲜花游戏
+
+  数学 思维
 
 ## 算法
 
@@ -22572,3 +22576,18 @@ class Solution {
 }
 ```
 
+##### 3021\.Alice和Bob玩鲜花游戏
+
+[题目](https://leetcode.cn/problems/alice-and-bob-playing-flower-game)
+
+即选出奇数+偶数。
+
+```java
+class Solution {
+    public long flowerGame(int n, int m) {
+        return ((n+1)/2L)*(m/2L)+(n/2L)*((m+1)/2L);
+    }
+}
+```
+
+四种情况分类讨论(奇数设为2k+1，偶数设为2k)，易得，可以化简为 `floor(nm/2)`。
