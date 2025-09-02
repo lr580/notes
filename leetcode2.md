@@ -3368,6 +3368,14 @@
 - 3021\.Alice和Bob玩鲜花游戏
 
   数学 思维
+  
+- 36\.有效的数独
+
+  模拟 签到
+
+- 1792\.最大平均通过率
+
+  贪心 堆(结构体排序)
 
 ## 算法
 
@@ -22591,3 +22599,69 @@ class Solution {
 ```
 
 四种情况分类讨论(奇数设为2k+1，偶数设为2k)，易得，可以化简为 `floor(nm/2)`。
+
+##### 36\.有效的数独
+
+[题目](https://leetcode.cn/problems/valid-sudoku)
+
+```java
+class Solution {
+    public boolean isValidSudoku(char[][] board) {
+        int[][] rows = new int[9][9];
+        int[][] columns = new int[9][9];
+        int[][][] subboxes = new int[3][3][9];
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+                char c = board[i][j];
+                if (c != '.') {
+                    int index = c - '0' - 1;
+                    rows[i][index]++;
+                    columns[j][index]++;
+                    subboxes[i / 3][j / 3][index]++;
+                    if (rows[i][index] > 1 || columns[j][index] > 1 || subboxes[i / 3][j / 3][index] > 1) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+}
+```
+
+##### 1792\.最大平均通过率
+
+[题目](https://leetcode.cn/problems/maximum-average-pass-ratio)
+
+设原本通过率为 $\dfrac ab$，加一个人后为 $\dfrac{a+1}{b+1}$，增量为 $\dfrac{a+1}{b+1}-\dfrac ab=\dfrac{b-a}{b(b+1)}$。按增量从大到小排序，每次贪心选择增量最大的。
+
+```java
+class Solution {
+    public double maxAverageRatio(int[][] classes, int extraStudents) {
+        PriorityQueue<int[]> pq = new PriorityQueue<>((x, y) -> {
+            long numeratorX = (long)(x[1] - x[0]);
+            long denominatorX = (long)x[1] * (x[1] + 1);
+            long numeratorY = (long)(y[1] - y[0]);
+            long denominatorY = (long)y[1] * (y[1] + 1);
+            long left = numeratorX * denominatorY;
+            long right = numeratorY * denominatorX;
+            return Long.compare(right, left);
+        });
+        for(int[] c:classes) {
+            pq.offer(c);
+        }
+        while(extraStudents-- > 0) {
+            int[] c = pq.poll();
+            pq.offer(new int[]{c[0] + 1, c[1] + 1});
+        }
+        double ans = 0;
+        while(!pq.isEmpty()) {
+            int[] c = pq.poll();
+            ans += (double)c[0] / c[1];
+        }
+        return ans / classes.length;
+    }
+}
+```
+
+优化：只存下标。(见0x3f)，感觉差不多。

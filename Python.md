@@ -4049,7 +4049,14 @@ hash('A') #8832457150969917233
 hash(True) #1
 ```
 
+注意哈希是随机的，在 Python 3.3 之后，为了防止哈希碰撞拒绝服务攻击（Hash Collision DoS Attack），具体为，同一个字符串/字节/字节数组对象在不同的Python进程(运行实例)哈希值不同。设置随机种子：
 
+```python
+os.environ["PYTHONHASHSEED"] = "1234"
+os.environ["PYTHONHASHSEED"] = "0" # 禁用随机
+```
+
+但数值、布尔值、None、不可变集合(fronzenset)、元组的哈希固定。(不能包含字符串)
 
 #### 判断函数
 
