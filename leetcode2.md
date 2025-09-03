@@ -3376,6 +3376,14 @@
 - 1792\.最大平均通过率
 
   贪心 堆(结构体排序)
+  
+- 3027\.人员站位的方案数II
+
+  枚举 离散化+二维前缀和 / 排序
+
+- 3516\.找到最近的人
+
+  签到
 
 ## 算法
 
@@ -22665,3 +22673,106 @@ class Solution {
 ```
 
 优化：只存下标。(见0x3f)，感觉差不多。
+
+##### 3027\.人员站位的方案数II
+
+[题目](https://leetcode.cn/problems/find-the-number-of-ways-to-place-people-ii)
+
+枚举区间，查看每个区间是否只有2个点。
+
+```java
+import java.util.TreeSet;
+import java.util.HashMap;
+class Solution {
+    public int numberOfPairs(int[][] points) {
+        int n = points.length;
+        TreeSet<Integer> mx = new TreeSet<>();
+        TreeSet<Integer> my = new TreeSet<>();
+        mx.add(Integer.MIN_VALUE);
+        my.add(Integer.MIN_VALUE);
+        for (int i = 0; i < n; i++) {
+            int x = points[i][0];
+            int y = points[i][1];
+            mx.add(x);
+            my.add(y);
+        }
+        int nx = mx.size(), ny = my.size();
+        HashMap<Integer, Integer> hx = new HashMap<>(nx);
+        HashMap<Integer, Integer> hy = new HashMap<>(ny);
+        int cnt = 0;
+        for (int x : mx) {
+            hx.put(x, cnt);
+            cnt++;
+        }
+        cnt = 0;
+        for (int y : my) {
+            hy.put(y, cnt);
+            cnt++;
+        }
+        int s[][] = new int[nx][ny];
+        for (int i = 0; i < n; i++) {
+            int x = points[i][0];
+            int y = points[i][1];
+            s[hx.get(x)][hy.get(y)]++;
+        }
+        for (int i = 1; i < nx; i++) {
+            for (int j = 1; j < ny; j++) {
+                s[i][j] += s[i][j-1] + s[i-1][j] - s[i-1][j-1];
+            }
+        }
+        int ans = 0;
+        for(int i = 0; i < n; i++) {
+            int x1 = points[i][0], y1 = points[i][1]; // Alice
+            for (int j = 0; j < n; j++) {
+                if (i == j) continue;
+                int x2 = points[j][0], y2 = points[j][1]; // Bob
+                if (x2 > x1 || y1 > y2) continue;
+                int xr = hx.get(x1), xl = hx.get(x2), yr = hy.get(y2), yl = hy.get(y1);
+                int a = s[xr][yr] - s[xr][yl-1] - s[xl-1][yr] + s[xl-1][yl-1];
+                ans += a == 2 ? 1 : 0;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+按横坐标升序和纵坐标降序排序，枚举左上角和右下角，查询在 $[i+1,j-1]$ 的所有点，是否坐标不在 $[y_2,y_1]$ 范围内。维护在 $<y_1$ 的下半最大值，如果当前比下半最大值大，当前组合可以是答案。对横坐标相同，纵坐标从大到小，避免错误维护最大值。
+
+```java
+class Solution {
+    public int numberOfPairs(int[][] points) {
+        // x 升序，y 降序
+        Arrays.sort(points, (a, b) -> a[0] != b[0] ? a[0] - b[0] : b[1] - a[1]);
+        int ans = 0;
+        for (int i = 0; i < points.length; i++) {
+            int y1 = points[i][1];
+            int maxY = Integer.MIN_VALUE;
+            for (int j = i + 1; j < points.length && maxY < y1; j++) {
+                int y2 = points[j][1];
+                if (y2 <= y1 && y2 > maxY) {
+                    maxY = y2;
+                    ans++;
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+##### 3516\.找到最近的人
+
+[题目](https://leetcode.cn/problems/find-closest-person)
+
+```python
+class Solution:
+    def findClosest(self, x: int, y: int, z: int) -> int:
+        dx, dy = abs(x-z), abs(y-z)
+        if dx < dy:
+            return 1
+        elif dx > dy:
+            return 2
+        return 0
+```
+

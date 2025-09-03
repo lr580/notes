@@ -19859,8 +19859,6 @@ loss.backward()
 
 ##### 随机
 
-
-
 ###### 概率
 
 模拟随机抛硬币：
@@ -20267,6 +20265,14 @@ import torch.nn as nn
 在某些情况下非常有用，例如，当你需要在模型中保留某个层的位置但不想对数据进行任何处理时
 
 `nn.Identity()` 接收输入并将其原样返回，不会对输入数据进行任何变换(直接return输入)
+
+###### Parameter
+
+将张量包装为可训练的参数，使其在模型训练过程中可以被优化
+
+```python
+self.node_embedding = nn.init.xavier_normal_(nn.Parameter(torch.empty(self.num_nodes, self.node_embedding_dim)))
+```
 
 ###### Linear
 
@@ -20718,6 +20724,63 @@ print("输入的形状:", input_indices.shape)
 print("嵌入输出的形状:", embedded_output.shape)
 '''输入的形状: torch.Size([32, 10])
 嵌入输出的形状: torch.Size([32, 10, 128])'''
+```
+
+映射例子
+
+```python
+import torch
+import torch.nn as nn
+
+# 1. 创建一个极小的嵌入层
+# 假设我们只有3个单词的词汇表，每个词用2维向量表示
+embedding = nn.Embedding(num_embeddings=3, embedding_dim=2)
+
+# 2. 查看初始的嵌入矩阵（随机初始化）
+print("初始嵌入矩阵（可训练参数）:")
+print(embedding.weight)
+print("矩阵形状:", embedding.weight.shape)
+print("这是一个 3×2 的矩阵：")
+print("行0 -> 单词0的向量")
+print("行1 -> 单词1的向量") 
+print("行2 -> 单词2的向量")
+print()
+
+# 3. 创建输入数据（单词索引）
+# 假设词汇表：{"猫":0, "狗":1, "鱼":2}
+input_indices = torch.LongTensor([0, 1, 2, 1, 0])  # 句子："猫 狗 鱼 狗 猫"
+
+# 4. 通过嵌入层进行查找
+output_vectors = embedding(input_indices)
+
+print("输入索引:", input_indices.tolist())
+print("输出向量:")
+print(output_vectors)
+print("输出形状:", output_vectors.shape)
+print()
+
+# 5. 手动验证查找过程
+print("手动验证：")
+for i, idx in enumerate(input_indices):
+    vector_from_embedding = embedding(torch.LongTensor([idx]))
+    vector_from_matrix = embedding.weight[idx]
+    print(f"索引 {idx.item()} -> 向量 {vector_from_matrix.detach().tolist()}")
+    print(f"  嵌入层输出: {vector_from_embedding.squeeze().detach().tolist()}")
+    print(f"  矩阵第{idx}行: {vector_from_matrix.detach().tolist()}")
+    print(f"  两者是否相等: {torch.allclose(vector_from_embedding.squeeze(), vector_from_matrix)}")
+    print()
+
+# 6. 可视化整个过程
+print("=== 工作原理总结 ===")
+print("嵌入矩阵:")
+for i in range(3):
+    vector = embedding.weight[i].detach().tolist()
+    print(f"行{i}: [{vector[0]:.4f}, {vector[1]:.4f}]")
+    
+print("\n查找过程:")
+for i, idx in enumerate(input_indices):
+    vector = embedding.weight[idx].detach().tolist()
+    print(f"输入索引 {idx.item()} -> 查找矩阵第{idx}行 -> 输出向量 [{vector[0]:.4f}, {vector[1]:.4f}]")
 ```
 
 
@@ -21357,10 +21420,12 @@ loaded_model = torch.jit.load("traced_model.pt")
 固定法：[参考](https://github.com/LMissher/PatchSTG)
 
 ```python
-random.seed(args.seed)
-np.random.seed(args.seed)
-torch.manual_seed(args.seed)
-torch.cuda.manual_seed(args.seed)
+random.seed(seed)
+os.environ["PYTHONHASHSEED"] = str(seed)
+np.random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
+torch.cuda.manual_seed_all(seed)  # multi-GPU
 ```
 
 ##### CUDA
