@@ -6117,6 +6117,8 @@ dn,fn=os.path.split(__file__)
 os.path.join(路径， ...)
 ```
 
+> 注：如 `a/b/c/d.py` + `../..` 得到 `a/b` 的绝对路径。
+
 如：
 
 ```python
@@ -6180,6 +6182,14 @@ shutil.rmtree(路径)
 ```python
 os.path.exists(路径)
 ```
+
+改变当前工作目录：
+
+```python
+os.chdir()
+```
+
+
 
 ##### 文件
 
