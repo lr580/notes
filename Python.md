@@ -2754,7 +2754,11 @@ print(p)  # 输出: Point(x=1, y=2)
 ```
 
 - 默认值和类型提示：你可以为数据类的字段提供默认值。
+
+  > 成员属性的排序要求和函数一样，如有默认参数的放到后边
+
 - 不可变数据类：通过设置`frozen`参数为`True`，你可以使得数据类的实例不可变。
+
 - 排序支持：通过设置`order`参数，可以让数据类支持比较操作（如`<`, `<=`, `>`, `>=`）。
 
 ```python
@@ -4045,7 +4049,14 @@ hash('A') #8832457150969917233
 hash(True) #1
 ```
 
+注意哈希是随机的，在 Python 3.3 之后，为了防止哈希碰撞拒绝服务攻击（Hash Collision DoS Attack），具体为，同一个字符串/字节/字节数组对象在不同的Python进程(运行实例)哈希值不同。设置随机种子：
 
+```python
+os.environ["PYTHONHASHSEED"] = "1234"
+os.environ["PYTHONHASHSEED"] = "0" # 禁用随机
+```
+
+但数值、布尔值、None、不可变集合(fronzenset)、元组的哈希固定。(不能包含字符串)
 
 #### 判断函数
 
@@ -5276,6 +5287,14 @@ print(bob[1])     # 输出: 30
 > print(new_bob.name)  # 输出: Robert
 > ```
 
+##### OrderedDict
+
+```python
+from collections import OrderedDict
+```
+
+也可以当 set 来用，维护键即可。但是取最值是 O(n) 的，所以要复杂度好得用 SortedDict。
+
 #### heapq
 
 小根堆：
@@ -5497,6 +5516,8 @@ def g(a:int=1):
     ...
 ```
 
+> 对暂时不知道的类型，如类内定义静态方法的参数，可以用引号，如 `a:'Myclass'` (3.7前)。或者 3.7后，先 `from __future__ import annotations`，再直接 `a:Myclass`，即前向引用，允许你在代码中使用“尚未定义”的类名作为类型注解
+
 > 具体使用：安装第三方库
 >
 > ```
@@ -5534,6 +5555,23 @@ class Solution:
     def connect(self, root: 'Node') -> 'Node':
         ...
 # Optional[Node] 则：None 或 Node
+```
+
+pylance (vscode 插件)可以强制检测类型报错。给 pylance 用，告诉它强转类型了(实际上代码没有做，只影响静态类型检查器的理解)：
+
+```python
+from typing import cast
+from numpy.typing import NDArray, ArrayLike
+f(cast("ArrayLike", times))
+```
+
+pylance 会对 None 做检测，如果确信不是，可以加 assert。
+
+```python
+def dataToPlot(self):
+    time = self.input.time
+    # .time 是 time: Optional[datetime] = None
+    assert time is not None
 ```
 
 
@@ -5577,7 +5615,7 @@ from itertools import *
 
 - `tee(a, n=2)` 返回 a 的多个迭代器，如 `x,y=tee(a)`
 
-- `count(i)` 从 i 开始每次不断自增的无限迭代器 (break 跳出)
+- `count(i)` 从 i 开始每次不断自增的无限迭代器 (break 跳出)，如 `count(1)`
 
 - `groupby(x, key=None)`，对可迭代对象 x 分组，分组依据默认为元素本身，返回迭代器，每次返回一个元组 (k, g)，其中 k 是键，g 是迭代器。取长度可以 `len(list(g))`。
 
@@ -5776,7 +5814,11 @@ sig = inspect.signature(example_func)
 print(sig) # 输出: (a, b=2, *args, c, d=4, **kwargs)
 ```
 
+#### __future\_\_
 
+`__future__`允许在当前的 Python 版本中，启用和体验未来版本中才会成为标准的新特性或语法改变。
+
+它的存在主要是为了解决一个关键问题：如何平稳地引入不向后兼容的更改
 
 ### 数学
 
@@ -6963,7 +7005,9 @@ timestamp() 方法，输出与该时间对应的一个长float – timestamp型�
 
 datetime对象本身可以比较大小
 
+.date() 提取日期部分（年、月、日）得到datetime.date
 
+.time() 提取时间部分（时、分、秒）得到datetime.time
 
 ##### str互转
 
@@ -7067,7 +7111,20 @@ c=datetime(2002,3,8,23,59,59)
 > #     print(date)
 > ```
 >
-> 
+
+有 total_seconds() 函数。
+
+##### dateutil
+
+自动识别
+
+```python
+from dateutil import parser
+date_str = "March 1, 2012"  # 或 "1-Mar-2012", "2022/05/15", "3rd Jan 2000"
+dt = parser.parse(date_str)  # 自动转换为 datetime 对象
+```
+
+
 
 
 
@@ -15942,6 +15999,24 @@ with env.begin() as txn:
     print(value)  # 输出: b'value1'
 ```
 
+### markdown
+
+md 转 HTML，然后用 beautiful soup 解析。装 `markdown` 库。
+
+如有表格：
+
+```python
+table = """| DATASET                   | #GEO   | #REL    | #USR | #DYNA       | PLACE                       | DURATION                         | INTERVAL |
+| ------------------------- | ------ | ------- | ---- | ----------- | --------------------------- | -------------------------------- | -------- |
+| METR_LA                   | 207    | 11,753  | —    | 7,094,304   | Los Angeles, USA            | Mar. 1, 2012 -   Jun. 27, 2012   | 5min     |"""
+import markdown
+html = markdown.markdown(table)
+```
+
+也可以直接解析表格。用 `md-table` 库。
+
+
+
 
 
 ### 压缩
@@ -19063,6 +19138,8 @@ print(x[2].item(),type(x[2].item())) # 2, int
 
 ##### 内存
 
+###### contiguous
+
 `.contiguous()` 方法用于返回一个在内存中是连续的张量副本。如果张量已经是连续的，返回的是原始张量；如果不是，则会创建一个新的连续张量
 
 ```python
@@ -19794,8 +19871,6 @@ loss.backward()
 
 ##### 随机
 
-
-
 ###### 概率
 
 模拟随机抛硬币：
@@ -20202,6 +20277,14 @@ import torch.nn as nn
 在某些情况下非常有用，例如，当你需要在模型中保留某个层的位置但不想对数据进行任何处理时
 
 `nn.Identity()` 接收输入并将其原样返回，不会对输入数据进行任何变换(直接return输入)
+
+###### Parameter
+
+将张量包装为可训练的参数，使其在模型训练过程中可以被优化
+
+```python
+self.node_embedding = nn.init.xavier_normal_(nn.Parameter(torch.empty(self.num_nodes, self.node_embedding_dim)))
+```
 
 ###### Linear
 
@@ -20653,6 +20736,63 @@ print("输入的形状:", input_indices.shape)
 print("嵌入输出的形状:", embedded_output.shape)
 '''输入的形状: torch.Size([32, 10])
 嵌入输出的形状: torch.Size([32, 10, 128])'''
+```
+
+映射例子
+
+```python
+import torch
+import torch.nn as nn
+
+# 1. 创建一个极小的嵌入层
+# 假设我们只有3个单词的词汇表，每个词用2维向量表示
+embedding = nn.Embedding(num_embeddings=3, embedding_dim=2)
+
+# 2. 查看初始的嵌入矩阵（随机初始化）
+print("初始嵌入矩阵（可训练参数）:")
+print(embedding.weight)
+print("矩阵形状:", embedding.weight.shape)
+print("这是一个 3×2 的矩阵：")
+print("行0 -> 单词0的向量")
+print("行1 -> 单词1的向量") 
+print("行2 -> 单词2的向量")
+print()
+
+# 3. 创建输入数据（单词索引）
+# 假设词汇表：{"猫":0, "狗":1, "鱼":2}
+input_indices = torch.LongTensor([0, 1, 2, 1, 0])  # 句子："猫 狗 鱼 狗 猫"
+
+# 4. 通过嵌入层进行查找
+output_vectors = embedding(input_indices)
+
+print("输入索引:", input_indices.tolist())
+print("输出向量:")
+print(output_vectors)
+print("输出形状:", output_vectors.shape)
+print()
+
+# 5. 手动验证查找过程
+print("手动验证：")
+for i, idx in enumerate(input_indices):
+    vector_from_embedding = embedding(torch.LongTensor([idx]))
+    vector_from_matrix = embedding.weight[idx]
+    print(f"索引 {idx.item()} -> 向量 {vector_from_matrix.detach().tolist()}")
+    print(f"  嵌入层输出: {vector_from_embedding.squeeze().detach().tolist()}")
+    print(f"  矩阵第{idx}行: {vector_from_matrix.detach().tolist()}")
+    print(f"  两者是否相等: {torch.allclose(vector_from_embedding.squeeze(), vector_from_matrix)}")
+    print()
+
+# 6. 可视化整个过程
+print("=== 工作原理总结 ===")
+print("嵌入矩阵:")
+for i in range(3):
+    vector = embedding.weight[i].detach().tolist()
+    print(f"行{i}: [{vector[0]:.4f}, {vector[1]:.4f}]")
+    
+print("\n查找过程:")
+for i, idx in enumerate(input_indices):
+    vector = embedding.weight[idx].detach().tolist()
+    print(f"输入索引 {idx.item()} -> 查找矩阵第{idx}行 -> 输出向量 [{vector[0]:.4f}, {vector[1]:.4f}]")
 ```
 
 
@@ -21123,7 +21263,16 @@ with torch.no_grad():  # 不计算梯度
 self.model.load_state_dict(torch.load(self.model_file, map_location=self.device)) # model_file 是路径字符串
 ```
 
+##### 缓冲区
 
+在神经网络模块中注册一个缓冲区，它注册不参与梯度计算但需要持久化保存的张量。这些张量会被包含在模型的 `state_dict()`中，随模型一起保存和加载。如预定义的邻接矩阵、统计信息等
+
+```python
+self.predefined_adj = predefined_adj
+self.register_buffer('fixed_adj', torch.tensor(predefined_adj, dtype=torch.float32))
+```
+
+这里设置了 `self.fixed_adj`
 
 ##### 例子
 
@@ -21292,10 +21441,12 @@ loaded_model = torch.jit.load("traced_model.pt")
 固定法：[参考](https://github.com/LMissher/PatchSTG)
 
 ```python
-random.seed(args.seed)
-np.random.seed(args.seed)
-torch.manual_seed(args.seed)
-torch.cuda.manual_seed(args.seed)
+random.seed(seed)
+os.environ["PYTHONHASHSEED"] = str(seed)
+np.random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
+torch.cuda.manual_seed_all(seed)  # multi-GPU
 ```
 
 ##### CUDA
@@ -21934,13 +22085,15 @@ print(output.shape)  # 应该输出: torch.Size([8, 16, 64])
 
 #### easytorch
 
-[参考](https://github.com/cnstark/easytorch) 可读性很差，没有官方文档，研究不太明白。主要是用到了 `easytorch.launch_training`，其中它的 `training_func` 是主要的，
+[参考](https://github.com/cnstark/easytorch) 可读性很差，没有官方文档，研究不太明白。主要是用到了 `easytorch.launch_training`，其中它的 `training_func` 是主要的。
 
 #### 基本使用
 
 ##### 配置
 
 [使用步骤](https://github.com/GestaltCogTeam/BasicTS/blob/master/tutorial/getting_started_cn.md)，示例 [MLP](https://github.com/GestaltCogTeam/BasicTS/blob/master/examples/arch.py)，该 MLP 的[配置文件](https://github.com/GestaltCogTeam/BasicTS/blob/master/examples/regular_config.py)，带注释版本 [src](https://github.com/GestaltCogTeam/BasicTS/blob/master/examples/complete_config_cn.py)
+
+自带断点，只要配置一样，重新跑会从上次训练到一半的地方继续开始。
 
 - **常规选项**: 描述一般设置，如配置说明、`GPU_NUM`、`RUNNER` 等。
 - **环境选项**: 包括设置如 `TF32`、`SEED`、`CUDNN`、`DETERMINISTIC` 等。
@@ -22009,7 +22162,7 @@ nohup python experiments/train.py -c baselines/DCRNN/PEMS07.py -g 0 &
 
 以 PEMS03 为例，通道是 3，添加了 time of day, day of week；第一个通道还是原始流量数据。具体阅读数据的代码可以参见我的仓库 [src](https://github.com/lr580/llm4traffic_prediction)
 
-图是 ndarray，01 数组
+图是 ndarray，01 数组。提供了函数 `basicts/utils/load_adj`，支持多种转换，如 DCRNN / GWNet 格式过渡矩阵等
 
 ### openai
 
