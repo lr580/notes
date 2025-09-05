@@ -5615,7 +5615,7 @@ from itertools import *
 
 - `tee(a, n=2)` 返回 a 的多个迭代器，如 `x,y=tee(a)`
 
-- `count(i)` 从 i 开始每次不断自增的无限迭代器 (break 跳出)
+- `count(i)` 从 i 开始每次不断自增的无限迭代器 (break 跳出)，如 `count(1)`
 
 - `groupby(x, key=None)`，对可迭代对象 x 分组，分组依据默认为元素本身，返回迭代器，每次返回一个元组 (k, g)，其中 k 是键，g 是迭代器。取长度可以 `len(list(g))`。
 
@@ -19128,6 +19128,8 @@ print(x[2].item(),type(x[2].item())) # 2, int
 
 ##### 内存
 
+###### contiguous
+
 `.contiguous()` 方法用于返回一个在内存中是连续的张量副本。如果张量已经是连续的，返回的是原始张量；如果不是，则会创建一个新的连续张量
 
 ```python
@@ -21251,7 +21253,16 @@ with torch.no_grad():  # 不计算梯度
 self.model.load_state_dict(torch.load(self.model_file, map_location=self.device)) # model_file 是路径字符串
 ```
 
+##### 缓冲区
 
+在神经网络模块中注册一个缓冲区，它注册不参与梯度计算但需要持久化保存的张量。这些张量会被包含在模型的 `state_dict()`中，随模型一起保存和加载。如预定义的邻接矩阵、统计信息等
+
+```python
+self.predefined_adj = predefined_adj
+self.register_buffer('fixed_adj', torch.tensor(predefined_adj, dtype=torch.float32))
+```
+
+这里设置了 `self.fixed_adj`
 
 ##### 例子
 
@@ -22141,7 +22152,7 @@ nohup python experiments/train.py -c baselines/DCRNN/PEMS07.py -g 0 &
 
 以 PEMS03 为例，通道是 3，添加了 time of day, day of week；第一个通道还是原始流量数据。具体阅读数据的代码可以参见我的仓库 [src](https://github.com/lr580/llm4traffic_prediction)
 
-图是 ndarray，01 数组
+图是 ndarray，01 数组。提供了函数 `basicts/utils/load_adj`，支持多种转换，如 DCRNN / GWNet 格式过渡矩阵等
 
 ### openai
 

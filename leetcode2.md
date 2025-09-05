@@ -3384,6 +3384,10 @@
 - 3516\.找到最近的人
 
   签到
+  
+- 2749\.得到整数零需要执行的最少操作数
+
+  **思维 枚举 位运算 数学**
 
 ## 算法
 
@@ -22774,5 +22778,22 @@ class Solution:
         elif dx > dy:
             return 2
         return 0
+```
+
+##### 2749\.得到整数零需要执行的最少操作数
+
+[题目](https://leetcode.cn/problems/minimum-operations-to-make-the-integer-zero)
+
+看灵神题解，比较清晰。
+
+```python
+class Solution:
+    def makeTheIntegerZero(self, num1: int, num2: int) -> int:
+        for k in count(1):  # 枚举 k=1,2,3,...
+            x = num1 - num2 * k
+            if k > x:
+                return -1
+            if k >= x.bit_count():
+                return k
 ```
 
