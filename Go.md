@@ -3844,6 +3844,24 @@ for _, x := range nums { // nums []int
 return f.Bit(s) == 1 // s int
 ```
 
+##### 随机
+
+```go
+package main
+import (
+	"fmt"
+	"math/rand"
+	"time"
+)
+func main() {
+	// 设置随机种子（确保每次运行结果不同）
+	rand.Seed(time.Now().UnixNano())
+	// 生成 [0, 100) 的随机整数
+	n := rand.Intn(100)
+	fmt.Println(n)
+}
+```
+
 
 
 ### 时间

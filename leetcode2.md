@@ -3388,6 +3388,22 @@
 - 2749\.得到整数零需要执行的最少操作数
 
   **思维 枚举 位运算 数学**
+  
+- 3495\.使数组元素都变为零的最少操作次数
+
+  数学 计数 枚举/前缀和
+
+- 1304\.和为零的N个不同整数
+
+  签到 构造
+  
+- 1317\.构造整数转换为两个无零整数的和
+
+  枚举 / 随机 / 构造
+  
+- 2327\.知道秘密的人数
+
+  差分/前缀和 模拟
 
 ## 算法
 
@@ -22796,4 +22812,218 @@ class Solution:
             if k >= x.bit_count():
                 return k
 ```
+
+##### 3495\.使数组元素都变为零的最少操作次数
+
+[题目](https://leetcode.cn/problems/minimum-operations-to-make-array-elements-zero)
+
+枚举区间。
+
+```go
+package main
+
+func minOperations(queries [][]int) int64 {
+	s := int64(0)
+	for _, q := range queries {
+		ql, qr, ans := int64(q[0]), int64(q[1]), int64(0)
+		for i, l, r := int64(1), int64(1), int64(4); l <= qr; i, l, r = i+1, l*4, r*4 {
+			xl, xr := max(l, ql), min(r-1, qr)
+			if xl <= xr {
+				ans += i * (xr - xl + 1)
+			}
+		}
+		s += (ans + 1) / 2
+	}
+	return s
+}
+```
+
+前缀和思想，把 `[l, r]` 转化为 `[1, r] - [1, l-1]`。其中，计算 `[1, n]`，设二进制长度为 `m`，则从 `[1, m-1]` 的区域，第 `i` 位需要操作 `ceil(i/2)` 次，可以做求和，都是满区间。最后那个不是满区间，是 `n-2^{m-1}+1` 个数。
+
+对满区间，用错位相减法求前 `n` 项和。两两一组(因为ceil相同)，得到通项公式是 $k2^{k-1}-\dfrac{2^k-1}3$。
+
+```go
+func f(n int) int {
+	m := bits.Len(uint(n))
+	k := (m - 1) / 2 * 2
+	res := k<<k>>1 - 1<<k/3 // -1 可以省略
+	return res + (m+1)/2*(n+1-1<<k)
+}
+
+func minOperations(queries [][]int) int64 {
+	ans := 0
+	for _, q := range queries {
+		ans += (f(q[1]) - f(q[0]-1) + 1) / 2
+	}
+	return int64(ans)
+}
+```
+
+##### 1304\.和为零的N个不同整数
+
+[题目](https://leetcode.cn/problems/find-n-unique-integers-sum-up-to-zero/)
+
+```go
+func sumZero(n int) []int {
+	a := make([]int, n)
+	m := n / 2
+	for i := range m {
+		a[i] = i + 1
+		a[i+m] = -i - 1
+	}
+	return a
+}
+```
+
+##### 1317\.构造整数转换为两个无零整数的和
+
+[题目](https://leetcode.cn/problems/convert-integer-to-the-sum-of-two-no-zero-integers)
+
+最朴素是暴力枚举
+
+```go
+func getNoZeroIntegers(n int) []int {
+	for a := 1; ; a++ {
+		if !strings.ContainsRune(strconv.Itoa(a), '0') &&
+			!strings.ContainsRune(strconv.Itoa(n-a), '0') {
+			return []int{a, n - a}
+		}
+	}
+}
+```
+
+随机枚举：
+
+```go
+package main
+
+import "math/rand"
+
+func testNonZero(x int) bool {
+	for x > 0 {
+		if x%10 == 0 {
+			return false
+		}
+		x = x / 10
+	}
+	return true
+}
+
+func getNoZeroIntegers(n int) []int {
+	for {
+		a := rand.Intn(n-1) + 1
+		b := n - a
+		if testNonZero(a) && testNonZero(b) {
+			return []int{a, b}
+		}
+	}
+}
+```
+
+复杂度分析：每一位有最低和最高两种可能分别让 a,b 为 0，故每一位有 0.8 概率是对的，故全对概率是乘法原理得 $p=0.8^{\ln n}$，期望次数是 $1/p\approx 3$。每次计算是 $\log_n$ 的，故总复杂度是 $O(\dfrac{\log n}{0.8^{\ln n}})$。
+
+构造：从低往高，平均拆。如果拆不能，高位-1，本位+10，如400，先看0，借位10=5+5，那么下一位是-1，再借为9=4+5，再下一位是3=1+2。
+
+```go
+func getNoZeroIntegers(n int) []int {
+	a := 0
+	base := 1 // 10^k
+	for x := n; x > 1; x /= 10 {
+		d := x % 10
+		if d <= 1 {
+			d += 10
+			x -= 10 // 借位
+		}
+		// a 这一位填 d/2，比如百位数就是 d/2 * 100
+		a += d / 2 * base
+		base *= 10
+	}
+	return []int{a, n - a}
+}
+```
+
+##### 2327\.知道秘密的人数
+
+[题目](https://leetcode.cn/problems/number-of-people-aware-of-a-secret)
+
+```go
+package main
+
+const MOD = int64(1e9) + 7
+
+func peopleAwareOfSecret(n int, delay int, forget int) int {
+	d1 := make([]int64, n+1) // 知道的人数差分；方便对样例 1-indexed
+	d2 := make([]int64, n+1) // 正在分享的人数差分
+	n2, delay2, forget2 := int64(n), int64(delay), int64(forget)
+	add := func(i, v int64) {
+		if i <= n2 {
+			d1[i] += v
+			d1[i] %= MOD
+		}
+		if delay2+i <= n2 {
+			d2[delay2+i] += v
+			d2[delay2+i] %= MOD
+		}
+		if forget2+i <= n2 {
+			d1[forget2+i] += MOD - v
+			d2[forget2+i] += MOD - v
+			d1[forget2+i] %= MOD
+			d2[forget2+i] %= MOD
+		}
+	}
+	add(1, 1)
+	for i := int64(1); i <= n2; i++ {
+		d1[i] = (d1[i] + d1[i-1]) % MOD
+		d2[i] = (d2[i] + d2[i-1]) % MOD
+		add(i, d2[i])
+	}
+	return int(d1[n])
+}
+```
+
+更优雅：只需要 d2。d1 直接算距离内的 d2 范围即可。
+
+```go
+func peopleAwareOfSecret(n, delay, forget int) (ans int) {
+	const mod = 1_000_000_007
+	diff := make([]int, n+2)
+	diff[1] = 1
+	diff[2] = -1
+	known := 0
+
+	for i := 1; i <= n; i++ {
+		// 加上 diff[i] 后，known 表示恰好在第 i 天得知秘密的人数
+		known = (known + diff[i]) % mod
+		// 统计在第 n 天没有忘记秘密的人数
+		if i >= n-forget+1 {
+			ans += known
+		}
+		// 恰好在第 i 天得知秘密的人，会在第 [i+delay, i+forget-1] 天分享秘密
+		diff[min(i+delay, n+1)] += known
+		diff[min(i+forget, n+1)] -= known // 注意这里有减法，这会导致上面累加 diff[i] 时，known 可能是负数
+	}
+
+	return (ans%mod + mod) % mod // 保证答案非负
+}
+```
+
+或者用前缀和，DP 推，即当前天用之前 [delay, forget] 区间和来凑。
+
+```go
+func peopleAwareOfSecret(n, delay, forget int) int {
+	const mod = 1_000_000_007
+	sum := make([]int, n+1) // known 数组的前缀和
+	sum[1] = 1
+
+	for j := 2; j <= n; j++ {
+		known := sum[max(j-delay, 0)] - sum[max(j-forget, 0)]
+		sum[j] = (sum[j-1] + known) % mod
+	}
+
+	ans := sum[n] - sum[max(n-forget, 0)]
+	return (ans%mod + mod) % mod // 保证答案非负
+}
+```
+
+
 
