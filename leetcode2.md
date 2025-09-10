@@ -3404,6 +3404,10 @@
 - 2327\.知道秘密的人数
 
   差分/前缀和 模拟
+  
+- 1733\.需要教语言的最少人数
+
+  数据结构 模拟 枚举
 
 ## 算法
 
@@ -23025,5 +23029,168 @@ func peopleAwareOfSecret(n, delay, forget int) int {
 }
 ```
 
+##### 1733\.需要教语言的最少人数
 
+[题目](https://leetcode.cn/problems/minimum-number-of-people-to-teach)
+
+预处理所有不能沟通的 friendship，维护每个人会的语言的 set。枚举每一门语言，如果当前 friendship 无法沟通，就让他们学会该门语言。枚举完再清除新学的语言。
+
+```go
+package main
+
+func minimumTeachings(n int, languages [][]int, friendships [][]int) int {
+	ans := 10000
+	m := len(languages)
+	lan := make([]map[int]int, m)
+	for i := 0; i < m; i++ {
+		lan[i] = make(map[int]int)
+		for _, v := range languages[i] {
+			lan[i][v] = 1
+		}
+	}
+
+	k := len(friendships)
+	ok := make([]bool, k)
+	for i := 0; i < k; i++ {
+		u, v := friendships[i][0]-1, friendships[i][1]-1
+		for j := 0; j < len(languages[u]); j++ {
+			if lan[v][languages[u][j]] > 0 {
+				ok[i] = true
+				break
+			}
+		}
+	}
+
+	for i := 1; i <= n; i++ {
+		cnt := 0
+		for j := 0; j < k; j++ {
+			if !ok[j] {
+				u, v := friendships[j][0]-1, friendships[j][1]-1
+				if 0 == lan[u][i] {
+					cnt++
+				}
+				if 0 == lan[v][i] {
+					cnt++
+				}
+				lan[u][i] += 1
+				lan[v][i] += 1
+			}
+		}
+		ans = min(ans, cnt)
+		for j := 0; j < k; j++ {
+			if !ok[j] {
+				u, v := friendships[j][0]-1, friendships[j][1]-1
+				lan[u][i] -= 1
+				lan[v][i] -= 1
+			}
+		}
+	}
+	return ans
+}
+```
+
+##### 5\.最长回文子串
+
+[题目](https://leetcode.cn/problems/longest-palindromic-substring)
+
+我的写法：
+
+```go
+package main
+
+func longestPalindrome(t string) string {
+	s := make([]byte, len(t)*2+3)
+	s[0] = '^'
+	s[1] = '#'
+	n := 1
+	for i := 0; i < len(t); i++ {
+		s[n+1] = byte(t[i])
+		s[n+2] = '#'
+		n += 2
+	}
+	s[n+1] = '?'
+	r, c := 0, 0
+	p := make([]int, n+2)
+	ansLen, ansC := 0, 0
+	for i := 1; i <= n; i++ {
+		if i <= r {
+			p[i] = min(p[c*2-i], r-i+1)
+		}
+		for s[i+p[i]] == s[i-p[i]] {
+			p[i]++
+		}
+		if i+p[i] > r {
+			r = i + p[i] - 1
+			c = i
+		}
+		if p[i] > ansLen {
+			ansLen = p[i]
+			ansC = i
+		}
+	}
+	ans := []byte{}
+	for i := ansC - ansLen + 1; i <= ansC+ansLen-1; i++ {
+		if s[i] != '#' {
+			ans = append(ans, s[i])
+		}
+	}
+	return string(ans)
+}
+```
+
+题解写法
+
+```go
+func longestPalindrome(s string) string {
+    // Manacher 模板
+    // 将 s 改造为 t，这样就不需要讨论 len(s) 的奇偶性，因为新串 t 的每个回文子串都是奇回文串（都有回文中心）
+    // s 和 t 的下标转换关系：
+    // (si+1)*2 = ti
+    // ti/2-1 = si
+    // ti 为偶数，对应奇回文串（从 2 开始）
+    // ti 为奇数，对应偶回文串（从 3 开始）
+    n := len(s)
+    t := append(make([]byte, 0, n*2+3), '^')
+    for _, c := range s {
+        t = append(t, '#', byte(c))
+    }
+    t = append(t, '#', '$')
+
+    // 定义一个奇回文串的回文半径=(长度+1)/2，即保留回文中心，去掉一侧后的剩余字符串的长度
+    // halfLen[i] 表示在 t 上的以 t[i] 为回文中心的最长回文子串的回文半径
+    // 即 [i-halfLen[i]+1,i+halfLen[i]-1] 是 t 上的一个回文子串
+    halfLen := make([]int, len(t)-2)
+    halfLen[1] = 1
+
+    // boxR 表示当前右边界下标最大的回文子串的右边界下标+1
+    // boxM 为该回文子串的中心位置，二者的关系为 r=mid+halfLen[mid]
+    boxM, boxR, maxI := 0, 0, 0
+    for i := 2; i < len(halfLen); i++ {
+        hl := 1
+        if i < boxR {
+            // 记 i 关于 boxM 的对称位置 i'=boxM*2-i
+            // 若以 i' 为中心的最长回文子串范围超出了以 boxM 为中心的回文串的范围（即 i+halfLen[i'] >= boxR）
+            // 则 halfLen[i] 应先初始化为已知的回文半径 boxR-i，然后再继续暴力匹配
+            // 否则 halfLen[i] 与 halfLen[i'] 相等
+            hl = min(halfLen[boxM*2-i], boxR-i)
+        }
+
+        // 暴力扩展
+        for t[i-hl] == t[i+hl] {
+            hl++
+            boxM, boxR = i, i+hl
+        }
+
+        halfLen[i] = hl
+        if hl > halfLen[maxI] {
+            maxI = i
+        }
+    }
+
+    hl := halfLen[maxI]
+    // 注意 t 上的最长回文子串的最左边和最右边都是 '#'
+    // 所以要对应到 s，最长回文子串的下标是从 (maxI-hl)/2 到 (maxI+hl)/2-2
+    return s[(maxI-hl)/2 : (maxI+hl)/2-1]
+}
+```
 
