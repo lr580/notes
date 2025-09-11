@@ -702,6 +702,7 @@ strings 包有常用库函数：
 var str4 = "020--5800---5800"
 fmt.Println(strings.Split(str4, "--")) // [020 5800 -5800]
 fmt.Println(strings.Contains(str4, "5800"))
+fmt.Println(strings.ContainsRune(str4, 'A'))
 fmt.Println(strings.HasPrefix(str4, "020"))
 fmt.Println(strings.HasSuffix(str4, "0")) // all true
 fmt.Println(strings.Index(str4, "20"))    // 1

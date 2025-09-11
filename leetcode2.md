@@ -3408,6 +3408,18 @@
 - 1733\.需要教语言的最少人数
 
   数据结构 模拟 枚举
+  
+- 2785\.将字符串中的元音字母排序
+
+  字符串 排序 / 位运算优化
+
+- 5\.最长回文子串
+
+  manacher
+
+- 6\.Z字形变换
+
+  模拟 字符串
 
 ## 算法
 
@@ -23089,6 +23101,8 @@ func minimumTeachings(n int, languages [][]int, friendships [][]int) int {
 }
 ```
 
+0x3f 有两种更好的写法，可以参见。这里略。
+
 ##### 5\.最长回文子串
 
 [题目](https://leetcode.cn/problems/longest-palindromic-substring)
@@ -23194,3 +23208,161 @@ func longestPalindrome(s string) string {
 }
 ```
 
+##### 2785\.将字符串中的元音字母排序
+
+[题目](https://leetcode.cn/problems/sort-vowels-in-a-string)
+
+```go
+package main
+
+import (
+	"sort"
+	"strings"
+)
+
+const yy = "aeiouAEIOU" // 元音
+
+func sortVowels(s string) string {
+	idx := []int{}
+	c := []byte(s)
+	n := len(c)
+	c2 := []byte{}
+	for i := 0; i < n; i++ {
+		if strings.ContainsRune(yy, rune(c[i])) {
+			idx = append(idx, i)
+			c2 = append(c2, c[i])
+		}
+	}
+	sort.Slice(c2, func(i, j int) bool {
+		return c2[i] < c2[j]
+	})
+	for i := 0; i < len(idx); i++ {
+		c[idx[i]] = c2[i]
+	}
+	return string(c)
+}
+```
+
+更优雅：
+
+```go
+func sortVowels(s string) string {
+	vowels := []byte{}
+	for _, ch := range s {
+		c := unicode.ToLower(ch)
+		if strings.ContainsRune("aeiou", c) {
+			vowels = append(vowels, byte(ch))
+		}
+	}
+
+	slices.Sort(vowels)
+
+	t := []byte(s)
+	j := 0
+	for i, ch := range t {
+		c := unicode.ToLower(rune(ch))
+		if strings.ContainsRune("aeiou", c) {
+			t[i] = vowels[j]
+			j++
+		}
+	}
+	return string(t)
+}
+```
+
+对元音字母，分别是第 1,5,9,15,21 个，用压缩位状态，可以用一个 int 表示，且 O1 查询。不区分大小写，可以只看 ASCII 低 5 位。
+
+```go
+func sortVowels(s string) string {
+	const vowelMask = 0x208222
+	vowels := []byte{}
+	for _, ch := range s {
+		if vowelMask>>(ch&31)&1 > 0 { // ch 是元音
+			vowels = append(vowels, byte(ch))
+		}
+	}
+
+	slices.Sort(vowels)
+
+	t := []byte(s)
+	j := 0
+	for i, ch := range t {
+		if vowelMask>>(ch&31)&1 > 0 { // ch 是元音
+			t[i] = vowels[j]
+			j++
+		}
+	}
+	return string(t)
+}
+```
+
+也可以计数排序
+
+```go
+func sortVowels(s string) string {
+	const vowelMask = 0x208222
+	cnt := ['u' + 1]int{}
+	for _, ch := range s {
+		if vowelMask>>(ch&31)&1 > 0 {
+			cnt[ch]++
+		}
+	}
+
+	t := []byte(s)
+	j := byte('A')
+	for i, ch := range t {
+		if vowelMask>>(ch&31)&1 == 0 {
+			continue
+		}
+		// 找下一个出现次数大于 0 的元音字母
+		for cnt[j] == 0 {
+			if j == 'Z' {
+				j = 'a'
+			} else {
+				j++
+			}
+		}
+		t[i] = j
+		cnt[j]--
+	}
+	return string(t)
+}
+```
+
+##### 6\.Z字形变换
+
+[题目](https://leetcode.cn/problems/zigzag-conversion)
+
+```go
+package main
+
+func convert(s string, numRows int) string {
+    if numRows == 1 {
+        return s
+    }
+	r := make([][]byte, numRows)
+	for i := range r {
+		r[i] = []byte{}
+	}
+	j, n, d := 0, len(s), 1
+	for i := 0; i < n; i++ {
+		r[j] = append(r[j], s[i])
+		j += d
+		if j >= numRows {
+			d = -1
+			j += d * 2
+		}
+		if j < 0 {
+			d = 1
+			j += d * 2
+		}
+	}
+	res := make([]byte, 0, n)
+	for _, row := range r {
+		res = append(res, row...)
+	}
+	return string(res)
+}
+```
+
+也可以用周期律，每 r+r-2(竖撇)作为模数，余数比r小，就+，否则-。还可以直接省掉中间数组，看官方题解，略。
