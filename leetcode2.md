@@ -3420,6 +3420,10 @@
 - 6\.Z字形变换
 
   模拟 字符串
+  
+- 3227\.字符串元音游戏
+
+  **博弈论**
 
 ## 算法
 
@@ -23366,3 +23370,14 @@ func convert(s string, numRows int) string {
 ```
 
 也可以用周期律，每 r+r-2(竖撇)作为模数，余数比r小，就+，否则-。还可以直接省掉中间数组，看官方题解，略。
+
+##### 3227\.字符串元音游戏
+
+[题目](https://leetcode.cn/problems/vowels-game-in-a-string)
+
+```go
+func doesAliceWin(s string) bool {
+	return strings.ContainsAny(s, "aeiou")
+}
+```
+
