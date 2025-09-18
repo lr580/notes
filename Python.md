@@ -1027,6 +1027,20 @@ f'{6:02d},{1/3:+.6f}' #前导零，带符号小数；指数就e，同理
 "{{{}年}}".format(2023) # "{2023年}"#双大括号转义
 ```
 
+3.8+ variable= 语法，同时输出变量名和值
+
+```python
+name = "Charlie"
+age = 35
+score = 95.5
+print(f"{name=}, {age=}, {score=}")
+# 输出: name='Charlie', age=35, score=95.5
+print(f"{name=:>10}, {age=:03d}, {score=:.1f}")
+print(f'{len(du)=}')
+```
+
+
+
 #### 重定向
 
 ```python
@@ -5487,6 +5501,8 @@ for person in sorted_people:
 
 #### typing
 
+##### 常规
+
 类型检查，提出警告但不报错。3.5+
 
 常见的：
@@ -5505,6 +5521,10 @@ for person in sorted_people:
 
 - `Callable` 可调用对象如函数
 
+> 不常见的：
+>
+> - `LiteralString`，不会变化的写死的字符串
+
 例如：
 
 ```python
@@ -5518,18 +5538,6 @@ def g(a:int=1):
 
 > 对暂时不知道的类型，如类内定义静态方法的参数，可以用引号，如 `a:'Myclass'` (3.7前)。或者 3.7后，先 `from __future__ import annotations`，再直接 `a:Myclass`，即前向引用，允许你在代码中使用“尚未定义”的类名作为类型注解
 
-> 具体使用：安装第三方库
->
-> ```
-> pip install mypy
-> ```
->
-> 执行：
->
-> ```sh
-> mypy code.py
-> ```
-
 含默认参数：
 
 ```python
@@ -5538,7 +5546,7 @@ def loadModel(modelname:str, device:str='cpu'):
 
 
 
-自定义类：
+##### 自定义类
 
 ```python
 """
@@ -22144,6 +22152,8 @@ python experiments/train.py -c baselines/${MODEL_NAME}/${DATASET_NAME}.py -g '{G
 
 其中，Base... 该 runner 是 `BaseEpochRunner` 的子类，后者是抽象类，实现了 `train` 和 `test_pipeline` (测试流程)等方法。其中，`train` 结束就会调用 `test_pipeline`。感觉结构很复杂，像工程代码。
 
+多线程的话，效果上是把训练分到了多个显卡上，即一个模型复制到多个卡跑不同数据，而不是一个模型拆成多个组件放到多卡上
+
 ##### 损失函数
 
 masked_mae 等指标，如果本来不用 masked，那就是普通的 mae。在 `BaseTimeSeriesForecastingRunner` 里，可以看到 `compute_evaluation_metrics` 方法，使用了配置文件里测试所看的多个horizon，如3/6/12。其中 overall 并不是离散 horizons 的直接平均和。
@@ -24557,6 +24567,12 @@ for file in os.listdir(path):
 下载下来的可能是单独文件，具体打开path自行测试。
 
 下载了可能就不下载了，强制再次下载：` force_download=True`
+
+### mypy
+
+> 具体使用：安装第三方库 `pip install mypy`，用于静态类型检查
+>
+> 执行：`mypy code.py`
 
 # 应用举例
 

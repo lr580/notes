@@ -1235,6 +1235,12 @@ v, ok = score2["LR"]
 fmt.Println(v, ok) //  false
 ```
 
+也可以单返回值，返回零值如果key不存在
+
+```go
+value := m["key"]
+```
+
 可以直接拿来 if (如果 value 是 bool)
 
 ```go
@@ -1505,6 +1511,23 @@ func newUnionFind(n int) unionFind {
 indices := newUnionFind(n + 2)
 ```
 
+需要在构造函数调用成员方法，等同于在函数外调用变量的方法 (力扣3408)
+
+```go
+func Constructor(tasks [][]int) TaskManager {
+	task2user := make(map[int]int)
+	prio2task := redblacktree.New[int, int]()
+	this := TaskManager{task2user: task2user, prio2task: prio2task}
+	for _, task := range tasks {
+		userId, taskId, priority := task[0], task[1], task[2]
+		this.Add(userId, taskId, priority)
+	}
+	return this
+}
+```
+
+
+
 ##### 数组
 
 ```go
@@ -1714,6 +1737,14 @@ v, ok := x.(string) // 判断失败不行，这里只能 string，会编译错�
 fmt.Println(v, ok)
 fmt.Printf("%T %T", v, ok) // string bool
 ```
+
+可以单返回值，可能panic
+
+```go
+v := x.(string)
+```
+
+
 
 如果未知，可以用 switch
 
@@ -2042,6 +2073,8 @@ func powSum(p int, x ...int) int64 {
 } // fmt.Println(powSum(2, 3, 4)) // 3^2+4^2
 ```
 
+可以实现结构体选项模式。(见后文)
+
 ##### 返回值
 
 除了跟上文一样直接常规的返回值，还可以函数定义时可以给返回值命名， 并在函数体中直接使用这些变量， 最后通过 return 关键字返回  
@@ -2069,6 +2102,8 @@ func f(s string) ([]int64, []int64) {
     return to0, to1
 }
 ```
+
+
 
 #### 高阶
 
@@ -2223,6 +2258,109 @@ fmt.Println(jpgFunc("test")) //test.jpg
 fmt.Println(txtFunc("test")) //test.txt
 ```
 
+##### 选项模式
+
+一种设计模式。Option Pattern，选项模式（也称为功能选项模式）是一种创建型设计模式。这是由于 go 没有默认参数和函数重载，而采取的一种替代方法。
+
+1. 首先构造一个结构体，存储所有函数默认参数。
+2. 定义传入该结构体指针作为参数的函数指针为选项(Option)。
+3. 对每个参数(结构体成员属性)，设计一个函数，它返回一个闭包，即 Option，它的作用是，传入函数参数，该参数赋值给闭包里的结构体指针成员属性。
+4. 现在设计函数本体，它传入可变参数，每个参数是 Option，返回结构体指针。函数体内首先创建一个结构体，赋值所有成员属性为默认值。接下来执行每个闭包，修改该结构体，最后返回该结构体。
+5. 调用时，如果我需要改变某个默认参数，我就传入该闭包(利用第三步设计的函数作为传入函数的参数)
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+// 1. 定义我们要配置的对象 - 简单的HTTP客户端配置
+type HTTPClientConfig struct {
+	Timeout    time.Duration // 请求超时时间
+	UserAgent  string        // 用户代理字符串
+	MaxRetries int           // 最大重试次数
+}
+
+// 2. 定义选项函数类型
+type Option func(*HTTPClientConfig)
+
+// 3. 创建选项函数
+
+// WithTimeout 设置请求超时时间
+func WithTimeout(timeout time.Duration) Option {
+	return func(c *HTTPClientConfig) {
+		c.Timeout = timeout
+	}
+}
+
+// WithUserAgent 设置用户代理
+func WithUserAgent(ua string) Option {
+	return func(c *HTTPClientConfig) {
+		c.UserAgent = ua
+	}
+}
+
+// WithMaxRetries 设置最大重试次数
+func WithMaxRetries(retries int) Option {
+	return func(c *HTTPClientConfig) {
+		c.MaxRetries = retries
+	}
+}
+
+// 4. 构造函数
+func NewHTTPClientConfig(options ...Option) *HTTPClientConfig {
+	// 设置默认值
+	config := &HTTPClientConfig{
+		Timeout:    10 * time.Second, // 默认超时10秒
+		UserAgent: "Go-HTTP-Client", // 默认用户代理
+		MaxRetries: 3,               // 默认重试3次
+	}
+
+	// 应用所有传入的选项
+	for _, option := range options {
+		option(config)
+	}
+
+	return config
+}
+
+// 5. 打印配置的辅助函数
+func printConfig(c *HTTPClientConfig) {
+	fmt.Println("HTTP客户端配置:")
+	fmt.Printf("超时时间: %v\n", c.Timeout)
+	fmt.Printf("用户代理: %s\n", c.UserAgent)
+	fmt.Printf("最大重试次数: %d\n", c.MaxRetries)
+	fmt.Println("----------------------")
+}
+
+func main() {
+	// 场景1: 使用全部默认配置
+	fmt.Println("场景1: 默认配置")
+	defaultConfig := NewHTTPClientConfig()
+	printConfig(defaultConfig)
+
+	// 场景2: 自定义超时时间
+	fmt.Println("场景2: 自定义超时时间")
+	customTimeout := NewHTTPClientConfig(
+		WithTimeout(30 * time.Second),
+	)
+	printConfig(customTimeout)
+
+	// 场景5: 组合多个配置
+	fmt.Println("场景5: 组合多个配置")
+	combinedConfig := NewHTTPClientConfig(
+		WithTimeout(5 * time.Second),
+		WithUserAgent("API-Client/2.0"),
+		WithMaxRetries(2),
+	)
+	printConfig(combinedConfig)
+}
+```
+
+
+
 #### defer
 
 defer 语句会将其后面跟随的语句进行延迟处理。 在 defer 归属的函数即将返回时， 将延迟处理的语句按 defer 定义的逆序进行执行， 也就是说， 先被 defer 的语句最后被执行， 最后被 defer 的语句， 最先被执行。  
@@ -2312,6 +2450,8 @@ BB 10 12 22
 AA 1 3 4
 ```
 
+
+
 #### 内置函数
 
 - close：关闭 channel
@@ -2321,16 +2461,12 @@ AA 1 3 4
 - append：用来追加元素到数组、 slice 中
 - panic、recover：错误处理
 
-
-
 - min, max 函数 1.21.0 开始
 
   ```go
   fmt.Println(max(2, 3))
   fmt.Println(min(1, 1, 4, 0.5))
   ```
-
-
 
 
 #### init函数
@@ -3807,9 +3943,7 @@ func answerString(s string, k int) string {
 
 ##### 常量
 
-```go
-math.MinInt
-```
+`math.MinInt` 等。
 
 ##### 函数
 
@@ -4481,12 +4615,34 @@ go get github.com/emirpasic/gods/trees/redblacktree
 
 ##### 新建
 
-两个红黑树，键 only，值 any (即，对应 C++ set)
+```go
+// prio2task *redblacktree.Tree
+prio2task := redblacktree.NewWithIntComparator()
+```
+
+
+
+###### 嵌套
+
+两个红黑树组成数组，键 only，值 any (即，对应 C++ set)
 
 ```go
 indices := [2]*redblacktree.Tree[int, struct{}]{
     redblacktree.New[int, struct{}](),
     redblacktree.New[int, struct{}](),
+}
+```
+
+嵌套 map
+
+```go
+type NumberContainers struct {
+	indexToNumber   map[int]int
+	numberToIndices map[int]*redblacktree.Tree[int, struct{}]
+}
+
+func Constructor() NumberContainers {
+	return NumberContainers{map[int]int{}, map[int]*redblacktree.Tree[int, struct{}]{}}
 }
 ```
 
@@ -4503,6 +4659,7 @@ indices[i%2].Put(i, struct{}{})
 - Ceiling 返回第一个大于等于 key 的节点，查无 nil
 - Floor 第一个小于等于 key 的，查无 nil
 - Get 查询恰好等于 key 的，查无 nil
+- Left / Right 查询最大/最小值，返回 node* 指针，其 `.Key` 是键，`.Value` 是值
 
 查询+删除：Remove
 
@@ -4510,6 +4667,110 @@ indices[i%2].Put(i, struct{}{})
 for node, _ := t.Ceiling(mn); node.Key <= mx; node, _ = t.Ceiling(mn) { // _ 是是否查询到
     j := node.Key // 取 key
     t.Remove(j) // 删除
+}
+```
+
+最值查询：(假设是 int64，力扣3408)
+
+```go
+if node := t.Right(); node != nil {
+    val := node.Key.(int64)
+}
+```
+
+
+
+##### 自定义比较
+
+力扣3408，int64实现两int32做关键字的排序(升序，类似 C++ pair int int)
+
+```go
+func Int64Comparator(a, b interface{}) int {
+	av, bv := a.(int64), b.(int64)
+	if av < bv {
+		return -1
+	}
+	if av > bv {
+		return 1
+	}
+	return 0
+}
+prio2task := redblacktree.NewWith(Int64Comparator)
+func toMapId(taskId, priority int) int64 {
+	return int64(priority)<<32 | int64(taskId)
+}
+func fromMapId(id int64) (int, int) { // prio, task
+	return int(id >> 32), int(id & 0xffffffff)
+}
+this.prio2task.Put(toMapId(taskId, priority), nil)
+node := this.prio2task.Right()
+_, taskId := fromMapId(node.Key.(int64))
+```
+
+
+
+#### treeset
+
+以增删、查询最小值为例：(力扣2349)
+
+```go
+package main
+
+import (
+	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/emirpasic/gods/utils"
+)
+
+type NumberContainers struct {
+	a map[int]int
+	b map[int]*treeset.Set
+}
+
+func Constructor() NumberContainers {
+	return NumberContainers{
+		a: make(map[int]int),
+		b: make(map[int]*treeset.Set),
+	}
+}
+
+func (this *NumberContainers) check(number int) {
+	if _, ok := this.b[number]; !ok {
+		this.b[number] = treeset.NewWith(utils.IntComparator)
+	}
+}
+
+func (this *NumberContainers) Change(index int, number int) {
+	if this.a[index] > 0 {
+		old := this.a[index]
+		this.b[old].Remove(index)
+	}
+	this.a[index] = number
+	this.check(number)
+	this.b[number].Add(index)
+}
+
+func (this *NumberContainers) Find(number int) int {
+	this.check(number)
+	if this.b[number].Size() == 0 {
+		return -1
+	}
+	it := this.b[number].Iterator()
+	if it.Next() {
+		return it.Value().(int)
+	}
+	return -1
+}
+
+```
+
+必须用指针，否则，取出之后是副本，还要赋值回去，如：
+
+```go
+if oldNumber, exists := this.a[index]; exists {
+    if set, ok := this.b[oldNumber]; ok {
+        set.Remove(index) // 操作副本
+        this.b[oldNumber] = set // 必须重新赋值！
+    }
 }
 ```
 

@@ -6514,7 +6514,11 @@ scp -P 10022 root@218.192.110.159:/root/647.txt .
 rsync -P --rsh=ssh home.tar 192.168.205.34:/home/home.tar
 ```
 
-
+> windows 安装：用 winget 或命令行应用商城 chololatey
+>
+> ```sh
+> winget install rsync
+> ```
 
 ### 中文输入
 

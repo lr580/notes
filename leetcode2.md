@@ -3424,6 +3424,30 @@
 - 3227\.字符串元音游戏
 
   **博弈论**
+  
+- 2197\.替换数组中的非互质数
+
+  <u>栈/静态链表 数学</u>
+
+- 7\.整数反转
+
+  模拟
+  
+- 2349\.设计数字容器系统
+
+  数据结构 map / 堆(懒删除)
+
+- 8\.字符串转换整数(atoi)
+
+  模拟 <u>正则表达式/自动机</u>
+  
+- 12\.整数转罗马数字
+
+  模拟
+  
+- 3408\.设计任务管理器
+
+  数据结构 map / 堆(懒删除)
 
 ## 算法
 
@@ -23379,5 +23403,717 @@ func convert(s string, numRows int) string {
 func doesAliceWin(s string) bool {
 	return strings.ContainsAny(s, "aeiou")
 }
+```
+
+##### 2197\.替换数组中的非互质数
+
+[题目](https://leetcode.cn/problems/replace-non-coprime-numbers-in-array)
+
+每一项贪心的往左消，应当用栈，如果用链表，删第一项就断掉了无法循环除非递归。不要往右消因为变化后可能可以往左走。
+
+题目不加证明给出的顺序无关，是因为结合律 a(bc)=(ab)c。
+
+```go
+package main
+
+func gcd(a, b int) int {
+    if b == 0 {
+        return a
+    }
+    return gcd(b, a%b)
+}
+
+func lcm(a, b int) int {
+    return int(int64(a) * int64(b) / int64(gcd(a, b)))
+}
+
+func replaceNonCoprimes(nums []int) []int {
+    stack := []int{}
+    for _, num := range nums {
+        current := num
+        for len(stack) > 0 {
+            top := stack[len(stack)-1]
+            g := gcd(top, current)
+            if g == 1 {
+                break
+            }
+            current = lcm(top, current)
+            stack = stack[:len(stack)-1] 
+        }
+        stack = append(stack, current)
+    }
+    return stack
+}
+```
+
+空间优化为O1:
+
+```go
+func replaceNonCoprimes(nums []int) []int {
+	st := nums[:0] // 把 nums 当作栈用 O1空间
+	for _, x := range nums {
+		for len(st) > 0 && gcd(x, st[len(st)-1]) > 1 {
+			x = lcm(x, st[len(st)-1])
+			st = st[:len(st)-1]
+		}
+		st = append(st, x)
+	}
+	return st
+}
+
+func gcd(a, b int) int { //O1空间
+	for a != 0 {
+		a, b = b%a, a
+	}
+	return b
+}
+
+func lcm(a, b int) int { // 先除，避免 int64
+	return a / gcd(a, b) * b
+}
+```
+
+
+
+> bad 实现：(WA 双端静态链表)
+>
+> ```go
+> package main
+> 
+> func gcd(a, b int) int {
+> 	if b == 0 {
+> 		return a
+> 	}
+> 	return gcd(b, a%b)
+> }
+> 
+> func lcm(a, b int) int {
+> 	return int(int64(a) * int64(b) / int64(gcd(a, b)))
+> }
+> 
+> func replaceNonCoprimes(nums []int) []int {
+> 	n := len(nums)
+> 	lf := make([]int, n)
+> 	rf := make([]int, n)
+> 	alive := make([]bool, n)
+> 	for i := 0; i < n; i++ {
+> 		alive[i] = true
+> 		lf[i] = i - 1
+> 		rf[i] = i + 1
+> 	}
+> 	for {
+> 		update := false
+> 		for i := 0; i < n; i = rf[i] {
+> 			for alive[i] && rf[i] < n && alive[rf[i]] && gcd(nums[i], nums[rf[i]]) > 1 {
+> 				nums[i] = lcm(nums[i], nums[rf[i]])
+> 				alive[rf[i]] = false
+> 				lf[rf[i]] = i
+> 				rf[i] = rf[rf[i]]
+> 				update = true
+> 			}
+> 		}
+> 		for i := n - 1; i >= 0; i = lf[i] {
+> 			for alive[i] && lf[i] >= 0 && alive[lf[i]] && gcd(nums[i], nums[lf[i]]) > 1 {
+> 				nums[i] = lcm(nums[i], nums[lf[i]])
+> 				alive[lf[i]] = false
+> 				rf[lf[i]] = i
+> 				lf[i] = lf[lf[i]]
+> 			}
+> 		}
+> 		if !update {
+> 			break
+> 		}
+> 	}
+> 	ans := []int{}
+> 	for i := 0; i < n; i++ {
+> 		if alive[i] {
+> 			ans = append(ans, nums[i])
+> 		}
+> 	}
+> 	return ans
+> }
+> 
+> func replaceNonCoprimes0(nums []int) []int {
+> 	n := len(nums)
+> 	lf := make([]int, n)
+> 	rf := make([]int, n)
+> 	alive := make([]bool, n)
+> 	for i := 0; i < n; i++ {
+> 		alive[i] = true
+> 		lf[i] = i - 1
+> 		rf[i] = i + 1
+> 	}
+> 	for i := 0; i < n; i++ {
+> 		for alive[i] && rf[i] < n && alive[rf[i]] && gcd(nums[i], nums[rf[i]]) > 1 {
+> 			nums[i] = lcm(nums[i], nums[rf[i]])
+> 			alive[rf[i]] = false
+> 			lf[rf[i]] = i
+> 			rf[i] = rf[rf[i]]
+> 		}
+> 		for alive[i] && lf[i] >= 0 && alive[lf[i]] && gcd(nums[i], nums[lf[i]]) > 1 {
+> 			nums[i] = lcm(nums[i], nums[lf[i]])
+> 			alive[lf[i]] = false
+> 			rf[lf[i]] = i
+> 			lf[i] = lf[lf[i]]
+> 		}
+> 	}
+> 	ans := []int{}
+> 	for i := 0; i < n; i++ {
+> 		if alive[i] {
+> 			ans = append(ans, nums[i])
+> 		}
+> 	}
+> 	return ans
+> }
+> ```
+
+##### 7\.整数反转
+
+[题目](https://leetcode.cn/problems/reverse-integer)
+
+```go
+package main
+
+import "math"
+
+func reverse(x int) int {
+	minus := x < 0
+	if minus {
+		x = -x
+	}
+	s := []int{}
+	for x > 0 {
+		s = append(s, x%10)
+		x /= 10
+	}
+	ans := int64(0)
+	for _, v := range s {
+		ans = ans*10 + int64(v)
+	}
+	if minus {
+		ans = -ans
+	}
+	if ans > math.MaxInt32 || ans < math.MinInt32 {
+		return 0
+	}
+	return int(ans)
+}
+```
+
+空间 O1，不用 int64：
+
+```go
+func reverse(x int) (rev int) {
+    for x != 0 {
+        if rev < math.MinInt32/10 || rev > math.MaxInt32/10 {
+            return 0
+        }
+        digit := x % 10
+        x /= 10
+        rev = rev*10 + digit
+    }
+    return
+}
+```
+
+##### 2349\.设计数字容器系统
+
+[题目](https://leetcode.cn/problems/design-a-number-container-system)
+
+treeset：
+
+```go
+package main
+
+import (
+	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/emirpasic/gods/utils"
+)
+
+type NumberContainers struct {
+	a map[int]int
+	b map[int]*treeset.Set
+}
+
+func Constructor() NumberContainers {
+	return NumberContainers{
+		a: make(map[int]int),
+		b: make(map[int]*treeset.Set),
+	}
+}
+
+func (this *NumberContainers) check(number int) {
+	if _, ok := this.b[number]; !ok {
+		this.b[number] = treeset.NewWith(utils.IntComparator)
+	}
+}
+
+func (this *NumberContainers) Change(index int, number int) {
+	if this.a[index] > 0 {
+		old := this.a[index]
+		this.b[old].Remove(index)
+	}
+	this.a[index] = number
+	this.check(number)
+	this.b[number].Add(index)
+}
+
+func (this *NumberContainers) Find(number int) int {
+	this.check(number)
+	if this.b[number].Size() == 0 {
+		return -1
+	}
+	it := this.b[number].Iterator()
+	if it.Next() {
+		return it.Value().(int)
+	}
+	return -1
+}
+```
+
+redblacktree
+
+```go
+// import "github.com/emirpasic/gods/v2/trees/redblacktree"
+type NumberContainers struct {
+	indexToNumber   map[int]int
+	numberToIndices map[int]*redblacktree.Tree[int, struct{}]
+}
+
+func Constructor() NumberContainers {
+	return NumberContainers{map[int]int{}, map[int]*redblacktree.Tree[int, struct{}]{}}
+}
+
+func (n NumberContainers) Change(index, number int) {
+	// 移除旧数据
+	if oldNumber, ok := n.indexToNumber[index]; ok {
+		n.numberToIndices[oldNumber].Remove(index)
+	}
+
+	// 添加新数据
+	n.indexToNumber[index] = number
+	if n.numberToIndices[number] == nil {
+		n.numberToIndices[number] = redblacktree.New[int, struct{}]()
+	}
+	n.numberToIndices[number].Put(index, struct{}{})
+}
+
+func (n NumberContainers) Find(number int) int {
+	indices, ok := n.numberToIndices[number]
+	if !ok || indices.Empty() {
+		return -1
+	}
+	return indices.Left().Key
+}
+```
+
+懒删除的堆：
+
+```go
+type NumberContainers struct {
+	indexToNumber   map[int]int
+	numberToIndices map[int]*hp
+}
+
+func Constructor() NumberContainers {
+	return NumberContainers{map[int]int{}, map[int]*hp{}}
+}
+
+func (n NumberContainers) Change(index, number int) {
+	// 添加新数据
+	n.indexToNumber[index] = number
+	if _, ok := n.numberToIndices[number]; !ok {
+		n.numberToIndices[number] = &hp{}
+	}
+	heap.Push(n.numberToIndices[number], index)
+}
+
+func (n NumberContainers) Find(number int) int {
+	indices, ok := n.numberToIndices[number]
+	if !ok {
+		return -1
+	}
+	for indices.Len() > 0 && n.indexToNumber[indices.IntSlice[0]] != number {
+		heap.Pop(indices) // 堆顶货不对板，说明是旧数据，删除
+	}
+	if indices.Len() == 0 {
+		return -1
+	}
+	return indices.IntSlice[0]
+}
+
+type hp struct{ sort.IntSlice }
+func (h *hp) Push(v any) { h.IntSlice = append(h.IntSlice, v.(int)) }
+func (h *hp) Pop() any   { a := h.IntSlice; v := a[len(a)-1]; h.IntSlice = a[:len(a)-1]; return v }
+```
+
+##### 8\.字符串转换整数(atoi)
+
+[题目](https://leetcode.cn/problems/string-to-integer-atoi/)
+
+```go
+package main
+
+import (
+	"math"
+	"unicode"
+)
+
+func myAtoi(s string) int {
+	ans := int64(0)
+	minus := false
+	numbered := false
+	for _, c := range s {
+		if c == ' ' && !numbered {
+			continue
+		}
+		if c == '+' || c == '-' {
+			if numbered {
+				break
+			}
+			numbered = true
+			minus = c == '-'
+			continue
+		}
+		if !unicode.IsDigit(c) {
+			break
+		}
+		numbered = true
+		if !minus {
+			ans = ans*10 + int64(c-'0')
+		} else {
+			ans = ans*10 - int64(c-'0')
+		}
+		if ans > math.MaxInt32 {
+			ans = math.MaxInt32
+		}
+		if ans < math.MinInt32 {
+			ans = math.MinInt32
+		}
+	}
+	return int(ans)
+}
+```
+
+正则表达式：
+
+```python
+class Solution:
+    def myAtoi(self, s: str) -> int:
+        return max(min(int(*re.findall('^[\+\-]?\d+', s.lstrip())), 2**31 - 1), -2**31)
+```
+
+自动机：
+
+```python
+INT_MAX = 2 ** 31 - 1
+INT_MIN = -2 ** 31
+
+class Automaton:
+    def __init__(self):
+        self.state = 'start'
+        self.sign = 1
+        self.ans = 0
+        self.table = {
+            'start': ['start', 'signed', 'in_number', 'end'],
+            'signed': ['end', 'end', 'in_number', 'end'],
+            'in_number': ['end', 'end', 'in_number', 'end'],
+            'end': ['end', 'end', 'end', 'end'],
+        }
+        
+    def get_col(self, c):
+        if c.isspace():
+            return 0
+        if c == '+' or c == '-':
+            return 1
+        if c.isdigit():
+            return 2
+        return 3
+
+    def get(self, c):
+        self.state = self.table[self.state][self.get_col(c)]
+        if self.state == 'in_number':
+            self.ans = self.ans * 10 + int(c)
+            self.ans = min(self.ans, INT_MAX) if self.sign == 1 else min(self.ans, -INT_MIN)
+        elif self.state == 'signed':
+            self.sign = 1 if c == '+' else -1
+
+class Solution:
+    def myAtoi(self, str: str) -> int:
+        automaton = Automaton()
+        for c in str:
+            automaton.get(c)
+        return automaton.sign * automaton.ans
+```
+
+##### 12\.整数转罗马数字
+
+[题目](https://leetcode.cn/problems/integer-to-roman/solutions)
+
+```c++
+#include<bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    string intToRoman(int num) {
+        string ans="";
+        char c[4][2] = {{'I','V'}, {'X','L'}, {'C','D'}, {'M','?'}};
+        for(int i=0;i<4;i++) {
+            string now = "";
+            int x = num % 10;
+            num /= 10;
+            if (x % 5 == 4) {
+                now += c[i][0];
+                x++;
+            }
+            if (x == 10) {
+                now += c[i+1][0];
+                x -= 10;
+            }
+            if (x >= 5) {
+                now += c[i][1];
+                x -= 5;
+            }
+            while (x--) {
+                now += c[i][0];
+            }
+            ans = now + ans;
+        }
+        return ans;
+    }
+};
+```
+
+其他做法就是直接打表，每个位打10个数字。
+
+##### 3408\.设计任务管理器
+
+[题目](https://leetcode.cn/problems/design-task-manager)
+
+构造三个 map：任务->用户(保证输出可查)，任务->优先级(保证edit可查)，优先级->任务(排序)。其中，使用int64做两关键字查询。
+
+```go
+package main
+
+import (
+	"github.com/emirpasic/gods/trees/redblacktree"
+)
+
+type TaskManager struct {
+	task2user map[int]int
+	task2prio map[int]int
+	prio2task *redblacktree.Tree
+}
+
+func toMapId(taskId, priority int) int64 {
+	return int64(priority)<<32 | int64(taskId)
+}
+
+func fromMapId(id int64) (int, int) { // prio, task
+	return int(id >> 32), int(id & 0xffffffff)
+}
+
+func Int64Comparator(a, b interface{}) int {
+	av, bv := a.(int64), b.(int64)
+	if av < bv {
+		return -1
+	}
+	if av > bv {
+		return 1
+	}
+	return 0
+}
+
+func Constructor(tasks [][]int) TaskManager {
+	task2user := make(map[int]int)
+	task2prio := make(map[int]int)
+	// prio2task := redblacktree.NewWithIntComparator()
+	prio2task := redblacktree.NewWith(Int64Comparator)
+	this := TaskManager{task2user: task2user, task2prio: task2prio, prio2task: prio2task}
+	for _, task := range tasks {
+		userId, taskId, priority := task[0], task[1], task[2]
+		this.Add(userId, taskId, priority)
+	}
+	return this
+}
+
+func (this *TaskManager) Add(userId int, taskId int, priority int) {
+	this.task2user[taskId] = userId
+	this.task2prio[taskId] = priority
+	this.prio2task.Put(toMapId(taskId, priority), nil)
+}
+
+func (this *TaskManager) Edit(taskId int, newPriority int) {
+	userId := this.task2user[taskId]
+	this.Rmv(taskId)
+	this.Add(userId, taskId, newPriority)
+}
+
+func (this *TaskManager) Rmv(taskId int) {
+	oldPrio := this.task2prio[taskId]
+	delete(this.task2prio, taskId)
+	delete(this.task2user, taskId)
+	this.prio2task.Remove(toMapId(taskId, oldPrio))
+}
+
+func (this *TaskManager) ExecTop() int {
+	if node := this.prio2task.Right(); node != nil {
+		_, taskId := fromMapId(node.Key.(int64))
+		userId := this.task2user[taskId]
+		this.Rmv(taskId)
+		return userId
+	}
+	return -1
+}
+
+/**
+ * Your TaskManager object will be instantiated and called as such:
+ * obj := Constructor(tasks);
+ * obj.Add(userId,taskId,priority);
+ * obj.Edit(taskId,newPriority);
+ * obj.Rmv(taskId);
+ * param_4 := obj.ExecTop();
+ */
+```
+
+懒删除堆：
+
+- 合并 task2prio, task2uesr。
+
+```go
+type pair struct{ priority, userId int }
+
+type TaskManager struct {
+	mp map[int]pair // taskId -> (priority, userId)
+	h  *hp          // (priority, taskId, userId)
+}
+
+func Constructor(tasks [][]int) TaskManager {
+	n := len(tasks)
+	mp := make(map[int]pair, n) // 预分配空间
+	h := make(hp, n)
+	for i, t := range tasks {
+		userId, taskId, priority := t[0], t[1], t[2]
+		mp[taskId] = pair{priority, userId}
+		h[i] = tuple{priority, taskId, userId}
+	}
+	heap.Init(&h)
+	return TaskManager{mp, &h}
+}
+
+func (t *TaskManager) Add(userId, taskId, priority int) {
+	t.mp[taskId] = pair{priority, userId}
+	heap.Push(t.h, tuple{priority, taskId, userId})
+}
+
+func (t *TaskManager) Edit(taskId, newPriority int) {
+	// 懒修改
+	t.Add(t.mp[taskId].userId, taskId, newPriority)
+}
+
+func (t *TaskManager) Rmv(taskId int) {
+	// 懒删除
+	t.mp[taskId] = pair{-1, -1}
+}
+
+func (t *TaskManager) ExecTop() int {
+	for t.h.Len() > 0 {
+		top := heap.Pop(t.h).(tuple)
+		priority, taskId, userId := top.priority, top.taskId, top.userId
+		if t.mp[taskId] == (pair{priority, userId}) {
+			t.Rmv(taskId)
+			return userId
+		}
+		// else 货不对板，堆顶和 mp 中记录的不一样，说明堆顶数据已被修改或删除，不做处理
+	}
+	return -1
+}
+
+type tuple struct{ priority, taskId, userId int }
+type hp []tuple
+func (h hp) Len() int           { return len(h) }
+func (h hp) Less(i, j int) bool { return cmp.Or(h[i].priority-h[j].priority, h[i].taskId-h[j].taskId) > 0 }
+func (h hp) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *hp) Push(v any)        { *h = append(*h, v.(tuple)) }
+func (h *hp) Pop() any          { a := *h; v := a[len(a)-1]; *h = a[:len(a)-1]; return v }
+```
+
+redblacktree ylb题解
+
+```go
+type TaskManager struct {
+	d  map[int][2]int
+	st *redblacktree.Tree[int, int]
+}
+
+func encode(priority, taskId int) int {
+	return (priority << 32) | taskId
+}
+
+func comparator(a, b int) int {
+	if a > b {
+		return -1
+	} else if a < b {
+		return 1
+	}
+	return 0
+}
+
+func Constructor(tasks [][]int) TaskManager {
+	tm := TaskManager{
+		d:  make(map[int][2]int),
+		st: redblacktree.NewWith[int, int](comparator),
+	}
+	for _, task := range tasks {
+		tm.Add(task[0], task[1], task[2])
+	}
+	return tm
+}
+
+func (this *TaskManager) Add(userId int, taskId int, priority int) {
+	this.d[taskId] = [2]int{userId, priority}
+	this.st.Put(encode(priority, taskId), taskId)
+}
+
+func (this *TaskManager) Edit(taskId int, newPriority int) {
+	if e, ok := this.d[taskId]; ok {
+		priority := e[1]
+		this.st.Remove(encode(priority, taskId))
+		this.d[taskId] = [2]int{e[0], newPriority}
+		this.st.Put(encode(newPriority, taskId), taskId)
+	}
+}
+
+func (this *TaskManager) Rmv(taskId int) {
+	if e, ok := this.d[taskId]; ok {
+		priority := e[1]
+		delete(this.d, taskId)
+		this.st.Remove(encode(priority, taskId))
+	}
+}
+
+func (this *TaskManager) ExecTop() int {
+	if this.st.Empty() {
+		return -1
+	}
+	it := this.st.Iterator()
+	it.Next()
+	taskId := it.Value()
+	if e, ok := this.d[taskId]; ok {
+		delete(this.d, taskId)
+		this.st.Remove(it.Key())
+		return e[0]
+	}
+	return -1
+}
+
+/**
+ * Your TaskManager object will be instantiated and called as such:
+ * obj := Constructor(tasks);
+ * obj.Add(userId,taskId,priority);
+ * obj.Edit(taskId,newPriority);
+ * obj.Rmv(taskId);
+ * param_4 := obj.ExecTop();
+ */
 ```
 
