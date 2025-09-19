@@ -682,6 +682,7 @@ fmt.Println(s, len(s)) //一个中文3个长度
 ```go
 s := "abc蓝莓熊"
 fmt.Println(s[0], s[3]) // 97 232；中文不能取下标，见字符一节
+// 取[]出来是 byte 类型
 ```
 
 ##### 常用函数
@@ -761,8 +762,9 @@ func main() {
 ###### 字符串->其他
 
 ```go
-x, _ := strconv.ParseInt("580", 10, 64)
+x, _ := strconv.ParseInt("580", 10, 64) // 转 10进制int64
 fmt.Printf("值：%v 类型：%T\n", x, x)
+x, _ := strconv.Atoi("580") // ascii to int (不是int64)
 f, _ := strconv.ParseFloat("580.1437", 64)
 fmt.Printf("值：%v 类型：%T\n", f, f)
 b, _ := strconv.ParseBool("true")
@@ -832,7 +834,7 @@ rune 类型， 代表一个 UTF-8 字符。
 Go 使用了特殊的 rune 类型来处理 Unicode， 让基于 Unicode 的文本处理更为方便， 也可以使用 byte 型进行默认字符串处理， 性能和扩展性都有照顾
 
 ```go
-// a := 'c'  // rune
+a := 'c'  //rune
 a := '张' //rune
 fmt.Println(a) // 24352而不是字符，且sizeof=4，无法len
 fmt.Printf("%T %c\n", a, a) // int32 张
@@ -4178,6 +4180,17 @@ fmt.Println(time.Since(start).Microseconds()) // 13341
 ```
 
 ### 文本处理
+
+#### regexp
+
+`regexp` 包。正则表达式，匹配一个或所有，检查是否匹配、返回子串、下标。
+
+```go
+re := regexp.MustCompile("[LR]+")
+str := re.FindString(s)
+```
+
+
 
 #### json
 

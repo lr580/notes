@@ -951,6 +951,14 @@ git clone 仓库地址 目录
 
 注意，同样从无到有是抓取远程仓库，`git pull`  不会获取 remote 信息，而且事先要 git init，而 `git clone` 会获取 remote 信息。
 
+克隆指定分支
+
+```sh
+git clone -b dev git@github.com:username/repo.git
+```
+
+
+
 #### 更名
 
 ```bash

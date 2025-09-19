@@ -98,6 +98,12 @@ pip install plotly pandas # 一次装两个
 pip install d2l==0.17.6 --no-deps
 ```
 
+从 github 安装
+
+```sh
+pip install git+https://github.com/moment-timeseries-foundation-model/moment-research.git
+```
+
 
 
 #### 镜像
@@ -5582,6 +5588,22 @@ def dataToPlot(self):
     assert time is not None
 ```
 
+#### pprint
+
+更好看的输出，对嵌套数据结构按缩进输出。
+
+```python
+from pprint import pprint
+data = {
+    "users": [
+        {"id": 1, "name": "Alice", "skills": ["Python", "SQL"]},
+        {"id": 2, "name": "Bob", "skills": ["Java", "C++", "JavaScript"]},
+    ],
+    "meta": {"version": "1.0", "author": "Admin"}
+}
+pprint(data) # 自动换行、缩进，更美观）
+```
+
 
 
 #### itertools
@@ -6537,16 +6559,23 @@ with open(file_path, 'r', encoding='utf8') as f:
     print(f.readlines())
 ```
 
-没有就下载：
+路径拼接，可以用 / 运算符，可以：判断存在：
 
 ```python
-# Download Israeli COVID vaccinations data from the ☁️
 if not pathlib.Path(data_dir / 'israel.csv').exists():
     urllib.request.urlretrieve(
         'https://f000.backblazeb2.com/file/dsc-data/covid-israel/israel.csv',
         data_dir / 'israel.csv'
     )
 ```
+
+分割路径：
+
+```python
+Path('./data/tky_800/').parts # ('data', 'tky_800')
+```
+
+
 
 ### 字符串
 
@@ -22214,6 +22243,44 @@ response = client.chat.completions.create(
 - usage 里可以看到 tokens 数量。计算 created 与返回结果的时间差，可以求出调用时间。
 
 ### 杂项
+
+#### huggingface_hub
+
+Hugging Face 的系列库（如 `transformers`, `diffusers`, `datasets`) 内置了与 Hub 的无缝集成。它们会自动帮你处理下载、缓存，并将模型加载成可以直接使用的 Python 对象。
+
+可以直接用 Git 命令来克隆。单文件也可以直接网页下载。
+
+```sh
+git clone https://huggingface.co/google/flan-t5-large
+```
+
+手动下载：从 huggingface.co 下载单个文件或整个仓库
+
+```python
+from huggingface_hub import hf_hub_download
+# 指定模型仓库ID和要下载的文件名
+model_repo_id = "google/flan-t5-large"  # 仓库ID
+file_name = "pytorch_model.bin"        # 你想下载的特定文件
+# 下载文件到本地缓存，并返回本地路径
+local_model_path = hf_hub_download(
+    repo_id=model_repo_id,
+    filename=file_name,
+)
+print(f"模型文件已下载到：{local_model_path}")
+```
+
+```python
+from huggingface_hub import snapshot_download
+# 下载整个仓库到本地目录
+local_repo_path = snapshot_download(
+    repo_id="google/flan-t5-large",
+    # local_dir="./flan-t5-large",  # 可以指定本地目录，不指定则存到缓存中
+    # ignore_patterns=["*.h5", "*.ot"], # 可以忽略某些格式的文件
+)
+print(f"整个仓库已下载到：{local_repo_path}")
+```
+
+
 
 #### onnx
 

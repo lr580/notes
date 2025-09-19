@@ -3448,6 +3448,10 @@
 - 3408\.设计任务管理器
 
   数据结构 map / 堆(懒删除)
+  
+- 3484\.设计电子表格
+
+  数据结构 模拟
 
 ## 算法
 
@@ -24115,5 +24119,116 @@ func (this *TaskManager) ExecTop() int {
  * obj.Rmv(taskId);
  * param_4 := obj.ExecTop();
  */
+```
+
+##### 3484\.设计电子表格
+
+[题目](https://leetcode.cn/problems/design-spreadsheet/)
+
+二维数组+拆分行列模拟：
+
+```go
+package main
+
+import (
+	"strconv"
+	"strings"
+	"unicode"
+)
+
+type Spreadsheet struct {
+	a [][26]int
+}
+
+func Constructor(rows int) Spreadsheet {
+	return Spreadsheet{a: make([][26]int, rows)}
+}
+
+func (this *Spreadsheet) SetCell(cell string, value int) {
+	r, c := this.Get(cell)
+	this.a[r][c] = value
+}
+
+func (this *Spreadsheet) ResetCell(cell string) {
+	this.SetCell(cell, 0)
+}
+
+func (this *Spreadsheet) Get(formula string) (int, int) {
+	c := int(formula[0] - 'A')
+	r, _ := strconv.Atoi(formula[1:])
+	return r-1, c
+}
+
+func (this *Spreadsheet) GetVal(formula string) int {
+	if unicode.IsDigit(rune(formula[0])) {
+		val, _ := strconv.Atoi(formula)
+		return val
+	}
+	r, c := this.Get(formula)
+	return this.a[r][c]
+}
+
+func (this *Spreadsheet) GetValue(formula string) int {
+	str := strings.Split(formula[1:], "+")
+	l, r := str[0], str[1]
+	return this.GetVal(l) + this.GetVal(r)
+}
+
+/**
+ * Your Spreadsheet object will be instantiated and called as such:
+ * obj := Constructor(rows);
+ * obj.SetCell(cell,value);
+ * obj.ResetCell(cell);
+ * param_3 := obj.GetValue(formula);
+ */
+```
+
+因为表格稀疏，直接拿行列字符串做key的map更好：
+
+```go
+type Spreadsheet map[string]int
+
+func Constructor(int) Spreadsheet {
+	return Spreadsheet{}
+}
+
+func (s Spreadsheet) SetCell(cell string, value int) {
+	s[cell] = value
+}
+
+func (s Spreadsheet) ResetCell(cell string) {
+	delete(s, cell)
+}
+
+func (s Spreadsheet) GetValue(formula string) (ans int) {
+	for _, cell := range strings.Split(formula[1:], "+") {
+		if unicode.IsUpper(rune(cell[0])) {
+			ans += s[cell]
+		} else {
+			x, _ := strconv.Atoi(cell)
+			ans += x
+		}
+	}
+	return
+}
+```
+
+##### 13\.罗马数字转整数
+
+[题目](https://leetcode.cn/problems/roman-to-integer)
+
+左边字符小，减去左边两倍。
+
+```go
+func romanToInt(s string) (ans int) {
+	mp := map[rune]int{'M': 1000, 'D': 500, 'C': 100, 'L': 50, 'X': 10, 'V': 5, 'I': 1}
+	for i, c := range s {
+		ans += mp[c]
+		if i > 0 && mp[rune(s[i-1])] < mp[c] {
+			ans -= 2 * mp[rune(s[i-1])]
+		}
+	}
+	return
+}
 ```
 
