@@ -5420,7 +5420,7 @@ class Solution:
         return ans
 ```
 
-
+注：不能对 deque 二分，deque 随机访问不是 O1 的
 
 ### 语法增强
 

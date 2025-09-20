@@ -3452,6 +3452,14 @@
 - 3484\.设计电子表格
 
   数据结构 模拟
+  
+- 3508\.设计路由器
+
+  数据结构 map套 红黑树 / 队列
+  
+- 14\.最长公共前缀
+
+  签到
 
 ## 算法
 
@@ -24229,6 +24237,250 @@ func romanToInt(s string) (ans int) {
 		}
 	}
 	return
+}
+```
+
+##### 3508\.设计路由器
+
+[题目](https://leetcode.cn/problems/implement-router)
+
+- 使用一个集合判断包是否已经存在相同的
+
+- 输入时间不降，故使用双端队列维护 FIFO (注意先判重后删队首)
+
+- 使用 map 套红黑树，对每个 destination 分别做一个红黑树做动态增删的区间计数，当然也可以用权值线段树。
+
+  不是严格上升，存在多个不同的包时间戳相同，所以红黑树节点是 int64 组两个整数或 pair<int,int>
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace __gnu_pbds;
+using pii = pair<int,int>;  // not assert timestamp differ for each unique package
+typedef tree<pii, null_type, less<pii>, rb_tree_tag, 
+             tree_order_statistics_node_update> ordered_set;
+
+int count(ordered_set&s, pii l, pii r) {
+    return s.order_of_key(r) - s.order_of_key(l);
+}
+
+// using package = tuple<int, int, int>; // t, s, d
+class Router {
+    map<int, ordered_set> d;
+    deque<vector<int>> q;
+    set<vector<int>> s;
+    int lim;
+public:
+    Router(int memoryLimit) {
+        lim = memoryLimit;
+    }
+    
+    bool addPacket(int source, int destination, int timestamp) {
+        vector<int> package = {source, destination, timestamp};
+        if(s.find(package)!=s.end()) {
+            return false;
+        }
+        if(q.size() >= lim) {
+            forwardPacket();
+        }
+        q.push_back(package);
+        s.insert(package);
+        d[destination].insert({timestamp, source});
+        return true;
+    }
+    
+    vector<int> forwardPacket() {
+        if(!q.size()) {
+            return {};
+        }
+        vector<int> package = q.front();
+        q.pop_front();
+        s.erase(package);
+        int de = package[1], t = package[2], so = package[0];
+        d[de].erase({t, so});
+        return package;
+    }
+    
+    int getCount(int destination, int startTime, int endTime) {
+        return count(d[destination], {startTime, 0}, {endTime, 1e9});
+    }
+};
+
+/**
+ * Your Router object will be instantiated and called as such:
+ * Router* obj = new Router(memoryLimit);
+ * bool param_1 = obj->addPacket(source,destination,timestamp);
+ * vector<int> param_2 = obj->forwardPacket();
+ * int param_3 = obj->getCount(destination,startTime,endTime);
+ */
+```
+
+由于输入不降序，套红黑树可以变成套双端队列，队列上二分即可(实现上，假出队用vector即可)
+
+```c++
+struct TupleHash {
+    template<typename T>
+    static void hash_combine(size_t& seed, const T& v) {
+        // 参考 boost::hash_combine
+        seed ^= hash<T>{}(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+
+    template<typename Tuple, size_t Index = 0>
+    static void hash_tuple(size_t& seed, const Tuple& t) {
+        if constexpr (Index < tuple_size_v<Tuple>) {
+            hash_combine(seed, get<Index>(t));
+            hash_tuple<Tuple, Index + 1>(seed, t);
+        }
+    }
+
+    template<typename... Ts>
+    size_t operator()(const tuple<Ts...>& t) const {
+        size_t seed = 0;
+        hash_tuple(seed, t);
+        return seed;
+    }
+};
+
+class Router {
+    int memory_limit;
+    queue<tuple<int, int, int>> packet_q; // packet 队列
+    // 注：如果不想手写 TupleHash，可以用 set
+    unordered_set<tuple<int, int, int>, TupleHash> packet_set; // packet 集合
+    unordered_map<int, pair<vector<int>, int>> dest_to_timestamps; // destination -> ([timestamp], head)
+
+public:
+    Router(int memoryLimit) {
+        memory_limit = memoryLimit;
+    }
+
+    bool addPacket(int source, int destination, int timestamp) {
+        auto packet = tuple(source, destination, timestamp);
+        if (!packet_set.insert(packet).second) { // packet 在 packet_set 中
+            return false;
+        }
+        if (packet_q.size() == memory_limit) { // 太多了
+            forwardPacket();
+        }
+        packet_q.push(packet); // 入队
+        dest_to_timestamps[destination].first.push_back(timestamp);
+        return true;
+    }
+
+    vector<int> forwardPacket() {
+        if (packet_q.empty()) {
+            return {};
+        }
+        auto packet = packet_q.front(); // 出队
+        packet_q.pop();
+        packet_set.erase(packet);
+        auto [source, destination, timestamp] = packet;
+        dest_to_timestamps[destination].second++; // 队首下标加一，模拟出队
+        return {source, destination, timestamp};
+    }
+
+    int getCount(int destination, int startTime, int endTime) {
+        auto& [timestamps, head] = dest_to_timestamps[destination];
+        auto left = ranges::lower_bound(timestamps.begin() + head, timestamps.end(), startTime);
+        auto right = ranges::upper_bound(timestamps.begin() + head, timestamps.end(), endTime);
+        return right - left;
+    }
+};
+```
+
+```go
+type packet struct {
+	source, destination, timestamp int
+}
+
+type Router struct {
+	memoryLimit      int
+	packetQ          []packet            // packet 队列
+	packetSet        map[packet]struct{} // packet 集合
+	destToTimestamps map[int][]int       // destination -> [timestamp]
+}
+
+func Constructor(memoryLimit int) Router {
+	return Router{
+		memoryLimit:      memoryLimit,
+		packetSet:        map[packet]struct{}{},
+		destToTimestamps: map[int][]int{},
+	}
+}
+
+func (r *Router) AddPacket(source, destination, timestamp int) bool {
+	pkt := packet{source, destination, timestamp}
+	if _, ok := r.packetSet[pkt]; ok {
+		return false
+	}
+	r.packetSet[pkt] = struct{}{}
+	if len(r.packetQ) == r.memoryLimit { // 太多了
+		r.ForwardPacket()
+	}
+	r.packetQ = append(r.packetQ, pkt) // 入队
+	r.destToTimestamps[destination] = append(r.destToTimestamps[destination], timestamp)
+	return true
+}
+
+func (r *Router) ForwardPacket() []int {
+	if len(r.packetQ) == 0 {
+		return nil
+	}
+	pkt := r.packetQ[0]
+	r.packetQ = r.packetQ[1:] // 出队
+	r.destToTimestamps[pkt.destination] = r.destToTimestamps[pkt.destination][1:]
+	delete(r.packetSet, pkt)
+	return []int{pkt.source, pkt.destination, pkt.timestamp}
+}
+
+func (r *Router) GetCount(destination, startTime, endTime int) int {
+	timestamps := r.destToTimestamps[destination]
+	return sort.SearchInts(timestamps, endTime+1) - sort.SearchInts(timestamps, startTime)
+}
+```
+
+##### 14\.最长公共前缀
+
+[题目](https://leetcode.cn/problems/implement-router)
+
+```go
+package main
+
+import "strings"
+
+func longestCommonPrefix(strs []string) string {
+	m, n := 10000, len(strs)
+	for i := 0; i < len(strs); i++ {
+		m = min(m, len(strs[i]))
+	}
+    if m == 0 {
+        return ""
+    }
+	var ans strings.Builder
+	for i := 0; i < m; i++ {
+		for j := 1; j < n; j++ {
+			if strs[0][i] != strs[j][i] {
+				return ans.String()
+			}
+		}
+		ans.WriteByte(strs[0][i])
+	}
+	return ans.String()
+}
+```
+
+```go
+func longestCommonPrefix(strs []string) string {
+    s0 := strs[0]
+    for j, c := range s0 { // 从左到右
+        for _, s := range strs { // 从上到下
+            if j == len(s) || s[j] != byte(c) { // 这一列有字母缺失或者不同
+                return s0[:j] // 0 到 j-1 是公共前缀
+            }
+        }
+    }
+    return s0
 }
 ```
 
