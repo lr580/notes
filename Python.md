@@ -6131,7 +6131,7 @@ print(args.experiment) #上面那个experiment;或args.p
 
 #### os
 
-##### 操作系统
+##### env
 
 查看操作系统类型：
 
@@ -6158,7 +6158,7 @@ os.environ.get('PATH')
 os.environ.get('x','def') #如果没找到返回def
 ```
 
-##### 目录
+##### path
 
 查看当前运行目录绝对路径：(二选一)
 
@@ -6167,7 +6167,7 @@ os.getcwd()
 os.path.abspath('.')
 ```
 
-> 注意绝对路径不是根目录，根目录(`/`)以 windows 为例是当前磁盘如 `/a.txt` 是 `D:/a.txt`。
+> 注意绝对路径不是根目录，根目录(`/`)以 windows 为例是当前磁盘如 `/a.txt` 是 `D:/a.txt`。Linux 强制使用 `/`，Windows 可以用 `\` 即 `'\\'`。
 
 获取当前运行程序的文件夹路径和程序相对路径：
 
