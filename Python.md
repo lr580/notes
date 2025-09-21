@@ -7174,6 +7174,24 @@ import calendar
 print(calendar.month(2021,6))
 ```
 
+##### 时区
+
+3.9+，否则用第三方库 pytz
+
+```python
+from datetime import datetime
+from zoneinfo import ZoneInfo
+def convert_time(input_time, is_dst=None):
+    pacific_tz = ZoneInfo("America/Los_Angeles")
+    beijing_tz = ZoneInfo("Asia/Shanghai")
+    naive_dt = datetime.strptime(input_time, "%Y-%m-%d %H:%M")
+    # 添加时区（Python 3.9+ 自动处理夏令时）
+    pacific_dt = naive_dt.replace(tzinfo=pacific_tz)
+    beijing_dt = pacific_dt.astimezone(beijing_tz)
+    return beijing_dt.strftime("%Y-%m-%d %H:%M")
+print(convert_time("2025-09-22 17:00"))  # 输出: 2025-09-23 08:00
+```
+
 
 
 #### time
@@ -7281,8 +7299,6 @@ print(f"时间间隔: {my_timer():.2f} 秒")
 time.sleep(2)  # 模拟一些延迟
 print(f"时间间隔: {my_timer():.2f} 秒")
 ```
-
-
 
 
 
