@@ -387,6 +387,8 @@ fmt.Println(n1, n2, n3)
 
 常量声明了可以不使用
 
+`const`只能用于基本类型（如 `string`、`int`、`bool`等）或简单表达式，不能用于数组、切片、map 等复合类型。
+
 ##### iota
 
 iota 是 golang 语言的常量计数器,
@@ -685,6 +687,12 @@ fmt.Println(s[0], s[3]) // 97 232；中文不能取下标，见字符一节
 // 取[]出来是 byte 类型
 ```
 
+不同C/C++，同Python/Java，go不使用\0截断和末尾占位(多一个长度)
+
+```go
+fmt.Println(len("abc")) // 3
+```
+
 ##### 常用函数
 
 字符串拼接：+ 或 `fmt.Sprintf` (后者常用其他类型转 str)
@@ -777,6 +785,20 @@ fmt.Printf("值：%v 类型：%T\n", b, b)
 fmt.Println([]byte("a你好")) // [97 228 189 160 229 165 189]
 fmt.Println(string([]byte{97, 228, 189, 160, 229, 165, 189}))
 // "a你好"
+```
+
+空数组转回去也有长度，\0 是普通字符。
+
+```go
+s := make([]byte, 5)
+t := string(s)
+fmt.Println(len(t), t) // 5
+s[2] = '6'
+t = string(s)
+fmt.Println(len(t), t) // 5 6
+s[4] = '7'
+t = string(s)
+fmt.Println(len(t), t) // 5 67
 ```
 
 ###### rune[]
@@ -903,7 +925,7 @@ var intArr2 [5]int = [...]int{1, -1, 9, 90, 12}
 // var a, b [3]int 两个一样形状的数组
 ```
 
-可以省略长度
+可以省略长度，用...来自己计算长度
 
 ```go
 var d = [...]int{1437, 580} //大括号赋值 }单独一行的话最后一个元素要,
@@ -1196,10 +1218,6 @@ vis[v] = append(vis[v], vis[u]...)  // 先复制 vis[u] 的所有元素
 vis[v] = append(vis[v], i)          // 再追加新元素
 ```
 
-
-
-
-
 #### map
 
 ##### 定义
@@ -1325,6 +1343,20 @@ sliceMap[key] = value
 fmt.Println(sliceMap) // map[中国:[北京 上海]]
 ```
 
+##### 自定义类型key
+
+struct 做 go 的 key 时，自动按声明顺序成员属性排序。
+
+需要实现哈希，如 pair<int,int> (也可以用 string 实现)
+
+```go
+type IntPair [2]int
+func (ip IntPair) Hash() uint64 {
+    return uint64(ip[0])<<32 | uint64(ip[1])
+}
+var m map[IntPair]int
+```
+
 ### 指针
 
 ##### 基本
@@ -1441,6 +1473,12 @@ type itab struct {
 }
 ```
 
+允许定义和使用空结构体，它0内存占用，地址唯一，可作为无数据标记。
+
+```go
+set := make(map[string]struct{})
+```
+
 ##### 赋值
 
 ```go
@@ -1517,6 +1555,8 @@ type Person struct {
 给类型（结构体， 自定义类型） 定义方法。 所谓方法就是定义了接收者的函数  
 
 定义方法：在参数列表前，添加 `(变量名 结构体类型)`，可以是指针也可以不是，区别在于复制与否(传值传址)
+
+通过这个办法，允许绕过：Go 语言不允许直接为内置类型（如 `[]int`）或未命名的类型（如 `[]int`）定义方法。使得可以为基础类型定义方法，见下面的例子
 
 非本地类型不能定义方法， 也就是说我们不能给别的包的类型定义方法  
 
@@ -2134,6 +2174,8 @@ func powSum(p int, x ...int) int64 {
 ```
 
 可以实现结构体选项模式。(见后文)
+
+对 slice 等也可以传入可变参，如 `powSum(arr...)`。该`...`展开语法只能用于可变参数函数
 
 ##### 返回值
 
@@ -4083,6 +4125,24 @@ func main() {
 }
 ```
 
+### 语法增强
+
+#### cmp
+
+1.22 版本
+
+```go
+fmt.Println(cmp.Or("", "default", "backup")) // 输出: "default"
+```
+
+常用：当需要从多个候选值中选择第一个有效值时（如配置优先级）
+
+结构体排序条件判断：
+
+```go
+return cmp.Or(a.price-b.price, a.shop-b.shop)
+```
+
 
 
 ### 时间
@@ -4689,12 +4749,12 @@ go get github.com/emirpasic/gods/trees/redblacktree
 
 ##### 新建
 
+非泛型
+
 ```go
 // prio2task *redblacktree.Tree
 prio2task := redblacktree.NewWithIntComparator()
 ```
-
-
 
 ###### 嵌套
 
@@ -4720,12 +4780,22 @@ func Constructor() NumberContainers {
 }
 ```
 
+
+
 ##### 使用
 
 插入 (上文新建的 indices 为例) Put
 
 ```go
 indices[i%2].Put(i, struct{}{})
+```
+
+遍历 (有限次为例)
+
+```go
+for i, it := 0, t.Iterator(); i < 5 && it.Next(); i++ {
+    pr := it.Key() // 也可以取 it.Value()；都得到 Interafce{}
+}
 ```
 
 查找 
@@ -4735,7 +4805,7 @@ indices[i%2].Put(i, struct{}{})
 - Get 查询恰好等于 key 的，查无 nil
 - Left / Right 查询最大/最小值，返回 node* 指针，其 `.Key` 是键，`.Value` 是值
 
-查询+删除：Remove
+查询+删除：Remove (必须存在，否则 panic)
 
 ```go
 for node, _ := t.Ceiling(mn); node.Key <= mx; node, _ = t.Ceiling(mn) { // _ 是是否查询到
@@ -4752,9 +4822,9 @@ if node := t.Right(); node != nil {
 }
 ```
 
-
-
 ##### 自定义比较
+
+建议使用 cmp.Or 简化，参见泛型下文。
 
 力扣3408，int64实现两int32做关键字的排序(升序，类似 C++ pair int int)
 
@@ -4781,7 +4851,40 @@ node := this.prio2task.Right()
 _, taskId := fromMapId(node.Key.(int64))
 ```
 
+int[]比较，力扣1912
 
+```go
+func Compare(x, y interface{}) int {
+	a, b := x.([]int), y.([]int)
+	other := b
+	minLen := len(a)
+	if len(other) < minLen {
+		minLen = len(other)
+	}
+	for i := 0; i < minLen; i++ {
+		if a[i] != other[i] {
+			return a[i] - other[i]
+		}
+	}
+	return len(a) - len(other)
+}
+```
+
+##### 泛型
+
+泛型可以不用 interface{} 做比较参数，还可以不用类型断言，力扣1912
+
+```go
+type entry struct{ price, shop, movie int }
+var rentedMovies *redblacktree.Tree[entry, struct{}]
+rentedMovies := redblacktree.NewWith[entry, struct{}](func(a, b entry) int {
+    return cmp.Or(a.price-b.price, a.shop-b.shop, a.movie-b.movie)
+})
+rentedMovies.Put(entry{price, shop, movie}, struct{}{})
+for it := rentedMovies.Iterator(); len(ans) < 5 && it.Next(); {
+    ans = append(ans, []int{it.Key().shop, it.Key().movie})
+}
+```
 
 #### treeset
 

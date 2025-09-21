@@ -3460,6 +3460,14 @@
 - 14\.最长公共前缀
 
   签到
+  
+- 1912\.设计电影租借系统
+
+  数据结构 红黑树
+
+- 17\.电话号码的字母组合
+
+  DFS
 
 ## 算法
 
@@ -24481,6 +24489,245 @@ func longestCommonPrefix(strs []string) string {
         }
     }
     return s0
+}
+```
+
+##### 1912\.设计电影租借系统
+
+[题目](https://leetcode.cn/problems/design-movie-rental-system)
+
+维护：
+
+- 红黑树已借出去的电影，按结构体/[]int三关键字排序
+- map套红黑树按电影维护没借出去的电影，按二关键字排序
+- 维护电影+商店->价格的map映射(还电影用)，结构体自定义哈希
+
+```go
+package main
+
+import "github.com/emirpasic/gods/trees/redblacktree"
+
+type IntPair [2]int
+
+func (ip IntPair) Hash() uint64 {
+	return uint64(ip[0])<<32 | uint64(ip[1])
+}
+
+type MovieRentingSystem struct {
+	movies map[int]*redblacktree.Tree
+	rent   *redblacktree.Tree
+	prices map[IntPair]int
+}
+
+func Compare(x, y interface{}) int {
+	a, b := x.([]int), y.([]int)
+	n := len(a)
+	for i := 0; i < n; i++ {
+		if a[i] != b[i] {
+			return a[i] - b[i]
+		}
+	}
+	return len(a) - len(b)
+}
+
+func (this *MovieRentingSystem) add(shop, movie, price int) {
+	if this.movies[movie] == nil {
+		this.movies[movie] = redblacktree.NewWith(Compare)
+	}
+	this.movies[movie].Put([]int{price, shop}, nil)
+	this.prices[IntPair{shop, movie}] = price
+	key := []int{price, shop, movie}
+	_, exists := this.rent.Get(key)
+	if exists {
+		this.rent.Remove(key)
+	}
+}
+
+func Constructor(n int, entries [][]int) MovieRentingSystem {
+	sys := MovieRentingSystem{
+		movies: make(map[int]*redblacktree.Tree),
+		rent:   redblacktree.NewWith(Compare),
+		prices: make(map[IntPair]int),
+	}
+	for _, e := range entries {
+		sys.add(e[0], e[1], e[2])
+	}
+	return sys
+}
+
+func (this *MovieRentingSystem) Search(movie int) []int {
+	if this.movies[movie] == nil {
+		return []int{} // nil is also OK
+	}
+	it := this.movies[movie].Iterator()
+	res := []int{}
+	for i := 0; i < 5 && it.Next(); i++ {
+		shop := it.Key().([]int)[1]
+		res = append(res, shop)
+	}
+	return res
+}
+
+func (this *MovieRentingSystem) Rent(shop int, movie int) {
+	price := this.prices[IntPair{shop, movie}]
+	this.movies[movie].Remove([]int{price, shop})
+	this.rent.Put([]int{price, shop, movie}, nil)
+}
+
+func (this *MovieRentingSystem) Drop(shop int, movie int) {
+	price := this.prices[IntPair{shop, movie}]
+	this.add(shop, movie, price)
+}
+
+func (this *MovieRentingSystem) Report() [][]int {
+	it := this.rent.Iterator()
+	res := [][]int{}
+	for i := 0; i < 5 && it.Next(); i++ {
+		key := it.Key().([]int)
+		res = append(res, []int{key[1], key[2]})
+	}
+	return res
+}
+
+/**
+ * Your MovieRentingSystem object will be instantiated and called as such:
+ * obj := Constructor(n, entries);
+ * param_1 := obj.Search(movie);
+ * obj.Rent(shop,movie);
+ * obj.Drop(shop,movie);
+ * param_4 := obj.Report();
+ */
+```
+
+优雅实现：
+
+```go
+import "github.com/emirpasic/gods/v2/trees/redblacktree"
+
+type shopMovie struct{ shop, movie int }
+type priceShop struct{ price, shop int }
+type entry struct{ price, shop, movie int }
+
+type MovieRentingSystem struct {
+	shopMovieToPrice         map[shopMovie]int
+	unrentedMovieToPriceShop map[int]*redblacktree.Tree[priceShop, struct{}]
+	rentedMovies             *redblacktree.Tree[entry, struct{}]
+}
+
+func Constructor(_ int, entries [][]int) MovieRentingSystem {
+	shopMovieToPrice := map[shopMovie]int{}
+	unrentedMovieToPriceShop := map[int]*redblacktree.Tree[priceShop, struct{}]{}
+
+	for _, e := range entries {
+		shop, movie, price := e[0], e[1], e[2]
+		shopMovieToPrice[shopMovie{shop, movie}] = price
+		if _, ok := unrentedMovieToPriceShop[movie]; !ok {
+			unrentedMovieToPriceShop[movie] = redblacktree.NewWith[priceShop, struct{}](func(a, b priceShop) int {
+				return cmp.Or(a.price-b.price, a.shop-b.shop)
+			})
+		}
+		unrentedMovieToPriceShop[movie].Put(priceShop{price, shop}, struct{}{})
+	}
+
+	rentedMovies := redblacktree.NewWith[entry, struct{}](func(a, b entry) int {
+		return cmp.Or(a.price-b.price, a.shop-b.shop, a.movie-b.movie)
+	})
+	return MovieRentingSystem{shopMovieToPrice, unrentedMovieToPriceShop, rentedMovies}
+}
+
+// 获取 unrentedMovieToPriceShop[movie] 的前 5 个 shop
+func (m *MovieRentingSystem) Search(movie int) (ans []int) {
+	t := m.unrentedMovieToPriceShop[movie]
+	if t == nil {
+		return
+	}
+	for it := t.Iterator(); len(ans) < 5 && it.Next(); {
+		ans = append(ans, it.Key().shop)
+	}
+	return
+}
+
+// 借电影
+func (m *MovieRentingSystem) Rent(shop, movie int) {
+	price := m.shopMovieToPrice[shopMovie{shop, movie}]
+	// 从 unrentedMovieToPriceShop 移到 rentedMovies
+	m.unrentedMovieToPriceShop[movie].Remove(priceShop{price, shop})
+	m.rentedMovies.Put(entry{price, shop, movie}, struct{}{})
+}
+
+// 还电影
+func (m *MovieRentingSystem) Drop(shop, movie int) {
+	price := m.shopMovieToPrice[shopMovie{shop, movie}]
+	// 从 rentedMovies 移到 unrentedMovieToPriceShop
+	m.rentedMovies.Remove(entry{price, shop, movie})
+	m.unrentedMovieToPriceShop[movie].Put(priceShop{price, shop}, struct{}{})
+}
+
+// 获取 rentedMovies 的前 5 个 shop 和 movie
+func (m *MovieRentingSystem) Report() (ans [][]int) {
+	for it := m.rentedMovies.Iterator(); len(ans) < 5 && it.Next(); {
+		ans = append(ans, []int{it.Key().shop, it.Key().movie})
+	}
+	return
+}
+```
+
+##### 17\.电话号码的字母组合
+
+[题目](https://leetcode.cn/problems/letter-combinations-of-a-phone-number)
+
+```go
+package main
+
+var PHONE = [10]string{"", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"}
+
+func letterCombinations(digits string) (ans []string) {
+	n := len(digits)
+	s := make([]rune, 0, n)
+	var dfs func(i int)
+	dfs = func(i int) {
+		if i == n {
+			ans = append(ans, string(s))
+			return
+		}
+		for _, c := range PHONE[digits[i]-'0'] {
+			s = append(s, c)
+			dfs(i + 1)
+			s = s[:len(s)-1]
+		}
+	}
+	dfs(0)
+	return
+}
+```
+
+char[]转string可以\0断
+
+```go
+var mapping = [...]string{"", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"}
+
+func letterCombinations(digits string) (ans []string) {
+    n := len(digits)
+    if n == 0 {
+        return
+    }
+
+    path := make([]byte, n) // 注意 path 长度一开始就是 n，不是空列表
+
+    var dfs func(int)
+    dfs = func(i int) {
+        if i == n {
+            ans = append(ans, string(path))
+            return
+        }
+        for _, c := range mapping[digits[i]-'0'] {
+            path[i] = byte(c) // 直接覆盖
+            dfs(i + 1)
+        }
+    }
+
+    dfs(0)
+    return
 }
 ```
 
