@@ -3468,6 +3468,10 @@
 - 17\.电话号码的字母组合
 
   DFS
+  
+- 3005\.最大频率元素计数
+
+  签到
 
 ## 算法
 
@@ -24728,6 +24732,47 @@ func letterCombinations(digits string) (ans []string) {
 
     dfs(0)
     return
+}
+```
+
+##### 3005\.最大频率元素计数
+
+[题目](https://leetcode.cn/problems/count-elements-with-maximum-frequency)
+
+```go
+package main
+
+func maxFrequencyElements(nums []int) (ans int) {
+	m := map[int]int{}
+	mx := 0
+	for _, v := range nums {
+		m[v]++
+		mx = max(mx, m[v])
+	}
+	for _, v := range m {
+		if v == mx {
+			ans += v
+		}
+	}
+	return
+}
+```
+
+```go
+func maxFrequencyElements(nums []int) (ans int) {
+	cnt := map[int]int{}
+	maxCnt := 0
+	for _, x := range nums {
+		cnt[x]++
+		c := cnt[x]
+		if c > maxCnt {
+			maxCnt = c
+			ans = c
+		} else if c == maxCnt {
+			ans += c
+		}
+	}
+	return
 }
 ```
 
