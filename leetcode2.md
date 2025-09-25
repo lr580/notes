@@ -3472,6 +3472,38 @@
 - 3005\.最大频率元素计数
 
   签到
+  
+- 165\.比较版本号
+
+  签到
+
+- 19\.删除链表节点的倒数第N个节点
+
+  链表 递归 / <u>双指针</u>
+
+- 20\.有效的括号
+
+  栈
+
+- 22\.括号生成
+
+  DFS
+  
+- 166\.分数到小数
+
+  STL 模拟
+
+- 26\.删除有序数组中的重复项
+
+  签到
+  
+- 120\.三角形最小路径和
+
+  DP
+
+- 27\.移除元素
+
+  签到
 
 ## 算法
 
@@ -24773,6 +24805,380 @@ func maxFrequencyElements(nums []int) (ans int) {
 		}
 	}
 	return
+}
+```
+
+##### 165\.比较版本号
+
+[题目](https://leetcode.cn/problems/compare-version-numbers)
+
+```go
+package main
+
+import (
+	"strconv"
+	"strings"
+)
+
+func compareVersion(version1 string, version2 string) int {
+	v1 := strings.Split(version1, ".")
+	v2 := strings.Split(version2, ".")
+	n := max(len(v1), len(v2))
+	for i := 0; i < n; i++ {
+		a := 0
+		b := 0
+		if i < len(v1) {
+			a, _ = strconv.Atoi(v1[i])
+		}
+		if i < len(v2) {
+			b, _ = strconv.Atoi(v2[i])
+		}
+		if a > b {
+			return 1
+		} else if a < b {
+			return -1
+		}
+	}
+	return 0
+}
+```
+
+优化：
+
+```go
+c := cmp.Compare(ver1, ver2)
+if c != 0 {
+    return c
+}
+```
+
+##### 19\.删除链表节点的倒数第N个节点
+
+[题目](https://leetcode.cn/problems/remove-nth-node-from-end-of-list)
+
+加一个虚拟空节点，再加一个计数，使得在要删除的前一个节点进行操作。
+
+```go
+func removeNthFromEnd(head *ListNode, n int) *ListNode {
+	hd := &ListNode{Next: head}
+	var dfs func(*ListNode)
+	cnt := -1
+	dfs = func(prv *ListNode) {
+		if prv.Next != nil {
+			dfs(prv.Next)
+		}
+		cnt++
+		if cnt == n {
+			prv.Next = prv.Next.Next
+		}
+	}
+	dfs(hd)
+	return hd.Next
+}
+```
+
+虚拟节点叫 dummy node 哨兵节点。点让右指针走正数 n 步，那么设总长度为 m，m 可以分为 n + m-n，只需要走正数 m-n 步就得到倒数 n，所以此时让右指针走完，就是 m-n，左指针跟着走就行。
+
+```go
+func removeNthFromEnd(head *ListNode, n int) *ListNode {
+    // 由于可能会删除链表头部，用哨兵节点简化代码
+    dummy := &ListNode{Next: head}
+    left, right := dummy, dummy
+    for ; n > 0; n-- {
+        right = right.Next // 右指针先向右走 n 步
+    }
+    for right.Next != nil {
+        left = left.Next
+        right = right.Next // 左右指针一起走
+    }
+    left.Next = left.Next.Next // 左指针的下一个节点就是倒数第 n 个节点
+    return dummy.Next
+}
+```
+
+##### 20\.有效的括号
+
+[题目](https://leetcode.cn/problems/valid-parentheses)
+
+```go
+func isValid(s string) bool {
+	m := map[rune]rune{'(': ')', '[': ']', '{': '}'}
+	stk := []rune{}
+	for _, c := range s {
+		if _, ok := m[c]; ok {
+			stk = append(stk, c)
+		} else {
+			if len(stk) == 0 || m[stk[len(stk)-1]] != c {
+				return false
+			}
+			stk = stk[:len(stk)-1]
+		}
+	}
+	return len(stk) == 0
+}
+```
+
+也可以见到左入栈右。略。
+
+##### 22\.括号生成
+
+[题目](https://leetcode.cn/problems/generate-parentheses)
+
+```go
+func generateParenthesis(n int) (ans []string) {
+	s := make([]byte, 2*n)
+	var dfs func(int, int, int)
+	dfs = func(l, r, i int) {
+		if l == n && r == n {
+			ans = append(ans, string(s))
+			return
+		}
+		if l < n {
+			s[i] = '('
+			dfs(l+1, r, i+1)
+		}
+		if r < l {
+			s[i] = ')'
+			dfs(l, r+1, i+1)
+		}
+	}
+	dfs(0, 0, 0)
+	return
+}
+```
+
+- 注意到 i=l+r，可以不要 i。
+- 也可以用i, l-r 的思路做。然后默认都是右括号，在2n个位置填n个左括号。略，看0神。
+
+##### 166\.分数到小数
+
+[题目](https://leetcode.cn/problems/fraction-to-recurring-decimal)
+
+记录每个余数状态，和它对应的结果。分别用map记录查询和列表保持顺序。
+
+对负数，a/(-b)=(-a)/b=-(a/b)。
+
+```go
+package main
+
+import (
+	"strconv"
+	"strings"
+)
+
+func fractionToDecimal(numerator int, denominator int) string {
+	a, b := int64(numerator), int64(denominator)
+	minus := false
+	if a < 0 {
+		a = -a
+		minus = !minus
+	}
+	if b < 0 {
+		b = -b
+		minus = !minus
+	}
+
+	var ans strings.Builder
+	ans.WriteString(strconv.FormatInt(a / b, 10))
+
+	if a % b == 0 {
+		result := ans.String()
+		if minus && result != "0" {
+			return "-" + result
+		}
+		return result
+	}
+
+	ans.WriteString(".")
+	m := make(map[int64]struct{}) // 记录出现过的余数
+	r := []int64{}                // 存储余数序列（用于检测循环）
+	res := []int64{}              // 存储小数位数字
+	loop := int64(0)              // 标记循环开始的余数
+
+	for a = a % b * 10; a != 0; a = (a % b) * 10  {
+		if _, ok := m[a]; ok {
+			loop = a
+			break
+		}
+		m[a] = struct{}{} 
+		r = append(r, a) 
+		res = append(res, a/b) 
+	}
+
+	for i := 0; i < len(r); i++ {
+		if r[i] == loop { 
+			ans.WriteString("(")
+		}
+		ans.WriteString(strconv.FormatInt(res[i], 10))
+	}
+	if loop != 0 {
+		ans.WriteString(")")
+	}
+	result := ans.String()
+	if minus && result != "0" {
+		return "-" + result
+	}
+	return result
+}
+```
+
+题解写法：
+
+```go
+func fractionToDecimal(numerator, denominator int) string {
+    sign := ""
+    if numerator*denominator < 0 {
+        sign = "-"
+    }
+    numerator = abs(numerator) // 保证下面的计算过程不产生负数
+    denominator = abs(denominator)
+
+    // 计算整数部分 q 和初始余数 r
+    q, r := numerator/denominator, numerator%denominator
+    if r == 0 { // 没有小数部分
+        return sign + strconv.Itoa(q)
+    }
+
+    ans := []byte(sign + strconv.Itoa(q) + ".")
+    rToPos := map[int]int{r: len(ans)} // 记录初始余数对应位置
+    for r != 0 {
+        // 计算小数点后的数字 q，更新 r
+        r *= 10
+        q = r / denominator
+        r %= denominator
+        ans = append(ans, '0'+byte(q))
+        if pos, ok := rToPos[r]; ok { // 有循环节，pos 为循环节的开始位置
+            return string(ans[:pos]) + "(" + string(ans[pos:]) + ")"
+        }
+        rToPos[r] = len(ans) // 记录余数对应位置
+    }
+    return string(ans) // 有限小数
+}
+
+func abs(x int) int { if x < 0 { return -x }; return x }
+```
+
+优化：一步走，无需分开存储。遇到循环直接切片结果即可。
+
+```go
+func fractionToDecimal(numerator, denominator int) string {
+    sign := ""
+    if numerator*denominator < 0 {
+        sign = "-"
+    }
+    numerator = abs(numerator) // 保证下面的计算过程不产生负数
+    denominator = abs(denominator)
+
+    // 计算整数部分 q 和初始余数 r
+    q, r := numerator/denominator, numerator%denominator
+    if r == 0 { // 没有小数部分
+        return sign + strconv.Itoa(q)
+    }
+
+    ans := []byte(sign + strconv.Itoa(q) + ".")
+    rToPos := map[int]int{r: len(ans)} // 记录初始余数对应位置
+    for r != 0 {
+        // 计算小数点后的数字 q，更新 r
+        r *= 10
+        q = r / denominator
+        r %= denominator
+        ans = append(ans, '0'+byte(q))
+        if pos, ok := rToPos[r]; ok { // 有循环节，pos 为循环节的开始位置
+            return string(ans[:pos]) + "(" + string(ans[pos:]) + ")"
+        }
+        rToPos[r] = len(ans) // 记录余数对应位置
+    }
+    return string(ans) // 有限小数
+}
+
+func abs(x int) int { if x < 0 { return -x }; return x }
+```
+
+##### 26\.删除有序数组中的重复项
+
+[题目](https://leetcode.cn/problems/remove-duplicates-from-sorted-array)
+
+```go
+func removeDuplicates(nums []int) int {
+	i := 0
+	for j := 1; j < len(nums); j++ {
+		if nums[i] != nums[j] {
+			i++
+			nums[i] = nums[j]
+		}
+	}
+	return i + 1
+}
+```
+
+有库函数写法：
+
+```go
+return len(slices.Compact(nums))
+```
+
+##### 120\.三角形最小路径和
+
+[题目](https://leetcode.cn/problems/triangle)
+
+自上往下
+
+```go
+package main
+
+import "math"
+
+func minimumTotal(triangle [][]int) (ans int) {
+	n := len(triangle)
+	dp := make([][]int, n)
+	for i := 0; i < n; i++ {
+		dp[i] = make([]int, i+1)
+		for j := 0; j <= i; j++ {
+			dp[i][j] = math.MaxInt32
+		}
+	}
+	dp[0][0] = triangle[0][0]
+	for i := 0; i < n-1; i++ {
+		for j := 0; j <= i; j++ {
+			dp[i+1][j] = min(dp[i+1][j], dp[i][j]+triangle[i+1][j])
+			dp[i+1][j+1] = min(dp[i+1][j+1], dp[i][j]+triangle[i+1][j+1])
+		}
+	}
+	ans = dp[n-1][0]
+	for i := 0; i < n; i++ {
+		ans = min(ans, dp[n-1][i])
+	}
+	return
+}
+```
+
+自下往上
+
+```go
+func minimumTotal(f [][]int) int {
+    for i := len(f) - 2; i >= 0; i-- {
+        for j := range f[i] {
+            f[i][j] += min(f[i+1][j], f[i+1][j+1])
+        }
+    }
+    return f[0][0]
+}
+```
+
+##### 27\.移除元素
+
+[题目](https://leetcode.cn/problems/remove-element)
+
+```go
+func removeElement(nums []int, val int) int {
+	n, j := len(nums), 0
+	for i := 0; i < n; i++ {
+		if nums[i] != val {
+			nums[j] = nums[i]
+			j++
+		}
+	}
+	return j
 }
 ```
 
