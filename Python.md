@@ -20878,7 +20878,22 @@ for i, idx in enumerate(input_indices):
     print(f"输入索引 {idx.item()} -> 查找矩阵第{idx}行 -> 输出向量 [{vector[0]:.4f}, {vector[1]:.4f}]")
 ```
 
+##### 填充
 
+```python
+import torch.nn as nn
+# 1D 零填充；也可以传 tuple 表示左右不一样
+pad1d = nn.ZeroPad1d(2)  # 每边填充2个零
+# 2D 零填充 (左, 右, 上, 下)
+pad2d = nn.ZeroPad2d((1, 2, 3, 4))
+# 3D 零填充 (左, 右, 上, 下, 前, 后)
+pad3d = nn.ZeroPad3d((1, 1, 1, 1, 1, 1))
+```
+
+- `ConstantPad1/2/3d` 常数值填充
+- `ReplicationPad1/2/3d` 用首尾值填充
+- `ReflectionPad1/2/3d` 镜像反射填充
+- `CircularPad1/2/3d` 循环移位填充
 
 ##### Transformer
 
@@ -21678,6 +21693,59 @@ print("PyTorch CUDA available?", torch.cuda.is_available())
 
 可视化工具包，用于帮助开发者理解、调试和优化机器学习模型的训练过程。它通过交互式仪表盘展示模型的训练指标、计算图、权重分布、嵌入向量等数据，从而提升开发效率
 
+### timm
+
+timm（PyTorch Image Models）是一个基于 PyTorch 的深度学习库，专注于图像模型的开发与训练。它由 Ross Wightman 创建和维护，集合了许多最先进的（state-of-the-art）图像分类、目标检测、语义分割等模型，并提供了丰富的预训练权重和便捷的训练脚本
+
+- 包含超过 80 种预训练的图像模型，如 ResNet、EfficientNet、Vision Transformer (ViT) 等。
+
+```sh
+pip install timm
+```
+
+##### Mlp
+
+MLP 是一种常见的神经网络结构，通常由多个全连接层（线性层）和非线性激活函数组成。默认两层，即第一层->激活->dropout->第二层->dropout。
+
+```python
+self.smlp = Mlp(in_features=hidden_size, hidden_features=mlp_hidden_dim, act_layer=nn.GELU, drop=0.1)
+```
+
+##### Attention
+
+Vision Transformer (ViT) 中的一个关键组件，用于实现自注意力机制
+
+```python
+import torch
+from timm.models.vision_transformer import Attention
+batch_size = 8
+num_heads = 4
+embed_dim = 64
+seq_length = 16
+x = torch.randn(batch_size, seq_length, embed_dim)
+attention = Attention(dim=embed_dim, num_heads=num_heads)
+output = attention(x)
+print(output.shape)  # 应该输出: torch.Size([8, 16, 64])
+```
+
+其它参数：`qkv_bias=True, attn_drop=0.1, proj_drop=0.1`
+
+- 控制是否为查询（Query）、键（Key）和值（Value）向量添加可学习的偏置（bias） 默认 true
+- 默认权重和投影层都不会 drop
+
+### einops
+
+Einstein Operation Summation 的缩写。是一个旨在使张量操作（在多维数组上）更清晰、更直观、更可靠的库。它的核心思想是使用一种基于字符串的、声明性的语法来描述张量的维度变换
+
+如对张量：
+
+```python
+from einops import rearrange
+rearrange(x, 'b m n p -> (b m) n p')
+```
+
+> 可以替代 `reshape`, `transpose`, `squeeze`, `unsqueeze` 等操作，并将它们组合在一起。
+
 ### PyG
 
 [github官网](https://github.com/pyg-team/pytorch_geometric) [文档](https://www.pyg.org/) pytorch_geometric 专门用于处理图结构数据（Graph-Structured Data）和开发图神经网络（Graph Neural Networks, GNNs）
@@ -22122,45 +22190,7 @@ print(res[0].probs.top1) # 1
 > ```
 >
 
-### timm
 
-timm（PyTorch Image Models）是一个基于 PyTorch 的深度学习库，专注于图像模型的开发与训练。它由 Ross Wightman 创建和维护，集合了许多最先进的（state-of-the-art）图像分类、目标检测、语义分割等模型，并提供了丰富的预训练权重和便捷的训练脚本
-
-- 包含超过 80 种预训练的图像模型，如 ResNet、EfficientNet、Vision Transformer (ViT) 等。
-
-```sh
-pip install timm
-```
-
-##### Mlp
-
-MLP 是一种常见的神经网络结构，通常由多个全连接层（线性层）和非线性激活函数组成。默认两层，即第一层->激活->dropout->第二层->dropout。
-
-```python
-self.smlp = Mlp(in_features=hidden_size, hidden_features=mlp_hidden_dim, act_layer=nn.GELU, drop=0.1)
-```
-
-##### Attention
-
-Vision Transformer (ViT) 中的一个关键组件，用于实现自注意力机制
-
-```python
-import torch
-from timm.models.vision_transformer import Attention
-batch_size = 8
-num_heads = 4
-embed_dim = 64
-seq_length = 16
-x = torch.randn(batch_size, seq_length, embed_dim)
-attention = Attention(dim=embed_dim, num_heads=num_heads)
-output = attention(x)
-print(output.shape)  # 应该输出: torch.Size([8, 16, 64])
-```
-
-其它参数：`qkv_bias=True, attn_drop=0.1, proj_drop=0.1`
-
-- 控制是否为查询（Query）、键（Key）和值（Value）向量添加可学习的偏置（bias） 默认 true
-- 默认权重和投影层都不会 drop
 
 ### basicTS
 

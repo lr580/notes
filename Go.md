@@ -296,6 +296,8 @@ fmt.Println(x) // 0
 
 > 整型和浮点型变量的默认值为 0。 字符串变量的默认值为空字符串。 布尔型变量默认为 false。 切片、 函数、 指针变量的默认为 nil  
 
+生命周期：函数调用期间(不逃逸的话)
+
 ##### :=
 
 在函数内部， 可以使用更简略的 := 方式声明并初始化变量。
@@ -366,6 +368,12 @@ func main() {
 ```
 
 如果局部变量和全局变量重名， 优先访问局部变量，也就是大括号作用域。和 C 一样，可以凭空加大括号区分作用域
+
+> 全局变量，缺省是 0 值，空串，false，nil (指针、slice、map、chan、接口等)，也就是五个引用类型的缺省都是nil
+
+生命周期是整个程序运行期间。
+
+全局变量声明在函数外，在整个包内甚至跨包都可以访问（如果首字母大写则可以跨包访问）。局部变量声明在函数内，只在其所在的函数内有效
 
 #### 常量
 
@@ -516,6 +524,8 @@ if f1() || f2() && f3() { // 输出 f1, f2，不输出 f3, ok
 }
 ```
 
+> 可以比较 == != 的类型：基本类型、指针、通道、接口、字段是可比较的数组和结构体。不可比较：slice, map, function, 含不可比较字段的数组，结构体。1.18 新增 comparable，用于定义这些。但它与可排序不一样。
+
 ##### 赋值
 
 `= += -= *= /= %=`
@@ -630,6 +640,10 @@ Go 语言的类型中，默认为深拷贝的类型有bool、int、float、strin
 Go 语言的类型中，默认为浅拷贝的类型有 slice、map、指针 ptr、函数 func、通道 chan、接口 interface 等引用类型。
 
 嵌套类型，我们需要手动实现深拷贝。
+
+
+
+
 
 ### 数据类型
 
@@ -825,9 +839,13 @@ fmt.Println(string([]byte{97, 228, 189, 160, 229, 165, 189}))
 > ```go
 > str := "Hello, mianshiya!"
 > byteArray := *(*[]byte)(unsafe.Pointer(&str)) // 使用 unsafe.Pointer 避免拷贝；得到[]byte
+> // 或
+> return unsafe.Slice(unsafe.StringData(s), len(s))
+> // byte[] 转 string
+> return unsafe.String(&b[0], len(b))
 > ```
 >
-> 
+> Go 1.22 版本编译器对字符串和 `[]byte` 之间的转换进行了优化，在某些特定场景下实现了零拷贝。然而，这种优化主要依赖于编译器的内联和逃逸分析，只有在未发生逃逸的情况下才能生效。因此，并非所有场景下都能实现零拷贝转换
 
 空数组转回去也有长度，\0 是普通字符。
 
@@ -1128,7 +1146,7 @@ vis := [1024][]int
 
 数组转 slice，`a := arr[:]`，O1，转了就能当切片函数参数
 
-> 声明不初始化就是 nil，`s==nil` 为 true，len, cap 为0。它不等于空切片(有地址)。用 Json Encode 得到结果一个是 null 一个是 []。nil 切片和空切片的对比是 false 的。
+> 声明不初始化就是 nil，`s==nil` 为 true，len, cap 为0。它不等于空切片(有地址)。用 Json Encode 得到结果一个是 null 一个是 []。nil 切片和空切片的对比是 false 的。nil 可以 append。
 
 ##### make
 
@@ -1406,7 +1424,7 @@ m["a"] = p
 
 映射 map。无序的基于 key-value 的数据结构，引用类型，初始化才能使用
 
-map 类型的变量默认初始值为 nil， 需要使用 make()函数来分配内存，可以指定容量也可以不指定，没有 cap 有 len
+map 类型的变量默认初始值为 nil， 需要使用 make()函数来分配内存，可以指定容量cap也可以不指定。没有 cap 有 len
 
 key 可以是：长度固定数组、string、int 等值可比较类型，结构体各字段可比较可以做 key，切片可以转 string / 固定数组。
 
@@ -1543,7 +1561,7 @@ fmt.Println(sliceMap) // map[中国:[北京 上海]]
 
 struct 做 go 的 key 时，自动按声明顺序成员属性排序。
 
-需要实现哈希，如 pair<int,int> (也可以用 string 实现)
+需要实现哈希Hash()，如 pair<int,int> (也可以用 string 实现)
 
 ```go
 type IntPair [2]int
@@ -1552,6 +1570,31 @@ func (ip IntPair) Hash() uint64 {
 }
 var m map[IntPair]int
 ```
+
+##### 扩容
+
+主桶regular bucket：初始数量固定，通常8个键值对。溢出桶overflow bucket，链表方式连接到主桶。
+
+增量扩容和等量扩容。
+
+- 增量扩容：当键值对的数量大于 8 且大于桶数组的 6.5 倍时，此时桶都快满了，需要触发增量扩容，桶数量翻倍。
+
+- 等量扩容：当溢出桶超过一定数量，则会触发等量扩容。这种情况是因为频繁插入元素后又删除元素，导致溢出桶增多，但是键值对的总数一直不高，此时 key 的存储比较分散，查询的效率变低。由于本身键值对不多，所以等量扩容，桶数量不变。
+
+  令 B：当前 map 的桶数量的对数（桶数量 = 2^B）。
+
+  等量扩容溢出桶的阈值：
+
+  - 如果桶数量较少（B < 16）：溢出桶的最大数量限制为 2^B。即，如果溢出桶数量 noverflow >= 2^B，触发扩容。
+  - 如果桶数量较多（B >= 16）：为避免溢出桶的数量无限增长，设定上限为 2^15。即，当 noverflow >= 2^15 时，触发扩容。
+
+  操作内容：重整数据分布、压缩溢出桶、优化内存布局。
+
+确定需要扩容后，会进入渐进式扩容迁移状态。即原有的键值对不会一次性搬迁到新的桶中，每次最多只会搬迁 2 个槽，这个迁移工作分摊到后续的 map 操作（插入、删除、查找）中，以减少扩容对性能的影响。
+
+> map 中会有一个 `nevacuate` 记录已经迁移的旧桶数量，每次迁移一个旧桶后，`nevacuate` 会递增。当 `nevacuate` 等于旧桶总数时，表示所有旧桶迁移完成，此时会将 `oldbuckets` 设置为 nil，表示扩容完成。
+>
+> 扩容时写入：尚未迁移的数据仍存储在旧桶中；已迁移的数据存储在新桶中。检查是否扩容，即 `oldbuckets != nil`
 
 ### 指针
 
@@ -1584,6 +1627,17 @@ C/C++返回局部变量的指针不安全，因为函数返回后会释放空间
 
 > 指针，可以共享数据，减少内存使用，作为结构体方法接受者，实现链式调用(类比cout)
 
+> 支持多级指针（即指向指针的指针）
+>
+> ```go
+> var a int = 100
+> var p *int = &a
+> var pp **int = &p
+> fmt.Println(**pp) // 输出 100
+> ```
+
+> 由于 GC 的缘故，go 几乎遇不到悬挂指针(指向释放了的内存位置)
+
 ##### 函数
 
 ```go
@@ -1605,6 +1659,8 @@ b := new(int)
 *b = 100
 fmt.Println(*a, *b)
 ```
+
+> new 分配的内存块默认值是0，返回指针；与make不同，make只适用于slice, map, channel，返回初始化后的对象。
 
 ##### 数组指针
 
@@ -1780,7 +1836,7 @@ type Person struct {
 
 非本地类型不能定义方法， 也就是说我们不能给别的包的类型定义方法  
 
-> 接收者中的参数变量名在命名时， 官方建议使用接收者类型名的第一个小写字母， 而不是 self、 this 之类的命名。 例如， Person 类型的接收者变量应该命名为 p，Connector 类型的接收者变量应该命名为 c 等
+> 接收者中的参数变量名在命名时， 官方建议使用接收者类型名的第一个小写字母， 而不是 self、 this 之类的命名(尽管功能上是 this)。 例如， Person 类型的接收者变量应该命名为 p，Connector 类型的接收者变量应该命名为 c 等
 
 ```go
 type mint int
@@ -1928,6 +1984,14 @@ g := &goblin{"404 Not Found", &monster{"goroutine"}}
 g.enter()
 g.attack()
 ```
+
+##### 比较
+
+按字段声明顺序比较各关键字。所有属性可比较，则结构体自动可比较。
+
+不可比较的属性：slice, map, function 和包含它们的嵌套结构。
+
+有不可比较，就要自己写函数去比较(不可比较的可以借用 `reflect.DeepEqual`)，传入俩架构体，返回 bool。或者序列化后比较。
 
 ##### Tag
 
@@ -2129,6 +2193,56 @@ fb.bar()
 
 ### 泛型
 
+##### 结构体
+
+```go
+package main
+
+import "fmt"
+
+type Set[T comparable] struct {
+	data map[T]struct{}
+}
+
+func NewSet[T comparable]() *Set[T] { // 构造函数
+	return &Set[T]{data: make(map[T]struct{})}
+}
+func (s *Set[T]) Add(value T) {
+	s.data[value] = struct{}{}
+}
+func (s *Set[T]) Remove(value T) {
+	delete(s.data, value)
+}
+func (s *Set[T]) Contains(value T) bool {
+	_, exists := s.data[value]
+	return exists
+}
+func (s *Set[T]) Size() int {
+	return len(s.data)
+}
+func (s *Set[T]) Elements() []T {
+	elements := make([]T, 0, len(s.data))
+	for key := range s.data {
+		elements = append(elements, key)
+	}
+	return elements
+}
+
+func main() {
+	s := NewSet[int]()
+	s.Add(1)
+	s.Add(2)
+	s.Add(1)                   // 重复元素
+	fmt.Println(s.Contains(1)) // true
+	fmt.Println(s.Contains(3)) // false
+	fmt.Println(s.Elements())  // [1 2]
+	s.Remove(1)
+	fmt.Println(s.Contains(1)) // false
+}
+```
+
+
+
 ##### 函数
 
 ```go
@@ -2237,6 +2351,14 @@ for range 遍历数组、 切片、 字符串、 map 及通道（channel）
 - 返回键和值。
 - 通道（channel） 只返回通道内的值
 
+从0枚举到n-1：(Go 1.22)
+
+```go
+for i := range n {
+    fmt.Println(i)
+}
+```
+
 ```go
 s := "Go买卖" // 中文字符正常输出
 for i, v := range s {
@@ -2244,7 +2366,7 @@ for i, v := range s {
 } // index = 0, 1, 2, 5 (一个中文3个字符)
 ```
 
-Go 1.4+ (s 是数组，取下标；是 slice/map 取值)
+Go 1.4+ (s 是数组/slice，v取下标；是 map 随机序v取 key)
 
 ```go
 for v := range s {
@@ -2253,6 +2375,8 @@ for v := range s {
 ```
 
 是复制一份，对切片修改v这样无法修改本身。
+
+range 在 for 开始时计算一次，所以如果 for 里增删slice，不会影响循环。但是 map会影响。
 
 ##### 多重循环跳出
 
@@ -2332,7 +2456,7 @@ case a == b:
 }
 ```
 
-fallthrough 语法可以执行满足条件的 case 的下一个 case， 是为了兼容 C 语言中的 case  
+fallthrough 语法可以执行满足条件的 case 的下一个 case， 是为了兼容 C 语言中的 case  (可以一直 fall，fall 一次跳一次)
 
 ```go
 s = "a"
@@ -3033,6 +3157,8 @@ recover in B
 func C
 ```
 
+> `recover` 只能捕获相同调用栈层次内的 `panic`。如果 `panic` 路径跨越函数调用边界，捕获就需要在每个层次都添加 `recover`。如不同的 go routine。
+
 ##### 捕获异常
 
 故可以捕获异常，包括非 panic 触发的异常：
@@ -3265,6 +3391,8 @@ fatal error: all goroutines are asleep - deadlock!
 
 #### goroutine
 
+> Goroutine 是一种比操作系统线程更轻量级的线程。通过 Goroutine 和 Channel，Go 实现了轻量级的并发处理，并简化了线程间的通信和同步
+
 ##### go
 
 go 指令执行一个函数，`go f()`，以协程方式执行它
@@ -3356,7 +3484,7 @@ fmt.Println(cpuNum) // 如 16
 runtime.GOMAXPROCS(cpuNum - 1) // 设置
 ```
 
-#### 管道
+#### chan
 
 ##### 定义
 
@@ -3384,6 +3512,8 @@ ch3 := make(chan []int, 3)
 ```go
 h := make(chan int)
 ```
+
+> 无缓冲用于同步机制，收发同时发生；有缓冲在满之前不阻塞，使用生产者-消费者模型。
 
 ##### 使用
 
@@ -3766,7 +3896,8 @@ func longestPalindrome(c string) string { // ...
 
 
 
-
+> 垃圾回收，但设计上更加简洁，专注于减少 GC 对应用性能的影响。Go 的 GC 更适合处理大量并发请求，具有较低的暂停时间
+>
 
 ## 常用内置包
 
@@ -4473,6 +4604,7 @@ func answerString(s string, k int) string {
 func Abs(x float64) float64 // 对于整数类型，Go 语言没有内置的绝对值函数
 func Pow(i, p float64) float64
 sin, cos := math.Sincos(2 * math.Pi)
+math.Hypot(a, b) // 求直角三角形斜边长
 ```
 
 ##### 位运算

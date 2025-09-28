@@ -3512,6 +3512,18 @@
 - 29\.两数相除
 
   二分
+  
+- 812\.最大三角形面积
+
+  计算几何 枚举 / <u>凸包+旋转卡壳</u>
+  
+- 976\.三角形的最大周长
+
+  排序 <u>枚举 数学</u>
+
+- 33\.搜索旋转排序数组
+
+  二分
 
 ## 算法
 
@@ -25438,6 +25450,286 @@ func divide(dividend, divisor int) int {
         return -ans
     }
     return ans
+}
+```
+
+##### 812\.最大三角形面积
+
+[题目](https://leetcode.cn/problems/largest-triangle-area)
+
+朴素：枚举 + 海伦公式 / 向量叉乘 / 行列式。海伦注意判断是不是三角形。
+
+```go
+package main
+
+import "math"
+
+func largestTriangleArea(points [][]int) (ans float64) {
+	n := len(points)
+	dis := func(i, j int) float64 {
+		return math.Hypot(float64(points[i][0]-points[j][0]), float64(points[i][1]-points[j][1]))
+	}
+	for i := 0; i < n; i++ {
+		for j := i + 1; j < n; j++ {
+			a := dis(i, j)
+			for k := j + 1; k < n; k++ {
+				b := dis(j, k)
+				c := dis(i, k)
+				if a+b <= c || a+c <= b || b+c <= a {
+					continue // not triangle
+				}
+				r := (a + b + c) / 2
+				ans = math.Max(ans, math.Sqrt(r*(r-a)*(r-b)*(r-c)))
+			}
+		}
+	}
+	return
+}
+```
+
+```go
+func largestTriangleArea(points [][]int) float64 {
+	n := len(points)
+	ans := 0
+	for i := range n - 2 {
+		for j := i + 1; j < n-1; j++ {
+			for k := j + 1; k < n; k++ {
+				p1, p2, p3 := points[i], points[j], points[k]
+				x1, y1 := p2[0]-p1[0], p2[1]-p1[1]
+				x2, y2 := p3[0]-p1[0], p3[1]-p1[1]
+				ans = max(ans, abs(x1*y2-y1*x2)) // 注意这里没有除以 2
+			}
+		}
+	}
+	return float64(ans) / 2
+}
+func abs(x int) int { if x < 0 { return -x }; return x }
+```
+
+```go
+func triangleArea(x1, y1, x2, y2, x3, y3 int) float64 {
+    return math.Abs(float64(x1*y2+x2*y3+x3*y1-x1*y3-x2*y1-x3*y2)) / 2
+}
+
+func largestTriangleArea(points [][]int) (ans float64) {
+    for i, p := range points {
+        for j, q := range points[:i] {
+            for _, r := range points[:j] {
+                ans = math.Max(ans, triangleArea(p[0], p[1], q[0], q[1], r[0], r[1]))
+            }
+        }
+    }
+    return
+}
+```
+
+旋转卡壳：
+
+1. 面积最大的三角形，三个点都在凸包上。一般用 Andrew 算法求凸包。
+2. 枚举同向双指针 i,j，初始 k=i+2。若 `(i,j,k)` 三角形不如 `(i,j,k+1)` 三角形，那么更新 k；直到面积不再增大。由于 ij 向量单调，所以对每个 i，k只需要初始化一次，之后指针移动即可。
+
+下面代码求叉乘，b一定在a左侧，面积大于0，无需abs。复杂度 n^2。
+
+多数情况下，无序旋转卡壳模运算。对这题，由于面积是对称的，area(i,j,k)对三元组任意顺序都是等价的。
+
+```c++
+struct Vec {
+    int x, y;
+
+    Vec sub(const Vec& b) const {
+        return {x - b.x, y - b.y};
+    }
+
+    int det(const Vec& b) const {
+        return x * b.y - y * b.x;
+    }
+};
+
+class Solution {
+    vector<Vec> convexHull(vector<Vec>& points) {
+        ranges::sort(points, {}, [](auto& p) { return pair(p.x, p.y); });
+
+        vector<Vec> q;
+        // 计算下凸包（从左到右）
+        for (auto& p : points) {
+            while (q.size() > 1 && q[q.size() - 1].sub(q[q.size() - 2]).det(p.sub(q[q.size() - 1])) <= 0) {
+                q.pop_back();
+            }
+            q.push_back(p);
+        }
+
+        // 计算上凸包（从右到左）
+        int down_size = q.size();
+        // 注意下凸包的最后一个点，是上凸包的右边第一个点，所以从 n-2 开始遍历
+        for (int i = (int) points.size() - 2; i >= 0; i--) {
+            auto& p = points[i];
+            while (q.size() > down_size && q[q.size() - 1].sub(q[q.size() - 2]).det(p.sub(q[q.size() - 1])) <= 0) {
+                q.pop_back();
+            }
+            q.push_back(p);
+        }
+
+        // 此时首尾是同一个点 points[0]，需要去掉
+        q.pop_back();
+        return q;
+    }
+
+public:
+    double largestTriangleArea(vector<vector<int>>& points) {
+        vector<Vec> a(points.size());
+        for (int i = 0; i < points.size(); i++) {
+            a[i] = {points[i][0], points[i][1]};
+        }
+
+        vector<Vec> ch = convexHull(a);
+
+        auto area = [&](int i, int j, int k) -> int {
+            return ch[j].sub(ch[i]).det(ch[k].sub(ch[i]));
+        };
+
+        int m = ch.size();
+        int ans = 0;
+        // 固定三角形的其中一个顶点 ch[i]
+        for (int i = 0; i < m; i++) {
+            // 同向双指针
+            int k = i + 2;
+            for (int j = i + 1; j < m - 1; j++) {
+                while (k + 1 < m && area(i, j, k) < area(i, j, k + 1)) {
+                    k++;
+                }
+                // 循环结束后，ch[k] 距离 ch[i]ch[j] 最远
+                ans = max(ans, area(i, j, k)); // 注意这里没有除以 2
+            }
+        }
+        return ans / 2.0;
+    }
+};
+```
+
+存在论文解法，使得可以 On 解：[src](https://scispace.com/pdf/maximal-area-triangles-in-a-convex-polygon-4k6l0fx7vg.pdf)
+
+##### 31\.下一个排列
+
+[题目](https://leetcode.cn/problems/next-permutation)
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    void nextPermutation(vector<int>& nums) {
+        if(next_permutation(nums.begin(), nums.end())) {
+            return;
+        }
+        sort(nums.begin(), nums.end());
+    }
+};
+```
+
+找到最后一个数字x，满足它右边有比它大的，让比它大的最小数字和它交换，它右边剩下区域升序排列。
+
+- 只要不递减，就一定有比它大的，所以不需要维护 max 在这一步。
+- 因为是第一次不递减，所以那一块连续递减的，直接反转就得到递增的。
+
+因此可以 On 实现。
+
+```go
+func nextPermutation(nums []int) {
+    n := len(nums)
+
+    // 第一步：从右向左找到第一个小于右侧相邻数字的数 nums[i]
+    i := n - 2
+    for i >= 0 && nums[i] >= nums[i+1] {
+        i--
+    }
+
+    // 如果找到了，进入第二步；否则跳过第二步，反转整个数组
+    if i >= 0 {
+        // 第二步：从右向左找到 nums[i] 右边最小的大于 nums[i] 的数 nums[j]
+        j := n - 1
+        for nums[j] <= nums[i] {
+            j--
+        }
+        // 交换 nums[i] 和 nums[j]
+        nums[i], nums[j] = nums[j], nums[i]
+    }
+
+    // 第三步：反转 nums[i+1:]（如果上面跳过第二步，此时 i = -1）
+    slices.Reverse(nums[i+1:])
+}
+```
+
+##### 976\.三角形的最大周长
+
+[题目](https://leetcode.cn/problems/largest-perimeter-triangle)
+
+排序后，若a<b<c，必须满足a+b<c。枚举i，令 `a,b,c=nums[i-2],nums[i-1],nums[i]`，如果a,b,c都不满足，那么a,b换成更小的i-x一定不满足。所以只需要枚举这样的a,b,c即可。显然是最大的。0x3f
+
+```go
+func largestPerimeter(nums []int) int {
+	slices.Sort(nums)
+	for i := len(nums) - 1; i >= 2; i-- {
+		if nums[i-2]+nums[i-1] > nums[i] {
+			return nums[i-2] + nums[i-1] + nums[i]
+		}
+	}
+	return 0 // 无解
+}
+```
+
+> 如果要找最小的，枚举中间，右边是i+1，二分/双指针找左边。
+
+##### 33\.搜索旋转排序数组
+
+[题目](https://leetcode.cn/problems/search-in-rotated-sorted-array)
+
+肯定是左边一段上升和右边另一端上升，且左边最小大于右边最大。所以把大于右边最大的都看成true，否则都看成false，可以把原数组转换为一段单调的true和一段单调的false，那么可以找到第一个false，于是可以把数组分成两段。
+
+然后只需要看看要找的数是不是大于右边最大，来判断在哪一段，然后去哪一段二分即可。
+
+0x3f
+
+```go
+// 153. 寻找旋转排序数组中的最小值（返回的是下标）
+func findMin(nums []int) int {
+    left, right := -1, len(nums)-1 // 开区间 (-1, n-1)
+    for left+1 < right { // 开区间不为空
+        mid := left + (right-left)/2
+        if nums[mid] < nums[len(nums)-1] {
+            right = mid
+        } else {
+            left = mid
+        }
+    }
+    return right
+}
+
+// 有序数组中找 target 的下标
+func lowerBound(nums []int, left, right, target int) int {
+    for left+1 < right { // 开区间不为空
+        // 循环不变量：
+        // nums[right] >= target
+        // nums[left] < target
+        mid := left + (right-left)/2
+        if nums[mid] >= target {
+            right = mid // 范围缩小到 (left, mid)
+        } else {
+            left = mid // 范围缩小到 (mid, right)
+        }
+    }
+    if nums[right] != target {
+        return -1
+    }
+    return right
+}
+
+func search(nums []int, target int) int {
+    i := findMin(nums)
+    if target > nums[len(nums)-1] { // target 在第一段
+        return lowerBound(nums, -1, i, target) // 开区间 (-1, i)
+    }
+    // target 在第二段
+    return lowerBound(nums, i-1, len(nums), target) // 开区间 (i-1, n)
 }
 ```
 
