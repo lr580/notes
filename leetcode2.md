@@ -3524,6 +3524,22 @@
 - 33\.搜索旋转排序数组
 
   二分
+  
+- 1039\.多边形三角剖分的最低得分
+
+  区间DP
+
+- 38\.外观数列
+
+  模拟
+  
+- 2221\.数组的三角和
+
+  签到 / <u>组合数学(exLucas/非质数组合数预处理)</u>
+  
+- 35\.搜索插入位置
+
+  签到 二分
 
 ## 算法
 
@@ -9606,7 +9622,394 @@ signed main()
 }
 ```
 
+#### 2025AK
 
+1. Hello AK Cup
+
+   签到
+
+2. 小橘分猫条
+
+   签到 if
+
+3. 小橘的存钱计划
+
+   签到 for / 数学
+
+4. 小橘的矩阵
+
+   签到 for嵌套
+
+5. 冠军交替
+
+   小模拟 / 结构体排序
+
+6. 小橘的游戏
+
+   博弈论
+
+7. 生叩游戏
+
+   **构造**
+
+8. OTVTO
+
+   <u>区间计数</u>
+
+9. 约数背包
+
+   分类讨论 / DFS / 随机化 决策树 交互题
+
+10. 黑白配
+
+    组合数学
+
+##### Hello AK Cup
+
+```python
+print('Hello AK Cup')
+```
+
+##### 小橘分猫条
+
+```python
+print(*divmod(*[int(i) for i in input().split()]))
+```
+
+##### 小橘的存钱计划
+
+```python
+n = int(input())
+a = [int(i) for i in input().split()]
+d, i = 0, 0
+while n > 0:
+    n -= a[i]
+    d += 1
+    i = (i + 1) % len(a)
+print(d)
+```
+
+数学，注意特判后导0
+
+```python
+n = int(input())
+a = [int(i) for i in input().split()]
+s = sum(a)
+d = n // s * len(a)
+if n % s == 0:
+    n = s
+    d -= len(a)
+else:
+    n %= s
+for x in a:
+    if n <= 0:
+        break
+    d += 1
+    n -= x
+print(d)
+```
+
+##### 小橘的矩阵
+
+break 不可以跳出多重 python
+
+```python
+n = int(input())
+for i in range(n):
+    s = input().split()
+    for j in range(n):
+        if s[j] == '1':
+            m = n//2
+            print(abs(i-m) + abs(j-m))
+            exit(0)
+```
+
+##### 冠军交替
+
+```python
+n = int(input())
+from dataclasses import dataclass, field
+from collections import defaultdict
+import copy
+@dataclass(order=True)
+class Team:
+    totalAC: int = 0
+    totalTime: int = 0
+    name: str = field(compare=False, default='')
+    AC: set = field(compare=False, default_factory=set)
+    WA: defaultdict = field(compare=False, default_factory=lambda: defaultdict(int))
+best = [] # 由于个人单调递增，不可能产生重复
+teams = defaultdict(Team)
+for i in range(n):
+    name, problem, time, result = input().split()
+    time = int(time)
+    team = teams[name]
+    team.name  = name # redundant
+    if problem in team.AC:
+        continue
+    if result == 'Rejected':
+        team.WA[problem] += 1
+    else:
+        team.AC.add(problem)
+        team.totalAC += 1 # redundant
+        team.totalTime -= time + team.WA[problem] * 20
+        if not best or team >= best[0]:
+            if best and team > best[0]:
+                best = []
+            best.append(copy.copy(team)) # freeze for change
+            print(f'[{time}]',*[team.name for team in best])
+```
+
+##### 小橘的游戏
+
+三的倍数先手必败。注意是任意 2^k，而不是只有 n 的二进制为 1 的位k的 2^k
+
+```python
+[print(['Me', 'Orange'][int(input())%3!=0]) for _ in range(int(input()))]
+```
+
+通过暴力DP推导可以得到。也可以数学归纳法证明：
+
+- 基础状态：1,2 胜；3/0败
+
+- 一般状态：归纳假设为(三的倍数先手必败)对<n的情况成立
+
+  ①若 n%3=0；那么因为 2^k%3恒不为0，不管怎么走，都去到n'%3≠0的状态，即胜态，故必败
+
+  ②若 n%3≠0；那么只要取k=0/1，一定进入n'%3=0，即进入必败态，故必胜
+
+也可以暴力找规律
+
+```python
+LOSE = 0
+WIN = 1
+n = int(1e3)
+dp = [LOSE] * n
+for i in range(1, n):
+    hasLose = False
+    j = 0
+    while (i-(1<<j)) >= 0:
+        if dp[i-(1<<j)] == LOSE:
+            hasLose = True
+            break
+        j += 1
+    dp[i] = WIN if hasLose else LOSE
+    print(i, dp[i])
+```
+
+##### 生叩游戏
+
+构造形如下，n>=2必有解。
+
+```
+oxoxo...
+xoxox...
+```
+
+```python
+n, m = int(input()), 580
+a = [[0 for i in range(m)] for j in range(m)]
+if n == 1:
+    print(-1)
+elif n >= 2:
+    for i in range(n):
+        a[i+1][1] = i&1
+        a[i+1][2] = i&1^1
+# elif n == 3:
+#     a[1][1] = a[2][2] = a[3][1] = 1
+# elif n%2 == 0:
+#     for i in range(n//2):
+#         a[i+1][1]=1
+#         a[i+1][2]=1
+# else:
+#     m = n - 3
+#     for i in range(m//2):
+#         a[i+1][1]=1
+#         a[i+1][2]=1
+#     a[1][4] = a[1][5] = a[1][6] = 1
+pos = sum(sum(r) for r in a)
+if pos:
+    print(m,m)
+    for r in a:
+        print(''.join([str(i) for i in r]))
+```
+
+##### OTVTO
+
+第一个区间乘法原理计数，设第一个找到的是 `[i, i+4]`，那么下一个区间 `[j, j+4]` 的乘法原理左端点是 i+1，右端点不变，做到不重不漏。
+
+```python
+n = int(input())
+s = input()
+A = [] 
+for i in range(n - 4):
+    if s[i] == s[i+4] and s[i+1] == s[i+3] and s[i] != s[i+1] and s[i] != s[i+2] and s[i+1] != s[i+2]:
+        A.append(i)
+total = 0
+prev = -1
+for p in A:
+    diff = p - prev
+    count_r = n - p - 4
+    total += diff * count_r
+    prev = p
+print(total)
+```
+
+##### 约数闭包
+
+最大值与集合一一对应，所以求最大值是谁即可。候选项只有 `[2,9]` 8个，所以可以构造3层二叉搜索树，DFS或随机均可。更直接的是，自己人工构造这样的搜索数。随机显然不如 DFS。
+
+```python
+import sys
+
+def read_resp_is_include():
+    s = sys.stdin.readline().strip()
+    if not s:
+        sys.exit(0)
+    if s == "-1":
+        sys.exit(0)
+    return s == "INCLUDE"
+
+def ask(d: int) -> bool:
+    print(f"? {d}")
+    sys.stdout.flush()
+    return read_resp_is_include()
+
+def main():
+    line = sys.stdin.readline()
+    if not line:
+        return
+    T = int(line.strip())
+    for _ in range(T):
+        m = -1
+        even = ask(2)
+        if even:
+            div4 = ask(4)
+            if div4:
+                div8 = ask(8)
+                m = 8 if div8 else 4
+            else:
+                div3 = ask(3)
+                m = 6 if div3 else 2
+        else:
+            div3 = ask(3)
+            if div3:
+                div9 = ask(9)
+                m = 9 if div9 else 3
+            else:
+                div5 = ask(5)
+                m = 5 if div5 else 7
+        S = [x for x in range(1, 10) if m % x == 0]
+        print("! " + str(len(S)) + " " + " ".join(map(str, S)))
+        sys.stdout.flush()
+
+if __name__ == "__main__":
+    main()
+```
+
+```python
+ALL_SETS = []
+for i in range(2, 10):
+    s = set()
+    for j in range(1, i+1):
+        if i % j == 0:
+            s.add(j)
+    ALL_SETS.append(s)
+# print(ALL_SETS, len(ALL_SETS))
+def split(a, x):
+    include, exclude = [], []
+    for s in a:
+        if x in s:
+            include.append(s)
+        else:
+            exclude.append(s)
+    return include, exclude
+import dataclasses
+@dataclasses.dataclass
+class Tree:
+    val: int = 0
+    include: 'Tree' = None
+    exclude: 'Tree' = None
+    ans: set = None
+def dfs(a, h): # 还剩几次提问机会，所有可能性为a
+    if len(a) == 1: # no possible len == 0
+        return Tree(ans=a[0]), True
+    if h == 0:
+        return Tree(), False
+    for i in range(1, 10):
+        include, exclude = split(a, i)
+        if len(include) == 0 or len(exclude) == 0:
+            continue
+        left, leftOk = dfs(include, h-1)
+        right, rightOk = dfs(exclude, h-1)
+        if leftOk and rightOk:
+            return Tree(val=i, include=left, exclude=right), True
+    return Tree(), False
+tree, ok = dfs(ALL_SETS, 3) 
+assert ok
+import sys
+for _ in range(int(input())):
+    q = tree
+    while q.val:
+        print('?', q.val)
+        sys.stdout.flush()
+        res = input() == 'INCLUDE'
+        if res:
+            q = q.include
+        else:
+            q = q.exclude
+    a = q.ans
+    print('!',len(a), *sorted(a))
+```
+
+```python
+# 随机部分
+import dataclasses, random
+@dataclasses.dataclass
+class Tree:
+    val: int = 0
+    include: 'Tree' = None
+    exclude: 'Tree' = None
+def build(a, h):
+    if len(a) <= 1:
+        return Tree(0, a, a), True
+    if h == 0: # 提问机会
+        return Tree(), False
+    while True: # any valid
+        pivot = random.choice(a)
+        p = random.choice(list(pivot))
+        include, exclude = split(a, p)
+        if len(include) >= 1 and len(exclude) >= 1:
+            break
+    left, leftOk = build(include, h-1)
+    right, rightOk = build(exclude, h-1)
+    if not leftOk or not rightOk:
+        return Tree(), False
+    return Tree(p, left, right), True
+cnt = 0
+while cnt <= int(1e4):
+    tree, ok = build(ALL_SETS, 3)
+    if ok:
+        break
+    cnt += 1
+```
+
+##### 黑白配
+
+化简求和即可。
+
+```python
+def s(n): # 1+2+...+n
+    return n*(n+1)//2
+def s2(n): # 1^2+2^2+...+n^2
+    return n*(n+1)*(2*n+1)//6
+for _ in range(int(input())):
+    n, m, p = [int(x) for x in input().split()]
+    b2 = (m+1)*(s2(n)-s(n))//2
+    w2 = (n+1)*(s2(m)-s(m))//2
+    wb = s(n) * s(m)
+    print(b2%p, w2%p, wb%p)
+```
 
 ### 力扣
 
@@ -25730,6 +26133,184 @@ func search(nums []int, target int) int {
     }
     // target 在第二段
     return lowerBound(nums, i-1, len(nums), target) // 开区间 (i-1, n)
+}
+```
+
+##### 1039\.多边形三角剖分的最低得分
+
+[题目](https://leetcode.cn/problems/minimum-score-triangulation-of-polygon)
+
+环就是2倍长链；DP到区间长为n即可。注意要枚举成环的r->l这条边，否则要重新计算无法DP。
+
+```go
+import "math"
+func minScoreTriangulation(values []int) int {
+	n := len(values)
+	a := make([]int, 2*n)
+	dp := make([][]int, 2*n)
+	for i := 0; i < 2*n; i++ {
+		a[i] = values[i%n]
+		dp[i] = make([]int, 2*n)
+	}
+	for i := 0; i < 2*n-2; i++ {
+		dp[i][i+2] = a[i] * a[i+1] * a[i+2]
+	}
+	for d := 4; d <= n; d += 1 {
+		for l, r := 0, d-1; r < 2*n; l, r = l+1, r+1 {
+			dp[l][r] = math.MaxInt32
+			//如果枚举 (l, l+1) 等非 (l, r) 边，成环所以要重算
+			for k := l + 1; k < r; k++ {
+				v := a[l] * a[r] * a[k]
+				v += dp[l][k] + dp[k][r]
+				dp[l][r] = min(dp[l][r], v)
+			}
+		}
+	}
+	ans := math.MaxInt32
+	for l, r := 0, n-1; r < 2*n; l, r = l+1, r+1 {
+		ans = min(ans, dp[l][r])
+	}
+	return ans
+}
+```
+
+手推易得，边r->l一定在某个三角形里，枚举该三角形进行区间DP。
+
+直接枚举0-> n-1 这条边，那么就不需要二倍链了。
+
+```go
+func minScoreTriangulation(v []int) int {
+    n := len(v)
+    f := make([][]int, n)
+    for i := range f {
+        f[i] = make([]int, n)
+    }
+    for i := n - 3; i >= 0; i-- {
+        for j := i + 2; j < n; j++ {
+            f[i][j] = math.MaxInt
+            for k := i + 1; k < j; k++ {
+                f[i][j] = min(f[i][j], f[i][k]+f[k][j]+v[i]*v[j]*v[k])
+            }
+        }
+    }
+    return f[0][n-1]
+}
+```
+
+##### 38\.外观数列
+
+[题目](https://leetcode.cn/problems/count-and-say)
+
+```go
+func countAndSay(n int) string {
+    prev := "1"
+    for i := 2; i <= n; i++ {
+        cur := &strings.Builder{}
+        for j, start := 0, 0; j < len(prev); start = j {
+            for j < len(prev) && prev[j] == prev[start] {
+                j++
+            }
+            cur.WriteString(strconv.Itoa(j - start))
+            cur.WriteByte(prev[start])
+        }
+        prev = cur.String()
+    }
+    return prev
+}
+```
+
+##### 2221\.数组的三角和
+
+[题目](https://leetcode.cn/problems/find-triangular-sum-of-an-array)
+
+```go
+func triangularSum(nums []int) int {
+	dp := [2][]int{}
+	n := len(nums)
+	dp[0] = nums
+	dp[1] = make([]int, n)
+	p := 0
+	for i := n - 2; i >= 0; i-- {
+		p = 1 - p
+		for j := 0; j <= i; j++ {
+			dp[p][j] = (dp[1-p][j] + dp[1-p][j+1]) % 10
+		}
+	}
+	return dp[p][0]
+}
+```
+
+空间优化：
+
+```go
+func triangularSum(nums []int) int {
+	// 每循环一轮，数组长度就减一
+	for n := len(nums) - 1; n > 0; n-- {
+		for i := range n {
+			nums[i] = (nums[i] + nums[i+1]) % 10
+		}
+	}
+	return nums[0]
+}
+```
+
+组合数学，对第i个数，它走n-1步，那么它一定往左走(往前)i步，往右走(不变)n-i-1步，最终才能走到目的地。所以一共有。由于所有的走法它都会走一次，所以它一共贡献了 $C_n^i$ 次，故总答案为 $\sum_{i=0}^{n-1}C_{n-1}^ia_i\bmod 10$。
+
+由于 $10=2\times 5$，对组合数，由于模数是 $10$，要么用 exLucas，要么：由于 $\varphi(10)=4$，令 $a\bot10$，对欧拉定理，$a^{\varphi(n)}\equiv1\pmod n$，故 $a^{-1}$ 等价于 $a^{\varphi(n)-1}=a^3$。因此，预处理阶乘求逆元时，对 $a^{-1}$，先把 $a$ 的 $2,5$ 因数分离，设次数分别为 $e_2,e_5$。叠前缀和，设阶乘 $i$ 里共有 $p_2,p_5$ 个 $2,5$。那么 $C_n^k$ 里显然有 $p_2[n]-p_2[k]-p_2[n-k]$ 个 $2$；对 $5$ 同理。不放记作 $e'_2,e'_5$。
+
+1. 若 $e_2',e_5'$ 都不为 0，2x5=10，答案直接为 0。
+2. 否则，根据 $2^x,5^x$ 在模 $10$ 下的周期性，单独算组合数里 $2,5$ 带来的贡献。
+3. 之后，对不含 $2,5$ 的部分，按一般公式计算。
+
+```python
+MOD = 10
+MX = 1000
+POW2 = (2, 4, 8, 6)
+
+# 计算组合数，需要计算阶乘及其逆元
+f = [0] * (MX + 1)  # f[n] = n!
+inv_f = [0] * (MX + 1)  # inv_f[n] = n!^-1
+p2 = [0] * (MX + 1)  # n! 中的 2 的幂次
+p5 = [0] * (MX + 1)  # n! 中的 5 的幂次
+
+f[0] = inv_f[0] = 1
+for i in range(1, MX + 1):
+    x = i
+
+    # 分离质因子 2，计算 2 的幂次
+    e2 = (x & -x).bit_length() - 1
+    x >>= e2
+
+    # 分离质因子 5，计算 5 的幂次
+    e5 = 0
+    while x % 5 == 0:
+        e5 += 1
+        x //= 5
+
+    f[i] = f[i - 1] * x % MOD
+    inv_f[i] = pow(f[i], 3, MOD)  # 欧拉定理求逆元
+    p2[i] = p2[i - 1] + e2
+    p5[i] = p5[i - 1] + e5
+
+def comb(n: int, k: int) -> int:
+    e2 = p2[n] - p2[k] - p2[n - k]
+    return f[n] * inv_f[k] * inv_f[n - k] * \
+        (POW2[(e2 - 1) % 4] if e2 else 1) * \
+        (5 if p5[n] - p5[k] - p5[n - k] else 1)
+
+class Solution:
+    def triangularSum(self, nums: List[int]) -> int:
+        n = len(nums)
+        return sum(comb(n - 1, i) * x for i, x in enumerate(nums)) % MOD
+```
+
+##### 35\.搜索插入位置
+
+[题目](https://leetcode.cn/problems/search-insert-position)
+
+```go
+func searchInsert(nums []int, target int) int {
+    return sort.SearchInts(nums, target)
 }
 ```
 

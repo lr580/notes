@@ -973,6 +973,24 @@ END_COMMENT
 
 关闭终端不结束后台运行：`nohub xxx &`
 
+
+
+通配符扩展：如假设当前目录有 `pg1.txt, pg2.txt`，执行：
+
+```sh
+go run main.go pg*.txt
+```
+
+等价于执行：
+
+```sh
+go run main.go pg1.txt pg2.txt
+```
+
+
+
+
+
 #### 编程
 
 [参考](https://zhuanlan.zhihu.com/p/684371371)

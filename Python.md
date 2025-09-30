@@ -1772,8 +1772,6 @@ zfill(n) 补充前导零直到长度为n
 
 删最后：`[:-1]` 是 O1 的
 
-
-
 #### None
 
 表示空，不等同于0，也不等同于零元素集合(数学空集)，类型也不一样：
@@ -1784,7 +1782,7 @@ type(None) # <class 'NoneType'>
 
 > `x=...` 会导致得到单例对象 `Ellipsis` 省略，可用于 np 多维切片缺省维度。
 
-判断：`a is None`
+判断：`a is None` (== None 也行但不推荐)
 
 #### complex
 
@@ -2166,7 +2164,7 @@ a.func() #使用成员函数
 
 大同C++，从略。
 
-对象的 `==` 默认是指针相等，属性全一样也不 `==`，但 `a=b` 后满足 `a==b`，此时 `b` 是 `a` 的指针。
+**赋值是引用，不是复制。**对象的 `==` 默认是指针相等，属性全一样也不 `==`，但 `a=b` 后满足 `a==b`，此时 `b` 是 `a` 的指针。
 
 ```python
 class Node:
@@ -2781,6 +2779,8 @@ print(p)  # 输出: Point(x=1, y=2)
 
 - 排序支持：通过设置`order`参数，可以让数据类支持比较操作（如`<`, `<=`, `>`, `>=`）。
 
+###### 排序
+
 ```python
 @dataclass(order=True, frozen=True)
 class Point: # 比较依据类似 pair
@@ -2795,6 +2795,20 @@ print(p1 < p3)   # False
 ```
 
 按照关键字顺序排序，没找到如何修改顺序。
+
+添加不参与排序的字段：
+
+```python
+@dataclass(order=True)
+class Team:
+    totalAC: int = 0
+    totalTime: int = 0
+    name: str = field(compare=False, default='')
+    AC: set = field(compare=False, default_factory=set)
+    WA: defaultdict = field(compare=False, default_factory=lambda: defaultdict(int))
+```
+
+###### 构造工厂
 
 可以套 default dict，但是需要工厂，如：
 
@@ -2819,6 +2833,8 @@ print(p1 < p3)   # False
     if last_submits[key] < submitCode:
         last_submits[key] = submitCode
 ```
+
+###### 序列化
 
 可以转 json，也可以反转：
 
@@ -2848,7 +2864,9 @@ def __post_init__(self):
         self.X = np.array(self.X, dtype=np.float32)
 ```
 
+##### total_ordering
 
+只定义 lt 和 eq 方法，自动补全所有其他方法 (`>`, `>=`, `<=`, `!=`)。
 
 ## 运算
 
@@ -4057,6 +4075,8 @@ max((len(v) for v in c.keys() if c[v]>=3), default=-1) #一定要括号
 
 还有 `pow(a,b,p)`，可以求模意义整数快速幂。
 
+可以直接求逆元，不管模数是不是质数(即支持exgcd)，如 `pow(2,-1,998244353)`，逆元不存在就报错。
+
 ##### hash
 
 返回 object 的十进制数字散列值。
@@ -4354,11 +4374,9 @@ hasattr(x,'__lt__')
 hasattr([],'append')
 ```
 
-
-
 ### 函数语法
 
-#### 匿名函数
+##### 匿名函数
 
 ```python
 lambda 参数:运算
@@ -4388,13 +4406,12 @@ max(2+1j,1+2j,key=lambda x:x.real) #默认无法比较虚数
 lambda :print('123')
 ```
 
-
-
-#### 高阶函数
+> #### 高阶函数
+>
 
 使用一个或多个函数作为参数的函数是高阶函数。
 
-#### 函数指针
+##### 函数指针
 
 变量指向函数。
 
@@ -4403,7 +4420,7 @@ a=print
 a('1','2')
 ```
 
-#### 偏函数
+##### 偏函数
 
 固定函数的默认参数，需要大批量使用固定默认参数的函数时比较有用。
 
@@ -4417,6 +4434,30 @@ from functions import partial
 int2=partial(int,base=2)
 int2('100000')
 ```
+
+##### 函数重载
+
+```python
+from functools import singledispatch
+
+@singledispatch
+def process(data):
+    print("Default:", data)
+
+@process.register(str)
+def _(data):
+    print("String:", data.upper())
+
+@process.register(int)
+def _(data):
+    print("Integer:", data * 2)
+
+process("hello")  # String: HELLO
+process(10)       # Integer: 20
+process([1, 2])   # Default: [1, 2]
+```
+
+
 
 ### 主函数
 
@@ -5724,6 +5765,20 @@ import builtins
 builtin_functions = [func for func in dir(builtins) if callable(getattr(builtins, func))]
 builtin_functions
 ```
+
+#### ctypes
+
+使用int32等基本数据类型
+
+```python
+from ctypes import c_int32, c_int64
+a = c_int32(100)      # 32位整数
+b = c_int64(1000000)  # 64位整数
+print(a.value, type(a))  # 输出: 100 <class 'ctypes.c_int32'>
+print(b.value, type(b))  # 输出: 1000000 <class 'ctypes.c_int64'>
+```
+
+
 
 #### warning
 
@@ -14619,6 +14674,20 @@ plt.axis('off')  # 关闭坐标轴
 plt.show()
 ```
 
+### CodeVideoRenderer
+
+```sh
+pip install CodeVideoRenderer
+```
+
+给定一段代码，生成一个 mp4，演示输入这段代码的动画。
+
+```python
+from CodeVideoRenderer import *
+video = CodeVideo(code_string="print('Hello World!')", language='python')
+video.render()
+```
+
 
 
 ## 图像处理
@@ -22278,6 +22347,17 @@ nohup python experiments/train.py -c baselines/DCRNN/PEMS07.py -g 0 &
 以 PEMS03 为例，通道是 3，添加了 time of day, day of week；第一个通道还是原始流量数据。具体阅读数据的代码可以参见我的仓库 [src](https://github.com/lr580/llm4traffic_prediction)
 
 图是 ndarray，01 数组。提供了函数 `basicts/utils/load_adj`，支持多种转换，如 DCRNN / GWNet 格式过渡矩阵等
+
+##### 预测
+
+具体看文档。如
+
+```sh
+nohup python experiments/evaluate.py -cfg examples/PEMS03_moment.py -ckpt checkpo
+ints/Moment_best_val_MAE.pt -g 1,2,3,4 &
+```
+
+
 
 ### openai
 

@@ -17,6 +17,15 @@ go version
 go env
 ```
 
+> linux, ubuntu 为例
+>
+> ```sh
+> sudo apt update
+> sudo apt install golang-go
+> ```
+
+
+
 #### 常用指令
 
 ##### 代理
@@ -768,6 +777,15 @@ fmt.Println(strings.LastIndex(str4, "0"))
 fmt.Println(strings.Join([]string{"020", "5800", "5800"}, "-"))
 fmt.Println(strings.Repeat("A", k-1))
 ```
+
+按特定规则定义分隔符，分割字符串：
+
+```go
+ff := func(r rune) bool { return !unicode.IsLetter(r) }
+fmt.Println(strings.FieldsFunc("abc123def4g5", ff)) // [abc def g]
+```
+
+
 
 ##### 类型转换
 
@@ -3067,6 +3085,59 @@ var x = 1
 >
 > 但是如果某个 `init()` 函数内部用启动了新的 `Goroutine` ，那么新的 `Goroutine` 和 `main.main` 函数是并发执行的。
 
+解析main函数CLI参数，如：
+
+```go
+// os.Args[0] 是程序名
+// os.Args[1:] 是实际参数
+for i, arg := range os.Args {
+    fmt.Printf("参数 %d: %s\n", i, arg)
+}
+```
+
+> shell 能够自动扩展通配符，如：`go run xx.go ..src/main/pg*.txt` 可以输出下面这样，在 shell 里自己 ls。
+>
+> ```
+> 参数 0: /tmp/go-build3836890561/b001/exe/shellFile
+> 参数 1: ../src/main/pg-being_ernest.txt
+> 参数 2: ../src/main/pg-dorian_gray.txt
+> ...
+> ```
+
+解析位置参数：
+
+```go
+package main
+
+import (
+	"flag"
+	"fmt"
+)
+
+func main() {
+	// 定义命令行参数
+	var (
+		name    = flag.String("name", "默认名", "用户名")
+		age     = flag.Int("age", 0, "用户年龄")
+		married = flag.Bool("married", false, "婚姻状况")
+	)
+	
+	// 解析命令行参数
+	flag.Parse()
+	
+	// 使用参数
+	fmt.Printf("姓名: %s\n", *name)
+	fmt.Printf("年龄: %d\n", *age)
+	fmt.Printf("已婚: %t\n", *married)
+	
+	// 访问非标志参数
+	fmt.Println("其他参数:", flag.Args())
+}
+// go run main.go -name=张三 -age=30 -married=true 额外参数1 额外参数2
+```
+
+
+
 ### 异常
 
 ##### error
@@ -3273,6 +3344,7 @@ import 只能写在函数外，函数声明前
 
 ```go
 import "fmt"
+import "os"
 ```
 
 ```go
@@ -4055,6 +4127,8 @@ Open 后得到 `*os.File`，该类型实现了 `os.Reader` 方法
 
 ##### 读取
 
+分块读：
+
 ```go
 package main
 import (
@@ -4085,6 +4159,16 @@ func main() {
 	}
 	fmt.Println(string(content)) // 足以处理中文
 }
+```
+
+一次读：
+
+```go
+content, err := os.ReadFile("filename.txt")
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println(string(content))
 ```
 
 ##### 缓冲读
@@ -4195,6 +4279,10 @@ if err != nil {
 > - `ioutil.ReadDir` → `os.ReadDir`
 > - `ioutil.TempFile` → `os.CreateTemp`
 > - `ioutil.TempDir` → `os.MkdirTemp`
+
+#### 日志I/O
+
+`log` 包。
 
 #### 文件处理
 
@@ -4364,7 +4452,7 @@ sort.Sort(sort.Reverse(sort.StringSlice(s)))
 fmt.Println(s)
 ```
 
-自定义排序，如按另一个数组的大小排序下标
+自定义排序，如按另一个数组的大小排序下标 1
 
 ```go
 func maxSubsequence(nums []int, k int) []int {
@@ -4380,6 +4468,15 @@ func maxSubsequence(nums []int, k int) []int {
 }
 //也可以写成：
 slices.SortFunc(idx, func(i, j int) int { return nums[j] - nums[i] })
+```
+
+另一种基于接口的自定义排序，需要实现三个函数：[参考](http://nil.csail.mit.edu/6.5840/2025/labs/lab-mr.html)
+
+```go
+type ByKey []mr.KeyValue // 某结构体
+func (a ByKey) Len() int           { return len(a) }
+func (a ByKey) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByKey) Less(i, j int) bool { return a[i].Key < a[j].Key }
 ```
 
 
@@ -4679,6 +4776,73 @@ func main() {
 ```
 
 ### 语法增强
+
+#### plugin
+
+动态加载和使用编译好的 Go 插件。这个功能从 Go 1.8 版本开始引入
+
+##### 插件
+
+插件：一个编译为 `.so` 文件（在 Unix 系统上）的 Go 包 [参考](http://nil.csail.mit.edu/6.5840/2025/labs/lab-mr.html)，编译插件：
+
+```sh
+go build -buildmode=plugin ../mrapps/wc.go
+```
+
+> `.so` 文件会比较大，可能最基础的代码就几 MB 了。
+
+插件代码需要满足以下要求：
+
+- 必须是 `main` 包
+- 需要导出（大写开头）你想要在主程序中使用的符号（变量、函数等）
+
+##### 加载
+
+```go
+// testplugin.go
+package main
+
+import "fmt"
+
+var V int = 580
+
+func F() {
+    fmt.Printf("Hello from plugin! V=%d\n", V)
+}
+```
+
+```go
+package main
+
+import (
+	"fmt"
+	"plugin"
+)
+
+func main() {
+	p, err := plugin.Open("testplugin.so")
+	if err != nil {
+		panic(err)
+	}
+	v, err := p.Lookup("V")
+	if err != nil {
+		panic(err)
+	}
+	f, err := p.Lookup("F")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(*v.(*int))
+	f.(func())()
+	// 更常用：先转再用
+	// val := v.(*int)
+	// fmt.Println(*val)
+	// fv := f.(func())
+	// fv()
+}
+```
+
+
 
 #### cmp
 
