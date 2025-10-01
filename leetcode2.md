@@ -3540,6 +3540,14 @@
 - 35\.搜索插入位置
 
   签到 二分
+  
+- 1518\.换水问题
+
+  签到 / 数学
+
+- 48\.旋转图像
+
+  签到 模拟
 
 ## 算法
 
@@ -26312,5 +26320,39 @@ class Solution:
 func searchInsert(nums []int, target int) int {
     return sort.SearchInts(nums, target)
 }
+```
+
+##### 1518\.换水问题
+
+[题目](https://leetcode.cn/problems/water-bottles)
+
+题解一瓶瓶换。我一批批换是对数的。
+
+```go
+func numWaterBottles(numBottles int, numExchange int) (drank int) {
+	numEmpty := 0
+	for numBottles > 0 {
+		drank += numBottles
+		numEmpty += numBottles
+		numBottles = numEmpty / numExchange
+		numEmpty %= numExchange
+	}
+	return
+}
+```
+
+一瓶瓶换，每换一次，减少 numExchange 个瓶子，然后喝掉又多一个。换到没有为止，设一共可以换 k 次，显然
+$$
+numBottle-k(numExchange-1)<numExchange
+$$
+解得
+$$
+k>\dfrac{numBottle-numExchange}{numExchange-1}\Rightarrow
+\\k_\min=\lfloor\dfrac{numBottle-numExchange}{numExchange-1}\rfloor+1=\lfloor\dfrac{numBottle-1}{numExchange-1}\rfloor
+$$
+再加上一开始的 numBottle 瓶水就是答案。
+
+```python
+return numBottles + (numBottles - 1) // (numExchange - 1)
 ```
 

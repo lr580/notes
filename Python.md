@@ -4470,7 +4470,7 @@ if __name__ == '__main__':
 
 ### 装饰器
 
-装饰器装饰的对象是函数或者方法 [参考](https://blog.csdn.net/weixin_44992737/article/details/125868592)
+装饰器本质是函数。装饰器装饰的对象是函数或者方法 [参考](https://blog.csdn.net/weixin_44992737/article/details/125868592)
 
 #### 无参装饰器
 
