@@ -26356,3 +26356,25 @@ $$
 return numBottles + (numBottles - 1) // (numExchange - 1)
 ```
 
+##### 48\.旋转图像
+
+[题目](https://leetcode.cn/problems/rotate-image)
+
+O1 空间的办法：90度周期四区域用一个tmp交换。更简单的思路是转置+行翻转。通过对角线遍历，可以实现一次循环。略。
+
+```python
+class Solution:
+    def rotate(self, matrix: List[List[int]]) -> None:
+        n = len(matrix)
+        # 第一步：转置
+        for i in range(n):
+            for j in range(i):  # 遍历对角线下方元素
+                matrix[i][j], matrix[j][i] = matrix[j][i], matrix[i][j]
+
+        # 第二步：行翻转
+        for row in matrix:
+            row.reverse()
+```
+
+
+
