@@ -3548,6 +3548,10 @@
 - 48\.旋转图像
 
   签到 模拟
+  
+- 3100\.换水问题II
+
+  签到 / 数学
 
 ## 算法
 
@@ -26374,6 +26378,56 @@ class Solution:
         # 第二步：行翻转
         for row in matrix:
             row.reverse()
+```
+
+##### 3100\.换水问题II
+
+[题目](https://leetcode.cn/problems/water-bottles-ii)
+
+注意到一个个算是根号复杂度。也可以一批批算，解方程。
+
+```go
+func maxBottlesDrunk(numBottles int, numExchange int) (drank int) {
+	drank = numBottles
+	for numBottles >= numExchange {
+		drank++
+		numBottles -= numExchange
+		numBottles++
+		numExchange++
+	}
+	return drank
+}
+```
+
+> 实际上 numExchange 就是喝水数，所以集齐k瓶换1瓶的时候，drank+k。
+>
+> ```python
+> class Solution:
+>     def maxBottlesDrunk(self, numBottles: int, numExchange: int) -> int:
+>         ans = 0
+>         while numBottles >= numExchange:
+>             ans += numExchange  # 吨吨吨~
+>             numBottles -= numExchange - 1
+>             numExchange += 1
+>         return ans + numBottles
+> ```
+
+一次性计算法：设换了 $k$ 次，那么最终有：
+$$
+\begin{align}
+n-((e-1)+e+(e+1)+\cdots+(e+k-2))&<e+k\\
+k^2+(2e-1)k-2(n-e)&>0\\
+\dfrac{-(2e-1)+\sqrt{(2e-1)^2+8(n-e)}}2&<k
+\end{align}
+$$
+故 $k_{min}=\lfloor\dfrac{-(2e-1)+\sqrt{(2e-1)^2+8(n-e)}}2\rfloor+1$
+
+```python
+class Solution:
+    def maxBottlesDrunk(self, n: int, e: int) -> int:
+        b = e * 2 - 1
+        k = (isqrt(b * b + (n - e) * 8) - b + 2) // 2
+        return n + k
 ```
 
 

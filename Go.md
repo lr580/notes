@@ -149,6 +149,33 @@ go mod tidy
 - verify： verify dependencies have expected content (校验依赖 检查下载的第三方库有没有本地修改， 如果有修改， 则会返回非 0， 否则验证成功。 )
 - why： explain why packages or modules are needed (解释为什么需要依赖)
 
+#### 测试
+
+测试文件是以  `_test.go` 结尾的文件，测试函数以 `Test` 开头，并接收一个 `*testing.T`参数。其中 `testing` 是一个包。
+
+```go
+func TestAdd(t *testing.T) { // ...
+```
+
+`go test`。这会运行当前CLI路径包中的所有测试文件（以 `_test.go`结尾的文件）中的所有测试函数：以 Test 开头的函数和以 Example 开头的示例函数。
+
+`go test -v` 显示每个测试函数的名称和运行状态，以及打印的日志信息。
+
+`go test -bench=.`，
+
+> `go test -v -run TestName` 参数后面跟一个正则表达式，只运行名称匹配的测试函数
+>
+> `go test -v -run TestName/SubtestName` 1.17 子测试
+>
+> `go test -cover` 显示代码的测试覆盖率统计
+
+> ```sh
+> go test -coverprofile=coverage.out
+> go tool cover -html=coverage.out
+> ```
+
+这里只讲运行方法。具体测试代码详见 `常用内置包/语法增强/testing`。
+
 ### 常识
 
 #### 特点
@@ -3172,6 +3199,16 @@ func main() {
 }
 ```
 
+其中，error 是内置接口类型
+
+```go
+type error interface {
+    Error() string
+}
+```
+
+
+
 ##### panic
 
 panic表示严重错误。panic可以在任何地方引发。通常用于处理一些异常情况，而不是常规的错误处理
@@ -3981,7 +4018,7 @@ fmt 包里面给我们提供了一些常见的打印数据的方法， 比如：
 
 ##### 输出
 
-传入多个参数，逗号分隔。
+传入多个参数，逗号分隔。输出到 stdout
 
 - `Println` 在不同参数加空格末尾加换行，
 - `Print` 不加空格，末尾无换行
@@ -4282,7 +4319,51 @@ if err != nil {
 
 #### 日志I/O
 
-`log` 包。
+`log` 包。输出到 stderr
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+)
+
+func main() {
+	// 基本日志输出
+	log.Println("这是一条普通日志")
+
+	// 带前缀的日志
+	log.SetPrefix("INFO: ")
+	log.Println("这是一条带前缀的日志")
+
+	// 输出到文件
+	file, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatal("无法打开日志文件:", err)
+	}
+	defer file.Close()
+	log.SetOutput(file)
+	log.Println("这条日志会写入文件") // 不会写到控制台
+	// 输出形如 INFO: 2025/10/02 18:25:04 这条日志会写入文件
+    // 上面的输出类似，格式和这个一样
+
+	// 致命错误日志（会调用os.Exit(1)）
+	if false {
+		log.Fatal("致命错误")
+		fmt.Println("这条不会被执行")
+	}
+
+	// 带堆栈信息的错误日志（会调用panic）
+	if false {
+		log.Panic("恐慌错误")
+		fmt.Println("这条不会被执行")
+	}
+}
+```
+
+
 
 #### 文件处理
 
@@ -4775,6 +4856,26 @@ func main() {
 }
 ```
 
+或者 `import crand "crypto/rand"`
+
+#### hash
+
+FNV(Fowler-Noll-Vo)哈希算法，具体是FNV-1a变种：
+
+- 这是一种非加密型哈希函数，速度快，适合哈希表等用途
+- `fnv.New32a()`创建了一个32位的FNV-1a哈希对象
+
+```go
+import "hash/fnv"
+func ihash(key string) int {
+	h := fnv.New32a()
+	h.Write([]byte(key))
+	return int(h.Sum32() & 0x7fffffff)
+}
+```
+
+算法过程：在初始值基础上，循环执行：异或每个字节、乘上常质数。
+
 ### 语法增强
 
 #### plugin
@@ -4874,7 +4975,96 @@ fmt.Println(cmp.Or("", "default", "backup")) // 输出: "default"
 return cmp.Or(a.price-b.price, a.shop-b.shop)
 ```
 
+#### testing
 
+参见 `基本概念/使用/测试`。
+
+##### Test函数
+
+支持输出，如单元测试：
+
+```go
+func TestAdd(t *testing.T) {
+    result := Add(2, 3)
+    expected := 5
+    if result != expected {
+        t.Errorf("Add(2, 3) = %d; want %d", result, expected)
+    }
+}
+```
+
+##### Example函数
+
+验证输出是否合理，不合理就报错，必须要有 output 才会执行，否则不执行
+
+```go
+func ExamplePrint() {
+	// 如果output不是那样，就会报错
+	fmt.Println("Learning Go testing")
+	// Output: Learning Go testing
+}
+
+func ExamplePrint2() {
+	fmt.Println("Will not call this function")
+}
+
+func ExampleMultiLine() { // 如果有输出空行也要声明
+    fmt.Println("Line 1")
+    fmt.Println("Line 2")
+    // Output:
+    // Line 1
+    // Line 2
+}
+```
+
+无序匹配，方便 map
+
+```go
+func ExampleUnordered() {
+    for _, v := range []int{1, 2, 3} {
+        fmt.Println(v)
+    }
+    // Unordered output:
+    // 2
+    // 1
+    // 3
+}
+```
+
+此外，Example 开头的也可用于文档生成。
+
+##### testing.T参数
+
+表格驱动测试（Table-Driven Tests） ，把多个测试用例组织成一个表格
+
+```go
+func TestAddTableDriven(t *testing.T) {
+    // 定义一个测试用例的结构体数组
+    tests := []struct {
+        name     string // 测试用例的名称（用于标识）
+        a, b     int    // 输入参数
+        expected int    // 期望的输出
+    }{
+        {"add positives", 2, 3, 5},  // 测试用例1：正数相加
+        {"add zeros", 0, 0, 0},      // 测试用例2：零相加
+        {"add negatives", -1, -1, -2}, // 测试用例3：负数相加
+    }
+
+    // 遍历所有测试用例
+    for _, tt := range tests {
+        // 使用 t.Run 运行子测试，并显示测试用例名称
+        t.Run(tt.name, func(t *testing.T) {
+            result := Add(tt.a, tt.b) // 调用被测函数
+            if result != tt.expected {
+                // 如果结果不符合预期，报错
+                t.Errorf("Add(%d, %d) = %d; want %d", tt.a, tt.b, result, tt.expected)
+            }
+        })
+    }
+}
+```
+
+支持基准测试。
 
 ### 时间
 
@@ -5012,6 +5202,7 @@ for i := range ticker.C {
 ```go
 fmt.Println("abc")
 time.Sleep(time.Second)
+// time.Sleep(2*time.Second)
 fmt.Println("abc again 1 sec later")
 ```
 
@@ -5038,8 +5229,6 @@ fmt.Println(time.Since(start).Microseconds()) // 13341
 re := regexp.MustCompile("[LR]+")
 str := re.FindString(s)
 ```
-
-
 
 #### json
 
@@ -5113,6 +5302,135 @@ for i := 0; i < len(p); i++ {
 #### gob
 
 进行编码和解码，它是 Go 的内置包之一，可以序列化和反序列化任意的 Go 数据类型，比手工操作要简单得多
+
+### 网络
+
+#### rpc
+
+服务端
+
+```go
+package main
+
+import (
+	"errors"
+	"log"
+	"net"
+	"net/http"
+	"net/rpc"
+)
+
+// 定义服务结构体
+type Arith struct{}
+
+// 定义服务方法的参数结构
+type Args struct {
+	A, B int
+}
+
+// 定义服务方法的返回结构
+type Quotient struct {
+	Quo, Rem int
+}
+
+// 乘法方法
+func (t *Arith) Multiply(args *Args, reply *int) error {
+	*reply = args.A * args.B
+	return nil
+}
+
+// 除法方法
+func (t *Arith) Divide(args *Args, quo *Quotient) error {
+	if args.B == 0 {
+		return errors.New("divide by zero")
+	}
+	quo.Quo = args.A / args.B
+	quo.Rem = args.A % args.B
+	return nil
+}
+
+func main() {
+	// 注册服务
+	arith := new(Arith)
+	rpc.Register(arith)
+	rpc.HandleHTTP()
+
+	// 启动服务
+	l, err := net.Listen("tcp", ":1234")
+	if err != nil {
+		log.Fatal("listen error:", err)
+	}
+
+	log.Println("Server started on port 1234")
+	http.Serve(l, nil)
+}
+```
+
+客户端：
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+	"net/rpc"
+)
+
+// 与服务端相同的参数和返回结构
+type Args struct {
+	A, B int
+}
+
+type Quotient struct {
+	Quo, Rem int
+}
+
+func main() {
+	// 连接RPC服务
+	client, err := rpc.DialHTTP("tcp", "localhost:1234")
+	if err != nil {
+		log.Fatal("dialing:", err)
+	}
+
+	// 同步调用乘法
+	args := &Args{7, 8}
+	var reply int
+	err = client.Call("Arith.Multiply", args, &reply)
+	if err != nil {
+		log.Fatal("arith error:", err)
+	}
+	fmt.Printf("Arith: %d*%d=%d\n", args.A, args.B, reply)
+
+	// 同步调用除法
+	args = &Args{15, 4}
+	var quot Quotient // 必须保持全部成员属性都是初始值
+	err = client.Call("Arith.Divide", args, &quot)
+	if err != nil {
+		log.Fatal("arith error:", err)
+	}
+	fmt.Printf("Arith: %d/%d=%d remainder %d\n", args.A, args.B, quot.Quo, quot.Rem)
+
+	// 异步调用乘法
+	args = &Args{9, 5}
+	multiplyCall := client.Go("Arith.Multiply", args, &reply, nil)
+	<-multiplyCall.Done // 等待调用完成
+	fmt.Printf("Async Arith: %d*%d=%d\n", args.A, args.B, reply)
+}
+```
+
+执行：两个窗口分别
+
+```sh
+go run rpcserver.go
+go run rpcclient.go
+```
+
+> 另一个例子，本机 Unix 通信使用 sock，参见 [mit6.824](http://nil.csail.mit.edu/6.5840/2025/labs/lab-mr.html)，改为：
+>
+> ```go
+> net.Listen / DialHTTP("unix", sockname)
+> ```
 
 ### 反射
 
