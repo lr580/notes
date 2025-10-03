@@ -2333,8 +2333,6 @@ func main() {
 func permuteFunc[T comparable](nums []T, f func([]T)) 
 ```
 
-
-
 ## 流程控制
 
 ### 条件判断/循环
@@ -2358,7 +2356,7 @@ if score%2 == 0 {
 
 ```go
 score := 30
-if score := 31; score%2 == 1 {
+if score := 31; score%2 == 1 { // 注意作用域，该 score 是if外失效=
     fmt.Println("no even")
 }
 fmt.Println(score) // 30
@@ -2482,7 +2480,7 @@ for i := 0; i < 5; i++ {
 }
 ```
 
-
+switch 里跳出 for 需要用这种办法。
 
 #### switch
 
@@ -2492,7 +2490,7 @@ for i := 0; i < 5; i++ {
 s := "哈哈"
 switch s { // 输出haha，不用break
 case "哈":
-    fmt.Println("ha")
+    fmt.Println("ha") // 无需大括号，一行到多行都行
 case "哈哈":
     fmt.Println("haha")
 case "哈哈哈":
@@ -2544,6 +2542,25 @@ default:
     fmt.Println("...")
 } // 输出 a,b
 ```
+
+break 用于跳出当前 case 剩下还没走完的部分
+
+```go
+for num := 0; num < 5; num++ { // 输出一二三， break 不跳出 for
+    switch num {
+    case 1:
+        fmt.Println("一")
+    case 2:
+        fmt.Println("二")
+        break // 提前退出 switch
+        fmt.Println("这行不会执行")
+    case 3:
+        fmt.Println("三")
+    }
+}
+```
+
+
 
 #### goto
 
@@ -3213,6 +3230,7 @@ import (
 func divide(a, b int) (int, error) {
     if b == 0 {
         return 0, errors.New("division by zero")
+        // 也可以用 fmt.Errorf 返回 error
     }
     return a / b, nil
 }
@@ -3231,6 +3249,14 @@ func main() {
 ```go
 type error interface {
     Error() string
+}
+```
+
+判断错误类型：
+
+```go
+if err != nil && err.Error() != "已完成" {
+    fmt.Println(err)
 }
 ```
 
@@ -3953,7 +3979,11 @@ fmt.Println("执行完毕，需要：", time.Since(t))
 fmt.Println(cnt)
 ```
 
-##### 异常处理
+##### 全局锁
+
+mutex 锁只对自己有用，如果是多个进程
+
+> ##### 异常处理
 
 ### 编译
 
@@ -4346,6 +4376,43 @@ if err != nil {
 > - `ioutil.TempFile` → `os.CreateTemp`
 > - `ioutil.TempDir` → `os.MkdirTemp`
 
+##### 临时文件
+
+存放在系统临时目录，系统有可能会清理，生成唯一名字。
+
+1.16+ 后推荐的写法：
+
+```go
+package main
+
+import (
+	"fmt"
+	"os"
+)
+
+func main() {
+	// 在指定目录创建临时文件, * 表示随机
+    // /tmp/sample.2116853806.tmp
+	tmpFile, err := os.CreateTemp("/tmp", "sample.*.tmp")
+    // os.CreateTemp(dir, "abc-") 则在 abc- 后边加随机数字
+	if err != nil {
+		fmt.Println("创建临时文件失败:", err)
+		return
+	}
+	defer os.Remove(tmpFile.Name())
+
+	fmt.Printf("临时文件路径: %s\n", tmpFile.Name())
+
+	// 写入内容
+	if _, err := tmpFile.Write([]byte{65, 66, 67}); err != nil {
+		fmt.Println("写入临时文件失败:", err)
+		return
+	}
+}
+```
+
+
+
 #### 日志I/O
 
 `log` 包。输出到 stderr
@@ -4396,9 +4463,30 @@ func main() {
 
 #### 文件处理
 
+##### 路径
+
+包 `path/filepath`。
+
+`filepath.Dir`是 Go 语言标准库 `path/filepath`包中的一个函数，用于返回路径字符串中的目录部分
+
+```go
+fmt.Println(filepath.Dir("abc.txt"))          // "."
+fmt.Println(filepath.Dir("gg/abc.txt"))       // "gg"
+fmt.Println(filepath.Dir("/var/usr/abc.txt")) // "/var/usr"
+```
+
+搜索：
+
+```go
+pattern := fmt.Sprintf("mr-*-%d", y)
+files, err := filepath.Glob(pattern)
+```
+
+
+
 ##### 移动
 
-移动/重命名。只能在同一个磁盘内操作。
+移动/重命名。只能在同一个磁盘内操作。保证是原子的。
 
 ```go
 err := os.Rename("a.txt", "D:/a.txt") // 剪贴文件
@@ -4448,6 +4536,10 @@ if err != nil {
     return
 }
 ```
+
+##### 落盘
+
+os.file 的方法，使用 `Sync()` 方法，确保从系统内存缓冲区写入磁盘，如触发系统调用 fsync。
 
 #### 目录处理
 
@@ -5354,7 +5446,8 @@ type Arith struct{}
 
 // 定义服务方法的参数结构
 type Args struct {
-	A, B int
+    A, B int // 一定要公有(大写)
+    // 如果不想要，就传空结构体，即没成员属性，使用：&EmptyReply{}
 }
 
 // 定义服务方法的返回结构
@@ -5461,6 +5554,16 @@ go run rpcclient.go
 > ```go
 > net.Listen / DialHTTP("unix", sockname)
 > ```
+
+空的如：参见我的 mit6.824 实现。
+
+```go
+func (c *Coordinator) Allocate(_ *struct{}, reply *AllocatedTask) error {
+// 或
+type Empty struct{} // 然后用 _ *Empty
+```
+
+
 
 ### 反射
 

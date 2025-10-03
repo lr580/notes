@@ -3552,6 +3552,10 @@
 - 3100\.换水问题II
 
   签到 / 数学
+  
+- 11\.盛最多水的容器
+
+  **双指针**
 
 ## 算法
 
@@ -26428,6 +26432,29 @@ class Solution:
         b = e * 2 - 1
         k = (isqrt(b * b + (n - e) * 8) - b + 2) // 2
         return n + k
+```
+
+##### 11\.盛最多水的容器
+
+[题目](https://leetcode.cn/problems/container-with-most-water)
+
+双指针
+
+```python
+class Solution:
+    def maxArea(self, height: List[int]) -> int:
+        ans = left = 0
+        right = len(height) - 1
+        while left < right:
+            area = (right - left) * min(height[left], height[right])
+            ans = max(ans, area)
+            if height[left] < height[right]:
+                # height[left] 与右边的任意线段都无法组成一个比 ans 更大的面积
+                left += 1
+            else:
+                # height[right] 与左边的任意线段都无法组成一个比 ans 更大的面积
+                right -= 1
+        return ans
 ```
 
 
