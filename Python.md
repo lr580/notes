@@ -1073,7 +1073,52 @@ with open('output.txt', 'a') as f:
     print_and_save("This goes both places.", f)
 ```
 
+#### 样式
 
+加粗、文字前景、背景等。根据 CLI 不同可能有不同的支持。如 PowerShell 完全支持，IDLE 完全不支持，vscode terminal支持。
+
+```python
+print("\033[1m" + "Forecasting Task" + "\033[0m")
+print("\033[1;31;43m" + "Warning: Critical Error!" + "\033[0m")
+```
+
+| 代码      | 效果         | 说明                       |
+| :-------- | :----------- | :------------------------- |
+| `\033[0m` | 重置所有样式 | 关闭所有颜色和格式         |
+| `\033[1m` | **加粗**     | 字体变粗                   |
+| `\033[2m` | 暗淡（dim）  | 亮度降低                   |
+| `\033[3m` | *斜体*       | 字体倾斜（部分终端支持）   |
+| `\033[4m` | 下划线       | 添加下划线                 |
+| `\033[5m` | 闪烁         | 文字闪烁（少部分终端支持） |
+| `\033[7m` | 反色         | 前景色和背景色互换         |
+| `\033[8m` | 隐藏         | 文字不可见（但可复制）     |
+| `\033[9m` | 删除线       | 添加删除线                 |
+
+文字颜色（前景色）
+
+| 代码       | 颜色 |
+| :--------- | :--- |
+| `\033[30m` | 黑色 |
+| `\033[31m` | 红色 |
+| `\033[32m` | 绿色 |
+| `\033[33m` | 黄色 |
+| `\033[34m` | 蓝色 |
+| `\033[35m` | 紫色 |
+| `\033[36m` | 青色 |
+| `\033[37m` | 白色 |
+
+背景色
+
+| 代码       | 颜色     |
+| :--------- | :------- |
+| `\033[40m` | 黑色背景 |
+| `\033[41m` | 红色背景 |
+| `\033[42m` | 绿色背景 |
+| `\033[43m` | 黄色背景 |
+| `\033[44m` | 蓝色背景 |
+| `\033[45m` | 紫色背景 |
+| `\033[46m` | 青色背景 |
+| `\033[47m` | 白色背景 |
 
 ### 文件I/O
 
@@ -6178,9 +6223,21 @@ parser.add_argument('-p', type=int, default=80, help='Some port')
 parser.add_argument("-c", "--cfg", default="stdmae/STDMAE_PEMS03.py", help="training config")
 args = parser.parse_args()
 print(args.experiment) #上面那个experiment;或args.p
+# python main.py -p=80 --cfg=6
 ```
 
 - `help` 参数提供了这个选项的简短描述。当用户在命令行中运行程序并带上 `-h` 或 `--help` 时，这些帮助信息会显示出来。
+
+- `action=store_true`，不加这个参数默认为 False，输入参数默认为 True。
+
+  ```python
+  parser.add_argument('--inverse', action='store_true', help='inverse output data', default=False)
+  # python main.py --inverse
+  ```
+
+  反过来就 `store_false, default=True`。
+
+- `required=True` 表示必填
 
 ### 文件
 
@@ -19755,7 +19812,11 @@ print(result_dim1)
 .repeat(2, 1, 1, 1) # 第一维复制一份，四维数据
 ```
 
+原地复制 repeat_interleave，如 `[A, B] -> [A, A, B, B]` 当重复次数为 2
 
+```python
+cur = cur.repeat_interleave(repeats=2, dim=1)
+```
 
 ##### 统计
 
