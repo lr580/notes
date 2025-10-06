@@ -3556,6 +3556,14 @@
 - 11\.盛最多水的容器
 
   **双指针**
+  
+- 417\.太平洋大西洋水流问题
+
+  BFS / DFS
+  
+- 778\.水位上升的泳池中游泳
+
+  BFS+堆 / 最短路 / 并查集
 
 ## 算法
 
@@ -26457,5 +26465,176 @@ class Solution:
         return ans
 ```
 
+##### 417\.太平洋大西洋水流问题
 
+[题目](https://leetcode.cn/problems/pacific-atlantic-water-flow)
+
+分别以全体左上点和右下点为起点，水流从低到高逆向做两次BFS，用优先级队列，记录两个vis数组都vis到的点就是答案。
+
+```go
+type node struct {
+	v, i, j int
+}
+
+func pacificAtlantic(heights [][]int) (ans [][]int) {
+	n, m := len(heights), len(heights[0])
+	bfs := func(init []node) [][]bool {
+		dp := make([][]int, n)
+		vis := make([][]bool, n)
+		for i := range dp {
+			dp[i] = make([]int, m)
+			vis[i] = make([]bool, m)
+		}
+		t := redblacktree.NewWith(func(ao, bo interface{}) int {
+			a, b := ao.(node), bo.(node)
+			return cmp.Or(a.v-b.v, a.i-b.i, a.j-b.j)
+		})
+		for i := range init {
+			t.Put(init[i], struct{}{})
+		}
+		for t.Size() > 0 {
+			nd := t.Left().Key.(node)
+			t.Remove(nd)
+			if vis[nd.i][nd.j] {
+				continue
+			}
+			vis[nd.i][nd.j] = true
+			for _, d := range [][]int{{0, 1}, {0, -1}, {1, 0}, {-1, 0}} {
+				i, j := nd.i+d[0], nd.j+d[1]
+				if i < 0 || i >= n || j < 0 || j >= m || heights[i][j] < heights[nd.i][nd.j] {
+					continue
+				}
+				t.Put(node{heights[i][j], i, j}, struct{}{})
+			}
+		}
+		return vis
+	}
+
+	init1, init2 := []node{}, []node{}
+	for i := range n {
+		init1 = append(init1, node{heights[i][0], i, 0})
+		init2 = append(init2, node{heights[i][m-1], i, m - 1})
+	}
+	for j := range m {
+		init1 = append(init1, node{heights[0][j], 0, j})
+		init2 = append(init2, node{heights[n-1][j], n - 1, j})
+	}
+	dp1, dp2 := bfs(init1), bfs(init2)
+
+	for i := range n {
+		for j := range m {
+			if dp1[i][j] && dp2[i][j] {
+				ans = append(ans, []int{i, j})
+			}
+		}
+	}
+	return ans
+}
+```
+
+不如 DFS，还可以省去优先级队列。
+
+```go
+var dirs = []struct{ x, y int }{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}
+
+func pacificAtlantic(heights [][]int) (ans [][]int) {
+    m, n := len(heights), len(heights[0])
+    pacific := make([][]bool, m)
+    atlantic := make([][]bool, m)
+    for i := range pacific {
+        pacific[i] = make([]bool, n)
+        atlantic[i] = make([]bool, n)
+    }
+
+    var dfs func(int, int, [][]bool)
+    dfs = func(x, y int, ocean [][]bool) {
+        if ocean[x][y] {
+            return
+        }
+        ocean[x][y] = true
+        for _, d := range dirs {
+            if nx, ny := x+d.x, y+d.y; 0 <= nx && nx < m && 0 <= ny && ny < n && heights[nx][ny] >= heights[x][y] {
+                dfs(nx, ny, ocean)
+            }
+        }
+    }
+    for i := 0; i < m; i++ {
+        dfs(i, 0, pacific)
+    }
+    for j := 1; j < n; j++ {
+        dfs(0, j, pacific)
+    }
+    for i := 0; i < m; i++ {
+        dfs(i, n-1, atlantic)
+    }
+    for j := 0; j < n-1; j++ {
+        dfs(m-1, j, atlantic)
+    }
+
+    for i, row := range pacific {
+        for j, ok := range row {
+            if ok && atlantic[i][j] {
+                ans = append(ans, []int{i, j})
+            }
+        }
+    }
+    return
+}
+```
+
+也可以同理，单点 BFS，每个点做一次(vis不清空)。多点也行。
+
+优先级队列不是必要的。上面我的 BFS 代码直接换成队列也可以通过。易推。
+
+##### 778\.水位上升的泳池中游泳
+
+[题目](https://leetcode.cn/problems/swim-in-rising-water)
+
+类 Dijkstra，用堆+BFS，维护遇到的最大高度。
+
+也可以二分+BFS/并查集，略。
+
+```go
+type entry struct{ i, j, val int }
+type hp []entry
+
+func (h hp) Len() int            { return len(h) }
+func (h hp) Less(i, j int) bool  { return h[i].val < h[j].val }
+func (h hp) Swap(i, j int)       { h[i], h[j] = h[j], h[i] }
+func (h *hp) Push(v interface{}) { *h = append(*h, v.(entry)) }
+func (h *hp) Pop() interface{}   { a := *h; v := a[len(a)-1]; *h = a[:len(a)-1]; return v }
+
+type pair struct{ x, y int }
+var dirs = []pair{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}
+
+func swimInWater(grid [][]int) (ans int) {
+    n := len(grid)
+    vis := make([][]bool, n)
+    for i := range vis {
+        vis[i] = make([]bool, n)
+    }
+    vis[0][0] = true
+    h := &hp{{0, 0, grid[0][0]}}
+    for {
+        e := heap.Pop(h).(entry)
+        ans = max(ans, e.val)
+        if e.i == n-1 && e.j == n-1 {
+            return
+        }
+        for _, d := range dirs {
+            if x, y := e.i+d.x, e.j+d.y; 0 <= x && x < n && 0 <= y && y < n && !vis[x][y] {
+                vis[x][y] = true
+                heap.Push(h, entry{x, y, grid[x][y]})
+            }
+        }
+    }
+}
+
+func max(a, b int) int {
+    if a > b {
+        return a
+    }
+    return b
+}
+```
 

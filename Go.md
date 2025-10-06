@@ -1519,7 +1519,7 @@ v, ok = score2["LR"]
 fmt.Println(v, ok) //  false
 ```
 
-也可以单返回值，返回零值如果key不存在
+也可以单返回值，返回零值如果key不存在 (不会插入该 key)
 
 ```go
 value := m["key"]
@@ -5112,6 +5112,12 @@ func TestAdd(t *testing.T) {
         t.Errorf("Add(2, 3) = %d; want %d", result, expected)
     }
 }
+```
+
+只测试含 `Reliable` 函数名的函数
+
+```sh
+go test -v -run Reliable
 ```
 
 ##### Example函数
