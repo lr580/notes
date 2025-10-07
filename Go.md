@@ -5950,6 +5950,12 @@ go get github.com/emirpasic/gods/trees/redblacktree
 prio2task := redblacktree.NewWithIntComparator()
 ```
 
+泛型
+
+```go
+t := redblacktree.New[int, struct{}]()
+```
+
 ###### 嵌套
 
 两个红黑树组成数组，键 only，值 any (即，对应 C++ set)
@@ -6001,10 +6007,12 @@ for i, it := 0, t.Iterator(); i < 5 && it.Next(); i++ {
 
 查询+删除：Remove (必须存在，否则 panic)
 
+注意删除操作会修改查找出来的节点，请保证删除后不再使用节点
+
 ```go
 for node, _ := t.Ceiling(mn); node.Key <= mx; node, _ = t.Ceiling(mn) { // _ 是是否查询到
     j := node.Key // 取 key
-    t.Remove(j) // 删除
+    t.Remove(j) // 删除，此时node指向其他节点
 }
 ```
 
