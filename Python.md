@@ -19355,7 +19355,7 @@ print(x[2].item(),type(x[2].item())) # 2, int
 src=src.contiguous()
 ```
 
-清理：
+###### 清理GC
 
 ```python
 import gc
@@ -19363,7 +19363,7 @@ gc.collect()
 torch.cuda.empty_cache()
 ```
 
-
+清理当前由 PyTorch 分配的未使用的 CUDA 内存，从而帮助缓解显存碎片化问题，提高显存的利用率
 
 ##### 参数
 
@@ -22387,7 +22387,9 @@ python experiments/train.py -c baselines/${MODEL_NAME}/${DATASET_NAME}.py -g '{G
 
 其中，Base... 该 runner 是 `BaseEpochRunner` 的子类，后者是抽象类，实现了 `train` 和 `test_pipeline` (测试流程)等方法。其中，`train` 结束就会调用 `test_pipeline`。感觉结构很复杂，像工程代码。
 
-多线程的话，效果上是把训练分到了多个显卡上，即一个模型复制到多个卡跑不同数据，而不是一个模型拆成多个组件放到多卡上
+多线程的话，效果上是把训练分到了多个显卡上，即一个模型复制到多个卡跑不同数据，而不是一个模型拆成多个组件放到多卡上。实际上有几个 GPU 多**进程**(不是多线程)跑，就会创建几个 Runner
+
+注意有缓存机制，如果配置文件完全没动过，只修改模型，会认为已经训练过了，再次运行会直接测试而不训练。
 
 ##### 损失函数
 
@@ -22408,6 +22410,29 @@ nohup python experiments/train.py -c baselines/DCRNN/PEMS07.py -g 0 &
 以 PEMS03 为例，通道是 3，添加了 time of day, day of week；第一个通道还是原始流量数据。具体阅读数据的代码可以参见我的仓库 [src](https://github.com/lr580/llm4traffic_prediction)
 
 图是 ndarray，01 数组。提供了函数 `basicts/utils/load_adj`，支持多种转换，如 DCRNN / GWNet 格式过渡矩阵等
+
+自定义，如添加 index：
+
+```python
+from basicts.data import TimeSeriesForecastingDataset
+from basicts.runners import SimpleTimeSeriesForecastingRunner
+class IndexedTimeSeriesForecastingDataset(TimeSeriesForecastingDataset):
+    def __getitem__(self, index):
+        item = super().__getitem__(index)
+        return item | {'index': index}
+    
+class IndexedTimeSeriesForecastingRunner(SimpleTimeSeriesForecastingRunner):
+    def forward(): # 参数不变:
+        # 只展示修改部分
+        future_data, history_data, index = data['target'], data['inputs'], data['index']
+        index = self.to_running_device(index) # Shape [B, ]
+        model_return = self.model(history_data=history_data, future_data=future_data_4_dec, batch_seen=iter_num, epoch=epoch, train=train, index=index)
+  
+# 配置里换用这两个 class
+    
+class Model(nn.Module): # 具体模型
+    def forward(self, history_data: torch.Tensor, future_data: torch.Tensor, batch_seen: int, epoch: int, train: bool, index:torch.Tensor) -> torch.Tensor:
+```
 
 ##### 预测
 

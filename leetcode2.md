@@ -3564,6 +3564,18 @@
 - 778\.水位上升的泳池中游泳
 
   BFS+堆 / 最短路 / 并查集
+  
+- 3494\.酿造药水需要的最少总时间
+
+  DP <u>/+凸包优化</u>
+  
+- 3147\.从魔法师身上吸取的最大能量
+
+  签到 前缀和
+  
+- 3186\.施咒的最大总伤害
+
+  DP 离散化 (/+双指针)
 
 ## 算法
 
@@ -26635,6 +26647,242 @@ func max(a, b int) int {
         return a
     }
     return b
+}
+```
+
+##### 3494\.酿造药水需要的最少总时间
+
+[题目](https://leetcode.cn/problems/find-the-minimum-amount-of-time-to-brew-potions)
+
+先正推得到最后一个魔法师的启动时间，然后根据它逆推其他魔法师的时间，即合并空闲时间。
+
+```go
+package main
+
+func minTime(skill []int, mana []int) (ans int64) {
+	n, m := len(skill), len(mana)
+	dp := make([]int64, n+1)
+	for i := 0; i < m; i++ {
+		for j := 0; j < n; j++ {
+			c := int64(skill[j] * mana[i])
+			dp[j+1] = max(dp[j+1], dp[j]) + c
+		}
+		// 合并空档
+		for j := n - 1; j >= 0; j-- {
+			c := int64(skill[j] * mana[i])
+			dp[j] = max(dp[j], dp[j+1]-c)
+			ans = max(ans, dp[j+1])
+		}
+	}
+	return ans
+}
+```
+
+其他解法：一次遍历。显然知道药水开始酿造时间，可以在预处理下，直接求出结束时间。考虑递推开始时间，如果开始时间由第i位巫师决定，那么它完成上一瓶药水的时间，就是它开始做下一瓶药水，也就是下一瓶药水的开始时间。则：
+$$
+\begin{align}
+lastFinish_j[i]&=start_j+mana_j\cdot\sum_{k=0}^iskill[k]\\
+lastFinish_{j-1}[i]+mana[j]\cdot skill[i]&=lastFinish_j[i]\\
+\end{align}
+$$
+联立得：
+$$
+start_j=start_{j-1}+mana[j-1]\cdot\sum_{k=0}^iskill[k]-
+mana[j]\cdot\sum_{k=0}^{j-1}skill[k]
+$$
+在有 skill 前缀和的情况下，枚举 i，取最大值：
+$$
+start_j=start_{j-1}+\max_{i=0}^{n-1}\{mana[j-1]\cdot s[i+1]-mana[j]\cdot s[i]\}
+$$
+初始值为 $start_0=0$，答案是 $lastFinish_{m-1}[n-1]$。
+
+```go
+func minTime(skill, mana []int) int64 {
+	n, m := len(skill), len(mana)
+	s := make([]int, n+1) // skill 的前缀和
+	for i, x := range skill {
+		s[i+1] = s[i] + x
+	}
+
+	start := 0
+	for j := 1; j < m; j++ {
+		mx := 0
+		for i := range n {
+			mx = max(mx, mana[j-1]*s[i+1]-mana[j]*s[i])
+		}
+		start += mx
+	}
+	return int64(start + mana[m-1]*s[n])
+}
+```
+
+构造 mana 的差分数组 $d=mana[j-1]-mana[j]$，则
+$$
+start_j=start_{j-1}+\max_{i=0}^{n-1}\{d \cdot s[i]+mana[j-1]\cdot skill[i]\}
+$$
+
+- 若 $d>0$，由于 s 单调递增，所以看 skill，倒序遍历 skill，每次看到更大的就记录。
+- 同理，$d\le0$，正序看最大值。
+- 再随机数据下，记录的长度是 O(log n)，这是因为，第i个数有1/(i+1)概率成为最大值，即期望给记录长度带来1/(i+1)的长度贡献。调和级数可求。在随机数据下，可以求得 mlogn 的复杂度。62ms->1ms
+
+```go
+func minTime(skill, mana []int) int64 {
+	n, m := len(skill), len(mana)
+	s := make([]int, n+1)
+	for i, x := range skill {
+		s[i+1] = s[i] + x
+	}
+
+	suf := []int{n - 1}
+	for i := n - 2; i >= 0; i-- {
+		if skill[i] > skill[suf[len(suf)-1]] {
+			suf = append(suf, i)
+		}
+	}
+
+	pre := []int{0}
+	for i := 1; i < n; i++ {
+		if skill[i] > skill[pre[len(pre)-1]] {
+			pre = append(pre, i)
+		}
+	}
+
+	start := 0
+	for j := 1; j < m; j++ {
+		record := suf
+		if mana[j-1] < mana[j] {
+			record = pre
+		}
+		mx := 0
+		for _, i := range record {
+			mx = max(mx, mana[j-1]*s[i+1]-mana[j]*s[i])
+		}
+		start += mx
+	}
+	return int64(start + mana[m-1]*s[n])
+}
+```
+
+考虑点积：令 $v_i=(s[i],skill[i]), p=(d,mana[j-1])$，上面可以化简为
+$$
+start_j=start_{j-1}+\max_{i=0}^{n-1} p\cdot v_i
+$$
+即 $v_i$ 在 $p$ 方向投影长度，乘模长 $||p||$，即最大化投影长度。
+
+考虑点集 $v$ 的上凸包 (Andrew 求)，对给定的 $p$，非凸包上的点都可以表示为凸包上的点的加权和，即 $v=\sum_{i=1}^k\lambda_i v_i$ 且 $\sum_{i=1}^k\lambda_i=1$，令 $v_j$ 是点集最大的点，故
+$$
+pv=\sum_{i=1}^k\lambda_i(pv_i)\le \sum_{i=1}^k\lambda_i\max_j\{pv_j\}=\max_j\{pv_j\}
+$$
+故凸包内部的点不可能比凸包上的点更优，故只需要考虑凸包上的点。
+
+> 其中，$v=\sum_{i=1}^k\lambda_i v_i$ 且 $\sum_{i=1}^k\lambda_i=1$ 是凸包的性质，和=1一定在凸包里，不为1可能不在凸包里。可以参见可视化程序 [src](https://gist.github.com/lr580/a899e5a12a34d5bcea16b477438923a4)
+
+对单峰函数找最大值，可以用>关系构造01bool单调数组然后二分。
+
+> s[i]是前缀和，严格递增。因此，点集的x坐标是单调递增的。在这种情况下，使用Andrew算法构建的凸包链实际上包含了所有凸包顶点（既包括上凸包也包括下凸包的点）。
+>
+> 对一般的题目，将凸包顶点按极角排序（或按x坐标排序，如果x单调），点积函数在排序后的凸包序列上是单峰的，因此可以二分查找最大值。这是因为，凸包上的点，它方向的变化是单调的，所以叉乘是单调的。
+>
+> 更一般地，线性函数（如点积）在凸集上的极值点总是唯一的（除非 p 与某条边垂直，但顶点仍包括极值点）。
+
+```go
+type vec struct{ x, y int }
+
+func (a vec) sub(b vec) vec { return vec{a.x - b.x, a.y - b.y} }
+func (a vec) det(b vec) int { return a.x*b.y - a.y*b.x }
+func (a vec) dot(b vec) int { return a.x*b.x + a.y*b.y }
+
+// Andrew 算法，计算 points 的上凸包
+// 由于横坐标（前缀和）是严格递增的，所以无需排序
+func convexHull(points []vec) (q []vec) {
+	for _, p := range points {
+		for len(q) > 1 && q[len(q)-1].sub(q[len(q)-2]).det(p.sub(q[len(q)-1])) >= 0 {
+			q = q[:len(q)-1]
+		}
+		q = append(q, p)
+	}
+	return
+}
+
+func minTime(skill, mana []int) int64 {
+	n, m := len(skill), len(mana)
+	s := make([]int, n+1)
+	vs := make([]vec, n)
+	for i, x := range skill {
+		s[i+1] = s[i] + x
+		vs[i] = vec{s[i], x}
+	}
+	vs = convexHull(vs) // 去掉无用数据
+
+	start := 0
+	for j := 1; j < m; j++ {
+		p := vec{mana[j-1] - mana[j], mana[j-1]}
+		// p.dot(vs[i]) 是个单峰函数，二分找最大值
+		i := sort.Search(len(vs)-1, func(i int) bool { return p.dot(vs[i]) > p.dot(vs[i+1]) })
+		start += p.dot(vs[i])
+	}
+	return int64(start + mana[m-1]*s[n])
+}
+```
+
+##### 3147\.从魔法师身上吸取的最大能量
+
+[题目](https://leetcode.cn/problems/taking-maximum-energy-from-the-mystic-dungeon)
+
+k个后缀和，
+
+```go
+func maximumEnergy(energy []int, k int) int {
+	a := make([]int, k)
+	ans := math.MinInt32
+	n := len(energy)
+	for i := n - 1; i >= 0; i-- {
+		a[i%k] += energy[i]
+		ans = max(ans, a[i%k])
+	}
+	return ans
+}
+```
+
+原地：
+
+```python
+class Solution:
+    def maximumEnergy(self, energy: List[int], k: int) -> int:
+        for i in range(len(energy) - k - 1, -1, -1):
+            energy[i] += energy[i + k]
+        return max(energy)
+```
+
+##### 3186\.施咒的最大总伤害
+
+[题目](https://leetcode.cn/problems/maximum-total-damage-with-spell-casting)
+
+优雅的实现，不用离散 dp 数组，用了双指针
+
+```go
+func maximumTotalDamage(power []int) int64 {
+	cnt := map[int]int{}
+	for _, x := range power {
+		cnt[x]++
+	}
+
+	n := len(cnt)
+	a := make([]int, 0, n)
+	for x := range cnt {
+		a = append(a, x)
+	}
+	slices.Sort(a)
+
+	f := make([]int, n+1)
+	j := 0
+	for i, x := range a {
+		for a[j] < x-2 {
+			j++
+		}
+		f[i+1] = max(f[i], f[j]+x*cnt[x])
+	}
+	return int64(f[n])
 }
 ```
 
