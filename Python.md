@@ -401,6 +401,8 @@ ipynb使用十分简单，事实上就是一堆代码框，然后可以分块运
 
 这个工具跟自带IDLE相比，可以有vscode插件加成，有输入提示，可以用 vscode 整
 
+> 挂梯子可能会导致 vscode ipynb 启动失败，可以尝试关闭梯子
+
 ##### 安装
 
 ```shell
@@ -10565,9 +10567,11 @@ audiometric = pd.read_csv('audiometric.csv')
 # 会输出有几行、几列；返回值是 DataFrame
 ```
 
-> 可以读 `.tsv`，加参数 `sep='\t'` (跟后缀无关，单纯修改分隔符)
+> 可以读 `.tsv`，加参数 `sep='\t'` (跟后缀无关，单纯修改分隔符)；可以处理双引号；可以读 `.txt`
 >
-> 可以读 `.txt`
+> ```python
+> df = pd.read_csv('bank-additional-full.csv', sep=';', quotechar='"')
+> ```
 >
 > 增加参数，指定某一列的读入类型：
 >
@@ -11306,7 +11310,10 @@ with pd.option_context('display.float_format', '{:.2f}'.format):
 
 ##### nan/null
 
-###### NA
+pandas 会自动处理 `NaN`、`None`、`NA`之间的转换，可以被 isna 统一检测出来。
+
+> ###### NA
+>
 
 常量：`pd.NA`。
 
@@ -11324,7 +11331,7 @@ df.dropna(axis=1) #的列，而不是的行
 df.dropna(subset=['B'])
 ```
 
-`isna()`：(反义 `notna`)
+`isna()`：(反义 `notna`)；注意 isna, isnull 同义；notna, notnull 同理。
 
 ```python
 israel['Age'].isna() # isna() 返回布尔列
@@ -11352,7 +11359,7 @@ B[A[A.isna()].index]
 - 可对一个列使用如 `df['MW'] = df['MW'].fillna(0)`
 
 > ```python
-> heights_mcar.fillna(heights_mcar['child'].mean())
+> heights_mcar.fillna(heights_mcar['child'].mean()) # .mode()[0]
 > child_imputed.loc[child.isnull()] = imputed_values # 等长度的 serial / numpy 数组
 > ```
 >
@@ -11380,7 +11387,8 @@ df['OUTAGE.START.TIME'] = pd.to_timedelta(df['OUTAGE.START.TIME'], errors='coerc
 df['OUTAGE.START.DATE'] = df['OUTAGE.START.DATE'].combine_first(pd.Timestamp(0))
 ```
 
-###### null
+> ###### null
+>
 
 判断当前元素是否是 null(如 `datetime` 的 coerce)：`pd.notnull(x)`。
 

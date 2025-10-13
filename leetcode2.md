@@ -3576,6 +3576,14 @@
 - 3186\.施咒的最大总伤害
 
   DP 离散化 (/+双指针)
+  
+- 3539\.魔法序列的数组乘积之和
+
+  **DP/记忆化搜索 组合数学**
+  
+- 2273\.移除字母异位词后的结果数组
+
+  签到
 
 ## 算法
 
@@ -26883,6 +26891,169 @@ func maximumTotalDamage(power []int) int64 {
 		f[i+1] = max(f[i], f[j]+x*cnt[x])
 	}
 	return int64(f[n])
+}
+```
+
+##### 3539\.魔法序列的数组乘积之和
+
+[题目](https://leetcode.cn/problems/find-sum-of-array-product-of-magical-sequences)
+
+设选了 $j$ 个下标 $i$，则该序列 $I$ 它的贡献是 $nums[i]^j$，序列长 $m$，共 $m!$ 种下标排列，去掉自己跟自己重复的部分，即重复的排列 $j!$。设每个下标分别选了 $c_i$ 个，那么序列乘积为：
+$$
+\sum_If(I)=\sum_I\prod_{i=0}^{n-1}nums[i]^{c_i}=m!\sum_{\sum_{j=0}^{n-1}c_j=m}\prod_{i=0}^{n-1}\dfrac{nums[i]^{c_i}}{c_i!}
+$$
+同理，求置位数的 2 幂和为 $S=\sum_{i=0}^{n-1}c_i2^i$。枚举 $i$ 时，一定不会修改到 $<i$ 的位的置位情况。
+
+定义记忆化搜索 `dfs(i, leftM, x, leftK)`，其中：
+
+- i 是当前枚举的下标
+- leftM 是还需要选几个下标
+- S 右移 i 位的结果 $x=\lfloor\dfrac S{2^i}\rfloor$
+- leftK 是还需要多少个 1
+
+递推方程，枚举下标 i 选 $j=0,1,\cdots,leftM$ 个，新的状态是：
+$$
+dfs(i+1,leftM-j,\lfloor\dfrac{x+j}2\rfloor,leftK-(x+j)\bmod 2)
+$$
+其中：
+
+- $S'=S+j2^i,x'=\lfloor\dfrac{S'}{2^{i+1}}\rfloor$ 易化简得知 $x'=\lfloor\dfrac{x+j}2\rfloor$
+- 如果没有 j 干扰，原本 $x\bmod2$ 即最低位就是更新确定的已得到 1 数目；有影响下看影响后最低位还是不是 1，即 $(x+j)\bmod2$
+
+新状态需要满足 $leftK\ge0$ 即 $leftK\ge(x+j)\bmod2$。
+
+设状态下的 DP 置表示当前子问题的答案，原问题是 $\sum_If(I)=m!dfs(0,m,0,k)$。即如：
+$$
+\begin{align}
+\dfrac1{m!}\sum_If(I)=
+&\sum_{\sum_{j=0}^{n-1}c_j=m}\prod_{i=0}^{n-1}\dfrac{nums[i]^{c_i}}{c_i!}\\
+=&\sum_{c_0=0}^m\sum_{\sum_{j=1}^{n-1}c_j=m-c_0}\prod_{i=0}^{n-1}\dfrac{nums[i]^{c_i}}{c_i!}\\
+%=&\sum_{\sum_{j=1}^{n-1}c_j=m-c_0}\sum_{c_0=0}^m\prod_{i=0}^{n-1}\dfrac{nums[i]^{c_i}}{c_i!}\\
+=&\sum_{c_0=0}^m\sum_{\sum_{j=1}^{n-1}c_j=m-c_0}\dfrac{nums[0]^{c_0}}{c_0!}\prod_{i=1}^{n-1}\dfrac{nums[i]^{c_i}}{c_i!}\\
+=&\sum_{c_0=0}^m\dfrac{nums[0]^{c_0}}{c_0!}\sum_{\sum_{j=1}^{n-1}c_j=m-c_0}\prod_{i=1}^{n-1}\dfrac{nums[i]^{c_i}}{c_i!}\\
+\end{align}
+$$
+即：
+$$
+dfs(0,m,0,k)=\sum_{j=0}^m\dfrac{nums[i]^j}{j!}dfs(1,m-j,\lfloor\dfrac j2\rfloor,k-(j\bmod2))
+$$
+以此类推：
+$$
+\begin{align}
+&dfs(i,leftM,x,leftK)\\=
+&\sum_{j=0}^{leftM}\dfrac{nums[i]^j}{j!}dfs(i+1,leftM-j,\lfloor\dfrac{x+j}2\rfloor,leftK-(x+j)\bmod2)
+\end{align}
+$$
+
+> 代码中记 $pow\_v[i][j]=nums[i]^j$
+
+剪枝：设 $x$ 有 $c1$ 个二进制 1，最理想情况，不管怎么选，最多能凑 $c1+leftM$ 个 $1$，如果仍然凑不够 $leftK$，一定无解。
+
+状态数：$n\cdot m\cdot m\cdot k$，对 $x$ 这部分，由于 $\dfrac j2< m$，所以每次必然满足 $x\le m$。递推计算 $O(m)$，故时间 $O(nm^3k)\approx4\times10^7$，空间 $O(nm^2k)$。
+
+```python
+MOD = 1_000_000_007
+MX = 31
+
+fac = [0] * MX  # fac[i] = i!
+fac[0] = 1
+for i in range(1, MX):
+    fac[i] = fac[i - 1] * i % MOD
+
+inv_f = [0] * MX  # inv_f[i] = i!^-1
+inv_f[-1] = pow(fac[-1], -1, MOD)
+for i in range(MX - 1, 0, -1):
+    inv_f[i - 1] = inv_f[i] * i % MOD
+
+class Solution:
+    def magicalSum(self, m: int, k: int, nums: List[int]) -> int:
+        n = len(nums)
+        pow_v = [[1] * (m + 1) for _ in range(n)]
+        for i, v in enumerate(nums):
+            for j in range(1, m + 1):
+                pow_v[i][j] = pow_v[i][j - 1] * v % MOD
+
+        @cache
+        def dfs(i: int, left_m: int, x: int, left_k: int) -> int:
+            c1 = x.bit_count()
+            if c1 + left_m < left_k:  # 可行性剪枝
+                return 0 # 754ms -> 281ms
+            if i == n or left_m == 0 or left_k == 0:  # 无法继续选数字
+                return 1 if left_m == 0 and c1 == left_k else 0
+            res = 0
+            for j in range(left_m + 1):  # 枚举 I 中有 j 个下标 i
+                # 这 j 个下标 i 对 S 的贡献是 j * pow(2, i)
+                # 由于 x = S >> i，转化成对 x 的贡献是 j
+                bit = (x + j) & 1  # 取最低位，提前从 left_k 中减去，其余进位到 x 中
+                r = dfs(i + 1, left_m - j, (x + j) >> 1, left_k - bit)
+                res += r * pow_v[i][j] * inv_f[j]
+            return res % MOD
+
+        return dfs(0, m, 0, k) * fac[m] % MOD
+```
+
+转换为 DP 的话，反而更慢 (281ms -> 4585ms)，但空间可以滚动优化 i 这个维度。
+
+```python
+MOD = 1_000_000_007
+MX = 31
+
+fac = [0] * MX  # fac[i] = i!
+fac[0] = 1
+for i in range(1, MX):
+    fac[i] = fac[i - 1] * i % MOD
+
+inv_f = [0] * MX  # inv_f[i] = i!^-1
+inv_f[-1] = pow(fac[-1], -1, MOD)
+for i in range(MX - 1, 0, -1):
+    inv_f[i - 1] = inv_f[i] * i % MOD
+
+class Solution:
+    def magicalSum(self, m: int, k: int, nums: List[int]) -> int:
+        n = len(nums)
+        pow_v = [[1] * (m + 1) for _ in range(n)]
+        for i, v in enumerate(nums):
+            for j in range(1, m + 1):
+                pow_v[i][j] = pow_v[i][j - 1] * v % MOD
+
+        f = [[[[0] * (k + 1) for _ in range(m // 2 + 1)] for _ in range(m + 1)] for _ in range(n + 1)]
+        for x in range(m // 2 + 1):
+            c1 = x.bit_count()
+            if c1 <= k:
+                f[n][0][x][c1] = 1
+
+        for i in range(n - 1, -1, -1):
+            for left_m in range(m + 1):
+                for x in range(m // 2 + 1):
+                    for left_k in range(k + 1):
+                        res = 0
+                        for j in range(min(left_m, m - x) + 1):
+                            bit = (x + j) & 1
+                            if bit <= left_k:
+                                r = f[i + 1][left_m - j][(x + j) >> 1][left_k - bit]
+                                res += r * pow_v[i][j] * inv_f[j]
+                        f[i][left_m][x][left_k] = res % MOD
+        return f[0][m][0][k] * fac[m] % MOD
+```
+
+##### 2273\.移除字母异位词后的结果数组
+
+[题目](https://leetcode.cn/problems/find-resultant-array-after-removing-anagrams)
+
+```go
+func removeAnagrams(words []string) []string {
+	var base []byte
+	k := 0
+	for _, word := range words {
+		s := []byte(word)
+		slices.Sort(s)
+		if !bytes.Equal(s, base) {
+			base = s
+			words[k] = word // 保留 word
+			k++
+		}
+	}
+	return words[:k]
 }
 ```
 
