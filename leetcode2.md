@@ -3584,6 +3584,14 @@
 - 2273\.移除字母异位词后的结果数组
 
   签到
+  
+- 3349\.检测相邻递增子数组I
+
+  签到
+
+- 3350\.检测相邻递增子数组II
+
+  二分
 
 ## 算法
 
@@ -27054,6 +27062,113 @@ func removeAnagrams(words []string) []string {
 		}
 	}
 	return words[:k]
+}
+```
+
+##### 3349\.检测相邻递增子数组I
+
+[题目](https://leetcode.cn/problems/adjacent-increasing-subarrays-detection-i)
+
+暴力枚举
+
+```go
+func hasIncreasingSubarrays(nums []int, k int) bool {
+	n := len(nums)
+	for i := 0; i+2*k-1 < n; i++ {
+		ok := true
+		for c := 0; c < 2 && ok; c++ {
+			for j := i + c*k + 1; j < i+(c+1)*k; j++ {
+				if nums[j] >= nums[j+1] {
+					ok = false
+					break
+				}
+			}
+		}
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+```
+
+一次遍历：维护上一段是否超过了k。
+
+```go
+func hasIncreasingSubarrays(nums []int, k int) bool {
+	cnt, n, suc := 1, len(nums), false
+	if k == 1 {
+		return n >= 2
+	}
+	for i := 1; i < n; i++ {
+		if nums[i] > nums[i-1] {
+			cnt++
+			if (cnt >= k && suc) || cnt >= 2*k {
+				return true
+			}
+		} else {
+			suc = cnt>=k
+			cnt = 1
+		}
+	}
+	return false
+}
+```
+
+##### 3350\.检测相邻递增子数组II
+
+[题目](https://leetcode.cn/problems/adjacent-increasing-subarrays-detection-ii)
+
+在上面一次遍历的基础上二分，显然满足单调性 (k单调，两序列前后删一个，k-1也单调)
+
+```go
+func maxIncreasingSubarrays(nums []int) int {
+	n := len(nums)
+	l, r, ans := 1, n/2, 1
+	for l <= r {
+		c := (l + r) / 2
+		if hasIncreasingSubarrays(nums, c) {
+			ans = c
+			l = c + 1
+		} else {
+			r = c - 1
+		}
+	}
+	return ans
+}
+```
+
+一次遍历：维护上一个递增段的最大值。
+
+```go
+func maxIncreasingSubarrays(nums []int) (ans int) {
+	cnt, n, lastCnt := 1, len(nums), 0
+	for i := 1; i < n; i++ {
+		if nums[i] > nums[i-1] {
+			cnt++
+			ans = max(ans, cnt/2)
+			ans = max(ans, min(lastCnt, cnt))
+		} else {
+			lastCnt = cnt
+			cnt = 1
+		}
+	}
+	return max(ans, 1)
+}
+```
+
+```go
+func maxIncreasingSubarrays(nums []int) (ans int) {
+	preCnt, cnt := 0, 0
+	for i, x := range nums {
+		cnt++
+		if i == len(nums)-1 || x >= nums[i+1] {
+			ans = max(ans, cnt/2, min(preCnt, cnt))
+			preCnt = cnt
+			cnt = 0
+		}
+	}
+	return
 }
 ```
 
