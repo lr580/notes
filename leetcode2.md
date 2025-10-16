@@ -3592,6 +3592,10 @@
 - 3350\.检测相邻递增子数组II
 
   二分
+  
+- 2598\.执行操作后的最大MEX
+
+  签到 数学(数论 同余)
 
 ## 算法
 
@@ -27169,6 +27173,26 @@ func maxIncreasingSubarrays(nums []int) (ans int) {
 		}
 	}
 	return
+}
+```
+
+##### 2598\.执行操作后的最大MEX
+
+[题目](https://leetcode.cn/problems/smallest-missing-non-negative-integer-after-operations)
+
+```go
+func findSmallestInteger(nums []int, m int) int {
+	cnt := make([]int, m)
+	for _, x := range nums {
+		cnt[(x%m+m)%m]++
+	}
+	i := 0
+	for j := 1; j < m; j++ {
+		if cnt[j] < cnt[i] {
+			i = j
+		}
+	}
+	return m*cnt[i] + i
 }
 ```
 
