@@ -3596,6 +3596,14 @@
 - 2598\.执行操作后的最大MEX
 
   签到 数学(数论 同余)
+  
+- 3003\.执行操作后的最大分割数量
+
+  **DFS+位运算(logTrick) / 前缀和+枚举**
+  
+- 3397\.执行操作后不同元素的最大数量
+
+  排序 <u>贪心</u>
 
 ## 算法
 
@@ -27193,6 +27201,156 @@ func findSmallestInteger(nums []int, m int) int {
 		}
 	}
 	return m*cnt[i] + i
+}
+```
+
+##### 3003\.执行操作后的最大分割数量
+
+[题目](https://leetcode.cn/problems/maximize-the-number-of-partitions-after-operations)
+
+递归枚举所有递归方案，状态为：当前打算修改的下标i、当前子串(不含i)有什么字母(26位mask)，之前是否修改过changed。
+
+- 如果不改，当前i字符加入后mask超过了k个位的话，分割数+1，mask重置；否则，它必须在当前段，继续维护。
+- 如果changed=false，可以改，枚举改为第j个字母，同理改完之后mask有两种情况。
+
+核心是复杂度证明：
+
+- 设子串起点j，终点i，当i不变时，从i往左一路扩展到j，参见LogTrick思想，最多会产生 k 个不同的 mask。在mask相同，但下标不同的位置修改，会得到一样的新mask，所以等价于只有k个本质不同的修改位置，每个位置可以修改$|\Sigma|=26$ 个方式。加上第一个状态i，总状态数即空间复杂度为 $O(nk|\Sigma|)$。
+- 如果changed=false的状态，因为不改，所以mask是唯一的，一个i只能有一个可能的mask，那么一共有 n 个状态，每个状态的递推是 $O(|\Sigma|)$ 的。
+  那么 changed=true 的状态就是 $O(nk|\Sigma|-n)$，这些状态是确定的，递推是 O(1) 的，故总时间复杂度是 $O(n\Sigma+nk\Sigma-n)=O(nk|\Sigma|)$
+
+```go
+func maxPartitionsAfterOperations(s string, k int) int {
+	n := len(s)
+	type args struct {
+		i, mask int
+		changed bool
+	}
+	memo := map[args]int{}
+
+	var dfs func(int, int, bool) int
+	dfs = func(i, mask int, changed bool) (res int) {
+		if i == n {
+			return 1
+		}
+
+		a := args{i, mask, changed}
+		if v, ok := memo[a]; ok { // 之前计算过
+			return v
+		}
+
+		// 不改 s[i]
+		bit := 1 << (s[i] - 'a')
+		newMask := mask | bit
+		if bits.OnesCount(uint(newMask)) > k {
+			// 分割出一个子串，这个子串的最后一个字母在 i-1
+			// s[i] 作为下一段的第一个字母，也就是 bit 作为下一段的 mask 的初始值
+			res = dfs(i+1, bit, changed) + 1
+		} else { // 不分割
+			res = dfs(i+1, newMask, changed)
+		}
+
+		if !changed {
+			// 枚举把 s[i] 改成 a,b,c,...,z
+			for j := 0; j < 26; j++ {
+				newMask := mask | 1<<j
+				if bits.OnesCount(uint(newMask)) > k {
+					// 分割出一个子串，这个子串的最后一个字母在 i-1
+					// j 作为下一段的第一个字母，也就是 1<<j 作为下一段的 mask 的初始值
+					res = max(res, dfs(i+1, 1<<j, true)+1)
+				} else { // 不分割
+					res = max(res, dfs(i+1, newMask, true))
+				}
+			}
+		}
+
+		memo[a] = res // 记忆化
+		return res
+	}
+
+	return dfs(0, 0, false)
+}
+```
+
+枚举 i，那么前缀 [0, i-1], 后缀 [i+1, n-1] 预处理出需要的分割段数。
+
+- 对后缀，设前缀 [0,j]分成若干段，下一段[j+1,k]含i，然后后缀[k+1,n-1]，所以后缀不含i，可以独立计算。
+- 后缀，从左到右分割出的段数，等于从右到左分割出的段数。可以证明。见0x3f图示，容易理解。
+
+遍历 s，枚举当前修改 s[i]，设前 i-1 分割出了 preSeg 段，在这其中最新一段 L 的字符集是 preMask，有 preSize 种字符。后缀 i+1 同理 sufSeg，最新 R 字符集 sufMask，大小是 sufSize。两个 mask 的并集是 unionSize。
+
+1. 若 unionSize<k，不管改成啥并集都不超过k，那么L,R合并。
+2. 若 unionSize<26，且 preSize=sufSize=k，可以找到一个不在 L,R 的字母，让 L,R 分割，从而段数+1
+3. 否则，总段数不变。
+
+特判k=26，ans=1。
+
+```go
+func maxPartitionsAfterOperations(s string, k int) int {
+	if k == 26 {
+		return 1
+	}
+
+	seg, mask, size := 1, 0, 0
+	update := func(i int) {
+		bit := 1 << (s[i] - 'a')
+		if mask&bit > 0 {
+			return
+		}
+		size++
+		if size > k {
+			seg++ // s[i] 在新的一段中
+			mask = bit
+			size = 1
+		} else {
+			mask |= bit
+		}
+	}
+
+	n := len(s)
+	type pair struct{ seg, mask int }
+	suf := make([]pair, n+1)
+	for i := n - 1; i >= 0; i-- {
+		update(i)
+		suf[i] = pair{seg, mask}
+	}
+
+	ans := seg // 不修改任何字母
+	seg, mask, size = 1, 0, 0
+	for i := range s {
+		p := suf[i+1]
+		res := seg + p.seg // 情况 3
+		unionSize := bits.OnesCount(uint(mask | p.mask))
+		if unionSize < k {
+			res-- // 情况 1
+		} else if unionSize < 26 && size == k && bits.OnesCount(uint(p.mask)) == k {
+			res++ // 情况 2
+		}
+		ans = max(ans, res)
+		update(i)
+	}
+	return ans
+}
+```
+
+##### 3397\.执行操作后不同元素的最大数量
+
+[题目](https://leetcode.cn/problems/maximum-number-of-distinct-elements-after-operations)
+
+全部往能变的最小不重复的去变。排序后，因为一直都这样贪心，所以只需要维护上一次的值，下一个最小能变的肯定是上一次+1，若不然，上一个就操作到那个值了。所以无需线段树/静态双链表离散化区间合并之类的操作。
+
+```go
+func maxDistinctElements(nums []int, k int) (ans int) {
+	slices.Sort(nums)
+	pre := math.MinInt // 记录每个人左边的人的位置
+	for _, x := range nums {
+		x = min(max(x-k, pre+1), x+k)
+		if x > pre {
+			ans++
+			pre = x
+		}
+	}
+	return
 }
 ```
 
