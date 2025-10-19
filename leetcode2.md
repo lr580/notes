@@ -3604,6 +3604,10 @@
 - 3397\.执行操作后不同元素的最大数量
 
   排序 <u>贪心</u>
+  
+- 1625\.执行操作后字典序最小的字符串
+
+  DFS / <u>数论(裴蜀定理)</u> / <u>最小表示法</u>
 
 ## 算法
 
@@ -27354,3 +27358,181 @@ func maxDistinctElements(nums []int, k int) (ans int) {
 }
 ```
 
+##### 1625\.执行操作后字典序最小的字符串
+
+[题目](https://leetcode.cn/problems/lexicographically-smallest-string-after-applying-operations)
+
+设记忆化状态：原奇数位被加了多少，原偶数位被加了多少，原串向右轮转了多少。设字符串长度 n，则全体状态数为 $O(10^2n)$。
+
+对每个状态，递推方程(两个操作和比大小)都是 $O(n)$ 的，故总复杂度为 $O(10^2n^2)$。
+
+```go
+type state struct {
+	move, odd, even int
+}
+
+func findLexSmallestString(s string, a int, b int) (ans string) {
+	m := map[state]struct{}{}
+	n := len(s)
+	ans = s
+
+	var dfs func(t string, st state)
+	dfs = func(t string, st state) {
+		if _, exist := m[st]; exist {
+			return
+		}
+		m[st] = struct{}{}
+		if t < ans {
+			ans = t
+		}
+        // fmt.Println(t, st)
+		v := []byte(t)
+		for i := 1; i < n; i += 2 {
+			v[i] = byte(((int(v[i])-'0')+a)%10 + '0')
+		}
+		st1 := state{st.move, st.odd, st.even}
+		if st.move%2 == 0 {
+			st1.odd = (st1.odd + a) % 10
+		} else {
+			st1.even = (st1.even + a) % 10
+		}
+		dfs(string(v), st1)
+		for i := 0; i < n; i++ {
+			v[(i+b)%n] = t[i]
+		}
+		st2 := state{(st.move + b) % n, st.odd, st.even}
+		dfs(string(v), st2)
+	}
+	dfs(s, state{0, 0, 0})
+	return
+}
+```
+
+**裴蜀定理**：$ax+by=c$ 有整数解当且仅当 $\gcd(a,b)|c$。
+
+设加了 $k$ 次，第一个奇数下标数字 $s_1$ 变成 $r=(s_1+ak)\bmod10$。让 $r=s_1+ak-10q$ 最小，即解 $ak-10q=r-s_1$，有解当且仅当 $r-s_1$ 是 $g=\gcd(a,10)$ 的倍数，即 $r\equiv s\pmod g$，即 $s_1$ 的最小值 $r$ 是 $s_1\bmod g$，其变化量是 $s_1\bmod g-s_1+10$，它用来计算其他 $s_{1+2n'}$ 如何变化。
+
+设能轮转到最左边的下标是 $step$，则 $step=bk'\bmod n$，同理，知 $step$ 是 $\gcd(b,n)$ 的倍数，故若 $\gcd(b,n)$ 是奇数，可以拥有对偶数下标累加的能力。
+
+枚举全体 $i=k'step$。枚举量为 $O(\dfrac n{\gcd(b,n)})$，每次操作 $O(n)$，故 $O(\dfrac {n^2}{\gcd(b,n)})$
+
+```go
+func findLexSmallestString(s string, a int, b int) string {
+	n := len(s)
+	step := gcd(b, n)
+	g := gcd(a, 10)
+	var ans []byte
+
+	for i := 0; i < n; i += step {
+		t := []byte(s[i:] + s[:i]) // 轮转
+		modify := func(start int) {
+			ch := t[start] - '0' // 最靠前的数字，越小越好
+			// ch 可以变成的最小值为 ch%g
+			// 例如 ch=5，g=2，那么 ch+2+2+2（模 10）后变成 1，不可能变得更小
+			// 从 ch 到 ch%g，需要增加 inc，其中 +10 保证 inc 非负（循环中会 %10 保证结果在 [0,9] 中）
+			inc := ch%byte(g) + 10 - ch
+			for j := start; j < n; j += 2 {
+				t[j] = '0' + (t[j]-'0'+inc)%10
+			}
+		}
+		modify(1) // 累加操作（所有奇数下标）
+		if step%2 > 0 { // 能对偶数下标执行累加操作
+			modify(0) // 累加操作（所有偶数下标）
+		}
+		if ans == nil || bytes.Compare(t, ans) < 0 {
+			ans = t
+		}
+	}
+
+	return string(ans)
+}
+
+func gcd(a, b int) int {
+	for a != 0 {
+		a, b = b%a, a
+	}
+	return b
+}
+```
+
+**最小表示法**：对字符串 S，它不断往左移1位构成的全体循环同构串里字典序最小的一个。用线性复杂度可以推出。使用双指针，设 $i=0,j=1$ 是两个候选答案的起始位置，设偏移量为 $k=0$ 表示 $i,j$ 的前 $k$ 个字符相等。如果 i 的比 j 的最新的大，直接把 i 跳到 i+k+1，可以枚举得知， i+k+1 之前都不会比 j 大。重置 k。如果跳跃后相等，i++。如果 i 比 j 的最新的小，同理跳 j。由于+k会给i,j某一个加势能，所以最后一定只O(n)次。
+
+```c++
+class Solution {
+public:
+    struct RotStr {
+        unsigned pos, d0, d1;
+    };
+
+    static unsigned add(unsigned a, unsigned b, unsigned m) {
+        const unsigned c = a + b;
+        return c < m ? c : c - m;
+    }
+
+    static unsigned compare(string_view s, RotStr s1, RotStr s2) {
+        const unsigned d1[2] = {s1.d0, s1.d1};
+        const unsigned d2[2] = {s2.d0, s2.d1};
+        unsigned p1 = s1.pos, p2 = s2.pos;
+        const unsigned n = s.size();
+        for (unsigned i = 0;i < n;++i) {
+            const unsigned c1 = add(s[p1] - '0', d1[p1 % 2], 10);
+            const unsigned c2 = add(s[p2] - '0', d2[p2 % 2], 10);
+            if (c1 != c2) return c1 < c2;
+            if (++p1 == n) p1 = 0;
+            if (++p2 == n) p2 = 0;
+        }
+        return false;
+    }
+
+    static unsigned min_rotate(string_view s, unsigned d0, unsigned d1, unsigned db) {
+        const unsigned d[2] = {d0, d1};
+        unsigned i = 0, j = db, k = 0;
+        const unsigned n = s.size();
+        while (i < n && j < n && k < n) {
+            const unsigned p1 = add(i, k, n);
+            const unsigned p2 = add(j, k, n);
+            const unsigned c1 = add(s[p1] - '0', d[p1 % 2], 10);
+            const unsigned c2 = add(s[p2] - '0', d[p2 % 2], 10);
+            if (c1 == c2)
+                ++k;
+            else {
+                (c1 < c2 ? j : i) += (k / db + 1) * db;
+                if (i == j) j += db;
+                k = 0;
+            }
+        }
+        return min(i, j);
+    }
+
+    string findLexSmallestString(string s, int a, int b) {
+        const int n = s.size(), da = gcd(a, 10), db = gcd(b, n);
+        const unsigned na = db % 2 ? 10 : da;
+        RotStr ans = {0, 0, 0};
+        for (unsigned i = 0;i < na;i += da) {
+            for (unsigned j = 0;j < 10;j += da) {
+                const unsigned p = min_rotate(s, i, j, db);
+                if (compare(s, {p, i, j}, ans))
+                    ans = {p, i, j};
+            }
+        }
+        const unsigned d[2] = {ans.d0, ans.d1};
+        for (unsigned i = 0;i < n;++i)
+            s[i] = add(s[i] - '0', d[i % 2], 10) + '0';
+        const auto ptr = s.data();
+        rotate(ptr, ptr + ans.pos, ptr + n);
+        return s;
+    }
+};
+```
+
+- string_view 是包含指针和长度的轻量字符串，不管理内存只引用。C++17
+
+- compare 比较两个字符串，其中字符串和我的 state 一样，用三个状态表示
+
+- 用裴蜀定理枚举奇偶，如果是偶不能变化，外层 i 只能 i=0
+
+- step 的枚举用最小表示法优化，对当前的奇偶变化，求出最小字典序的下标 p
+
+  具体而言，j 起始是 step(db)。对第k位下要比较的i,j的最后下标p1,p2，当前下标根据奇偶变化求出最终字符值c1,c2，如果不相等的话，k/db是完整匹配了多少个db步长，在此之外，新的一步一定还要算，所以不是(k-1)/db。也就是新的步长跳到下一个能走的第一个db。
+
+因此，复杂度为 $O(nd^2)$，其中 $d=10$。
