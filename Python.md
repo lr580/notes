@@ -2826,6 +2826,15 @@ print(p)  # 输出: Point(x=1, y=2)
 
 - 排序支持：通过设置`order`参数，可以让数据类支持比较操作（如`<`, `<=`, `>`, `>=`）。
 
+###### 缺省
+
+```python
+from dataclasses import dataclass, field
+@dataclass
+class Results:
+    results: List[int] = field(default_factory=list)
+```
+
 ###### 排序
 
 ```python
@@ -6687,6 +6696,17 @@ if not pathlib.Path(data_dir / 'israel.csv').exists():
 
 ```python
 Path('./data/tky_800/').parts # ('data', 'tky_800')
+```
+
+综合例子：打开当前代码文件下目录下的某文件：[参见我的仓库](https://github.com/lr580/llm4traffic_prediction)
+
+```python
+current_file = Path(__file__).resolve()
+current_dir = current_file.parent
+csv_path = current_dir / 'baselineResults.csv'
+if not csv_path.exists():
+    raise FileNotFoundError(f"找不到文件: {csv_path}")
+return str(csv_path)
 ```
 
 
@@ -11060,11 +11080,17 @@ for i, row in df_homework1.iterrows():
     score = row['总分']
 ```
 
-
-
 ##### 索引
 
-###### 常规
+> 只讲单索引，聚合索引等看其他章节。
+
+默认是一个从 0 开始的整数序列（`RangeIndex`），形式为 `0, 1, 2, ..., n-1`，其中 `n`是 DataFrame 的行数。
+
+```python
+df = pd.DataFrame({"A": [1, 2, 3], "B": ["x", "y", "z"]})
+print("Index:", df.index)
+# RangeIndex(start=0, stop=3, step=1)
+```
 
 取索引 `.index`，再转列表：`.tolist()`
 
@@ -11076,6 +11102,7 @@ data = {'Name': ['Alice', 'Bob', 'Charlie'],
 df = pd.DataFrame(data)
 # 设置索引为 'Name' 列，删掉初始索引
 df.set_index('Name', inplace=True)
+print(df.index) # Index(['Alice', 'Bob', 'Charlie'], dtype='object', name='Name')
 # 使用 reset_index 重置索引，归还初始状态
 df_reset = df.reset_index()
 print(df_reset)
@@ -11084,71 +11111,6 @@ print(df_reset)
 可以设置 `reset_index(drop=1)`，顺手把原本的索引列即上例 name 删了
 
 inplace 如果设置为 `False`（默认值），则不会修改原始 DataFrame，而是返回一个新的 DataFrame
-
-###### 聚合索引
-
-多列多聚合函数导致的：
-
-```python
-data2 = {
-    'group': ['A', 'B', 'A', 'B', 'A'],
-    'x': [1, 2, 3, 4, 5],
-    'y': [2, 1, 4, 3, 5]
-}
-df=pd.DataFrame(data2)
-df.groupby('group').agg(['mean','std']).to_dict()
-'''      x                   y          
-      mean       std      mean       std
-group                                   
-A      3.0  2.000000  3.666667  1.527525
-B      3.0  1.414214  2.000000  1.414214'''
-# {('x', 'mean'): {'A': 3.0, 'B': 3.0}, ('x', 'std'): {'A': 2.0, 'B': 1.4142135623730951}, ('y', 'mean'): {'A': 3.6666666666666665, 'B': 2.0}, ('y', 'std'): {'A': 1.5275252316519468, 'B': 1.4142135623730951}}
-```
-
-
-
-生成跟上面 group by 双索引一样的数据：
-
-```python
-# 创建示例数据
-data = {
-    'Temperature': [0.0, 2.3, 8.0, 7.1, 5.5, 6.2],
-    'Rainfall': [0.0, 13.1, 5.0, 6.7, 15.3, 10.1]
-}
-
-# 创建多层索引
-arrays = [
-    ['Berlin', 'Berlin', 'London', 'London', 'Paris', 'Paris'],
-    ['2021-01-01', '2021-01-02', '2021-01-01', '2021-01-02', '2021-01-01', '2021-01-02']
-]
-index = pd.MultiIndex.from_arrays(arrays, names=('City', 'Date'))
-
-# 创建DataFrame
-df = pd.DataFrame(data, index=index)
-
-```
-
-聚合索引，输出一行：
-
-```python
-print(grouped_df.loc[('Berlin', '2021-01-01')])
-```
-
-指定行的指定列：(`numpy.float64` 可以强转 float)
-
-```python
-print(grouped_df.loc[('Berlin', '2021-01-01'), 'Temperature'])
-```
-
-此时 `df.index`：
-
-- `df.index.nlevels` int 有几个聚合
-
-- `df.index.get_level_values(-1)` 取全体特定一列的行下标值
-
-  再取最后一行的最后一列下标 `df.index.get_level_values(-1)[-1]`
-
-  可以用 for 遍历，把两个 -1 变成 i,j 即可
 
 ##### series
 
@@ -11675,6 +11637,12 @@ avg_df.sort_values() # series 排序，升序
 avg_df.sort_values(ascending = False) # 降序
 ```
 
+如果列是 MultiIndex，
+
+```python
+.sort_values(by=(3, 'mae'))
+```
+
 列排序：如按 mean 的大小升序
 
 ```python
@@ -11823,9 +11791,9 @@ df = df.iloc[1:] # 下标的不要，所以切片是 1:，删第一行
 df = df.drop(df.columns[0], axis=1) # 删第一列
 ```
 
-##### 透视表
+##### pivot_table
 
-对数据：
+透视表。对数据：
 
 ```python
 data = {
@@ -11839,9 +11807,25 @@ df=pd.DataFrame(data)
 
 ```python
 pivot_table = df.pivot_table(index='Gender', columns='Study_Group', values='Test_Score', aggfunc='mean')
+'''Study_Group     A     B
+Gender
+Female       83.0  95.0
+Male         85.0  82.5'''
 ```
 
-以 `Gender` 为索引，以 `Study_Group` 所有不同的取值为列，对 `Test_Score` 列，使用 group by，聚合函数是 `mean`。得到新的数据表。并且，删掉 `Name` 列。可以用 `.apply` 代替 `aggfunc`。
+以 `Gender` 为索引，以 `Study_Group` 所有不同的取值为列，对 `Test_Score` 列，使用 group by，聚合函数是 `mean` (即使不写，默认也是)。得到新的数据表。并且，删掉 `Name` 列。可以用 `.apply` 代替 `aggfunc`。
+
+> 更多操作：
+>
+> ```python
+> table1 = pd.pivot_table(df, values='温度', index='城市', aggfunc=np.mean) # 即没有列，是 series
+> table2 = pd.pivot_table(df, values='温度', index='城市', columns='日期', aggfunc=np.mean) # 刚刚的
+> # 如果 columns 是列表，那么创建多级索引
+> table3 = pd.pivot_table(df, values=['温度', '湿度'], index='城市', aggfunc=np.mean)
+> table4 = pd.pivot_table(df, values='温度', index='城市', aggfunc=[np.mean, np.max])
+> ```
+
+
 
 ##### 查询
 
@@ -12089,6 +12073,44 @@ print(max_index) #A:2, B:0
 max_index_row = df.idxmax(axis=1) #0:B,1:A,2:A
 print(max_index_row)
 ```
+
+##### melt
+
+把 value_vars 里，每一个列名和值当成新的列，把原本的一行展开为len(value_vars) 行
+
+```python
+import pandas as pd
+df = pd.DataFrame({
+    'A_idx': ['a', 'b', 'c'],
+    'B_idx': [1, 3, 5],
+    'C': [2, 4, 6],
+    'D': [8, 5, 3],
+    'E': [11, 22, 33],
+})
+print(df)
+melted = pd.melt(df, id_vars=['A_idx', 'B_idx'], 
+                value_vars=['C', 'D'], # drop E
+                var_name='key',
+                value_name='value')
+print(melted)
+print(melted.index)
+print(melted.columns)
+'''  A_idx  B_idx  C  D   E
+0     a      1  2  8  11
+1     b      3  4  5  22
+2     c      5  6  3  33
+  A_idx  B_idx key  value
+0     a      1   C      2
+1     b      3   C      4
+2     c      5   C      6
+3     a      1   D      8
+4     b      3   D      5
+5     c      5   D      3
+RangeIndex(start=0, stop=6, step=1)
+Index(['A_idx', 'B_idx', 'key', 'value'], dtype='object')'''
+```
+
+
 
 ##### 去重
 
@@ -12567,7 +12589,224 @@ pd.date_range(start='2021-01-01', periods=10)
 #DatetimeIndex(['2021-01-01', '2021-01-02', '2021-01-03', '2021-01-04','2021-01-05', '2021-01-06', '2021-01-07', '2021-01-08','2021-01-09', '2021-01-10'],dtype='datetime64[ns]', freq='D')
 ```
 
+#### 多级索引
 
+##### series
+
+```python
+# 创建一个具有多级索引 (Year, Quarter) 的 Series
+data = {
+    (2023, 'Q1'): 100,
+    (2023, 'Q2'): 150,
+    (2023, 'Q3'): 120,
+    (2023, 'Q4'): 180,
+    (2024, 'Q1'): 110,
+    (2024, 'Q2'): 160,
+}
+sales = pd.Series(data)
+sales.index.names = ['Year', 'Quarter']  # 给索引层级命名
+print(sales)
+'''
+Year  Quarter # 如果没有第11行就没有这个
+2023  Q1         100
+      Q2         150
+      Q3         120
+      Q4         180
+2024  Q1         110
+      Q2         160
+dtype: int64'''
+print(sales.loc[2024, 'Q1']) # 110
+```
+
+##### MultiIndex
+
+```python
+index = pd.MultiIndex.from_tuples([
+    ('A', 'one'), ('A', 'two'),
+    ('B', 'one'), ('B', 'two'),
+    ('C', 'one'), ('C', 'two')
+], names=['first', 'second'])
+df = pd.DataFrame(np.random.randn(6, 2), index=index, columns=['value1', 'value2'])
+print(df)
+print(df.index)
+print(df.columns)
+```
+
+```python
+                value1    value2
+first second
+A     one     0.779711 -0.933247
+      two     2.059629  0.368545
+B     one    -1.348914  0.241633
+      two     0.532798  0.435311
+C     one    -0.578812  0.170061
+      two    -0.054796  0.574562
+MultiIndex([('A', 'one'), ...
+            ('C', 'two')],
+           names=['first', 'second'])
+Index(['value1', 'value2'], dtype='object')
+```
+
+##### dataframe
+
+直接转换：
+
+```python
+# 取其中的两列
+df.set_index(['model', 'horizon'], inplace=True)
+```
+
+##### unstack
+
+###### series
+
+在上面 series 基础例子 sales 的基础上
+
+```python
+unstacked_sales = sales.unstack('Quarter')  # 或者 sales.unstack(level=1)
+print(unstacked_sales) # dataframe，不再是复合 index
+"""
+Quarter     Q1     Q2     Q3     Q4
+Year
+2023     100.0  150.0  120.0  180.0
+2024     110.0  160.0    NaN    NaN"""
+print(unstacked_sales.columns) 
+print(unstacked_sales.index)
+'''Index(['Q1', 'Q2', 'Q3', 'Q4'], dtype='object', name='Quarter')
+Index([2023, 2024], dtype='int64', name='Year')'''
+```
+
+```python
+df_filled = df_missing.unstack(fill_value=0) # 处理 NAN
+```
+
+###### dataframe
+
+在上面 MultiIndex 例子上：
+
+```python
+df_unstacked = df.unstack()
+print(df_unstacked)
+print(df_unstacked.index)
+print(df_unstacked.columns)
+'''
+          value1              value2
+second       one       two       one       two
+first
+A       1.125791  0.830950 -1.066875 -0.243653
+B       0.366031  0.048363  1.402064 -1.255486
+C      -1.227460 -0.756433 -1.465842  1.467702
+Index(['A', 'B', 'C'], dtype='object', name='first')
+MultiIndex([('value1', 'one'),
+            ('value1', 'two'),
+            ('value2', 'one'),
+            ('value2', 'two')],
+           names=[None, 'second'])'''
+for c1, c2 in df_unstacked.columns:
+    print(f"列 {c1} 和 {c2} 的数据:")
+    print(df_unstacked[c1, c2])
+'''其中一次循环：
+列 value1 和 one 的数据:
+first
+A   -0.252358
+B    0.363062
+C   -0.853018
+Name: (value1, one), dtype: float64'''
+```
+
+###### level
+
+上面例子等价于对 second 展开，即：
+
+```python
+df_unstacked = df.unstack(level='second')
+```
+
+如果换一个：
+
+```python
+df_unstacked = df.unstack(level='first')
+```
+
+```
+first          A         B         C         A         B         C
+second
+one     0.411918  1.829064 -0.363046  0.489001 -1.570930 -0.397370
+two    -0.006096 -0.059804  0.002384 -0.745074  0.603737 -1.227682
+Index(['one', 'two'], dtype='object', name='second')
+MultiIndex([('value1', 'A'),
+            ('value1', 'B'),
+            ('value1', 'C'),
+            ('value2', 'A'),
+            ('value2', 'B'),
+            ('value2', 'C')],
+           names=[None, 'first']
+```
+
+##### 聚合索引
+
+多列多聚合函数导致的：
+
+```python
+data2 = {
+    'group': ['A', 'B', 'A', 'B', 'A'],
+    'x': [1, 2, 3, 4, 5],
+    'y': [2, 1, 4, 3, 5]
+}
+df=pd.DataFrame(data2)
+df.groupby('group').agg(['mean','std']).to_dict()
+'''      x                   y          
+      mean       std      mean       std
+group                                   
+A      3.0  2.000000  3.666667  1.527525
+B      3.0  1.414214  2.000000  1.414214'''
+# {('x', 'mean'): {'A': 3.0, 'B': 3.0}, ('x', 'std'): {'A': 2.0, 'B': 1.4142135623730951}, ('y', 'mean'): {'A': 3.6666666666666665, 'B': 2.0}, ('y', 'std'): {'A': 1.5275252316519468, 'B': 1.4142135623730951}}
+```
+
+
+
+生成跟上面 group by 双索引一样的数据：
+
+```python
+# 创建示例数据
+data = {
+    'Temperature': [0.0, 2.3, 8.0, 7.1, 5.5, 6.2],
+    'Rainfall': [0.0, 13.1, 5.0, 6.7, 15.3, 10.1]
+}
+
+# 创建多层索引
+arrays = [
+    ['Berlin', 'Berlin', 'London', 'London', 'Paris', 'Paris'],
+    ['2021-01-01', '2021-01-02', '2021-01-01', '2021-01-02', '2021-01-01', '2021-01-02']
+]
+index = pd.MultiIndex.from_arrays(arrays, names=('City', 'Date'))
+
+# 创建DataFrame
+df = pd.DataFrame(data, index=index)
+
+```
+
+聚合索引，输出一行：
+
+```python
+print(grouped_df.loc[('Berlin', '2021-01-01')])
+```
+
+指定行的指定列：(`numpy.float64` 可以强转 float)
+
+```python
+print(grouped_df.loc[('Berlin', '2021-01-01'), 'Temperature'])
+```
+
+此时 `df.index`：
+
+- `df.index.nlevels` int 有几个聚合
+
+- `df.index.get_level_values(-1)` 取全体特定一列的行下标值
+
+  再取最后一行的最后一列下标 `df.index.get_level_values(-1)[-1]`
+
+  可以用 for 遍历，把两个 -1 变成 i,j 即可
 
 #### 绘图
 
@@ -22402,6 +22641,8 @@ python experiments/train.py -c baselines/${MODEL_NAME}/${DATASET_NAME}.py -g '{G
 ##### 损失函数
 
 masked_mae 等指标，如果本来不用 masked，那就是普通的 mae。在 `BaseTimeSeriesForecastingRunner` 里，可以看到 `compute_evaluation_metrics` 方法，使用了配置文件里测试所看的多个horizon，如3/6/12。其中 overall 并不是离散 horizons 的直接平均和。
+
+对特定horizon，计算的是该步的metric，而不是前i步的，见 `base_tsf_runner.py` 的 300 行附近可知。
 
 ##### 基准模型
 

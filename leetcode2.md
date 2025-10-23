@@ -3608,6 +3608,18 @@
 - 1625\.执行操作后字典序最小的字符串
 
   DFS / <u>数论(裴蜀定理)</u> / <u>最小表示法</u>
+  
+- 2011\.执行操作后的变量值
+
+  签到
+  
+- 3347\.执行操作后元素的最高频率II
+
+  离散化 前缀和 差分
+  
+- 3463\.判断操作后字符串中的数字是否相等II
+
+  组合数学 数论(exlucas; 中国剩余定理)
 
 ## 算法
 
@@ -27536,3 +27548,179 @@ public:
   具体而言，j 起始是 step(db)。对第k位下要比较的i,j的最后下标p1,p2，当前下标根据奇偶变化求出最终字符值c1,c2，如果不相等的话，k/db是完整匹配了多少个db步长，在此之外，新的一步一定还要算，所以不是(k-1)/db。也就是新的步长跳到下一个能走的第一个db。
 
 因此，复杂度为 $O(nd^2)$，其中 $d=10$。
+
+##### 2011\.执行操作后的变量值
+
+[题目](https://leetcode.cn/problems/final-value-of-variable-after-performing-operations)
+
+注意到 +43，-45。
+
+```go
+func finalValueAfterOperations(operations []string) (ans int) {
+    for _, s := range operations {
+        ans += int(s[1]>>1&1<<1) - 1
+    }
+    return
+}
+```
+
+```python
+class Solution:
+    def finalValueAfterOperations(self, operations: List[str]) -> int:
+        return sum(int(s[1] + '1') for s in operations)
+```
+
+```c++
+class Solution {
+public:
+    int finalValueAfterOperations(vector<string>& operations) {
+        int ans = 0;
+        for (auto& s : operations) {
+            ans += 44 - s[1];
+        }
+        return ans;
+    }
+};
+```
+
+##### 3347\.执行操作后元素的最高频率II
+
+[题目](https://leetcode.cn/problems/maximum-frequency-of-an-element-after-performing-operations-ii)
+
+```go
+func maxFrequency(nums []int, k, numOperations int) (ans int) {
+	cnt := map[int]int{}
+	diff := map[int]int{}
+	for _, x := range nums {
+		cnt[x]++
+		diff[x] += 0 // 把 x 插入 diff，以保证下面能遍历到 x
+		diff[x-k]++  // 把 [x-k, x+k] 中的每个整数的出现次数都加一
+		diff[x+k+1]--
+	}
+
+	sumD := 0
+	for _, x := range slices.Sorted(maps.Keys(diff)) {
+		sumD += diff[x]
+		ans = max(ans, min(sumD, cnt[x]+numOperations))
+	}
+	return
+}
+```
+
+##### 3463\.判断操作后字符串中的数字是否相等II
+
+[题目](https://leetcode.cn/problems/check-if-digits-are-equal-in-string-after-operations-ii)
+
+显然，设 $m=n-1$ 的子数组 $a$，即求 $\sum_{i=0}^{m-1}C_{m-1}^ia_i$ 或对原数组求 $\sum_{i=0}^{n-1}C_{n-2}^i(s)i-s_{i+1}$ 是否模 10 为 0。
+
+**Lucas 定理**：设 $C(a,b)$ 的 $a,b$ 分别写成 $k$ 进制，如 $a=a_mk^m+\cdots+a_0$，则 $C(a,b)\bmod k=\prod_{i=0}^mC(a_i,b_i)\bmod k$。可以转换为递推式：
+$$
+C_n^r\bmod p=C_{\lfloor n/p\rfloor}^{\lfloor r/p\rfloor}C_{n\bmod p}^{r\bmod p}\bmod p
+$$
+Op 预处理出 p 内的阶乘，可以在 Ologn 求出组合数。证明需要用到生成函数。
+
+对简单情况，扩展卢卡斯定理直接用中国剩余定理。问题转换为，已知 $r_1=a\bmod 2,r_2=a\bmod 5$，其中 $a$ 是一个组合数。求 $a\bmod 10$。
+
+根据 CRT，找到 $y_1,y_2$ 满足 $5y_1\equiv1\pmod2,2y_2\equiv1\pmod5$，解得 $y_1=1,y_2=3$。故
+$$
+a\bmod10=(5r_1y_1+2r_2y_2)\bmod10=(5r_1+6r_2)\bmod10
+$$
+
+> 这是因为，要让 $a\bmod10$ 对 $\bmod2,5$ 成立，分别等价于消掉另一个加式，让另一个加为 0 就是因子 5,2 做到的；为了让乘以 5,2 后，mod 成立，需要让 5y1 和 2y2 等于 1。
+
+p 很小(=5)，预处理忽略不计。每个 exlucas = 2 lucas，每个 lucas 是 logn，故复杂度为 nlogn。
+
+```python
+# 预处理组合数
+MX = 5
+c = [[0] * MX for i in range(MX)]
+for i in range(MX):
+    c[i][0] = c[i][i] = 1
+    for j in range(1, i):
+        c[i][j] = c[i - 1][j - 1] + c[i - 1][j]
+
+# 计算 C(n, k) % p，要求 p 是质数
+def lucas(n: int, k: int, p: int) -> int:
+    if k == 0:
+        return 1
+    return c[n % p][k % p] * lucas(n // p, k // p, p) % p
+
+def comb(n: int, k: int) -> int:
+    # 结果至多为 5 + 4 * 6 = 29，无需中途取模
+    return lucas(n, k, 2) * 5 + lucas(n, k, 5) * 6
+
+class Solution:
+    def hasSameDigits(self, s: str) -> bool:
+        n = len(s)
+        s = map(ord, s)
+        return sum(comb(n - 2, i) * (x - y) for i, (x, y) in enumerate(pairwise(s))) % 10 == 0
+```
+
+
+
+非质数组合数的逆元预处理，略，参见 2221 题题解：On 复杂度。
+
+```go
+const mod = 10
+
+func pow(x, n int) int {
+	res := 1
+	for ; n > 0; n /= 2 {
+		if n%2 > 0 {
+			res = res * x % mod
+		}
+		x = x * x % mod
+	}
+	return res
+}
+
+const mx = 100_000
+
+var f, invF, p2, p5 [mx + 1]int
+
+func init() {
+	f[0] = 1
+	invF[0] = 1
+	for i := 1; i <= mx; i++ {
+		x := i
+		// 2 的幂次
+		e2 := bits.TrailingZeros(uint(x))
+		x >>= e2
+		// 5 的幂次
+		e5 := 0
+		for x%5 == 0 {
+			e5++
+			x /= 5
+		}
+		f[i] = f[i-1] * x % mod
+		invF[i] = pow(f[i], 3) // 欧拉定理求逆元
+		p2[i] = p2[i-1] + e2
+		p5[i] = p5[i-1] + e5
+	}
+}
+
+var pow2 = [4]int{2, 4, 8, 6}
+
+func comb(n, k int) int {
+	res := f[n] * invF[k] * invF[n-k]
+	e2 := p2[n] - p2[k] - p2[n-k]
+	if e2 > 0 {
+		res *= pow2[(e2-1)%4]
+	}
+	if p5[n]-p5[k]-p5[n-k] > 0 {
+		res *= 5
+	}
+	return res
+}
+
+func hasSameDigits(s string) bool {
+	diff := 0
+	for i := range len(s) - 1 {
+		diff += comb(len(s)-2, i) * (int(s[i]) - int(s[i+1]))
+	}
+	return diff%mod == 0
+}
+```
+
+
+
