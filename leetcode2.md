@@ -3621,6 +3621,14 @@
 
   组合数学 数论(exlucas; 中国剩余定理)
 
+- 2048\.下一个更大的数值平衡数
+
+  打表/搜索 二分/枚举
+  
+- 1716\.计算力扣银行的钱
+
+  签到
+
 ## 算法
 
 > 力扣其他，CF杂题，其他杂题是 `leetcode.md` 搬过来的；力扣是新的力扣常规题。
@@ -27719,6 +27727,43 @@ func hasSameDigits(s string) bool {
 		diff += comb(len(s)-2, i) * (int(s[i]) - int(s[i+1]))
 	}
 	return diff%mod == 0
+}
+```
+
+##### 2048\.下一个更大的数值平衡数
+
+[题目](https://leetcode.cn/problems/next-greater-numerically-balanced-number/)
+
+手工组合或手工打表，排序预处理后二分
+
+```python
+import itertools, bisect
+def p(e):
+    return list(itertools.permutations(e))
+a = [(1,)] + [(2,)*2] + [(3,)*3] + [(4,)*4] + [(5,)*5] + [(6,)*6] + p([1, 2, 2]) + p([1, 3, 3, 3]) + p([2, 2, 3, 3, 3]) + p([1, 4, 4, 4, 4]) + p([1, 2, 2, 3, 3, 3]) + p([1, 5, 5, 5, 5, 5]) + p([2, 2, 4, 4, 4, 4]) + [(1, 2, 2, 4, 4, 4, 4)]
+a = sorted(int(''.join(map(str, t))) for t in list(set(a)))
+class Solution:
+    def nextBeautifulNumber(self, n: int) -> int:
+        return a[bisect.bisect_right(a, n)]
+```
+
+##### 1716\.计算力扣银行的钱
+
+[题目](https://leetcode.cn/problems/calculate-money-in-leetcode-bank)
+
+```go
+func totalMoney(n int) (ans int) {
+    // 所有完整的周存的钱
+    weekNum := n / 7
+    firstWeekMoney := (1 + 7) * 7 / 2
+    lastWeekMoney := firstWeekMoney + 7*(weekNum-1)
+    weekMoney := (firstWeekMoney + lastWeekMoney) * weekNum / 2
+    // 剩下的不能构成一个完整的周的天数里存的钱
+    dayNum := n % 7
+    firstDayMoney := 1 + weekNum
+    lastDayMoney := firstDayMoney + dayNum - 1
+    dayMoney := (firstDayMoney + lastDayMoney) * dayNum / 2
+    return weekMoney + dayMoney
 }
 ```
 
