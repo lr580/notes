@@ -3628,6 +3628,18 @@
 - 1716\.计算力扣银行的钱
 
   签到
+  
+- 2043\.简易银行系统
+
+  签到
+  
+- 3370\.仅含置位位的最小整数
+
+  签到 位运算
+  
+- 3217\.从链表中移除在数组中存在的节点
+
+  签到 链表 哈希表
 
 ## 算法
 
@@ -27767,5 +27779,75 @@ func totalMoney(n int) (ans int) {
 }
 ```
 
+##### 2043\.简易银行系统
 
+[题目](https://leetcode.cn/problems/simple-bank-system)
+
+```go
+type Bank []int64
+
+func Constructor(balance []int64) Bank {
+	return balance
+}
+
+func (b Bank) Transfer(account1, account2 int, money int64) bool {
+	if account1 > len(b) || account2 > len(b) || b[account1-1] < money {
+		return false
+	}
+	b[account1-1] -= money
+	b[account2-1] += money
+	return true
+}
+
+func (b Bank) Deposit(account int, money int64) bool {
+	if account > len(b) {
+		return false
+	}
+	b[account-1] += money
+	return true
+}
+
+func (b Bank) Withdraw(account int, money int64) bool {
+	if account > len(b) || b[account-1] < money {
+		return false
+	}
+	b[account-1] -= money
+	return true
+}
+```
+
+##### 3370\.仅含置位位的最小整数
+
+[题目](https://leetcode.cn/problems/smallest-number-with-all-set-bits)
+
+```go
+func smallestNumber(n int) int {
+	return 1<<bits.Len(uint(n)) - 1
+}
+```
+
+##### 3217\.从链表中移除在数组中存在的节点
+
+[题目](https://leetcode.cn/problems/delete-nodes-from-linked-list-present-in-arra)
+
+```go
+func modifiedList(nums []int, head *ListNode) *ListNode {
+	has := make(map[int]bool, len(nums)) // 预分配空间
+	for _, x := range nums {
+		has[x] = true
+	}
+
+	dummy := &ListNode{Next: head}
+	cur := dummy
+	for cur.Next != nil {
+		nxt := cur.Next
+		if has[nxt.Val] {
+			cur.Next = nxt.Next // 从链表中删除 nxt 节点
+		} else {
+			cur = nxt // 不删除 nxt，继续向后遍历链表
+		}
+	}
+	return dummy.Next
+}
+```
 
