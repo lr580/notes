@@ -3640,6 +3640,14 @@
 - 3217\.从链表中移除在数组中存在的节点
 
   签到 链表 哈希表
+  
+- 2257\.统计网格图中没有被保卫的格子数
+
+  BFS / <u>枚举</u>
+  
+- 1578\.使绳子变成彩色的最短时间
+
+  签到 贪心
 
 ## 算法
 
@@ -27848,6 +27856,76 @@ func modifiedList(nums []int, head *ListNode) *ListNode {
 		}
 	}
 	return dummy.Next
+}
+```
+
+##### 2257\.统计网格图中没有被保卫的格子数
+
+[题目](https://leetcode.cn/problems/count-unguarded-cells-in-the-grid)
+
+BFS 易，略。对枚举，注意到每个格子最多被四方向的某警卫分别访问一次，再多的一定会被挡住，故枚举的最坏复杂度也只是 4mn。
+
+```go
+// 左右上下
+var dirs = []struct{ x, y int }{{0, -1}, {0, 1}, {-1, 0}, {1, 0}}
+
+func countUnguarded(m int, n int, guards [][]int, walls [][]int) (ans int) {
+	guarded := make([][]int8, m)
+	for i := range guarded {
+		guarded[i] = make([]int8, n)
+	}
+
+	// 标记警卫格子、墙格子
+	for _, g := range guards {
+		guarded[g[0]][g[1]] = -1
+	}
+	for _, w := range walls {
+		guarded[w[0]][w[1]] = -1
+	}
+
+	// 遍历警卫
+	for _, g := range guards {
+		// 遍历视线方向（左右上下）
+		for _, d := range dirs {
+			// 视线所及之处，被保卫
+			x, y := g[0]+d.x, g[1]+d.y
+			for 0 <= x && x < m && 0 <= y && y < n && guarded[x][y] != -1 {
+				guarded[x][y] = 1 // 被保卫
+				x += d.x
+				y += d.y
+			}
+		}
+	}
+
+	// 统计没被保卫的格子数
+	for _, row := range guarded {
+		for _, x := range row {
+			if x == 0 { // 没被保卫
+				ans++
+			}
+		}
+	}
+	return
+}
+```
+
+##### 1578\.使绳子变成彩色的最短时间
+
+[题目](https://leetcode.cn/problems/minimum-time-to-make-rope-colorful)
+
+```go
+func minCost(colors string, neededTime []int) (ans int) {
+	maxT := 0
+	for i, t := range neededTime {
+		ans += t
+		maxT = max(maxT, t)
+		if i == len(colors)-1 || colors[i] != colors[i+1] {
+			// 遍历到了连续同色段的末尾
+			ans -= maxT // 保留耗时最大的气球
+			maxT = 0    // 准备计算下一段的最大耗时
+		}
+	}
+	return
 }
 ```
 
