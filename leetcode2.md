@@ -3648,6 +3648,34 @@
 - 1578\.使绳子变成彩色的最短时间
 
   签到 贪心
+  
+- 757\.设置交集大小至少为2
+
+  **排序+贪心 /+线段树 /+ 二分+栈**
+
+- 2154\.将找到的值乘以2
+
+  签到 哈希表STL / <u>位运算状压</u>
+
+- 717\. 1 比特与 2 比特字符
+
+  签到 贪心
+  
+- 1018\.可被5整除的二进制前缀
+
+  签到 前缀和
+
+- 3190\.使所有元素都可以被3整除的最少操作数
+
+  签到
+
+- 1930\.长度为3的不同回文子序列
+
+  贪心 枚举+前缀和 / 枚举 / 前缀和+位运算
+  
+- 1015\.矩阵中和能被k整除的路径
+
+  DP
 
 ## 算法
 
@@ -27929,3 +27957,215 @@ func minCost(colors string, neededTime []int) (ans int) {
 }
 ```
 
+##### 757\.设置交集大小至少为2
+
+[题目](https://leetcode.cn/problems/set-intersection-size-at-least-two)
+
+题可以规约为 2589\.完成所有任务的最少时间。直接按这题去做即可。
+
+```go
+func intersectionSizeTwo(intervals [][]int) int {
+    slices.SortFunc(intervals, func(a, b []int) int { return a[1] - b[1] })
+    // 栈中保存闭区间左右端点，栈底到栈顶的区间长度的和
+    type tuple struct{ l, r, s int }
+    st := []tuple{{-2, -2, 0}} // 哨兵，保证不和任何区间相交
+    for _, p := range intervals {
+        start, end := p[0], p[1]
+        i := sort.Search(len(st), func(i int) bool { return st[i].l >= start }) - 1
+        d := 2 - (st[len(st)-1].s - st[i].s) // 去掉运行中的时间点
+        if start <= st[i].r { // start 在区间 st[i] 内
+            d -= st[i].r - start + 1 // 去掉运行中的时间点
+        }
+        if d <= 0 {
+            continue
+        }
+        for end-st[len(st)-1].r <= d { // 剩余的 d 填充区间后缀
+            top := st[len(st)-1]
+            st = st[:len(st)-1]
+            d += top.r - top.l + 1 // 合并区间
+        }
+        st = append(st, tuple{end - d + 1, end, st[len(st)-1].s + d})
+    }
+    return st[len(st)-1].s
+}
+```
+
+##### 2154\.将找到的值乘以2
+
+[题目](https://leetcode.cn/problems/keep-multiplying-found-values-by-two)
+
+只需要在哈希表记录 original 的倍数，且 x/original 是 2 的倍数的数字，可以优化。
+
+```go
+func findFinalValue(nums []int, original int) int {
+	has := map[int]bool{}
+	for _, x := range nums {
+		k := x / original
+		if x%original == 0 && k&(k-1) == 0 {
+			has[x] = true
+		}
+	}
+	for has[original] {
+		original *= 2
+	}
+	return original
+}
+```
+
+进一步地，每个倍数都可以表示为一个状态 1。所以找到状态里最低 0 所在，即反码的最低 1 所在。
+
+```go
+func findFinalValue(nums []int, original int) int {
+	mask := 0
+	for _, x := range nums {
+		k := x / original
+		if x%original == 0 && k&(k-1) == 0 {
+			mask |= k
+		}
+	}
+
+	// 找最低的 0，等价于取反后，找最低的 1（lowbit）
+	mask = ^mask
+	return original * (mask & -mask)
+}
+```
+
+##### 717\. 1 比特与 2 比特字符
+
+[题目](https://leetcode.cn/problems/1-bit-and-2-bit-characters)
+
+贪心的匹配2字符。
+
+```go
+func isOneBitCharacter(bits []int) bool {
+	n := len(bits)
+	i := 0
+	for i < n-1 { // 循环直到剩下至多一个数字
+		i += bits[i] + 1 // 如果 bits[i] == 1 则跳过下一位
+	}
+	return i == n-1 // 注意题目保证 bits[n-1] == 0，无需判断
+}
+```
+
+##### 1018\.可被5整除的二进制前缀
+
+[题目](https://leetcode.cn/problems/binary-prefix-divisible-by-5)
+
+```go
+func prefixesDivBy5(nums []int) []bool {
+	ans := make([]bool, len(nums))
+	x := 0
+	for i, bit := range nums {
+		x = (x<<1 | bit) % 5
+		ans[i] = x == 0
+	}
+	return ans
+}
+```
+
+##### 3190\.使所有元素都可以被3整除的最少操作数
+
+[题目](https://leetcode.cn/problems/find-minimum-operations-to-make-all-elements-divisible-by-three)
+
+```python
+class Solution:
+    def minimumOperations(self, nums: List[int]) -> int:
+        return sum(x % 3 != 0 for x in nums)
+```
+
+##### 1930\.长度为3的不同回文子序列
+
+[题目](https://leetcode.cn/problems/unique-length-3-palindromic-subsequences)
+
+前缀和公式可以求一个子段是否存在某字符，ST表也行。开头结尾跨度越大越好贪心。或者下面：
+
+```go
+func countPalindromicSubsequence(s string) (ans int) {
+	for alpha := byte('a'); alpha <= 'z'; alpha++ { // 枚举两侧字母 alpha
+		i := strings.IndexByte(s, alpha) // 最左边的 alpha 的下标
+		if i < 0 { // s 中没有 alpha
+			continue
+		}
+		j := strings.LastIndexByte(s, alpha) // 最右边的 alpha 的下标
+		if i+1 >= j { // 长度不足 3
+			continue
+		}
+
+		has := [26]bool{}
+		for _, mid := range s[i+1 : j] { // 枚举中间字母 mid
+			if !has[mid-'a'] {
+				has[mid-'a'] = true // 避免重复统计
+				ans++
+			}
+		}
+	}
+	return
+}
+```
+
+枚举中间+位运算优化，可以省略对字母的枚举。
+
+```python
+class Solution:
+    def countPalindromicSubsequence(self, s: str) -> int:
+        n = len(s)
+        ord_a = ord('a')
+
+        # 统计 [1,n-1] 每个字母的个数
+        suf_cnt = [0] * 26
+        suf = 0
+        for ch in s[1:]:
+            ch = ord(ch) - ord_a
+            suf_cnt[ch] += 1
+            suf |= 1 << ch  # 把 ch 记录到二进制数 suf 中，表示后缀有 ch
+
+        pre = 0
+        ans = [0] * 26  # ans[mid] = 由 alpha 组成的二进制数
+        for i in range(1, n - 1):  # 枚举中间字母 mid
+            mid = ord(s[i]) - ord_a
+            suf_cnt[mid] -= 1  # 撤销 mid 的计数，suf_cnt 剩下的就是后缀 [i+1,n-1] 每个字母的个数
+            if suf_cnt[mid] == 0:  # 后缀 [i+1,n-1] 不包含 mid
+                suf ^= 1 << mid  # 从 suf 中去掉 mid
+            pre |= 1 << (ord(s[i - 1]) - ord_a)  # 把 s[i-1] 记录到二进制数 pre 中，表示前缀有 s[i-1]
+            ans[mid] |= pre & suf  # 计算 pre 和 suf 的交集，|= 表示把交集中的字母加到 ans[mid] 中
+
+        return sum(mask.bit_count() for mask in ans)  # mask 中的每个 1 对应着一个 alpha
+```
+
+##### 1015\.矩阵中和能被k整除的路径
+
+[题目](https://leetcode.cn/problems/paths-in-matrix-whose-sum-is-divisible-by-k)
+
+```go
+package main
+
+func numberOfPaths(grid [][]int, k int) int {
+	mod := int(1e9) + 7
+	n, m := len(grid), len(grid[0])
+	dp := make([][][]int, n)
+	for i := range dp {
+		dp[i] = make([][]int, m)
+		for j := range dp[i] {
+			dp[i][j] = make([]int, k+1)
+		}
+	}
+	dp[0][0][grid[0][0]%k] = 1
+	for i := 0; i < n; i++ {
+		for j := 0; j < m; j++ {
+			for l := 0; l < k; l++ {
+				v := (l - grid[i][j]%k + k) % k
+				if i > 0 {
+					dp[i][j][l] += dp[i-1][j][v]
+				}
+				if j > 0 {
+					dp[i][j][l] += dp[i][j-1][v]
+				}
+				dp[i][j][l] %= mod
+			}
+		}
+	}
+	return dp[n-1][m-1][0]
+}
+```
+
+可以压缩数组，略。如果k极大，而n,m小，考虑折半搜索，见 [cf1006f](https://codeforces.com/problemset/problem/1006/F)
