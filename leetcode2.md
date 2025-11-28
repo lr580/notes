@@ -3676,6 +3676,10 @@
 - 1015\.矩阵中和能被k整除的路径
 
   DP
+  
+- 3381\.长度可被K整除的子数组的最大元素和
+
+  前缀和+DP
 
 ## 算法
 
@@ -28169,3 +28173,43 @@ func numberOfPaths(grid [][]int, k int) int {
 ```
 
 可以压缩数组，略。如果k极大，而n,m小，考虑折半搜索，见 [cf1006f](https://codeforces.com/problemset/problem/1006/F)
+
+##### 3381\.长度可被K整除的子数组的最大元素和
+
+[题目](https://leetcode.cn/problems/maximum-subarray-sum-with-length-divisible-by-k/)
+
+先叠前缀和，然后用dp[i] 表示当前i结尾的最大和是什么，对i-k可选可不选。
+
+```go
+func maxSubarraySum(nums []int, k int) (ans int64) {
+	n := len(nums)
+	s := make([]int64, n+1)
+	for i := 1; i <= n; i++ {
+		s[i] = s[i-1] + int64(nums[i-1])
+	}
+	ans = int64(-1e15)
+	dp := make([]int64, n+1) // 以 i 结尾的最大和是 dp[i]
+	for i := k; i <= n; i++ {
+		dp[i] = max(0, dp[i-k]) + s[i] - s[i-k]
+		ans = max(ans, dp[i])
+	}
+	return
+}
+```
+
+压缩，可以把 dp 压为 k 长的，并使用一次遍历优化掉前缀和。
+
+```go
+class Solution:
+    def maxSubarraySum(self, nums: List[int], k: int) -> int:
+        min_s = [inf] * k
+        min_s[-1] = s = 0
+        ans = -inf
+        for j, x in enumerate(nums):
+            s += x
+            i = j % k
+            ans = max(ans, s - min_s[i])
+            min_s[i] = min(min_s[i], s)
+        return ans
+```
+
