@@ -29,6 +29,8 @@ git config --list
 
 ##### 用户属性
 
+下面指令在 linux 下只对特定用户有效。
+
 ```bash
 git config --global user.name "名字"
 git config --global user.email "邮箱"

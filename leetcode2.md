@@ -3677,9 +3677,17 @@
 
   DP
   
-- 3381\.长度可被K整除的子数组的最大元素和
+- 3381\.长度可被k整除的子数组的最大元素和
 
   前缀和+DP
+  
+- 2872\.可以被k整除连通块的最大数目
+
+  贪心 DFS
+
+- 3512\.使数组和能被k整除的最少操作次数
+
+  签到
 
 ## 算法
 
@@ -28174,7 +28182,7 @@ func numberOfPaths(grid [][]int, k int) int {
 
 可以压缩数组，略。如果k极大，而n,m小，考虑折半搜索，见 [cf1006f](https://codeforces.com/problemset/problem/1006/F)
 
-##### 3381\.长度可被K整除的子数组的最大元素和
+##### 3381\.长度可被k整除的子数组的最大元素和
 
 [题目](https://leetcode.cn/problems/maximum-subarray-sum-with-length-divisible-by-k/)
 
@@ -28211,5 +28219,56 @@ class Solution:
             ans = max(ans, s - min_s[i])
             min_s[i] = min(min_s[i], s)
         return ans
+```
+
+##### 2872\.可以被k整除连通块的最大数目
+
+[题目](https://leetcode.cn/problems/maximum-number-of-k-divisible-components)
+
+从叶子结点开始，如果当前子树可以被整除，贪心地把它切掉。注意到能被整除删掉与不删，其该分支贡献的余数对父节点不变。
+
+```go
+func maxKDivisibleComponents(n int, edges [][]int, values []int, k int) (ans int) {
+	g := make([][]int, n)
+	for _, e := range edges {
+		x, y := e[0], e[1]
+		g[x] = append(g[x], y)
+		g[y] = append(g[y], x)
+	}
+
+	// 返回子树 x 的点权和
+	var dfs func(int, int) int
+	dfs = func(x, fa int) int {
+		s := values[x]
+		for _, y := range g[x] {
+			if y != fa { // 避免访问父节点
+				// 加上子树 y 的点权和，得到子树 x 的点权和
+				s += dfs(y, x)
+			}
+		}
+		if s%k == 0 {
+			ans++
+            //s=0
+		}
+		return s
+	}
+
+	dfs(0, -1)
+	return
+}
+```
+
+##### 3512\.使数组和能被k整除的最少操作次数
+
+[题目](https://leetcode.cn/problems/minimum-operations-to-make-array-sum-divisible-by-k)
+
+```go
+func minOperations(nums []int, k int) int {
+	s := 0
+	for _, x := range nums {
+		s += x
+	}
+	return s % k
+}
 ```
 

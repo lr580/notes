@@ -629,7 +629,18 @@ wsl --import scnuoj-test <安装路径> <原安装文件路径>
 wsl --install -d Ubuntu-24.04
 ```
 
+##### 切换用户
 
+```
+wsl -u 用户名
+```
+
+vscode 里切换默认用户：[参考](https://www.zhihu.com/question/528513102)，编写 `/etc/wsl.conf`，把下面改了：
+
+```ini
+[user]
+default=myUsername
+```
 
 ### 装软件
 
