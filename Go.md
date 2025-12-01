@@ -24,8 +24,6 @@ go env
 > sudo apt install golang-go
 > ```
 
-
-
 #### 常用指令
 
 ##### 代理
@@ -4681,8 +4679,6 @@ func (a ByKey) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByKey) Less(i, j int) bool { return a[i].Key < a[j].Key }
 ```
 
-
-
 ##### 二分查找
 
 如表现同 C++ lower_bound (upper 改成 `>` 即可)
@@ -4690,6 +4686,17 @@ func (a ByKey) Less(i, j int) bool { return a[i].Key < a[j].Key }
 ```go
 i := sort.Search(n, func(i int) bool { return nums[i] >= k })
 ```
+
+> 例如，找到第一个 true，即输出 58：
+>
+> ```go
+> func main() {
+> 	x := sort.Search(100, func(x int) bool {
+> 		return x >= 58
+> 	})
+> 	fmt.Println(x)
+> }
+> ```
 
 简化：
 

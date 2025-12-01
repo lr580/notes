@@ -3688,6 +3688,70 @@
 - 3512\.使数组和能被k整除的最少操作次数
 
   签到
+  
+- 2141\.同时运行N台电脑的最长时间
+
+  二分+排序 / <u>排序+贪心</u>
+
+- 1590\.使数组和能被P整除
+
+  前缀和+哈希表STL
+
+- 1513\.仅含1的子串数
+
+  计数
+
+- 1437\.是否所有1都至少相隔k个元素
+
+  签到
+
+- 3234\.统计1显著的字符串的数量
+
+  枚举 计数 复杂度
+
+- 3228\.将1移动到末尾的最大操作次数
+
+  贪心 + 计数
+
+- 2536\.子矩阵元素加1
+
+  二维前缀和差分
+
+- 2654\.使数组所有元素变成1的最少操作次数
+
+  数论 枚举/二分+ST表/<u>logTrick</u>
+
+- 474\.一和零
+
+  二维背包DP
+
+- 3542\.将所有元素变为0的最少操作次数
+
+  TODO
+
+- 2169\.得到0的操作数
+
+  数学 签到 gcd(辗转相除)
+
+- 1611\.使整数变为0的最少操作次数
+
+  TODO
+
+- 2528\.最大化城市的最小电量
+
+  TODO
+
+- 3607\.电网维护
+
+  TODO
+
+- 3321\.计算子数组的x-sum II
+
+  TODO
+
+- 3318.计算子数组的x-sum I
+
+  TODO
 
 ## 算法
 
@@ -28269,6 +28333,405 @@ func minOperations(nums []int, k int) int {
 		s += x
 	}
 	return s % k
+}
+```
+
+##### 2141\.同时运行N台电脑的最长时间
+
+[题目](https://leetcode.cn/problems/maximum-running-time-of-n-computers)
+
+排序后逆序装填，二分，大于该时间就给下一台电脑，逆序下所有电池最多给两台电脑用且必然不会重叠。
+
+```go
+package main
+
+import "sort"
+
+func maxRunTime(n int, batteries []int) (ans int64) {
+	sort.Ints(batteries)
+	sb := int64(0)
+    m := len(batteries)
+	for i := m - 1; i >= 0; i-- {
+		sb += int64(batteries[i])
+	}
+	l, r := int64(1), sb
+	for l <= r {
+		c := (l + r) >> 1
+		j, s := 0, int64(0)
+		for i := m - 1; i >= 0; i-- {
+			s += min(c, int64(batteries[i]))
+			if s >= c {
+				j++
+				s %= c
+			}
+            // fmt.Println(c, i, j, s)
+		}
+		if j >= n {
+			ans = c
+			l = c + 1
+		} else {
+			r = c - 1
+		}
+	}
+	return
+}
+```
+
+```go
+func maxRunTime(n int, batteries []int) int64 {
+	tot := 0
+	for _, b := range batteries {
+		tot += b
+	}
+
+	return int64(sort.Search(tot/n, func(x int) bool {
+		x++
+		sum := 0
+		for _, b := range batteries {
+			sum += min(b, x)
+		}
+		return n*x > sum
+	}))
+}
+```
+
+贪心：$x=\lfloor\dfrac{sum}n\rfloor$，是理论最大值。超过x的直接全部给一台电脑。否则，找到第一个不超过x的，由于 $n\cdot x=n\cdot\lfloor\dfrac{sum}n\rfloor\le sum$，可以证明，充要条件是 $nx\le sum$ 时，$x$ 是答案。根据上文构造可得。证明具体见 0x3f。
+
+```go
+func maxRunTime(n int, batteries []int) int64 {
+	slices.Sort(batteries)
+	sum := 0
+	for _, b := range batteries {
+		sum += b
+	}
+	for i := len(batteries) - 1; ; i-- {
+		if batteries[i] <= sum/n {
+			return int64(sum / n)
+		}
+		sum -= batteries[i]
+		n--
+	}
+}
+```
+
+##### 1590\.使数组和能被P整除
+
+[题目](https://leetcode.cn/problems/make-sum-divisible-by-p)
+
+转换为在前缀和上进行搜索。注意不单调不可以二分。
+
+```go
+package main
+
+func minSubarray(nums []int, p int) int {
+	n := len(nums)
+	s := 0
+	for i := 0; i < n; i++ {
+		s = (s + nums[i]) % p
+	}
+	t := s // 需要移除的子数组和(同余)
+	if t == 0 {
+		return 0
+	}
+    // fmt.Println(t)
+	// find s[r] - s[l-1] == t (mod p)
+	// => given r, search s[l-1] = s[r] - t (mod p)
+	m := map[int]int{}
+    m[0] = -1
+	s = 0
+	ans := n
+	for i := 0; i < n; i++ {
+		s = (s + nums[i]) % p
+		v := (s - t + p) % p
+        // fmt.Println(s, v, m)
+		if j, ok := m[v]; ok {
+			ans = min(ans, i-j)
+		}
+		m[s] = i // shortest update
+	}
+	if ans == n {
+		return -1
+	}
+	return ans
+}
+
+/* 错误：不具备单调性
+package main
+
+func minSubarray(nums []int, p int) (ans int) {
+	n := len(nums)
+	s := int64(0)
+	for _, v := range nums {
+		s += int64(v)
+	}
+	if s%int64(p) == 0 { // 否则 i:=c-1越界
+		return 0
+	}
+	ans = -1
+	l, r := 1, n-1
+	for l <= r {
+		c := (l + r) >> 1
+		ok := false
+		s2 := int64(0)
+		for i := 0; i < c-1; i++ {
+			s2 += int64(nums[i])
+		}
+		for i := c - 1; i < n; i++ {
+			s2 += int64(nums[i])
+			// fmt.Println(c, i, s-s2)
+			if (s-s2)%int64(p) == 0 {
+				ok = true
+				break
+			}
+			s2 -= int64(nums[i-c+1])
+		}
+		if ok {
+			ans = c
+			r = c - 1
+		} else {
+			l = c + 1
+		}
+	}
+	return
+}
+*/
+```
+
+##### 1513\.仅含1的子串数
+
+[题目](https://leetcode.cn/problems/number-of-substrings-with-only-1s)
+
+也可以用 n(n+1)/2
+
+```go
+func numSub(s string) (ans int) {
+	const mod = 1_000_000_007
+	last0 := -1
+	for i, ch := range s {
+		if ch == '0' {
+			last0 = i // 记录上个 0 的位置
+		} else {
+			ans += i - last0 // 右端点为 i 的全 1 子串个数
+		}
+	}
+	return ans % mod
+}
+```
+
+##### 1437\.是否所有1都至少相隔k个元素
+
+[题目](https://leetcode.cn/problems/check-if-all-1s-are-at-least-length-k-places-away)
+
+```go
+func kLengthApart(nums []int, k int) bool {
+	last1 := -k - 1
+	for i, x := range nums {
+		if x != 1 {
+			continue
+		}
+		if i-last1 <= k {
+			return false
+		}
+		last1 = i
+	}
+	return true
+}
+```
+
+##### 3234\.统计1显著的字符串的数量
+
+[题目](https://leetcode.cn/problems/count-the-number-of-substrings-with-dominant-ones)
+
+根号复杂度枚举，所以可以枚举当前右端点，然后枚举每一个0，然后看看对每个0数，左端点的取值范围计数。还可以只维护根号n个0来优化空间复杂度。
+
+```python
+# 手写 max 更快
+max = lambda a, b: b if b > a else a
+
+class Solution:
+    def numberOfSubstrings(self, s: str) -> int:
+        pos0 = [-1]  # 哨兵，方便处理 cnt0 达到最大时的计数
+        total1 = 0  # [0,r] 中的 1 的个数
+        ans = 0
+
+        for r, ch in enumerate(s):
+            if ch == '0':
+                pos0.append(r)  # 记录 0 的下标
+            else:
+                total1 += 1
+                ans += r - pos0[-1]  # 单独计算不含 0 的子串个数
+
+            # 倒着遍历 pos0，就相当于在从小到大枚举 cnt0
+            for i in range(len(pos0) - 1, 0, -1):
+                cnt0 = len(pos0) - i
+                if cnt0 * cnt0 > total1:
+                    break
+                p, q = pos0[i - 1], pos0[i]
+                cnt1 = r - q + 1 - cnt0  # [q,r] 中的 1 的个数 = [q,r] 的长度 - cnt0
+                ans += max(q - max(cnt0 * cnt0 - cnt1, 0) - p, 0)
+
+        return ans
+```
+
+##### 3228\.将1移动到末尾的最大操作次数
+
+[题目](https://leetcode.cn/problems/maximum-number-of-operations-to-move-ones-to-the-end)
+
+从左往右贪
+
+```go
+func maxOperations(s string) (ans int) {
+	cnt1 := 0
+	for i, c := range s {
+		if c == '1' {
+			cnt1++
+		} else if i > 0 && s[i-1] == '1' {
+			ans += cnt1
+		}
+	}
+	return
+}
+```
+
+##### 2536\.子矩阵元素加1
+
+[题目](https://leetcode.cn/problems/increment-submatrices-by-one)
+
+```go
+func rangeAddQueries(n int, queries [][]int) [][]int {
+	// 二维差分
+	diff := make([][]int, n+2)
+	for i := range diff {
+		diff[i] = make([]int, n+2)
+	}
+	for _, q := range queries {
+		r1, c1, r2, c2 := q[0], q[1], q[2], q[3]
+		diff[r1+1][c1+1]++
+		diff[r1+1][c2+2]--
+		diff[r2+2][c1+1]--
+		diff[r2+2][c2+2]++
+	}
+
+	// 原地计算 diff 的二维前缀和，然后填入答案
+	ans := make([][]int, n)
+	for i := range ans {
+		ans[i] = make([]int, n)
+		for j := range ans[i] {
+			diff[i+1][j+1] += diff[i+1][j] + diff[i][j+1] - diff[i][j]
+			ans[i][j] = diff[i+1][j+1]
+		}
+	}
+	return ans
+}
+```
+
+##### 2654\.使数组所有元素变成1的最少操作次数
+
+[题目](https://leetcode.cn/problems/minimum-number-of-operations-to-make-all-array-elements-equal-to-1)
+
+全体gcd不为1则有解，先把最小gcd为1的子段找出搞出一个1，然后用1搞剩下的其他。可以暴力枚举双重循环找出gcd子段，也可以二分+ST表找。
+
+暴力：
+
+```python
+class Solution:
+    def minOperations(self, nums: List[int]) -> int:
+        if gcd(*nums) > 1:
+            return -1
+        n = len(nums)
+        cnt1 = nums.count(1)
+        if cnt1:
+            return n - cnt1
+
+        min_size = n
+        for i in range(n):
+            g = 0
+            for j in range(i, n):
+                g = gcd(g, nums[j])
+                if g == 1:
+                    # 这里本来是 j-i+1，把 +1 提出来合并到 return 中
+                    min_size = min(min_size, j - i)
+                    break
+        return min_size + n - 1
+```
+
+LogTrick，维护 gcd 及同一 gcd 的起始左端点的全体区间 $a$。也就是压缩存储所有左端点到当前右端点的gcd值。故枚举 $i$，先每次在 $a$ 插入 $(nums_i,i)$。然后对 $a$ 全体，更新它为从它到当前的 gcd 值。
+
+合并重复gcd的区间，要最短的就行，所以左端点去合并后更小就能达到该gcd的最右左端点。否则，gcd 变化，保留。为了做到这一点，原地删除数组法类似unique，如果新区间与当前区间的gcd一样，删掉旧区间，即用新的最右左端点取代。
+
+注意到如果计算出有某个子段是1，那么全段必然是1，即 `a[0][0]==1` 能检测出合法。此时，经历了 gcd 合并，它代表了最右的，即最短的构成 1 的子段。
+
+##### 474\.一和零
+
+[题目](https://leetcode.cn/problems/ones-and-zeroes)
+
+二维背包DP模板题，我的实现：加 if 表示容量恰好为 `dp[i][j]`
+
+```go
+package main
+
+func findMaxForm(strs []string, m int, n int) (ans int) {
+	dp := make([][]int, m+1)
+	for i := range dp {
+		dp[i] = make([]int, n+1)
+	}
+	dp[0][0] = 1
+	for _, str := range strs {
+		n0, n1 := 0, 0
+		for _, c := range str {
+			if c == '0' {
+				n0++
+			} else {
+				n1++
+			}
+		}
+		for i := m; i >= n0; i-- {
+			for j := n; j >= n1; j-- {
+				if dp[i-n0][j-n1] > 0 {
+					dp[i][j] = max(dp[i][j], dp[i-n0][j-n1]+1)
+					ans = max(ans, dp[i][j]-1)
+				}
+			}
+		}
+	}
+	return
+}
+```
+
+优雅：不加 if 表示容量最大为 `dp[i][j]`
+
+```go
+func findMaxForm(strs []string, m, n int) int {
+    f := make([][]int, m+1)
+    for i := range f {
+        f[i] = make([]int, n+1)
+    }
+    for _, s := range strs {
+        cnt0 := strings.Count(s, "0")
+        cnt1 := len(s) - cnt0
+        for j := m; j >= cnt0; j-- {
+            for k := n; k >= cnt1; k-- {
+                f[j][k] = max(f[j][k], f[j-cnt0][k-cnt1]+1)
+            }
+        }
+    }
+    return f[m][n]
+}
+```
+
+还可以部分更新，见 0x3f。卡常。
+
+##### 2169\.得到0的操作数
+
+[题目](https://leetcode.cn/problems/count-operations-to-obtain-zero)
+
+```go
+func countOperations(x, y int) (ans int) {
+	for y > 0 {
+		ans += x / y // x 变成 x%y
+		x, y = y, x%y
+	}
+	return
 }
 ```
 
