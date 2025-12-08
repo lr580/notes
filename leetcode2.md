@@ -3727,7 +3727,7 @@
 
 - 3542\.将所有元素变为0的最少操作次数
 
-  TODO
+  贪心/分治 + 线段树/树状数组/ST表 / <u>单调栈</u>
 
 - 2169\.得到0的操作数
 
@@ -3735,23 +3735,47 @@
 
 - 1611\.使整数变为0的最少操作次数
 
-  TODO
+  **思维/数学/位运算 逆向**
 
 - 2528\.最大化城市的最小电量
 
-  TODO
+  二分答案 + 前缀和差分 / 滑动窗口
 
 - 3607\.电网维护
 
-  TODO
+  图论 DFS STL(set/懒删除堆)
 
 - 3321\.计算子数组的x-sum II
 
-  TODO
+  数据结构 对顶堆 哈希表
 
 - 3318.计算子数组的x-sum I
 
-  TODO
+  签到
+  
+- 3623\.统计梯形的数目I
+
+  计数 哈希表STL
+  
+- 3625\.统计梯形的数目II
+
+  计数 哈希表STL **数学(平行四边形性质)**
+
+- 2211\.统计道路上的碰撞次数
+
+  思维
+  
+- 3432\.统计元素和差值为偶数的分区方案
+
+  签到 前缀和 / <u>数学</u>
+
+- 1925\.统计平方和三元组的数目
+
+  枚举 / <u>数学</u> / <u>数论分块+莫比乌斯反演</u>
+
+- 1523\.在区间范围内统计奇数数目
+
+  签到 数学
 
 ## 算法
 
@@ -28735,3 +28759,382 @@ func countOperations(x, y int) (ans int) {
 }
 ```
 
+##### 3623\.统计梯形的数目I
+
+[题目](https://leetcode.cn/problems/count-number-of-trapezoids-i)
+
+哈希表统计每一行，然后乘法原理对每一行做计算组合其他行。也可以一次遍历。
+
+```go
+package main
+
+func countTrapezoids(points [][]int) int {
+	m := map[int]int64{}
+	for _, p := range points {
+		m[p[1]]++
+	}
+	s := int64(0)
+	for _, v := range m {
+		s += v * (v - 1) / 2
+	}
+	ans := int64(0)
+	for _, v := range m {
+		x := v * (v - 1) / 2
+		ans += x * (s - x)
+	}
+	return int(ans / 2 % (int64(1e9) + 7))
+}
+```
+
+```go
+func countTrapezoids(points [][]int) (ans int) {
+	const mod = 1_000_000_007
+	cnt := make(map[int]int, len(points)) // 预分配空间
+	for _, p := range points {
+		cnt[p[1]]++ // 统计每一行（水平线）有多少个点
+	}
+
+	s := 0
+	for _, c := range cnt {
+		k := c * (c - 1) / 2
+		ans += s * k
+		s += k
+	}
+	return ans % mod
+}
+```
+
+##### 2211\.统计道路上的碰撞次数
+
+[题目](https://leetcode.cn/problems/count-collisions-on-a-road)
+
+左连续L和右连续R开走，其他的LR都会撞，不管撞谁，S是单向不统计次数。
+
+```go
+package main
+
+func countCollisions(directions string) int {
+	n := len(directions)
+	ans := n
+	for i := 0; i < n; i++ {
+		if directions[i] == 'L' {
+			ans--
+		} else {
+			break
+		}
+	}
+	for i := n - 1; i >= 0; i-- {
+		if directions[i] == 'R' {
+			ans--
+		} else {
+			break
+		}
+	}
+	for i := 0; i < n; i++ {
+		if directions[i] == 'S' { // && (i == 0 || (i > 0 && directions[i-1] != 'R')) && (i == n-1 || (i < n-1 && directions[i+1] != 'L')) {
+			ans--
+		}
+	}
+	return ans
+}
+```
+
+优雅的库函数：
+
+```go
+func countCollisions(s string) int {
+	s = strings.TrimLeft(s, "L")          // 前缀向左的车不会发生碰撞
+	s = strings.TrimRight(s, "R")         // 后缀向右的车不会发生碰撞
+	return len(s) - strings.Count(s, "S") // 剩下非静止的车必然会碰撞
+}
+```
+
+##### 3625\.统计梯形的数目II
+
+[题目](https://leetcode.cn/problems/count-number-of-trapezoids-ii)
+
+把斜率相同的直线放在同一组，可以从中选择一对平行边，作为梯形的顶边和底边。注意：不能选两条重合的边，所以还要按照截距分组，同一组内的边不能选。
+
+由于平行四边形被计算了两次，需要求出全体平行四边形以减去。注意到平行四边形有重要性质：两对角线中点重合。故用中点分组，求每个斜率出现的次数，两斜率对应两对角线组成一个平行四边形。
+
+处理细节：
+
+- 若 dx=0，与y平行，令截距为x，斜率为max float，得以区分不同的平行线。
+- 建立斜率->截距的map，以及中点->斜率的map。两种写法：建立时统计个数，使用嵌套map或不使用嵌套map而是用列表，用到时重新列表->map统计个数。
+
+```go
+func countTrapezoids(points [][]int) (ans int) {
+	cnt := map[float64]map[float64]int{} // 斜率 -> 截距 -> 个数
+	type pair struct{ x, y int }
+	cnt2 := map[pair]map[float64]int{} // 中点 -> 斜率 -> 个数
+
+	for i, p := range points {
+		x, y := p[0], p[1]
+		for _, q := range points[:i] {
+			x2, y2 := q[0], q[1]
+			dy := y - y2
+			dx := x - x2
+			k := math.MaxFloat64
+			b := float64(x)
+			if dx != 0 {
+				k = float64(dy) / float64(dx)
+				b = float64(y*dx-dy*x) / float64(dx)
+			}
+
+			if _, ok := cnt[k]; !ok {
+				cnt[k] = map[float64]int{}
+			}
+			cnt[k][b]++ // 按照斜率和截距分组
+
+			mid := pair{x + x2, y + y2}
+			if _, ok := cnt2[mid]; !ok {
+				cnt2[mid] = map[float64]int{}
+			}
+			cnt2[mid][k]++ // 按照中点和斜率分组
+		}
+	}
+
+	for _, m := range cnt {
+		s := 0
+		for _, c := range m {
+			ans += s * c
+			s += c
+		}
+	}
+
+	for _, m := range cnt2 {
+		s := 0
+		for _, c := range m {
+			ans -= s * c // 平行四边形会统计两次，减去多统计的一次
+			s += c
+		}
+	}
+	return
+}
+```
+
+```go
+func countTrapezoids(points [][]int) (ans int) {
+	groups := map[float64][]float64{} // 斜率 -> [截距]
+	type pair struct{ x, y int }
+	groups2 := map[pair][]float64{} // 中点 -> [斜率]
+
+	for i, p := range points {
+		x, y := p[0], p[1]
+		for _, q := range points[:i] {
+			x2, y2 := q[0], q[1]
+			dy := y - y2
+			dx := x - x2
+			k := math.MaxFloat64
+			b := float64(x)
+			if dx != 0 {
+				k = float64(dy) / float64(dx)
+				b = float64(y*dx-dy*x) / float64(dx)
+			}
+
+			groups[k] = append(groups[k], b)
+			mid := pair{x + x2, y + y2}
+			groups2[mid] = append(groups2[mid], k)
+		}
+	}
+
+	for _, g := range groups {
+		if len(g) == 1 {
+			continue
+		}
+		cnt := map[float64]int{}
+		for _, b := range g {
+			cnt[b]++
+		}
+		s := 0
+		for _, c := range cnt {
+			ans += s * c
+			s += c
+		}
+	}
+
+	for _, g := range groups2 {
+		if len(g) == 1 {
+			continue
+		}
+		cnt := map[float64]int{}
+		for _, k := range g {
+			cnt[k]++
+		}
+		s := 0
+		for _, c := range cnt {
+			ans -= s * c // 平行四边形会统计两次，减去多统计的一次
+			s += c
+		}
+	}
+	return
+}
+```
+
+##### 3432\.统计元素和差值为偶数的分区方案
+
+[题目](https://leetcode.cn/problems/count-partitions-with-even-sum-difference)
+
+```go
+package main
+
+func countPartitions(nums []int) (ans int) {
+	sr := 0
+	n := len(nums)
+	for i := n - 1; i >= 0; i-- {
+		sr += nums[i]
+	}
+	sl := 0
+	for i := 0; i < n-1; i++ {
+		sl += nums[i]
+		sr -= nums[i]
+		if (sl & 1) == (sr & 1) {
+			ans++
+		}
+	}
+	return
+}
+```
+
+答案与 i 无关。设数组和为 s，左和为 l，右为 s-l，要让 l-(s-l) 即 2l-s 为偶数，因为 2l 必然是偶数，只需要让 s 是偶数，则处处是偶数，否则处处不是偶数。
+
+```python
+class Solution:
+    def countPartitions(self, nums: List[int]) -> int:
+        return 0 if sum(nums) % 2 else len(nums) - 1
+```
+
+##### 3542\.将所有元素变为0的最少操作次数
+
+[题目](https://leetcode.cn/problems/minimum-operations-to-convert-all-elements-to-zero)
+
+先一步把最小值全变为0(已经是0记得忽略)，然后我的思路是：
+
+1. 维护一个线段树支持区间置true和查询区间是否有true。记录当前已经操作过的下标为true，初始值为全体最小值下标。每次操作后更新
+2. 记录每个数值的下标列表(升序)，从小到大遍历每个数值的下标列表。贪心地：如果当前遍历的下标段在线段树查询没有true，继续扩大遍历下标区间，否则，把这个下标区间一起操作
+
+线段树/树状数组/ST表比较麻烦，考虑分治：每个子问题把当前子区间最小值全部设0，设过的当分隔新子问题的分隔符。仍然需要线段树等。
+
+考虑单调栈，当前元素比栈顶大就入栈；如果比栈顶小，那么栈顶左边(栈第二元素)也比栈顶小，故栈顶必须操作，弹出栈顶。若当前元素等于栈顶，一次操作可以兼顾，无需入栈，可以达到去重。
+
+```python
+class Solution:
+    def minOperations(self, nums: List[int]) -> int:
+        ans = 0
+        st = []
+        for x in nums:
+            while st and x < st[-1]:
+                st.pop()
+                ans += 1
+            # 如果 x 与栈顶相同，那么 x 与栈顶可以在同一次操作中都变成 0，x 无需入栈
+            if not st or x != st[-1]:
+                st.append(x)
+        return ans + len(st) - (st[0] == 0)  # 0 不需要操作
+```
+
+##### 1611\.使整数变为0的最少操作次数
+
+[题目](https://leetcode.cn/problems/minimum-one-bit-operations-to-make-integers-zero)
+
+##### 2528\.最大化城市的最小电量
+
+[题目](https://leetcode.cn/problems/power-grid-maintenance)
+
+##### 3607\.电网维护
+
+[题目](https://leetcode.cn/problems/power-grid-maintenance)
+
+##### 3318\.计算子数组的x-sum I
+
+[题目](https://leetcode.cn/problems/find-x-sum-of-all-k-long-subarrays-i)
+
+##### 3321.计算子数组的x-sum II
+
+[题目](https://leetcode.cn/problems/find-x-sum-of-all-k-long-subarrays-ii/)
+
+这几题直接看0x3f。
+
+##### 1925\.统计平方和三元组的数目
+
+[题目](https://leetcode.cn/problems/count-square-sum-triples)
+
+我的写法：
+
+```go
+import "math"
+
+func countTriples(n int) (res int) {
+	for a := 1; a <= n; a++ {
+		for b := a; b <= n; b++ {
+			c := int(math.Round(math.Hypot(float64(a), float64(b))))
+			if c < n && a*a+b*b == c*c {
+				res++
+			}
+		}
+	}
+	return
+}
+```
+
+优雅：
+
+```go
+func countTriples(n int) (ans int) {
+	for a := 1; a < n; a++ {
+		for b := 1; b < a && a*a+b*b <= n*n; b++ {
+			c2 := a*a + b*b
+			c := int(math.Sqrt(float64(c2)))
+			if c*c == c2 {
+				ans++
+			}
+		}
+	}
+	return ans * 2 // (a,b,c) 和 (b,a,c) 各算一次
+}
+```
+
+公式生成所有本原勾股数，令 $m>n,\gcd(m,n)=1$，且 $m,n$ 一奇一偶，则勾股数为 $a=m^2-n^2,b=mn,c=m^2+n^2$。根号枚举 $m,n$。然后判别互质，所有 $(ka,kb,kc)$ 都是答案。2倍是因为 $m,n$ 可以 swap。
+
+```python
+class Solution:
+    def countTriples(self, n: int) -> int:
+        ans = 0
+        u = 3
+        while u * u < n * 2:
+            v = 1
+            while v < u and u * u + v * v <= n * 2:
+                if gcd(u, v) == 1:
+                    ans += n * 2 // (u * u + v * v)
+                v += 2
+            u += 2
+        return ans * 2  # (a,b,c) 和 (b,a,c) 各算一次
+```
+
+因此复杂度是 $O(n\log n)$ 或 $O(n)$ (预处理 gcd)。
+
+```python
+MX = isqrt(500) + 1
+gcds = [[0] * MX for _ in range(MX)]
+for i in range(1, MX):
+    gcds[i][0] = i
+    for j in range(1, MX):
+        # 更相减损术
+        gcds[i][j] = gcds[i][j - i] if j >= i else gcds[j][i]
+
+class Solution:
+    def countTriples(self, n: int) -> int:
+        ans = 0
+        u = 3
+        while u * u < n * 2:
+            v = 1
+            while v < u and u * u + v * v <= n * 2:
+                if gcds[u][v] == 1:
+                    ans += n * 2 // (u * u + v * v)
+                v += 2
+            u += 2
+        return ans * 2  # (a,b,c) 和 (b,a,c) 各算一次
+```
+
+
+
+ 
