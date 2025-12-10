@@ -3776,6 +3776,14 @@
 - 1523\.在区间范围内统计奇数数目
 
   签到 数学
+  
+- 3583\.统计特殊三元组
+
+  计数 数据结构(哈希表set)
+  
+- 3577\.统计计算机解锁顺序排列
+
+  思维 数学
 
 ## 算法
 
@@ -29133,6 +29141,79 @@ class Solution:
                 v += 2
             u += 2
         return ans * 2  # (a,b,c) 和 (b,a,c) 各算一次
+```
+
+##### 3583\.统计特殊三元组
+
+[题目](https://leetcode.cn/problems/count-special-triplets)
+
+枚举中间，两次遍历：
+
+```go
+package main
+
+func specialTriplets(nums []int) int {
+	n := len(nums)
+	pre, suf := map[int]int{}, map[int]int{}
+	for i := 0; i < n; i++ {
+		suf[nums[i]]++
+	}
+	ans := int64(0)
+	for i := 0; i < n; i++ {
+		suf[nums[i]]--
+		v := nums[i] * 2
+		ans = (ans + int64(pre[v])*int64(suf[v])) % (int64(1e9) + 7)
+		pre[nums[i]]++
+	}
+	return int(ans)
+}
+```
+
+枚举右边，一次遍历：
+
+```go
+func specialTriplets(nums []int) (cnt123 int) {
+	const mod = 1_000_000_007
+	cnt1 := map[int]int{}
+	cnt12 := map[int]int{}
+	for _, x := range nums {
+		if x%2 == 0 {
+			cnt123 += cnt12[x/2] // 把 x 当作 nums[k]
+		}
+		cnt12[x] += cnt1[x*2] // 把 x 当作 nums[j]
+		cnt1[x]++ // 把 x 当作 nums[i]
+	}
+	return cnt123 % mod
+}
+```
+
+##### 3577\.统计计算机解锁顺序排列
+
+[题目](https://leetcode.cn/problems/count-the-number-of-computer-unlocking-permutations)
+
+把最小值(编号0)放第一位，其他任意。
+
+```go
+package main
+
+var f [100002]int
+
+func init() {
+	f[0] = 1
+	for i := 1; i <= 100000; i++ {
+		f[i] = (f[i-1] * i) % 1000000007
+	}
+}
+
+func countPermutations(complexity []int) int {
+	n := len(complexity)
+	for i := 1; i < n; i++ {
+		if complexity[i] <= complexity[0] {
+			return 0
+		}
+	}
+	return f[n-1]
+}
 ```
 
 
