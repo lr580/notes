@@ -3784,6 +3784,14 @@
 - 3577\.统计计算机解锁顺序排列
 
   思维 数学
+  
+- 3531\.统计被覆盖的建筑
+
+  枚举
+  
+- 3433\.统计用户被提及情况
+
+  模拟 数据结构 / <u>前缀和</u>
 
 ## 算法
 
@@ -29216,6 +29224,247 @@ func countPermutations(complexity []int) int {
 }
 ```
 
+##### 3531\.统计被覆盖的建筑
 
+[题目](https://leetcode.cn/problems/count-covered-buildings)
 
- 
+其实也可以不用 hash，值域很小
+
+```go
+package main
+
+func updateMin(m map[int]int, k, v int) {
+	if existingVal, exists := m[k]; !exists || v < existingVal {
+		m[k] = v
+	}
+}
+
+func updateMax(m map[int]int, k, v int) {
+	if existingVal, exists := m[k]; !exists || v > existingVal {
+		m[k] = v
+	}
+}
+
+func countCoveredBuildings(n int, buildings [][]int) (ans int) {
+	colMin := map[int]int{}
+	colMax := map[int]int{}
+	rowMin := map[int]int{}
+	rowMax := map[int]int{}
+	for _, b := range buildings {
+		x, y := b[0], b[1]
+		updateMin(colMin, x, y)
+		updateMax(colMax, x, y)
+		updateMin(rowMin, y, x)
+		updateMax(rowMax, y, x)
+	}
+	for _, b := range buildings {
+		x, y := b[0], b[1]
+		cMin, cMax := colMin[x], colMax[x]
+		rMin, rMax := rowMin[y], rowMax[y]
+		if y != cMin && y != cMax && x != rMin && x != rMax {
+			ans++
+		}
+	}
+	return
+}
+```
+
+```go
+func countCoveredBuildings(n int, buildings [][]int) (ans int) {
+	type pair struct{ min, max int }
+	row := make([]pair, n+1)
+	col := make([]pair, n+1)
+	for i := 1; i <= n; i++ {
+		row[i].min = math.MaxInt
+		col[i].min = math.MaxInt
+	}
+
+	add := func(m []pair, x, y int) {
+		m[y].min = min(m[y].min, x)
+		m[y].max = max(m[y].max, x)
+	}
+	isInner := func(m []pair, x, y int) bool {
+		return m[y].min < x && x < m[y].max
+	}
+
+	for _, p := range buildings {
+		x, y := p[0], p[1]
+		add(row, x, y) // x 加到 row[y] 中
+		add(col, y, x) // y 加到 col[x] 中
+	}
+
+	for _, p := range buildings {
+		x, y := p[0], p[1]
+		if isInner(row, x, y) && isInner(col, y, x) {
+			ans++
+		}
+	}
+	return
+}
+```
+
+##### 3433\.统计用户被提及情况
+
+[题目](https://leetcode.cn/problems/count-mentions-per-user)
+
+对 all 和 id 直接计数。对 here：
+
+1. 先把消息按时间转换，记录每个时间戳发生的在线事件和离线事件、here事件
+2. 记录所有时间时间戳，注意对在线的 t+60 也要统计，然后升序排序
+3. 然后按时间顺序处理，先处理在线，再处理离线(不能反过来，否则连续离线如120s的失效)，然后处理here
+
+```go 
+package main
+
+import (
+	"fmt"
+	"sort"
+	"strconv"
+	"strings"
+)
+
+func countMentions(numberOfUsers int, events [][]string) (ans []int) {
+	vis := map[int]bool{}
+	for i := 0; i < numberOfUsers; i++ {
+		vis[i] = true
+	}
+	ans = make([]int, numberOfUsers)
+	allT := map[int]struct{}{}
+	goOffline := map[int][]int{}
+	goOnline := map[int][]int{}
+	allMsg := 0
+	hereMsg := map[int]int{}
+	for _, e := range events {
+		t, _ := strconv.Atoi(e[1])
+		allT[t] = struct{}{}
+		if e[0] == "OFFLINE" {
+			uid, _ := strconv.Atoi(e[2])
+			goOffline[t] = append(goOffline[t], uid)
+			goOnline[t+60] = append(goOnline[t+60], uid)
+			allT[t+60] = struct{}{}
+		} else {
+			if e[2] == "HERE" {
+				hereMsg[t]++
+			} else if e[2] == "ALL" {
+				allMsg++
+			} else {
+				ids := strings.Split(e[2], " ")
+				for _, id := range ids {
+					i, _ := strconv.Atoi(id[2:])
+					// fmt.Println("id ", i, id)
+					ans[i]++
+				}
+			}
+		}
+	}
+	// fmt.Println(ans)
+	for i := 0; i < numberOfUsers; i++ {
+		ans[i] += allMsg
+	}
+	// fmt.Println(ans)
+	times := make([]int, 0, len(allT))
+	for t := range allT {
+		times = append(times, t)
+	}
+	sort.Ints(times)
+	for i := 0; i < len(times); i++ {
+		t := times[i]
+        for _, tt := range goOnline[t] {
+			vis[tt] = true
+		}
+		for _, tt := range goOffline[t] {
+			vis[tt] = false
+		}
+		cnt := hereMsg[t]
+		for uid, _ := range ans {
+			if vis[uid] {
+				ans[uid] += cnt
+			}
+		}
+		// fmt.Println(t, ans)
+	}
+	return
+}
+```
+
+优雅的模拟：
+
+1. 字符串前缀判别即可，即只看第一个字符
+2. 使用下次在线时间而不是vis，省略掉 goOff, goOn
+
+```go
+func countMentions(numberOfUsers int, events [][]string) []int {
+	// 按照时间戳从小到大排序，时间戳相同的，离线事件排在前面
+	slices.SortFunc(events, func(a, b []string) int {
+		ta, _ := strconv.Atoi(a[1])
+		tb, _ := strconv.Atoi(b[1])
+		return cmp.Or(ta-tb, int(b[0][0])-int(a[0][0]))
+	})
+
+	ans := make([]int, numberOfUsers)
+	onlineT := make([]int, numberOfUsers)
+	for _, e := range events {
+		curT, _ := strconv.Atoi(e[1]) // 当前时间
+		mention := e[2]
+		if e[0][0] == 'O' { // 离线
+			i, _ := strconv.Atoi(mention)
+			onlineT[i] = curT + 60 // 下次在线时间
+		} else if mention[0] == 'A' { // @所有人
+			for i := range ans {
+				ans[i]++
+			}
+		} else if mention[0] == 'H' { // @所有在线用户
+			for i, t := range onlineT {
+				if t <= curT { // 在线
+					ans[i]++
+				}
+			}
+		} else { // @id
+			for _, s := range strings.Split(mention, " ") {
+				i, _ := strconv.Atoi(s[2:])
+				ans[i]++
+			}
+		}
+	}
+	return ans
+}
+```
+
+here 的优化：取反，减去离线的人。对一个用户而言，减去它离线区间收到的 here 次数。设它当前开始离线，那么当前位置的here计数+1，然后下一次在线全部-1，一正一反，再补一个all，刚好做了一个长为60的区间减法。
+
+```python
+class Solution:
+    def countMentions(self, numberOfUsers: int, events: List[List[str]]) -> List[int]:
+        ans = [0] * numberOfUsers
+        es = []  # (timestamp, type, id)
+        all = 0
+        for type_, timestamp, mention in events:
+            cur_t = int(timestamp)  # 当前时间
+            if type_[0] == 'O':  # 离线
+                i = int(mention)
+                es.append((cur_t, 1, i))
+                es.append((cur_t + 60, -1, i))
+            elif mention[0] == 'A':  # @所有人
+                all += 1
+            elif mention[0] == 'H':  # @所有在线用户
+                all += 1
+                es.append((cur_t, 2, -1))
+            else:  # @id
+                for s in mention.split():
+                    ans[int(s[2:])] += 1
+
+        es.sort()
+
+        here = 0
+        for _, type_, i in es:
+            if type_ == 2:
+                here += 1
+            else:
+                # 注意 HERE 排在后面，还没有计入发生在此刻的 HERE 消息
+                ans[i] += type_ * here  # type=1 是加，-1 是减
+
+        for i in range(numberOfUsers):
+            ans[i] += all
+        return ans
+```
+

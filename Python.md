@@ -403,6 +403,8 @@ ipynb使用十分简单，事实上就是一堆代码框，然后可以分块运
 
 > 挂梯子可能会导致 vscode ipynb 启动失败，可以尝试关闭梯子
 
+`!` 开头执行 shell 命令，`%` 开头是行魔术命令，`%%` 开头是单元格魔术命令。
+
 ##### 安装
 
 ```shell
@@ -1019,7 +1021,7 @@ format 方法/函数：
 ```python
 "{} {}".format(value1, value2)  # 同上理
 "{1}, {0}".format('世界', '你好') # "你好, 世界" 位置参数
-"{year}年{month}月".format(year=2023, month=4) # "2023年4月" 关键字参数
+"{year}年{month:02d}月".format(year=2023, month=4) # "2023年04月" 关键字参数
 "{:%Y-%m-%d}".format(datetime(2023, 4, 1)) # "2023-04-01"
 "{data[year]}年".format(data={'year': 2023}) # "2023年"
 "{0[0]}和{0[1]}".format(['苹果', '香蕉']) # "苹果和香蕉"
@@ -10835,6 +10837,23 @@ df = pd.DataFrame.from_dict(students, orient='index')
 默认 True，即：根据文件的一些推测来分配数据的类型，以降低内存使用量。
 
 若 False 可以将在读取整个文件之前分析数据的类型，并将整个文件读入内存。避免一些类型复杂导致的报错。
+
+###### parquet
+
+列存格式，后缀 `.parquet`。
+
+```sh
+pip install pyarrow # 二选一
+pip install fastparquet
+```
+
+```python
+import pandas as pd
+df = pd.read_parquet("nyc_taxi_data/yellow_tripdata_2024-01.parquet", engine="fastparquet")
+df.head()
+```
+
+
 
 ##### 写入
 
@@ -21027,6 +21046,12 @@ print("Output tensor:\n", output_tensor)
 
 ###### AdaptiveAvgPool2d
 
+###### RMSNorm
+
+一种层归一化技术，其全称是 Root Mean Square Layer Normalization，在 2019 NeurIPS 提出。
+
+通常对最后一个维度整个向量做 RMS，即求平方和而后/n再开根。将输入除以这个 RMS 结果，然后乘可学习缩放参数。
+
 ##### RNN
 
 ###### LSTM
@@ -21056,8 +21081,6 @@ output, (h_n, c_n) = lstm(inputs)
 print(output.shape)  # torch.Size([3, 5, 20]) (batch_first=True)
 print(h_n.shape)     # torch.Size([2, 3, 20]) (2层LSTM)
 ```
-
-
 
 ##### 卷积层
 
@@ -21603,6 +21626,22 @@ AdamW优化器作为Adam优化器改进版，它将权重衰减与梯度更新�
 grad = gradient
 m_hat, v_hat = ... 
 param = param - lr * (m_hat / (sqrt(v_hat) + eps) + weight_decay * param)
+```
+
+##### RMSProp
+
+Root Mean Square Propagation，为每个参数单独设置不同的学习率，而不是使用全局统一的学习率。
+
+```python
+optimizer = optim.RMSprop(
+    model.parameters(),
+    lr=0.01,           # 学习率
+    alpha=0.99,        # 平滑常数（相当于公式中的 β）
+    eps=1e-8,          # 防止除零的小值
+    weight_decay=0,    # L2 正则化
+    momentum=0,        # 动量
+    centered=False     # 是否使用 centered RMSprop
+)
 ```
 
 
