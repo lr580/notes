@@ -3792,6 +3792,34 @@
 - 3433\.统计用户被提及情况
 
   模拟 数据结构 / <u>前缀和</u>
+  
+- 2092\.找出知晓秘密的所有专家
+
+  DFS / <u>并查集</u>
+
+- 3652\.按策略买卖股票的最佳时机
+
+  前缀和 / 滑动窗口
+
+- 3573\.买卖股票的最佳时机V
+
+  DP
+
+- 3606\.优惠券校验器
+
+  签到 排序
+
+- 2110\.股票平滑下跌阶段的数目
+
+  签到 计数
+
+- 2147\.分隔长廊的方案数
+
+  计数
+
+- 3562\.折扣价交易股票的最大利润
+
+  <u>树上DP 背包</u>
 
 ## 算法
 
@@ -29468,3 +29496,373 @@ class Solution:
         return ans
 ```
 
+##### 2092\.找出知晓秘密的所有专家
+
+[题目](https://leetcode.cn/problems/find-all-people-with-secret)
+
+对每个时间戳，建立一个图。从当前时间知道秘密所有专家开始做 DFS / BFS。
+
+```go
+package main
+
+func findAllPeople(n int, meetings [][]int, firstPerson int) []int {
+	know := make([]bool, n)
+	know[0] = true
+	know[firstPerson] = true
+	mt := 0
+	for _, v := range meetings {
+		mt = max(mt, v[2])
+	}
+	a := make([][][2]int, mt+1)
+	for _, v := range meetings {
+		a[v[2]] = append(a[v[2]], [2]int{v[0], v[1]})
+	}
+	e := make([][]int, n)
+	vis := make([]int, n)
+	var dfs func(u int, f int, vistag int)
+	dfs = func(u int, f int, vistag int) {
+		if vis[u] == vistag {
+			return
+		}
+		vis[u] = vistag
+		know[u] = true
+		for _, v := range e[u] {
+			if v != f {
+				dfs(v, u, vistag)
+			}
+		}
+	}
+	for t, g := range a { // graph
+		for _, pr := range g {
+			u, v := pr[0], pr[1]
+			e[u] = append(e[u], v)
+			e[v] = append(e[v], u)
+		}
+		for _, pr := range g {
+			u, v := pr[0], pr[1]
+			if know[u] {
+				dfs(u, -1, t)
+			}
+			if know[v] {
+				dfs(v, -1, t)
+			}
+		}
+		for _, pr := range g {
+			u, v := pr[0], pr[1]
+			e[u] = []int{}
+			e[v] = []int{}
+		}
+	}
+	res := make([]int, 0)
+	for i, v := range know {
+		if v {
+			res = append(res, i)
+		}
+	}
+	return res
+}
+```
+
+> 我的45ms，下面这个170ms
+>
+> ```go
+> func findAllPeople(_ int, meetings [][]int, firstPerson int) []int {
+> 	// 按照 time 从小到大排序
+> 	slices.SortFunc(meetings, func(a, b []int) int { return a[2] - b[2] })
+> 
+> 	// 一开始 0 和 firstPerson 都知道秘密
+> 	haveSecret := map[int]bool{0: true, firstPerson: true}
+> 
+> 	// 分组循环
+> 	m := len(meetings)
+> 	for i := 0; i < m; {
+> 		// 在同一时间发生的会议，建图
+> 		g := map[int][]int{}
+> 		time := meetings[i][2]
+> 		for ; i < m && meetings[i][2] == time; i++ {
+> 			x, y := meetings[i][0], meetings[i][1]
+> 			g[x] = append(g[x], y)
+> 			g[y] = append(g[y], x)
+> 		}
+> 
+> 		// 每个连通块只要有一个人知道秘密，那么整个连通块的人都知道秘密
+> 		vis := map[int]bool{} // 避免重复访问节点
+> 		var dfs func(int)
+> 		dfs = func(x int) {
+> 			vis[x] = true
+> 			haveSecret[x] = true
+> 			for _, y := range g[x] {
+> 				if !vis[y] {
+> 					dfs(y)
+> 				}
+> 			}
+> 		}
+> 		for x := range g { // 遍历在 time 时间点参加会议的专家
+> 			// 从知道秘密的专家出发，DFS 标记其余专家
+> 			if haveSecret[x] && !vis[x] {
+> 				dfs(x)
+> 			}
+> 		}
+> 	}
+> 
+> 	// 可以按任何顺序返回答案
+> 	return slices.Collect(maps.Keys(haveSecret))
+> }
+> ```
+
+并查集的撤销合并，就是直接把当前并查集所有点重新初始化。52ms
+
+```go
+type unionFind struct {
+	fa []int // 代表元
+}
+
+func newUnionFind(n int) unionFind {
+	fa := make([]int, n)
+	// 一开始有 n 个集合 {0}, {1}, ..., {n-1}
+	// 集合 i 的代表元是自己
+	for i := range fa {
+		fa[i] = i
+	}
+	return unionFind{fa}
+}
+
+// 返回 x 所在集合的代表元
+// 同时做路径压缩，也就是把 x 所在集合中的所有元素的 fa 都改成代表元
+func (u unionFind) find(x int) int {
+	// 如果 fa[x] == x，则表示 x 是代表元
+	if u.fa[x] != x {
+		u.fa[x] = u.find(u.fa[x]) // fa 改成代表元
+	}
+	return u.fa[x]
+}
+
+// 判断 x 和 y 是否在同一个集合
+func (u unionFind) same(x, y int) bool {
+	// 如果 x 的代表元和 y 的代表元相同，那么 x 和 y 就在同一个集合
+	// 这就是代表元的作用：用来快速判断两个元素是否在同一个集合
+	return u.find(x) == u.find(y)
+}
+
+// 把 from 所在集合合并到 to 所在集合中
+func (u *unionFind) merge(from, to int) {
+	x, y := u.find(from), u.find(to)
+	u.fa[x] = y
+}
+
+func findAllPeople(n int, meetings [][]int, firstPerson int) (ans []int) {
+	// 按照 time 从小到大排序
+	slices.SortFunc(meetings, func(a, b []int) int { return a[2] - b[2] })
+
+	uf := newUnionFind(n)
+	// 一开始 0 和 firstPerson 都知道秘密
+	uf.merge(firstPerson, 0)
+
+	// 分组循环
+	m := len(meetings)
+	for i := 0; i < m; {
+		start := i
+		// 合并在同一时间发生的会议
+		time := meetings[i][2]
+		for ; i < m && meetings[i][2] == time; i++ {
+			uf.merge(meetings[i][0], meetings[i][1])
+		}
+
+		// 如果节点不和 0 在同一个集合，那么撤销合并，恢复成初始值
+		for j := start; j < i; j++ {
+			x, y := meetings[j][0], meetings[j][1]
+			if !uf.same(x, 0) {
+				uf.fa[x] = x
+			}
+			if !uf.same(y, 0) {
+				uf.fa[y] = y
+			}
+		}
+	}
+
+	// 和 0 在同一个集合的专家都知道秘密
+	for i := range n {
+		if uf.same(i, 0) {
+			ans = append(ans, i)
+		}
+	}
+	return
+}
+```
+
+##### 3652\.按策略买卖股票的最佳时机
+
+[题目](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-using-strategy)
+
+本质上就是加权和数组。
+
+```go
+package main
+
+func maxProfit(prices []int, strategy []int, k int) int64 {
+	s0 := 0
+	n := len(prices)
+	s1 := make([]int, n+1)
+	for i := 0; i < n; i++ {
+		s0 += strategy[i] * prices[i]
+		s1[i+1] = s1[i]+strategy[i]*prices[i]
+	}
+	s := make([]int, n+1)
+	for i := 1; i <= n; i++ {
+		s[i] = s[i-1] + prices[i-1]
+	}
+	ans := s0
+	for l, r := 1, k; r <= n; l, r = l+1, r+1 {
+		ans = max(ans, s0-(s1[r]-s1[l-1])+s[r]-s[l+k/2-1])
+        // fmt.Println(s0, s1[r]-s1[l-1], s[r]- s[l+k/2-1], s0-(s1[r]-s1[l])+s[r]-s[l+k/2-1])
+	}
+	return int64(ans)
+}
+```
+
+```go
+func maxProfit(prices, strategy []int, k int) int64 {
+	var total, maxSum, sum int
+	for i, p := range prices {
+		s := strategy[i]
+		total += p * s // 不修改时的最大利润
+
+		// 1. 下标为 i 的元素入右半，交易策略从 s 变成 1
+		sum += p * (1 - s)
+
+		if i < k-1 { // 尚未形成第一个窗口
+			// 在下一轮循环中，下标为 i-k/2+1 的元素从右半移到左半，交易策略从 1 变成 0
+			if i >= k/2-1 {
+				sum -= prices[i-k/2+1]
+			}
+			continue
+		}
+
+		// 2. 更新
+		maxSum = max(maxSum, sum) // 修改带来的最大额外利润
+
+		// 3. 出，为下一个窗口做准备
+		// 下标为 i-k/2+1 的元素从右半移到左半，交易策略从 1 变成 0，
+		// 下标为 i-k+1 的元素从左半离开窗口，交易策略从 0 恢复为 strategy[i-k+1]
+		sum -= prices[i-k/2+1] - prices[i-k+1]*strategy[i-k+1]
+	}
+
+	return int64(total + maxSum)
+}
+```
+
+##### 3573\.买卖股票的最佳时机V
+
+[题目](https://leetcode.cn/problems/best-time-to-buy-and-sell-stock-v)
+
+```go
+func maximumProfit(prices []int, k int) int64 {
+	n := len(prices)
+	f := make([][][3]int, n+1)
+	for i := range f {
+		f[i] = make([][3]int, k+2)
+		for j := range f[i] {
+			f[i][j] = [3]int{math.MinInt / 2, math.MinInt / 2, math.MinInt / 2}
+		}
+	}
+	for j := 1; j <= k+1; j++ {
+		f[0][j][0] = 0
+	}
+	for i, p := range prices {
+		for j := 1; j <= k+1; j++ {
+			f[i+1][j][0] = max(f[i][j][0], f[i][j][1]+p, f[i][j][2]-p)
+			f[i+1][j][1] = max(f[i][j][1], f[i][j-1][0]-p)
+			f[i+1][j][2] = max(f[i][j][2], f[i][j-1][0]+p)
+		}
+	}
+	return int64(f[n][k+1][0])
+}
+```
+
+##### 3606\.优惠券校验器
+
+[题目](https://leetcode.cn/problems/coupon-code-validator)
+
+```go
+var businessLineToCategory = map[string]int{
+	"electronics": 0,
+	"grocery":     1,
+	"pharmacy":    2,
+	"restaurant":  3,
+}
+
+// 检查字符串是否非空，只包含字母、数字和下划线
+func isValid(s string) bool {
+	for _, c := range s {
+		if c != '_' && !unicode.IsLetter(c) && !unicode.IsDigit(c) {
+			return false
+		}
+	}
+	return s != ""
+}
+
+func validateCoupons(code []string, businessLine []string, isActive []bool) (ans []string) {
+	groups := [4][]string{}
+	for i, s := range code {
+		category, ok := businessLineToCategory[businessLine[i]]
+		if ok && isActive[i] && isValid(s) {
+			groups[category] = append(groups[category], s) // 相同类别的优惠码分到同一组
+		}
+	}
+
+	for _, g := range groups {
+		slices.Sort(g) // 每一组内部排序
+		ans = append(ans, g...)
+	}
+	return
+}
+```
+
+##### 2110\.股票平滑下跌阶段的数目
+
+[题目](https://leetcode.cn/problems/number-of-smooth-descent-periods-of-a-stock)
+
+```go
+func getDescentPeriods(prices []int) (ans int64) {
+	dec := 0
+	for i, p := range prices {
+		if i > 0 && p == prices[i-1]-1 {
+			dec++ // 连续递减
+		} else {
+			dec = 1 // 连续递减中断，重新统计
+		}
+		ans += int64(dec) // dec 是右端点为 i 的连续递减子数组个数
+	}
+	return
+}
+```
+
+##### 2147\.分隔长廊的方案数
+
+[题目](https://leetcode.cn/problems/number-of-ways-to-divide-a-long-corridor)
+
+```python
+class Solution:
+    def numberOfWays(self, corridor: str) -> int:
+        MOD = 1_000_000_007
+        ans = 1
+        cnt_s = last_s = 0
+
+        for i, ch in enumerate(corridor):
+            if ch == 'S':
+                cnt_s += 1
+                # 对于第 3,5,7,... 个座位，可以在其到其左侧最近座位之间的任意空隙放置屏风
+                if cnt_s >= 3 and cnt_s % 2:
+                    ans = ans * (i - last_s) % MOD
+                last_s = i  # 记录上一个座位的位置
+ 
+        if cnt_s == 0 or cnt_s % 2:  # 座位个数不能为 0 或奇数
+            return 0
+        return ans
+```
+
+##### 3562\.折扣价交易股票的最大利润
+
+[题目](https://leetcode.cn/problems/maximum-profit-from-trading-stocks-with-discounts)
+
+见0x3f。
