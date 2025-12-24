@@ -3820,6 +3820,26 @@
 - 3562\.折扣价交易股票的最大利润
 
   <u>树上DP 背包</u>
+  
+- 944\.删列造序
+
+  签到
+  
+- 955\.删列造序II
+
+  **贪心**
+  
+- 960\.删列造序III
+
+  **DP(LIS)**
+  
+- 2054\.两个最好的不重叠活动
+
+  (离散)前缀和 数据结构 二分 / <u>排序+单调栈</u>
+  
+- 3074\.重新分装苹果
+
+  签到 排序
 
 ## 算法
 
@@ -29866,3 +29886,212 @@ class Solution:
 [题目](https://leetcode.cn/problems/maximum-profit-from-trading-stocks-with-discounts)
 
 见0x3f。
+
+##### 944\.删列造序
+
+[题目](https://leetcode.cn/problems/delete-columns-to-make-sorted)
+
+```go
+package main
+
+func minDeletionSize(strs []string) (ans int) {
+	n, m := len(strs), len(strs[0])
+	for j := 0; j < m; j++ {
+		for i := 1; i < n; i++ {
+			if strs[i][j] < strs[i-1][j] {
+				ans++
+				break
+			}
+		}
+	}
+	return
+}
+```
+
+##### 955\.删列造序II
+
+[题目](https://leetcode.cn/problems/delete-columns-to-make-sorted-ii)
+
+贪心：如果本身是非严格升序，那么一定不删。不需要递归分治子问题：为了确认比较字典序大小，直接字符串拼接后看字符串大小即可。则复杂度是 nm^2。
+
+```go
+func minDeletionSize(strs []string) (ans int) {
+	n, m := len(strs), len(strs[0])
+	a := make([]string, n) // 最终得到的字符串数组
+next:
+	for j := range m {
+		for i := range n - 1 {
+			if a[i]+string(strs[i][j]) > a[i+1]+string(strs[i+1][j]) {
+				// j 列不是升序，必须删
+				ans++
+				continue next
+			}
+		}
+		// j 列是升序，不删更好
+		for i, s := range strs {
+			a[i] += string(s[j])
+		}
+	}
+	return
+}
+```
+
+但是仍然可以优化：不要整个字符串比较。上一次相等的都放到一个列表里。每次列表内比较即可。无需分治。更一般地，甚至不用多个列表，只需要列出要比较的下标(它与它下一个)即可
+
+```go
+func minDeletionSize(strs []string) (ans int) {
+	n, m := len(strs), len(strs[0])
+	checkList := make([]int, n-1)
+	for i := range checkList {
+		checkList[i] = i
+	}
+
+next:
+	for j := range m {
+		for _, i := range checkList {
+			if strs[i][j] > strs[i+1][j] {
+				// j 列不是升序，必须删
+				ans++
+				continue next
+			}
+		}
+		// j 列是升序，不删更好
+		newCheckList := checkList[:0] // 原地
+		for _, i := range checkList {
+			if strs[i][j] == strs[i+1][j] {
+				// 相邻字母相等，下一列 i 和 i+1 需要继续比大小
+				newCheckList = append(newCheckList, i)
+			}
+		}
+		checkList = newCheckList
+	}
+	return
+}
+```
+
+##### 960\.删列造序III
+
+[题目](https://leetcode.cn/problems/delete-columns-to-make-sorted-iii)
+
+如果 n=1，就是经典的 LIS。定义 `f[i]` 表示每个子序列都以 i 列结尾时，最多保留的列数。枚举倒数第二列是 j，显然 j 字母不超过 i，那么可以更新。
+
+```go
+func minDeletionSize(strs []string) int {
+	// 对于每一行，j 列的字母都 <= i 列的字母？
+	lessEq := func(j, i int) bool {
+		for _, s := range strs {
+			if s[j] > s[i] {
+				return false
+			}
+		}
+		return true
+	}
+
+	m := len(strs[0])
+	f := make([]int, m)
+	for i := range m {
+		for j := range i {
+			// 如果 f[j] <= f[i]，就不用跑 O(n) 的 lessEq 了
+			if f[j] > f[i] && lessEq(j, i) {
+				f[i] = f[j]
+			}
+		}
+		f[i]++
+	}
+	return m - slices.Max(f)
+}
+```
+
+##### 2054\.两个最好的不重叠活动
+
+[题目](https://leetcode.cn/problems/two-best-non-overlapping-events)
+
+我的思路：维护离散前缀max，后缀max。然后枚举当前选的第一个活动，它之前和之后挑出一个 max 的当第二个活动，利用红黑树二分即可。
+
+```java
+import java.util.ArrayList;
+import java.util.TreeMap;
+class Solution {
+    public int maxTwoEvents(int[][] events) {
+        ArrayList<int[]> rf = new ArrayList<>();
+        ArrayList<int[]> lf = new ArrayList<>();
+        int n = events.length;
+        int ans = 0;
+        for (int i = 0; i < n; i++) {
+            rf.add(new int[]{events[i][0], events[i][2]});
+            lf.add(new int[]{events[i][1], events[i][2]});
+            ans = Math.max(ans, events[i][2]);
+        }
+        lf.sort((a, b) -> a[0] - b[0]);
+        rf.sort((a, b) -> b[0] - a[0]);
+        TreeMap<Integer, Integer> rmx = new TreeMap<>();
+        TreeMap<Integer, Integer> lmx = new TreeMap<>();
+        for (int i = 0; i < n; i++) {
+            int l = lf.get(i)[0];
+            Integer lprv_i = lmx.floorKey(l);
+            int lprv = lmx.getOrDefault(lprv_i != null ? lprv_i : 0, 0);
+            lmx.put(l, Math.max(lprv, lf.get(i)[1]));
+
+            int r = rf.get(i)[0];
+            Integer rprv_i = rmx.ceilingKey(r);
+            int rprv = rmx.getOrDefault(rprv_i != null ? rprv_i : 0, 0);
+            rmx.put(r, Math.max(rprv, rf.get(i)[1]));
+        }
+        for (int i = 0; i < n; i++) {
+            int l = events[i][0], r = events[i][1];
+            Integer lprv_i = lmx.lowerKey(l);
+            Integer rprv_i = rmx.higherKey(r);
+            int lprv = lmx.getOrDefault(lprv_i != null ? lprv_i : 0, 0);
+            int rprv = rmx.getOrDefault(rprv_i != null ? rprv_i : 0, 0);
+            ans = Math.max(ans, events[i][2] + Math.max(lprv, rprv));
+        }
+        return ans;
+    }
+}
+```
+
+实际上只需要维护前缀max，因为枚举是相互的，后面的可以等后面再维护。
+
+按结束时间排序，维护单调栈，遇到更大价值的活动则入栈，然后二分比当前时间早的最大活动。
+
+```python
+class Solution:
+    def maxTwoEvents(self, events: List[List[int]]) -> int:
+        # 按照结束时间排序
+        events.sort(key=lambda e: e[1])  
+
+        # 从栈底到栈顶，结束时间递增，价值递增
+        st = [(0, 0)]  # 栈底哨兵 
+        ans = 0
+        for start_time, end_time, value in events:
+            # 二分查找最后一个结束时间 < start_time 的活动
+            i = bisect_left(st, (start_time,)) - 1
+            ans = max(ans, st[i][1] + value)
+            # 遇到比栈顶更大的价值，入栈
+            if value > st[-1][1]:
+                st.append((end_time, value))
+        return ans
+```
+
+也可以原地栈(用events自身，但没有哨兵需要SPJ)。
+
+##### 3074\.重新分装苹果
+
+[题目](https://leetcode.cn/problems/apple-redistribution-into-boxes)
+
+```java
+import java.util.Arrays;
+class Solution {
+    public int minimumBoxes(int[] apple, int[] capacity) {
+        Arrays.sort(capacity);
+        int s = 0, n = capacity.length;
+        for (int a : apple) s += a;
+        for (int i = n - 1; i >= 0; i--) {
+            s -= capacity[i];
+            if (s <= 0) return n - i;
+        }
+        return n;
+    }
+}
+```
+

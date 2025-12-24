@@ -2125,6 +2125,12 @@ class Solution {
 Collections.sort(ans, (a,b) -> String.valueOf(a).compareTo(String.valueOf(b)));
 ```
 
+逆序：
+
+```java
+Arrays.sort(myArray, Collections.reverseOrder());
+```
+
 
 
 ##### CharSequence

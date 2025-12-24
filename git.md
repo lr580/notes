@@ -38,6 +38,8 @@ git config --global user.email "邮箱"
 
 如果去掉 `--global` 就是只对当前有效
 
+> 对 commit 修改，可以使用 --amend
+
 ##### 代理
 
 以 v2rayN 为例，通常是 10808 端口，可以窗口在右下角看。clash 的话页面首页有port，一般是7890
@@ -404,9 +406,11 @@ git commit -a
 
 ```bash
 git commit --amend -m 'xxx'
+git commit --amend --author="新用户名 <新邮箱>"
 ```
 
-
+> 修改多个，要用 rebase。批量修改用 filter-branch。
+>
 
 #### 撤销
 

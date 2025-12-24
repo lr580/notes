@@ -22610,7 +22610,7 @@ print(res[0].probs.top1) # 1
 
 ### basicTS
 
-时空序列预测(如交通流量预测)的框架。[文档](https://github.com/GestaltCogTeam/BasicTS/blob/master/README_CN.md) 有论文。基于 easytorch
+时空序列预测(如交通流量预测)的框架。[文档](https://github.com/GestaltCogTeam/BasicTS/blob/master/README_CN.md) 有论文。基于 easytorch，这里讲的是 `v0.x` 版本。新版本变动较大。
 
 #### easytorch
 
@@ -22731,7 +22731,15 @@ nohup python experiments/evaluate.py -cfg examples/PEMS03_moment.py -ckpt checkp
 ints/Moment_best_val_MAE.pt -g 1,2,3,4 &
 ```
 
+#### LibCity
 
+另一个交通流量预测基础库。
+
+[文档](https://bigscity-libcity-docs.readthedocs.io/zh-cn/latest/index.html) (有中文)，[官网](https://libcity.ai/)，[github](https://github.com/LibCity/Bigscity-LibCity)(有数据下载链接)，[知乎介绍](https://github.com/LibCity/Bigscity-LibCity)，资料丰富文档齐全。
+
+[数据格式说明PDF](https://libcity.ai/LibCity%E4%B8%AD%E4%BA%A4%E9%80%9A%E6%95%B0%E6%8D%AE%E7%BB%9F%E4%B8%80%E5%AD%98%E5%82%A8%E6%A0%BC%E5%BC%8F-%E5%8E%9F%E5%AD%90%E6%96%87%E4%BB%B6.pdf)、[网页](https://bigscity-libcity-docs.readthedocs.io/zh-cn/latest/user_guide/data.html)、[原始数据处理代码](https://github.com/LibCity/Bigscity-LibCity-Datasets) 
+
+`.rel` 是关系(边)。`.geo` 是点信息。
 
 ### openai
 
