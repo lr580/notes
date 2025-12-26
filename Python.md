@@ -16396,7 +16396,23 @@ with open(dist, 'wb') as f:
 
 ### h5py
 
-h5 文件是 HDF5 格式的文件，主要用于存储大型数据集，如科学计算和机器学习。要查看行数，可以使用 Python 的 `h5py` 库来读取数据集
+h5 文件是 HDF5 格式的文件，主要用于存储大型数据集，如科学计算和机器学习。
+
+查看文件结构：
+
+```python
+import h5py
+with h5py.File('data/LargeST/ca_his_raw_2019.h5', 'r') as f:
+    # 查看文件结构
+    print("文件结构：")
+    def print_structure(name, obj):
+        print(name, type(obj))
+    f.visititems(print_structure)
+    '''t <class 'h5py._hl.group.Group'> 主组
+    t/axis0 <class 'h5py._hl.dataset.Dataset'> 数据集 '''
+```
+
+要查看行数，可以使用 Python 的 `h5py` 库来读取数据集
 
 ```python
 import h5py

@@ -3840,6 +3840,14 @@
 - 3074\.重新分装苹果
 
   签到 排序
+  
+- 3075\.幸福值最大化的选择方案
+
+  排序 贪心
+  
+- 2483\.商店的最少代价
+
+  前缀和 枚举
 
 ## 算法
 
@@ -30094,4 +30102,73 @@ class Solution {
     }
 }
 ```
+
+##### 3075\.幸福值最大化的选择方案
+
+[题目](https://leetcode.cn/problems/maximize-happiness-of-selected-children)
+
+从大往小选。
+
+```java
+import java.util.Arrays;
+class Solution {
+    public long maximumHappinessSum(int[] happiness, int k) {
+        Arrays.sort(happiness);
+        long ans = 0;
+        for (int i = 0, n = happiness.length; i < k; i++) {
+            ans += Math.max(0, happiness[n - 1 - i] - i);
+        }
+        return ans;
+    }
+}
+```
+
+##### 2483\.商店的最少代价
+
+[题目](https://leetcode.cn/problems/minimum-penalty-for-a-shop)
+
+```java
+class Solution {
+    public int bestClosingTime(String customers) {
+        int n = customers.length();
+        int shutCost = 0, openCost = 0;
+        for (int i=0; i<n; i++) {
+            if (customers.charAt(i) == 'Y') {
+                shutCost++;
+            }
+        }
+        int cost = shutCost, bestShut = 0;
+        for (int i=0; i<n; i++) {
+            if (customers.charAt(i) == 'Y') {
+                shutCost--;
+            } else {
+                openCost++;
+            }
+            if (cost > shutCost + openCost) {
+                bestShut = i+1;
+                cost = shutCost + openCost;
+            }
+        }
+        return bestShut;
+    }
+}
+```
+
+一次遍历：只需要找最值，那么等价于把所有天的 cost 不考虑关门后固定的 shutcost (上述 int cost 初始化)，最值不变。等价于单位量纲零元的变换。
+
+```python
+class Solution:
+    def bestClosingTime(self, customers: str) -> int:
+        min_penalty = penalty = ans = 0
+        for i, c in enumerate(customers):
+            penalty += 1 if c == 'N' else -1
+            if penalty < min_penalty:
+                min_penalty = penalty
+                ans = i + 1
+        return ans
+```
+
+
+
+
 
