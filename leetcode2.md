@@ -3848,6 +3848,18 @@
 - 2483\.商店的最少代价
 
   前缀和 枚举
+  
+- 756\.金字塔转换矩阵
+
+  DFS 模拟
+
+- 1351\.统计有序矩阵中的负数
+
+  签到 / <u>双指针</u>
+
+- 2402\.会议室III
+
+  数据结构 模拟
 
 ## 算法
 
@@ -30167,6 +30179,196 @@ class Solution:
                 ans = i + 1
         return ans
 ```
+
+##### 756\.金字塔转换矩阵
+
+[题目](https://leetcode.cn/problems/pyramid-transition-matrix)
+
+一层层从左往右从低到高尝试填，能填到最后一格就成功。使用静态数组维护填的历史和可填映射。
+
+```java
+class Solution {
+    private ArrayList<Integer>[] matches;
+    private int[][] map;
+    private int n;
+    private boolean dfs(int i, int j) { // i,j:当前要填的位置
+        var match = matches[map[i-1][j]*26+map[i-1][j+1]];
+//        System.out.println(i+" "+j+" "+match);
+        if(match.size()==0) {
+            return false;
+        }
+        if(i==n-1) {
+            return true;
+        }
+        int nxi = i, nxj = j+1;
+        if(nxi+nxj>=n) { // new layer
+            nxj=0;
+            nxi++;
+        }
+        for(int v:match) {
+            map[i][j]=v;
+            if(dfs(nxi, nxj)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    public boolean pyramidTransition(String bottom, List<String> allowed) {
+        matches = new ArrayList[26*26];
+        for (int i = 0; i < 26*26; i++) {
+            matches[i] = new ArrayList<>();
+        }
+        for (String s : allowed) {
+            int base = (s.charAt(0) - 'A')*26+(s.charAt(1) - 'A');
+            matches[base].add(s.charAt(2) - 'A');
+        }
+        n = bottom.length();
+        map = new int[n][n];
+        for(int i = 0; i < n; i++) {
+            map[0][i] = bottom.charAt(i)-'A';
+        }
+        return dfs(1, 0);
+    }
+}
+```
+
+改进：
+
+- 26x26 的 arraylist 一维数组不如二维数组。而且不用 26，字符集只有 6 个字母。可以 215ms -> 167ms。
+- 每一行记忆化，避免不同的底层对同一个高层反复搜索。300ms->54ms
+- 同理，如果这层不可达，那么底层如果包含前缀是这层，那么这样的底层也无解。15ms
+- 位运算优化，卡到3ms
+
+```java
+class Solution {
+    public boolean pyramidTransition(String bottom, List<String> allowed) {
+        List<Integer>[][] groups = new ArrayList[7][7];
+        for (List<Integer>[] row : groups) {
+            Arrays.setAll(row, _ -> new ArrayList<>());
+        }
+        for (String S : allowed) {
+            char[] s = S.toCharArray();
+            // A~F -> 1~6
+            groups[s[0] & 31][s[1] & 31].add(s[2] & 31);
+        }
+
+        char[] s = bottom.toCharArray();
+        int n = s.length;
+        int[] pyramid = new int[n];
+        for (int i = 0; i < n; i++) {
+            pyramid[n - 1] |= (s[i] & 31) << (i * 3); // 等价于 pyramid[n-1][i] = s[i]&31
+        }
+
+        boolean[] vis = new boolean[1 << ((n - 1) * 3)];
+
+        return dfs(n - 2, 0, pyramid, vis, groups);
+    }
+
+    private boolean dfs(int i, int j, int[] pyramid, boolean[] vis, List<Integer>[][] groups) {
+        if (i < 0) {
+            return true;
+        }
+
+        if (vis[pyramid[i]]) {
+            return false;
+        }
+
+        if (j == i + 1) {
+            vis[pyramid[i]] = true;
+            return dfs(i - 1, 0, pyramid, vis, groups);
+        }
+
+        for (int top : groups[pyramid[i + 1] >> (j * 3) & 7][pyramid[i + 1] >> ((j + 1) * 3) & 7]) {
+            pyramid[i] &= ~(7 << (j * 3)); // 清除之前填的字母，等价于 pyramid[i][j] = 0
+            pyramid[i] |= top << (j * 3); // 等价于 pyramid[i][j] = top
+            if (dfs(i, j + 1, pyramid, vis, groups)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+```
+
+##### 1351\.统计有序矩阵中的负数
+
+[题目](https://leetcode.cn/problems/count-negative-numbers-in-a-sorted-matrix) 0x3f
+
+```java
+class Solution {
+    public int countNegatives(int[][] grid) {
+        int m = grid.length;
+        int n = grid[0].length;
+        int ans = 0;
+        int i = 0;
+        int j = n - 1; // 从右上角开始
+        while (i < m && j >= 0) { // 还有剩余元素
+            if (grid[i][j] < 0) {
+                ans += m - i; // 这一列剩余元素都是负数
+                j--;
+            } else {
+                i++; // 这一行剩余元素全都非负，排除
+            }
+        }
+        return ans;
+    }
+}
+```
+
+##### 2402\.会议室III
+
+[题目](https://leetcode.cn/problems/meeting-rooms-iii)
+
+0x3f一种思路如下：
+
+```java
+class Solution {
+    public int mostBooked(int n, int[][] meetings) {
+        Arrays.sort(meetings, (a, b) -> a[0] - b[0]);
+
+        PriorityQueue<Integer> idle = new PriorityQueue<>(); // 会议室编号
+        for (int i = 0; i < n; i++) {
+            idle.offer(i);
+        }
+        PriorityQueue<long[]> using = new PriorityQueue<>(
+            (a, b) -> a[0] != b[0] ? Long.compare(a[0], b[0]) : Long.compare(a[1], b[1])
+        ); // (结束时间，会议室编号)
+        int[] cnt = new int[n]; // 会议室的开会次数
+
+        for (int[] m : meetings) {
+            long start = m[0];
+            long end = m[1];
+
+            // 在 start 时刻空出来的会议室
+            while (!using.isEmpty() && using.peek()[0] <= start) {
+                idle.offer((int) using.poll()[1]);
+            }
+
+            int i;
+            if (!idle.isEmpty()) { // 有空闲的会议室
+                i = idle.poll();
+            } else { // 没有空闲的会议室
+                long[] p = using.poll(); // 弹出一个最早结束的会议室（若有多个同时结束，弹出编号最小的会议室）
+                end += p[0] - start; // 更新当前会议的结束时间
+                i = (int) p[1];
+            }
+
+            using.offer(new long[]{end, i}); // 使用一个会议室
+            cnt[i]++;
+        }
+
+        int ans = 0;
+        for (int i = 1; i < n; i++) {
+            if (cnt[i] > cnt[ans]) {
+                ans = i;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+
 
 
 
