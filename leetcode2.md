@@ -3860,6 +3860,22 @@
 - 2402\.会议室III
 
   数据结构 模拟
+  
+- 840\.矩阵中的幻方
+
+  签到 模拟
+  
+- 1970\.你能穿过矩阵的最后一天
+
+  并查集 逆向 / <u>DFS</u>
+  
+- 66\.加一
+
+  签到
+
+- 961\.在长度2N的数组中找出重复N次的元素
+
+  枚举 / STL(哈希表) / 随机 / <u>摩尔投票</u>
 
 ## 算法
 
@@ -30368,9 +30384,308 @@ class Solution {
 }
 ```
 
+##### 840\.矩阵中的幻方
 
+[题目](https://leetcode.cn/problems/magic-squares-in-grid)
 
+```c
+class Solution {
+    public int numMagicSquaresInside(int[][] grid) {
+        int ans = 0;
+        int n = grid.length, m = grid[0].length;
+        for(int i=0;i<n-2;i++) {
+            for(int j=0;j<m-2;j++) {
+                int []vis = new int[10];
+                int []row = new int[3], col = new int[3];
+                boolean ok = true;
+                for(int i2=i;i2<i+3;i2++) {
+                    for(int j2=j;j2<j+3;j2++) {
+                        int v = grid[i2][j2];
+                        if(v > 9 || v == 0) {
+                            ok = false;
+                            break;
+                        }
+                        vis[v]++;
+                        row[i2-i] += v;
+                        col[j2-j] += v;
+                        if(vis[v] > 1) {
+                            ok = false;
+                            break;
+                        }
+                    }
+                }
+                if(!ok) continue;
+//                System.out.println(i+" "+j+" ");
+                ok &= row[0] == row[1] && row[0] == row[2];
+                ok &= col[0] == col[1] && col[0] == col[2];
+                if(!ok) continue;
+                int d1 = grid[i][j] + grid[i+1][j+1] + grid[i+2][j+2];
+                int d2 = grid[i][j+2] + grid[i+1][j+1] + grid[i+2][j];
+                ok &= d1 == d2;
+                if(ok) {
+                    ans++;
+                }
 
+            }
+        }
+        return ans;
+    }
+}
+```
 
+可以看0x3f结论，中间必然是5，和必然是15，最后一行列不用算，且对角线不用算。用二进制数做vis判断包含1-9，只需要严格有9个1(=1022)即可。
 
+```c
+class Solution {
+    public int numMagicSquaresInside(int[][] grid) {
+        int m = grid.length;
+        int n = grid[0].length;
+        int ans = 0;
+
+        for (int i = 0; i < m - 2; i++) {
+            for (int j = 0; j < n - 2; j++) {
+                if (grid[i + 1][j + 1] != 5) {
+                    continue;
+                }
+
+                int mask = 0;
+                int[] rSum = new int[3];
+                int[] cSum = new int[3];
+                for (int r = 0; r < 3; r++) {
+                    for (int c = 0; c < 3; c++) {
+                        int x = grid[i + r][j + c];
+                        mask |= 1 << x;
+                        rSum[r] += x;
+                        cSum[c] += x;
+                    }
+                }
+
+                if (mask == (1 << 10) - 2 &&
+                    rSum[0] == 15 && rSum[1] == 15 &&
+                    cSum[0] == 15 && cSum[1] == 15) {
+                    ans++;
+                }
+            }
+        }
+
+        return ans;
+    }
+}
+```
+
+##### 1970\.你能穿过矩阵的最后一天
+
+[题目](https://leetcode.cn/problems/last-day-where-you-can-still-cross)
+
+```java
+class Solution {
+    private int n, col, row;
+    private int[] fa;
+
+    private int findFa(int i) {
+        while (this.fa[i] != i) {
+            i = this.fa[i] = this.fa[this.fa[i]];
+        }
+        return i;
+    }
+
+    private int toId(int i, int j) {
+        if (i == 0) return n; // TOP
+        if (i == 1 + row) return n + 1; // BOTTOM
+        if (j == 0 || j == 1 + col) return -1; // INVALID
+        return (i - 1) * col + j - 1;
+    }
+
+    private final static int[][] DIRS = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+    public int latestDayToCross(int row, int col, int[][] cells) {
+        this.col = col;
+        this.row = row;
+        this.n = row * col;
+        this.fa = new int[n + 2];
+        for (int i = 0; i < this.fa.length; i++) {
+            fa[i] = i;
+        }
+        boolean[] vis = new boolean[n + 2];
+        vis[n] = vis[n + 1] = true;
+        for (int p = n - 1; p >= 0; p--) {
+            int r = cells[p][0], c = cells[p][1];
+            int i = this.toId(r, c);
+            vis[i] = true;
+            int fi = this.findFa(i); 
+            for (int[] dir : DIRS) {
+                int x = r + dir[0];
+                int y = c + dir[1];
+                int j = this.toId(x, y);
+                if (j == -1 || !vis[j]) continue;
+//                System.out.println(r + " " + c + " " + i + " <-> " + x + " " + y + " " + j);
+                int fj = this.findFa(j);
+                this.fa[fj] = fi;
+            }
+            if (findFa(n + 1) == findFa(n)) {
+                return p;
+            }
+        }
+        return 0;
+    }
+}
+```
+
+DFS
+
+```java
+class Solution {
+    private static final int[][] DIRS = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}}; // 左右上下
+
+    public int latestDayToCross(int m, int n, int[][] cells) {
+        // 0：水
+        // 1：陆地（未被感染）
+        // 2：陆地（已被感染）
+        byte[][] state = new byte[m][n];
+
+        for (int day = cells.length - 1; ; day--) {
+            int[] cell = cells[day];
+            int r = cell[0] - 1; // 改成从 0 开始的下标
+            int c = cell[1] - 1;
+            state[r][c] = 1; // 未被感染的陆地
+            if (canReachFromTop(r, c, state) && dfs(r, c, state)) {
+                return day;
+            }
+        }
+    }
+
+    // 能否从第一行到达 (r, c)
+    private boolean canReachFromTop(int r, int c, byte[][] state) {
+        if (r == 0) { // 已经是第一行
+            return true;
+        }
+        for (int[] d : DIRS) {
+            int x = r + d[0];
+            int y = c + d[1];
+            if (0 <= x && x < state.length && 0 <= y && y < state[x].length && state[x][y] == 2) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 从 (r, c) 出发，能否到达最后一行
+    private boolean dfs(int r, int c, byte[][] state) {
+        int m = state.length;
+        if (r == m - 1) {
+            return true;
+        }
+        state[r][c] = 2; // 感染
+        for (int[] d : DIRS) {
+            int x = r + d[0];
+            int y = c + d[1];
+            // 传播病毒到未被感染的陆地
+            if (0 <= x && x < m && 0 <= y && y < state[x].length && state[x][y] == 1 && dfs(x, y, state)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+```
+
+正序并查集：等价于水可以从最左移动到最右，其中水八方向连通。略代码。也可以用上文 DFS。
+
+##### 66\.加一
+
+[题目](https://leetcode.cn/problems/plus-one)
+
+可以直接break。
+
+```java
+class Solution {
+    public int[] plusOne(int[] digits) {
+        int n = digits.length;
+        for (int i = n - 1; i >= 0; i--) {
+            if (digits[i] < 9) {
+                digits[i]++; // 进位
+                return digits;
+            }
+            digits[i] = 0; // 进位数字的右边数字都变成 0
+        }
+
+        // digits 全是 9，加一后变成 100...00
+        int[] ans = new int[n + 1];
+        ans[0] = 1;
+        return ans;
+    }
+}
+```
+
+##### 961\.在长度2N的数组中找出重复N次的元素
+
+[题目](https://leetcode.cn/problems/n-repeated-element-in-size-2n-array)
+
+哈希暴力，出现第二次就丢。
+
+```java
+class Solution {
+    public int repeatedNTimes(int[] nums) {
+        HashSet<Integer> seen = new HashSet<>();
+        for (int x : nums) {
+            if (!seen.add(x)) { // x 在 seen 中
+                return x;
+            }
+        }
+        return -1; // 代码不会执行到这里
+    }
+}
+```
+
+摩尔投票，力扣 169。把第一个数删了，一定是绝对众数。
+
+```python
+class Solution:
+    def repeatedNTimes(self, nums: List[int]) -> int:
+        ans = hp = 0
+        for x in nums[1:]:  # 也可以写 for i in range(1, len(nums)) 避免切片
+            if x == nums[0]:
+                return x
+            if hp == 0:  # x 是初始擂主，生命值为 1
+                ans, hp = x, 1
+            else:  # 比武，同门加血，否则扣血
+                hp += 1 if x == ans else -1
+        return ans
+```
+
+相邻检查：除了 n=2，最长相邻只能是隔 1 个。
+
+```python
+class Solution:
+    def repeatedNTimes(self, nums: List[int]) -> int:
+        for i in range(1, len(nums)):
+            x = nums[i]
+            if x == nums[i - 1] or \
+               i > 1 and x == nums[i - 2] or \
+               i > 2 and x == nums[i - 3]:
+                return x
+```
+
+随机，是最快最好的。
+
+```java
+class Solution {
+    private static final Random rand = new Random();
+
+    public int repeatedNTimes(int[] nums) {
+        int n = nums.length;
+        while (true) {
+            // 在 [0, n-1] 中随机生成两个不同下标
+            int i = rand.nextInt(n);
+            int j = rand.nextInt(n - 1);
+            if (j >= i) {
+                j++;
+            }
+            if (nums[i] == nums[j]) {
+                return nums[i];
+            }
+        }
+    }
+}
+```
 
