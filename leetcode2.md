@@ -3876,6 +3876,10 @@
 - 961\.在长度2N的数组中找出重复N次的元素
 
   枚举 / STL(哈希表) / 随机 / <u>摩尔投票</u>
+  
+- 1411\.给Nx3网格图涂色的方案数
+
+  预处理+状压DP / <u>Berlekamp-Massey 算法 + 矩阵快速幂</u>
 
 ## 算法
 
@@ -30688,4 +30692,254 @@ class Solution {
     }
 }
 ```
+
+##### 1411\.给Nx3网格图涂色的方案数
+
+[题目](https://leetcode.cn/problems/number-of-ways-to-paint-n-3-grid)
+
+状压DP 预处理从500ms到75ms
+
+```java
+class Solution {
+    private static int[] unzip(int s) {
+        return new int[]{s % 3, s / 3 % 3, s / 9};
+    }
+
+    private static boolean valid(int s) {
+        int[] c = unzip(s);
+        return c[0] != c[1] && c[2] != c[1];
+    }
+
+    private static boolean valid(int s, int t) {
+        if (!valid(s) || !valid(t)) return false;
+        int[] c1 = unzip(s), c2 = unzip(t);
+        return c1[0] != c2[0] && c1[1] != c2[1] && c1[2] != c2[2];
+    }
+
+    private static final int n = 5000, MOD = (int) 1e9 + 7;
+    private static int[] ans = new int[n];
+
+    static {
+        int[][] dp = new int[n][27];
+        for (int s = 0; s < 27; s++) {
+            if (valid(s)) dp[0][s] = 1;
+        }
+        for (int i = 1; i < n; i++) {
+            for (int s1 = 0; s1 < 27; s1++) {
+                for (int s2 = 0; s2 < 27; s2++) {
+                    if (valid(s1, s2)) {
+                        dp[i][s1] += dp[i - 1][s2];
+                        dp[i][s1] %= MOD;
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            for (int s = 0; s < 27; s++) {
+                ans[i] += dp[i][s];
+                ans[i] %= MOD;
+            }
+        }
+    }
+
+    public int numOfWays(int n) {
+        return ans[n-1];
+    }
+}
+```
+
+Berlekamp-Massey 算法 (BM 算法)，给定一个有限的数列，找出产生该数列的最短线性递推关系（或者说最短的线性反馈移位寄存器/LFSR），复杂度是 $O(N^2)$，结合 FFT 可以 $O(N(\log N)^k)$。[参考](https://zhuanlan.zhihu.com/p/1966417899825665440) [oi-wiki](https://oi-wiki.org/math/berlekamp-massey/)
+
+先暴力打表得到序列，然后用 BM 算法求出通项。这里不用，一阶显然不对，猜测是二阶：
+
+暴力解得前六项是 12, 54, 246, 1122, 5118, 23346 ... 假设是二阶递推，有 $a_2=c_1a_1+c_2a_0,a_3=c_1a_2+c_2a_1$，联立可以解出 $c_1=5,c_2=-2$。然后用这个通项验证前六项通过，故通项成立，不用看更高次了。
+
+```python
+class Solution:
+    def numOfWays(self, n: int) -> int:
+        MOD = 1_000_000_007
+        f = [0] * (n + 1)
+        f[0] = 3
+        f[1] = 12
+        for i in range(2, n + 1):
+            f[i] = (f[i - 1] * 5 - f[i - 2] * 2) % MOD
+        return f[n]
+```
+
+显然，这个通项像斐波那契，直接用矩阵快速幂优化。
+
+```python
+import numpy as np # 不用 numpy 更快，3ms -> 0ms
+class Solution:
+    def numOfWays(self, n: int) -> int:
+        MOD = 1_000_000_007
+        m = np.array([[5, -2], [1, 0]], dtype=object)
+        f1 = np.array([12, 3], dtype=object)
+        fn = np.linalg.matrix_power(m, n - 1) @ f1
+        return fn[0] % MOD
+```
+
+```java
+class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    public int numOfWays(int n) {
+        int[][] m = {
+            {5, -2},
+            {1, 0},
+        };
+        int[][] f1 = {{12}, {3}};
+        int[][] fn = powMul(m, n - 1, f1);
+        return (fn[0][0] + MOD) % MOD; // 保证结果非负
+    }
+
+    // a^n * f0
+    private int[][] powMul(int[][] a, int n, int[][] f0) {
+        int[][] res = f0;
+        while (n > 0) {
+            if ((n & 1) > 0) {
+                res = mul(a, res);
+            }
+            a = mul(a, a);
+            n >>= 1;
+        }
+        return res;
+    }
+
+    // 返回矩阵 a 和矩阵 b 相乘的结果
+    private int[][] mul(int[][] a, int[][] b) {
+        int[][] c = new int[a.length][b[0].length];
+        for (int i = 0; i < a.length; i++) {
+            for (int k = 0; k < a[i].length; k++) {
+                if (a[i][k] == 0) {
+                    continue;
+                }
+                for (int j = 0; j < b[k].length; j++) {
+                    c[i][j] = (int) ((c[i][j] + (long) a[i][k] * b[k][j]) % MOD);
+                }
+            }
+        }
+        return c;
+    }
+}
+```
+
+
+
+注意到矩阵快速幂的替代算法有 Kitamasa (可加 FFT 优化) / Bostan-Mori。略。参考 [0x3f 知乎](https://zhuanlan.zhihu.com/p/1964051212304364939)。
+
+> deepseek 的 BM 算法：
+>
+> ```python
+> def berlekamp_massey(sequence):
+>     """
+>     Berlekamp-Massey算法实现
+>     返回最小线性递推关系的系数
+>     """
+>     n = len(sequence)
+>     # C(x) 初始为1，B(x)初始为1
+>     C = [1]  # 当前连接多项式
+>     B = [1]  # 上一次的连接多项式
+>     L = 0    # 当前阶数
+>     m = 1    # 失配发生的位置
+>     b = 1    # 上一次的d值
+>     N = 0    # 处理的序列索引
+>     
+>     while N < n:
+>         # 计算失配值d
+>         d = sequence[N]
+>         for i in range(1, L + 1):
+>             d += C[i] * sequence[N - i]
+>         
+>         if d == 0:
+>             m += 1
+>         elif 2 * L <= N:
+>             # 需要更新连接多项式
+>             T = C.copy()
+>             # 计算新的C(x) = C(x) - (d/b) * x^m * B(x)
+>             # 注意：这里使用有理数运算
+>             scale = d / b
+>             # 扩展C的长度
+>             while len(C) < len(B) + m:
+>                 C.append(0)
+>             # 减去 scale * x^m * B(x)
+>             for i in range(len(B)):
+>                 idx = i + m
+>                 if idx >= len(C):
+>                     C.append(0)
+>                 C[idx] -= scale * B[i]
+>             
+>             L = N + 1 - L
+>             B = T
+>             b = d
+>             m = 1
+>         else:
+>             # 部分更新
+>             scale = d / b
+>             # 扩展C的长度
+>             while len(C) < len(B) + m:
+>                 C.append(0)
+>             # 减去 scale * x^m * B(x)
+>             for i in range(len(B)):
+>                 idx = i + m
+>                 if idx >= len(C):
+>                     C.append(0)
+>                 C[idx] -= scale * B[i]
+>             m += 1
+>         
+>         N += 1
+>     
+>     # 返回递推系数（从a_n开始）
+>     return [-c for c in C[1:L+1]]
+> 
+> def verify_recurrence(sequence, coeffs):
+>     """
+>     验证递推关系
+>     coeffs: [c1, c2, ..., ck] 对应 a_n = c1*a_{n-1} + c2*a_{n-2} + ... + ck*a_{n-k}
+>     """
+>     k = len(coeffs)
+>     print(f"递推关系: a_n = {' + '.join(f'{coeffs[i]}*a_{{n-{i+1}}}' for i in range(k))}")
+>     
+>     for i in range(k, len(sequence)):
+>         calculated = sum(coeffs[j] * sequence[i - j - 1] for j in range(k))
+>         actual = sequence[i]
+>         if abs(calculated - actual) > 1e-10:
+>             print(f"n={i}: 计算值={calculated}, 实际值={actual}, 误差={abs(calculated-actual)}")
+>             return False
+>         print(f"a_{i} = {calculated} ✓")
+>     return True
+> 
+> def generate_next(sequence, coeffs, count=3):
+>     """使用递推关系生成后续项"""
+>     k = len(coeffs)
+>     result = sequence.copy()
+>     for _ in range(count):
+>         next_val = sum(coeffs[j] * result[-j-1] for j in range(k))
+>         result.append(next_val)
+>     return result
+> 
+> # 测试
+> if __name__ == "__main__":
+>     sequence = [12, 54, 246, 1122, 5118, 23346]
+>     
+>     print("原始序列:", sequence)
+>     print("\n应用Berlekamp-Massey算法...")
+>     coeffs = berlekamp_massey(sequence)
+>     print(f"找到的递推系数: {coeffs}")
+>     
+>     print("\n验证递推关系:")
+>     if verify_recurrence(sequence, coeffs):
+>         print("所有项都符合递推关系！")
+>     
+>     print(f"\n递推阶数: {len(coeffs)}")
+>     print(f"递推公式: a_n = {coeffs[0]}*a_{{n-1}} + {coeffs[1]}*a_{{n-2}}")
+>     
+>     print("\n生成后续10项:")
+>     extended = generate_next(sequence, coeffs, 10)
+>     for i, val in enumerate(extended):
+>         if i < len(sequence):
+>             print(f"a_{i} = {val} (原始)")
+>         else:
+>             print(f"a_{i} = {val} (预测)")
+> ```
 

@@ -22747,6 +22747,28 @@ nohup python experiments/evaluate.py -cfg examples/PEMS03_moment.py -ckpt checkp
 ints/Moment_best_val_MAE.pt -g 1,2,3,4 &
 ```
 
+##### 结果
+
+`checkpoints/模型名/数据集名_轮次_输入长度_输出长度/runid` 下保存结果。
+
+一般有 `test_metrics.json` 如：
+
+```json
+{"overall": {"MAE": 40.22199438623084, "MAPE": 0.3544641490655651, "RMSE": 63.89328012869579}}
+```
+
+若干个 `training_log_yyyymmddhhmmss.log`，就是 stdout 的东西。也有结果，用时等。
+
+`模型名_轮次.pt` 和 `模型名_best_val_MAE.pt`，以及 `配置文件.py` 和 `cfg.txt`。
+
+还有 `tensorboard` 文件夹追踪运行结果，存储训练、验证、测试过程中的各种指标（loss, metrics等），cd 到该目录，在有 pip 安装了 tensorboard 的环境下运行，然后打开浏览器对应输出提示 URL
+
+```sh
+tensorboard --logdir=tensorboard
+```
+
+可以以可视化形式看到训练、测试、验证的 MAE、MAPE、RMSE、loss 变化曲线图。顶部 scalars 侧边 horizontal axis 点 wall 还能看到训练时间。
+
 #### LibCity
 
 另一个交通流量预测基础库。

@@ -6,6 +6,33 @@
 
 ### LLM
 
+> codex 生成：以下内容聚焦截至 2025 年 12 月公开披露的主流大模型，汇总厂商动态、特性以及可预见的不足，并给出选型建议。
+
+> 国外厂商
+>
+> - GPT-5.2 / GPT-4o 家族（OpenAI）
+> - Claude 3.5 Sonnet（Anthropic）
+> - Gemini 3 Flash（Google）
+> - Meta Llama 3（8B/70B，Meta） 开源
+> - Mistral Large 2（Mistral AI）
+> - Grok 系列（xAI）
+>
+> 国内厂商
+>
+> - DeepSeek R1 / DeepSeek-V3（DeepSeek）
+> - Qwen2.5 / Qwen-Plus（阿里云通义）
+> - Doubao 系列（字节跳动）
+> - Hunyuan 系列（腾讯）
+> - Kimi K2 系列（月之暗面 / Moonshot AI）
+> - ERNIE 4.0 Turbo（百度）
+> - SenseNova 5.0（商汤科技）
+> - GLM-4.1V-9B-Thinking（智谱 AI）
+> - Spark All-in-One + DeepSeek（华为 × 科大讯飞）
+> - LongCat-Flash 系列（美团）
+> - MiMo 系列（小米）
+
+
+
 ### 编程工具
 
 #### 概述
@@ -36,7 +63,7 @@
 }
 ```
 
-`config.toml` (model 可以改，如果换模型；base_url 替换对应的)
+`config.toml` (model 可以改，如果换模型；base_url 替换对应的)，注意有 v1
 
 ```toml
 model_provider = "privnode"
@@ -66,7 +93,7 @@ requires_openai_auth = true
 
 ##### 自定义MCP
 
-MCP 服务器就是提供特定格式接口的 RPC 服务器，向这个服务器发送请求。一个 Python 原生服务器例子。一个 MCP  可以提供多个调用的 RPC。
+MCP 服务器就是提供特定格式接口的 RPC 服务器，向这个服务器发送请求。一个 Python 原生服务器例子。一个 MCP  可以提供多个调用的 RPC。以一个 HTTP 模式为例。
 
 使用步骤：
 
@@ -362,11 +389,13 @@ curl -X POST http://127.0.0.1:8718/invoke `
 
 #### Claude Code
 
+##### 配置
+
 [官网](https://code.claude.com/) ANTHROPIC (Claude-Sonnet 等) 家的。
 
 注意英文文档比官方中文全。安装后参考配置。(不一定行，用 privnode 的话直接用他的一键配置)
 
-`~/.claude` 的 `settings.json`。
+`~/.claude` 的 `settings.json`。项目级别就根目录的 `.claude` 下对应。修改配置后必须重启 CLI 才能生效。注意不要有 v1
 
 ```json
 {
@@ -375,6 +404,229 @@ curl -X POST http://127.0.0.1:8718/invoke `
     "ANTHROPIC_AUTH_TOKEN": "sk-xxx"
   }
 }
+```
+
+配置优先级: 项目配置 > 全局配置 > 系统环境变量
+
+##### 使用
+
+在项目根目录创建 CLAUDE.md 文件，提供项目特定的上下文。如有下面文件，可以直接说 `开始执行任务`。
+
+```markdown
+我希望在当前目录完成一个基于 Python FastAPI 的本地 MCP 服务器，它提供 2 个 tools，分别输出两个固定的字符串输出作为测试。
+
+请你编写代码，完成该任务。并写 md 文档：①告诉我如何本地运行 MCP 服务器，并让 claude code 配置和能调用该 MCP。②总结一个 MCP 服务器的技术要点，即模型调用什么接口，流程等。
+```
+
+##### 自定义MCP
+
+以一个 stdio 的 MCP 为例(按需启调用，用完关闭)，代码在最后：
+
+```sh
+# 查看已配置的 MCP 服务器列表
+claude mcp list
+
+# 添加一个 stdio 的 MCP，非全局可用
+claude mcp add --transport stdio test-mcp-server -- python "D:\_lr580_desktop\codes\mcpTest\mcp_server.py"
+
+# 会显示该服务器提供的所有工具
+claude mcp get test-mcp-server
+
+# 启用/禁用特定服务器
+claude mcp enable test-mcp-server
+claude mcp disable test-mcp-server
+
+# 删除服务器配置
+claude mcp remove test-mcp-server
+
+# 查看服务器详细信息
+claude mcp get test-mcp-server
+```
+
+使用，如对话：`调用你现有本地MCP里的全部工具`
+
+> 手动添加或检查：`%USERPROFILE%\.claude.json`，如找到：
+>
+> ```json
+> {
+>   "projects": {
+>     "D:/_lr580_desktop/codes/mcpTest": {
+>       "mcpServers": {
+>         "test-mcp-server": {
+>           "type": "stdio",
+>           "command": "python",
+>           "args": ["D:\\_lr580_desktop\\codes\\mcpTest\\mcp_server.py"],
+>           "env": {}
+>         }
+>       }
+>     }
+>   }
+> }
+> ```
+
+本地测试可用性：(需要在 linux bash，如 git / claude，但 powershell / cmd 不行)
+
+```sh
+# 初始化
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | python mcp_server.py
+
+# 获取工具列表
+echo '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' | python mcp_server.py
+
+# 调用 test_tool_1
+echo '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"test_tool_1"}}' | python mcp_server.py
+```
+
+调用流程
+
+> 1. **初始化阶段**: Claude Code 启动时，通过 stdin/stdout 与 MCP 服务器建立通信，发送 `initialize` 请求
+> 2. **发现阶段**: Claude Code 调用 `tools/list` 方法获取可用工具列表
+> 3. **选择阶段**: 模型根据用户请求和工具描述，决定调用哪个工具
+> 4. **执行阶段**: 模型通过 `tools/call` 方法调用选定的工具，传递必要的参数
+> 5. **响应阶段**: MCP 服务器执行工具逻辑，返回结果给模型
+> 6. **整合阶段**: 模型将工具返回的结果整合到回复中，呈现给用户
+
+完整服务端代码：
+
+```python
+import json
+import sys
+from typing import Any, Dict, List
+
+
+class MCPServer:
+    """基于 stdio 的 MCP (Model Context Protocol) 服务器"""
+
+    def __init__(self):
+        self.tools = [
+            {
+                "name": "test_tool_1",
+                "description": "第一个测试工具，返回固定字符串",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            },
+            {
+                "name": "test_tool_2",
+                "description": "第二个测试工具，返回固定字符串",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            }
+        ]
+
+    def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
+        """处理 MCP 请求"""
+        method = request.get("method")
+
+        if method == "tools/list":
+            return {
+                "tools": self.tools
+            }
+
+        elif method == "tools/call":
+            params = request.get("params", {})
+            tool_name = params.get("name")
+
+            if tool_name == "test_tool_1":
+                return {
+                    "content": [{
+                        "type": "text",
+                        "text": "这是来自测试工具1的固定输出：Hello from MCP Test Tool 1!"
+                    }]
+                }
+            elif tool_name == "test_tool_2":
+                return {
+                    "content": [{
+                        "type": "text",
+                        "text": "这是来自测试工具2的固定输出：Welcome to MCP Test Tool 2!"
+                    }]
+                }
+            else:
+                return {
+                    "content": [{
+                        "type": "text",
+                        "text": f"错误：未知的工具 '{tool_name}'"
+                    }],
+                    "isError": True
+                }
+
+        elif method == "initialize":
+            return {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {
+                    "tools": {}
+                },
+                "serverInfo": {
+                    "name": "test-mcp-server",
+                    "version": "1.0.0"
+                }
+            }
+
+        else:
+            return {
+                "error": {
+                    "code": -32601,
+                    "message": f"Method not found: {method}"
+                }
+            }
+
+    def run(self):
+        """运行 MCP 服务器（stdio 模式）"""
+        # 确保输出不带缓冲
+        sys.stdout.reconfigure(line_buffering=True)
+
+        for line in sys.stdin:
+            try:
+                # 解析 JSON-RPC 请求
+                request = json.loads(line.strip())
+
+                # 处理请求
+                response = self.handle_request(request)
+
+                # 构建 JSON-RPC 响应
+                json_rpc_response = {
+                    "jsonrpc": "2.0",
+                    "id": request.get("id"),
+                    "result": response
+                }
+
+                # 输出响应
+                print(json.dumps(json_rpc_response), flush=True)
+
+            except json.JSONDecodeError as e:
+                # JSON 解析错误
+                error_response = {
+                    "jsonrpc": "2.0",
+                    "id": None,
+                    "error": {
+                        "code": -32700,
+                        "message": f"Parse error: {str(e)}"
+                    }
+                }
+                print(json.dumps(error_response), flush=True)
+
+            except Exception as e:
+                # 其他错误
+                error_response = {
+                    "jsonrpc": "2.0",
+                    "id": request.get("id") if 'request' in locals() else None,
+                    "error": {
+                        "code": -32603,
+                        "message": f"Internal error: {str(e)}"
+                    }
+                }
+                print(json.dumps(error_response), flush=True)
+
+
+if __name__ == "__main__":
+    server = MCPServer()
+    server.run()
+
 ```
 
 ### 对话工具
