@@ -3880,6 +3880,10 @@
 - 1411\.给Nx3网格图涂色的方案数
 
   预处理+状压DP / <u>Berlekamp-Massey 算法 + 矩阵快速幂</u>
+  
+- 1390\.四因数
+
+  枚举
 
 ## 算法
 
@@ -30942,4 +30946,46 @@ class Solution {
 >         else:
 >             print(f"a_{i} = {val} (预测)")
 > ```
+
+##### 1390\.四因数
+
+[题目](https://leetcode.cn/problems/four-divisors)
+
+对数复杂度枚举。
+
+```java
+class Solution {
+    private static final int MX = 100_001;
+    private static final int[] divisorNum = new int[MX];
+    private static final int[] divisorSum = new int[MX];
+    private static boolean initialized = false;
+
+    // 这样写比 static block 快
+    public Solution() {
+        if (initialized) {
+            return;
+        }
+        initialized = true;
+
+        for (int i = 1; i < MX; i++) {
+            for (int j = i; j < MX; j += i) {// 枚举 i 的倍数 j
+                divisorNum[j]++; // i 是 j 的因子
+                divisorSum[j] += i;
+            }
+        }
+    }
+
+    public int sumFourDivisors(int[] nums) {
+        int ans = 0;
+        for (int x : nums) {
+            if (divisorNum[x] == 4) {
+                ans += divisorSum[x];
+            }
+        }
+        return ans;
+    }
+}
+```
+
+
 
