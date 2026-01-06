@@ -3884,6 +3884,14 @@
 - 1390\.四因数
 
   枚举
+  
+- 1975\.最大方阵和
+
+  思维
+  
+- 1161\.最大层内元素和
+
+  DFS
 
 ## 算法
 
@@ -30985,6 +30993,61 @@ class Solution {
         return ans;
     }
 }
+```
+
+##### 1975\.最大方阵和
+
+[题目](https://leetcode.cn/problems/maximum-matrix-sum)
+
+可以通过一条操作路径，让两个不相邻任意数取反，只需要沿着它们的任意路径一直取反即可。所以只剩下最小的负数(奇数个)。
+
+```java
+class Solution {
+    public long maxMatrixSum(int[][] matrix) {
+        long total = 0;
+        int negCnt = 0;
+        int mn = Integer.MAX_VALUE;
+        for (int[] row : matrix) {
+            for (int x : row) {
+                if (x < 0) {
+                    negCnt++;
+                    x = -x; // 先把负数都变成正数
+                }
+                mn = Math.min(mn, x);
+                total += x;
+            }
+        }
+
+        if (negCnt % 2 > 0) { // 必须有一个负数
+            total -= mn * 2; // 给绝对值最小的数添加负号
+        }
+        return total;
+    }
+}
+```
+
+##### 1161.最大层内元素和
+
+[题目](https://leetcode.cn/problems/maximum-level-sum-of-a-binary-tree)
+
+```python
+class Solution:
+    def maxLevelSum(self, root: Optional[TreeNode]) -> int:
+        def dfs(node: Optional[TreeNode], level: int) -> None:
+            if node is None:
+                return
+
+            if len(row_sum) == level:  # 首次访问 level 层
+                row_sum.append(node.val)  # 节点值作为层和的初始值
+            else:
+                row_sum[level] += node.val
+
+            dfs(node.left, level + 1)
+            dfs(node.right, level + 1)
+
+        row_sum = []
+        dfs(root, 0)
+        return row_sum.index(max(row_sum)) + 1  # 层号从 1 开始
 ```
 
 

@@ -3642,9 +3642,12 @@ with Benchmark('有torchscript'):
 
 ### 异步
 
-#### 基本
+> #### 基本
+>
 
 [速成教程](https://blog.csdn.net/rhx_qiuzhi/article/details/124332114)
+
+> 更多操作，比如并行、等待、超时、取消、限制并发数、async+with/yield for等，可以直接询问 AI。
 
 多任务协同：
 
@@ -7116,7 +7119,28 @@ def md5(path):
         return hashlib.md5(f.read()).hexdigest()
 ```
 
+### 开发
 
+#### unittest
+
+`TestCase`：测试用例类，继承 `unittest.TestCase`。其中以 `test_` 开头的方法会被自动当作测试
+
+断言（assertions）：如 `self.assertEqual(a, b)`、`self.assertTrue(x)` 等，用于验证预期。
+
+> 代码例子，参见 [我的项目](https://github.com/lr580/llm4traffic_prediction) 下的 `faiss_gpu_test.py`
+
+```python
+class FaissGpuTestCase(unittest.TestCase):
+    def test_gpu_device_available(self):
+        """确保至少存在一个可供 faiss 使用的 GPU。"""
+        gpu_count = faiss.get_num_gpus()
+        self.assertGreater(gpu_count, 0, "未检测到可用 GPU，faiss GPU 环境异常")
+        
+if __name__ == "__main__":
+    unittest.main()
+```
+
+更多其他功能暂时略。
 
 ### 多媒体/格式
 
@@ -9098,6 +9122,13 @@ np.random.binomial(实验次数,成功率, size)
 
 ```python
 np.random.multivariate_normal([10,0], [[1,-0.5],[-0.5,1]], 8) #8x2数组
+```
+
+做一个不污染全局的种子+生成器
+
+```python
+rng = np.random.default_rng(42)
+xb = rng.normal(size=(10000, 128)).astype('float32')
 ```
 
 
@@ -24002,65 +24033,6 @@ def fetchWebpage(url, dest):
 
 
 
-### pymysql
-
-> 也可以用 `mysql-connector-python`，官方，性能快一些，API 相似。
-
-连接到数据库：`connect(host=url字符串, user=数据库用户名字符串, password=数据库用户密码字符串, database=数据库名字符串, charset=字符集)` ，返回一个对象，该对象可以使用 `.cursor()` 方法得到用于操作的对象，得到的对象有方法：
-
-`execute(sql语句字符串)` 执行一条数据库指令
-
-`fetchall()` 得到输出(tuple的tuple，第一个维度是行，第二个是列)
-
-> 如：
->
-> ```python
-> import pymysql as sql
-> oj = sql.connect(host=hosturl, user=username, password=password,
->       database='scnuoj', charset='utf8') #utf要小写
-> cur = oj.cursor()
-> cid = input('输入比赛ID:')
-> cmd_getProblem = 'select problem_id,title from problem, contest_problem where problem_id=problem.id and contest_id='+cid
-> #如果是修改，记得commit。参考github官方例子 oj.commit()
-> lens = cur.execute(cmd_getProblem)
-> print(lens, cur.fetchall())
-> ```
-
-注：
-
-- 读入的日期会以 `datetime` 格式保存。
-
-建议用 `with oj.cursor() as cur` 写法，会自动关闭。
-
-写一定要 commit，不然不成功，如：
-
-```python
-import pymysql as sql
-from random import randint
-oj = sql.connect(host='192.168.126.128', port=8066, user='root', password='root', database='mstest', charset='UTF8')
-with oj.cursor() as cur:
-    sql = "INSERT INTO t_user VALUES (%s, %s)"
-    values = (randint(1, 65535), '白茶')
-    cur.execute(sql, values)
-    oj.commit()
-with oj.cursor() as cur:
-    cmd = 'SELECT * FROM t_user'
-    cur.execute(cmd)
-    print(cur.fetchall()) # 多维元组，按行列表示值，类型按数据表的
-```
-
-插入多个数据：
-
-```python
-skin_records = [(champion_id, str(skin['id']), skin['name']) for skin in skins ] # 总之是 (n, 3) 的二维 list
-insert_skin = """INSERT IGNORE INTO ChampionSkin 
-(champion_id, skin_id, skin_name) VALUES (%s, %s, %s)"""
-cursor.executemany(insert_skin, skin_records)
-conn.commit()
-```
-
-
-
 > ### 远程操作
 >
 
@@ -24547,6 +24519,263 @@ def postPredict(file: UploadFile = File(...)):
 上传的文件会在服务器根目录以上传文件名保存。
 
 > 测试的前端代码略。可以参见我的本科毕设代码。
+
+## 数据库
+
+### pymysql
+
+> 也可以用 `mysql-connector-python`，官方，性能快一些，API 相似。
+
+连接到数据库：`connect(host=url字符串, user=数据库用户名字符串, password=数据库用户密码字符串, database=数据库名字符串, charset=字符集)` ，返回一个对象，该对象可以使用 `.cursor()` 方法得到用于操作的对象，得到的对象有方法：
+
+`execute(sql语句字符串)` 执行一条数据库指令
+
+`fetchall()` 得到输出(tuple的tuple，第一个维度是行，第二个是列)
+
+> 如：
+>
+> ```python
+> import pymysql as sql
+> oj = sql.connect(host=hosturl, user=username, password=password,
+>    database='scnuoj', charset='utf8') #utf要小写
+> cur = oj.cursor()
+> cid = input('输入比赛ID:')
+> cmd_getProblem = 'select problem_id,title from problem, contest_problem where problem_id=problem.id and contest_id='+cid
+> #如果是修改，记得commit。参考github官方例子 oj.commit()
+> lens = cur.execute(cmd_getProblem)
+> print(lens, cur.fetchall())
+> ```
+
+注：
+
+- 读入的日期会以 `datetime` 格式保存。
+
+建议用 `with oj.cursor() as cur` 写法，会自动关闭。
+
+写一定要 commit，不然不成功，如：
+
+```python
+import pymysql as sql
+from random import randint
+oj = sql.connect(host='192.168.126.128', port=8066, user='root', password='root', database='mstest', charset='UTF8')
+with oj.cursor() as cur:
+    sql = "INSERT INTO t_user VALUES (%s, %s)"
+    values = (randint(1, 65535), '白茶')
+    cur.execute(sql, values)
+    oj.commit()
+with oj.cursor() as cur:
+    cmd = 'SELECT * FROM t_user'
+    cur.execute(cmd)
+    print(cur.fetchall()) # 多维元组，按行列表示值，类型按数据表的
+```
+
+插入多个数据：
+
+```python
+skin_records = [(champion_id, str(skin['id']), skin['name']) for skin in skins ] # 总之是 (n, 3) 的二维 list
+insert_skin = """INSERT IGNORE INTO ChampionSkin 
+(champion_id, skin_id, skin_name) VALUES (%s, %s, %s)"""
+cursor.executemany(insert_skin, skin_records)
+conn.commit()
+```
+
+### faiss
+
+CUDA 匹配下 
+
+```sh
+conda install -c pytorch faiss-gpu
+```
+
+#### 基本概念
+
+向量数据库。FAISS（Facebook AI Similarity Search）是一个高性能的向量相似度检索库，适合做“向量数据库/本地向量索引”：把 embedding 向量存入索引后，快速查最近邻（Top-K）
+
+支持的相似度量函数：欧氏距离 L2 和内积 IP。如果是暴力 Flat，支持的丰富一点
+
+FAISS 没有直接的 cosine metric。工程里常用做法：
+
+- 把向量做 L2 归一化，使用 Inner Product（归一化后内积等价于 cosine，数学上显然）
+
+常见 Index：
+
+- **IndexFlat**：精确检索（暴力），简单可靠；适合数据量不大或做 baseline
+- **IVF**：倒排文件（聚类 + 在候选桶里检索），典型近似
+- **PQ**：乘积量化（压缩向量，省内存），典型近似
+- **HNSW**：图索引（近似），很多场景检索质量/速度很好
+
+默认是添加顺序的行id。若要自定义：把每条向量与一条任意 64 位整数 ID 绑定，查询时返回的就是这些自定义 ID (必须是 int64)，而不是底层索引的默认顺序编号
+
+在 RAG 里，典型流程：
+
+1. 先用 FAISS 取 Top-K 候选（召回）
+2. 再用更贵的模型（cross-encoder）或规则做重排（rerank）
+
+FAISS 只负责第 1 步的快速召回
+
+#### 基础
+
+##### 基本查询
+
+```python
+import numpy as np
+import faiss
+
+d = 128               # 向量维度
+nb = 10000            # 库向量数量
+nq = 2                # 查询向量数量
+k = 5                 # top-k
+
+rng = np.random.default_rng(42)
+xb = rng.normal(size=(nb, d)).astype('float32')
+# faiss.normalize_L2(xb) 可选：归一化使内积≈cosine
+# 进阶：xb/xq 用其他的 embedding
+
+''' 若使用自定义 ID
+base = faiss.IndexFlatIP(d)
+index = faiss.IndexIDMap2(base)
+ids = np.arange(1000).astype('int64') + 100000  # 假设业务 ID 从 100000 开始
+index.add_with_ids(xb, ids)'''
+
+# 例1：L2 距离（越小越相似），精确查询
+index = faiss.IndexFlatL2(d)
+index.add(xb)
+
+xq = rng.normal(size=(nq, d)).astype('float32')
+D, I = index.search(xq, k)
+print('I=\n', I) # 下标
+print('D=\n', D) # 距离(越小越相近)
+'''
+I=
+ [[1812   72 4119 3875 4508]
+ [8376 7481 1451  575  917]]
+D=
+ [[180.31473 180.90405 185.69391 190.49902 192.09837]
+ [157.18863 171.71602 178.36517 182.13834 185.01892]]'''
+```
+
+支持保存和导入：
+
+```python
+out_path = os.path.join(os.path.dirname(__file__), "demo.index")
+faiss.write_index(index, out_path)
+loaded = faiss.read_index(out_path)
+```
+
+##### IVF
+
+IVF 思路：
+
+1. 先对库向量聚类成 `nlist` 个中心（训练阶段）
+2. 每次查询只在最相近的 `nprobe` 个桶里搜索（检索阶段）
+
+`nlist` 一般与数据量相关，常见是 `sqrt(nb)` 量级（只是经验起点）
+
+`nprobe` 通常从 8/16/32 试起
+
+> ###### IVF+L2
+
+```python
+import numpy as np
+import faiss
+
+d = 128
+nb = 200000
+nq = 10
+k = 10
+
+rng = np.random.default_rng(0)
+xb = rng.normal(size=(nb, d)).astype('float32')
+xq = rng.normal(size=(nq, d)).astype('float32')
+
+nlist = 1024
+quantizer = faiss.IndexFlatL2(d)
+index = faiss.IndexIVFFlat(quantizer, d, nlist, faiss.METRIC_L2)
+
+# IVF 需要训练（用一部分向量即可）
+index.train(xb)
+index.add(xb)
+
+# 检索时调 nprobe：越大越准但越慢
+index.nprobe = 16
+
+D, I = index.search(xq, k)
+print(I)
+```
+
+##### PQ
+
+其他不变，换成：
+
+```python
+m = 16        # 子空间数量，要求 d % m == 0
+nbits = 8     # 每个子空间用多少 bits 编码（常见 8）
+index = faiss.IndexIVFPQ(quantizer, d, nlist, m, nbits)
+```
+
+`m`：把 d 维拆成 m 段，每段 d/m 维；m 越大压缩越细致，但编码/计算成本也变
+
+`nbits`：每段的 codebook 大小是 `2^nbits`；8 位通常是折中
+
+##### HNSW
+
+Hierarchical Navigable Small World graph，即“分层可导航小世界图”
+
+> HNSW把同一批节点分配到若干层：
+>
+> - 第 0 层：包含全部节点，边较多，负责最终的精搜索。
+> - 第 1、2、…层：越往上节点越少（随机抽样意义上的稀疏），边也相对少，用于快速逼近目标区域。
+> - 每个节点有一个最高层 `level`，并出现在 0..level 的所有层。
+>
+> 常见做法：节点层数服从几何分布（类似跳表 skiplist）
+>
+> - `P(level >= l) ≈ p^l`，所以高层节点数量指数减少。
+> - 这保证了顶层很小，能快速做“粗定位”。
+>
+> 用“稀疏的高层图”提供远距离快速跳转，用“密集的底层图”做精细搜索。
+>
+> 搜索：
+>
+> 1. 自顶向下的贪心下降（coarse search）
+>
+>    - 在当前层做“贪心步进”：只要能找到一个邻居比当前节点更接近 `q`，就跳过去；直到无法改进。
+>    - 然后下降到下一层，以当前节点作为下一层起点。
+>    - 这一阶段每层通常只走少量步，主要目的是快速靠近 `q` 的区域
+>
+> 2. 在第 0 层做带候选集的局部搜索（fine search）
+>
+>    在底层用一种“最佳优先/束搜索”风格的过程维护候选集合，常用参数是 `efSearch`。最后从访问到的候选里取 Top-K 最近邻作为结果
+
+如果希望获得不错的速度/精度且不想引入训练（IVF/PQ 需要 train），可以考虑，方便 CRUD，适合在线
+
+- M：每个节点在单层图中的目标出度；M 越大连边越密、召回率越高，但索引体积和插入/查询成本也随之增大。
+- efConstruction：构建时的候选集合大小；越大越能找到更优的连边，从而提升最终搜索精度，但建索引速度变慢。
+- efSearch：查询阶段的候选集合大小；越大搜索会探索更多节点，召回率更高但延迟随之增加，是最常调节的精度/速度开关。
+- max_level（或内部随机层数控制）：决定图的层数上限，层越多可加速粗粒度导航，但也会增添索引开销；一般由 M 和数据规模推导，不常手动设置。
+- entry_point：最高层的入口节点，通常由库内插入顺序产生；对查询速度有轻微影响，FAISS 自动维护，一般无需显式配置。
+- nbits（FAISS 特有，可选）：如开启压缩存储，用于控制距离值量化精度；在极大规模下节省内存，但会牺牲一点精度。
+
+先设定业务能接受的内存/延迟预算，选一个适中的 M（常见 16-48），建索引时把 efConstruction 设为 M 的几倍（如 100-200），然后在查询上动态调 efSearch（默认接近 M，可根据召回需求逐步提升）
+
+```python
+import numpy as np
+import faiss
+
+d = 128
+rng = np.random.default_rng(0)
+xb = rng.normal(size=(50000, d)).astype('float32')
+xq = rng.normal(size=(3, d)).astype('float32')
+
+index = faiss.IndexHNSWFlat(d, 32)  # 32 是 M（每层邻居数）
+index.hnsw.efConstruction = 200
+index.add(xb)
+
+index.hnsw.efSearch = 64
+D, I = index.search(xq, 10)
+print(I)
+```
+
+
 
 ## 数据结构
 
