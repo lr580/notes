@@ -3892,6 +3892,22 @@
 - 1161\.最大层内元素和
 
   DFS
+  
+- 1339\.分裂二叉树的最大乘积
+
+  DFS
+  
+- 1458\.两个子序列的最大点积
+
+  <u>DP</u>
+  
+- 712\.两个字符串的最小ASCII删除和
+
+  DP LCS
+
+- 865\.具有所有最深节点的最小子树
+
+  DFS / LCA
 
 ## 算法
 
@@ -31050,5 +31066,190 @@ class Solution:
         return row_sum.index(max(row_sum)) + 1  # 层号从 1 开始
 ```
 
+##### 1339\.分裂二叉树的最大乘积
 
+[题目](https://leetcode.cn/problems/maximum-product-of-splitted-binary-tree)
 
+一次 DFS
+
+```python
+class Solution:
+    def maxProduct(self, root: Optional[TreeNode]) -> int:
+        def dfs(node: Optional[TreeNode]) -> int:
+            if node is None:
+                return 0
+            s = node.val + dfs(node.left) + dfs(node.right)
+            sub_sum.append(s)
+            return s
+
+        sub_sum = []
+        total = dfs(root)
+
+        ans = max(s * (total - s) for s in sub_sum)
+        return ans % 1_000_000_007
+```
+
+##### 1458\.两个子序列的最大点积
+
+[题目](https://leetcode.cn/problems/max-dot-product-of-two-subsequences/)
+
+注意特判第一行第一列，因为不能选空序列，否则可以不特判(min=0)。对一般转移，可以从头开始，所以要么是 `dp[i-1][j-1]` 要么是 0
+
+```java
+class Solution {
+    public int maxDotProduct(int[] nums1, int[] nums2) {
+        int n1 = nums1.length, n2 = nums2.length;
+        int[][] dp = new int[n1][n2];
+        dp[0][0] = nums1[0] * nums2[0];
+        int ans = 0;
+        for (int j = 1; j < n2; j++) {
+            dp[0][j] = Math.max(dp[0][j - 1], nums1[0] * nums2[j]);
+        }
+        for (int i = 1; i < n1; i++) {
+            dp[i][0] = Math.max(dp[i - 1][0], nums1[i] * nums2[0]);
+        }
+        for (int i = 1; i < n1; i++) {
+            for (int j = 1; j < n2; j++) {
+                dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                dp[i][j] = Math.max(dp[i][j], Math.max(0, dp[i - 1][j - 1]) + nums1[i] * nums2[j]);
+            }
+        }
+        return dp[n1 - 1][n2 - 1];
+    }
+}
+```
+
+一个不用特判行列的办法：全部初始化为 -1。可以压空间显然，略。
+
+```java
+int[][] f = new int[n + 1][m + 1];
+for (int[] row : f) {
+    Arrays.fill(row, Integer.MIN_VALUE);
+}
+
+for (int i = 0; i < n; i++) {
+    for (int j = 0; j < m; j++) {
+        f[i + 1][j + 1] = Math.max(
+            Math.max(f[i][j], 0) + nums1[i] * nums2[j],
+            Math.max(f[i][j + 1], f[i + 1][j])
+        );
+    }
+}
+return f[n][m];
+```
+
+##### 712\.两个字符串的最小ASCII删除和
+
+[题目](https://leetcode.cn/problems/minimum-ascii-delete-sum-for-two-strings)
+
+先用DP求出最大ASCII和子序列(LCS的变体)，然后用全体和减去它就是最小的删除
+
+```java
+class Solution {
+    public int minimumDeleteSum(String s1, String s2) {
+        int n1 = s1.length(), n2 = s2.length();
+        int[][] dp = new int[n1 + 1][n2 + 1];//LCS的最大ASCII
+        for (int i = 1; i <= n1; i++) {
+            int c1 = s1.charAt(i - 1);
+            for (int j = 1; j <= n2; j++) {
+                int c2 = s2.charAt(j - 1), p = 0;
+                if (c1 == c2) {
+                    p = c1 * 2;
+                }
+                dp[i][j] = Math.max(
+                        dp[i - 1][j - 1] + p,
+                        Math.max(dp[i][j - 1], dp[i - 1][j])
+                );
+//                System.out.println(i + " " + j + " " + dp[i][j]);
+            }
+        }
+        int ans = 0;
+        for (char c1 : s1.toCharArray()) ans += c1;
+        for (char c2 : s2.toCharArray()) ans += c2;
+        ans -= dp[n1][n2];
+        return ans;
+    }
+}
+```
+
+更优雅的递推：
+
+```java
+class Solution {
+    public int minimumDeleteSum(String s1, String s2) {
+        int total = s1.chars().sum() + s2.chars().sum();
+
+        char[] s = s1.toCharArray();
+        char[] t = s2.toCharArray();
+        int n = s.length;
+        int m = t.length;
+
+        int[][] f = new int[n + 1][m + 1];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                if (s[i] == t[j]) {
+                    f[i + 1][j + 1] = f[i][j] + s[i];
+                } else {
+                    f[i + 1][j + 1] = Math.max(f[i][j + 1], f[i + 1][j]);
+                }
+            }
+        }
+        return total - f[n][m] * 2;
+    }
+}
+```
+
+可以压缩数组，略。
+
+##### 865\.具有所有最深节点的最小子树
+
+[题目](https://leetcode.cn/problems/smallest-subtree-with-all-the-deepest-nodes/)
+
+直接套任意 LCA，或者：LCA 略，见题目 1123
+
+一次 DFS 求出最大深度及其点数，第二次 DFS 求每个子树具有最大深度点的点数和，如果恰好等于一次的点数，全局保存第一个等于的结果。
+
+```java
+class Solution {
+    private int maxH = 0, cnt = 0;
+    private TreeNode ans = null;
+
+    private void dfs1(TreeNode u, int h) {
+        if (null == u) return;
+        if (h > maxH) {
+            maxH = h;
+            cnt = 1;
+        } else if (h == maxH) {
+            cnt++;
+        }
+//        System.out.println("DFS1 " + u.val + " " + maxH + " " + cnt);
+        dfs1(u.left, h + 1);
+        dfs1(u.right, h + 1);
+    }
+
+    private int dfs2(TreeNode u, int h) {
+        if (null == u) return 0;
+        int cnt2 = 0;
+        if (h == maxH) {
+            cnt2++;
+        }
+        cnt2 += dfs2(u.left, h + 1);
+        cnt2 += dfs2(u.right, h + 1);
+        if (cnt2 == cnt && null == ans) {
+            ans = u;
+        }
+        return cnt2;
+    }
+
+    public TreeNode subtreeWithAllDeepest(TreeNode root) {
+        ans = null;
+        maxH = 0;
+        dfs1(root, 1);
+        dfs2(root, 1);
+//        System.out.println(ans + " " + (ans == null));
+        return ans;
+    }
+}
+```
+
+更好的解法看题解，一次 DFS 不用全局变量。

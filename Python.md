@@ -6714,6 +6714,13 @@ if not csv_path.exists():
 return str(csv_path)
 ```
 
+转绝对路径，取父目录(当前文件所在文件夹)下的 `data/` 子目录
+
+```python
+Path(__file__).resolve().parent / 'data'
+# .parent.parent -> .parents[1]
+```
+
 
 
 ### 字符串
@@ -22799,6 +22806,23 @@ tensorboard --logdir=tensorboard
 ```
 
 可以以可视化形式看到训练、测试、验证的 MAE、MAPE、RMSE、loss 变化曲线图。顶部 scalars 侧边 horizontal axis 点 wall 还能看到训练时间。
+
+#### v1.x
+
+以 `1.1.0` 为例：
+
+##### 数据集
+
+下载解压后，
+
+每个数据集目录（如 `PEMS03/`）都遵循统一的命名规范：
+
+- `train_data.npy` / `val_data.npy` / `test_data.npy`：分别对应训练、验证、测试划分，数据类型为 `float32`，形状为 `[T, N]` 或 `[T, N, C]`，即时间步 × 节点数（× 通道数）。
+- `train_timestamps.npy` / `val_timestamps.npy` / `test_timestamps.npy`：与数据划分一一对应的时间特征，通常包含 `time of day`、`day of week` 等信息。
+- `meta.json`：描述性元数据，提供常规超参、频率、节点数等信息。
+- `adj_mx.pkl`：仅在图结构可用的交通类数据集中出现，表示邻接矩阵，供图神经网络模型使用。
+
+`meta.json` 为所有数据集提供统一的自描述信息
 
 #### LibCity
 
