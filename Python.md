@@ -22873,6 +22873,58 @@ response = client.chat.completions.create(
 
 - usage 里可以看到 tokens 数量。计算 created 与返回结果的时间差，可以求出调用时间。
 
+### langchain
+
+以 v1.2.3 为例，powered by gpt5.2codex
+
+> 1. **安装 LangChain 与常用 Provider**：
+>
+>    ```bash
+>    pip install -U langchain
+>    pip install -U langchain-openai langchain-anthropic langchain-google-genai
+>    ```
+>
+>    - 如果倾向极简安装，可使用 `uv pip install langchain`.
+>    - 向量索引/RAG 额外依赖：`pip install faiss-cpu tiktoken`.
+>
+> 2. **LangGraph & LangSmith（可选但推荐）**：
+>
+>    ```bash
+>    pip install -U langgraph langsmith
+>    ```
+>
+> 3. 若要运行 MCP 示例，额外安装 `pip install mcp`，该包会拉取 FastMCP 服务端与客户端依赖。
+
+高频组件如下：
+
+| 组件                    | 作用                                                    | 代表模块/类                                                  |
+| ----------------------- | ------------------------------------------------------- | ------------------------------------------------------------ |
+| LangChain Agent Runtime | `create_agent` 构建的 Agent，具备工具循环、持久化、HITL | `langchain.agents.create_agent`, `BaseTool`                  |
+| LangGraph               | 可控状态机/有向图运行时，可混合 Agent 与确定性节点      | `langgraph.graph.StateGraph`, `CompiledGraph`                |
+| LLM / Chat Model        | 标准化模型接口，避免厂商锁定                            | `langchain_openai.ChatOpenAI`, `langchain_anthropic.ChatAnthropic` |
+| Prompt & Output         | 负责模板与解析                                          | `ChatPromptTemplate`, `StructuredOutputParser`, `ResponseFormat` |
+| Runnable（LCEL）        | `prompt | llm | parser` 风格的可组合流水线              | `RunnableSequence`, `RunnableParallel`, `RunnableLambda`     |
+| Tools / Utilities       | Agent 可调用的工具/外部 API                             | `Tool`, `StructuredTool`, 自定义函数                         |
+| Memory                  | 短期/长期对话管理                                       | `ConversationBufferMemory`, LangGraph Checkpointer           |
+| Retrieval & Embedding   | 文档加载、切分、向量检索                                | `PyPDFLoader`, `RecursiveCharacterTextSplitter`, `FAISS`, `Chroma` |
+| Middleware              | 控制 Agent 循环各阶段，支持日志、重试、Guardrail、HITL  | `SummarizationMiddleware`, `HumanInTheLoopMiddleware`        |
+| Observability           | 调试、回放与部署                                        | `LangSmith Studio`, `LangSmith Test`, `LangSmith Observability` |
+
+关键例子：[代码参见gists](https://gist.github.com/lr580/fd8cea9a769464f884c045ce5bd4aefd)
+
+| 文件                                | 场景                                     | 关键概念                                                   |
+| ----------------------------------- | ---------------------------------------- | ---------------------------------------------------------- |
+| `example_01_basic_llm.py`           | LCEL 管道调用 LLM                        | `ChatPromptTemplate`, `ChatOpenAI`, `RunnableSequence`     |
+| `example_02_prompt_template.py`     | Prompt 模板 + 消息拼装                   | `PromptTemplate`, `ChatPromptTemplate`, `RunnableLambda`   |
+| `example_03_chain_runnable.py`      | RunnableSequence 多步骤内容生成          | `RunnableParallel`, `RunnableLambda`                       |
+| `example_04_agent_tool.py`          | `create_agent` + 自定义工具 + Middleware | `create_agent`, `Tool`, `SummarizationMiddleware`          |
+| `example_05_memory_conversation.py` | RunnableWithMessageHistory 对话记忆      | `RunnableWithMessageHistory`, `InMemoryChatMessageHistory` |
+| `example_06_retrieval_qa.py`        | LCEL RAG（检索→Prompt）                  | `PyPDFLoader`, `FAISS`, `RunnablePassthrough`              |
+| `example_07_callbacks_streaming.py` | 回调与流式输出                           | `BaseCallbackHandler`, `streaming=True`                    |
+| `example_08_structured_output.py`   | 结构化输出解析                           | `JsonOutputParser`, `Pydantic`                             |
+| `example_09_middleware_agent.py`    | Middleware + HITL 提示                   | `SummarizationMiddleware`, `HumanInTheLoopMiddleware`      |
+| `example_10_mcp_integration.py`     | MCP 工具桥接 + LangChain 分析            | `FastMCP`, `ClientSessionGroup`, `ChatOpenAI`              |
+
 ### 杂项
 
 #### huggingface_hub

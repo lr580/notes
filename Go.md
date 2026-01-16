@@ -3774,6 +3774,7 @@ for { // 执行结果：随机读取一个，然后读完了no receive
 一个生产者，4个消费者抢：
 
 ```go
+var wg sync.WaitGroup
 thing := make(chan string, 2)
 wg.Add(5)
 go func() { // 一个生产者

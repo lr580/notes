@@ -420,6 +420,12 @@ curl -X POST http://127.0.0.1:8718/invoke `
 
 ##### 自定义MCP
 
+安装已有的 MCP：
+
+```sh
+claude mcp add github-server -- npx -y @modelcontextprotocol/server-github
+```
+
 以一个 stdio 的 MCP 为例(按需启调用，用完关闭)，代码在最后：
 
 ```sh
@@ -637,7 +643,7 @@ if __name__ == "__main__":
 
 #### Cherry Studio
 
-[官网](https://www.cherry-ai.com/)。可以放缩大小，支持 MCP 等。
+[官网](https://www.cherry-ai.com/)。可以放缩大小，支持自动 MCP，抓包等。
 
 #### Chatbox
 

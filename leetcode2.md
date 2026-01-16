@@ -3908,6 +3908,26 @@
 - 865\.具有所有最深节点的最小子树
 
   DFS / LCA
+  
+- 1266\.访问所有点的最小时间
+
+  签到 数学 贪心 
+  
+- 3453\.分割正方形I
+
+  二分 / <u>扫描线+数学</u>
+  
+- 3454\.分割正方形II
+
+  扫描线 线段树 离散化
+  
+- 2943\.最大化网格图中的正方形空洞的面积
+
+  排序
+  
+- 2975\.移除栅栏得到的正方形田地的最大面积
+
+  排序 枚举
 
 ## 算法
 
@@ -31253,3 +31273,473 @@ class Solution {
 ```
 
 更好的解法看题解，一次 DFS 不用全局变量。
+
+##### 1266\.访问所有点的最小时间
+
+[题目](https://leetcode.cn/problems/minimum-time-visiting-all-points)
+
+和下一个点同时有水平dx和垂直dy距离就走对角，即差值的最小值d=min(dx,dy)，否则走水平/垂直，加起来是dx+dy-d。
+
+```java
+class Solution {
+    public int minTimeToVisitAllPoints(int[][] points) {
+        int n = points.length, ans = 0;
+        for (int i = 0; i < n - 1; i++) {
+            int dx = Math.abs(points[i][0] - points[i + 1][0]);
+            int dy = Math.abs(points[i][1] - points[i + 1][1]);
+            int d = Math.min(dx, dy);
+            ans += dx + dy - d;
+        }
+        return ans;
+    }
+}
+```
+
+也可以用切比雪夫距离，即 `max(dx,dy)`。
+
+```java
+ans += Math.max(Math.abs(x0 - x1), Math.abs(y0 - y1));
+```
+
+##### 3453\.分割正方形I
+
+[题目](https://leetcode.cn/problems/separate-squares-i/)
+
+参考 0x3f，对二分式子化简，可以只算下半部分。可以用浮点二分，一种办法是直接固定二分枚举次数(可计算)。
+
+```java
+class Solution {
+    public double separateSquares(int[][] squares) {
+        long totArea = 0;
+        int maxY = 0;
+        for (int[] sq : squares) {
+            int l = sq[2];
+            totArea += (long) l * l;
+            maxY = Math.max(maxY, sq[1] + l);
+        }
+
+        double left = 0;
+        double right = maxY;
+        for (int i = 0; i < 47; i++) {
+            double mid = (left + right) / 2;
+            if (check(squares, mid, totArea)) {
+                right = mid;
+            } else {
+                left = mid;
+            }
+        }
+        return (left + right) / 2; // 区间中点误差小
+    }
+
+    private boolean check(int[][] squares, double y, long totArea) {
+        double area = 0;
+        for (int[] sq : squares) {
+            double yi = sq[1];
+            if (yi < y) {
+                double l = sq[2];
+                area += l * Math.min(y - yi, l);
+            }
+        }
+        return area >= totArea / 2.0;
+    }
+}
+```
+
+或者如此计算二分枚举次数：
+
+```python
+right = max_y = max(y + l for _, y, l in squares)
+for _ in range((max_y * M).bit_length()):
+```
+
+也可以整数二分，把刻度乘以 eps，全部都是整数运算。结果再除回去。
+
+另一种二分思路，考虑到边都落在整数线上，先二分到最小整数y，然后它与下一个整数y-1之间，可以求出最小浮点数答案。设y和y-1的下半面积分别是 $area_y,area_{y-1}$，面积增量是 $sumL=area_y-area_{y-1}$，设浮点答案是y'，则这个增量可以等比例缩放，具体而言，可求得：
+$$
+area_{y'}=area_y-(y-y')sumL
+$$
+正方形总面积是 $totalArea$，又因为上下相等即 $area_{y'}=totalArea-area_{y'}$，解得：(乘2消除浮点运算)
+$$
+y'=y-\dfrac{area_y-totalArea/2}{sumL}
+$$
+
+```python
+class Solution:
+    def separateSquares(self, squares: List[List[int]]) -> float:
+        def calc_area(y: int) -> int:
+            area = 0
+            for _, yi, l in squares:
+                if yi < y:
+                    area += l * min(y - yi, l)
+            return area
+
+        tot_area = sum(l * l for _, _, l in squares)
+        max_y = max(y + l for _, y, l in squares)
+        y = bisect_left(range(max_y), tot_area, key=lambda y: calc_area(y) * 2)
+
+        area_y = calc_area(y)
+        sum_l = area_y - calc_area(y - 1)
+        return y - (area_y * 2 - tot_area) / (sum_l * 2)  # 这样写误差更小
+```
+
+在这个数学求解的基础上，可以不需要二分。用从下往上的扫描线维护矩形面积。差分思想(可以不用离散化排序)，每条线加减出入，同一高度合并大小，计算代替整数二分，然后到刻度时求出浮点数值。
+
+```java
+class Solution {
+    public double separateSquares(int[][] squares) {
+        long totArea = 0;
+        TreeMap<Integer, Long> diff = new TreeMap<>();
+        for (int[] sq : squares) {
+            int y = sq[1];
+            long l = sq[2];
+            totArea += l * l;
+            diff.merge(y, l, Long::sum);
+            diff.merge(y + (int) l, -l, Long::sum);
+        }
+
+        long area = 0;
+        long sumL = 0;
+        int preY = 0; // 不好计算下一个 y，改成维护上一个 y
+        for (var e : diff.entrySet()) {
+            int y = e.getKey();
+            area += sumL * (y - preY); // 底边长 * 高 = 新增面积
+            if (area * 2 >= totArea) {
+                return y - (area * 2 - totArea) / (sumL * 2.0);
+            }
+            preY = y;
+            sumL += e.getValue(); // 矩形底边长度之和
+        }
+        return -1;
+    }
+}
+```
+
+##### 3454\.分割正方形II
+
+[题目](https://leetcode.cn/problems/separate-squares-ii)
+
+我的板子 gemini3 修改版
+
+先搞一个扫描线板子：
+
+- 对每个矩形(正方形)，拆分为上下两条线段，记录线段的纵坐标，两个横坐标(线段)以及它是底边(1)还是顶边(-1)，按纵坐标排序
+
+- 所有横坐标离散化，维护双射：形成有序去重的横坐标序列 `xCoords`，以及根据值倒找下标的哈希表 `xMap`
+
+- 线段树可以维护当前高度的线段总长(重复部分算一次)，具体而言，叶子 `i` 维护区间 `[xCoords[i], xCoords[i+1])`。即线段 `i` 的长度是 `xCoords[i+1]-xCoords[i]`。非叶子则合并。
+
+  `length[i]` 表示当前节点管理的区间里，被矩形覆盖的长度有多长。如果整个节点都被覆盖，直接在 pushUp 时取终点-起点即可，即 lazy 思路。否则，有的被覆盖有的不被覆盖。如果是叶子，都不被覆盖就是0，如果不是叶子，取子节点的覆盖和。
+
+  update 时，根据底边顶边更新是否被覆盖，即 `coverCount` 计数。查询只需要根节点，所以无需 pushDown。
+
+- 按纵坐标升序遍历线段，当前线段与上一条线段的高度差(为0乘积也0)，乘以以往线段总长，就是新的贡献
+
+在板子的基础上，在计算过程中，维护每个高度当前扫描的总面积和，以及线段树根节点覆盖长度一并返回。然后按分割正方形I的扫描线做法解答案即可。
+
+```java
+import java.util.*;
+class Solution {
+    public double separateSquares(int[][] squares) {
+        TreeMap<Long, Long> areaMap = new TreeMap<>();
+        Map<Long, Long> widthMap = new HashMap<>();
+        // 适配器：将 squares [x, y, l] 转为 rectangles [x, y, x+l, y+l]
+        int[][] rects = new int[squares.length][4];
+        for (int i = 0; i < squares.length; i++) {
+            int x = squares[i][0];
+            int y = squares[i][1];
+            int l = squares[i][2];
+            rects[i] = new int[]{x, y, x + l, y + l};
+        }
+
+        long totalArea = rectangleArea(rects, areaMap, widthMap);
+        double target = totalArea / 2.0;
+
+        // 遍历所有记录的扫描线高度
+        // areaMap 是 TreeMap，Key (Y坐标) 也就是从小到大排序的
+        for (Map.Entry<Long, Long> entry : areaMap.entrySet()) {
+            long y = entry.getKey();
+            long currentArea = entry.getValue();
+
+            if (currentArea <= target) {
+                // 获取当前区间的有效宽度
+                long width = widthMap.getOrDefault(y, 0L);
+                // 寻找下一个扫描线的高度 nextY
+                Long nextY = areaMap.higherKey(y);
+                // 下一个高度的累积面积
+                long nextArea = areaMap.get(nextY);
+
+                // 如果目标面积落在 [currentArea, nextArea] 之间（左闭右开实际处理逻辑）
+                // 实际上只要 nextArea >= target，说明分割点就在 y 和 nextY 之间
+                if (nextArea >= target) {
+                    double needed = target - currentArea;
+                    return y + needed / width;
+                }
+            }
+        }
+        return 0.0;
+    }
+
+    /**
+     * 计算矩形面积，并记录扫描线过程中的累计面积和当前有效宽度
+     *
+     * @param rectangles          矩形数组
+     * @param accumulativeAreaMap (输出参数) <高度Y, 该高度以下的累计面积>
+     * @param currentWidthMap     (输出参数) <高度Y, 处理完该Y所有事件后的有效覆盖宽度>
+     * @return 总面积
+     */
+    private long rectangleArea(int[][] rectangles, Map<Long, Long> accumulativeAreaMap, Map<Long, Long> currentWidthMap) {
+        int n = rectangles.length;
+        Event[] events = new Event[n * 2];
+        Set<Long> xSet = new HashSet<>();
+
+        for (int i = 0; i < n; i++) {
+            // 原矩形: [x1, y1, x2, y2]
+            int x1 = rectangles[i][0];
+            int y1 = rectangles[i][1];
+            int x2 = rectangles[i][2];
+            int y2 = rectangles[i][3];
+
+            // 底边：y1, 入边 (+1)
+            events[i * 2] = new Event(y1, x1, x2, 1);
+            // 顶边：y2, 出边 (-1)
+            events[i * 2 + 1] = new Event(y2, x1, x2, -1);
+
+            xSet.add((long) x1);
+            xSet.add((long) x2);
+        }
+
+        List<Long> xCoords = new ArrayList<>(xSet);
+        Collections.sort(xCoords);
+
+        Map<Long, Integer> xMap = new HashMap<>();
+        for (int i = 0; i < xCoords.size(); i++) {
+            xMap.put(xCoords.get(i), i);
+        }
+
+        Arrays.sort(events);
+
+        int numIntervals = xCoords.size() - 1;
+        SegmentTree segTree = new SegmentTree(numIntervals, xCoords);
+        long ans = 0;
+
+        for (int i = 0; i < events.length; i++) {
+            Event e = events[i];
+
+            // 计算当前扫描线与上一条扫描线之间的面积
+            if (i > 0) {
+                long h = e.y - events[i - 1].y;
+                long area = (segTree.queryTotalLength() * h);
+                ans += area;
+            }
+
+            // 记录当前高度 y 下方的总面积
+            // 注意：同一高度可能有多个事件，只有第一个处理时产生的 ans 是前一段的结束，
+            // 但无论同一高度put几次，ans在这个高度的循环内是不会变的(h=0)。
+            accumulativeAreaMap.put(e.y, ans);
+
+            Integer leftIdx = xMap.get(e.x1);
+            Integer rightIdxVal = xMap.get(e.x2);
+
+            int rightIdx = rightIdxVal - 1;
+			segTree.update(1, 0, numIntervals - 1, leftIdx, rightIdx, e.type);
+
+            // 记录当前 y 高度处理完毕后的有效宽度
+            // 只有当这是当前高度 y 的最后一个事件时，线段树的状态才是该高度最终的“宽度状态”，
+            // 该宽度将决定从 y 到 next_y 的面积增长速度。
+            if (i == events.length - 1 || events[i + 1].y > e.y) {
+                currentWidthMap.put(e.y, segTree.queryTotalLength());
+            }
+        }
+
+        return ans;
+    }
+
+    // --- 内部类：扫描线事件 ---
+    private static class Event implements Comparable<Event> {
+        long y, x1, x2;
+        int type;
+
+        public Event(long y, long x1, long x2, int type) {
+            this.y = y;
+            this.x1 = x1;
+            this.x2 = x2;
+            this.type = type;
+        }
+
+        @Override
+        public int compareTo(Event other) {
+            return Long.compare(this.y, other.y);
+        }
+    }
+
+    // --- 内部类：线段树 ---
+    private static class SegmentTree {
+        private int[] coverCount;
+        private long[] length;
+        private List<Long> xCoords;
+
+        public SegmentTree(int n, List<Long> xCoords) {
+            this.xCoords = xCoords;
+            int size = n * 4 + 10;
+            coverCount = new int[size];
+            length = new long[size];
+        }
+
+        public void update(int node, int start, int end, int L, int R, int val) {
+            if (L <= start && end <= R) {
+                coverCount[node] += val;
+                pushUp(node, start, end);
+                return;
+            }
+
+            int mid = (start + end) >> 1;
+            int leftNode = node << 1;
+            int rightNode = (node << 1) | 1;
+
+            if (L <= mid) update(leftNode, start, mid, L, R, val);
+            if (R > mid) update(rightNode, mid + 1, end, L, R, val);
+
+            pushUp(node, start, end);
+        }
+
+        private void pushUp(int node, int start, int end) {
+            if (coverCount[node] > 0) {
+                length[node] = xCoords.get(end + 1) - xCoords.get(start);
+            } else {
+                if (start == end) {
+                    length[node] = 0;
+                } else {
+                    length[node] = length[node << 1] + length[(node << 1) | 1];
+                }
+            }
+        }
+
+        public long queryTotalLength() {
+            return length[1];
+        }
+    }
+}
+```
+
+0x3f 优化：
+
+- Event 用 java record 简化，然后 sort 时自定义比较依据
+- 另一种思路是维护未被覆盖的长度，感觉没这么好懂，略
+
+##### 2943\.最大化网格图中的正方形空洞的面积
+
+[题目](https://leetcode.cn/problems/maximize-area-of-square-hole-in-grid)
+
+横纵相互独立，分别处理求出最大连续子段即可。也可以不排序用哈希，见 0x3f，略。
+
+```java
+class Solution {
+    private int max(int[] a) {
+        Arrays.sort(a);
+        int cnt = 1, mxCnt = 1;
+        for (int i = 0; i < a.length - 1; i++) {
+            if (a[i] + 1 == a[i + 1]) {
+                cnt++;
+            } else {
+                cnt = 1;
+            }
+            mxCnt = Math.max(mxCnt, cnt);
+        }
+        return mxCnt + 1;
+    }
+
+    public int maximizeSquareHoleArea(int n, int m, int[] hBars, int[] vBars) {
+        int x = max(hBars), y = max(vBars);
+        int a = Math.min(x, y);
+        return a * a;
+    }
+}
+```
+
+##### 2975\.移除栅栏得到的正方形田地的最大面积
+
+[题目](https://leetcode.cn/problems/maximum-square-area-by-removing-fences-from-a-field)
+
+枚举两两差，得到所有可能的单边长，和上一题一样组合。
+
+```java
+class Solution {
+    private Set<Integer> lens(int n, int[] a) {
+        Arrays.sort(a);
+        int[] v = new int[a.length + 2];
+        v[0] = 1;
+        v[a.length + 1] = n;
+        for (int i = 0; i < a.length; i++) {
+            v[i + 1] = a[i];
+        }
+        HashSet<Integer> h = new HashSet<>();
+        int m = v.length;
+        for (int i = 0; i < m; i++) {
+            for (int j = i + 1; j < m; j++) {
+                h.add(v[j] - v[i]);
+            }
+        }
+//        System.out.println(Arrays.toString(v) + " --- " + h);
+        return h;
+//        ArrayList<Integer> l = new ArrayList<>();
+//        for (Integer x : h) {
+//            l.add(x);
+//        }
+//        Arrays.sort(l);
+//        return l;
+    }
+
+    public int maximizeSquareArea(int m, int n, int[] hFences, int[] vFences) {
+        Set<Integer> xSet = lens(m, hFences);
+        Set<Integer> ySet = lens(n, vFences);
+        long ans = -1;
+        for (int x : xSet) {
+            if (ySet.contains(x)) {
+                ans = Math.max(ans, (long) x * x);
+            }
+        }
+        if (ans == -1) return -1;
+        return (int) (ans % 1_000_000_007L);
+    }
+}
+```
+
+0x3f
+
+```java
+class Solution {
+    public int maximizeSquareArea(int m, int n, int[] hFences, int[] vFences) {
+        final int MOD = 1_000_000_007;
+        Set<Integer> hSet = f(hFences, m);
+        Set<Integer> vSet = f(vFences, n);
+
+        int ans = 0;
+        for (int x : hSet) {
+            if (vSet.contains(x)) {
+                ans = Math.max(ans, x);
+            }
+        }
+        return ans > 0 ? (int) ((long) ans * ans % MOD) : -1;
+    }
+
+    private Set<Integer> f(int[] a, int mx) {
+        int n = a.length;
+        a = Arrays.copyOf(a, n + 2);
+        a[n++] = 1;
+        a[n++] = mx;
+        Arrays.sort(a);
+
+        // 计算 a 中任意两个数的差，保存到哈希集合中
+        Set<Integer> set = new HashSet<>();
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                set.add(a[j] - a[i]);
+            }
+        }
+        return set;
+    }
+}
+```
+
+
+
