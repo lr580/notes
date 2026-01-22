@@ -2558,6 +2558,17 @@ for num := 0; num < 5; num++ { // 输出一二三， break 不跳出 for
 }
 ```
 
+类型判断：(v 是 any，即 interface{})
+
+```go
+switch x := v.(type) {
+    case int:
+        fmt.Printf("int: %d (x+1=%d)\n", x, x+1)
+    case string:
+        fmt.Printf("string: %q (len=%d)\n", x, len(x))
+}
+```
+
 
 
 #### goto
@@ -3764,6 +3775,8 @@ for { // 执行结果：随机读取一个，然后读完了no receive
     }
 }
 ```
+
+具体而言，select 会马上执行所有 case 里第一个能做的，如果有 default 就不阻塞(没一个能做就做这个)，for 做不断执行效果。case 里可以是管道读或管道写。也可以用 `time.After` 做其中一个分支(设置该分支几秒后就绪)，做到有限等待(就绪前其他好了做其他)
 
 ##### 多线程
 

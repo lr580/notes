@@ -408,6 +408,15 @@ curl -X POST http://127.0.0.1:8718/invoke `
 
 配置优先级: 项目配置 > 全局配置 > 系统环境变量
 
+对 Linux，可以在 `~/.bashrc` 里：
+
+```sh
+export ANTHROPIC_BASE_URL="https://hk.api.renice.cc"
+export ANTHROPIC_AUTH_TOKEN="sk-xxx"
+```
+
+
+
 ##### 使用
 
 在项目根目录创建 CLAUDE.md 文件，提供项目特定的上下文。如有下面文件，可以直接说 `开始执行任务`。

@@ -3928,6 +3928,26 @@
 - 2975\.移除栅栏得到的正方形田地的最大面积
 
   排序 枚举
+  
+- 1292\.元素和小于等于阈值的正方形的最大边长
+
+  二分 / <u>枚举</u>
+
+- 1895\.最大的幻方
+
+  前缀和 枚举 / <u>滑动窗口</u>
+
+- 3047\.求交集区域的最大正方形面积
+
+  枚举
+  
+- 3315\.构造最小位运算数组II
+
+  构造 位运算
+  
+- 3510\.移除最小数对使数组有序II
+
+  静态双链表 set/可删堆 <u>线段树</u>
 
 ## 算法
 
@@ -31741,5 +31761,298 @@ class Solution {
 }
 ```
 
+##### 1292\.元素和小于等于阈值的正方形的最大边长
 
+[题目](https://leetcode.cn/problems/maximum-side-length-of-a-square-with-sum-less-than-or-equal-to-threshold)
 
+可以二分答案。也可以前缀和直接枚举，如果已经知道存在 ans=3 的正方形，以后枚举只需要看 ans=4 有没有。以此类推。
+
+```python
+class Solution:
+    def maxSideLength(self, mat: List[List[int]], threshold: int) -> int:
+        m, n = len(mat), len(mat[0])
+        s = [[0] * (n + 1) for _ in range(m + 1)]
+        for i, row in enumerate(mat):
+            for j, x in enumerate(row):
+                s[i + 1][j + 1] = s[i + 1][j] + s[i][j + 1] - s[i][j] + x
+
+        # 返回左上角在 (r1, c1)，右下角在 (r2, c2) 的子矩阵元素和
+        def query(r1: int, c1: int, r2: int, c2: int) -> int:
+            return s[r2 + 1][c2 + 1] - s[r2 + 1][c1] - s[r1][c2 + 1] + s[r1][c1]
+
+        ans = 0
+        for i in range(m):
+            for j in range(n):
+                # 边长为 ans+1 的正方形，左上角在 (i, j)，右下角在 (i+ans, j+ans)
+                while i + ans < m and j + ans < n and query(i, j, i + ans, j + ans) <= threshold:
+                    ans += 1
+        return ans
+```
+
+##### 1895\.最大的幻方
+
+[题目](https://leetcode.cn/problems/largest-magic-square)
+
+朴素暴力：枚举(不能二分)尺寸，然后枚举左上角，前缀和求行列、对角线和，那么是四次方复杂度。
+
+```python
+class Solution:
+    def largestMagicSquare(self, grid: List[List[int]]) -> int:
+        m, n = len(grid), len(grid[0])
+        row_sum = [[0] * (n + 1) for _ in range(m)]       # → 前缀和
+        col_sum = [[0] * n for _ in range(m + 1)]         # ↓ 前缀和
+        diag_sum = [[0] * (n + 1) for _ in range(m + 1)]  # ↘ 前缀和
+        anti_sum = [[0] * (n + 1) for _ in range(m + 1)]  # ↙ 前缀和
+
+        for i, row in enumerate(grid):
+            for j, x in enumerate(row):
+                row_sum[i][j + 1] = row_sum[i][j] + x
+                col_sum[i + 1][j] = col_sum[i][j] + x
+                diag_sum[i + 1][j + 1] = diag_sum[i][j] + x
+                anti_sum[i + 1][j] = anti_sum[i][j + 1] + x
+
+        # k×k 子矩阵的左上角为 (i−k, j−k)，右下角为 (i−1, j−1)
+        for k in range(min(m, n), 0, -1):
+            for i in range(k, m + 1):
+                for j in range(k, n + 1):
+                    # 子矩阵主对角线的和
+                    s = diag_sum[i][j] - diag_sum[i - k][j - k]
+
+                    # 子矩阵反对角线的和等于 s
+                    # 子矩阵每行的和都等于 s
+                    # 子矩阵每列的和都等于 s
+                    if anti_sum[i][j - k] - anti_sum[i - k][j] == s and \
+                       all(row_sum[r][j] - row_sum[r][j - k] == s for r in range(i - k, i)) and \
+                       all(col_sum[i][c] - col_sum[i - k][c] == s for c in range(j - k, j)):
+                        return k
+```
+
+优化：维护到第i行时，有连续几个行和相等，列同理。优化掉枚举行列的复杂度，类似滑动窗口。
+
+```python
+class Solution:
+    def largestMagicSquare(self, grid: List[List[int]]) -> int:
+        m, n = len(grid), len(grid[0])
+        row_sum = [[0] * (n + 1) for _ in range(m)]       # → 前缀和
+        col_sum = [[0] * n for _ in range(m + 1)]         # ↓ 前缀和
+        diag_sum = [[0] * (n + 1) for _ in range(m + 1)]  # ↘ 前缀和
+        anti_sum = [[0] * (n + 1) for _ in range(m + 1)]  # ↙ 前缀和
+
+        for i, row in enumerate(grid):
+            for j, x in enumerate(row):
+                row_sum[i][j + 1] = row_sum[i][j] + x
+                col_sum[i + 1][j] = col_sum[i][j] + x
+                diag_sum[i + 1][j + 1] = diag_sum[i][j] + x
+                anti_sum[i + 1][j] = anti_sum[i][j + 1] + x
+
+        # is_same_col_sum[i][j] 表示右下角为 (i, j) 的子矩形，每列元素和是否都相等
+        is_same_col_sum = [[False] * n for _ in range(m)]
+
+        for k in range(min(m, n), 1, -1):
+            for i in range(k, m + 1):
+                # 想象有一个 k×k 的窗口在向右滑动
+                same_cnt = 1
+                for j in range(1, n):
+                    if col_sum[i][j] - col_sum[i - k][j] == col_sum[i][j - 1] - col_sum[i - k][j - 1]:
+                        same_cnt += 1
+                    else:
+                        same_cnt = 1
+                    # 连续 k 列元素和是否都一样
+                    is_same_col_sum[i - 1][j] = same_cnt >= k
+
+            for j in range(k, n + 1):
+                # 想象有一个 k×k 的窗口在向下滑动
+                sum_row = row_sum[0][j] - row_sum[0][j - k]
+                same_cnt = 1
+                for i in range(2, m + 1):
+                    row_s = row_sum[i - 1][j] - row_sum[i - 1][j - k]
+                    if row_s == sum_row:
+                        same_cnt += 1
+                        if (same_cnt >= k and  # 连续 k 行元素和都一样
+                            is_same_col_sum[i - 1][j - 1] and  # 连续 k 列元素和都一样
+                            col_sum[i][j - 1] - col_sum[i - k][j - 1] == sum_row and  # 列和 = 行和
+                            diag_sum[i][j] - diag_sum[i - k][j - k] == sum_row and  # 主对角线和 = 行和
+                            anti_sum[i][j - k] - anti_sum[i - k][j] == sum_row):  # 反对角线和 = 行和
+                            return k
+                    else:
+                        sum_row = row_s
+                        same_cnt = 1
+
+        return 1
+```
+
+##### 3047\.求交集区域内的最大正方形面积
+
+[题目](https://leetcode.cn/problems/find-the-largest-area-of-square-inside-two-rectangles)
+
+枚举两两交集。常数优化：外层循环可以剪枝：
+
+```python
+class Solution:
+    def largestSquareArea(self, bottomLeft: List[List[int]], topRight: List[List[int]]) -> int:
+        max_side = 0
+        for i, ((bx, by), (tx, ty)) in enumerate(zip(bottomLeft, topRight)):
+            if tx - bx <= max_side or ty - by <= max_side:
+                continue  # 最优性剪枝：max_side 不可能变大
+            for j in range(i):
+                bx2, by2 = bottomLeft[j]
+                tx2, ty2 = topRight[j]
+                width = min(tx, tx2) - max(bx, bx2)  # 右上横坐标 - 左下横坐标
+                height = min(ty, ty2) - max(by, by2)  # 右上纵坐标 - 左下纵坐标
+                side = min(width, height)
+                max_side = max(max_side, side)
+        return max_side ** 2
+```
+
+##### 3315\.构造最小位运算数组II
+
+[题目](https://leetcode.cn/problems/construct-the-minimum-bitwise-array-ii) 3314 同理，但是可以暴力。
+
+打表找规律，发现2无解，其他情况下，等价于找到最右边的连续1，把最后一个1换成0。
+
+```python
+class Solution:
+    def minBitwiseArray(self, nums: List[int]) -> List[int]:
+        n = len(nums)
+        ans = [-1] * n
+        for j, p in enumerate(nums):
+            if p == 2: continue
+            b = bin(p)[2:]
+            i = b.rfind('0') 
+            if i == -1:
+                b = b[:-1]
+            else:
+                b = b[:i+1] + '0' + b[i+2:]
+            ans[j] = int(b, 2)
+        return ans
+```
+
+推理法：`x|(x+1)` 可以知道本质是把二进制最右边的 0 置为 1，所以逆运算就是把最右边的0的右边1置0。
+
+可以原地使用nums数组。
+
+位运算写法1：取反+lowbit+右移+异或，可以如此置0。
+
+```python
+class Solution:
+    def minBitwiseArray(self, nums: List[int]) -> List[int]:
+        for i, x in enumerate(nums):
+            if x == 2:
+                nums[i] = -1
+            else:
+                t = ~x
+                nums[i] ^= (t & -t) >> 1
+        return nums
+```
+
+写法2：+1与取反and 等价于取反+lowbit
+
+```python
+nums[i] ^= ((x + 1) & ~x) >> 1
+```
+
+##### 3510\.移除最小数对使数组有序II
+
+[题目](https://leetcode.cn/problems/minimum-pair-removal-to-sort-array-ii)
+
+677ms 击败94.44%
+
+1. 使用 treeset / 可删堆维护可取最小值和增删任意值的结构，值为：相邻和及下标组成的二元组排序。
+
+2. 使用静态双链表维护删除下找节点的前一个/后一个节点
+
+3. 计数动态维护有序数量，每次更改只会影响三个节点，分别检查即可
+
+   > 也可以用线段树维护，删除等价于合并，把单点赋值改为对合并后的区间赋值，线段树维护min,max,sorted做pushup即可。
+
+```java
+import java.util.*;
+record Pair(long sum, int i) implements Comparable<Pair> {
+    @Override
+    public int compareTo(Pair o) {
+        int c = Long.compare(this.sum, o.sum);
+        if (c != 0) return c;
+        return Integer.compare(this.i, o.i);
+    }
+}
+
+class Solution {
+    int cntDel, n, cntSort;
+    int[] pr, nx;
+    long[] a;
+    TreeSet<Pair> set;
+
+    int isSorted(int i) {
+        return a[i] <= a[nx[i]] ? 1 : 0;
+    }
+
+    boolean sorted() {
+        int len = n - 1 - cntDel;
+        return cntSort == len;
+    }
+
+    void init(int[] nums) { // 静态双链表等数据结构
+        n = nums.length;
+
+        // 双链表
+        pr = new int[n + 2];
+        nx = new int[n + 2];
+        a = new long[n + 2];
+        for (int i = 0; i < n + 2; i++) {
+            pr[i] = i - 1;
+            nx[i] = i + 1;
+        }
+        for (int i = 1; i <= n; i++) {
+            a[i] = nums[i - 1];
+        }
+
+        // Set 和有序维护
+        set = new TreeSet<>();
+        cntSort = 0;
+        cntDel = 0;
+        for (int i = 1; i < n; i++) {
+            addPair(i);
+        }
+    }
+
+    Pair getPair(int i) {
+        return new Pair(a[i] + a[nx[i]], i);
+    }
+
+    void addPair(int i) {
+        // 不断删除，真实节点数会<n；是最后一个点等价于nx[i]越界
+        if (i <= 0 || nx[i] > n) return;
+        cntSort += isSorted(i);
+        set.add(getPair(i));
+    }
+
+    void removePair(int i) {
+        if (i <= 0 || nx[i] > n) return;
+        cntSort -= isSorted(i);
+        set.remove(getPair(i));
+    }
+
+    public int minimumPairRemoval(int[] nums) {
+        init(nums);
+        while (!sorted()) {
+            cntDel++;
+            int i = set.first().i();
+            int j = nx[i], k = pr[i];
+
+            removePair(k);
+            removePair(i);
+            removePair(j);
+
+            a[i] = a[i] + a[j];
+            nx[i] = nx[j];
+            pr[nx[j]] = i;
+
+            addPair(k);
+            addPair(i);
+        }
+        return cntDel;
+    }
+}
+```
+
+懒删除见0x3f，判断办法：i的nx越界，或取出来的sum不等于set里的。

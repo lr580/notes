@@ -4264,10 +4264,10 @@ import static java.lang.System.out; //但是不能再继续.println了
 
 自动生成方法：
 
-- **构造函数**：自动生成接受所有字段的构造函数。
-- **访问器**：为每个字段生成访问器（getter）方法，方法名与字段名相同。
-- **`toString()`**：自动生成 `toString()` 方法，以便以字符串形式输出对象。
-- **`equals()` 和 `hashCode()`**：自动生成这两个方法，以支持对象的比较和哈希操作
+- 构造函数：自动生成接受所有字段的构造函数。
+- 访问器：为每个字段生成访问器（getter）方法，方法名与字段名相同。
+- `toString()`：自动生成 `toString()` 方法，以便以字符串形式输出对象。
+- `equals()` 和 `hashCode()`：自动生成这两个方法，以支持对象的比较和哈希操作
 
 ```java
 import java.util.ArrayList;
@@ -4289,6 +4289,29 @@ public class testrecord {
     }
 }
 ```
+
+自定义比较：
+
+```java
+record Pair(long sum, int i) implements Comparable<Pair> {
+    @Override
+    public int compareTo(Pair other) {
+        return Comparator.comparingLong(Pair::sum)
+                .thenComparingInt(Pair::i)
+                .compare(this, other);
+    }
+}
+```
+
+> 错误的比较：每次新建一个比较器
+>
+> ```java
+> public int compareTo(Pair other) {
+>     return Comparator.comparingLong(Pair::sum)
+>             .thenComparingInt(Pair::i)
+>             .compare(this, other);
+> }
+> ```
 
 
 
@@ -11077,9 +11100,19 @@ PriorityQueue<Integer> priorityQueue = new PriorityQueue<Integer>(new Comparator
 });
 ```
 
+二元组生序排序 java8
+
+```java
+import java.util.Comparator;
+PriorityQueue<int[]> pq = new PriorityQueue<>(
+     Comparator.comparingInt((int[] a) -> a[0]).thenComparingInt(a -> a[1]));
+```
+
 
 
 如：
+
+
 
 ```java
 import java.util.*;
