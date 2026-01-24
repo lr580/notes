@@ -49,6 +49,10 @@
 
 [官网](https://github.com/openai/codex) OpenAI (GPT) 家的。
 
+```sh
+npm install -g @openai/codex
+```
+
 安装后，安装 Vscode 的插件，可以拖拽到右侧侧边栏 (CHAT)。
 
 配置 (API 中转)：
@@ -393,6 +397,10 @@ curl -X POST http://127.0.0.1:8718/invoke `
 
 [官网](https://code.claude.com/) ANTHROPIC (Claude-Sonnet 等) 家的。
 
+```sh
+npm install -g @anthropic-ai/claude-code
+```
+
 注意英文文档比官方中文全。安装后参考配置。(不一定行，用 privnode 的话直接用他的一键配置)
 
 `~/.claude` 的 `settings.json`。项目级别就根目录的 `.claude` 下对应。修改配置后必须重启 CLI 才能生效。注意不要有 v1
@@ -415,7 +423,7 @@ export ANTHROPIC_BASE_URL="https://hk.api.renice.cc"
 export ANTHROPIC_AUTH_TOKEN="sk-xxx"
 ```
 
-
+> 测试：`echo $ANTHROPIC_BASE_URL`
 
 ##### 使用
 
@@ -426,6 +434,8 @@ export ANTHROPIC_AUTH_TOKEN="sk-xxx"
 
 请你编写代码，完成该任务。并写 md 文档：①告诉我如何本地运行 MCP 服务器，并让 claude code 配置和能调用该 MCP。②总结一个 MCP 服务器的技术要点，即模型调用什么接口，流程等。
 ```
+
+日志在 `.claude/history.jsonl`
 
 ##### 自定义MCP
 

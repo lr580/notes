@@ -3948,6 +3948,10 @@
 - 3510\.移除最小数对使数组有序II
 
   静态双链表 set/可删堆 <u>线段树</u>
+  
+- 1877\.数组中最大数对和的最小值
+
+  排序 贪心
 
 ## 算法
 
@@ -32056,3 +32060,17 @@ class Solution {
 ```
 
 懒删除见0x3f，判断办法：i的nx越界，或取出来的sum不等于set里的。
+
+##### 1877\.数组中最大数对和的最小值
+
+[题目](https://leetcode.cn/problems/minimize-maximum-pair-sum-in-array)
+
+```python
+from typing import *
+class Solution:
+    def minPairSum(self, nums: List[int]) -> int:
+        nums.sort()
+        n = len(nums)
+        return max([nums[i]+nums[n-i-1] for i in range(n//2)])
+```
+
