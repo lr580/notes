@@ -4,6 +4,8 @@
 
 ## 大模型
 
+[vibe coding全攻略](https://ai.codefather.cn/library/2010994846520700929)
+
 ### LLM
 
 > codex 生成：以下内容聚焦截至 2025 年 12 月公开披露的主流大模型，汇总厂商动态、特性以及可预见的不足，并给出选型建议。
@@ -393,6 +395,8 @@ curl -X POST http://127.0.0.1:8718/invoke `
 
 #### Claude Code
 
+[使用全攻略](https://www.bilibili.com/video/BV14rzQB9EJj)
+
 ##### 配置
 
 [官网](https://code.claude.com/) ANTHROPIC (Claude-Sonnet 等) 家的。
@@ -653,6 +657,18 @@ if __name__ == "__main__":
     server.run()
 
 ```
+
+#### OpenCode
+
+```sh
+npm install -g opencode-ai
+```
+
+[智谱GLM+opencode配置](https://docs.bigmodel.cn/cn/coding-plan/tool/opencode)
+
+#### CodeBuddy
+
+[官网](https://copilot.tencent.com/) 现在有 cli，插件和自己的 IDE，都能用，国产模型比较多，有 `/cr` 代码审查等内置命令。 
 
 ### 对话工具
 

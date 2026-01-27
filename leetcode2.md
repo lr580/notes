@@ -3952,6 +3952,18 @@
 - 1877\.数组中最大数对和的最小值
 
   排序 贪心
+  
+- 1984\.学生分数的最小差值
+
+  排序 滑动窗口
+  
+- 1200\.最小绝对差
+
+  排序
+  
+- 3650\.边反转的最小路径总成本
+
+  最短路Dijkstra
 
 ## 算法
 
@@ -32073,4 +32085,148 @@ class Solution:
         n = len(nums)
         return max([nums[i]+nums[n-i-1] for i in range(n//2)])
 ```
+
+##### 1984\.学生分数的最小差值
+
+[题目](https://leetcode.cn/problems/minimum-difference-between-highest-and-lowest-of-k-scores)
+
+```java
+class Solution {
+    public int minimumDifference(int[] nums, int k) {
+        Arrays.sort(nums);
+        int ans = Integer.MAX_VALUE;
+        for (int l = 0, r = k - 1; r < nums.length; r++, l++) {
+            ans = Math.min(ans, Math.abs(nums[r] - nums[l]));
+        }
+        return ans;
+    }
+
+```
+
+##### 1200\.最小绝对差
+
+[题目](https://leetcode.cn/problems/minimum-absolute-difference)
+
+```java
+class Solution {
+    public List<List<Integer>> minimumAbsDifference(int[] arr) {
+        Arrays.sort(arr);
+        List<List<Integer>> ans = new ArrayList<>();
+        int n = arr.length, minAbs = Integer.MAX_VALUE;
+        for (int i = 0; i < n - 1; i++) {
+            int abs = arr[i + 1] - arr[i];
+            if (abs < minAbs) {
+                minAbs = abs;
+                ans.clear();
+            }
+            if (abs == minAbs) {
+                ans.add(List.of(arr[i], arr[i + 1]));
+            }
+        }
+        return ans;
+    }
+}
+```
+
+##### 3650\.边反转的最小路径总成本
+
+[题目](https://leetcode.cn/problems/minimum-cost-path-with-edge-reversals)
+
+性能优化的关键是，while 看到 n-1 这个点直接 return。可以200ms->85ms。
+
+无负权，本来就每一条边只能走一次，直接建反边 Dijkstra 即可。
+
+```java
+record Node(int d, int i) {
+}
+
+class Solution {
+    public int minCost(int n, int[][] edges) {
+        int[] ans = new int[n];
+        boolean[] vis = new boolean[n];
+        ArrayList<Node>[] g = new ArrayList[n];
+        for (int i = 0; i < n; i++) {
+            g[i] = new ArrayList<>();
+        }
+        for (var e : edges) {
+            int u = e[0], v = e[1], w = e[2];
+            g[u].add(new Node(w, v));
+            g[v].add(new Node(w * 2, u));
+        }
+        PriorityQueue<Node> pq = new PriorityQueue<>(Comparator.comparingInt(Node::d));
+        pq.offer(new Node(0, 0));
+        Arrays.fill(ans, Integer.MAX_VALUE / 2);
+        ans[0] = 0;
+        while (!pq.isEmpty()) {
+            var node = pq.poll();
+            int u = node.i(), d = ans[u];
+            if (vis[u]) {
+                continue;
+            }
+            if (u==n-1) break;
+            vis[u] = true;
+            for (var next : g[u]) {
+                int v = next.i(), w = next.d();
+                if (ans[v] > ans[u] + w) {
+                    ans[v] = ans[u] + w;
+                    pq.offer(new Node(ans[v], v));
+                }
+            }
+        }
+        return ans[n - 1] == Integer.MAX_VALUE / 2 ? -1 : ans[n - 1];
+    }
+}
+```
+
+其他写法：无需 boolean vis 的写法：
+
+```java
+class Solution {
+    public int minCost(int n, int[][] edges) {
+        List<int[]>[] g = new ArrayList[n]; // 邻接表
+        Arrays.setAll(g, _ -> new ArrayList<>());
+        for (int[] e : edges) {
+            int x = e[0];
+            int y = e[1];
+            int wt = e[2];
+            g[x].add(new int[]{y, wt});
+            g[y].add(new int[]{x, wt * 2});
+        }
+
+        int[] dis = new int[n];
+        Arrays.fill(dis, Integer.MAX_VALUE);
+        // 堆中保存 (起点到节点 x 的最短路长度，节点 x)
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> a[0] - b[0]);
+        dis[0] = 0; // 起点到自己的距离是 0
+        pq.offer(new int[]{0, 0});
+
+        while (!pq.isEmpty()) {
+            int[] p = pq.poll();
+            int disX = p[0];
+            int x = p[1];
+            if (disX > dis[x]) { // x 之前出堆过
+                continue;
+            }
+            if (x == n - 1) { // 到达终点
+                return disX;
+            }
+            for (int[] e : g[x]) {
+                int y = e[0];
+                int wt = e[1];
+                int newDisY = disX + wt;
+                if (newDisY < dis[y]) {
+                    dis[y] = newDisY; // 更新 x 的邻居的最短路
+                    // 懒更新堆：只插入数据，不更新堆中数据
+                    // 相同节点可能有多个不同的 newDisY，除了最小的 newDisY，其余值都会触发上面的 continue
+                    pq.offer(new int[]{newDisY, y});
+                }
+            }
+        }
+
+        return -1;
+    }
+}
+```
+
+
 
