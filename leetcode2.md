@@ -3964,6 +3964,10 @@
 - 3650\.边反转的最小路径总成本
 
   最短路Dijkstra
+  
+- 3651\.带传送的最小路径成本
+
+  最短路Dijkstra+优化 / <u>DP</u>
 
 ## 算法
 
@@ -32228,5 +32232,138 @@ class Solution {
 }
 ```
 
+##### 3651\.带传送的最小路径成本
 
+[题目](https://leetcode.cn/problems/minimum-cost-path-with-teleportations)
+
+构造分层图，共k+1层，每次传送时往上走一层，边权为0。求各层右下角Dijkstra最短路的最小值即可。
+
+当前点可以传送到所有比不小于它的下层点，换言之，每一层点数为 $nm$，则每个点会连 $O(nm)$ 条边，那么每层共有 $O(n^2m^2)$ 条边非常稠密，这是不可接受的。考虑优化。
+
+Dijkstra 枚举顺序一定是当前点最短路递增的，边权为0等价于缩点。如果现在点u能跳到下一层的点v，那么未来某个点u2还跳到下一层v的话，u2的最短路不会比u更优，所以可以剪枝掉。即，对于每层，若有若干个点都能连接到下一层的某个点，只需要让Dijkstra序第一个点去连，其他点都不用连。考虑每层维护一指针，即当前点应该连线向哪个下一层点，这样每一层只有 $O(nm)$ 条边。
+
+```java
+class Solution {
+    private record State(int cost, int used, int row, int col) implements Comparable<State> {
+        @Override
+        public int compareTo(State other) {
+            return Integer.compare(this.cost, other.cost);
+        }
+    }
+
+    public static int minCost(int[][] grid, int k) {
+        final int n = grid.length;
+        final int m = grid[0].length;
+        final int layers = k + 1;
+        final int INF = 1_000_000_000;
+
+        int[][][] dist = new int[layers][n][m];
+        for (int h = 0; h < layers; h++) {
+            for (int i = 0; i < n; i++) {
+                Arrays.fill(dist[h][i], INF);
+            }
+        }
+        dist[0][0][0] = 0;
+
+        List<int[]> cells = new ArrayList<>(n * m);
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                cells.add(new int[]{grid[i][j], i, j});
+            }
+        }
+        cells.sort(Comparator.comparingInt(a -> a[0]));
+
+        PriorityQueue<State> pq = new PriorityQueue<>();
+        pq.offer(new State(0, 0, 0, 0));
+
+        int[] activated = new int[Math.max(0, layers - 1)]; // per layer pointer for teleport activation
+
+        while (!pq.isEmpty()) {
+            State cur = pq.poll();
+            if (cur.cost != dist[cur.used][cur.row][cur.col]) {
+                continue;
+            }
+
+            if (cur.row == n - 1 && cur.col == m - 1) {
+                return cur.cost;
+            }
+
+            if (cur.row + 1 < n) {
+                relax(dist, pq, cur, cur.used, cur.row + 1, cur.col, grid[cur.row + 1][cur.col]);
+            }
+            if (cur.col + 1 < m) {
+                relax(dist, pq, cur, cur.used, cur.row, cur.col + 1, grid[cur.row][cur.col + 1]);
+            }
+
+            if (cur.used < k) {
+                int ptr = activated[cur.used];
+                while (ptr < cells.size() && cells.get(ptr)[0] <= grid[cur.row][cur.col]) {
+                    int[] cell = cells.get(ptr);
+                    relax(dist, pq, cur, cur.used + 1, cell[1], cell[2], 0);
+                    ptr++;
+                }
+                activated[cur.used] = ptr;
+            }
+        }
+
+        int best = INF;
+        for (int h = 0; h < layers; h++) {
+            best = Math.min(best, dist[h][n - 1][m - 1]);
+        }
+        return best;
+    }
+
+    private static void relax(int[][][] dist, PriorityQueue<State> pq, State cur,
+                              int newLayer, int nr, int nc, int w) {
+        int cand = cur.cost + w;
+        if (cand < dist[newLayer][nr][nc]) {
+            dist[newLayer][nr][nc] = cand;
+            pq.offer(new State(cand, newLayer, nr, nc));
+        }
+    }
+}
+```
+
+定义后缀min，表示每一层>=某个grid值的DP的最小值，那么可以做状态递推。
+
+```java
+class Solution {
+    public int minCost(int[][] grid, int k) {
+        int n = grid[0].length;
+        int mx = 0;
+        for (int[] row : grid) {
+            for (int x : row) {
+                mx = Math.max(mx, x);
+            }
+        }
+
+        int[] sufMinF = new int[mx + 2];
+        Arrays.fill(sufMinF, Integer.MAX_VALUE);
+        int[] minF = new int[mx + 1];
+        int[] f = new int[n + 1];
+
+        for (int t = 0; t <= k; t++) {
+            Arrays.fill(minF, Integer.MAX_VALUE);
+
+            // 64. 最小路径和（空间优化写法）
+            Arrays.fill(f, Integer.MAX_VALUE / 2);
+            f[1] = -grid[0][0]; // 起点的成本不算
+            for (int[] row : grid) {
+                for (int j = 0; j < n; j++) {
+                    int x = row[j];
+                    f[j + 1] = Math.min(Math.min(f[j], f[j + 1]) + x, sufMinF[x]);
+                    minF[x] = Math.min(minF[x], f[j + 1]);
+                }
+            }
+
+            // 计算 minF 的后缀最小值
+            for (int i = mx; i >= 0; i--) {
+                sufMinF[i] = Math.min(sufMinF[i + 1], minF[i]);
+            }
+        }
+
+        return f[n];
+    }
+}
+```
 
