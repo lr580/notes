@@ -3968,6 +3968,14 @@
 - 3651\.带传送的最小路径成本
 
   最短路Dijkstra+优化 / <u>DP</u>
+  
+- 2976\.转换字符串的最小成本I
+
+  最短路Floyd
+  
+- 2977\.转换字符串的最小成本II
+
+  **最短路Floyd DP + trie** <u>/字符串哈希</u>
 
 ## 算法
 
@@ -32363,6 +32371,422 @@ class Solution {
         }
 
         return f[n];
+    }
+}
+```
+
+##### 2976\.转换字符串的最小成本I
+
+[题目](https://leetcode.cn/problems/minimum-cost-to-convert-string-i)
+
+Floyd预处理两两字母的最短路。
+
+```c++
+class Solution {
+public:
+    long long minimumCost(string source, string target, vector<char>& original, vector<char>& changed, vector<int>& cost) {
+        if(source.size()!=target.size()) return -1;
+        int dp[26][26];
+        for(int i=0;i<26;++i) fill_n(dp[i],26,1e9);
+        for(int i=0;i<26;++i) dp[i][i]=0;
+        for(int i=0;i<cost.size();++i) {
+            int u=original[i]-'a', v=changed[i]-'a';
+            dp[u][v]=min(dp[u][v],cost[i]);
+        }
+        for(int k=0;k<26;++k) for(int i=0;i<26;++i) for(int j=0;j<26;++j)
+            dp[i][j]=min(dp[i][j],dp[i][k]+dp[k][j]);
+        long long ans = 0;
+        for(int i=0;i<source.size();++i) {
+            int u=source[i]-'a',v=target[i]-'a';
+            if(dp[u][v]==1e9) return -1;
+            ans+=dp[u][v];
+        }
+        return ans;
+    }
+};
+```
+
+##### 2977\.转换字符串的最小成本II
+
+[题目](https://leetcode.cn/problems/minimum-cost-to-convert-string-ii)
+
+题给规则等价于，在 floyd 最短路下，每个字符只能被处理最多一次。
+
+trie 上 DP；点是 trie 编号做 floyd。然后设 DP 是当前后缀转换的最小成本，无解是无穷。
+
+```java
+class Node {
+    Node[] son = new Node[26];
+    int sid = -1; // 字符串的编号
+}
+
+class Solution {
+    private Node root = new Node();
+    private int sid = 0;
+    private char[] s, t;
+    private int[][] dis;
+    private long[] memo;
+
+    public long minimumCost(String source, String target, String[] original, String[] changed, int[] cost) {
+        // 初始化距离矩阵
+        int m = cost.length;
+        dis = new int[m * 2][m * 2];
+        for (int i = 0; i < dis.length; i++) {
+            Arrays.fill(dis[i], Integer.MAX_VALUE / 2);
+            dis[i][i] = 0;
+        }
+        for (int i = 0; i < cost.length; i++) {
+            int x = put(original[i]);
+            int y = put(changed[i]);
+            dis[x][y] = Math.min(dis[x][y], cost[i]);
+        }
+
+        // Floyd 求任意两点最短路
+        for (int k = 0; k < sid; k++) {
+            for (int i = 0; i < sid; i++) {
+                if (dis[i][k] == Integer.MAX_VALUE / 2) {
+                    continue;
+                }
+                for (int j = 0; j < sid; j++) {
+                    dis[i][j] = Math.min(dis[i][j], dis[i][k] + dis[k][j]);
+                }
+            }
+        }
+
+        s = source.toCharArray();
+        t = target.toCharArray();
+        memo = new long[s.length];
+        Arrays.fill(memo, -1);
+        long ans = dfs(0);
+        return ans < Long.MAX_VALUE / 2 ? ans : -1;
+    }
+
+    private int put(String s) {
+        Node o = root;
+        for (char b : s.toCharArray()) {
+            int i = b - 'a';
+            if (o.son[i] == null) {
+                o.son[i] = new Node();
+            }
+            o = o.son[i];
+        }
+        if (o.sid < 0) {
+            o.sid = sid++;
+        }
+        return o.sid;
+    }
+
+    private long dfs(int i) {
+        if (i >= s.length) {
+            return 0;
+        }
+        if (memo[i] != -1) { // 之前算过
+            return memo[i];
+        }
+        long res = Long.MAX_VALUE / 2;
+        if (s[i] == t[i]) {
+            res = dfs(i + 1); // 不修改 source[i]
+        }
+        Node p = root, q = root;
+        for (int j = i; j < s.length; j++) {
+            p = p.son[s[j] - 'a'];
+            q = q.son[t[j] - 'a'];
+            if (p == null || q == null) {
+                break;
+            }
+            if (p.sid < 0 || q.sid < 0) {
+                continue;
+            }
+            // 修改从 i 到 j 的这一段
+            int d = dis[p.sid][q.sid];
+            if (d < Integer.MAX_VALUE / 2) {
+                res = Math.min(res, d + dfs(j + 1));
+            }
+        }
+        return memo[i] = res; // 记忆化
+    }
+}
+```
+
+也可以写成非递推，从后往前写。复杂度都是平方，因为转移方程是On的。略。
+
+也可以写字符串哈希代替 trie，可以写双模，也可以把长度拉进哈希/key 防重，还可以用不同长度分哈希桶，这里均略。一个双模写法：
+
+```java
+import java.util.*;
+
+class Solution {
+    // 双模滚动哈希
+    static final long MOD1 = 1_000_000_007L;
+    static final long MOD2 = 1_000_000_009L;
+    static final long BASE = 911382323L;
+
+    static class RollingHash {
+        long[] p1, p2, pow1, pow2;
+
+        RollingHash(char[] a) {
+            int n = a.length;
+            p1 = new long[n + 1];
+            p2 = new long[n + 1];
+            pow1 = new long[n + 1];
+            pow2 = new long[n + 1];
+            pow1[0] = 1;
+            pow2[0] = 1;
+            for (int i = 0; i < n; i++) {
+                pow1[i + 1] = (pow1[i] * BASE) % MOD1;
+                pow2[i + 1] = (pow2[i] * BASE) % MOD2;
+                int x = a[i] - 'a' + 1; // 映射到 1..26
+                p1[i + 1] = (p1[i] * BASE + x) % MOD1;
+                p2[i + 1] = (p2[i] * BASE + x) % MOD2;
+            }
+        }
+
+        long get(int l, int r) { // [l, r]
+            int len = r - l + 1;
+            long x1 = (p1[r + 1] - (p1[l] * pow1[len]) % MOD1 + MOD1) % MOD1;
+            long x2 = (p2[r + 1] - (p2[l] * pow2[len]) % MOD2 + MOD2) % MOD2;
+            return (x1 << 32) ^ x2; // 合并成一个 long key
+        }
+    }
+
+    private int sid = 0;
+
+    // len -> (hash -> sid)
+    private Map<Integer, HashMap<Long, Integer>> idByLen = new HashMap<>();
+    private TreeSet<Integer> lens = new TreeSet<>();
+
+    private char[] s, t;
+    private long[] memo;
+    private int[][] dis;
+    private int maxSidCap;
+
+    public long minimumCost(String source, String target,
+                            String[] original, String[] changed, int[] cost) {
+        int m = cost.length;
+        maxSidCap = m * 2;
+
+        dis = new int[maxSidCap][maxSidCap];
+        for (int i = 0; i < maxSidCap; i++) {
+            Arrays.fill(dis[i], Integer.MAX_VALUE / 2);
+            dis[i][i] = 0;
+        }
+
+        for (int i = 0; i < m; i++) {
+            int x = put(original[i]);
+            int y = put(changed[i]);
+            dis[x][y] = Math.min(dis[x][y], cost[i]);
+        }
+
+        // Floyd：只跑到 sid
+        for (int k = 0; k < sid; k++) {
+            for (int i = 0; i < sid; i++) {
+                if (dis[i][k] >= Integer.MAX_VALUE / 2) continue;
+                for (int j = 0; j < sid; j++) {
+                    dis[i][j] = Math.min(dis[i][j], dis[i][k] + dis[k][j]);
+                }
+            }
+        }
+
+        s = source.toCharArray();
+        t = target.toCharArray();
+
+        RollingHash hs = new RollingHash(s);
+        RollingHash ht = new RollingHash(t);
+
+        memo = new long[s.length + 1];
+        Arrays.fill(memo, -1);
+
+        long ans = dfs(0, hs, ht);
+        return ans < Long.MAX_VALUE / 2 ? ans : -1;
+    }
+
+    // 把字符串映射到 sid（按长度分组 + 双模hash）
+    private int put(String str) {
+        int len = str.length();
+        lens.add(len);
+
+        HashMap<Long, Integer> mp = idByLen.computeIfAbsent(len, k -> new HashMap<>());
+        long h = hashString(str);
+
+        Integer id = mp.get(h);
+        if (id == null) {
+            id = sid++;
+            mp.put(h, id);
+        }
+        return id;
+    }
+
+    private long hashString(String str) {
+        long h1 = 0, h2 = 0;
+        for (int i = 0; i < str.length(); i++) {
+            int x = str.charAt(i) - 'a' + 1;
+            h1 = (h1 * BASE + x) % MOD1;
+            h2 = (h2 * BASE + x) % MOD2;
+        }
+        return (h1 << 32) ^ h2;
+    }
+
+    private long dfs(int i, RollingHash hs, RollingHash ht) {
+        if (i >= s.length) return 0;
+        if (memo[i] != -1) return memo[i];
+
+        long res = Long.MAX_VALUE / 2;
+
+        if (s[i] == t[i]) {
+            res = dfs(i + 1, hs, ht);
+        }
+
+        // 枚举所有规则串长度
+        for (int len : lens) {
+            int j = i + len - 1;
+            if (j >= s.length) break;
+
+            long hS = hs.get(i, j);
+            long hT = ht.get(i, j);
+
+            HashMap<Long, Integer> mp = idByLen.get(len);
+            Integer sidS = mp.get(hS);
+            if (sidS == null) continue;
+            Integer sidT = mp.get(hT);
+            if (sidT == null) continue;
+
+            int d = dis[sidS][sidT];
+            if (d < Integer.MAX_VALUE / 2) {
+                res = Math.min(res, d + dfs(j + 1, hs, ht));
+            }
+        }
+
+        return memo[i] = res;
+    }
+}
+```
+
+单：
+
+```java
+import java.util.*;
+
+class Solution {
+    // 单模滚动哈希参数
+    static final long MOD = 1_000_000_007L;
+    static final long BASE = 911382323L;
+    static final int INF = 1_000_000_000;
+
+    static class RollingHash {
+        long[] pref;
+        long[] pow;
+
+        RollingHash(char[] a) {
+            int n = a.length;
+            pref = new long[n + 1];
+            pow = new long[n + 1];
+            pow[0] = 1;
+            for (int i = 0; i < n; i++) {
+                pow[i + 1] = (pow[i] * BASE) % MOD;
+                int x = a[i] - 'a' + 1;
+                pref[i + 1] = (pref[i] * BASE + x) % MOD;
+            }
+        }
+
+        long getHash(int l, int r) { // [l, r]
+            int len = r - l + 1;
+            long res = pref[r + 1] - (pref[l] * pow[len]) % MOD;
+            if (res < 0) res += MOD;
+            return res;
+        }
+    }
+
+    private final HashMap<Long, Integer> idMap = new HashMap<>();
+    private final TreeSet<Integer> lens = new TreeSet<>();
+    private int sid = 0;
+
+    public long minimumCost(String source, String target,
+                            String[] original, String[] changed, int[] cost) {
+
+        int m = cost.length;
+        int maxSid = 2 * m + 5;
+
+        int[][] dis = new int[maxSid][maxSid];
+        for (int i = 0; i < maxSid; i++) {
+            Arrays.fill(dis[i], INF);
+            dis[i][i] = 0;
+        }
+
+        for (int i = 0; i < m; i++) {
+            int x = put(original[i]);
+            int y = put(changed[i]);
+            dis[x][y] = Math.min(dis[x][y], cost[i]);
+        }
+
+        // Floyd
+        for (int k = 0; k < sid; k++) {
+            for (int i = 0; i < sid; i++) {
+                if (dis[i][k] == INF) continue;
+                for (int j = 0; j < sid; j++) {
+                    if (dis[k][j] == INF) continue;
+                    int nd = dis[i][k] + dis[k][j];
+                    if (nd < dis[i][j]) dis[i][j] = nd;
+                }
+            }
+        }
+
+        char[] s = source.toCharArray();
+        char[] t = target.toCharArray();
+        int n = s.length;
+
+        RollingHash hs = new RollingHash(s);
+        RollingHash ht = new RollingHash(t);
+
+        long BIG = Long.MAX_VALUE / 4;
+        long[] dp = new long[n + 1];
+        Arrays.fill(dp, BIG);
+        dp[n] = 0;
+
+        for (int i = n - 1; i >= 0; i--) {
+            if (s[i] == t[i]) dp[i] = dp[i + 1];
+
+            for (int len : lens) {
+                int j = i + len - 1;
+                if (j >= n) break;
+
+                long hS = hs.getHash(i, j);
+                long hT = ht.getHash(i, j);
+
+                Integer sidS = idMap.get(hS);
+                if (sidS == null) continue;
+                Integer sidT = idMap.get(hT);
+                if (sidT == null) continue;
+
+                int d = dis[sidS][sidT];
+                if (d == INF || dp[j + 1] == BIG) continue;
+
+                dp[i] = Math.min(dp[i], dp[j + 1] + d);
+            }
+        }
+
+        return dp[0] >= BIG ? -1 : dp[0];
+    }
+
+    private int put(String str) {
+        int len = str.length();
+        lens.add(len);
+
+        long h = hashString(str);
+        Integer id = idMap.get(h);
+        if (id == null) {
+            id = sid++;
+            idMap.put(h, id);
+        }
+        return id;
+    }
+
+    private long hashString(String str) {
+        long h = 0;
+        for (int i = 0; i < str.length(); i++) {
+            int x = str.charAt(i) - 'a' + 1;
+            h = (h * BASE + x) % MOD;
+        }
+        return h;
     }
 }
 ```
