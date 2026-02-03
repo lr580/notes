@@ -22163,6 +22163,8 @@ print("PyTorch CUDA available?", torch.cuda.is_available())
 
 可视化工具包，用于帮助开发者理解、调试和优化机器学习模型的训练过程。它通过交互式仪表盘展示模型的训练指标、计算图、权重分布、嵌入向量等数据，从而提升开发效率
 
+日志查看，如 `tensorboard --logdir .\tensorboard1\`。
+
 ### timm
 
 timm（PyTorch Image Models）是一个基于 PyTorch 的深度学习库，专注于图像模型的开发与训练。它由 Ross Wightman 创建和维护，集合了许多最先进的（state-of-the-art）图像分类、目标检测、语义分割等模型，并提供了丰富的预训练权重和便捷的训练脚本

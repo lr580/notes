@@ -3976,6 +3976,22 @@
 - 2977\.转换字符串的最小成本II
 
   **最短路Floyd DP + trie** <u>/字符串哈希</u>
+  
+- 744\.寻找比目标字母大的最小字母
+
+  签到 二分
+
+- 3010\.将数组分成最小总代价的子数组I
+
+  枚举/排序
+
+- 3013\.将数组分成最小总代价的子数组II
+
+  滑动窗口 对顶堆
+  
+- 3637\.三段式数组I
+
+  签到
 
 ## 算法
 
@@ -32789,5 +32805,160 @@ class Solution {
         return h;
     }
 }
+```
+
+##### 744\.寻找比目标字母大的最小字母
+
+[题目](https://leetcode.cn/problems/find-smallest-letter-greater-than-target)
+
+```java
+class Solution {
+    public char nextGreatestLetter(char[] letters, char target) {
+        int i = Arrays.binarySearch(letters, (char) (target + 1));
+        if (i < 0) { // letters 中没有 target + 1
+            i = ~i; // 根据 Arrays.binarySearch 的文档，~i 是第一个大于 target 的字母的下标
+        }
+        return i < letters.length ? letters[i] : letters[0];
+    }
+}
+```
+
+##### 3010\.将数组分成最小总代价的子数组I
+
+[题目](https://leetcode.cn/problems/divide-an-array-into-subarrays-with-minimum-cost-i)
+
+求最小值和次小值和首元素。
+
+```python
+class Solution:
+    def minimumCost(self, nums: List[int]) -> int:
+        return nums[0] + sum(nsmallest(2, nums[1:]))
+```
+
+##### 3013\.将数组分成最小总代价的子数组II
+
+[题目](https://leetcode.cn/problems/divide-an-array-into-subarrays-with-minimum-cost-ii)
+
+维护前 k-1 小，堆1 保留min k-1，堆2保留其余。
+
+```java
+class Solution {
+    public long minimumCost(int[] nums, int k, int dist) {
+        k--;
+        sumL = nums[0];
+        for (int i = 1; i < dist + 2; i++) {
+            sumL += nums[i];
+            L.merge(nums[i], 1, Integer::sum);
+        }
+        sizeL = dist + 1;
+        while (sizeL > k) {
+            l2r();
+        }
+
+        long ans = sumL;
+        for (int i = dist + 2; i < nums.length; i++) {
+            // 移除 out
+            int out = nums[i - dist - 1];
+            if (L.containsKey(out)) {
+                sumL -= out;
+                sizeL--;
+                removeOne(L, out);
+            } else {
+                removeOne(R, out);
+            }
+
+            // 添加 in
+            int in = nums[i];
+            if (in < L.lastKey()) {
+                sumL += in;
+                sizeL++;
+                L.merge(in, 1, Integer::sum);
+            } else {
+                R.merge(in, 1, Integer::sum);
+            }
+
+            // 维护大小
+            if (sizeL == k - 1) {
+                r2l();
+            } else if (sizeL == k + 1) {
+                l2r();
+            }
+
+            ans = Math.min(ans, sumL);
+        }
+        return ans;
+    }
+
+    private long sumL;
+    private int sizeL;
+    private final TreeMap<Integer, Integer> L = new TreeMap<>();
+    private final TreeMap<Integer, Integer> R = new TreeMap<>();
+
+    private void l2r() {
+        int x = L.lastKey();
+        removeOne(L, x);
+        sumL -= x;
+        sizeL--;
+        R.merge(x, 1, Integer::sum);
+    }
+
+    private void r2l() {
+        int x = R.firstKey();
+        removeOne(R, x);
+        sumL += x;
+        sizeL++;
+        L.merge(x, 1, Integer::sum);
+    }
+
+    private void removeOne(Map<Integer, Integer> m, int x) {
+        int cnt = m.get(x);
+        if (cnt > 1) {
+            m.put(x, cnt - 1);
+        } else {
+            m.remove(x);
+        }
+    }
+}
+```
+
+##### 3637\.三段式数组I
+
+[题目](https://leetcode.cn/problems/trionic-array-i)
+
+```java
+class Solution {
+    public boolean isTrionic(int[] nums) {
+        int state = 1, n = nums.length;
+        for (int i = 1; i < n; i++) {
+            if (state == 1 && nums[i] < nums[i - 1]) {
+                if (i == 1) return false;
+                state = 2;
+            } else if (state == 2 && nums[i] > nums[i - 1]) {
+                state = 3;
+            } else if (state == 3 && nums[i] < nums[i - 1]) {
+                return false;
+            } else if (nums[i] == nums[i - 1]) {
+                return false;
+            }
+        }
+        return state == 3;
+    }
+}
+```
+
+优雅：
+
+```python
+class Solution:
+    def isTrionic(self, nums: List[int]) -> bool:
+        if nums[0] >= nums[1]:  # 一开始必须是递增的
+            return False
+        cnt = 1
+        for i in range(2, len(nums)):
+            if nums[i - 1] == nums[i]:
+                return False
+            if (nums[i - 2] < nums[i - 1]) != (nums[i - 1] < nums[i]):
+                cnt += 1
+        return cnt == 3  # 一定是增减增
 ```
 
