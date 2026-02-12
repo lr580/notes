@@ -17164,7 +17164,7 @@ public static void toClipboard(String s) {
 
 ### 其他
 
-#### 匿名函数lambda
+#### 匿名函数
 
 ##### 基本
 
@@ -17350,7 +17350,7 @@ public class c1703 {
 
 
 
-#### Annotation
+#### 注解
 
 ##### 语法
 
@@ -17359,6 +17359,8 @@ public class c1703 {
 编译指令，不影响程序运行，但是可以避免一些警告。
 
 基本格式为 `@` + 关键字。可以用于函数、类的范围 (类、构造方法、成员变量、方法、参数的声明)。
+
+多个注解书写顺序无关，因为解析不按顺序。
 
 可以定义 Annotation 类型，隐含意思是继承 `java.lang.annotation.Annotation` 接口。关键字为 `@interface` ，加上名字，例如：
 

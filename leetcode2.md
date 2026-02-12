@@ -3993,6 +3993,46 @@
 
   签到
 
+- 3640\.三段式数组II
+
+  **DP**
+  
+- 3379\.转换数组
+
+  签到
+  
+- 3634\.使数组平衡的最少移除数目
+
+  排序 + 二分 / <u>滑动窗口</u>
+  
+- 110\.平衡二叉树
+
+  DFS
+
+- 1382\.将二叉搜索树变平衡
+
+  DFS
+
+- 525\.连续数组
+
+  前缀和 STL
+
+- 3719\.最长平衡子数组I
+
+  枚举
+
+- 3721\.最长平衡子数组II
+
+  **前缀和 线段树二分 / 分块**
+  
+- 3713\.最长的平衡子串I
+
+  枚举 / <u>容斥原理</u> / <u>LogTrick 前缀和 STL</u>
+
+- 3714\.最长的平衡子串II
+
+  **前缀和**
+
 ## 算法
 
 > 力扣其他，CF杂题，其他杂题是 `leetcode.md` 搬过来的；力扣是新的力扣常规题。
@@ -32962,3 +33002,113 @@ class Solution:
         return cnt == 3  # 一定是增减增
 ```
 
+##### 3637\.三段式数组II
+
+[题目](https://leetcode.cn/problems/trionic-array-ii) 两种思路，略，看 0x3f 题解。
+
+##### 3379\.转换数组
+
+[题目](https://leetcode.cn/problems/transformed-array)
+
+```python
+class Solution:
+    def constructTransformedArray(self, nums: List[int]) -> List[int]:
+        n = len(nums)
+        return [nums[(i + x) % n] for i, x in enumerate(nums)]
+```
+
+##### 3634\.使数组平衡的最少移除数目
+
+[题目](https://leetcode.cn/problems/minimum-removals-to-balance-array)
+
+我的思路：二分答案枚举
+
+```java
+import java.util.Arrays;
+
+class Solution {
+    public int minRemoval(int[] nums, int k) {
+        Arrays.sort(nums);
+        
+        int n = nums.length;
+        int low = 0;
+        int high = n - 1;
+        int ans = n - 1; 
+        
+        while (low <= high) {
+            int mid = low + (high - low) / 2; 
+            int lenToKeep = n - mid;
+            if (check(nums, k, lenToKeep)) {
+                ans = mid;
+                high = mid - 1;
+            } else {
+                low = mid + 1;
+            }
+        }
+        
+        return ans;
+    }
+
+    private boolean check(int[] nums, int k, int len) {
+        for (int i = 0; i <= nums.length - len; i++) {
+            int j = i + len - 1;
+            if (nums[j] <= (long) nums[i] * k) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+```
+
+题解：直接滑动窗口，确定当前右端点最长的合法左端点。
+
+```python
+class Solution:
+    def minRemoval(self, nums: List[int], k: int) -> int:
+        nums.sort()
+        max_save = left = 0
+        for i, mx in enumerate(nums):
+            while nums[left] * k < mx:
+                left += 1
+            max_save = max(max_save, i - left + 1)
+        return len(nums) - max_save
+```
+
+> 下面几题略，没空写。看了题解。
+>
+> ##### 110\.平衡二叉树
+>
+> [题目](https://leetcode.cn/problems/balanced-binary-tree)
+>
+> ##### 1382\.将二叉搜索树变平衡
+>
+> [题目](https://leetcode.cn/problems/balance-a-binary-search-tree/)
+>
+> ##### 525\.连续数组
+>
+> [题目](https://leetcode.cn/problems/contiguous-array)
+>
+> ##### 3719\.最长平衡子数组I
+>
+> [题目](https://leetcode.cn/problems/longest-balanced-subarray-i)
+>
+> ##### 3721\.最长平衡子数组II
+>
+> [题目](https://leetcode.cn/problems/longest-balanced-subarray-ii)
+>
+> ##### 3714\.最长的平衡子串II
+>
+> [题目](https://leetcode.cn/problems/longest-balanced-substring-ii)
+>
+> 分类讨论：分别解决一种、两种、三种字母的子问题。
+>
+> 1. 子串一种字母直接遍历 cnt 分组循环 1446连续字符。
+> 2. 两种就是上面的 525连续数组：两个字符分别定义为 -1,1，即求和为 0 的最长子数组，即 STL 哈希表查找两个前缀和相等下标。这个问题做 3次：ab / ac / bc。
+> 3. 三种等价于525重复2次，也就是在哈希表里存当前的二元组出现次数，二元组是 a1b-1 和 b1c-1，根据传递性，满足三种相等。
+>
+> ##### 3713\.最长的平衡子串I
+>
+> [题目](https://leetcode.cn/problems/longest-balanced-substring-i)
+>
+> 0x3f暴力枚举的优化可以学习。不用枚举字符集的容斥原理做法。
