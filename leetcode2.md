@@ -4032,6 +4032,26 @@
 - 3714\.最长的平衡子串II
 
   **前缀和**
+  
+- 799\.香槟塔
+
+  DP
+  
+- 67\.二进制求和
+
+  高精度 位运算
+
+- 190\.颠倒二进制位
+
+  位运算
+
+- 401\.二进制手表
+
+  签到 枚举/打表
+
+- 693\.交替位二进制数
+
+  枚举/打表 <u>位运算</u>
 
 ## 算法
 
@@ -33112,3 +33132,77 @@ class Solution:
 > [题目](https://leetcode.cn/problems/longest-balanced-substring-i)
 >
 > 0x3f暴力枚举的优化可以学习。不用枚举字符集的容斥原理做法。
+>
+> ##### 799\.香槟塔
+>
+> [题目](https://leetcode.cn/problems/champagne-tower) 题解和自己差不多
+>
+> ##### 67\.二进制求和
+>
+> [题目](https://leetcode.cn/problems/add-binary)
+>
+> ##### 190\.颠倒二进制位
+>
+> [题目](https://leetcode.cn/problems/reverse-bits/) 库函数和位运算都很妙
+
+##### 401\.二进制手表
+
+[题目](https://leetcode.cn/problems/binary-watch)
+
+```java
+class Solution {
+    static List<String> ans[] = new List[11];
+
+    static {
+        Arrays.setAll(ans, i -> new ArrayList<>());
+        for (int h = 0; h < 12; h++) {
+            int hc = Integer.bitCount(h);
+            for (int m = 0; m < 60; m++) {
+                int c = hc + Integer.bitCount(m);
+                String s = String.format("%d:%02d", h, m);
+                ans[c].add(s);
+            }
+        }
+    }
+
+    public List<String> readBinaryWatch(int turnedOn) {
+        return ans[turnedOn];
+    }
+}
+```
+
+##### 693\.交替二进制位
+
+[题目](https://leetcode.cn/problems/binary-number-with-alternating-bits)
+
+```java
+class Solution {
+    static HashSet<Integer> h = new HashSet<>();
+
+    static {
+        long x = 1;
+        while (x < 1l << 31) {
+            h.add((int) x);
+            boolean is1 = 1 == (x & 1);
+            x <<= 1;
+            if (!is1) {
+                x |= 1;
+            }
+        }
+    }
+
+    public boolean hasAlternatingBits(int n) {
+        return h.contains(n);
+    }
+}
+```
+
+```java
+class Solution {
+    public boolean hasAlternatingBits(int n) {
+        int a = n ^ (n >> 1);
+        return (a & (a + 1)) == 0;
+    }
+}
+```
+
