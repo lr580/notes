@@ -4052,6 +4052,10 @@
 - 693\.交替位二进制数
 
   枚举/打表 <u>位运算</u>
+  
+- 696\.计数二进制子串
+
+  枚举
 
 ## 算法
 
@@ -33204,5 +33208,47 @@ class Solution {
         return (a & (a + 1)) == 0;
     }
 }
+```
+
+##### 696\.计数二进制子串
+
+[题目](https://leetcode.cn/problems/count-binary-substrings)
+
+```java
+class Solution {
+    public int countBinarySubstrings(String s) {
+        int n = s.length();
+        ArrayList<Integer> a = new ArrayList<>(); // compacted s
+        int cnt = 1;
+        for (int i = 0; i < n; i++) {
+            if (i == n - 1 || s.charAt(i) != s.charAt(i + 1)) {
+                a.add(cnt);
+                cnt = 1;
+            } else {
+                cnt++; //next
+            }
+        }
+        int ans = 0;
+        for (int i = 1; i < a.size(); i++) {
+            ans += Math.min(a.get(i), a.get(i - 1));
+        }
+        return ans;
+    }
+}
+```
+
+```python
+class Solution:
+    def countBinarySubstrings(self, s: str) -> int:
+        n = len(s)
+        pre = cur = ans = 0
+        for i in range(n):
+            cur += 1
+            if i == n - 1 or s[i] != s[i + 1]:
+                # 遍历到了这一组的末尾
+                ans += min(pre, cur)
+                pre = cur
+                cur = 0
+        return ans
 ```
 
