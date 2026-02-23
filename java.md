@@ -3148,6 +3148,10 @@ POSITIVE_INFINITY double，正无穷大常量
 
 有byteValue(),intValue(),floatValue(),shortValue(),longValue(),doubleValue()
 
+##### Void
+
+不能实例化，没有可用值(唯一能赋值就是null)。常用于表示不需要返回值。
+
 #### 数字处理类
 
 ##### 数字格式化
