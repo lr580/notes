@@ -4056,6 +4056,34 @@
 - 696\.计数二进制子串
 
   枚举
+  
+- 762\.二进制表示中质数个计算置位
+
+  枚举 + 质数筛/<u>二进制状压</u> / <u>数位DP / 组合数学</u>
+
+- 868\.二进制间隔
+
+  位运算
+
+- 1461\.检查一个字符串是否包含所有长度为K的二进制子串
+
+  滑动窗口
+
+- 1022\.从根到叶的二进制数之和
+
+  DFS
+
+- 1356\.根据数字二进制下1的数目排序
+
+  结构体排序
+
+- 1404\.将二进制表示减到1的步骤数
+
+  高精度 / 模拟
+
+- 761\.特殊的二进制字符串
+
+  **分治 排序**
 
 ## 算法
 
@@ -33252,3 +33280,301 @@ class Solution:
         return ans
 ```
 
+##### 762\.二进制表示中质数个计算置位
+
+[题目](https://leetcode.cn/problems/prime-number-of-set-bits-in-binary-representation)
+
+暴力枚举，可以知道范围内质数最多到 19，要么用 in 要么用二进制状态表示。
+
+```java
+class Solution {
+    public int countPrimeSetBits(int left, int right) {
+        int ans = 0;
+        for (int x = left; x <= right; ++x) {
+            if (((1 << Integer.bitCount(x)) & 665772) != 0) {
+                ++ans;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+```java
+class Solution {
+    private static final Set<Integer> primes = Set.of(2, 3, 5, 7, 11, 13, 17, 19);
+
+    public int countPrimeSetBits(int left, int right) {
+        int ans = 0;
+        for (int x = left; x <= right; x++) {
+            if (primes.contains(Integer.bitCount(x))) {
+                ans++;
+            }
+        }
+        return ans;
+    }
+}
+```
+
+数位 DP：二进制数位，i 是当前二进制位(从右往左，0-indexed)，所以 lo, hi 是 0-1。其他同数位 DP 思想。对每个数位，按当前有几个 1 分组做 DP。
+
+```java
+class Solution {
+    private static final Set<Integer> primes = Set.of(2, 3, 5, 7, 11, 13, 17, 19);
+
+    public int countPrimeSetBits(int left, int right) {
+        int n = 32 - Integer.numberOfLeadingZeros(right);
+        int[][] memo = new int[n][n + 1];
+        for (int[] row : memo) {
+            Arrays.fill(row, -1);
+        }
+        return dfs(n - 1, 0, true, true, left, right, memo);
+    }
+
+    // 在 dfs 的过程中，统计二进制中的 1 的个数 cnt1
+    private int dfs(int i, int cnt1, boolean limitLow, boolean limitHigh, int left, int right, int[][] memo) {
+        if (i < 0) {
+            return primes.contains(cnt1) ? 1 : 0;
+        }
+        if (!limitLow && !limitHigh && memo[i][cnt1] != -1) {
+            return memo[i][cnt1];
+        }
+
+        int lo = limitLow ? left >> i & 1 : 0;
+        int hi = limitHigh ? right >> i & 1 : 1;
+
+        int res = 0;
+        for (int d = lo; d <= hi; d++) {
+            res += dfs(i - 1, cnt1 + d, limitLow && d == lo, limitHigh && d == hi, left, right, memo);
+        }
+
+        if (!limitLow && !limitHigh) {
+            memo[i][cnt1] = res;
+        }
+        return res;
+    }
+}
+```
+
+组合数学：求 [1,r] - [1,l-1]。设问题为 [1,n]。
+
+- 从高往低枚举1位，若当前位是0，一定只能填0，不能填1。否则，当前位可以填1/0。如果填1，进入下一轮枚举。否则，填0，低位现在可以任选了：
+- 设已经枚举了ones个1，如果是质数p的话，还需要k=p-ones个1，如果k>=0且剩下的位凑得够，选 $C^k_i$ 个。
+
+```java
+class Solution {
+    private static final int MX = 20;
+    private static final int[][] comb = new int[MX][MX];
+    private static final int[] primes = {2, 3, 5, 7, 11, 13, 17, 19};
+    private static boolean initialized = false;
+
+    // 这样写比 static block 快
+    public Solution() {
+        if (initialized) {
+            return;
+        }
+        initialized = true;
+
+        // 预处理组合数
+        for (int i = 0; i < MX; i++) {
+            comb[i][0] = 1;
+            for (int j = 1; j <= i; j++) {
+                comb[i][j] = comb[i - 1][j - 1] + comb[i - 1][j];
+            }
+        }
+    }
+
+    public int countPrimeSetBits(int left, int right) {
+        return calc(right) - calc(left - 1);
+    }
+
+    private int calc(int high) {
+        // 转换成计算 < high + 1 的合法正整数个数
+        // 这样转换可以方便下面的代码把 high 也算进来
+        high++;
+        int res = 0;
+        int ones = 0;
+        for (int i = 31 - Integer.numberOfLeadingZeros(high); i >= 0; i--) {
+            if ((high >> i & 1) == 0) {
+                continue;
+            }
+            // 如果这一位填 0，那么后面可以随便填
+            // 问题变成在 pos 个位置中填 k 个 1 的方案数，满足 ones + k 是质数
+            for (int p : primes) {
+                int k = p - ones; // 剩余需要填的 1 的个数
+                if (k > i) {
+                    break;
+                }
+                if (k >= 0) {
+                    res += comb[i][k];
+                }
+            }
+            ones++; // 这一位填 1，继续计算
+        }
+        return res;
+    }
+}
+```
+
+##### 868\.二进制间隔
+
+[题目](https://leetcode.cn/problems/binary-gap)
+
+优雅做法：
+
+```java
+class Solution {
+    public int binaryGap(int n) {
+        int ans = 0;
+        n /= (n & -n) * 2; // 去掉 n 末尾的 100..0
+        while (n > 0) {
+            int gap = Integer.numberOfTrailingZeros(n) + 1;
+            ans = Math.max(ans, gap);
+            n >>= gap; // 去掉 n 末尾的 100..0
+        }
+        return ans;
+    }
+}
+```
+
+##### 1461\.检查一个字符串是否包含所有长度为K的二进制子串
+
+[题目](https://leetcode.cn/problems/check-if-a-string-contains-all-binary-codes-of-size-k)
+
+判断所有子串去重后是否为 2^k 长度即可。注意到长为 n 的字符串最多有 n-k+1 个子串，所以若它比 2^k 小直接无解，故空间复杂度不会超过 O(n-k)。
+
+```java
+class Solution {
+    public boolean hasAllCodes(String s, int k) {
+        final int MASK = (1 << k) - 1;
+        boolean[] has = new boolean[1 << k];
+        int cnt = 0;
+        int x = 0;
+        for (int i = 0; i < s.length() && cnt < (1 << k); i++) {
+            char ch = s.charAt(i);
+            // 把 ch 加到 x 的末尾：x 整体左移一位，然后或上 ch&1
+            // &MASK 目的是去掉超出 k 的比特位
+            x = (x << 1 & MASK) | (ch & 1);
+            if (i >= k - 1 && !has[x]) {
+                has[x] = true;
+                cnt++;
+            }
+        }
+        return cnt == (1 << k);
+    }
+}
+```
+
+##### 1022\.从根到叶的二进制数之和
+
+[题目](https://leetcode.cn/problems/sum-of-root-to-leaf-binary-numbers)
+
+easy，略。
+
+```java
+class Solution {
+    public int sumRootToLeaf(TreeNode root) {
+        return dfs(root, 0);
+    }
+
+    private int dfs(TreeNode node, int num) {
+        if (node == null) {
+            return 0;
+        }
+        num = num << 1 | node.val;
+        if (node.left == null && node.right == null) {
+            return num;
+        }
+        return dfs(node.left, num) + dfs(node.right, num);
+    }
+}
+```
+
+##### 1356\.根据数字二进制下1的数目排序
+
+[题目](https://leetcode.cn/problems/sort-integers-by-the-number-of-1-bits)
+
+0x3f，有流写法，或者用高位当 bitcount 的压缩写法。都很优雅。
+
+```java
+class Solution {
+    public int[] sortByBits(int[] arr) {
+        for (int i = 0; i < arr.length; i++) {
+            arr[i] = Integer.bitCount(arr[i]) << 16 | arr[i];
+        }
+        Arrays.sort(arr);
+        for (int i = 0; i < arr.length; i++) {
+            arr[i] &= 0xffff;
+        }
+        return arr;
+    }
+}
+```
+
+```java
+class Solution {
+    public int[] sortByBits(int[] arr) {
+        return IntStream.of(arr)
+                .boxed()
+                .sorted((a, b) -> {
+                    int ca = Integer.bitCount(a);
+                    int cb = Integer.bitCount(b);
+                    return ca != cb ? ca - cb : a - b;
+                })
+                .mapToInt(a -> a)
+                .toArray();
+    }
+}
+```
+
+##### 1404\.将二进制表示减到1的步骤数
+
+[题目](https://leetcode.cn/problems/number-of-steps-to-reduce-a-number-in-binary-representation-to-one)
+
+我的高精度模拟
+
+```java
+import java.math.BigInteger;
+class Solution {
+    public int numSteps(String s) {
+        BigInteger x = new BigInteger(s, 2);
+        int cnt = 0;
+        while(!x.equals(BigInteger.ONE)) {
+            if (x.testBit(0)) {
+                x = x.add(BigInteger.ONE);
+            } else {
+                x = x.divide(BigInteger.TWO);
+            }
+            cnt++;
+        }
+        return cnt;
+    }
+}
+```
+
+实际上不需要高精度，只需要保存余数即可。
+
+```java
+class Solution {
+    public int numSteps(String s) {
+        int n = s.length();
+        int ans = n - 1; // 除了最高位，其余每一位都要执行一次「除以 2」
+        int carry = 0;
+        for (int i = n - 1; i > 0; i--) {
+            int sum = s.charAt(i) - '0' + carry;
+            ans += sum % 2; // 如果 s[i] 变成 1，需要执行「加上 1」
+            carry = (sum + sum % 2) / 2;
+        }
+        // 如果在最高位还有进位，由于 1 + 1 = 10，需要再执行一次「除以 2」
+        return ans + carry;
+    }
+}
+```
+
+可以数学优化，略。
+
+##### 761\.特殊的二进制字符串
+
+[题目](https://leetcode.cn/problems/special-binary-string)
+
+见 0x3f。
