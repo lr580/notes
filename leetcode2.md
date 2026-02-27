@@ -4084,6 +4084,10 @@
 - 761\.特殊的二进制字符串
 
   **分治 排序**
+  
+- 3666\.使二进制字符串全为1的最少操作数
+
+  <u>BFS / 数学</u>
 
 ## 算法
 
@@ -33578,3 +33582,131 @@ class Solution {
 [题目](https://leetcode.cn/problems/special-binary-string)
 
 见 0x3f。
+
+##### 3666\.使二进制字符串全为1的最少操作数
+
+[题目](https://leetcode.cn/problems/minimum-operations-to-equalize-binary-string)
+
+我的数学：思路见注释。
+
+```java
+class Solution {
+    public int minOperations(String s, int k) {
+        int n0 = 0, n1 = 0, n = s.length();
+        for(int i=0;i<n;i++) {
+            if(s.charAt(i)=='1') {
+                n1++;
+            }
+        }
+        n0 = n - n1;
+        if(n0%k==0) {return n0/k;}
+
+        // 定义状态 i 表示还有 i 个 0，n-i 个 1
+        // 区间 [l, r]，奇偶性为 idx 的全体状态步数均为 step
+        int []l = new int[2];
+        int []r = new int[2];
+        l[0] = n + 1; l[1] = n + 1;
+        r[0] = -1; r[1] = -1;
+        int idx = n0 & 1;
+        int step = 0;
+        l[idx] = n0;
+        r[idx] = n0;
+//        System.out.println(s + " " + k + ": ");
+        while(true) {
+            if(idx == 0 && l[idx] <= 0 && r[idx] >= 0) {
+                return step;
+            }
+
+            // 以状态 i 为起点，枚举选择了 c0 个 0，k-c0 个 1 翻转，那么将去到新状态 i' = i-2*c0+k。最多选择 min(i, k) 个 0。如果优先选1，选完n-i个1后必须选0，故最少选择 max(0, k-n+i) 个 0。故 c0 ∈ [max(0,k-n+i), min(i,k)]
+            // 一般地，min(a,b)=(a+b-|a-b|)/2, max(a,b)=(a+b+|a-b|)/2，故：
+            // 新的左端点是 L(i) = i-2*min(i,k)+k，故 L(i)=|i-k|；故若 k∈[ l[idx], r[idx] ]
+            // 新的右端点是 R(i) = i-2max(0,k-n+i)+k，故 R(i) = n-|k-n+i|
+
+            // 求解 |i - k| 的极小值
+            int newL = Math.min(Math.abs(l[idx] - k), Math.abs(r[idx] - k));
+            if (l[idx] <= k && k <= r[idx]) {
+                if ((k % 2) == (l[idx] % 2)) newL = 0;
+                else newL = 1;
+            }
+
+            // 求解 n - |i - (n - k)| 的极大值
+            int t = n - k;
+            int newR = Math.max(n - Math.abs(l[idx] - t), n - Math.abs(r[idx] - t));
+            if (l[idx] <= t && t <= r[idx]) {
+                if ((t % 2) == (l[idx] % 2)) newR = n;
+                else newR = n - 1;
+            }
+
+            int nxt = k%2==0?idx:(idx ^ 1);
+//            System.out.println(l[idx] + " " + r[idx] + " " + newL + " " + newR + " " + step);
+            if (l[nxt] <= newL && newR <= r[nxt]) {
+                break; // 没有变化，将进入死循环
+            }
+            idx = nxt;
+            l[idx] = Math.min(l[idx], newL);
+            r[idx] = Math.max(r[idx], newR);
+            step++;
+        }
+        return -1;
+    }
+}
+```
+
+> 我的失败 BFS：
+>
+> ```java
+> class Solution {
+>     static int []dp = new int[200007];
+>     static boolean []vis = new boolean[200007];
+>     public int minOperations(String s, int k) {
+>         int n0 = 0, n1 = 0, n = s.length();
+>         for(int i=0;i<n;i++) {
+>             if(s.charAt(i)=='1') {
+>                 n1++;
+>             }
+>         }
+>         n0 = n - n1;
+>         if(n0%k==0) {return n0/k;}
+>         // 还有i个0，n-i个1，翻转dp[i]次到达
+>         for(int i=0;i<2*n+3;i++) {
+>             dp[i]=-1;
+>         }
+>         for(int i=0;i<2*n+3;i++) {
+>             vis[i]=false;
+>         }
+>         Deque<Integer> q = new ArrayDeque<>();
+>         dp[n0] = 0;
+>         q.add(n0);
+>         while(!q.isEmpty()) {
+>             int m0 = q.poll();
+> //            System.out.println(s + " " + m0 + " " + (n-m0) + " " + dp[m0]);
+>             if(m0==0) {return dp[m0];}
+>             if(vis[m0]) {continue;}
+>             vis[m0] = true;
+>             if(m0>k*2) {
+>                 int x0=m0-k;
+>                 if(dp[x0]==-1) {
+>                     q.add(x0);
+>                     dp[x0] = dp[m0] + 1;
+>                 }
+>                 continue;
+>             }
+>             //如果优先选1，选完n-m0个1后必须选0,
+>             for(int c0=Math.max(0,k-(n-m0)); c0<=Math.min(m0, k); c0++) {
+>                 int x0=m0-2*c0+k; // x0>=0
+>                 if(x0<0||x0>n) {continue;}
+>                 if(dp[x0]==-1) {
+>                     q.add(x0);
+>                     dp[x0] = dp[m0] + 1;
+>                 }
+> //                System.out.println(c0 + " -> " + x0 + " " + (n-x0) + " " + dp[x0] + " " + dp[m0]);
+>             }
+>         }
+>         return -1;
+>     }
+> }
+> ```
+
+在如上数学解法确定枚举范围后，可以用 2612 题所示的 STL/并查集等解法优化，从而正确。
+
+数学还可以一次到位。直接 O1 计算(忽略统计n0,n1)，略。
