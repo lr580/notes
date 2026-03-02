@@ -4088,6 +4088,18 @@
 - 3666\.使二进制字符串全为1的最少操作数
 
   <u>BFS / 数学</u>
+  
+- 1680\.连接连续二进制数字
+
+  模拟/预处理 <u>数学</u>
+  
+- 1689\.十-二进制数的最少数目
+
+  签到 思维
+
+- 1536\.排布二进制网格的最少交换次数
+
+  <u>贪心</u>
 
 ## 算法
 
@@ -33710,3 +33722,121 @@ class Solution {
 在如上数学解法确定枚举范围后，可以用 2612 题所示的 STL/并查集等解法优化，从而正确。
 
 数学还可以一次到位。直接 O1 计算(忽略统计n0,n1)，略。
+
+##### 1680\.连接连续二进制数字
+
+[题目](https://leetcode.cn/problems/concatenation-of-consecutive-binary-numbers)
+
+我的预处理，一位一位加上去：
+
+```java
+class Solution {
+    static int []ans = new int[100003];
+    static final long mod = ((int)1e9) + 7;
+    static {
+        long sum = 0;
+        for(int i=1;i<=100000;i++) {
+            for(int j=31-Integer.numberOfLeadingZeros(i);j>=0;j--) {
+                sum<<=1;
+                if(1==((i>>j)&1)) sum+=1;
+            }
+            sum%=mod;
+            ans[i]=(int)sum;
+        }
+    }
+    public int concatenatedBinary(int n) {
+        return ans[n];
+    }
+}
+```
+
+更好的计算：直接移i的长度位然后+i。[zerotrac题解](https://leetcode.cn/problems/concatenation-of-consecutive-binary-numbers/solutions/510956/lian-jie-lian-xu-er-jin-zhi-shu-zi-by-ze-t40j/)
+
+```python
+class Solution:
+    def concatenatedBinary(self, n: int) -> int:
+        mod = 10**9 + 7
+        # ans 表示答案，shift 表示 len_{2}(i)
+        ans = shift = 0
+        for i in range(1, n + 1):
+            # if 131072 % i == 0:
+            if (i & (i - 1)) == 0:
+                shift += 1
+            ans = ((ans << shift) + i) % mod
+        return ans
+```
+
+数学：对所有位长度相同的数，可以直接求出拼接和，利用快速幂优化。然后分组拼接即可。
+
+```python
+class Solution:
+    def concatenatedBinary(self, n: int) -> int:
+        mod = 10**9 + 7
+        zeroes = 0
+        ans = 0
+        for k in range(64, 1, -1):   # 任意 64 位无符号整数都可以秒出答案
+            if (lb := 2 ** (k - 1)) <= n:
+                t = n - lb
+                u = pow(2, t * k, mod)
+                v = pow(2 ** k - 1, mod - 2, mod)
+                w = pow(2, (t + 1) * k, mod)
+                x = pow(2, zeroes, mod)
+                ans += (2 ** k * (u - 1) * v + (n - t) * w - n) * v * x % mod
+                zeroes += (t + 1) * k
+                n = lb - 1
+        
+        ans += pow(2, zeroes, mod)
+        return ans % mod
+```
+
+##### 1689\.十-二进制数的最少数目
+
+[题目](https://leetcode.cn/problems/partitioning-into-minimum-number-of-deci-binary-numbers)
+
+```python
+return int(max(n))
+```
+
+##### 1536\.排布二进制网格的最少交换次数
+
+[题目](https://leetcode.cn/problems/minimum-swaps-to-arrange-a-binary-grid)
+
+每次选最近能满足的就行，因为这样贪心，越往下的行越容易满足，所以对全体能换的行选最近就行。
+
+```java
+class Solution {
+    public int minSwaps(int[][] grid) {
+        // 预处理每一行的尾零个数
+        int n = grid.length;
+        int[] tailZeros = new int[n];
+        for (int i = 0; i < n; i++) {
+            tailZeros[i] = n;
+            for (int j = n - 1; j >= 0; j--) {
+                if (grid[i][j] == 1) {
+                    tailZeros[i] = n - 1 - j;
+                    break;
+                }
+            }
+        }
+
+        int ans = 0;
+        next:
+        for (int i = 0; i < n - 1; i++) {
+            int needZeros = n - 1 - i;
+            for (int j = i; j < n; j++) {
+                if (tailZeros[j] >= needZeros) {
+                    ans += j - i;
+                    // 从 j 换到 i，原来 [i, j-1] 中的数据全体右移一位
+                    System.arraycopy(tailZeros, i, tailZeros, i + 1, j - i);
+                    continue next;
+                }
+            }
+            return -1;
+        }
+        return ans;
+    }
+}
+```
+
+
+
