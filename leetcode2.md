@@ -4100,6 +4100,10 @@
 - 1536\.排布二进制网格的最少交换次数
 
   <u>贪心</u>
+  
+- 1545\.找出第N个二进制字符串中的第K位
+
+  模拟 二进制 分治/<u>数学</u>
 
 ## 算法
 
@@ -33838,5 +33842,27 @@ class Solution {
 }
 ```
 
+##### 1545\.找出第N个二进制字符串中的第K位
 
+[题目](https://leetcode.cn/problems/find-kth-bit-in-nth-binary-string)
 
+我的分治，0x3f 用了 n，感觉我的更优。
+
+```java
+class Solution {
+    public char findKthBit(int n, int k) {
+        int num_rev = 0;
+        while(k>1) {
+            int pivot = 1<<(31 - Integer.numberOfLeadingZeros(k));
+            k-=pivot;
+            if(k==0) return (char)('0'+((1+num_rev)&1));
+            k=pivot-k;
+            num_rev++;
+//            System.out.println(pivot+" "+k+" "+num_rev);
+        }
+        return (char)('0'+(num_rev&1));
+    }
+}
+```
+
+有数学解法，略，看 0x3f。
