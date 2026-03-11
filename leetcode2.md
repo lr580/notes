@@ -4104,6 +4104,10 @@
 - 1545\.找出第N个二进制字符串中的第K位
 
   模拟 二进制 分治/<u>数学</u>
+  
+- 1582\.二进制矩阵中的特殊位置
+
+  签到
 
 ## 算法
 
@@ -33866,3 +33870,54 @@ class Solution {
 ```
 
 有数学解法，略，看 0x3f。
+
+##### 1582\.二进制矩阵中的特殊位置
+
+[题目](https://leetcode.cn/problems/special-positions-in-a-binary-matrix)
+
+```java
+class Solution {
+    public int numSpecial(int[][] mat) {
+        int n = mat.length, m = mat[0].length;
+        int[] r = new int[n], c = new int[m];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                r[i] += mat[i][j];
+                c[j] += mat[i][j];
+            }
+        }
+        int ans = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                if (mat[i][j] == 1 && r[i] == 1 && c[j] == 1) {
+                    ans++;
+                }
+            }
+        }
+        return ans;
+    }
+}
+```
+
+##### 1758\.生成交替二进制字符串的最少操作数
+
+[题目](https://leetcode.cn/problems/minimum-changes-to-make-alternating-binary-string)
+
+可以一次遍历
+
+```java
+class Solution {
+    public int minOperations(String s) {
+        int n = s.length();
+        int diff = 0;
+        for (int i = 0; i < n; i++) {
+            // 如果 i 是偶数，把 s[i] 变成 0，否则变成 1
+            if (s.charAt(i) - '0' != i % 2) {
+                diff++;
+            }
+        }
+        return Math.min(diff, n - diff);
+    }
+}
+```
+
