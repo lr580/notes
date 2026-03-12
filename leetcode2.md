@@ -4108,6 +4108,34 @@
 - 1582\.二进制矩阵中的特殊位置
 
   签到
+  
+- 1758\.生成交替二进制字符串的最少操作数
+
+  枚举
+  
+- 1888\.使二进制字符串字符交替的最少反转次数
+
+  <u>滑动窗口</u>
+
+- 1980\.找出不同的二进制字符串
+
+  枚举 / 爆搜 / <u>构造</u>
+
+- 1009\.十进制整数的反码
+
+  签到 位运算
+
+- 476\.数字的补数
+
+  签到 位运算
+  
+- 3130\.找出所有稳定的二进制数组II
+
+  **DP / 数学(容斥)**
+
+- 3600\.升级后最大生成树稳定性
+
+  环(无向图) Kruscal最小生成树 贪心 / <u>二分</u>
 
 ## 算法
 
@@ -33921,3 +33949,249 @@ class Solution {
 }
 ```
 
+##### 1888\.使二进制字符串字符交替的最少反转次数
+
+[题目](https://leetcode.cn/problems/minimum-number-of-flips-to-make-the-binary-string-alternating)
+
+操作1是有意义的，考虑001，变成010无需操作。对二倍长滑窗即可，只需一次计算。参考上文 diff, n-diff。可以位运算判断%2是否相等。
+
+```java
+class Solution {
+    public int minFlips(String S) {
+        char[] s = S.toCharArray();
+        int n = s.length;
+        int ans = n;
+        int cnt = 0;
+        for (int i = 0; i < n * 2 - 1; i++) {
+            cnt += (s[i % n] ^ i) & 1;
+            int left = i - n + 1;
+            if (left < 0) {
+                continue;
+            }
+            ans = Math.min(ans, Math.min(cnt, n - cnt));
+            cnt -= (s[left] ^ left) & 1;
+        }
+        return ans;
+    }
+}
+```
+
+##### 1980\.找出不同的二进制字符串
+
+[题目](https://leetcode.cn/problems/find-unique-binary-string)
+
+构造很妙。0x3f
+
+```java
+class Solution {
+    public String findDifferentBinaryString(String[] nums) {
+        int n = nums.length;
+        char[] ans = new char[n];
+        for (int i = 0; i < n; i++) {
+            ans[i] = (char) (nums[i].charAt(i) ^ 1);
+        }
+        return new String(ans);
+    }
+}
+```
+
+##### 1009\.十进制整数的反码
+
+[题目](https://leetcode.cn/problems/complement-of-base-10-integer)
+
+同
+
+##### 476\.数字的补数
+
+[题目](https://leetcode.cn/problems/number-complement)
+
+```java
+class Solution {
+    public int findComplement(int num) {
+        int x = 0;
+        for (int i = num; i != 0; i -= i & -i) x = i;
+        return ~num & (x - 1);
+    }
+}
+```
+
+##### 3130\.找出所有稳定的二进制数组II
+
+[题目](https://leetcode.cn/problems/find-all-possible-stable-binary-arrays-ii)
+
+0x3f见。
+
+##### 3600\.升级后最大生成树稳定性
+
+[题目](https://leetcode.cn/problems/maximize-spanning-tree-stability-with-upgrades)
+
+按边权排序，用并查集判是否成环，不成环的话，做最大生成树，并用并查集判断连通。对所选的可以改的边，用优先级队列取前k小的翻倍，然后维护最小值输出。
+
+```c++
+struct edge {
+    int u, v, s, must;
+    bool operator<(const edge& e) const {
+        if(must!=e.must) return must<e.must;
+        return s<e.s;
+    }
+};
+class Solution {
+public:
+    int maxStability(int n, vector<vector<int>>& edges, int k) {
+        int m = edges.size();
+        vector<edge> e0(m);
+        for(int i=0;i<m;i++) {
+            e0[i] = edge{edges[i][0], edges[i][1], edges[i][2], edges[i][3]};
+        }
+        sort(e0.begin(), e0.end());
+        reverse(e0.begin(), e0.end());
+
+        priority_queue<int> q;
+        vector<int> fa(n);
+        for(int i=0;i<n;i++) {
+            fa[i] = i;
+        }
+        auto findFa = [&](int u) {
+            while(u!=fa[u]) {
+                u = fa[u] = fa[fa[u]];
+            }
+            return u;
+        };
+        auto same = [&](int u, int v) {
+            int fu = findFa(u), fv = findFa(v);
+            return fu == fv;
+        };
+
+        auto add = [&](const edge& e) {
+            int fu = findFa(e.u), fv = findFa(e.v);
+            fa[fu] = fv;
+        };
+        int minS = 2e9;
+        for(int i=0;i<m;i++) {
+            bool isSame = same(e0[i].u, e0[i].v);
+            if(e0[i].must || !isSame) {
+                if(isSame) {
+                    return -1;
+                }
+                add(e0[i]);
+                if(!e0[i].must) {
+                    q.push(-e0[i].s);
+                } else {
+                    minS = min(minS, e0[i].s);
+                }
+            }
+        }
+        set<int> fas;
+        for(int i=0;i<n;i++) {
+            fas.insert(findFa(i));
+        }
+        if(fas.size()!=1) {
+            return -1;
+        }
+
+        int augS = 2e9;
+        if(!q.empty()) {
+            while(!q.empty() && k--) {
+                int v = -q.top();
+                q.pop();
+                augS = min(augS, 2*v);
+            }
+            while(!q.empty()) {
+                int v = -q.top();
+                q.pop();
+                augS = min(augS, v);
+            }
+        }
+        return min(minS, augS);
+    }
+};
+```
+
+优雅写法：
+
+```c++
+class UnionFind {
+    vector<int> fa; // 代表元
+
+public:
+    int cc; // 连通块个数
+
+    UnionFind(int n) : fa(n), cc(n) {
+        // 一开始有 n 个集合 {0}, {1}, ..., {n-1}
+        // 集合 i 的代表元是自己
+        ranges::iota(fa, 0);
+    }
+
+    // 返回 x 所在集合的代表元
+    // 同时做路径压缩，也就是把 x 所在集合中的所有元素的 fa 都改成代表元
+    int find(int x) {
+        // 如果 fa[x] == x，则表示 x 是代表元
+        if (fa[x] != x) {
+            fa[x] = find(fa[x]); // fa 改成代表元
+        }
+        return fa[x];
+    }
+
+    // 把 from 所在集合合并到 to 所在集合中
+    // 返回是否合并成功
+    bool merge(int from, int to) {
+        int x = find(from), y = find(to);
+        if (x == y) { // from 和 to 在同一个集合，不做合并
+            return false;
+        }
+        fa[x] = y; // 合并集合。修改后就可以认为 from 和 to 在同一个集合了
+        cc--; // 成功合并，连通块个数减一
+        return true;
+    }
+};
+
+class Solution {
+public:
+    int maxStability(int n, vector<vector<int>>& edges, int k) {
+        UnionFind uf(n);
+        UnionFind all_uf(n);
+        int min_s1 = INT_MAX;
+        for (auto& e : edges) {
+            int x = e[0], y = e[1], s = e[2], must = e[3];
+            if (must) {
+                if (!uf.merge(x, y)) { // 必选边成环
+                    return -1;
+                }
+                min_s1 = min(min_s1, s);
+            }
+            all_uf.merge(x, y);
+        }
+
+        if (all_uf.cc > 1) { // 图不连通
+            return -1;
+        }
+
+        if (uf.cc == 1) { // 只需选必选边
+            return min_s1;
+        }
+
+        // Kruskal 求最大生成树
+        ranges::sort(edges, {}, [](auto& e) { return -e[2]; });
+        vector<int> a;
+        for (auto& e : edges) {
+            int x = e[0], y = e[1], s = e[2], must = e[3];
+            if (!must && uf.merge(x, y)) {
+                a.push_back(s);
+            }
+        }
+
+        // 答案为如下三者的最小值：
+        // 1. must = 1 中的最小边权
+        // 2. a 中最小边权 * 2
+        // 3. a 中第 k+1 小边权
+        int m = a.size();
+        int ans = min(min_s1, a[m - 1] * 2);
+        if (k < m) {
+            ans = min(ans, a[m - 1 - k]);
+        }
+        return ans;
+    }
+};
+```
+
+也可以纯并查集，二分猜测答案。略。见0x3f。
