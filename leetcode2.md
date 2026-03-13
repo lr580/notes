@@ -4136,6 +4136,10 @@
 - 3600\.升级后最大生成树稳定性
 
   环(无向图) Kruscal最小生成树 贪心 / <u>二分</u>
+  
+- 3296\.移山所需的最少秒数
+
+  STL(堆) / 二分答案
 
 ## 算法
 
@@ -34195,3 +34199,65 @@ public:
 ```
 
 也可以纯并查集，二分猜测答案。略。见0x3f。
+
+##### 3296\.移山所需的最少秒数
+
+[题目](https://leetcode.cn/problems/minimum-number-of-seconds-to-make-mountain-height-zero)
+
+把工人丢优先级队列里，每次把下一高度代价最小的工人拉出来干活。等差数列求和O1计算耗时。
+
+```c++
+using ll = long long;
+struct worker {
+    int t, h; // next h to be done
+    ll time() const {
+        return 1LL * t * h * (h+1) / 2;
+    }
+    bool operator < (const worker& w) const {
+        return time() > w.time();
+    }
+};
+class Solution {
+public:
+    ll minNumberOfSeconds(int h, vector<int>& t) {
+        ll minT = 0;
+        priority_queue<worker> q;
+        int n = t.size();
+        for (int i = 0; i < n; i++) {
+            q.push(worker(t[i], 1));
+        }
+        while(h--) {
+            worker w = q.top();
+            q.pop();
+            minT = max(minT, w.time());
+            q.push(worker(w.t, w.h+1));
+        }
+        return minT;
+    }
+};
+```
+
+其他写法：
+
+```c++
+class Solution {
+public:
+    long long minNumberOfSeconds(int mountainHeight, vector<int>& workerTimes) {
+        priority_queue<tuple<long long, long long, int>, vector<tuple<long long, long long, int>>, greater<>> pq;
+        for (int t : workerTimes) {
+            pq.emplace(t, t, t);
+        }
+
+        long long ans = 0;
+        while (mountainHeight--) {
+            // 工作后总用时，当前工作（山高度降低 1）用时，workerTimes[i]
+            auto [total, cur, base] = pq.top(); pq.pop();
+            ans = total; // 最后一个出堆的 total 即为答案
+            pq.emplace(total + cur + base, cur + base, base);
+        }
+        return ans;
+    }
+};
+```
+
+二分答案，限定高度每个工人拉到最高。可以解方程求出这个高度。利用下取整恒等式简化。
