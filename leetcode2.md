@@ -4140,6 +4140,10 @@
 - 3296\.移山所需的最少秒数
 
   STL(堆) / 二分答案
+  
+- 1415\.长度为n的开心字符串中字典序第k小的字符串
+
+  枚举 / <u>数学</u>
 
 ## 算法
 
@@ -34261,3 +34265,45 @@ public:
 ```
 
 二分答案，限定高度每个工人拉到最高。可以解方程求出这个高度。利用下取整恒等式简化。
+
+##### 1415\.长度为n的开心字符串中字典序第k小的字符串
+
+[题目](https://leetcode.cn/problems/the-k-th-lexicographical-string-of-all-happy-strings-of-length-n)
+
+看成长为n的3进制整数，从小到大枚举即可。
+
+```c++
+int bin[11];
+class Solution {
+public:
+    string getHappyString(int n, int k) {
+        int cnt = 0;
+        int s = 0;
+        int n3 = pow(3, n);
+        for(int i=0;i<n3;i++) {
+            for(int j=0,x=i;j<n;j++,x/=3) {
+                bin[j]=x%3;
+            }
+            bool ok = true;
+            for(int j=0;j<n-1;j++) {
+                if(bin[j]==bin[j+1]) {
+                    ok=false;
+                    break;
+                }
+            }
+            if(ok) {
+                if(++cnt==k) {
+                    string ans;
+                    for(int j=0;j<n;j++) {
+                        ans=(char)(bin[j]+'a')+ans;
+                    }
+                    return ans;
+                }
+            }
+        }
+        return "";
+    }
+};
+```
+
+数学见0x3f。
