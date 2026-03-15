@@ -4144,6 +4144,14 @@
 - 1415\.长度为n的开心字符串中字典序第k小的字符串
 
   枚举 / <u>数学</u>
+  
+- 1622\.奇妙序列
+
+  线段树 / <u>数学</u>
+  
+- 1878\.矩阵中最大的三个菱形和
+
+  模拟 前缀和
 
 ## 算法
 
@@ -34307,3 +34315,183 @@ public:
 ```
 
 数学见0x3f。
+
+##### 1622\.奇妙序列
+
+[题目](https://leetcode.cn/problems/fancy-sequence)
+
+区间x0刷新init优化。先乘再加两个lazy。注意特判。
+
+```c++
+using ll = long long;
+const int maxn = 1e5 + 3;
+const ll mod = 1e9 + 7;
+
+struct segtree {
+    ll sum[maxn << 2];
+    ll addTag[maxn << 2];
+    ll mulTag[maxn << 2];
+    int n = 1e5+1;
+
+    segtree() {
+        fill_n(mulTag, maxn << 2, 1);
+        fill_n(addTag, maxn << 2, 0);
+        fill_n(sum, maxn << 2, 0);
+    }
+
+    inline void pushup(int p) {
+        sum[p] = (sum[p << 1] + sum[p << 1 | 1]) % mod;
+    }
+
+    inline void applyMul(int p, int l, int r, ll k) {
+        sum[p] = sum[p] * k % mod;
+        mulTag[p] = mulTag[p] * k % mod;
+        addTag[p] = addTag[p] * k % mod;
+    }
+
+    inline void applyAdd(int p, int l, int r, ll k) {
+        sum[p] = (sum[p] + (ll)(r - l + 1) * k) % mod;
+        addTag[p] = (addTag[p] + k) % mod;
+    }
+
+    void pushdown(int p, int l, int r) {
+        if (l == r) return;
+        int mid = (l + r) >> 1;
+        int ls = p << 1, rs = p << 1 | 1;
+
+        if (mulTag[p] != 1) {
+            applyMul(ls, l, mid, mulTag[p]);
+            applyMul(rs, mid + 1, r, mulTag[p]);
+            mulTag[p] = 1;
+        }
+        if (addTag[p] != 0) {
+            applyAdd(ls, l, mid, addTag[p]);
+            applyAdd(rs, mid + 1, r, addTag[p]);
+            addTag[p] = 0;
+        }
+    }
+
+    void rangeMul(int p, int l, int r, int L, int R, ll k) {
+        // if (R < l || r < L) return;
+        if (L <= l && r <= R) {
+            applyMul(p, l, r, k);
+            return;
+        }
+        pushdown(p, l, r);
+        int mid = (l + r) >> 1;
+        if (L <= mid) rangeMul(p << 1, l, mid, L, R, k);
+        if (R > mid)  rangeMul(p << 1 | 1, mid + 1, r, L, R, k);
+        pushup(p);
+    }
+
+    void rangeAdd(int p, int l, int r, int L, int R, ll k) {
+        // if (R < l || r < L) return;
+        if (L <= l && r <= R) {
+            applyAdd(p, l, r, k);
+            return;
+        }
+        pushdown(p, l, r);
+        int mid = (l + r) >> 1;
+        if (L <= mid) rangeAdd(p << 1, l, mid, L, R, k);
+        if (R > mid)  rangeAdd(p << 1 | 1, mid + 1, r, L, R, k);
+        pushup(p);
+    }
+
+    ll query(int p, int l, int r, int x) {
+        if (l == r) return sum[p] % mod;
+        pushdown(p, l, r);
+        int mid = (l + r) >> 1;
+        if (x <= mid) return query(p << 1, l, mid, x);
+        return query(p << 1 | 1, mid + 1, r, x);
+    }
+
+    void rangeMul(int L, int R, ll k) { rangeMul(1, 1, n, L, R, k); }
+    void rangeAdd(int L, int R, ll k) { rangeAdd(1, 1, n, L, R, k); }
+    ll query(int x) { return query(1, 1, n, x); }
+};
+segtree tr;
+int n;
+class Fancy {
+public:
+    Fancy() {
+        tr.rangeMul(1, 1e5, 0); // init
+        n = 0;
+    }
+    
+    void append(int val) {
+        n++;
+        tr.rangeAdd(n,n,val);
+    }
+    
+    void addAll(int inc) {
+        if(n==0) return;
+        tr.rangeAdd(1,n,inc);
+    }
+    
+    void multAll(int m) {
+        if(n==0) return;
+        tr.rangeMul(1,n,m);
+    }
+    
+    int getIndex(int idx) {
+        if(idx+1>n) return -1;
+        return tr.query(idx+1);
+    }
+};
+
+/**
+ * Your Fancy object will be instantiated and called as such:
+ * Fancy* obj = new Fancy();
+ * obj->append(val);
+ * obj->addAll(inc);
+ * obj->multAll(m);
+ * int param_4 = obj->getIndex(idx);
+ */
+```
+
+只有加法：
+
+- 新 append 一个值，在 val 的基础上，初始减去所有已经 addAll 之和
+
+只有乘法：
+
+- 新 append 一个值，在 val 的基础上，初始乘以总乘积的逆元
+
+合并类比线段树：
+
+- 加法直接累计加数
+- 乘法对加法和乘法都乘新的数
+- 查询：当前初始值 val 乘以累计乘积，加上累计和
+- 添加：val 初始减去累计和，乘以乘积逆元
+
+```python
+MOD = 1_000_000_007
+
+class Fancy:
+    def __init__(self):
+        self.vals = []
+        self.add = 0
+        self.mul = 1
+
+    def append(self, val: int) -> None:
+        self.vals.append((val - self.add) * pow(self.mul, -1, MOD) % MOD)
+
+    def addAll(self, inc: int) -> None:
+        self.add += inc
+
+    def multAll(self, m: int) -> None:
+        self.mul = self.mul * m % MOD
+        self.add = self.add * m % MOD
+
+    def getIndex(self, idx: int) -> int:
+        if idx >= len(self.vals):
+            return -1
+        return (self.vals[idx] * self.mul + self.add) % MOD
+```
+
+##### 1878\.矩阵中最大的三个菱形和
+
+[题目](https://leetcode.cn/problems/get-biggest-three-rhombus-sums-in-a-grid)
+
+纯模拟，优雅实现见 0x3f。略。
+
