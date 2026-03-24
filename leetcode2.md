@@ -4152,6 +4152,46 @@
 - 1878\.矩阵中最大的三个菱形和
 
   模拟 前缀和
+  
+- 97\.交错字符串
+
+  DP
+
+- 199\.二叉树的右视图
+
+  DFS
+
+- 1727\.重新排列后的最大子矩阵
+
+  <u>扫描线 枚举 排序</u>
+
+- 3070\.元素和小于等于k的子矩阵的数目
+
+  前缀和
+
+- 3212\.统计X和Y频数相等的子矩阵数量
+
+  前缀和
+
+- 3567\.子矩阵的最小绝对差
+
+  枚举 / 滑动窗口
+
+- 3643\.垂直翻转子矩阵
+
+  签到
+
+- 1886\.判断矩阵经轮转后是否一致
+
+  签到 模拟
+
+- 2906\.构造乘积矩阵
+
+  前缀和
+
+- 211\.添加与搜索单词-数据结构设计
+
+  字典树trie
 
 ## 算法
 
@@ -34494,4 +34534,162 @@ class Fancy:
 [题目](https://leetcode.cn/problems/get-biggest-three-rhombus-sums-in-a-grid)
 
 纯模拟，优雅实现见 0x3f。略。
+
+##### 97\.交错字符串
+
+[题目](https://leetcode.cn/problems/interleaving-string)
+
+据说是腾讯一面面经题。略。见题解。二维DP，可以压行。
+
+##### 199\.二叉树的右视图
+
+[题目](https://leetcode.cn/problems/binary-tree-right-side-view)
+
+据说是腾讯一面面经题。比较优雅的写法，第一次到深度把全局数组 push back。
+
+##### 1727\.重新排列后的最大子矩阵
+
+[题目](https://leetcode.cn/problems/largest-submatrix-with-rearrangements)
+
+扫描线枚举当前最上行，维护到目前为止的每一列的连续1数量，取max为高，可以重排升序，把右边高的连续字段当矩形。
+
+##### LCR008\.长度最小的子数组。
+
+[题目](https://leetcode.cn/problems/2VG8Kg)
+
+腾讯一面题。滑动窗口。
+
+```c++
+using ll = long long;
+class Solution {
+public:
+    int minSubArrayLen(int s, vector<int>& nums) {
+ 
+    int n = nums.size();
+    int l = 0;
+    ll sum = 0;
+    int ans = 1e9;
+    for (int r = 0; r < n; r++) {
+        sum += nums[r];
+        // cout << r << " " << sum << "\n";
+        while (l <= r && sum >= s) {
+            ans = min(ans, r - l + 1);
+            sum -= nums[l];
+            l++;
+            // cout << "Pop " << sum << " " << l << "\n";
+        }
+    }
+    if(ans==1e9) {
+        return 0;
+    }
+    return ans;
+    }
+};
+```
+
+##### 3070\.元素和小于等于k的子矩阵的数目
+
+[题目](https://leetcode.cn/problems/count-submatrices-with-top-left-element-and-sum-less-than-k)
+
+直接统计二维前缀和数组<=k的元素个数。
+
+##### 3212\.统计X和Y频数相等的子矩阵数量
+
+[题目](https://leetcode.cn/problems/count-submatrices-with-equal-frequency-of-x-and-y)
+
+维护两个前缀和数组，一边做一边看当前格子是否相等。
+
+##### 3567\.子矩阵的最小绝对差
+
+[题目](https://leetcode.cn/problems/minimum-absolute-difference-in-sliding-submatrix)
+
+暴力枚举，或每行/蛇形滑动窗口。略。
+
+##### 3643\.垂直翻转子矩阵
+
+[题目](https://leetcode.cn/problems/flip-square-submatrix-vertically)
+
+签到略。
+
+##### 1886\.判断矩阵经轮转后是否一致
+
+[题目](https://leetcode.cn/problems/determine-whether-matrix-can-be-obtained-by-rotation)
+
+签到略。有O1空间原地做法。
+
+##### 1594\.矩阵的最大非负积
+
+[题目](https://leetcode.cn/problems/maximum-non-negative-product-in-a-matrix)
+
+DP。每次和上一个的最大最小值分别相乘，得到的新最小最大维护。
+
+##### 2906\.构造乘积矩阵
+
+[题目](https://leetcode.cn/problems/construct-product-matrix)
+
+注意到12345%5不为0，它不是质数，不能用逆元法。ll范围构造前后缀积。
+
+##### 211\.添加与搜索单词
+
+[题目](https://leetcode.cn/problems/design-add-and-search-words-data-structure)
+
+腾讯一面题。订正版。
+
+```c++
+struct trie {
+    map<char, trie*> child;
+    bool exist; // 不需要 char c, 需要 exist
+    trie() : exist(false) {}
+};
+
+void addWord(const string& word, trie* root) {
+    trie* cur = root;
+    for (char c : word) {
+        if (cur->child.find(c) == cur->child.end()) {
+            trie* node = new trie();
+            cur->child[c] = node;
+        }
+        cur = cur->child[c];
+    }
+    cur->exist = true;
+}
+
+bool search(const string& word, trie* root, int start = 0) {
+    trie* cur = root;
+    for (int i = start; i < word.size(); i++) {
+        char c = word[i];
+        if (c != '.') {
+            if (cur->child.find(c) == cur->child.end()) {
+                return false;
+            }
+            cur = cur->child[c];
+        } else {  // 修复关键逻辑 这里只能是 else
+            for (auto& pr : cur->child) {
+                trie* childNode = pr.second;
+                if (search(word, childNode, i + 1)) {  // 用 i+1，而不是start
+                    return true;
+                }
+            }
+            return false; // 修复关键逻辑
+        }
+    }
+    return cur->exist;
+}
+
+class WordDictionary {
+    trie* t;
+public:
+    WordDictionary() {
+        t = new trie();
+    }
+
+    void addWord(string word) {
+        ::addWord(word, t);
+    }
+
+    bool search(string word) {
+        return ::search(word, t);
+    }
+};
+```
 
