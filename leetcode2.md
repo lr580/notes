@@ -4192,6 +4192,22 @@
 - 211\.添加与搜索单词-数据结构设计
 
   字典树trie
+  
+- 3546\.等和矩阵分割I
+
+  签到
+  
+- 3548\.等和矩阵分割II
+
+  模拟
+
+- 2946\.循环移位后的矩阵相似检查
+
+  签到
+  
+- 2573\.找出对应LCP矩阵的字符串
+
+  **贪心 构造 DP**
 
 ## 算法
 
@@ -34693,3 +34709,18 @@ public:
 };
 ```
 
+##### 3546\.等和矩阵分割I
+
+[题目](https://leetcode.cn/problems/equal-sum-grid-partition-i) 略。
+
+##### 3548\.等和矩阵分割II
+
+[题目](https://leetcode.cn/problems/equal-sum-grid-partition-ii) 模拟分类讨论+哈希解方程查询，略。
+
+##### 2946\.循环移位后的矩阵相似检查
+
+[题目](https://leetcode.cn/problems/matrix-similarity-after-cyclic-shifts) 如果能相同，那左移和右移都能相同，因为对称周期。
+
+##### 2573\.找出对应LCP矩阵的字符串
+
+[题目](https://leetcode.cn/problems/find-the-string-with-lcp)
