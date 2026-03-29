@@ -4208,6 +4208,18 @@
 - 2573\.找出对应LCP矩阵的字符串
 
   **贪心 构造 DP**
+  
+- 2839\.判断通过操作能否让字符串相等I
+
+  签到
+
+- 2840\.判断通过操作能否让字符串相等II
+
+  排序 / <u>计数</u>
+  
+- 981\.基于时间的键值存储
+
+  <u>数据结构</u>
 
 ## 算法
 
@@ -34724,3 +34736,90 @@ public:
 ##### 2573\.找出对应LCP矩阵的字符串
 
 [题目](https://leetcode.cn/problems/find-the-string-with-lcp)
+
+##### 2839\.判断通过操作能否让字符串相等I
+
+[题目](https://leetcode.cn/problems/check-if-strings-can-be-made-equal-with-operations-i) 同下一题。
+
+##### 2840.判断通过操作能否让字符串相等II
+
+[题目](https://leetcode.cn/problems/check-if-strings-can-be-made-equal-with-operations-ii)
+
+奇数和偶数下标分别取2个char数组排序，看看排序后是否相等即可。
+
+```java
+import java.util.ArrayList;
+import java.util.Collections;
+
+class Solution {
+    private ArrayList<Character>[] getSorted(String s) {
+        ArrayList<Character>[] res = new ArrayList[2];
+        res[0] = new ArrayList<>();
+        res[1] = new ArrayList<>();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            res[i & 1].add(c);
+        }
+        Collections.sort(res[0]);
+        Collections.sort(res[1]);
+        return res;
+    }
+
+    public boolean checkStrings(String s1, String s2) {
+        var a1 = getSorted(s1);
+        var a2 = getSorted(s2);
+        return a1[0].equals(a2[0]) && a1[1].equals(a2[1]);
+    }
+}
+```
+
+更好的做法：直接计数排序。
+
+```java
+class Solution {
+    public boolean checkStrings(String s1, String s2) {
+        int[][] cnt1 = new int[2][26];
+        int[][] cnt2 = new int[2][26];
+        for (int i = 0; i < s1.length(); i++) {
+            cnt1[i % 2][s1.charAt(i) - 'a']++;
+            cnt2[i % 2][s2.charAt(i) - 'a']++;
+        }
+        return Arrays.deepEquals(cnt1, cnt2);
+    }
+}
+```
+
+##### 981\.基于时间的键值存储
+
+[题目](https://leetcode.cn/problems/time-based-key-value-store/)
+
+```java
+class TimeMap {
+    HashMap<String, TreeMap<Integer, String>> a;
+
+    public TimeMap() {
+        a = new HashMap<>();
+    }
+
+    public void set(String key, String value, int timestamp) {
+        var m = a.computeIfAbsent(key, k -> new TreeMap<>());
+        m.put(timestamp, value);
+    }
+
+    public String get(String key, int timestamp) {
+        var m = a.get(key);
+        if (m == null) return "";
+        var v = m.floorEntry(timestamp);
+        if (v == null) return "";
+        return v.getValue();
+    }
+}
+
+/**
+ * Your TimeMap object will be instantiated and called as such:
+ * TimeMap obj = new TimeMap();
+ * obj.set(key,value,timestamp);
+ * String param_2 = obj.get(key,timestamp);
+ */
+```
+
