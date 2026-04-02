@@ -4220,6 +4220,38 @@
 - 981\.基于时间的键值存储
 
   <u>数据结构</u>
+  
+- 686\.重复叠加字符串匹配
+
+  KMP/字符串哈希
+  
+- 3474\.字典序最小的生成字符串
+
+  **贪心 / +Z函数**
+  
+- 735\.小行星碰撞
+
+  <u>栈 模拟</u>
+
+- 2751\.机器人碰撞
+
+  **排序 栈 模拟**
+
+- 300\.最长递增子序列
+
+  DP / 单调栈+二分
+
+- 3\.无重复字符的最长子串
+
+  滑动窗口
+
+- 206\.反转链表
+
+  <u>链表 模拟</u>
+
+- 25\.K个一组翻转链表
+
+  <u>链表 模拟</u>
 
 ## 算法
 
@@ -13404,6 +13436,54 @@ func maximumAmount(coins [][]int) int {
 	return f[n][2]
 }
 ```
+
+java
+
+```java
+class Solution {
+    public int maximumAmount(int[][] coins) {
+        int n = coins.length, m = coins[0].length;
+        int INF = (int) -1e9;
+        int[][][] dp = new int[n][m][3];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                for (int k = 0; k < 3; k++) {
+                    dp[i][j][k] = INF;
+                }
+            }
+        }
+
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                for (int k = 0; k < 3; k++) {
+                    int prvMx = INF;
+                    if (i > 0) {
+                        prvMx = Math.max(prvMx, dp[i - 1][j][k]);
+                    }
+                    if (j > 0) {
+                        prvMx = Math.max(prvMx, dp[i][j - 1][k]);
+                    }
+                    if (i == 0 && j == 0) {
+                        prvMx = 0;
+                    }
+                    int notUse = coins[i][j] + prvMx;
+                    dp[i][j][k] = Math.max(dp[i][j][k], notUse);
+                    if (k < 2) {
+                        dp[i][j][k + 1] = Math.max(dp[i][j][k + 1], prvMx);
+                    }
+                }
+            }
+        }
+        int ans = INF;
+        for (int k = 0; k < 3; k++) {
+            ans = Math.max(ans, dp[n - 1][m - 1][k]);
+        }
+        return ans;
+    }
+}
+```
+
+
 
 ##### 2612\.最少翻转操作数
 
@@ -34821,5 +34901,235 @@ class TimeMap {
  * obj.set(key,value,timestamp);
  * String param_2 = obj.get(key,timestamp);
  */
+```
+
+##### 686\.重复叠加字符串匹配
+
+[题目](https://leetcode.cn/problems/repeated-string-match)
+
+不必二分。最长是两倍b(+a)，把a重复到至少这么长，计算a的KMP，去匹配b的子串，匹配成功的第一个下标反求出该下标对应的重复次数。
+
+```java
+class Solution {
+    public int repeatedStringMatch(String a, String b) {
+        int na = a.length();
+        int nb = b.length();
+        int[] pi = new int[nb];
+        for (int i = 1, j = 0; i < nb; i++) {
+            while (j > 0 && b.charAt(i) != b.charAt(j)) {
+                j = pi[j - 1];
+            }
+            if (b.charAt(j) == b.charAt(i)) {
+                j++;
+            }
+            pi[i] = j;
+        }
+        int n = (1+(2 * nb + na - 1) / na) * na; // ceil(2nb,na)*na
+        for (int i = 0, j = 0; i < n; i++) {
+            while (j > 0 && a.charAt(i % na) != b.charAt(j)) {
+                j = pi[j - 1];
+            }
+            if (a.charAt(i % na) == b.charAt(j)) {
+                j++;
+            }
+            if (j == nb) {
+                return (i + na) / na;//ceil(i+1,na)
+            }
+        }
+        return -1;
+    }
+}
+```
+
+##### 3474\.字典序最小的生成字符串
+
+[题目](https://leetcode.cn/problems/lexicographically-smallest-generated-string) TODO
+
+##### 735\.小行星碰撞
+
+[题目](https://leetcode.cn/problems/asteroid-collision) 下一题的前身，会这题就会下一题
+
+##### 2751\.机器人碰撞
+
+[题目](https://leetcode.cn/problems/robot-collisions) 
+
+##### 300\.最长递增子序列
+
+[题目](https://leetcode.cn/problems/longest-increasing-subsequence)
+
+京东一面手撕。
+
+```java
+class Solution {
+    public int lengthOfLIS(int[] nums) {
+                // O(nlogn)
+        int n = nums.length;
+        List<Integer> a = new ArrayList<>(); // 严格单调递增 序列
+        int ans = 0;
+        for(int i=0;i<n;i++) {
+            // {10,9,2,5,3,7,101,18}
+            // [10] -> [9] -> [2] -> [2, 5] -> [3, 5] -> [3, 5, 7] -> [3, 5, 7, 101]
+            // -> [3, 5 ,7, 18]
+            // >= nums[i]'s min val to replace binary search,
+            int l = 0, r = a.size() - 1, index = -1;
+            while(l<=r) {
+                int c=(l+r)/2;
+                if(a.get(c) >= nums[i] )  {
+                    index = c;
+                    r = c-1;
+                } else {
+                    l=c+1;
+                }
+            }
+            if(index!=-1) {
+                a.set(index, nums[i]);
+            }else{
+                a.add(nums[i]);
+            }
+//            System.out.print(i + " " + index + " : ");
+//            for(int j=0;j<a.size();j++) {
+//                System.out.print(a.get(j) + " ");
+//            }
+//            System.out.println();
+            ans = Math.max(ans, a.size());
+        }
+        return a.size();
+    }
+}
+```
+
+##### 3\.无重复字符的最长子串
+
+[题目](https://leetcode.cn/problems/longest-substring-without-repeating-characters)
+
+```c++
+class Solution {
+public:
+    int lengthOfLongestSubstring(string s) {
+        int ans = 0;
+        map<char, int> cnt;
+        int n = s.size();
+        int l = 0;
+        for (int r = 0; r < n; r++) {
+            cnt[s[r]]++;
+            while (l <= r && cnt[s[r]] > 1) {
+                cnt[s[l]]--;
+                l++;
+            }
+            ans = max(ans, r - l + 1);
+        }
+        return ans;
+    }
+};
+```
+
+##### 16\.最接近的三数之和
+
+[题目](https://leetcode.cn/problems/3sum-closest)
+
+拼多多二面手撕。
+
+```c++
+class Solution {
+public:
+    int threeSumClosest(vector<int>& nums, int target) {
+        sort(nums.begin(), nums.end());
+        int n=nums.size();
+        int ans = -1e9;
+        for(int i=0;i<n;i++) {
+            for(int l=i+1,r=n-1;l<r;) {
+                int s = nums[i] + nums[l] + nums[r];
+                if(abs(s-target)<abs(ans-target)) {
+                    ans=s;
+                }
+                if(s<target) {
+                    l++;
+                }else if(s>target){
+                    r--;
+                }else {
+                    return s;
+                }
+            }
+        }
+        return ans;
+    }
+};
+```
+
+##### 206\.反转链表
+
+[题目](https://leetcode.cn/problems/reverse-nodes-in-k-group)
+
+```c++
+class Solution {
+public:
+    ListNode* reverseList(ListNode* head) {
+        ListNode* prev = nullptr;
+        ListNode* curr = head;
+        while (curr) {
+            ListNode* next = curr->next;
+            curr->next = prev;
+            prev = curr;
+            curr = next;
+        }
+        return prev;
+    }
+};
+```
+
+##### 25\.K个一组翻转链表
+
+[题目](https://leetcode.cn/problems/3sum-closest)
+
+快手一面手撕。
+
+以206为基础，这道题：
+
+```c++
+/**
+ * Definition for singly-linked list.
+ * struct ListNode {
+ *     int val;
+ *     ListNode *next;
+ *     ListNode() : val(0), next(nullptr) {}
+ *     ListNode(int x) : val(x), next(nullptr) {}
+ *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+ * };
+ */
+class Solution {
+public:
+    ListNode* reverseKGroup(ListNode* head, int k) {
+        ListNode* root = new ListNode(0, head);
+        ListNode* n0 = root;
+        while (n0) {
+            ListNode* nk = n0;
+            bool ok = true;
+            for(int i=0;i<k;i++) {
+                nk = nk->next;
+                if(!nk) {
+                    ok = false;
+                    break;
+                }
+            }
+            if(!ok) {break;}
+            ListNode* n1 = n0->next;
+            ListNode* nk1 = nk->next; // tmp save, k+1 th
+
+            ListNode* ni = n0->next; // cur
+            ListNode* nj = n0; // prev
+            while(ni!=nk1) {
+                ListNode* tmp = ni->next; // next
+                ni->next = nj;
+                nj = ni;
+                ni = tmp;
+            }
+
+            n0->next = nk;
+            n1->next = nk1;
+            n0 = n1;
+        }
+        return root->next;
+    }
+};
 ```
 
