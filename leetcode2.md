@@ -4252,6 +4252,22 @@
 - 25\.K个一组翻转链表
 
   <u>链表 模拟</u>
+  
+- 3661\.可以被机器人摧毁的最大墙壁数目
+
+  离散前缀和 排序 DP
+  
+- 2087\.网格图中机器人回家的最小代价
+
+  思维 枚举
+  
+- 657\.机器人能否返回原点
+
+  签到
+  
+- 874\.模拟行走机器人
+
+  模拟 二分 STL
 
 ## 算法
 
@@ -35129,6 +35145,212 @@ public:
             n0 = n1;
         }
         return root->next;
+    }
+};
+```
+
+##### 3661\.可以被机器人摧毁的最大墙壁数目
+
+[题目](https://leetcode.cn/problems/maximum-walls-destroyed-by-robots)
+
+离散前缀和查询某个区间 [L, R] 的 walls 数，对机器人按下标排序，
+
+dp\[i][L/R] 表示前 i 个机器人，第 i 个机器人射左/右，射击统计前缀和子段即可，子段具体为：
+
+1. 如果往右射，左边界是自己下标，右边界取自己射程和下一个机器人下标-1的较小值
+2. 如果往左射，右边界是自己下标，左边界取自己射程和下一个机器人下标+1的较大值，特别地，如果上一个机器人往右射，避免重复计数，左边界还要跟上一个机器人的坐标+射程取较大值。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+struct DiscretePrefixSum {
+    map<int, int> m;
+    DiscretePrefixSum(vector<int>& a) { // a 是下标数组
+        sort(a.begin(), a.end());
+        m[0] = 0;
+        for(auto&i:a) {
+            m[i] = m.size();
+        }
+    }
+    int get(int i) {
+        auto it = m.upper_bound(i);
+        it--;
+        return it->second;
+    }
+    int query(int l, int r) {
+        if(l>r) return 0;
+        return get(r) - get(l-1);
+    }
+};
+struct Robot {
+    int index, distance;
+    bool operator < (const Robot& o) const {
+        return index < o.index;
+    }
+    static vector<Robot> getRobots(vector<int>& robots, vector<int>& distance) {
+        vector<Robot> res;
+        for(int i = 0; i < robots.size(); i++) {
+            res.push_back({robots[i], distance[i]});
+        }
+        sort(res.begin(), res.end());
+        return res;
+    }
+};
+const int INF = -2e9;
+class Solution {
+    public:
+        int maxWalls(vector<int>& robots, vector<int>& distance, vector<int>& walls) {
+            DiscretePrefixSum sum(walls);
+            vector<Robot> r = Robot::getRobots(robots, distance);
+            int n = robots.size();
+            vector<vector<int>> dp(n, vector<int>(2, 0));
+            const int L = 0, R = 1;
+            auto shootLeft = [&](int i, int lastRlim = INF) {
+                int llim = r[i].index-r[i].distance;
+                if(i>0&&llim<=r[i-1].index+1) llim = r[i-1].index+1;
+                if(lastRlim!=INF) llim = max(llim, lastRlim+1);
+                return sum.query(llim, r[i].index);
+            };
+            auto shootRight = [&](int i) {
+                int rlim = r[i].index+r[i].distance;
+                if(i+1<n&&rlim>=r[i+1].index-1) rlim = r[i+1].index-1;
+                return sum.query(r[i].index, rlim);
+            };
+            dp[0][L] = shootLeft(0);
+            dp[0][R] = shootRight(0);
+            for(int i=1;i<n;i++) {
+                dp[i][R] = shootRight(i) + max(dp[i-1][L], dp[i-1][R]);
+                dp[i][L] = max(shootLeft(i) + dp[i-1][L], 
+                shootLeft(i, r[i-1].distance + r[i-1].index) + dp[i-1][R]);
+            }
+            return max(dp[n-1][L], dp[n-1][R]);
+        }
+    };
+
+// signed main() {
+//     vector<int> walls = {5, 2, 7};
+//     DiscretePrefixSum sum(walls);
+//     cout << sum.query(1, 3) << '\n';
+//     cout << sum.query(1, 10) << '\n';
+//     cout << sum.query(5, 7) << '\n';
+//     cout << sum.query(7, 7) << '\n';
+//     cout << sum.query(11, 12) << '\n';
+//     return 0;
+// }
+```
+
+还可以双指针优化，避免离散前缀和的二分查询。
+
+##### 2087\.网格图中机器人回家的最小代价
+
+[题目](https://leetcode.cn/problems/minimum-cost-homecoming-of-a-robot-in-a-grid)
+
+我的sgn位移横纵独立
+
+```c++
+int sgn(int x) {return x>0?1:-1;}
+class Solution {
+public:
+    int minCost(vector<int>& startPos, vector<int>& homePos, vector<int>& rowCosts, vector<int>& colCosts) {
+        int n = rowCosts.size(), m = colCosts.size();
+        int ans = 0;
+        int x = startPos[0], y = startPos[1];
+        while(x!=homePos[0]) {
+            x+=sgn(homePos[0]-x);
+            ans+=rowCosts[x];
+        }
+        while(y!=homePos[1]) {
+            y+=sgn(homePos[1]-y);
+            ans+=colCosts[y];
+        }
+        return ans;
+    }
+};
+```
+
+答案：先计算起点，再减去起点，以避免特判
+
+```c++
+class Solution {
+public:
+    int minCost(vector<int>& startPos, vector<int>& homePos, vector<int>& rowCosts, vector<int>& colCosts) {
+        int x0 = startPos[0], y0 = startPos[1];
+        int x1 = homePos[0], y1 = homePos[1];
+
+        // 起点的代价不计入，先减去
+        int ans = -rowCosts[x0] - colCosts[y0];
+
+        // 累加代价（包含起点）
+        ans += reduce(rowCosts.begin() + min(x0, x1), rowCosts.begin() + max(x0, x1) + 1, 0);
+        ans += reduce(colCosts.begin() + min(y0, y1), colCosts.begin() + max(y0, y1) + 1, 0);
+
+        return ans;
+    }
+};
+```
+
+##### 657\.机器人能否返回原点
+
+[题目](https://leetcode.cn/problems/robot-return-to-origin)
+
+```c++
+class Solution {
+public:
+    bool judgeCircle(string moves) {
+        int x = 0, y = 0;
+        for(auto&c:moves) {
+            if(c=='L') x--;
+            else if(c=='R') x++;
+            else if(c=='U') y++;
+            else if(c=='D') y--;
+        }
+        return x==0&&y==0;
+    }
+};
+```
+
+做法2：L=R, U=D 数目
+
+```c++
+return  ranges::count(moves, 'R') == ranges::count(moves, 'L') && ranges::count(moves, 'U') == ranges::count(moves, 'D');
+```
+
+##### 874\.模拟行走机器人
+
+[题目](https://leetcode.cn/problems/walking-robot-simulation)
+
+如果 commands > 9，注意到答案只会在拐点取得最值，不需要每一格模拟。可以对障碍物以 x, y 坐标分别建立 map<x, set<y>> 和 map<y, set<x>>，根据打横或打竖走在x上二分y或y上二分x，可以达到对数复杂度。
+
+```c++
+#include <bits/stdc++.h>
+using namespace std;
+class Solution {
+public:
+    int robotSim(vector<int>& commands, vector<vector<int>>& obstacles) {
+        set<pair<int, int>> obs;
+        for (auto& ob : obstacles) {
+            obs.insert(make_pair(ob[0], ob[1]));
+        }
+        int drt[4][2] = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}}; // 顺时针
+        int ans = 0, x = 0, y = 0, d = 0;
+        for (auto& cmd : commands) {
+            if (cmd == -2) {
+                d = (d + 3) % 4; 
+            } else if (cmd == -1) {
+                d = (d + 1) % 4;
+            } else {
+                for (int i = 0; i < cmd; i++) {
+                    int nx = x + drt[d][0];
+                    int ny = y + drt[d][1];
+                    if (obs.find(make_pair(nx, ny)) == obs.end()) {
+                        x = nx;
+                        y = ny;
+                    }
+                }
+                ans = max(ans, x * x + y * y);
+            }
+        }
+        return ans;
     }
 };
 ```
