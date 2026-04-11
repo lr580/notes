@@ -4268,6 +4268,26 @@
 - 874\.模拟行走机器人
 
   模拟 二分 STL
+  
+- 2069\.模拟行走机器人II
+
+  模拟 数学/分类讨论
+
+- 3653\.区间乘法查询后的异或I
+
+  签到
+
+- 3655\.区间乘法查询后的异或II
+
+  **分块 差分**
+
+- 3740\.三个相等元素之间的最小距离I
+
+  签到
+
+- 3741\.三个相等元素之间的最小距离II
+
+  STL 枚举
 
 ## 算法
 
@@ -35355,3 +35375,32 @@ public:
 };
 ```
 
+##### 2069\.模拟行走机器人II
+
+[题目](https://leetcode.cn/problems/walking-robot-simulation-ii)
+
+特判或数学处理初始情况。然后分4类讨论即可。
+
+##### 3653\.区间乘法查询后的异或I
+
+[题目](https://leetcode.cn/problems/xor-after-range-multiplication-queries-i)
+
+模拟即可。
+
+##### 3655\.区间乘法查询后的异或II
+
+[题目](https://leetcode.cn/problems/xor-after-range-multiplication-queries-ii)
+
+k 大于根号，使用暴力；k 小于根号，维护 <= 根号n 个差分数组。
+
+##### 3740\.三个相等元素之间的最小距离I
+
+[题目](https://leetcode.cn/problems/minimum-distance-between-three-equal-elements-i/)
+
+签到。
+
+##### 3741\.三个相等元素之间的最小距离II
+
+[题目](https://leetcode.cn/problems/minimum-distance-between-three-equal-elements-ii)
+
+STL，化简为 2k-2i。
