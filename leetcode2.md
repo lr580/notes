@@ -4367,7 +4367,7 @@
 
 - 3225\.网格图操作后的最大分数
 
-  **DP** ==TODO==
+  **DP**
 
 - 2033\.获取单值网格的最小操作数
 
@@ -4408,6 +4408,32 @@
 - 378\.有序矩阵中第K小的元素
 
   STL(堆) / <u>二分答案+双指针</u> / <u>模拟+论文</u>
+  
+- 3660\.跳跃游戏IX
+
+  **DP / 单调栈 / 分治**
+  
+- 2904\.最短且字典序最小的美丽子字符串
+
+  滑动窗口
+
+- 3718\.缺失的最小倍数
+
+  签到
+
+- 1293\.网格中的最短路径
+
+  BFS
+
+- 3720\.大于目标字符串的最小字典序排列
+
+  <u>贪心 小模拟</u>
+
+- 3734\.大于目标字符串的最小字典序回文串排列
+
+  贪心 小模拟
+
+
 
 ## 算法
 
@@ -35751,3 +35777,299 @@ public:
 };
 ```
 
+##### 2904\.最短且字典序最小的美丽子字符串
+
+[题目](https://leetcode.cn/problems/shortest-and-lexicographically-smallest-beautiful-string/description/)
+
+```c++
+class Solution {
+public:
+    string shortestBeautifulSubstring(string s, int k) {
+        string ans;
+        int len = 1e9, n = s.size(), cnt_k = 0;
+        for(int l=0,r=0;r<n;r++) {
+            if(s[r]=='1') {
+                cnt_k++;
+                while(cnt_k >= k) {
+                    if(cnt_k == k && s[l] == '1') break;
+                    cnt_k -= s[l] - '0';
+                    l++;
+                }
+                //cout << l << " " << r << " " << cnt_k <<"\n";
+                if(cnt_k == k) {
+                    if(r-l+1<len) {
+                        //cout << "sw" << r << "\n";
+                        len = r-l+1;
+                        ans = s.substr(l, len);
+                    } else if(r-l+1==len) {
+                        //cout << "sq" << r << "\n";
+                        string s2 = s.substr(l, len);
+                        if (s2 < ans) {
+                            ans = s2;
+                        } 
+                    }
+                }
+            }
+            
+        }
+        return ans;
+    }
+};
+```
+
+##### 3718\.缺失的最小倍数
+
+[题目](https://leetcode.cn/problems/smallest-missing-multiple-of-k/description/)
+
+```c++
+class Solution {
+public:
+    int missingMultiple(vector<int>& nums, int k) {
+        set<int> s;
+        for(int&x:nums) {
+            s.insert(x);
+        }
+        for(int a=k;;a+=k) {
+            if(s.find(a)==s.end()) {
+                return a;
+            }
+        }
+        return -1;
+    }
+};
+```
+
+##### 1293\.网格中的最短路径
+
+[题目](https://leetcode.cn/problems/shortest-path-in-a-grid-with-obstacles-elimination/description/)
+
+秋招一面真题。
+
+```c++
+struct state {
+    int x, y, isRemoved;
+
+    bool operator<(const state& o) const {
+        if (x != o.x) return x < o.x;
+        if (y != o.y) return y < o.y;
+        return isRemoved < o.isRemoved;
+    }
+};
+class Solution {
+public:
+    int shortestPath(vector<vector<int>>& grid, int k) {
+    int n = grid.size();
+    int m = grid[0].size();
+
+    int dx[4] = {0, -1, 0, 1};
+    int dy[4] = {-1, 0, 1, 0};
+
+    queue<state> q;
+    map<state, int> steps;
+    set<state> visited;
+
+    state s0 = {0, 0, false};
+    q.push(s0);
+    steps[s0] = 0;
+
+    while (q.size() > 0) {
+        state s = q.front();
+        q.pop();
+
+        if (s.x == n - 1 && s.y == m - 1) {
+            return steps[s];
+        }
+
+        if (visited.find(s) != visited.end()) {
+			continue;
+        }
+        visited.insert(s);
+
+        // debug
+        // cout << s.x << " " << s.y << " " << s.isRemoved << " " << steps[s] << "\n";
+
+        for (int i = 0; i < 4; i++) {
+            // not remove
+            state ns;
+            ns.x = s.x + dx[i];
+            ns.y = s.y + dy[i];
+            ns.isRemoved = s.isRemoved;
+
+            if (ns.x < 0 || ns.y < 0 || ns.x >= n || ns.y >= m) {
+                continue;
+            }
+
+            if (grid[ns.x][ns.y] != 1) {
+                // cout << "not remove nx" << ns.x << " " << ns.y << "\n";
+                q.push(ns);
+                steps[ns] = steps[s] + 1;
+            } else { // grid == 1
+                if (ns.isRemoved >= k) { // used
+                    continue;
+                }
+
+                // to remove
+                state ns2 = ns;
+                // cout << "remove nx" << ns2.x << " " << ns2.y << "\n";
+                ns2.isRemoved = s.isRemoved + 1; // before is false
+                q.push(ns2);
+                steps[ns2] = steps[s] + 1;
+            }
+        }
+    }
+
+        return -1;
+    }
+};
+```
+
+##### 3720\.大于目标字符串的最小字典序排列
+
+[题目](https://leetcode.cn/problems/lexicographically-smallest-permutation-greater-than-target/description/)
+
+```c++
+char p[500];
+class Solution {
+public:
+    string lexGreaterPermutation(string s, string target) {
+        int counter[26] = {};
+        for(auto&c:s) {
+            counter[c-'a']++;
+        }
+        int n = s.size();
+        // p[n+1]='\0';
+        if(n==1) {
+            return s>target?s:"";
+        }
+        auto f = [&](int pref) -> bool {
+            int c[26] = {};
+            for(int i=0;i<26;i++) {
+                c[i] = counter[i];
+            }
+            for (int i=0;i<pref;i++) {
+                char t = target[i];
+                if(c[t-'a'] > 0) {
+                    c[t-'a']--;
+                    p[i] = t;
+                } else {
+                    return false;
+                }
+                
+            }
+            char t = target[pref];
+            bool ok = false;
+            for(int v=t+1-'a';v<26;v++) {
+                if(c[v] > 0) {
+                    c[v]--;
+                    p[pref] = 'a' + v;
+                    ok = true;
+                    break;
+                }
+            }
+            if(!ok) {
+                return false;
+            }
+            int j = pref+1;
+            for(int i=0;i<26&&j<n;i++) {
+                // cout <<j<<" "<<pref<<" "<<i<<" "<<c[i] <<" "<<n<<"\n";
+                for(int g=0;g<c[i];g++) {
+                    p[j] = i + 'a';
+                    j++;
+                }
+            }
+            // cout << string(p);
+            return true;
+        };
+        for(int i=n-1;i>=0;i--) {
+            if(f(i)) {
+                return string(p,n);
+            }
+        }
+        return "";
+    }
+};
+```
+
+##### 3734\.大于目标字符串的最小字典序回文串排列
+
+[题目](https://leetcode.cn/problems/lexicographically-smallest-palindromic-permutation-greater-than-target/)
+
+```c++
+class Solution {
+public:
+    string lexPalindromicPermutation(string s, string target) {
+        int cnt[26] = {};
+        for(auto&c:s) {
+            cnt[c-'a']++;
+        }
+        int numOdd = 0, idxOdd;
+        for(int i=0;i<26;i++) {
+            if(cnt[i]&1) {
+                numOdd++;
+                idxOdd = i;
+                if(numOdd > 1) {
+                    return "";
+                }
+            }
+        }
+        int n = s.size(), half = s.size() / 2;
+        vector<char> ans(n, '\0');
+        if(numOdd == 1) {
+            ans[half] = idxOdd + 'a';
+            cnt[idxOdd]--;
+        }
+
+        // vector<int> diff(n, 0); // target 前 i 个能否由 s 匹配
+        int maxPrefix = -1;
+        for(int i=0;i<half;i++) {
+            int t = target[i]-'a';
+            if(cnt[t] >= 2) {
+                cnt[t] -= 2;
+                ans[i] = t + 'a';
+                ans[n-i-1] = t + 'a';
+                maxPrefix = i;
+            } else {
+                break;
+            }
+        }
+        // cout << maxPrefix << "\n";
+        if(2*(1+maxPrefix) + numOdd == n) {
+            string res(ans.begin(), ans.end());
+            if(res > target) {
+                return res;
+            } 
+        }
+        for(int i=maxPrefix+1;i>=0;i--) {
+            int t = target[i]-'a', firstIdx = -1;
+            if(i<=maxPrefix) {
+                cnt[t] += 2; 
+            }
+            for(int j=t+1;j<26;j++) {
+                if(cnt[j] >= 2) {
+                    firstIdx = j;
+                    break;
+                }
+            }
+            // cout << firstIdx;
+            if(firstIdx == -1) {
+                continue;
+            }
+
+            cnt[firstIdx] -= 2;
+            ans[i] = firstIdx + 'a';
+            ans[n-i-1] = firstIdx + 'a';
+            int idx = i+1;
+            for(int j=0;j<26;j++) {
+                for(int k=0;k<cnt[j];k+=2) {
+                    ans[idx] = j + 'a';
+                    ans[n-idx-1] = j + 'a';
+                    idx++;
+                }
+            }
+            string res(ans.begin(), ans.end());
+            return res;
+        }
+        return "";
+    }
+};
+```
