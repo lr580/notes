@@ -4433,6 +4433,13 @@
 
   贪心 小模拟
 
+- 2948\.交换得到字典序最小的数组
+
+  排序
+  
+- 2091\.从数组中移除最大值和最小值
+
+  签到 
 
 
 ## 算法
@@ -36070,6 +36077,63 @@ public:
             return res;
         }
         return "";
+    }
+};
+```
+
+##### 2948\.交换得到字典序最小的数组
+
+[题目](https://leetcode.cn/problems/make-lexicographically-smallest-array-by-swapping-elements)
+
+```c++
+class Solution {
+public:
+    vector<int> lexicographicallySmallestArray(vector<int>& nums, int limit) {
+        int n = nums.size();
+        vector<int> idx(n);
+        for(int i=0;i<n;i++) idx[i] = i;
+        sort(idx.begin(), idx.end(), [&](int x, int y) {
+            return nums[x] < nums[y];
+        });
+        vector<int> ans(n);
+        for(int l=0, r=0; r<n; r++) {
+            if(r==n-1 || nums[idx[r+1]] - nums[idx[r]] > limit) {
+                vector<int> idx2(r-l+1);
+                for(int i=l;i<=r;i++) {
+                    idx2[i-l] = idx[i];
+                }
+                sort(idx2.begin(), idx2.end());
+                for(int i=l;i<=r;i++) {
+                    ans[idx2[i-l]] = nums[idx[i]];
+                }
+                l = r+1;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+##### 2091\.从数组中移除最大值和最小值
+
+[题目](https://leetcode.cn/problems/removing-minimum-and-maximum-from-array)
+
+```c++
+class Solution {
+public:
+    int minimumDeletions(vector<int>& nums) {
+        int n = nums.size(), mx = -1e9, mi = 1e9, mxidx, miidx;
+        for(int i=0;i<n;i++) {
+            if(mx<nums[i]) {
+                mx=nums[i]; mxidx = i;
+            }
+            if(mi>nums[i]) {
+                mi=nums[i]; miidx = i;
+            }
+        }
+        int idx1 = min(mxidx, miidx), idx2 = max(mxidx, miidx);
+        int ans = min(idx2+1, n-idx1);
+        return min(ans, idx1+1+n-idx2);
     }
 };
 ```
