@@ -4440,6 +4440,10 @@
 - 2091\.从数组中移除最大值和最小值
 
   签到 
+  
+- 2058\.找出临界点之间的最小和最大距离
+
+  链表
 
 
 ## 算法
@@ -36134,6 +36138,56 @@ public:
         int idx1 = min(mxidx, miidx), idx2 = max(mxidx, miidx);
         int ans = min(idx2+1, n-idx1);
         return min(ans, idx1+1+n-idx2);
+    }
+};
+```
+
+##### 2058\.找出临界点之间的最小和最大距离
+
+[题目](https://leetcode.cn/problems/find-the-minimum-and-maximum-number-of-nodes-between-critical-points)
+
+```c++
+/**
+ * Definition for singly-linked list.
+ * struct ListNode {
+ *     int val;
+ *     ListNode *next;
+ *     ListNode() : val(0), next(nullptr) {}
+ *     ListNode(int x) : val(x), next(nullptr) {}
+ *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+ * };
+ */
+class Solution {
+public:
+    vector<int> nodesBetweenCriticalPoints(ListNode* head) {
+        vector<int> ans(2, -1);
+        int valprv = head->val;
+        head = head->next;
+        if(head->next == nullptr) {
+            return ans;
+        }
+        ans[0] = 1e9;
+        int idxprv = 1e9, idx=2, idxmin=-1;
+        for(;head->next != nullptr;head=head->next, idx++) {
+            int valcur = head->val, valnxt = head->next->val;
+            if((valcur>valprv && valcur>valnxt) ||
+               (valcur<valprv && valcur<valnxt)) {
+                if(idxprv != 1e9) {
+                    ans[0] = min(ans[0], idx - idxprv);
+                }
+                if(idxmin == -1) {
+                    idxmin = idx;
+                } else {
+                    ans[1] = idx - idxmin;
+                }
+                idxprv = idx;
+            }
+            valprv = valcur;
+        }
+        if(ans[0] == 1e9) {
+            ans[0] = -1;
+        }
+        return ans;
     }
 };
 ```
