@@ -4444,6 +4444,26 @@
 - 2058\.找出临界点之间的最小和最大距离
 
   链表
+  
+- 3568\.清理教室的最少移动
+
+  <u>BFS 状态压缩 / 最短路+哈密顿图</u>
+
+- 3875\.构造奇偶一致的数组I
+
+  思维 签到
+
+- 3876\.构造奇偶一致的数组II
+
+  STL 思维
+
+- 3903\.最小稳定下标I
+
+  签到 前缀和
+
+- 3904\.最小稳定下标II
+
+  前缀和
 
 
 ## 算法
@@ -36191,3 +36211,151 @@ public:
     }
 };
 ```
+
+##### 3568\.清理教室的最少移动
+
+[题目](https://leetcode.cn/problems/minimum-moves-to-clean-the-classroom)
+
+```c++
+struct state {
+    int x, y, energy, collects;
+};
+struct memItem {
+    int x, y, collects;
+    bool operator < (const memItem&o) const {
+        return tie(x, y, collects) < tie(o.x, o.y, o.collects);
+    }
+};
+class Solution {
+public:
+    int minMoves(vector<string>& classroom, int energy) {
+        constexpr int dx[4] = {0, -1, 0, 1}, dy[4] = {-1, 0, 1, 0};
+        int n = classroom.size(), m = classroom[0].size();
+        map<memItem, int> maxEnergy;
+        vector<pair<int,int>> gabbages;
+        queue<state> q;
+        for(int i=0;i<n;i++) {
+            for(int j=0;j<m;j++) {
+                if(classroom[i][j] == 'S') {
+                    state s0 = {i, j, energy, 0};
+                    q.push(s0);
+                    maxEnergy[{i,j,0}] = energy;
+                } else if(classroom[i][j] == 'L') {
+                    gabbages.push_back({i,j});
+                }
+            }
+        }
+        if(gabbages.size() == 0) {
+            return 0;
+        }
+        for(int step=0;q.size()>0;step++) {
+            for(int i=q.size();i>0;i--) {
+                state s = q.front();
+                q.pop();
+                // cout << step << " " << s.x << " " << s.y << " " << s.energy << " " << s.collects << "\n";
+                for(int d=0;d<4;d++) {
+                    int x = s.x + dx[d];
+                    int y = s.y + dy[d];
+                    if(x<0||y<0||x>=n||y>=m||classroom[x][y]=='X') {
+                        continue;
+                    }
+                    int e = classroom[x][y] == 'R' ? energy : s.energy - 1;
+                    state s2 = {x, y, e, s.collects};
+                    if(classroom[x][y] == 'L') {
+                        for(int j=0;j<gabbages.size();j++) {
+                            if(gabbages[j].first == x && gabbages[j].second == y) {
+                                s2.collects |= 1<<j;
+                                if(s2.collects == (1<<gabbages.size()) - 1) {
+                                    return step + 1;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    memItem s2m = {s2.x, s2.y, s2.collects};
+                    auto it = maxEnergy.find(s2m);
+                    if (it != maxEnergy.end() && it->second >= s2.energy) {
+                        continue;
+                    }
+                    maxEnergy[s2m] = max(maxEnergy[s2m], s2.energy);
+                    if(s2.energy > 0) {
+                        q.push(s2);
+                    }
+                    
+                    // cout << "s2 " << s2.x << " " << s2.y << " " << s2.energy << " " << s2.collects << "\n";
+                }
+            }
+        }
+        return -1;
+    }
+};
+```
+
+##### 3875\.构造奇偶一致的数组I
+
+[题目](https://leetcode.cn/problems/construct-uniform-parity-array-i)
+
+```c++
+class Solution {
+public:
+    bool uniformArray(vector<int>& nums1) {
+        // 有奇有偶： >2奇，奇转偶：奇 + 奇 = 偶。恰1奇：偶 + 奇 = 偶，偶转奇
+        return true;
+    }
+};
+```
+
+##### 3876\.构造奇偶一致的数组II
+
+[题目](https://leetcode.cn/problems/construct-uniform-parity-array-ii)
+
+```c++
+class Solution {
+public:
+    bool uniformArray(vector<int>& nums1) {
+        // 操作2要求操作后是正数。奇偶不全相同时，偶在最小无法变全奇。要变全偶的话，最小奇也无法变，故无解。
+        // 奇在最小不能变全偶，要变全奇，偶减最小奇，必然有解。
+        int n = nums1.size(), minv = 1e9, numOdd = 0;
+        for(int i=0;i<n;i++) {
+            numOdd += nums1[i]&1;
+            minv = min(minv, nums1[i]);
+        }
+        if(numOdd == n || numOdd == 0) {
+            return true;
+        }
+        if(minv%2==0) {
+            return false;
+        }
+        return true;
+    }
+};
+```
+
+##### 3903\.最小稳定下标I
+
+##### 3904\.最小稳定下标II
+
+[题目](https://leetcode.cn/problems/smallest-stable-index-ii/)
+
+```c++
+class Solution {
+public:
+    int firstStableIndex(vector<int>& nums, int k) {
+        int n = nums.size();
+        vector<int> mi(n, 1e9);
+        mi[n-1] = nums[n-1];
+        for(int i=n-2;i>=0;i--) {
+            mi[i] = min(mi[i+1], nums[i]);
+        }
+        int mx = -1e9;
+        for(int i=0;i<n;i++) {
+            mx = max(mx, nums[i]);
+            if(mx - mi[i] <= k) {
+                return i;
+            }
+        }
+        return -1;
+    }
+};
+```
+
