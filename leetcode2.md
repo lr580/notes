@@ -4464,6 +4464,14 @@
 - 3904\.最小稳定下标II
 
   前缀和
+  
+- 940\.不同的子序列II
+
+  **DP**
+
+- 3871\.统计范围内的逗号II
+
+  签到 数学
 
 
 ## 算法
@@ -36358,4 +36366,63 @@ public:
     }
 };
 ```
+
+##### 940\.不同的子序列II
+
+[题目](https://leetcode.cn/problems/distinct-subsequences-ii)
+
+```c++
+using ll = long long;
+const ll mod = 1e9 + 7;
+class Solution {
+public:
+    int distinctSubseqII(string s) {
+        int n = s.size();
+        vector<vector<ll>> dp(n+1, vector<ll>(26, 0));
+        for(int i=1;i<=n;i++) {
+            int c = s[i-1] - 'a';
+            for(int j=0;j<26;j++) {
+                dp[i][j] = dp[i-1][j];
+            }
+            dp[i][c] = 0;
+            for(int j=0;j<26;j++) {
+                dp[i][c] += dp[i-1][j];
+                dp[i][c] %= mod;
+            }
+            dp[i][c] = (dp[i][c] + 1) % mod;
+        }
+        ll ans = 0;
+        for(int i=0;i<26;i++) {
+            ans += dp[n][i];
+            ans %= mod;
+        }
+        return ans%mod;
+    }
+};
+```
+
+##### 3871\.统计范围内的逗号
+
+[题目](https://leetcode.cn/problems/count-commas-in-range)
+
+##### 3871\.统计范围内的逗号II
+
+[题目](https://leetcode.cn/problems/count-commas-in-range-ii)
+
+```c++
+using ll = unsigned long long;
+class Solution {
+public:
+    long long countCommas(long long n) {
+        ll ans = 0;
+        for(ll l=1,r=1000,k=0;l<=n;l*=1000,r*=1000,k++) {
+            ll cnt = min(r,(ll)n+1)-l;
+            ans += k * cnt;
+        }
+        return ans;
+    }
+};
+```
+
+还有类似前缀和累加的拆分贡献法。略。
 
