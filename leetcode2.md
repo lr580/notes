@@ -4472,6 +4472,22 @@
 - 3871\.统计范围内的逗号II
 
   签到 数学
+  
+- 2265\.统计值等于子树平均值的节点数
+
+  DFS
+  
+- 3483\.不同三位偶数的数目
+
+  签到 / <u>组合数学 / DP(生成函数)</u>
+
+- 3414\.不重叠区间的最大得分
+
+  <u>二分 DP</u>
+
+- 835\.图像重叠
+
+  签到 / <u>FTT/NTT</u>
 
 
 ## 算法
@@ -36425,4 +36441,356 @@ public:
 ```
 
 还有类似前缀和累加的拆分贡献法。略。
+
+##### 2265\.统计值等于子树平均值的节点数
+
+[题目](https://leetcode.cn/problems/count-nodes-equal-to-average-of-subtree)
+
+```c++
+/**
+ * Definition for a binary tree node.
+ * struct TreeNode {
+ *     int val;
+ *     TreeNode *left;
+ *     TreeNode *right;
+ *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+ *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
+ * };
+ */
+class Solution {
+    int ans;
+    pair<int, int> dfs(TreeNode* root) {
+        if(root == nullptr) {
+            return {0, 0}; // cnt, sum
+        }
+        auto l = dfs(root->left);
+        auto r = dfs(root->right);
+        int cnt = 1 + l.first + r.first;
+        int count = root->val + l.second + r.second;
+        if(count/cnt == root->val) {
+            ans++;
+        }
+        return {cnt, count};
+    }
+public:
+    int averageOfSubtree(TreeNode* root) {
+        ans = 0;
+        dfs(root);
+        return ans;
+    }
+};
+```
+
+##### 3483\.不同三位偶数的数目
+
+[题目](https://leetcode.cn/problems/unique-3-digit-even-numbers)
+
+暴力，或者0x3f有简单组合求法。
+
+任意多位：解生成函数
+
+枚举首尾后，剩下 m-2 位，等价于求多重集 {0, 1, ..., 9} 选出 m-2 个元素排成不同序列的方案数，可以使用 DP 求生成函数。单次求解复杂度 O(L m^2)，m 是目标位数，本题 m=3。L =10是数字种类数。
+加上枚举首尾，总复杂度为 O(m^2 L^3)。
+
+```c++
+class Solution {
+    // 设组成 m 位数，去首尾后，中间 n=m-2 位方案数
+    const int n = 3 - 2;
+
+    vector<int> fac; // inv(n+1); 可以上逆元
+    void init() {
+        fac.resize(n+1);
+        fac[0] = 1;
+        for(int i=1;i<=n;i++) {
+            fac[i] = fac[i-1] * i;
+        }
+    }
+    int C(int n, int m) { // n 选 m
+        return fac[n] / fac[m] / fac[n-m];
+    }
+
+    // 子问题：多重集 {0, 1, ..., 9}，各元素频次为 cnt，选出 n 个元素排成不同序列的方案数
+    int solve(const vector<int>& cnt) {
+        // dp[d][i] 只考虑前 d 种数字，长度为 i 的序列方案数
+        vector<int> dp(n+1, 0), dp2(n+1, 0); // 压缩数组 dp[d][i] 为 dp, dp2
+        dp[0] = 1;
+        for(int d=0;d<10;d++) {
+            dp2 = dp;
+            for(int i=0; i<=n; i++) {
+                if(dp[i] == 0) {
+                    continue;
+                }
+                // 当前第 d 位数字用 t 个
+                for(int t=1;t<=cnt[d]&&i+t<=n;t++) {
+                    int j = i+t;
+                    // 在 j 个位置里，有 C(j, t) 个放数字 d
+                    dp2[j] += dp[i] * C(j, t);
+                }
+            }
+            dp.swap(dp2);
+        }
+        return dp[n];
+    }
+public:
+    int totalNumbers(vector<int>& digits) {
+        init();
+        vector<int> cnt(10, 0);
+        for(int&d:digits) {
+            cnt[d]++;
+        }
+        int ans = 0;
+        for(int i=1;i<=9;i++) {
+            if(cnt[i] == 0){
+                continue;
+            }
+            cnt[i]--;
+            for(int j=0;j<10;j+=2) {
+                if(cnt[j] == 0) {
+                    continue;
+                }
+                cnt[j]--;
+                ans += solve(cnt);
+                cnt[j]++;
+            }
+            cnt[i]++;
+        }
+        return ans;
+    }
+};
+```
+
+##### 3414\.不重叠区间的最大得分
+
+[题目](https://leetcode.cn/problems/maximum-score-of-non-overlapping-intervals)
+
+```c++
+class Solution {
+public:
+    vector<int> maximumWeight(vector<vector<int>>& intervals) {
+        int n = intervals.size();
+        struct tuple { int l, r, weight, i; };
+        vector<tuple> a(n);
+        for (int i = 0; i < n; i++) {
+            a[i] = {intervals[i][0], intervals[i][1], intervals[i][2], i};
+        }
+        ranges::sort(a, {}, &tuple::r);
+
+        vector<array<pair<long long, vector<int>>, 5>> f(n + 1);
+        for (int i = 0; i < n; i++) {
+            auto [l, r, weight, idx] = a[i];
+            int k = lower_bound(a.begin(), a.begin() + i, l, [](tuple& t, int val) { return t.r < val; }) - a.begin();
+            for (int j = 1; j < 5; j++) {
+                long long s1 = f[i][j].first;
+			    // 为什么是 f[k] 不是 f[k+1]：上面算的是 >= l，-1 后得到 < l，但由于还要 +1，抵消了
+                long long s2 = f[k][j - 1].first + weight;
+                if (s1 > s2) {
+                    f[i + 1][j] = f[i][j];
+                    continue;
+                }
+                vector<int> new_id = f[k][j - 1].second;
+                new_id.push_back(idx);
+                ranges::sort(new_id);
+                if (s1 == s2 && f[i][j].second < new_id) {
+                    new_id = f[i][j].second;
+                }
+                f[i + 1][j] = {s2, new_id};
+            }
+        }
+        return f[n][4].second;
+    }
+};
+```
+
+##### 835\.图像重叠
+
+[题目]()
+
+暴力
+
+```c++
+class Solution {
+public:
+    int largestOverlap(vector<vector<int>>& img1, vector<vector<int>>& img2) {
+        int n = img1.size(), ans = 0;
+        for(int dx = -n; dx <= n; dx++) {
+            for(int dy = -n; dy <= n; dy++) {
+                int cnt = 0;
+                for(int i = 0; i < n; i++) {
+                    for(int j = 0; j < n; j++) {
+                        int v2 = img2[i][j];
+                        if(v2 == 0) {
+                            continue;
+                        }
+                        int x = i + dx, y = j + dy, v1 = 0;
+                        if(!(x<0 || y<0 || x>=n || y >=n)) {
+                            v1 = img1[x][y];
+                        }
+                        if(v1 == v2) {
+                            cnt++;
+                        }
+                    }
+                }
+                ans = max(ans, cnt);
+            }
+        }
+        return ans;
+    }
+};
+```
+
+NTT：
+
+```c++
+// https://leetcode.cn/problems/image-overlap/
+// 835. 图像重叠 —— 二维卷积法（NTT），复杂度 O(n^2 log n)
+//
+// ============================ 数学建模 ============================
+// 目标：对每个平移量 (dx, dy), dx,dy ∈ [-(n-1), n-1]，求
+//       R(dx, dy) = Σ_i Σ_j img1[i][j] * img2[i+dx][j+dy]      （二维互相关）
+//
+// 互相关 -> 线性卷积：把 img1 旋转 180°，令
+//       A[i][j] = img1[n-1-i][n-1-j]，  B[i][j] = img2[i][j]
+// 则线性卷积 D = A * B：
+//       D[u][v] = Σ_{i,j} A[i][j] * B[u-i][v-j]
+//               = Σ_{x,y} img1[x][y] * img2[u-n+1+x][v-n+1+y]
+//               = R(u-n+1, v-n+1)
+// 即 R(dx, dy) = D[n-1+dx][n-1+dy]，所有答案都在 D 的 [0, 2n-2]^2 区域内。
+//
+// ============================ NTT 选型 ============================
+// 元素为 0/1，卷积结果 ≤ n^2 ≤ 900，模数 998244353（原根 g=3）远大于结果，
+// 取模不改变真值 -> 精确整数，无 FFT 的浮点舍入误差；且模数支持 2^23 长度，
+// 本题 L=64（n≤30）绰绰有余。
+//
+// ============================ 计算流程 ============================
+// 1) A、B 零填充到 L×L（L 为 ≥ 2n-1 的最小 2 次幂），保证线性卷积不发生循环混叠；
+// 2) 二维 NTT：先对每行做 NTT，再对每列做 NTT（可分离性）；
+// 3) 频域逐点相乘；
+// 4) 二维逆 NTT（逆列、逆行），读 D[0..2n-2][0..2n-2] 的最大值。
+// 一维 NTT 长度 L 耗时 O(L log L)，共 2L 条行/列 -> O(L^2 log L) = O(n^2 log n)。
+
+#include <bits/stdc++.h>
+using namespace std;
+
+constexpr int MOD = 998244353;
+constexpr int G = 3; // 模 MOD 的原根
+
+static long long modPow(long long a, long long e) {
+    long long r = 1;
+    while (e > 0) {
+        if (e & 1) r = r * a % MOD;
+        a = a * a % MOD;
+        e >>= 1;
+    }
+    return r;
+}
+
+// 迭代版一维 NTT（Cooley–Tukey，位逆序置换）
+static void ntt(vector<int>& a, bool invert) {
+    int n = static_cast<int>(a.size());
+
+    for (int i = 1, j = 0; i < n; ++i) {
+        int bit = n >> 1;
+        for (; j & bit; bit >>= 1) j ^= bit;
+        j ^= bit;
+        if (i < j) swap(a[i], a[j]);
+    }
+
+    for (int len = 2; len <= n; len <<= 1) {
+        int wlen = static_cast<int>(modPow(G, (MOD - 1) / len));
+        if (invert) wlen = static_cast<int>(modPow(wlen, MOD - 2));
+
+        for (int i = 0; i < n; i += len) {
+            long long w = 1;
+            for (int j = 0; j < len / 2; ++j) {
+                int u = a[i + j];
+                int v = static_cast<int>(a[i + j + len / 2] * w % MOD);
+
+                int x = u + v;
+                if (x >= MOD) x -= MOD;
+                int y = u - v;
+                if (y < 0) y += MOD;
+                a[i + j] = x;
+                a[i + j + len / 2] = y;
+
+                w = w * wlen % MOD;
+            }
+        }
+    }
+
+    if (invert) {
+        int invN = static_cast<int>(modPow(n, MOD - 2));
+        for (int& x : a) x = static_cast<int>(1LL * x * invN % MOD);
+    }
+}
+
+// 二维 NTT：先行后列；逆变换同理（逆列/逆行顺序不影响结果）
+static void ntt2d(vector<int>& a, int L, bool invert) {
+    vector<int> line(L);
+
+    for (int i = 0; i < L; ++i) {
+        for (int j = 0; j < L; ++j) line[j] = a[i * L + j];
+        ntt(line, invert);
+        for (int j = 0; j < L; ++j) a[i * L + j] = line[j];
+    }
+
+    for (int j = 0; j < L; ++j) {
+        for (int i = 0; i < L; ++i) line[i] = a[i * L + j];
+        ntt(line, invert);
+        for (int i = 0; i < L; ++i) a[i * L + j] = line[i];
+    }
+}
+
+class Solution {
+public:
+    int largestOverlap(vector<vector<int>>& img1, vector<vector<int>>& img2) {
+        int n = static_cast<int>(img1.size());
+
+        int L = 1;
+        while (L < 2 * n - 1) L <<= 1; // 线性卷积尺寸 2n-1，向上取 2 次幂
+
+        vector<int> A(1LL * L * L, 0), B(1LL * L * L, 0);
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                A[i * L + j] = img1[n - 1 - i][n - 1 - j]; // img1 旋转 180°
+                B[i * L + j] = img2[i][j];
+            }
+        }
+
+        // 频域：Â · B̂
+        ntt2d(A, L, false);
+        ntt2d(B, L, false);
+        for (int k = 0, total = L * L; k < total; ++k) {
+            A[k] = static_cast<int>(1LL * A[k] * B[k] % MOD);
+        }
+        ntt2d(A, L, true); // D = A * B（时域线性卷积）
+
+        int ans = 0;
+        for (int u = 0; u <= 2 * n - 2; ++u) {
+            for (int v = 0; v <= 2 * n - 2; ++v) {
+                ans = max(ans, A[u * L + v]); // R(dx,dy) = D[n-1+dx][n-1+dy]
+            }
+        }
+        return ans;
+    }
+};
+
+// ------------------------------ 测试 / 暴力对拍 ------------------------------
+static int bruteForce(const vector<vector<int>>& a, const vector<vector<int>>& b) {
+    int n = static_cast<int>(a.size()), ans = 0;
+    for (int dx = -(n - 1); dx <= n - 1; ++dx) {
+        for (int dy = -(n - 1); dy <= n - 1; ++dy) {
+            int cnt = 0;
+            for (int i = 0; i < n; ++i) {
+                for (int j = 0; j < n; ++j) {
+                    int x = i + dx, y = j + dy;
+                    if (0 <= x && x < n && 0 <= y && y < n && a[i][j] && b[x][y]) ++cnt;
+                }
+            }
+            ans = max(ans, cnt);
+        }
+    }
+    return ans;
+}
+```
 
