@@ -4488,6 +4488,44 @@
 - 835\.图像重叠
 
   签到 / <u>FTT/NTT</u>
+  
+- 3545\.不同字符数量最多为K时的最少删除数
+
+  贪心
+
+- 3745\.三元素表达式的最大值
+
+  贪心
+
+- 3693\.爬楼梯II
+
+  DP / <u>斜率优化 / 李超线段树</u>
+
+- 377\.组合总数IV
+
+  DP / <u>矩阵快速幂 / NTT</u>
+
+- 2472\.不重叠回文子字符串的最大数目
+
+  贪心 Manacher DP
+
+- 1621\.大小为K的不重叠线段的数目
+
+  前缀和+DP / <u>组合数学</u>
+
+- 1477\.找两个和为目标值且不重叠的子数组
+
+  前缀和+STL / <u>滑动窗口</u>
+
+- 2266\.统计打字方案数
+
+  DP / 矩阵快速幂
+
+- 1520\.最多的不重叠子字符串
+
+  前缀和/(<u>二分/DFS</u>) + DP/<u>贪心</u>
+
+
 
 
 ## 算法
@@ -36792,5 +36830,503 @@ static int bruteForce(const vector<vector<int>>& a, const vector<vector<int>>& b
     }
     return ans;
 }
+```
+
+##### 3545\.不同字符数量最多为K时的最少删除数
+
+[题目](https://leetcode.cn/problems/minimum-deletions-for-at-most-k-distinct-characters)
+
+##### 3745\.三元素表达式的最大值
+
+[题目](https://leetcode.cn/problems/maximize-expression-of-three-elements)
+
+##### 3693\.爬楼梯II
+
+[题目](https://leetcode.cn/problems/climbing-stairs-ii/)
+
+```c++
+class Solution {
+public:
+    int climbStairs(int n, vector<int>& costs) {
+        vector<int> dp(n+1, 0);
+        for(int j=1;j<=n;j++) {
+            dp[j] = 2e9;
+            for(int i=max(0,j-3);i<j;i++) {
+                dp[j] = min(dp[j], dp[i] + costs[j-1] + (j-i)*(j-i));
+                // cout << "i=" << i << " j=" << j << " " << dp[j] << "\n";
+            }
+        }
+        return dp[n];
+    }
+};
+```
+
+由于取 min，不能矩阵快速幂。
+
+若可以任意阶，而不是 k=3，考虑斜率优化：
+
+```
+dp[i] = costs[i] + min_{0≤j<i} ( dp[j] + (i-j)² )
+```
+
+展开平方，提取 i
+
+```
+dp[i] = costs[i] + i² + min_{j<i} ( dp[j] + j² - 2i·j )
+```
+
+变量是 i，斜率是 -2j，截距是 dp[j]+j^2。其中，斜率随着 j 增大递减。使用单调队列维护下凸壳。
+
+```c++
+#include <vector>
+#include <deque>
+using namespace std;
+
+class Solution {
+public:
+    int climbStairs(int n, vector<int>& costs) {
+        // dp[i] = 到达第 i 级台阶的最小成本
+        // 递推: dp[i] = costs[i] + min_{0<=j<i} ( dp[j] + (i-j)^2 )
+        // 展开: dp[i] = costs[i] + i^2 + min_{j<i} ( -2j*i + (dp[j]+j^2) )
+        // 每条 j 对应直线 y = m*x + b, 其中 m=-2j, b=dp[j]+j^2, 查询 x=i
+        // 斜率 m 随 j 单调递减, 查询点 x=i 单调递增 -> 单调队列维护下凸壳
+
+        vector<long long> dp(n + 1, 0);
+        deque<pair<long long, long long>> dq; // {m, b}
+
+        // 初始加入 j=0: m=0, b=dp[0]+0=0
+        dq.push_back({0, 0});
+
+        for (int i = 1; i <= n; ++i) {
+            // ===== 查询 x=i: 弹出队首不再最优的直线 =====
+            while (dq.size() >= 2) {
+                auto [m1, b1] = dq[0];
+                auto [m2, b2] = dq[1];
+                if (m1 * i + b1 >= m2 * i + b2) {
+                    dq.pop_front();
+                } else {
+                    break;
+                }
+            }
+
+            auto [m_best, b_best] = dq.front();
+            // costs 题目中下标从 1 开始, vector 中 costs[i-1] 即题目 costs[i]
+            dp[i] = (long long)costs[i - 1] + (long long)i * i
+                  + (m_best * i + b_best);
+
+            // ===== 插入新直线 j=i: m=-2i, b=dp[i]+i^2 =====
+            long long new_m = -2LL * i;
+            long long new_b = dp[i] + (long long)i * i;
+
+            while (dq.size() >= 2) {
+                auto [m1, b1] = dq[dq.size() - 2];
+                auto [m2, b2] = dq[dq.size() - 1];
+                // 下凸性判断: 若 intersect(l1,l3) <= intersect(l1,l2), 则 l2 无用
+                // 交点 x(la,lb) = (bb-ba)/(ma-mb)
+                // 交叉相乘避免浮点 (分母均为正, 不等号方向不变)
+                if ((new_b - b1) * (m1 - m2) <= (b2 - b1) * (m1 - new_m)) {
+                    dq.pop_back();
+                } else {
+                    break;
+                }
+            }
+            dq.push_back({new_m, new_b});
+        }
+
+        return dp[n];
+    }
+};
+```
+
+如果任意而不是无穷k，则使用李超线段树。
+
+##### 373\.组合总数IV
+
+[题目](https://leetcode.cn/problems/combination-sum-iv)
+
+```c++
+using ll = long long;
+const ll mod = 1e13;
+class Solution {
+public:
+    int combinationSum4(vector<int>& nums, int target) {
+        vector<ll> dp(target+1);
+        dp[0] = 1;
+        for(int i=1;i<=target;i++) {
+            for(int v:nums) {
+                if(i >= v) {
+                    dp[i] += dp[i-v];
+                    dp[i] %= mod;
+                }
+            }
+            // cout << dp[i] << " ";
+            // 1
+            // 1,1 ; 2
+            // 1,1,1; 2,1; 1,2; 3
+            // 1,1,1,1; 2,1,1; 1,2,1; 3,1; 1,1,2; 2,2; 1,3
+        }
+        return dp[target];
+    }
+};
+```
+
+两层for对调时，是排列总数。
+
+m=max nums，如果 n 巨大，矩阵快速幂 m^3logT
+
+再优化，可以用多项式倍增，或者生成函数NTT求逆。
+
+题设说如果有负数，那么会无限方案，比如 1+1-1+1-1。
+
+##### 2472\.不重叠回文子字符串的最大数目
+
+[题目](https://leetcode.cn/problems/maximum-number-of-non-overlapping-palindrome-substrings)
+
+我的思路：只需要k和k+1。区间DP求回文串，DP计数。
+
+```c++
+class Solution {
+public:
+    int maxPalindromes(string s, int k) {
+        int n = s.size();
+        if(k==1) {
+            return n;
+        }
+        vector<vector<bool>> isPali(n, vector<bool>(n, 0));
+        for(int i=0;i<n;i++) isPali[i][i] = true;
+        for(int i=0;i<n-1;i++) if(s[i]==s[i+1]) isPali[i][i+1] = true;
+        for(int len=3;len<=k+1;len++) {
+            for(int l=0,r=len-1;r<n;l++,r++) {
+                if(s[l]==s[r]&&isPali[l+1][r-1]) {
+                    isPali[l][r] = true;
+                }
+            }
+        }
+        if(k==n) {
+            return isPali[0][k-1];
+        }
+        vector<int> dp(n, 0);
+        dp[k-1] = isPali[0][k-1];
+        dp[k] = max({isPali[0][k-1], isPali[0][k], isPali[1][k]});
+        for(int i=k+1;i<n;i++) {
+            dp[i] = max(dp[i], isPali[i-k+1][i] + dp[i-k]);
+            dp[i] = max(dp[i], isPali[i-k][i] + dp[i-k-1]);
+            dp[i] = max(dp[i], dp[i-1]);
+        }
+        for(int i=0;i<n;i++) {
+            cout << dp[i] << " ";
+        }
+        return dp[n-1];
+    }
+};
+```
+
+取区间，dp也可以换成贪心。显然可以上 manacher。
+
+##### 1621\.大小为K的不重叠线段的数目
+
+[题目](https://leetcode.cn/problems/number-of-sets-of-k-non-overlapping-line-segments)
+
+设 $dp[i][j]$ 表示最后一个区间端点在 $i$，用了 $j$ 个区间。
+
+假设第 $j$ 个区间是 $[i-1, i]$，则：
+
+$$
+dp[1][j-1]+dp[2][j-1]+\cdots+dp[i-1][j-1]=\sum_{x=1}^{i-1}dp[x][j-1]
+$$
+
+假设第 $j$ 个区间是 $[i-2, i]$，则：
+
+$$
+dp[1][j-1]+dp[2][j-1]+\cdots+dp[i-2][j-1]=\sum_{x=1}^{i-2}dp[x][j-1]
+$$
+
+假设第 $j$ 个区间是 $[i-3, i]$，则：
+
+$$
+dp[1][j-1]+dp[2][j-1]+\cdots+dp[i-3][j-1]=\sum_{x=1}^{i-3}dp[x][j-1]
+$$
+
+所有有效的第 $j$ 个区间是 $[y,i]$，其中 $y=1,2,\dots,i-1$，即
+
+$$
+dp[i][j]=\sum_{y=1}^{i-1}\sum_{x=1}^{y}dp[x][j-1]
+$$
+
+令一阶前缀和 $s[y]=\sum_{x=1}^y dp[x][j-1]$，则：
+
+$$
+dp[i][j]=\sum_{y=1}^{i-1}s[y]
+$$
+
+令二阶前缀和 $s2[t]=\sum_{y=1}^{t} s[y]$，则：
+
+$$
+dp[i][j]=s2[i-1]
+$$
+
+```c++
+using ll = long long;
+const ll mod = 1e9+7;
+class Solution {
+public:
+    int numberOfSets(int n, int k) {
+        vector<vector<ll>> dp(n+1, vector<ll>(k+1, 0)); // 最后一个区间端点在i，共j个区间；点在[1,n]
+        vector<ll> s(n+1, 0); // sum of (sum of dp[i][j-1])
+        for(int i=1;i<=n;i++) s[i]=i;
+        for(int j=1;j<=k;j++) {
+            for(int i=j;i<=n;i++) {
+                dp[i][j] = s[i-1];
+            }
+            for(int i=1;i<=n;i++) {
+                s[i] = (s[i-1] + dp[i][j]) % mod;
+            }
+            for(int i=1;i<=n;i++) {
+                s[i] = (s[i-1] + s[i]) % mod;
+            }
+        }
+        ll ans = 0;
+        for(int i=1;i<=n;i++) {
+            ans = (ans + dp[i][k]) % mod;
+        }
+        return ans;
+    }
+};
+```
+
+设 $dp[i][j]$ 表示前 $i$ 个点，放置恰好 $j$ 个不重叠线段的总方案数。
+
+分两类讨论：
+
+1. 第 $i$ 个点不作为任何线段的右端点：方案等价于在前 $i-1$ 个点放置 $j$ 条线段。
+
+$$
+dp[i][j]+=dp[i-1][j]
+$$
+
+2. 第 $i$ 个点作为某条线段的右端点，设这条线段左端点为 $t$，线段 $[t,i]$，$1\le t\le i-1$。在前 $t$ 个点放置 $j-1$ 条线段，对所有合法 $t$ 求和：
+
+$$
+dp[i][j]+=\sum_{t=1}^{i-1}dp[t][j-1]
+$$
+
+合并得到状态转移方程：
+
+$$
+dp[i][j]=dp[i-1][j]+\sum_{t=1}^{i-1}dp[t][j-1]
+$$
+
+定义一阶前缀和 $s[i][j]=\sum_{x=1}^i dp[x][j]$，则
+
+$$
+\sum_{t=1}^{i-1}dp[t][j-1]=s[i-1][j-1]
+$$
+
+代入，得到优化后的递推式：
+
+$$
+dp[i][j]=dp[i-1][j]+s[i-1][j-1]
+$$
+
+前缀和更新规则：
+
+$$
+s[i][j]=s[i-1][j]+dp[i][j]
+$$
+
+初始条件：
+
+$$
+\begin{cases}
+dp[i][0] = 1,\quad \forall i\ge 0 \\
+dp[0][j] = 0,\quad j>0
+\end{cases}
+$$
+
+最终答案为 $dp[n][k]$。
+
+```c++
+using ll = long long;
+const ll mod = 1e9+7;
+class Solution {
+public:
+    int numberOfSets(int n, int k) { // 点编号 [1, n]
+        // dp[i][j]：前i个点，一共j个区间
+        vector<vector<ll>> dp(n+1, vector<ll>(k+1, 0));
+        vector<ll> s(n+1, 0); // s[i] = sum_{x=1}^i dp[x][j-1] 一阶前缀和
+        for(int i = 0; i <= n; i++){
+            dp[i][0] = 1;
+        }
+        for(int i = 1; i <= n; i++){
+            s[i] = (s[i-1] + dp[i][0]) % mod;
+        }
+        for(int j=1;j<=k;j++) {
+            for(int i=j;i<=n;i++) {
+                dp[i][j] = (dp[i-1][j] + s[i-1]) % mod;
+            }
+            for(int i=1;i<=n;i++) {
+                s[i] = (s[i-1] + dp[i][j]) % mod;
+            }
+        }
+        ll ans = dp[n][k] % mod;
+        return ans;
+    }
+};
+```
+
+组合数学解法，见 0x3f，隔板法。
+
+##### 1477\.找两个和为目标值且不重叠的子数组
+
+[题目](https://leetcode.cn/problems/find-two-non-overlapping-sub-arrays-each-with-target-sum)
+
+同样适用于负数。对前半部分找 = target 的区间，对后半部分也找，找到后跟对应前半部分合并。
+
+```c++
+class Solution {
+public:
+    int minSumOfLengths(vector<int>& arr, int target) {
+        int n = arr.size();
+        vector<int> s(n+1, 0);
+        for(int i=1;i<=n;i++) {
+            s[i] = s[i-1] + arr[i-1];
+        }
+        map<int, int> lm;
+        lm[0] = 0;
+        vector<int> lans(n+1, 1e9);
+        for(int i=1;i<=n;i++) { // s[r] - s[l] = target
+            if(lm.find(s[i] - target) != lm.end()) {
+                int j = lm[s[i] - target];
+                lans[i] = i - j;
+                // cout << "lans: " << j << " " << i << "\n";
+            }
+            lans[i] = min(lans[i-1], lans[i]);
+            lm[s[i]] = i;
+        }
+
+        map<int, int> rm;
+        int rans = 1e9, ans = 1e9;
+        for(int i=n;i>=1;i--) {
+            if(rm.find(s[i] + target) != rm.end()) {
+                int j = rm[s[i] + target];
+                rans = min(rans, j - i);
+                // cout << "rans: " << i << " " << j << "\n";
+            }
+            ans = min(ans, rans + lans[i]);
+            rm[s[i]] = i;
+        }
+        return ans == 1e9 ? -1 : ans;
+    }
+};
+```
+
+##### 1520\.最多的不重叠子字符串
+
+[题目](https://leetcode.cn/problems/maximum-number-of-non-overlapping-substrings)
+
+最多取 26 个区间：包含字母 i 的最小区间。求法：先判定 i 的原始边界为 [l, r]，对每个其他字母 j，若在区间 [l, r] 内有字母 j (使用前缀和预处理)，那么把 [l, r] 与 j 的区间合并得到更大的区间。最多不超过 26 次合并。预处理前缀和 O(26n)，求区间 O(26^3)：遍历i，最多26次遍历j。（合并j后可以把j从i遍历删掉，优化为O(26^2) ，但26^3<n，这里略）。
+
+这26个区间可以表达为 unmap / map<r,l>，可以 O1 取右端点对应的区间。
+
+随后做DP，设 dp[i] 表示选取的全部区间的右端点不超过i下的答案。若存在右端点为i的区间[l,i]，尝试把答案更新为dp[l-1] + 区间[l,r]。
+
+总复杂度是前缀和复杂度，即 O(26n)。
+
+优化：
+
+- 可以用二分代替前缀和，或者 0x3f 的图 DFS
+- 用贪心代替 DP，避免维护方案数。或者用前向指针
+
+```c++
+struct scheme {
+    vector<pair<int, int>> intevals;
+    int len; // 懒计算
+    friend ostream& operator<<(ostream& os, const scheme& sc);
+};
+ostream& operator<<(ostream& os, const scheme& sc) { // for debug
+    os << "len:" << sc.len << ", intevals:[";
+    for (size_t i = 0; i < sc.intevals.size(); ++i) {
+        auto& p = sc.intevals[i];
+        os << "(" << p.first << "," << p.second << ")";
+        if (i != sc.intevals.size() - 1) {
+            os << ", ";
+        }
+    }
+    os << "]";
+    return os;
+}
+class Solution {
+public:
+    vector<string> maxNumOfSubstrings(string s) {
+        int n = s.size();
+        map<int, int> cl, cr;
+        vector<int> sum[26];
+        for(int i=0;i<n;i++) {
+            int c = s[i] - 'a';
+            if(cl.find(c) == cl.end()) cl[c] = i;
+            cl[c] = min(cl[c], i);
+            cr[c] = max(cr[c], i);
+        }
+        for(int j=0;j<26;j++) sum[j].push_back(0);
+        for(int i=0;i<n;i++) {
+            for(int j=0;j<26;j++) {
+                sum[j].push_back(sum[j][i] + (s[i]-'a'==j));
+            }
+        }
+        set<pair<int,int>> inteval; // 包含全部字母 i 的最小区间
+        for(auto&[i, _]:cr) {  // example s = "adcabc"
+            int l = cl[i], r = cr[i];
+            bool spanned = false; // 扩展后重新遍历，最多扩展 26 次，O(26^2)
+            while(true) {
+                for(auto&[j, _]:cr) {
+                    if(sum[j][r+1]-sum[j][l]==0) { // [l, r] 没字符 j
+                        continue;
+                    }
+                    // cout << "span " << (char)('a'+i) << " " << (char)('a' + j) << " " << 
+                    //    l << " " << r << " " << cl[j] << " " << cr[j] << "\n";
+                    if(!(l<=cl[j] && cr[j]<=r)) { // i不包含j
+                        spanned = true;
+                        l = min(l, cl[j]);
+                        r = max(r, cr[j]);
+                    }
+                }
+                if(!spanned) {
+                    break;
+                }
+                spanned = false;
+            }
+            // cout << (char)('a' + i) << " " << l << " " << r << "\n";
+            inteval.insert({l, r});
+        }
+        // vector<pair<int,int>> a(inteval.begin(), inteval.end());
+        map<int, int> r2l;
+        for(auto&[l, r]:inteval) {
+            r2l[r+1] = l+1; // 1-indexed，对齐 DP
+            // cout << l << " " << r << "\n";
+        }
+        vector<int> dp(n+1, 0); // 只选取区间右端点<=i的区间，最大答案
+        vector<scheme> ans(n+1); // 与前缀和复杂度同阶
+        for(int i=1;i<=n;i++) {
+            dp[i] = dp[i-1];
+            ans[i] = ans[i-1];
+            if(r2l.find(i) != r2l.end()) {
+                int l = r2l[i], r = i;
+                int num = dp[l - 1] + 1;
+                if(num > dp[i] || (num == dp[i] && ans[l-1].len + (r-l+1) < ans[i].len)) {
+                    dp[i] = num;
+                    ans[i] = ans[l - 1];
+                    ans[i].intevals.push_back({l, r});
+                    ans[i].len += r-l+1;
+                }
+            }
+            // cout << dp[i] << " " << ans[i] << "\n";
+        }
+        vector<string> result; 
+        for(auto&[l,r]:ans[n].intevals) {
+            result.push_back(s.substr(l-1,r-l+1));
+        }
+        return result;
+    }
+};
 ```
 
