@@ -4524,6 +4524,30 @@
 - 1520\.最多的不重叠子字符串
 
   前缀和/(<u>二分/DFS</u>) + DP/<u>贪心</u>
+  
+- 1401\.圆和矩形是否有重叠
+
+  计算几何 / <u>数学</u>
+  
+- 3840\.打家劫舍V
+
+  DP
+
+- 2248\.多个数组求交集
+
+  k/双指针
+
+- 3498\.字符串的反转度
+
+  签到
+
+- 3938\.矩阵中最大共享路径和
+
+  <u>DP</u>
+
+- 3984\.可整除游戏
+
+  数论(质因数) + DP/<u>前缀和/线段树</u> 
 
 
 
@@ -37330,3 +37354,276 @@ public:
 };
 ```
 
+##### 1401\.圆和矩形是否有重叠
+
+[题目](https://leetcode.cn/problems/circle-and-rectangle-overlapping/)
+
+我的思路：https://leetcode.cn/problems/circle-and-rectangle-overlapping/solutions/2320124/ji-suan-ji-he-ji-chu-wen-ti-tong-yong-mo-7z8y/
+
+```c++
+using db = double;
+#define cp const point &
+class point
+{
+public:
+    db x, y;
+    point(db x = 0, db y = 0) : x(x), y(y) {}
+    point operator+(cp p) const { return point(x + p.x, y + p.y); }
+    point operator-(cp p) const { return point(x - p.x, y - p.y); }
+    point operator*(const db &p) const { return point(x * p, y * p); }
+    point operator/(const db &p) const { return point(x * p, y * p); }
+    db norm() const { return x * x + y * y; }
+    db abs() const { return sqrt(norm()); }
+    friend db dot(cp a, cp b)
+    {
+        return a.x * b.x + a.y * b.y;
+    }
+    friend db cross(cp a, cp b)
+    {
+        return a.x * b.y - a.y * b.x;
+    }
+};
+db dis(cp a, cp b, cp p) // p到线段ab的距离
+{
+    if (dot(b - a, p - a) < 0.0)
+    {
+        return (p - a).abs();
+    }
+    if (dot(a - b, p - b) < 0.0)
+    {
+        return (p - b).abs();
+    }
+    return abs(cross(b - a, p - a)) / (b - a).abs();
+}
+class Solution
+{
+public:
+    bool checkOverlap(int radius, int xCenter, int yCenter, int x1, int y1, int x2, int y2)
+    {
+        if (x1 <= xCenter && xCenter <= x2 && y1 <= yCenter && yCenter <= y2)
+        { // 内含
+            return true;
+        }
+        point p = point(xCenter, yCenter);
+        point a = point(x1, y1), b = point(x2, y1), c = point(x2, y2), d = point(x1, y2);
+        if (dis(a, b, p) <= radius || dis(b, c, p) <= radius || dis(c, d, p) <= radius || dis(d, a, p) <= radius)
+        {
+            return true;
+        }
+        return false;
+    }
+};
+```
+
+优化，即判定是否存在 (x-x0)^2 + (y-y0)^2 <= r^2，要最小化左边，x,y 相互独立，取值范围是 [x1, x2], [y1, y2]。分别取这个区间内离 x0 / y0 最近即可。
+
+```c++
+class Solution {
+public:
+    int checkOverlap(int radius, int xCenter, int yCenter, int x1, int y1, int x2, int y2) {
+        // 找到在矩形中的到圆心 (xCenter, yCenter) 最近的点 (x, y)
+        int x = clamp(xCenter, x1, x2); // max(x1, min(xCenter, x2))
+        int y = clamp(yCenter, y1, y2); // max(y1, min(yCenter, y2))
+
+        // 判断 (x, y) 是否在圆中
+        return (x - xCenter) * (x - xCenter) + (y - yCenter) * (y - yCenter) <= radius * radius;
+    }
+};
+```
+
+##### 3840\.打家劫舍V
+
+[题目](https://leetcode.cn/problems/house-robber-v)
+
+```c++
+using ll = long long;
+class Solution {
+public:
+    ll rob(vector<int>& nums, vector<int>& colors) {
+        int n = nums.size();
+        vector<ll> dp(n+1, 0);
+        dp[1] = nums[0];
+        for(int i=1;i<n;i++) {
+            if(colors[i]==colors[i-1]) {
+                dp[i+1] = max(dp[i], dp[i-1] + nums[i]);
+            } else {
+                dp[i+1] = dp[i] + nums[i];
+            }
+        }
+        return dp[n];
+    }
+};
+```
+
+##### 2248\.多个数组求交集
+
+[题目](https://leetcode.cn/problems/intersection-of-multiple-arrays/)
+
+拼多多一面笔试改。
+
+```c++
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+class Solution {
+public:
+    vector<int> intersection(vector<vector<int>>& nums) {
+        int k = nums.size();
+        // 对每个子数组排序
+        for (int j = 0; j < k; j++) {
+            sort(nums[j].begin(), nums[j].end());
+        }
+
+        vector<int> p(k, 0);
+        vector<int> ans;
+        int n = nums[0].size();
+
+        auto lastsame = [&](int& i, int j) {
+            int sz = nums[j].size();
+            while (i < sz - 1 && nums[j][i] == nums[j][i + 1]) {
+                i++;
+            }
+        };
+
+        for (int i = 0; i < n; i++) {
+            lastsame(i, 0);
+            int target = nums[0][i];
+            int cnt = 1;
+            for (int j = 1; j < k; j++) {
+                int nj = nums[j].size();
+                while (p[j] < nj && nums[j][p[j]] < target) {
+                    p[j]++;
+                }
+                if (p[j] < nj && nums[j][p[j]] == target) {
+                    cnt++;
+                }
+            }
+            if (cnt == k) {
+                ans.push_back(target);
+            }
+        }
+        return ans;
+    }
+};
+```
+
+##### 3498\.字符串的反转度
+
+[题目](https://leetcode.cn/problems/reverse-degree-of-a-string)
+
+```go
+func reverseDegree(s string) int {
+    deg := 0
+    for i, c := range s {
+        deg += (i+1) * (int)('z' - c + 1)
+    }
+    return deg
+}
+```
+
+##### 3938\.矩阵中最大共享路径和
+
+[题目](https://leetcode.cn/problems/maximum-path-intersection-sum-in-a-grid)
+
+```go
+func solve(a []int) (res int) {
+    res = -1e9
+    dp := a[0]
+    for _, x := range a[1:] {
+        res = max(res, dp + x)
+        dp = x + max(0, dp)
+    }
+    return 
+}
+func maxScore(grid [][]int) (ans int) {
+    ans = -1e9
+    n, m := len(grid), len(grid[0])
+    for _, row := range grid {
+        ans = max(ans, solve(row))
+    }
+    for j := range m {
+        col := make([]int, 0, m)
+        for i := range n {
+            col = append(col, grid[i][j])
+        }
+        ans = max(ans, solve(col))
+    }
+    if m >= 3 && n >= 3 {
+        for i := 1; i < n - 1; i++ {
+            for j := 1; j < m - 1; j++ {
+                ans = max(ans, grid[i][j])
+            } 
+        } 
+    }
+    return
+}
+```
+
+##### 3984\.可整除游戏
+
+[题目](https://leetcode.cn/problems/divisible-game)
+
+共有 n 个数，最多有 nlogm (m=1e6) 个因数，n sqrt(n) 求出全体因数，然后遍历每个因数，用 DP 求当前因数下的最大子数组和。
+
+```go
+func divisibleGame(nums []int) int {
+    n := len(nums)
+    f := make([]map[int]struct{}, n)
+    df := make(map[int]struct{})
+    for i, x := range nums { // O(n sqrt m), m = 1e6
+        f[i] = make(map[int]struct{})
+        for j := 2; j*j <= x; j++ {
+            if x % j == 0 {
+                f[i][j] = struct{}{}
+                df[j] = struct{}{}
+                f[i][x / j] = struct{}{}
+                df[x / j] = struct{}{}
+            }
+        }
+        if x > 1 {
+            f[i][x] = struct{}{}
+            df[x] = struct{}{}
+        }
+    }
+    ans, ansk := int(1e9), 2
+    mod := int64(1_000_000_007)
+    for _, x := range nums {
+        ans = min(ans, x)
+    }
+    ans = -ans
+    var ks []int
+    for k := range df {
+        ks = append(ks, k)
+    }
+    sort.Ints(ks)
+    for _, k := range ks {
+        dp, res := 0, int(-1e9)
+        for i, x := range nums {
+            v := x
+            if _, ok := f[i][k]; !ok {
+                v = -x
+            }
+            dp = v + max(0, dp)
+            res = max(res, dp)
+        }
+        if res > ans {
+            ans = res
+            ansk = k
+        }
+    }
+    // fmt.Println(ans, ansk)
+    ans = int((int64(ans) + mod) % mod)
+    return int(int64(ans) * int64(ansk) % mod)
+}
+```
+
+优化：
+
+1. 预处理多次询问，mlogm 复杂度求全体因数
+
+2. 注意到解决最大子数组和有三种办法，前缀和、DP、分治。
+
+   在分治的基础上，可以直接搞线段树，支持单点修改和根查询。每个节点维护：前缀和、包含左端点的最大子段和、包含右端点的最大子段和、子段和。详见：https://www.luogu.com.cn/problem/P4513
+
+线段树/前缀和解法见0x3f。
