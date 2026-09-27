@@ -4548,6 +4548,70 @@
 - 3984\.可整除游戏
 
   数论(质因数) + DP/<u>前缀和/线段树</u> 
+  
+- 54\.螺旋矩阵
+
+  模拟
+  
+- 1658\. 将 x 减到 0 的最小操作数
+
+  前缀和 / <u>滑动窗口</u>
+
+- 172\.阶乘后的零
+
+  数论
+
+- 227\.基本计算器II
+
+  模拟 递归
+
+- 726\.原子的数量
+
+  模拟 递归
+
+- 1096\.花括号展开II
+
+  模拟 递归
+
+- 343\.整数拆分
+
+  DP / <u>数学</u>
+
+- 394\.字符串解码
+
+  模拟 递归
+
+- 1190\.翻转每对括号间的子串
+
+  模拟 递归
+
+- 55\.跳跃游戏
+
+  贪心
+
+- 45\.跳跃游戏II
+
+  贪心
+
+- 1024\.视频拼接
+
+  **DP / 贪心**
+
+- 1807\.替换字符串中的括号内容
+
+  模拟
+
+- 3524\.求出数组的X值I
+
+  <u>DP</u>
+
+- 3524\.求出数组的X值II
+
+  **线段树**
+
+- 58\.最后一个单词的长度
+
+  模拟 签到
 
 
 
@@ -37627,3 +37691,644 @@ func divisibleGame(nums []int) int {
    在分治的基础上，可以直接搞线段树，支持单点修改和根查询。每个节点维护：前缀和、包含左端点的最大子段和、包含右端点的最大子段和、子段和。详见：https://www.luogu.com.cn/problem/P4513
 
 线段树/前缀和解法见0x3f。
+
+##### 54\.螺旋矩阵
+
+[题目](https://leetcode.cn/problems/spiral-matrix)
+
+维护 xmin, xmax, ymin, ymax，越界就换方向。更优是覆盖数组或计算每次遍历的长度。
+
+```c++
+class Solution {
+public:
+    vector<int> spiralOrder(vector<vector<int>>& matrix) {
+        vector<int> res;
+
+        int n = matrix.size();
+        int m = matrix[0].size();
+
+        int dx[4] = {0, 1, 0, -1};
+        int dy[4] = {1, 0, -1, 0};
+        int xmin = 0, xmax = n - 1, ymin = 0, ymax = m - 1;
+        int x = 0, y = 0, d = 0;
+
+        for (int i = 0; i < n * m; i++) {
+            res.push_back(matrix[x][y]);
+
+            int x2 = x + dx[d], y2 = y + dy[d];
+            if (!(xmin <= x2 && x2 <= xmax && ymin <= y2 && y2 <= ymax)) {
+                if (i == n * m - 1) {
+                    continue;
+                }
+                if (d == 0) {        // right -> down
+                    xmin++;
+                } else if (d == 1) { // down -> left
+                    ymax--;
+                } else if (d == 2) { // left -> up
+                    xmax--;
+                } else {             // up -> right
+                    ymin++;
+                }
+                d = (d + 1) % 4;
+                x2 = x + dx[d];
+                y2 = y + dy[d];
+            }
+            x = x2;
+            y = y2;
+        }
+        return res;
+    }
+};
+```
+
+##### 1658\. 将 x 减到 0 的最小操作数
+
+[题目](https://leetcode.cn/problems/minimum-operations-to-reduce-x-to-zero)
+
+1-indexed，设保留区间 [l, r]，即对前缀和，删去区间 [1, l), (r, n]，即寻找 s[n] - (s[r] - s[l-1]) = x，遍历 r，用 map 维护 s[l-1]。
+
+```c++
+using ll = long long;
+class Solution {
+public:
+    int minOperations(vector<int>& nums, int x) {
+        int n = nums.size();
+        vector<ll> s(n+1, 0);
+        for(int i=0;i<n;i++) {
+            s[i+1] = s[i] + nums[i];
+        }
+        if(s[n] == x) {return n;}
+        unordered_map<ll, int> m;
+        m[0] = 0;
+        int ans = 1e9;
+        for(int r=1;r<=n;r++) {
+            ll t = x - s[n] + s[r];
+            if (m.find(t) != m.end()) {
+                int l = m[t];
+                ans = min(ans, n - (r-l));
+            }
+            m[s[r]] = r;
+        }
+        return ans == 1e9 ? -1 : ans;
+    }
+};
+```
+
+##### 172\.阶乘后的零
+
+[题目](https://leetcode.cn/problems/factorial-trailing-zeroes)
+
+有数学更优的解，见题解。可以只统计5因子和加速计算。手撕真题。
+
+```c++
+class Solution {
+public:
+using ll = long long;
+const int primes[2] = {2, 5};
+
+int trailingZeroes(int n) {
+    int cnt[2] = {0, 0}; // 质因数个数
+    // ll checks = 1;
+    for(int i=1; i<=n; i++) {
+        for(int j=0, x=i; j<2; j++) {
+            int p = primes[j];
+            while(x % p == 0) {
+                cnt[j]++;
+                x /= p;
+            }
+        }
+        // checks *= i;
+    }
+    // cout << n << " " << cnt[0] << " " << cnt[1] << " " << checks << "\n";
+    return min(cnt[0], cnt[1]);
+}
+```
+
+##### 227\.基本计算器II
+
+[题目](https://leetcode.cn/problems/basic-calculator-ii)
+
+思路汇总：
+
+1. 左结合(从左往右算)：①多次遍历法，从高到低优先级遍历，从左往右，用懒标记或链表删除；②双栈(数栈+操作符栈)：严格单调栈；③递归下降，使用while处理连续同级运算
+
+   右结合(如幂)：①从右往左遍历；②不严格单调栈；③使用递归而不是while
+
+2. 单目运算(负数)：①双栈：先在解析阶段根据上一个处理的类型决定符号是单目还是双目，然后设定比乘除更高的优先级(跟幂比较的话，看题目规定)；②递归下降的最后一层，与括号同层处理
+
+   > 错误处理：暴力在负号前插入0，反例：`2*-3` -> `2*0-3`。括号也是反例
+
+3. 括号：①递归，如有必要可另按括号计数匹配找到当前子字符串下标范围开子问题，如无必要一般直接递归遇到右括号return；②双栈：操作数栈存左括号，遇到右括号不断弹栈直到弹走一个左括号；③递归下降：在最后一层处理，拿走一个左括号后，递归调用顶层解析函数，再拿右括号
+
+```c++
+using ll = long long; // -2147483648
+class Solution {
+    int i, n;
+    string s;
+    void skipspace() {
+        while(i<n&&s[i]==' ') {
+            i++;
+        }
+    }
+    bool match(char target) {
+        skipspace();
+        if(i<n && s[i] == target) {
+            i++;
+            return true;
+        }
+        return false;
+    }
+    bool matchrange(char low, char high) {
+        skipspace();
+        if(i<n && s[i] >= low && s[i] <= high) {
+            i++;
+            return true;
+        }
+        return false;
+    }
+
+    ll parse1() {
+        ll val = parse2();
+        while(true) {
+            if(match('+')) {
+                val += parse2();
+            }else if(match('-')) {
+                val -= parse2();
+            }else break;
+        }
+        return val;
+    }
+    ll parse2() {
+        ll val = parse3();
+        while(true) {
+            if(match('*')) {
+                val *= parse3();
+            }else if(match('/')) {
+                val /= parse3();
+            }else break;
+        }
+        return val;
+    }
+    ll parse3() {
+        skipspace();
+        bool isneg = false;
+        if(match('-')) {
+            isneg = true;
+        }
+        if(match('(')) {
+            ll val = parse1();
+            match(')');
+            return val * (isneg?-1:1);
+        }
+        int l = i;
+        while(matchrange('0', '9'));
+        // cout << l << " " << i << "\n";
+        string str = s.substr(l, i-l);
+        return stoll(str) * (isneg?-1:1);
+    }
+public:
+    int calculate(string s) {
+        i = 0, n = s.size();
+        this->s = move(s);
+        return parse1();
+    }
+};
+```
+
+##### 726\.原子的数量
+
+[题目](https://leetcode.cn/problems/number-of-atoms/description/)
+
+递归下降
+
+```c++
+class Solution {
+    // formula -> molecule*
+    // molecule -> atoms number
+    // atoms -> atom | ( formula )
+    int i, n;
+    string s;
+    map<string, int> parseFormula() {
+        map<string, int> formula;
+        while(i<n && s[i] != ')') {
+            map<string, int> molecule = parseMolecule();
+            for(auto&it:molecule) {
+                formula[it.first] += it.second;
+            }
+        } 
+        return formula;
+    };
+    map<string, int> parseMolecule() {
+        map<string, int> molecule;
+        if(i<n && s[i] == '(') {
+            i++;
+            molecule = parseFormula();
+            i++; // ')'
+        }else {
+            string atom = parseAtom();
+            molecule[atom] = 1;
+        }
+        int base = parseNum();
+        for(auto&it:molecule) {
+            molecule[it.first] *= base;
+        }
+        return molecule;
+    }
+    string parseAtom() {
+        string atom(1, s[i]);
+        i++;
+        while(i<n && islower(s[i])) {
+            atom += s[i++];
+        }
+        // cout << atom << "\n";
+        return atom;
+    }
+    int parseNum() {
+        int l = i;
+        while(i<n && isdigit(s[i])) {
+            i++;
+        }
+        if(l == i) {
+            return 1;
+        }
+        return stoi(s.substr(l, i-l));
+    }
+public:
+    string countOfAtoms(string formula) {
+        s = move(formula);
+        i = 0, n = s.size();
+        map<string, int> molecule = parseFormula();
+        string res;
+        for(auto&it:molecule) {
+            res += it.first;
+            if(it.second >1) res += to_string(it.second);
+        }
+        return res;
+    }
+};
+```
+
+##### 1096\.花括号展开II
+
+[题目](https://leetcode.cn/problems/brace-expansion-ii)
+
+递归：
+
+```c++
+class Solution {
+public:
+    vector<string> braceExpansionII(string expression) {
+        int i = 0, n = expression.size();
+        auto f = [&](this auto&& self) -> set<string> {
+            set<string> res, cur{""};
+            while(i<n) {
+                char c = expression[i];
+                i++;
+                if(c == '{') {
+                    set<string> sub = self();
+                    set<string> nxt;
+                    for(auto&l:cur) {
+                        for(auto&r:sub) {
+                            nxt.insert(l+r);
+                        }
+                    }
+                    cur = nxt;
+                }else if(c == '}') {
+                    res.insert(cur.begin(), cur.end());
+                    return res;
+                }else if(c == ',') {
+                    res.insert(cur.begin(), cur.end());
+                    cur = {""};
+                }else {
+                    set<string> nxt;
+                    for(auto&s:cur) {
+                        nxt.insert(s + c);
+                    }
+                    cur = nxt;
+                }
+            }
+            res.insert(cur.begin(), cur.end());
+            return res;
+        };
+        set<string> res = f();
+        vector<string> ans(res.begin(), res.end());
+        return ans;
+    }
+};
+```
+
+递归下降：
+
+```c++
+class Solution {
+    int i, n;
+    string s;
+    bool match(char c) {
+        if(i<n&&s[i]==c) {
+            i++;
+            return true;
+        }
+        return false;
+    }
+    set<string> parse1() {
+        set<string> res = parse2();
+        while(i<n) {
+            if(match(',')) {
+                set<string> cur = parse2();
+                res.insert(cur.begin(), cur.end());
+            }else break;
+        }
+        return res;
+    }
+    set<string> parse2() {
+        set<string> res{""};
+        while(i<n) {
+            if(match('{')) {
+                set<string> cur = parse1(), tmp;
+                for(auto&l:res) {
+                    for(auto&r:cur) {
+                        tmp.insert(l+r);
+                    }
+                }
+                res = move(tmp);
+                match('}');
+            }else if(isalpha(s[i])) {
+                set<string> tmp;
+                for(auto&l:res) {
+                    tmp.insert(l+s[i]);
+                }
+                res = move(tmp);
+                i++;
+            }else break;
+        }
+        return res;
+    }
+public:
+    vector<string> braceExpansionII(string expression) {
+        i = 0, n = expression.size();
+        s = move(expression);
+        set<string> ans = parse1();
+        return vector<string>(ans.begin(), ans.end());
+    }
+};
+```
+
+##### 343\.整数拆分
+
+[题目](https://leetcode.cn/problems/integer-break)
+
+题解数学解法。
+
+```c++
+class Solution {
+public:
+    int integerBreak(int n) {
+        if(n<=3) return n-1;
+        vector<int> dp(n+1, 0);
+        dp[0] = dp[1] = 1;
+        for(int i=2;i<=n;i++) {
+            dp[i] = i-1;
+            for(int j=1;j<=i;j++) {
+                dp[i] = max(dp[i], dp[i-j]*j);
+            }
+        }
+        return dp[n];
+    }
+};
+```
+
+##### 394\.字符串解码
+
+[题目](https://leetcode.cn/problems/decode-string/)
+
+```c++
+class Solution {
+public:
+    string decodeString(string s) {
+        int i = 0, n = s.size();
+        auto f = [&](this auto&& self) -> string {
+            string res;
+            while(i<n) {
+                if(s[i]>='0'&&s[i]<='9') {
+                    int k = 0;
+                    while(s[i]>='0'&&s[i]<='9') {
+                        k = k * 10 + (s[i] - '0');
+                        i++;
+                    }
+                    i++; // "["
+                    string tmp = self();
+                    while(k--) {
+                        res += tmp;
+                    }
+                }else if(s[i] == ']') {
+                    i++;
+                    return res;
+                }else {
+                    res += s[i++];
+                }
+            }
+            return res;
+        };
+        return f();
+    }
+};
+```
+
+##### 1190\.翻转每对括号间的子串
+
+[题目](https://leetcode.cn/problems/reverse-substrings-between-each-pair-of-parentheses)
+
+```c++
+class Solution {
+public:
+    string reverseParentheses(string s) {
+        int i = 0, n = s.size();
+        auto f = [&](auto self) -> string {
+            string res;
+            while(i<n) {
+                char c = s[i];
+                i++;
+                if(c == '(') {
+                    string tmp = self(self);
+                    reverse(tmp.begin(), tmp.end());
+                    res += tmp;
+                }else if(c== ')') {
+                    return res;
+                }else {
+                    res += c;
+                }
+            }
+            return res;
+        };
+        return f(f);
+    }
+};
+```
+
+##### 55\.跳跃游戏
+
+[题目](https://leetcode.cn/problems/jump-game)
+
+```c++
+class Solution {
+public:
+    bool canJump(vector<int>& nums) {
+        int pre = 0, n = nums.size(), last = 0;
+        // if(n==1) return true;
+        for(int i=0;i<n-1;i++) {
+            last = max(last, i+nums[i]);
+            if(i==last) {
+                return false;
+            }
+            if(i==pre) {
+                pre = last;
+            }
+        }
+        return true;
+    }
+};
+```
+
+##### 45\.跳跃游戏II
+
+[题目](https://leetcode.cn/problems/jump-game-ii)
+
+```c++
+class Solution {
+public:
+    int jump(vector<int>& nums) {
+        int pre = 0, last = 0, n = nums.size(), ans = 0;
+        for(int i=0;i<n-1;i++) {
+            last = max(last, i+nums[i]);
+            if(i==last) {
+                return -1;
+            }
+            if(i==pre) {
+                ans++;
+                pre = last;
+            }
+        }
+        return ans;
+    }
+};
+```
+
+##### 1024\.视频拼接
+
+[题目](https://leetcode.cn/problems/video-stitching)
+
+手撕真题。
+
+```c++
+class Solution {
+public:
+    int videoStitching(vector<vector<int>>& clips, int time) {
+        vector<int> dp(time + 1, INT_MAX - 1);
+        dp[0] = 0;
+        for (int i = 1; i <= time; i++) {
+            for (auto& it : clips) {
+                if (it[0] < i && i <= it[1]) {
+                    dp[i] = min(dp[i], dp[it[0]] + 1);
+                }
+            }
+        }
+        return dp[time] == INT_MAX - 1 ? -1 : dp[time];
+    }
+};
+```
+
+##### 3524\.求出数组的X值I
+
+[题目](https://leetcode.cn/problems/find-x-value-of-array-i)
+
+```c++
+func resultArray(nums []int, k int) []int64 {
+    ans := make([]int64, k)
+    n := len(nums)
+    dp := make([][]int, n+1)
+    for i := range n+1 {
+        dp[i] = make([]int, k)
+    }
+    for i := 1; i <= n; i++ {
+        v := nums[i-1] % k
+        dp[i][v] = 1
+        for u := 0; u < k; u++ {
+            dp[i][u*v%k] += dp[i-1][u]
+        }
+        for x := 0; x < k; x++ {
+            ans[x] += int64(dp[i][x])
+        }
+    }
+    return ans
+}
+```
+
+##### 3525\.求出数组的X值II
+
+[题目](https://leetcode.cn/problems/find-x-value-of-array-ii)
+
+0x3f
+
+##### 1807\.替换字符串中的括号内容
+
+[题目](https://leetcode.cn/problems/evaluate-the-bracket-pairs-of-a-string)
+
+```c++
+class Solution {
+public:
+    string evaluate(string s, vector<vector<string>>& knowledge) {
+        map<string, string> tokens;
+        for(auto&it:knowledge) {
+            tokens[it[0]] = it[1];
+        }
+        string ans;
+        int l = 0, n = s.size();
+        for(int i=0;i<n;i++) {
+            char c = s[i];
+            if(c == '(') {
+                if(i-l >= 1) {
+                    ans += s.substr(l, i-l);
+                }
+                l = i + 1;
+            }else if(c == ')') {
+                string key = s.substr(l, i-l);
+                string val = "?";
+                if(tokens.find(key) != tokens.end()) {
+                    val = tokens[key];
+                }
+                ans += val;
+                l = i + 1;
+            }
+        }
+        if(n-l >= 1) {
+            ans += s.substr(l, n-l);
+        }
+        return ans;
+    }
+};
+```
+
+##### 58\.最后一个单词的长度
+
+[题目](https://leetcode.cn/problems/length-of-last-word)
+
+```c++
+class Solution {
+public:
+    int lengthOfLastWord(string s) {
+        int n = s.size(), cnt = 0, nonblank = false;
+        for(int i=n-1;i>=0;i--) {
+            if(s[i] == ' ') {
+                if(nonblank) {
+                    return cnt;
+                }
+            }else{
+                nonblank = true;
+                cnt++;
+            }
+        }
+        return cnt;
+    }
+};
+```
+
