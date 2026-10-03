@@ -4612,8 +4612,46 @@
 - 58\.最后一个单词的长度
 
   模拟 签到
+  
+- 1614\.括号的最大嵌套深度
 
+  签到
+  
+- 78\.子集
 
+  DFS / 二进制枚举
+
+- 2267\.检查是否有合法括号字符串路径
+
+  DP
+
+- 1111\.有效括号的嵌套深度
+
+  构造 思维
+
+- 64\.最小路径和
+
+  DP
+
+- 62\.不同路径
+
+  DP / 组合数学
+
+- 63\.不同路径II
+
+  DP
+
+- 3393\.统计异或值为给定值的路径数目
+
+  DP
+
+- 128\.最长连续序列
+
+  STL
+
+- 283\.移动零
+
+  双指针
 
 
 ## 算法
@@ -6298,6 +6336,58 @@ group by date_id, make_name
 
 [题目](https://leetcode.cn/problems/print-in-order/)
 
+```go
+type Foo struct {
+    mu sync.Mutex
+    status int // next func
+    cond *sync.Cond
+}
+
+func NewFoo() *Foo {
+    f := &Foo{
+        status: 1,
+	}
+    f.cond = sync.NewCond(&f.mu)
+    return f
+}
+
+func (f *Foo) First(printFirst func()) {
+    f.mu.Lock()
+    defer f.mu.Unlock()
+    for f.status != 1 {
+        f.cond.Wait()
+    }
+    defer f.cond.Broadcast()
+    f.status = 2
+	// Do not change this line
+	printFirst()
+}
+
+func (f *Foo) Second(printSecond func()) {
+    f.mu.Lock()
+    defer f.mu.Unlock()
+    for f.status != 2 {
+        f.cond.Wait()
+    }
+    defer f.cond.Broadcast()
+    f.status = 3
+	/// Do not change this line
+	printSecond()
+}
+
+func (f *Foo) Third(printThird func()) {
+    f.mu.Lock()
+    defer f.mu.Unlock()
+    for f.status != 3 {
+        f.cond.Wait()
+    }
+    defer f.cond.Broadcast()
+    f.status = 4
+	// Do not change this line
+	printThird()
+}
+```
+
 > 错误的：
 >
 > ```java
@@ -6533,6 +6623,39 @@ class Foo {
 ##### 1115\.交替打印FooBar
 
 [题目](https://leetcode.cn/problems/print-foobar-alternately/)
+
+```go
+type FooBar struct {
+	n int
+    chFoo, chBar chan int
+}
+
+func NewFooBar(n int) *FooBar {
+    fb := &FooBar{n: n, chFoo: make(chan int, 1), chBar:make(chan int, 1)}
+    fb.chFoo <- 1
+	return fb
+}
+
+func (fb *FooBar) Foo(printFoo func()) {
+	for i := 0; i < fb.n; i++ {
+        <-fb.chFoo
+		// printFoo() outputs "foo". Do not change or remove this line.
+        printFoo()
+        fb.chBar <- 1
+	}
+}
+
+func (fb *FooBar) Bar(printBar func()) {
+	for i := 0; i < fb.n; i++ {
+        <-fb.chBar
+		// printBar() outputs "bar". Do not change or remove this line.
+        printBar()
+        fb.chFoo <- 1
+	}
+}
+```
+
+
 
 一种**错误的**超时代码如下：(n=5就超时了)
 
@@ -6854,6 +6977,63 @@ class FooBar2 {
 
 [题目](https://leetcode.cn/problems/print-zero-even-odd/)
 
+单原子变量 + 防 TOCTOU。原子变量赋值规律：-1 1 -2 2 -3 3 ... ，负数打印 0，整数打印奇偶
+
+```go
+type ZeroEvenOdd struct {
+	n        int
+    target   atomic.Int32
+}
+
+func NewZeroEvenOdd(n int) *ZeroEvenOdd {
+	zeo := &ZeroEvenOdd{
+		n:        n,
+	}
+    zeo.target.Store(-1)
+	return zeo
+}
+
+func (z *ZeroEvenOdd) Zero(printNumber func(int)) {
+    for range z.n {
+        for z.target.Load() > 0 {
+            runtime.Gosched()
+        }
+        printNumber(0)
+        z.target.Store(-z.target.Load())
+    }
+}
+
+func (z *ZeroEvenOdd) isEven() bool { 
+    val := z.target.Load() // 防止 TOCTOU
+    return val > 0 && val % 2 == 0
+}
+
+func (z *ZeroEvenOdd) isOdd() bool {
+    val := z.target.Load()
+    return val > 0 && val % 2 == 1
+}
+
+func (z *ZeroEvenOdd) Even(printNumber func(int)) {
+    for i := 2; i <= z.n; i += 2 {
+        for !z.isEven() {
+            runtime.Gosched()
+        }
+        printNumber(i)
+        z.target.Store(-int32(i)-1)
+    }
+}
+
+func (z *ZeroEvenOdd) Odd(printNumber func(int)) {
+    for i := 1; i <= z.n; i += 2 {
+        for !z.isOdd() {
+            runtime.Gosched()
+        }
+        printNumber(i)
+        z.target.Store(-int32(i)-1)
+    }
+}
+```
+
 个人：
 
 ```java
@@ -7054,6 +7234,73 @@ class ZeroEvenOdd {
 
 [题目](https://leetcode.cn/problems/building-h2o/)
 
+基于 CyclicBarrier，并使用管道当信号量限制 H, O 最大数量
+
+```go
+type CyclicBarrier struct {
+    mu sync.Mutex
+    cond *sync.Cond
+    n int
+    cnt int
+    generation int
+} 
+
+func newCyclicBarrier(n int) *CyclicBarrier {
+    cb := &CyclicBarrier{n: n}
+    cb.cond = sync.NewCond(&cb.mu)
+    return cb
+}
+
+func (cb *CyclicBarrier) Await() {
+    cb.mu.Lock()
+    defer cb.mu.Unlock()
+    gen := cb.generation
+    cb.cnt++
+    if cb.cnt == cb.n {
+        cb.cnt = 0
+        cb.generation++
+        cb.cond.Broadcast()
+    }
+    for gen == cb.generation {
+        cb.cond.Wait()
+    }
+}
+
+type H2O struct {
+    cb *CyclicBarrier
+    o chan struct{}
+    h chan struct{}
+}
+
+func NewH2O() *H2O {
+	h := &H2O{
+        cb: newCyclicBarrier(3),
+        h: make(chan struct{}, 2),
+        o: make(chan struct{}, 1),
+    }
+    h.h <- struct{}{}
+    h.h <- struct{}{}
+    h.o <- struct{}{}
+	return h
+}
+
+func (h *H2O) Hydrogen(releaseHydrogen func()) {
+    <-h.h
+	// releaseHydrogen() outputs "H". Do not change or remove this line.
+	releaseHydrogen()
+    h.cb.Await()
+    h.h <- struct{}{}
+}
+
+func (h *H2O) Oxygen(releaseOxygen func()) {
+    <-h.o
+	// releaseOxygen() outputs "H". Do not change or remove this line.
+	releaseOxygen()
+    h.cb.Await()
+    h.o <- struct{}{}
+}
+```
+
 个人：
 
 ```java
@@ -7183,9 +7430,75 @@ class H2O {
 
 [更多办法](https://leetcode.cn/problems/building-h2o/solution/chang-you-duo-xian-cheng-zhi-h2osheng-ch-8f7g/)
 
-##### 1195\.交替打印字符串
+##### 1195\.多线程Fizz Buzz
 
 [题目](https://leetcode.cn/problems/fizz-buzz-multithreaded/)
+
+> re:
+>
+> ```java
+> class FizzBuzz {
+>     private int n;
+>     private final AtomicInteger cur = new AtomicInteger(1);
+> 
+>     public FizzBuzz(int n) {
+>         this.n = n;
+>     }
+> 
+>     // printFizz.run() outputs "fizz".
+>     public void fizz(Runnable printFizz) throws InterruptedException {
+>         for(int i=3;i<=n;i+=3) {
+>             if(i%5==0) {
+>                 continue;
+>             }
+>             while(cur.get() != i) {
+>                 Thread.yield();
+>             }
+>             printFizz.run();
+>             cur.incrementAndGet();
+>         }
+>     }
+> 
+>     // printBuzz.run() outputs "buzz".
+>     public void buzz(Runnable printBuzz) throws InterruptedException {
+>         for(int i=5;i<=n;i+=5) {
+>             if(i%3==0) {
+>                 continue;
+>             }
+>             while(cur.get() != i) {
+>                 Thread.yield();
+>             }
+>             printBuzz.run();
+>             cur.incrementAndGet();
+>         }
+>     }
+> 
+>     // printFizzBuzz.run() outputs "fizzbuzz".
+>     public void fizzbuzz(Runnable printFizzBuzz) throws InterruptedException {
+>         for(int i=15;i<=n;i+=15) {
+>             while(cur.get() != i) {
+>                 Thread.yield();
+>             }
+>             printFizzBuzz.run();
+>             cur.incrementAndGet();
+>         }
+>     }
+> 
+>     // printNumber.accept(x) outputs "x", where x is an integer.
+>     public void number(IntConsumer printNumber) throws InterruptedException {
+>         for(int i=1;i<=n;i++) {
+>             if(i%3==0||i%5==0) {
+>                 continue;
+>             }
+>             while(cur.get() != i) {
+>                 Thread.yield();
+>             }
+>             printNumber.accept(i);
+>             cur.incrementAndGet();
+>         }
+>     }
+> }
+> ```
 
 按序输出导致实际上每次只能同时运行一个线程。所以用一个变量表示当前应该输出哪个值，如果某个线程负责这个值就输出，否则就把自己的时间片让出去给别的线程。
 
@@ -7448,6 +7761,56 @@ class FizzBuzz {
 
 [题目](https://leetcode.cn/problems/the-dining-philosophers/)
 
+> 有四种解法。这里用奇偶。
+>
+> 用的 go chan + 奇偶法；因为左右反了卡了半天，引以为戒
+>
+> ```go
+> type DiningPhilosophers struct {
+>     chops []chan struct{}
+>     once sync.Once
+> }
+> 
+> func (this *DiningPhilosophers) wantsToEat(
+>     philosopher int,
+>     pickLeftFork func(),
+>     pickRightFork func(),
+>     eat func(),
+>     putLeftFork func(),
+>     putRightFork func(),
+> ) {
+>     this.once.Do(func() {
+>         this.chops = make([]chan struct{}, 5)
+>         for i := range this.chops {
+>             this.chops[i] = make(chan struct{}, 1)
+>             this.chops[i] <- struct{}{}
+>         }
+>     })
+> 
+>     left := (philosopher + 1) % 5
+>     right := philosopher
+> 
+>     if philosopher%2 == 0 {
+>         <-this.chops[left]
+>         pickLeftFork()
+>         <-this.chops[right]
+>         pickRightFork()
+>     } else {
+>         <-this.chops[right]
+>         pickRightFork()
+>         <-this.chops[left]
+>         pickLeftFork()
+>     }
+> 
+>     eat()
+> 
+>     putLeftFork()
+>     this.chops[left] <- struct{}{}
+>     putRightFork()
+>     this.chops[right] <- struct{}{}
+> }
+> ```
+
 设 5 个信号量 $c$，$c_i$ 表示第 $i$ 根筷子是否空闲，初始有 $c_i=1$。如果写成下面的**错误**形式：
 
 ```java
@@ -7501,52 +7864,6 @@ class DiningPhilosophers {
 ```
 
 > 思路参考：2023 王道计算机操作系统考研复习指导 P102-P103。
-
-##### 2808\.使循环数组所有元素相等
-
-[题目](https://leetcode.cn/problems/minimum-seconds-to-equalize-a-circular-array)
-
-枚举每个值，求最长间隙可对应求得变为该值的最少秒数
-
-```python
-from typing import *
-from collections import defaultdict
-class Solution:
-    def minimumSeconds(self, nums: List[int]) -> int:
-        n = len(nums)
-        ans = n // 2
-        d = defaultdict(list)
-        for i, v in enumerate(nums):
-            d[v].append(i)
-        for l in d:
-            m, mx = len(d[l]), 0
-            if m == 1:
-                continue
-            for i in range(m):
-                x, y = d[l][i], d[l][(i + 1) % m]
-                mx = max(mx, y-x-1+n*(y<x))
-            ans=min(ans,(mx+1)//2)
-        return ans
-```
-
-优雅写法：
-
-```python
-class Solution:
-    def minimumSeconds(self, nums: List[int]) -> int:
-        pos = defaultdict(list)
-        for i, x in enumerate(nums):
-            pos[x].append(i)
-
-        ans = n = len(nums)
-        for a in pos.values():
-            a.append(a[0] + n)
-            mx = max((j - i) // 2 for i, j in pairwise(a))
-            ans = min(ans, mx)
-        return ans
-```
-
-
 
 ### CF杂题
 
@@ -11254,6 +11571,50 @@ public:
 >      * bool param_3 = obj->erase(num);
 >      */
 > ```
+
+##### 2808\.使循环数组所有元素相等
+
+[题目](https://leetcode.cn/problems/minimum-seconds-to-equalize-a-circular-array)
+
+枚举每个值，求最长间隙可对应求得变为该值的最少秒数
+
+```python
+from typing import *
+from collections import defaultdict
+class Solution:
+    def minimumSeconds(self, nums: List[int]) -> int:
+        n = len(nums)
+        ans = n // 2
+        d = defaultdict(list)
+        for i, v in enumerate(nums):
+            d[v].append(i)
+        for l in d:
+            m, mx = len(d[l]), 0
+            if m == 1:
+                continue
+            for i in range(m):
+                x, y = d[l][i], d[l][(i + 1) % m]
+                mx = max(mx, y-x-1+n*(y<x))
+            ans=min(ans,(mx+1)//2)
+        return ans
+```
+
+优雅写法：
+
+```python
+class Solution:
+    def minimumSeconds(self, nums: List[int]) -> int:
+        pos = defaultdict(list)
+        for i, x in enumerate(nums):
+            pos[x].append(i)
+
+        ans = n = len(nums)
+        for a in pos.values():
+            a.append(a[0] + n)
+            mx = max((j - i) // 2 for i, j in pairwise(a))
+            ans = min(ans, mx)
+        return ans
+```
 
 ##### 1656\.设计有序流
 
@@ -38330,5 +38691,356 @@ public:
         return cnt;
     }
 };
+```
+
+##### 1614\.括号的最大嵌套深度
+
+[题目](https://leetcode.cn/problems/maximum-nesting-depth-of-the-parentheses)
+
+```c++
+class Solution {
+public:
+    int maxDepth(string s) {
+        int cnt = 0, ans = 0;
+        for(auto&c:s) {
+            if(c=='(') {
+                cnt++;
+                ans = max(ans, cnt);
+            }else if(c==')') {
+                cnt--;
+            }
+        } 
+        return ans;
+    }
+};
+```
+
+##### 78\.子集
+
+[题目](https://leetcode.cn/problems/subsets)
+
+面试手撕真题。
+
+```c++
+class Solution {
+public:
+    vector<vector<int>> subsets(vector<int>& nums) {
+        vector<vector<int>> res;
+        int n = nums.size();
+        for(int i=0;i<1<<n;i++) {
+            vector<int> a;
+            for(int j=0;j<n;j++) {
+                if((i>>j)&1) {
+                    a.emplace_back(nums[j]);
+                }
+            }
+            res.emplace_back(a);
+        }
+        return res;
+    }
+};
+```
+
+##### 2267\.检查是否有合法括号字符串路径
+
+[题目](https://leetcode.cn/problems/check-if-there-is-a-valid-parentheses-string-path)
+
+压缩数组。`dp[i][j]`表示走到i,j时，可能的左括号数目。左括号不会超过128个，按理说用Int28存状态位也行。
+
+```go
+func hasValidPath(grid [][]byte) bool {
+    n, m := len(grid), len(grid[0])
+    dp := make([][]map[int]struct{}, max(2, n))
+    for i := range 2 { // 压缩
+        dp[i] = make([]map[int]struct{}, m)
+    }
+    if grid[0][0] == ')' {
+        return false
+    }
+    dp[0][0] = make(map[int]struct{})
+    dp[0][0][1] = struct{}{}
+    for i := range n {
+        for j := range m {
+            if i == 0 && j == 0 {
+                continue
+            }
+            dp[i&1][j] = make(map[int]struct{})
+            tmp := make(map[int]struct{})
+            if i > 0 {
+                for k := range dp[(i&1)^1][j] {
+                    tmp[k] = struct{}{}
+                }
+            }
+            if j > 0 {
+                for k := range dp[i&1][j-1] {
+                    tmp[k] = struct{}{}
+                }
+            }
+            if len(tmp) == 0 {
+                continue
+            }
+            if grid[i][j] == '(' {
+                for k := range tmp {
+                    dp[i&1][j][k+1] = struct{}{}
+                }
+            } else {
+                for k := range tmp {
+                    if k == 0 {
+                        continue
+                    }
+                    dp[i&1][j][k-1] = struct{}{}
+                }
+            }
+        }
+    }
+    _, exist := dp[(n-1)&1][m-1][0]
+    return exist
+}
+```
+
+##### 1111\.有效括号的嵌套深度
+
+[题目](https://leetcode.cn/problems/maximum-nesting-depth-of-two-valid-parentheses-strings)
+
+记录每个括号当前是第几层。所有不超过一半(下取整)的都分到第一组，其他分到第二组。也可以按奇偶分组，略。
+
+```go
+func maxDepthAfterSplit(seq string) []int {
+    maxD := 0
+    cntL := 0
+    n := len(seq)
+    dep := make([]int, n)
+    for i, c := range seq {
+        if c == '(' {
+            cntL++
+            dep[i] = cntL
+        } else {
+            dep[i] = cntL
+            cntL--
+        }
+        maxD = max(maxD, cntL)
+    }
+    ans := make([]int, n)
+    topD := (maxD + 1) / 2
+    for i := range n {
+        if dep[i] > topD {
+            ans[i] = 0
+        } else {
+            ans[i] = 1
+        }
+    }
+    return ans
+}
+```
+
+##### 64\.最小路径和
+
+[题目](https://leetcode.cn/problems/minimum-path-sum/submissions)
+
+```go
+func minPathSum(grid [][]int) int {
+    n, m := len(grid), len(grid[0])
+    dp := make([][]int, n)
+    for i := range n {
+        dp[i] = make([]int, m)
+    }
+    for i := range n {
+        for j := range m {
+            if i ==0 && j == 0 {
+                dp[i][j] = grid[i][j]
+                continue
+            }
+            mi := int(1e9)
+            if i > 0 {
+                mi = min(mi, dp[i-1][j])
+            }
+            if j > 0 {
+                mi = min(mi, dp[i][j-1])
+            }
+            dp[i][j] = mi + grid[i][j]
+        }
+    }
+    return dp[n-1][m-1]
+}
+```
+
+##### 62\.不同路径
+
+[题目](https://leetcode.cn/problems/unique-paths)
+
+```go
+const mod int64 = 2147483659 // 质数，MOD^2 < int64，因为 31 + 31 < 63
+func qpow(a, b int64) int64 {
+    r := int64(1)
+    for ; b > 0; b >>= 1 {
+        if b & 1 == 1 {
+            r = r * a % mod
+        }
+        a = a * a % mod
+    }
+    return r
+}
+const n int64 = 200
+var f []int64 = make([]int64, n+1)
+var inv []int64 = make([]int64, n+1)
+func init() {
+    f[0] = 1
+    for i := int64(1); i <= n; i++ {
+        f[i] = f[i-1] * i % mod
+    }
+    inv[n] = qpow(f[n], mod-2)
+    // f[i] * (i+1) = f[i+1] => 1/f[i] = (i+1)  * (1/f[i+1])
+    for i := n-1; i >= 0; i-- {
+        inv[i] = (i+1) * inv[i+1] % mod
+    }
+}
+func C(n, m int) int { // n 选 m
+    if m < 0 || m > n {
+        return 0
+    }
+    return int(f[n] * inv[m] % mod * inv[n-m] % mod)
+}
+func uniquePaths(m int, n int) int {
+    return C(m+n-2, n-1)
+}
+```
+
+##### 63\.不同路径II
+
+[题目](https://leetcode.cn/problems/unique-paths-ii)
+
+```go
+func uniquePathsWithObstacles(obstacleGrid [][]int) int {
+    n, m := len(obstacleGrid), len(obstacleGrid[0])
+    dp := make([]int, m+1)
+    for i := range n {
+        for j := range m {
+            if i == 0 && j == 0 {
+                dp[j+1] = 1
+            }
+            if obstacleGrid[i][j] == 1 {
+                dp[j+1] = 0
+                continue
+            }
+            dp[j+1] = dp[j+1] + dp[j]
+        }
+    }
+    return dp[m]
+}
+```
+
+##### 3393\.统计异或值为给定值的路径数目
+
+[题目](https://leetcode.cn/problems/count-paths-with-the-given-xor-value)
+
+```go
+const mod = int(1e9) + 7
+func countPathsWithXorValue(grid [][]int, k int) int {
+    n, m := len(grid), len(grid[0])
+    dp := make([][]int, m)
+    for i := range m {
+        dp[i] = make([]int, 16)
+    }
+    for i := range n {
+        for j := range m {
+            v := grid[i][j]
+            if i == 0 && j == 0 {
+                dp[j][v] = 1
+                continue
+            }
+            if i > 0 {
+                tmp := make([]int, 16)
+                copy(tmp, dp[j])
+                for k := range 16 {
+                    dp[j][k] = tmp[k^v]
+                }
+            }
+            if j > 0 {
+                for k := range 16 {
+                    dp[j][k] += dp[j-1][k^v]
+                    dp[j][k] %= mod
+                }
+            }
+        }
+    }
+    return dp[m-1][k]
+}
+```
+
+##### 128\.最长连续序列
+
+[题目](https://leetcode.cn/problems/longest-consecutive-sequence)
+
+思路：每次随机遍历一个数，把这个数往前往后连续延伸，并把这一段给删掉。
+
+如果使用普通 HashSet，删除不会缩容，每次创建迭代器会扫描大量空桶，Iterator<Integer> it = s.iterator(); 最差可以到 O(n)。而 LinkedHashSet 的 iterator 直接找链表头结点必然是 O1 的。
+
+```java
+class Solution {
+    public int longestConsecutive(int[] nums) {
+        LinkedHashSet<Integer> s = new LinkedHashSet<>();
+        for(int v:nums) s.add(v);
+        int ans = 0;
+        while(!s.isEmpty()){
+            Iterator<Integer> it = s.iterator();
+            int val = it.next();
+            int cnt =1;
+            s.remove(val);
+            for(int v=val-1;s.contains(v);v--){
+                cnt++;
+                s.remove(v);
+            }
+            for(int v=val+1;s.contains(v);v++){
+                cnt++;
+                s.remove(v);
+            }
+            ans = Math.max(ans,cnt);
+        }
+        return ans;
+    }
+}
+```
+
+##### 283\.移动零
+
+[题目](https://leetcode.cn/problems/move-zeroes)
+
+```java
+class Solution {
+    public void moveZeroes(int[] nums) {
+        int j = 0;
+        for(int v:nums) {
+            if(v!=0) {
+                nums[j] = v;
+                j++;
+            }
+        }
+        for(int i=j;i<nums.length;i++) {
+            nums[i] = 0;
+        }
+    }
+}
+```
+
+##### 560\.和为K的子数组
+
+[题目](https://leetcode.cn/problems/subarray-sum-equals-k)
+
+```java
+class Solution {
+    public int subarraySum(int[] nums, int k) {
+        int ans = 0;
+        HashMap<Integer, Integer> m = new HashMap<>();
+        m.put(0, 1);
+        int sum = 0;
+        for(int i=0;i<nums.length;i++) {
+            sum += nums[i];
+            int sl = sum - k; // sum - sl = k
+            ans += m.getOrDefault(sl, 0);
+            m.put(sum, m.getOrDefault(sum, 0) + 1);
+        }
+        return ans;
+    }
+}
 ```
 
