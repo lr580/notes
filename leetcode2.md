@@ -177,7 +177,7 @@
 
 - 301\.删除无效的括号
 
-  DFS / <u>枚举子集</u>
+  DFS / <u>枚举子集</u> / BFS + 状压
 
 - 312\.戳气球
 
@@ -4652,6 +4652,110 @@
 - 283\.移动零
 
   双指针
+  
+- 560\.和为K的子数组
+
+  前缀和
+  
+- 678\.有效的括号字符串
+
+  <u>栈</u>
+
+- 856\.括号的分数
+
+  分治 / <u>思维</u>
+
+- 189\.轮转数组
+
+  数学 / <u>思维</u> / 模拟
+
+- 238\.除了自身以外的数组的乘积
+
+  前缀和
+
+- 73\.矩阵置零
+
+  模拟 / 思维
+
+- 160\.相交链表
+
+  <u>链表</u>
+
+- 234\.回文链表
+
+  链表 双指针
+
+- 138\.随机链表的复制
+
+  链表 STL
+
+- 148\.排序链表
+
+  链表 排序
+
+- 226\.翻转二叉树
+
+  DFS
+
+- 101\.对称二叉树
+
+  DFS
+
+- 921\.使括号有效的最少添加
+
+  签到
+
+- 108\.将有序数组转换为二叉搜索树
+
+  DFS
+
+- 169\.多数元素
+
+  摩尔投票 / 签到
+
+- 287\.寻找重复数
+
+  STL / <u>双指针+图论</u>
+
+- 98\.验证二叉搜索树
+
+  DFS
+
+- 230\.二叉搜索树中第K小的元素
+
+  DFS
+
+- 437\.路径总和III
+
+  DFS / <u>树上前缀和</u>
+
+- 208\.实现Trie(前缀树)
+
+  trie
+
+- 114\.二叉树展开为链表
+
+  二叉树 链表
+
+- 78\.单词搜索
+
+  DFS
+
+- 139\.单词拆分
+
+  字符串哈希/KMP/字典树 + DP
+
+- 155\.最小栈
+
+  栈 + STL / <u>前缀和</u>
+
+- 763\.划分字母区间
+
+  贪心
+
+- 347\.前K个高频元素
+
+  堆 / <u>STL</u>
 
 
 ## 算法
@@ -39038,6 +39142,1041 @@ class Solution {
             int sl = sum - k; // sum - sl = k
             ans += m.getOrDefault(sl, 0);
             m.put(sum, m.getOrDefault(sum, 0) + 1);
+        }
+        return ans;
+    }
+}
+```
+
+##### 560\.和为K的子数组
+
+[题目](https://leetcode.cn/problems/subarray-sum-equals-k)
+
+```java
+class Solution {
+    public int subarraySum(int[] nums, int k) {
+        int ans = 0;
+        HashMap<Integer, Integer> m = new HashMap<>();
+        m.put(0, 1);
+        int sum = 0;
+        for(int i=0;i<nums.length;i++) {
+            sum += nums[i];
+            int sl = sum - k; // sum - sl = k
+            ans += m.getOrDefault(sl, 0);
+            m.put(sum, m.getOrDefault(sum, 0) + 1);
+        }
+        return ans;
+    }
+}
+```
+
+##### 678\.有效的括号字符串
+
+[题目](https://leetcode.cn/problems/valid-parenthesis-string)
+
+```java
+class Solution {
+    public boolean checkValidString(String s) {
+        Deque<Integer> leftStack = new LinkedList<Integer>();
+        Deque<Integer> asteriskStack = new LinkedList<Integer>();
+        int n = s.length();
+        for (int i = 0; i < n; i++) {
+            char c = s.charAt(i);
+            if (c == '(') {
+                leftStack.push(i);
+            } else if (c == '*') {
+                asteriskStack.push(i);
+            } else {
+                if (!leftStack.isEmpty()) {
+                    leftStack.pop();
+                } else if (!asteriskStack.isEmpty()) {
+                    asteriskStack.pop();
+                } else {
+                    return false;
+                }
+            }
+        }
+        while (!leftStack.isEmpty() && !asteriskStack.isEmpty()) {
+            int leftIndex = leftStack.pop();
+            int asteriskIndex = asteriskStack.pop();
+            if (leftIndex > asteriskIndex) {
+                return false;
+            }
+        }
+        return leftStack.isEmpty();
+    }
+}
+```
+
+##### 856\.括号的分数
+
+[题目]()
+
+别扭的递归：
+
+```java
+class Solution {
+    private String s;
+    private int idx;
+    private int dfs() {
+        int cur = 0;
+        while(idx<s.length()) {
+            char c = s.charAt(idx);
+            idx++;
+            if(c == '(') {
+                if(idx < s.length() && s.charAt(idx) == ')') {
+                    cur += 1;
+                    idx++;
+                } else {
+                    cur += dfs();
+                }
+            } else {
+                break;
+            }
+        }
+        return cur * 2;
+    }
+    public int scoreOfParentheses(String s) {
+        this.s = "(" + s + ")";
+        idx = 0;
+        return dfs() / 4;
+    }
+}
+```
+
+修改后：如 (()) 是 ( 外层，()) 内层。
+
+```java
+class Solution {
+    private String s;
+    private int idx;
+
+    private int dfs() {
+        int cur = 0;
+        while (idx < s.length()) {
+            char c = s.charAt(idx++);
+            if (c == '(') {
+                if (s.charAt(idx) == ')') {  // "()" 原子对
+                    cur += 1;
+                    idx++;
+                } else {
+                    cur += dfs();            // 嵌套，递归算内层
+                }
+            } else {
+                return cur * 2;              // 遇到 ')'，当前层结束
+            }
+        }
+        return cur;                          // 最外层走完，不用乘 2
+    }
+
+    public int scoreOfParentheses(String s) {
+        this.s = s;
+        this.idx = 0;
+        return dfs();
+    }
+}
+```
+
+贡献法见 0x3f。
+
+##### 189\.轮转数组
+
+[题目](https://leetcode.cn/problems/rotate-array)
+
+```java
+class Solution {
+    private int gcd(int a, int b) {
+        return b != 0 ? gcd(b, a%b) : a;
+    }
+    public void rotate(int[] nums, int k) {
+        int n = nums.length;
+        int g = gcd(n, k);
+        for(int s = 0; s < g; s++) {
+            int x = s, prv = nums[(s - k%n + n) % n], tmp;
+            for(int i=0; i<n/g; i++, x = (x+k)%n) {
+                tmp = nums[x];
+                nums[x] = prv;
+                prv = tmp;
+            }
+        }
+    }
+}
+```
+
+##### 238\.除了自身以外的数组的乘积
+
+[题目](https://leetcode.cn/problems/product-of-array-except-self)
+
+```java
+class Solution {
+    public int[] productExceptSelf(int[] nums) {
+        int n = nums.length;
+        int s[] = new int[n];
+        s[0] = nums[0];
+        for(int i=1;i<n;i++) {
+            s[i] = s[i-1] * nums[i];
+        }
+        int s2 = 1;
+        int ans[] = new int[n];
+        for(int i=n-1;i>=0;i--) {
+            ans[i] = s2 * (i>0?s[i-1]:1);
+            s2 *= nums[i];
+        }
+        return ans;
+    }
+}
+```
+
+##### 73\.矩阵置零
+
+[题目](https://leetcode.cn/problems/set-matrix-zeroes)
+
+```java
+class Solution {
+    public void setZeroes(int[][] matrix) {
+        int n = matrix.length, m = matrix[0].length;
+        boolean r0 = false, c0 = false;
+        for(int r=0;r<n;r++) {
+            for(int c=0;c<m;c++) {
+                if(matrix[r][c] == 0) {
+                    matrix[r][0] = 0;
+                    matrix[0][c] = 0;
+                    if(r==0) {
+                        r0 = true;
+                    }
+                    if(c==0) {
+                        c0 = true;
+                    }
+                }
+            }
+        }
+        for(int r=1;r<n;r++) {
+            if(matrix[r][0] != 0) {
+                continue;
+            }
+            for(int c=0;c<m;c++) {
+                matrix[r][c] = 0;
+            }
+        }
+        for(int c=1;c<m;c++) {
+            if(matrix[0][c] != 0) {
+                continue;
+            }
+            for(int r=0;r<n;r++) {
+                matrix[r][c] = 0;
+            }
+        }
+        if(r0) {
+            for(int c=0;c<m;c++) {
+                matrix[0][c] = 0;
+            }
+        }
+        if(c0) {
+            for(int r=0;r<n;r++) {
+                matrix[r][0] = 0;
+            }
+        }
+    }
+}
+```
+
+##### 160\.相交链表
+
+[题目](https://leetcode.cn/problems/intersection-of-two-linked-lists)
+
+```java
+class Solution {
+    public ListNode getIntersectionNode(ListNode headA, ListNode headB) {
+        ListNode p = headA;
+        ListNode q = headB;
+        while (p != q) {
+            p = p != null ? p.next : headB;
+            q = q != null ? q.next : headA;
+        }
+        return p;
+    }
+}
+```
+
+##### 234\.回文链表
+
+[题目](https://leetcode.cn/problems/palindrome-linked-list)
+
+```java
+class Solution {
+    public boolean isPalindrome(ListNode head) {
+        int half = 1;
+        ListNode fast = head, slow = head;
+        while(fast.next != null && fast.next.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+            half++;
+        }
+        ListNode prv = slow;
+        for(ListNode cur = prv.next; cur!=null;) {
+            ListNode nxt = cur.next;
+            cur.next = prv;
+            prv = cur;
+            cur = nxt;
+        }
+        for(int i=0;i<half;i++) {
+            if(head.val != prv.val) {
+                return false;
+            }
+            head = head.next;
+            prv = prv.next;
+        }
+        return true;
+    }
+}
+```
+
+##### 138\.随机链表的复制
+
+[题目](https://leetcode.cn/problems/copy-list-with-random-pointer)
+
+```java
+/*
+// Definition for a Node.
+class Node {
+    int val;
+    Node next;
+    Node random;
+
+    public Node(int val) {
+        this.val = val;
+        this.next = null;
+        this.random = null;
+    }
+}
+*/
+class Solution {
+    public Node copyRandomList(Node head) {
+        int n = 0;
+        Node pivot = new Node(0);
+        HashMap<Node, Integer> m = new HashMap<>();
+        List<Node> list = new ArrayList<>();
+        for(Node cur = head, cur2 = pivot; cur != null; cur = cur.next) {
+            m.put(cur, n);
+            n++;
+
+            Node nxt = new Node(cur.val);
+            cur2.next = nxt;
+            cur2 = nxt;
+            list.add(nxt);
+        }
+        int[] nxt = new int[n];
+        for(Map.Entry<Node, Integer> entry : m.entrySet()) {
+            Node node = entry.getKey();
+            Node random = node.random;
+            nxt[m.get(node)] = (random == null) ? -1 : m.get(random);
+        }
+        for(int i=0;i<n;i++) {
+            Node u = list.get(i);
+            if(nxt[i] != -1) {
+                Node v = list.get(nxt[i]);
+                u.random = v;
+            }
+        }
+        return pivot.next;
+    }
+}
+```
+
+##### 148\.排序链表
+
+[题目](https://leetcode.cn/problems/sort-list)
+
+```java
+class Solution {
+    public ListNode sortList(ListNode head) {
+        if(head == null || head.next == null) {
+            return head;
+        }
+        if(head.next.next == null) {
+            if(head.next.val < head.val) {
+                int tmp = head.next.val;
+                head.next.val = head.val;
+                head.val = tmp;
+            }
+            return head;
+        }
+        ListNode slow = head, fast = head;
+        while(fast.next != null && fast.next.next != null) {
+            fast = fast.next.next;
+            slow = slow.next;
+        }
+        ListNode slownext = slow.next;
+        slow.next = null;
+        ListNode l = sortList(head);
+        ListNode r = sortList(slownext);
+        ListNode pivot = new ListNode(), cur = pivot;
+        while(l != null && r != null) {
+            if(l.val <= r.val) {
+                cur.next = l;
+                cur = l;
+                l = l.next;
+            } else {
+                cur.next = r;
+                cur = r;
+                r = r.next;
+            }
+        }
+        while(l != null) {
+            cur.next = l;
+            cur = l;
+            l = l.next;
+        }
+        while(r != null) {
+            cur.next = r;
+            cur = r;
+            r = r.next;
+        }
+        return pivot.next;
+    }
+}
+```
+
+##### 226\.翻转二叉树
+
+[题目](https://leetcode.cn/problems/invert-binary-tree)
+
+```c++
+class Solution {
+public:
+    TreeNode* invertTree(TreeNode* root) {
+        if(root == nullptr) {
+            return root;
+        }
+        TreeNode* l = invertTree(root->left);
+        TreeNode* r = invertTree(root->right);
+        root->left = r;
+        root->right = l;
+        return root;
+    }
+};
+```
+
+##### 101\.对称二叉树
+
+[题目](https://leetcode.cn/problems/symmetric-tree)
+
+```c++
+class Solution {
+    bool isSame(TreeNode* u, TreeNode* v) {
+        if(u == nullptr && v == nullptr) {
+            return true;
+        }
+        if(u == nullptr || v == nullptr) {
+            return false;
+        }
+        return u->val == v->val && 
+            isSame(u->left, v->right) && isSame(u->right, v->left);
+    }
+public:
+    bool isSymmetric(TreeNode* root) {
+        return isSame(root, root);
+    }
+};
+```
+
+##### 543\.二叉树的直径
+
+[题目](https://leetcode.cn/problems/diameter-of-binary-tree)
+
+```c++
+class Solution {
+    int ans;
+    int dfs(TreeNode* u) {
+        if(u==nullptr) {
+            return 0;
+        }
+        int l = dfs(u->left), r = dfs(u->right);
+        ans = max(ans, l+r);
+        return max(l, r) + 1;
+    }
+public:
+    int diameterOfBinaryTree(TreeNode* root) {
+        ans = 0;
+        dfs(root);
+        return ans;
+    }
+};
+```
+
+##### 921\.使括号有效的最少添加
+
+[题目](https://leetcode.cn/problems/minimum-add-to-make-parentheses-valid)
+
+```c++
+class Solution {
+public:
+    int minAddToMakeValid(string s) {
+        int ans = 0, cntl = 0;
+        for(char&c:s) {
+            if(c=='(') {
+                cntl++;
+            }else{
+                if(cntl>0) {
+                    cntl--;
+                }else{
+                    ans++;
+                }
+            }
+        }
+        return ans+cntl;
+    }
+};
+```
+
+##### 108\.将有序数组转换为二叉搜索树
+
+[题目](https://leetcode.cn/problems/convert-sorted-array-to-binary-search-tree)
+
+```c++
+class Solution {
+    vector<int> a;
+    TreeNode* dfs(int l, int r) {
+        if(r<l) {
+            return nullptr;
+        }
+        int c = (l+r)/2;
+        TreeNode* ln = dfs(l, c-1);
+        TreeNode* rn = dfs(c+1, r);
+        TreeNode* u = new TreeNode(a[c], ln, rn);
+        return u;
+    }
+public:
+    TreeNode* sortedArrayToBST(vector<int>& nums) {
+        a = nums;
+        int n = a.size();
+        return dfs(0, n-1);
+    }
+};
+```
+
+##### 169\.多数元素
+
+[题目](https://leetcode.cn/problems/majority-element)
+
+```c++
+class Solution {
+public:
+    int majorityElement(vector<int>& nums) {
+        int cnt = 0, v = -1e9-1;
+        for(int&x:nums) {
+            if(x != v) {
+                cnt--;
+                if(cnt<0) {
+                    cnt=1;
+                    v=x;
+                }
+            }else{
+                cnt++;
+            }
+        }
+        return v;
+    }
+};
+```
+
+##### 287\.寻找重复数
+
+[题目](https://leetcode.cn/problems/find-the-duplicate-number)
+
+```c++
+class Solution {
+public:
+    int findDuplicate(vector<int>& nums) {
+        int slow = 0, fast = 0;
+        while(true) {
+            fast = nums[nums[fast]];
+            slow = nums[slow];
+            if(fast == slow) {
+                break;
+            }
+        }
+        int head = 0;
+        while(slow != head) {
+            slow = nums[slow];
+            head = nums[head];
+        }
+        return head;
+    }
+};
+```
+
+##### 98\.验证二叉搜索树
+
+[题目](https://leetcode.cn/problems/validate-binary-search-tree)
+
+```c++
+using ll = long long;
+class Solution {
+    bool dfs(TreeNode* u, ll l, ll r) {
+        if(!u) {
+            return true;
+        }
+        if(!(l <= u->val && u->val <= r)) {
+            return false;
+        }
+        return dfs(u->left, l, 1LL*u->val - 1) &&
+               dfs(u->right, 1LL*u->val + 1, r);
+    }
+public:
+    bool isValidBST(TreeNode* root) {
+        return dfs(root, INT_MIN, INT_MAX);
+    }
+};
+```
+
+##### 230\.二叉搜索树中第K小的元素
+
+[题目](https://leetcode.cn/problems/kth-smallest-element-in-a-bst)
+
+```c++
+class Solution {
+    int k, cnt, ans;
+    void dfs(TreeNode* root) {
+        if(!root) {
+            return;
+        }
+        if(cnt < k) {
+            dfs(root->left);
+        }
+        if(++cnt == k) {
+            ans = root->val;
+        }
+        if(cnt < k) {
+            dfs(root->right);
+        }
+    }
+public:
+    int kthSmallest(TreeNode* root, int k) {
+        this->k = k;
+        cnt = 0;
+        dfs(root);
+        return ans;
+    }
+};
+```
+
+##### 437\.路径总和III
+
+[题目](https://leetcode.cn/problems/path-sum-iii)
+
+题解：维护可变的 dfs 栈作为前缀和。
+
+我：
+
+```c++
+using ll = long long;
+class Solution {
+public:
+    int pathSum(TreeNode* root, int targetSum) {
+        int ans = 0;
+        auto dfs = [&](this auto&& dfs, TreeNode* root) -> map<ll, int> {
+            if(!root) {
+                return {};
+            }
+            map<ll, int> m;
+            m[root->val] = 1;
+            map<ll, int> l = dfs(root->left);
+            map<ll, int> r = dfs(root->right);
+            for(auto&[k, v]:l) {
+                m[root->val + k] += v;
+            }
+            for(auto&[k, v]:r) {
+                m[root->val + k] += v;
+            }
+            ans += m[targetSum];
+            return m;
+        };
+        dfs(root);
+        return ans;
+    }
+};
+```
+
+##### 208\.实现Trie(前缀树)
+
+[题目](https://leetcode.cn/problems/implement-trie-prefix-tree)
+
+```c++
+class Trie {
+    struct Node {
+        unordered_map<char, Node*> nxt;
+        bool end = false;
+    };
+    Node* root;
+public:
+    Trie() {
+        root = new Node();
+    }
+    
+    void insert(string word) {
+        Node* cur = root;
+        for(auto&c:word) {
+            auto it = cur->nxt.find(c);
+            if(it != cur->nxt.end()) {
+                cur = it->second;
+            } else {
+                Node* node = new Node();
+                cur->nxt[c] = node;
+                cur = node;
+            }
+        }
+        cur->end = true;
+    }
+    
+    bool search(string word) {
+        Node* cur = root;
+        for(auto&c:word) {
+            auto it = cur->nxt.find(c);
+            if(it == cur->nxt.end()) {
+                return false;
+            }
+            cur = it->second;
+        }
+        return cur->end;
+    }
+    
+    bool startsWith(string prefix) {
+        Node* cur = root;
+        for(auto&c:prefix) {
+            auto it = cur->nxt.find(c);
+            if(it == cur->nxt.end()) {
+                return false;
+            }
+            cur = it->second;
+        }
+        return true;
+    }
+};
+
+/**
+ * Your Trie object will be instantiated and called as such:
+ * Trie* obj = new Trie();
+ * obj->insert(word);
+ * bool param_2 = obj->search(word);
+ * bool param_3 = obj->startsWith(prefix);
+ */
+```
+
+##### 114\.二叉树展开为链表
+
+[题目](https://leetcode.cn/problems/flatten-binary-tree-to-linked-list)
+
+```c++
+class Solution {
+public:
+    using pn = pair<TreeNode*, TreeNode*>;
+    void flatten(TreeNode* root) {
+        auto dfs = [&](this auto&& dfs, TreeNode* u) -> pn {
+            if(!u || (!u->left && !u->right)) {
+                return {u, u};
+            }
+            pn l = dfs(u->left);
+            pn r = dfs(u->right);
+            u->left = nullptr;
+            if(l.first) {
+                u->right = l.first;
+                l.second->right = r.first;
+                if(!r.first) {
+                    return {u, l.second};
+                }else {
+                    return {u, r.second};
+                }
+            } else {
+                u->right = r.first;
+                return {u, r.second};
+            }
+        };
+        dfs(root);
+
+    }
+};
+```
+
+##### 78\.单词搜索
+
+[题目]()
+
+```c++
+class Solution {
+    const int dx[4] = {-1, 0, 1, 0}, dy[4] = {0, -1, 0, 1};
+public:
+    bool exist(vector<vector<char>>& board, string word) {
+        int n = board.size(), m = board[0].size(), s = word.size();
+        vector<vector<int>> vis(n, vector<int>(m, 0));
+        int t = 0;
+        auto dfs = [&](this auto&& dfs, int x, int y, int suc) -> bool {
+            if(word[suc] != board[x][y]) {
+                return false;
+            }
+            vis[x][y] = t;
+            if(s == suc + 1) {
+                return true;
+            }
+            for(int d=0;d<4;d++) {
+                int nx = x + dx[d], ny = y + dy[d];
+                if(nx<0||ny<0||nx>=n||ny>=m) {
+                    continue;
+                }
+                if(vis[nx][ny] == t) {
+                    continue;
+                }
+                if(dfs(nx, ny, suc+1)) {
+                    return true;
+                }
+            }
+            vis[x][y] = 0;
+            return false;
+        };
+        for(int i=0;i<n;i++) {
+            for(int j=0;j<m;j++) {
+                t++;
+                if(dfs(i, j, 0)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+};
+```
+
+##### 139\.单词拆分
+
+[题目](https://leetcode.cn/problems/word-break)
+
+```c++
+namespace {
+    using ull = unsigned long long;
+    constexpr ull p = 233;
+    constexpr int N = 303;
+
+    constexpr array<ull, N> makepw() {
+        array<ull, N> arr{};
+        arr[0] = 1;
+        for (int i = 1; i < N; i++)
+            arr[i] = arr[i - 1] * p;
+        return arr;
+    }
+}
+class Solution {
+    static constexpr array<ull, N> pw = makepw();
+public:
+    bool wordBreak(string s, vector<string>& wordDict) {
+        unordered_map<int, unordered_set<ull>> m;
+        for(auto&word:wordDict) {
+            ull h = 0;
+            for(auto&c:word) {
+                h = h * p + c;
+            }
+            m[word.size()].insert(h);
+        }
+        int n = s.size();
+        vector<ull> hs(n+1, 0);
+        for(int i=1;i<=n;i++) {
+            hs[i] = hs[i-1] * p + s[i-1];
+        }
+        vector<bool> dp(n+1);
+        dp[0] = true;
+        for(int r=1;r<=n;r++) {
+            for(auto&[len,hset]:m) {
+                int l = r-len+1; 
+                if(!(l>0&&dp[l-1])) {
+                    continue;
+                }
+                ull h = hs[r] - hs[l-1] * pw[len];
+                if(hset.find(h) != hset.end()) {
+                    dp[r] = true;
+                    break;
+                }
+            }
+        }
+        return dp[n];
+    }
+};
+```
+
+##### 155\.最小栈
+
+[题目](https://leetcode.cn/problems/min-stack)
+
+```c++
+class MinStack {
+    stack<int> x_stack;
+    stack<int> min_stack;
+public:
+    MinStack() {
+        min_stack.push(INT_MAX);
+    }
+    
+    void push(int x) {
+        x_stack.push(x);
+        min_stack.push(min(min_stack.top(), x));
+    }
+    
+    void pop() {
+        x_stack.pop();
+        min_stack.pop();
+    }
+    
+    int top() {
+        return x_stack.top();
+    }
+    
+    int getMin() {
+        return min_stack.top();
+    }
+};
+```
+
+##### 301\.删除无效的括号
+
+[题目](https://leetcode.cn/problems/remove-invalid-parentheses)
+
+```c++
+class Solution {
+public:
+    vector<string> removeInvalidParentheses(string s) {
+        int n = s.size();
+        vector<int> b, select(n, true);
+        for(int i=0;i<n;i++) {
+            if(s[i] == '(' || s[i] == ')') {
+                b.emplace_back(i);
+            }
+        }
+        int m = b.size();
+        unordered_set<string> ans;
+        auto isvalid = [&](int i) { 
+            int cntl = 0, ok = true;
+            for(int j=0;j<m;j++) {
+                if(!((i>>j)&1)) { // 0 不删，1删
+                    char c = s[b[j]];
+                    if(c == '(') {
+                        cntl++;
+                    }else if(cntl == 0) {     
+                        ok = false;
+                    }else{
+                        cntl--;
+                    }
+                }
+                select[b[j]] = !((i>>j)&1);
+            }
+            return ok && (cntl == 0);
+        };
+        auto buildAns = [&]() {
+            string res;
+            for(int j=0;j<n;j++) {
+                if(select[j]) {
+                    res += s[j];
+                }
+            }
+            ans.emplace(res);
+        };
+
+        queue<int> q;
+        vector<bool> vis(1<<m, false);
+        q.emplace(0);
+        vis[0] = true;
+        int min_valid = 1e9;
+        while(!q.empty()) {
+            int state = q.front();
+            q.pop();
+            
+            int bits = __popcount(state);
+            if(min_valid != 1e9 && bits > min_valid) {
+                break;
+            }
+            if(isvalid(state)) {
+                buildAns();
+                min_valid = bits;
+            }
+            for(int j=0;j<m;j++) {
+                if(!((state>>j)&1)) {
+                    int s2 = state | (1<<j);
+                    if(vis[s2]) {
+                        continue;
+                    }
+                    vis[s2] = true;
+                    q.emplace(s2);
+                }
+            }
+        }
+        vector<string> a(ans.begin(), ans.end());
+        return a;
+    }
+};
+```
+
+##### 763\.划分字母区间
+
+[题目](https://leetcode.cn/problems/partition-labels)
+
+```c++
+class Solution {
+public:
+    vector<int> partitionLabels(string s) {
+        map<char, pair<int, int>> m;
+        int n = s.size();
+        for(int i=0;i<n;i++) {
+            char c = s[i];
+            if(m.find(c) == m.end()) {
+                m[c] = {i, i};
+            }else{
+                auto pr = m[c];
+                m[c] = {min(i, pr.first), max(i, pr.second)};
+            }
+        }
+        vector<int> ans;
+        for(int i=0;i<n;) {
+            int l = i, r = i;
+            for(;l<=r;l++) {
+                char c = s[l];
+                r = max(r, m[c].second);
+            }
+            ans.emplace_back(r-i+1);
+            i = l;
+        }
+        return ans;
+    }
+};
+```
+
+##### 347\.前K个高频元素
+
+[题目](https://leetcode.cn/problems/top-k-frequent-elements)
+
+```java
+class Solution {
+    public int[] topKFrequent(int[] nums, int k) {
+        HashMap<Integer, Integer> cnt = new HashMap<>();
+        int mxCount = 0;
+        for(int x:nums) {
+            int count = cnt.getOrDefault(x, 0) + 1;
+            cnt.put(x, count);
+            mxCount = Math.max(mxCount, count);
+        }
+        ArrayList<Integer> lists[] = new ArrayList[mxCount + 1];
+        for(int i=mxCount;i>=0;i--) {
+            lists[i] = new ArrayList<>();
+        }
+        for(Map.Entry<Integer, Integer> entry:cnt.entrySet()) {
+            int key = entry.getKey(), count = entry.getValue();
+            lists[count].add(key);
+        }
+        int ans[] = new int[k];
+        for(int i=mxCount;i>=0;i--) {
+            for(int x:lists[i]) {
+                k--;
+                ans[k] = x;
+            }
+            if(k==0) {
+                break;
+            }
         }
         return ans;
     }
